@@ -1,121 +1,62 @@
-# Demo Readiness
+# Local Rehearsal Readiness
 
-This document defines when the current PMI KC demo can be called done. It is not a
-production acceptance checklist. Current product routing lives in `docs/north-star.md`
-and `docs/products/`; older Owner Router/Dan's AI Assistant names in demo artifacts are
-legacy source context for Gmail Inbox 0.
+Status: **current as of 2026-08-03**. This document supersedes the former seeded/hosted Demo
+readiness checklist. PMI KC does not currently operate a hosted Demo environment or a product
+fixture seeder.
 
-## Demo Done Definition
+Production is Live-only at
+<https://pmi-kc-app-kq6wuvpiva-uc.a.run.app>. Production is not a rehearsal surface, and the former
+`pmi-kc-kb-demo` Cloud Run service is absent.
 
-The demo environment is done when all of these are true:
+## Ready definition
 
-- One-command local operator rehearsal passes:
+Local rehearsal is ready only when all of these are true:
 
-```powershell
-.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall
-```
+- Start it from the repository root with:
 
-If Google credentials or the demo project are unavailable, the approved fallback is:
+  ```bash
+  npm run dev
+  ```
 
-```powershell
-.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall -OfflineLocal
-```
+- The server-owned descriptor resolves exactly to `environmentKind:"demo"`,
+  `dataContext:"live_readonly"`, and `source:"explicit"`. The launcher supplies this contract; do
+  not edit `.env.local` or `.env.production.local` to manufacture it.
+- The shell identifies the context as **Live data, read only**.
+- Reads stay inside the reviewed bounded Live-read providers. Local rehearsal contains no invented
+  product records and seeds no fixture.
+- Persistence, route mutations, server actions, uploads, drafts, sends, write-backs, and provider
+  effects remain refused. Local rehearsal is for inspecting and walking through the product, not
+  for changing Live state.
+- The focused safety evidence is green:
 
-This fallback proves the same four screenshare workflows from local seed records. It is
-acceptable for a sales/demo call, but it is not evidence that the Google-backed editable
-API or live Agent Search path is healthy.
+  ```bash
+  npm test -- tests/unit/local-rehearsal-launcher.test.mjs tests/unit/live-readonly-request-policy.test.ts tests/unit/live-readonly-route-sentinel.test.ts
+  ```
 
-- Gmail Inbox 0 demo artifacts are present. The current source artifacts still live in
-  the old local Owner Router package until naming and migration are approved:
+These checks prove the rehearsal boundary; they do not authorize a client-facing send or a
+system-of-record write.
 
-```powershell
-C:\Users\josia\Documents\github-windows\pmi-kc-owner-router\scripts\verify-owner-router.ps1
-```
+## Operator boundaries
 
-This checks the Gmail-native demo package, required labels, required anti-hallucination
-phrases, and absence of obvious Apps Script send/draft capabilities. It does not touch
-live Gmail and does not make the old separate-repo model active again.
+- Treat anything shown locally as Live client data even though the environment kind is `demo`.
+  Follow the normal authenticated-domain, screen-sharing, and data-handling rules.
+- Do not run `demo:reset`, `seed:demo`, `seed:launch-skeletons`, `smoke:demo-live`, or the legacy
+  Demo operator flow as rehearsal setup. Those commands are not the current product workflow.
+- Do not recreate a Test lane, restore a deleted Demo host, or use a zero-traffic release candidate
+  as a general-purpose Demo environment.
+- Stop the local server with `Ctrl+C`. No data reset or teardown mutation is needed because the
+  rehearsal surface cannot persist.
 
-- Local demo reset and workflow smoke pass:
+## Hosted presentation posture
 
-```bash
-npm run demo:reset
-npm run smoke:demo-live
-```
+The separately hosted Demo GCP project contemplated by the original S40 program is deferred. If a
+future requirement needs a remote surface that someone other than the operator can click, that is a
+new explicitly authorized hosting slice. Until then, rehearsal stays local and no fixture seeder is
+introduced.
 
-- Deployed Google sign-in smoke passes against the current demo URL:
+## Historical note
 
-```bash
-npm run smoke:auth-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-central1.run.app --pause-on-human
-```
-
-- Deployed live Ask smokes pass for the four approved workflow Spaces:
-
-```bash
-npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-central1.run.app --browser-session --space=lease-renewals --question="When do we contact the owner versus the tenant during a renewal?"
-npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-central1.run.app --browser-session --space=maintenance-work-order-intake --question="How should maintenance intake handle missing photos and vendor assignment?"
-npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-central1.run.app --browser-session --space=move-out-deposit-disposition --question="How should move-out handling track inspections, vendor bids, and deposit-sensitive decisions?"
-npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-central1.run.app --browser-session --space=owner-onboarding --question="What owner onboarding checklist details must be confirmed before a property is ready?"
-```
-
-- Admin opens for an Admin role account and shows Ask volume, queue depth,
-  notification failures, source states, and Space setup health.
-- Launch skeletons are either seeded for the show or explicitly left optional:
-
-```bash
-npm run seed:launch-skeletons -- --dry-run
-```
-
-- Gmail approval notifications remain disabled in local/demo mode, but production launch
-  enables them with `kb-automation@pmikcmetro.com`, Dan/Josiah recipients, and deployed
-  `APP_BASE_URL`.
-- The demo script clearly says Gmail Inbox 0 live Gmail setup, Lease Renewal Agent
-  runtime, and the PMI KC production source corpus are out of demo scope.
-- If showing Gmail Inbox 0, the demo uses sanitized owner-email scenarios from the old
-  Owner Router artifact package and clearly says the KB does not own live Gmail, write
-  Gmail drafts, alter labels, or send mail.
-- The customer-close story uses `docs/customer-close-demo.md` so the sales pitch is
-  KB first, Gmail Inbox 0 second, Lease Renewal Agent as a scoped next lane, and
-  production cutover last.
-
-## What Counts As Demo Scope
-
-The current done demo is the four-workflow show-and-tell:
-
-- Lease Renewals.
-- Maintenance Work Order Intake.
-- Move-Out + Deposit Disposition.
-- Owner Onboarding.
-
-It proves sign-in, cited Ask behavior, editable SOP/template/placeholder records,
-Approval Queue actions, Admin visibility, and live Agent Search/Gemini grounding
-without writing to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Gmail inboxes,
-Drive folders, Sheets, or any system of record.
-
-## What Does Not Count As Demo Done
-
-The demo is not production-complete until separate client-production work finishes:
-
-- PMI KC-owned project, Firebase app, OAuth client, Cloud Run service, and source
-  storage.
-- Approved PMI KC production sources uploaded/imported into client-owned Agent Search
-  data stores.
-- `kb-automation@pmikcmetro.com` and Dan/Josiah notification recipients.
-- Production observability review.
-- Gmail Inbox 0 Drive/source package and read-only Owner Email indexing for final KB
-  owner-email verification.
-- Mocked-auth Playwright e2e coverage for non-human CI.
-
-## Current Demo Snapshot
-
-As of 2026-05-29, `docs/status.md` records passing local demo smoke, deployed auth
-smoke, deployed live Ask smokes for the four approved workflows, Firestore rules tests,
-and full verification. Re-run the smoke commands above before any new show-and-tell
-and record the new date/result in `docs/status.md`.
-
-For a fast local show, use `.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall`.
-When Google reauth is blocked, use
-`.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall -OfflineLocal`. After the call,
-run `.\scripts\demo-operator.ps1 -Mode Teardown` with the same fallback flag used for
-showtime to reset records when available and stop only the dev server started by the
-operator.
+Before S56, this file described seeded four-workflow records, writable Demo Firestore, Demo operator
+reset/showtime commands, and hosted smoke checks. Those instructions were valid only for the earlier
+dated Demo/Test programme and were retired on 2026-08-03. They are intentionally not executable from
+this current-state document.

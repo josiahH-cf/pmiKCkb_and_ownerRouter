@@ -6,11 +6,11 @@ create, and what still needs to be decided?"
 
 ## Current Reality
 
-| Product                 | What exists now                                                                                                                     | What remains per-action or operational                                                                                    |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Working production app with roles, sources, approvals, Live/Test data, execution authority, Maintenance, and Vendor Test workflows. | Final deploy/browser/rollback evidence for the current revision; individual Live provider activations.                    |
-| Lease Renewal Agent     | Live read/reconcile/review plus the complete isolated eleven-action Test journey.                                                   | Exact contracts/mappings/credentials and Live proof only for provider actions the team wants enabled.                     |
-| Workflow Communications | Proven staff Gmail transport, workflow-only boundary, retention/legal hold, and app-only Test Vendor mailbox.                       | Live Vendor same-address OAuth/vault and any additional Live communication action activation. TTL/Scheduler are optional. |
+| Product                 | What exists now                                                                                                                                                                  | What remains per-action or operational                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Working Live-only Production app on `pmi-kc-app`, with roles, sources, approvals, execution authority, Maintenance, and Live Vendor boundaries.                                  | Individual Live provider activations and their exact external dependencies.                                               |
+| Lease Renewal Agent     | Live read/reconcile/review, ordinary app-plane workflow runs, governed draft paths, and independently gated provider-action contracts.                                           | Exact contracts/mappings/credentials and Live proof only for provider actions the team wants enabled.                     |
+| Workflow Communications | Proven staff Gmail transport, workflow-only boundary, retention/legal hold, and assigned-ticket Live Vendor boundary. Deterministic mailbox fixtures remain automated-test only. | Live Vendor same-address OAuth/vault and any additional Live communication action activation. TTL/Scheduler are optional. |
 
 ## Answered Direction
 
@@ -26,7 +26,8 @@ create, and what still needs to be decided?"
   execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
   approval, and keeps technical Blocked conditions non-executable.
 - The app has `Editor` / `Approver` / `Admin` staff tiers and a separate assigned-ticket-only Vendor.
-  The canonical Test Vendor uses password/TOTP and an app-only mailbox; Live OAuth activates separately.
+  A Live Vendor uses password/TOTP and, where activated, its own same-address OAuth mailbox.
+  Deterministic Vendor/mailbox identities exist only in automated tests/helpers.
 - Initial Admins are Josiah and Dan, with the ability for Admins to grant Admin access
   to additional users they choose.
 - Dan and Josiah remain initial internal Admins. Internal delegation uses Editor/Approver and optional
@@ -39,8 +40,8 @@ create, and what still needs to be decided?"
 - S20 now lets internal Editors exact-confirm enabled Medium workflow communication through the same
   strict linked-context route; generic compose and autonomous, scheduled, event-triggered,
   model-triggered, or bulk sends remain disabled. Consequential High work routes to Admin.
-- The Admin page governs synthetic fallback tools and future approved rule/template versions; model
-  output cannot approve or activate an artifact.
+- The Admin page governs real provider setup and future approved rule/template versions; it exposes
+  no synthetic fallback product tools, and model output cannot approve or activate an artifact.
 - Approval notifications are in-app for the first release. The legacy event-driven Gmail sender is
   hard-disabled; later human-confirmed notification drafts require a separate spec.
 
@@ -71,10 +72,10 @@ larger workflows.
 
 Each workflow run should show a top summary with current status, next action, blocker,
 owner, and due date if known. The run should include a timeline of steps, decisions,
-approvals, comments, and system actions. Test runs should be visually separate from real
-runs and excluded from production metrics unless explicitly included by an Admin. Every
-AI-generated recommendation should keep source links, confidence, and reasoning visible
-to the reviewer.
+approvals, comments, and system actions. Production stores ordinary Live app-plane runs only. Local
+rehearsal is Live-read-only and cannot create a run; invented full-lifecycle scenarios belong only
+in deterministic automated tests/helpers. Every AI-generated recommendation should keep source
+links, confidence, and reasoning visible to the reviewer.
 
 Workflow run statuses should be `Not Started`, `In Progress`, `Waiting on Team`,
 `Waiting on Outside`, `Blocked`, `Ready for Approval`, `Approved`, `Completed`,
@@ -96,10 +97,11 @@ manual start condition, process owner/default approver, source/documentation lin
 required starting inputs, initial steps, action references with execution status, and a
 success, stop, or escalation condition.
 
-Current code uses `Draft`, `Testing`, `Pending Approval`, `Active`, `Needs Revision`, and `Retired`.
-S21 no longer puts validation-passing Editor content/process saves into `Pending Approval`; each creates
-a versioned Active update with history/rollback under the automated trust boundary. Simulation-only
-runs remain marked and cannot write/send/update externally.
+Production process definitions use `Draft`, `Pending Approval`, `Active`, `Needs Revision`, and
+`Retired`; the historical `Testing` lane is not active and zero Production definitions remain in
+that status. S21 no longer puts validation-passing Editor content/process saves into
+`Pending Approval`; each creates a versioned Active update with history/rollback under the automated
+trust boundary. Ordinary app-plane runs construct no provider effect by themselves.
 Pending automation steps should show target system, expected action, missing permission
 or connection, and approval owner.
 
@@ -266,11 +268,10 @@ remain deep links to the run page where their values and governed actions live.
 
 Approval Queue empty, loading, and error states should be plain and production-safe. An
 empty queue should say there is nothing currently waiting for review and should not show
-fake/demo queue items. Loading and error states should use plain-English messages with
+fixture items. Loading and error states should use plain-English messages with
 one obvious retry or open action. Missing evidence, permissions, or connections should
 create or route to a `Blocked` queue item instead of appearing as a vague broken screen.
-Production queue views should never show demo/test items unless the run is clearly marked
-as a test/demo run.
+Production queue views contain Live work only; invented queue scenarios stay in automated tests.
 
 Approval Queue permissions stay explicit by role/action. S20 allows internal Editors to directly
 execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
@@ -341,7 +342,7 @@ identify missing source facts, and explain how each future write/update/send act
 would work. Deterministic connection checks should verify that API connections are
 configured and healthy for each consumed app before an action can move toward execution.
 
-Starter renewal sources can include a video demo, context from the client, and
+Starter renewal sources can include a recorded walkthrough, context from the client, and
 information from the team. Once captured in the client-accessible source location, those
 materials should be treated as source-of-truth inputs rather than split into raw and
 approved areas. Chrome-based process observation may help map browser workflows when
@@ -437,12 +438,12 @@ wrong thing.
 
 | Product                 | Question                                                                                                                | Why it matters                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| All                     | Which product launches first, and what client pain proves it worked?                                                    | Prevents demo order, engineering order, and sales language from diverging.                         |
+| All                     | Which product launches first, and what client pain proves it worked?                                                    | Prevents presentation order, engineering order, and sales language from diverging.                 |
 | All                     | Who owns final wording, source approval, user acceptance, and post-launch support?                                      | Prevents AI sessions from treating unowned assumptions as approved requirements.                   |
 | PMI KC KB               | Which production Spaces launch first, and which approved source folders feed them?                                      | Defines the first real retrieval/citation surface.                                                 |
 | PMI KC KB               | What final support window, escalation contact, and operator roster accompany Dan business and Josiah technical signoff? | Turns the deployed foundation into an operated release without reopening resolved ownership.       |
 | Lease Renewal Agent     | Which exact Sheet scope and safe scenarios prove the operational V1?                                                    | Locks production acceptance without reopening resolved source discovery.                           |
-| Lease Renewal Agent     | Which demo, client-context, and team materials are approved as starter sources?                                         | Prevents observed or informal context from being treated as final authority too early.             |
+| Lease Renewal Agent     | Which walkthrough, client-context, and team materials are approved as starter sources?                                  | Prevents observed or informal context from being treated as final authority too early.             |
 | Lease Renewal Agent     | Which systems may be read or updated, and what requires approval?                                                       | Prevents unsafe write paths across RentVine, DotLoop, LeadSimple, Drive, Sheets, Gmail, and tasks. |
 | Maintenance             | Where do maintenance requests and phone notes live?                                                                     | Determines the source for tenant request and call-note triggers.                                   |
 | Maintenance             | Which common issue templates and escalation rules are approved?                                                         | Determines when tenant-facing replies can be automated.                                            |

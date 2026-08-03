@@ -1,137 +1,122 @@
 # Loop State
 
-Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
+Read `docs/facts.md` first. This is the short resume pointer; history belongs in
+`docs/status.md`.
 
-Last updated: 2026-08-02.
+Last updated: 2026-08-03.
 
 ```yaml
-last_updated: 2026-08-02
-active_program: PRODUCTION-PHASE-2026-07-29
-program_suites: S51-S54 (new) + S40-S50 (in flight)
+last_updated: 2026-08-03
+active_program: S55_S56_PRODUCTION_CHAIN
+program_suites: S55-S56
 spec_writing_allowed: true
 loop_execution_allowed: true
 loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
-spec_package_status: EXECUTING
-implementation_status: EXECUTING_ORDERED_S56_CHAIN
-next_suite: S56
-next_spec: docs/feature-suites/production-live-only-test-lane-retirement.md
-session_auth_status: BLOCKED_OWNER_INTERACTIVE_GCLOUD_REFRESH
-active_slice: S56-RESTORE-DRILL-AUTH-BLOCKED
-last_completed_slice: S56-COUNT-AND-BACKUP-VERIFIED
+spec_package_status: COMPLETE
+implementation_status: COMPLETE
+next_suite: NONE
+next_spec: NONE
+session_auth_status: READY_MANAGED_IDENTITY
+active_slice: NONE_CHAIN_COMPLETE
+last_completed_slice: S55_STAGE_TWO_OLD_SERVICE_RETIRED
 runtime_action_gates_preflipped: false
 ```
 
 ## Authority
 
-- Owner authorized the phase and unattended development. D01–D64, receipt-needed D44/D49/D51, and
-  conservative D50 are in `docs/production-phase-decision-record-2026-07-29.md`.
-- Controlling grant: the **Production Phase Authorization** section of `AGENTS.md`.
-- Live resident/owner/lease data in Production is authorized (`F-LIVE-DATA-AUTHORIZED`).
-- Standing loop authority is `F-LOOP-AUTONOMY-2026-07-29`, bounded by six protected paths.
-- Activation is per named Action Registry key, never a category (`F-GREENLIGHT-NAMED-KEYS`).
-- S52's ceiling is SET and verified: alert $25 / stop $100 (`F-COST-CEILING-S52-APPLIED`).
-- Cloud config commands run WITHOUT asking under `F-CLOUD-AUTOMATION-GRANT`; read back and record.
-- S40–S50 remain controlling after S51–S54; S28–S39 interleave outside higher-priority slices, except S36/S37.
+- Owner authorized the production phase, unattended implementation, routine commit/push/deploy,
+  and cloud configuration under the managed identity.
+- Cloud changes require live readback and an append-only verified fact; lowering a safety control
+  still asks.
+- S52's verified ceiling remains alert `$25` and hard stop `$100`.
+- Live resident, owner, and lease data processing in Production is authorized.
+- Activation remains per exact Action Registry key, never by category or inference.
+- D12's six protected paths remain prepare-and-surface only.
+- Human initiation and exact confirmation still govern client-facing sends and system-of-record
+  writes.
 
-## Current truth
+## Chain end state
 
-- Release path BUILT and **S52 ceiling APPLIED**, so cost/live/cloud steps have headroom. The managed
-  CLI refresh expired during S56 restore rehearsal; owner must run the interactive command named below.
-- S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
-- S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
-  fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
-  the Sheet provider seam. Detail: `docs/status.md` plus the `F-S53-*`/`F-S52-*` rows.
-- S51 steps 3–6 are dependency-safe locally complete (effect stop, A2/monitoring, reply/watch A2,
-  rollback/incident/retention/capacity/log hygiene); Rules/cloud/live rehearsal remain parked.
-- All three reachable Gmail A2 residuals are CLOSED: `gmail.label.apply`
-  (`F-S25-LABEL-S20-CONTRACT`) and both draft actions (`F-S26-DRAFT-CONTRACT-ALIGNED`,
-  `F-S25-DRAFT-PAIR-S20-CONTRACT`) run the canonical S20 one-attempt contract. Gate values
-  unchanged, no D12 path touched, all three send keys still closed under D33.
-- S56 AC-S56-1 is live on both reachable services at `e43cf59`: Production serves revision
-  `pmi-kc-app-rmsbyiiwl-6d646d3629fe`; retained rollback service `pmi-kc-kb-demo` serves
-  `pmi-kc-kb-demo-rmsbyzhi7-666d075ffe32`. Both exact smokes are green; no D12 path changed.
-- S56 AC-S56-6 is locally complete (`F-S56-LOCAL-LIVE-READONLY`): the explicit descriptor, badge,
-  real bounded reads, request-wide refusal, direct writer fences, and actual local runtime are green.
-- S56 AC-S56-2 is complete and its backup prerequisite is verified: 90 explicit Test records were
-  counted, and named PITR clone `s56-test-retirement-20260802-233824` is READY with all 90 records
-  full-field verified. The restore drill exists, but authentication expired before restore or delete.
-- Kill switch armed at the applied $100 (budget + `KILL_SWITCH_CAP_USD` both read back). Caveat:
-  budgets are `INCLUDE_ALL_CREDITS`, so $0 July may be credit-masked; guardrail Node 20 dies 30 Oct 2026.
+- **S56 AC-S56-1 through AC-S56-8 are complete.**
+- Production holds Live data only: all 28 governed collections read back zero explicit
+  `data_mode:"test"` records.
+- Every serving Test intake was fenced before deletion; the current source graph has no Production
+  Test route, executor, fixture panel, or isolated workspace that can recreate the lane.
+- The `data_mode` field remains. Legacy decoding exists only to identify and refuse restored
+  non-Live state.
+- Local is the rehearsal surface and resolves `environmentKind:"demo"`,
+  `dataContext:"live_readonly"`, and `source:"explicit"`.
+- Local uses bounded Live reads and refuses persistence and provider effects. No Demo GCP project
+  or fixture seeder exists.
+- **S55 AC-S55-1 through AC-S55-9 are complete.**
+- The Production service is `pmi-kc-app`; the old `pmi-kc-kb-demo` service is absent.
+- The Friday client-update command carries the canonical link and one-time address-change note,
+  with no retired Test-lane or Demo-environment description presented as current.
 
-## Dependency order
+## Record migration proof
 
-1. **S54 slice 1 — COMPLETE** — local falsification/full gate and remote CI are green.
-2. **S53 slice 1 — COMPLETE LOCALLY** — live Sheet write-back is behind its exact gate and
-   Production+Live descriptor fence; the key remains closed.
-3. **S53 Sheet action contract — COMPLETE LOCALLY / ACTIVATION BLOCKED** — keep the key closed
-   until D32 supplies one provider ledger with stable-row mutate, exact status, atomic absent-key
-   tombstone, immutable effect evidence, and a current-cell generation invalidated by every edit;
-   then require auth and the exact operational target. Fixed-A1 throwaway proof is insufficient.
-4. **S53 comp action contract — COMPLETE LOCALLY / KEY CLOSED** — verified; activation is parked.
-5. **S53 sender/config slice — COMPLETE LOCALLY** — forwarding/refusal and runtime truth are green;
-   undiscovered values remain inert.
-6. **S53 Vendor lifecycle seam — COMPLETE LOCALLY / KEYS CLOSED** — Admin preview/confirm,
-   receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
-7. **S52 — APPLIED AND VERIFIED** — alert $25 / stop $100 live on both enforcement points; alerts
-   reach josiah@ and dan@pmikcmetro.com; account-wide backstop covers the second project.
-8. **S51 app-plane / Gmail residuals — COMPLETE LOCALLY** — S51 steps 3–7 plus the label and
-   draft-pair S20 contracts are green; Rules/cloud/live rehearsal remain parked.
-9. **S51 activation — REMAINING** — Rules review is the residual; the monitoring/operator
-   destination is now satisfied by the two Cloud Monitoring channels created 2026-08-01.
-10. **S40 release-safety prerequisite — COMPLETE LOCALLY** — `npm run release` provides the
-    plan-only / zero-traffic candidate / exact-revision promotion path with captured rollback and
-    named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
-11. **S55 stage one + S56 intake fence — LIVE** — new and rollback services both serve the fenced
-    commit after exact candidate smoke, env readback, promotion and stable-URL smoke.
-12. **S56 local rehearsal — COMPLETE** — explicit Demo + Live-read-only, real bounded reads, badge,
-    proxy/direct fences, AST inventory, and actual-runtime refusal proof are green.
-    12b. **IN PROGRESS:** count and named backup are verified; refresh managed CLI auth, resume the
-    existing restore drill, then delete → zero proof → retire machinery;
-    S55 stage-two rollback rehearsal and old-service deletion remain the LAST programme step.
-13. **S53 remaining activations** — as each owner value lands, each with its paired
-    deploy-wrapper change.
-14. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
+- The post-fence inventory found exactly 90 explicit Test records across the governed catalog.
+- Named PITR clone `s56-test-retirement-20260802-233824` is retained and delete-protected.
+- Existing drill `s56-restore-drill-20260803-004042` restored one planned record and matched its
+  source hash before drill cleanup.
+- The manifest deletion removed exactly those 90 records.
+- A fresh independent query proved zero explicit Test records across all 28 governed collections.
+- A separate exact compare-and-set moved four lane-only
+  `process_definitions.status:"Testing"` records to `Draft`; readback proved zero Testing.
+- Evidence contains counts, collection names, opaque identifiers, and hashes only. It contains no
+  record body, secret, token, or customer content.
 
-## Named external evidence
+## Code and verification proof
 
-- **Blocking the ordered S56 chain:** managed CLI refresh only. Owner runs interactive
-  `gcloud auth login josiah@pmikcmetro.com`; do not create another backup or restore-drill database.
-- Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
-  Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); S53
-  sender value and the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
-  ABA-safe effect generation/protected range) plus column/id/tab confirmation; intake
-  secrets/binding; first Vendor identity; S36 IAM grant; S47 wording/fallback contact; brand
-  artwork approval (D44); D49/D51 receipts.
-- Full list with ready-to-send drafts: `docs/client-asks-2026-07-29.md`.
+- Production fixture machinery is retired while automated fixtures remain under test helpers.
+- No automated test file was deleted; fixture-named tests now prove ordinary Live behavior and
+  negative route/module absence.
+- Deliberate falsification restored a forbidden production fixture path, observed the sentinel
+  fail on that path, then removed it and observed the sentinel pass.
+- The final unpiped gate recorded `GATE_EXIT=0`: 468 unit files / 4,224 tests and 23 Firestore
+  files / 109 tests, plus formatting, lint, TypeScript, policy scanners, and Production build.
+- Verified checkpoint commit: `da87bcf`.
+- No D12 path, Action Registry authority, client send, or system-of-record effect changed.
 
-## Gate meaning
+## Live release and rollback proof
 
-- Program, spec, loop, commit/push, and deploy flags are OPEN.
-- Pure app-plane features have no Action Registry gate and ship when verified.
-- `runtime_action_gates_preflipped:false` stays intentional. A provider action flips in its
-  owning slice only when endpoint/mapping/identity/contract are documented; the flip updates the
-  seed, both executable allowlists, the pinned tests, AND the deploy wrapper — the wrapper
-  forwards a closed allowlist, so a secret alone never activates anything.
-- Never leave a finished documented action preview-only by habit; never flip an undocumented one.
+- Serving revision: `pmi-kc-app-rmsd5ux3l-0b445f0442ea` at 100 percent traffic.
+- Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+- Captured predecessor: `pmi-kc-app-rmsc62q55-dbcbe2db4927`.
+- Rollback rehearsal moved traffic to the predecessor and observed root 307, sign-in 200, and
+  protected 307.
+- Traffic returned to the final revision, read back at 100 percent, and repeated the same
+  307 / 200 / 307 smoke sequence.
+- Only after restored-final smoke did stage two delete `pmi-kc-kb-demo`; list and direct describe
+  readbacks proved absence.
+- The captured predecessor remains the reversible revision-level rollback artifact.
+
+## Operational posture
+
+- Managed CLI authentication is ready; there is no authentication blocker in this chain.
+- The named S56 backup remains retained and delete-protected.
+- The cost guard remains armed at the verified ceiling.
+- Provider actions remain at their independently verified exact-key states.
+- No external credential, vendor action, client decision, or protected patch remains for S55/S56.
+- No unrelated roadmap suite is selected by this pointer.
 
 ## Locked safety
 
-- No autonomous, scheduled, bulk, or model-triggered client-facing send. Every client-facing send
-  and system-of-record write stays human-initiated and exact-confirmed.
-- No guessed endpoint, record URL, or customer value; generic provider navigation is not evidence.
-- No Demo/Production resource, record, credential, effect, or receipt crossing; unknown fails closed.
-- No personal auth, secret, PII, customer content, token, or photo in git or release evidence.
-- Every live effect is one-attempt, idempotent, receipted, monitored, and reversible.
-- No big-bang deletion; static reachability alone never removes provider/security/rollback code.
-- D12's exact six protected paths are surfaced for owner review, never pushed under the standing grant.
+- No autonomous, scheduled, bulk, or model-triggered client-facing send.
+- Every client-facing send and system-of-record write stays human-initiated and exact-confirmed.
+- No guessed endpoint, record URL, identity, or customer value.
+- No personal account in an auth path; managed organization or service identities only.
+- No secret, token, PII, Gmail body, customer content, or photo in git or evidence.
+- Every Live effect remains one-attempt, idempotent, receipted, monitored, and reversible.
+- No safety control is lowered and no protected path is pushed without its required review.
 
 ## Resume
 
-**S56 intake is fenced on BOTH services; local Live-read-only, the 90-record count, and the named
-backup are verified.** After the owner refreshes managed CLI auth, rerun the existing
-`s56-restore-drill-20260803-004042` restore command with the private manifest digest; do not create a
-replacement drill. Only after restore proof may deletion begin; then prove all governed counts zero.
-Keep `data_mode`; retire only the Test lane/machinery. Preserve `pmi-kc-kb-demo` through all S56
-work. S55 AC-S55-9 rollback rehearsal and literal old-service deletion are the LAST programme step.
+**The ordered S55/S56 production chain is complete.** Do not restart its migrations, recreate its
+Test lane, provision a Demo project, or delete the retained backup by inference.
+
+`active_slice:NONE_CHAIN_COMPLETE` is intentional. Stop and report this end state; do not start an
+unrelated suite from this pointer. The Friday update remains a prepared draft for Josiah's human
+review and send.

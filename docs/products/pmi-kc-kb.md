@@ -1,27 +1,28 @@
 # PMI KC KB Product Lane
 
-## Product target and current transition
+## Product target and current posture
 
 PMI KC KB is the deployed source-backed application and shared runtime for the product lanes. It
 includes Firebase staff authentication, role/Space capabilities, Console/Ask, primary Spaces,
 Approvals, Notifications, Connections, Renewals, Maintenance, workflow Communications, task Admin,
 trusted publication, attention, explicit actions, and the external Vendor boundary.
 
-S40–S50 now control the product target:
+S40–S50 establish the product posture:
 
-- independently provisioned Demo and Production environments run the same product;
-- Demo owns realistic invented data and zero-Live-effect workflows, with an optional explicit Live
-  read-only context;
-- Production contains Live data only and no Demo/Test product tools;
+- Production is the hosted product environment and contains Live data only;
+- local rehearsal resolves explicit Demo plus Live-read-only context and cannot create a Live effect;
+- a hosted Demo project and fixture seeder are deferred;
+- no Demo/Test product tools ship in Production;
 - the shell has four daily destinations plus primary Spaces;
 - attention, renewal, approval, Maintenance, Communications, Connections, and Admin each have one
   clear owner; and
-- browser simulations/no-op Sample tools retire in two evidence-backed stages.
+- browser simulations/no-op Sample tools are retired through two evidence-backed stages.
 
-The current deployed Console still shows separate Live and Test projections and the current
-canonical Test workflows remain verified evidence (`F-PRODUCTION-DUAL-DATA-LANES`). Do not rewrite
-that history or claim S40 is built. The backed-up S40 migration moves equivalent safe rehearsal into
-Demo and then supersedes the deployed dual-lane target.
+The deployed service is `pmi-kc-app` at
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`. Its Production projection is Live-only: the product
+Test lane and fixture routes are retired, and zero `data_mode:"test"` records remain across the 28
+governed collections. The former Production Live+Test journeys remain dated historical evidence;
+equivalent deterministic contract coverage lives in automated tests.
 
 ## Roles
 
@@ -58,17 +59,16 @@ for property/lease/contact/work-order facts; other providers retain their own re
 
 ## Environment and data behavior
 
-The S40 target uses server-owned, fail-closed environment/context:
+The deployed boundary uses server-owned, fail-closed environment/context:
 
-| Environment | Allowed product data/effect                                                                                                                                       |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Demo        | Demo data in Demo-owned stores/adapters/receipts. Optional explicitly selected Live read-only projection with a persistent banner and zero app/provider mutation. |
-| Production  | Live data and enabled Live actions only. Missing/unknown/Demo classification is rejected.                                                                         |
+| Surface         | Allowed product data/effect                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Local rehearsal | Explicit `environmentKind:"demo"` + `dataContext:"live_readonly"` + `source:"explicit"`; no app/provider mutation or seeded fixtures. |
+| Production      | Live data and independently enabled Live actions only. Missing/unknown/Demo/Test classification is rejected.                          |
 
-Demo and Production do not share stores/namespaces, storage, queues, secrets, OAuth audiences,
-runtime identities, effect credentials, or receipts. `Test` remains an engineering-verification
-term, not operator product copy. Demo aliases use `.invalid` addresses/reserved IDs and cannot be
-contacted externally.
+Local rehearsal cannot construct Production effect clients or credentials. `Test` remains an
+engineering-verification term, not operator product copy; invented aliases, `.invalid` addresses,
+fake transports, and deterministic fixtures are confined to automated tests.
 
 ## Maintenance, Vendor, and resident intake
 
@@ -77,18 +77,20 @@ reopen, exact provider actions, receipts, and business closeout. Normal ticket U
 next permitted action, evidence, and history; full provider readiness lives in Connections, and no
 simulator/lab ships.
 
-The proven external Vendor boundary remains:
+The implemented Live Vendor seam is fail-closed and its invite, assignment-change, and disable action
+keys remain Production-closed until a named real Vendor and the protected per-key activation review:
 
-- Admin-provisioned identity, password setup, verified-email TOTP, assigned-ticket-only access;
-- exact-preview disable/revoke and repeatable auth reset/re-enable with UID rotation, stale-session
-  denial, preserved matching workflow history, fail-closed partial recovery, and one response-only
-  `no-store` setup link;
-- matching environment/ticket/vendor claims revalidated before every mailbox or ticket mutation;
-  and
-- optional same-address Live OAuth/vault for each real Vendor, never DWD or internal cloud access.
+- Admin exact-previews and confirms an invite for one routable assigned Vendor address;
+- invite uses a deterministic Firebase identity plus exact Gmail Message-ID/recipient readback, a
+  one-time fragment-to-body setup challenge, and generation-bound reissue/recovery;
+- verified email, password, TOTP, and the active Vendor/ticket assignment join are required before
+  ticket detail or communication access;
+- disable cuts off Firestore access first and verifies bounded session/identity revocation; and
+- optional same-address Live OAuth/vault activates separately for each real Vendor, never through DWD
+  or internal cloud access.
 
-Under S40 the canonical `.invalid` fixture and no-provider mailbox/actions live only in Demo. The
-current Test naming remains a compatibility implementation detail until migration.
+The former canonical `.invalid` Vendor and its no-provider mailbox/actions are retained only as
+deterministic automated-test fixtures. Product routes operate on real, assigned Live Vendors.
 
 S47 adds a no-second-login resident intake: opaque short-lived single-purpose token, approved
 troubleshooting graph, appropriate photos excluded from indexing, versioned possible-charge
@@ -108,8 +110,8 @@ otherwise show the reviewed provider front door with `Exact record link unavaila
 link is navigation, never source evidence, and is never derived from a guessed record pattern.
 
 When a provider dependency is missing, build the app-plane and live adapter/full contract to the
-seam, keep only that Live action unavailable, and continue unrelated work. Demo remains fully usable
-through Demo-owned adapters; it never counts as Live proof.
+seam, keep only that Live action unavailable, and continue unrelated work. Local Live-read-only
+rehearsal and deterministic tests remain usable; neither counts as Live proof.
 
 ## Sources, publication, and page layout
 
@@ -139,12 +141,12 @@ seam.
 
 - Admin and Editor complete their scoped whole tasks on desktop and 390×844 without navigation
   wrapping, overlay collisions, duplicated owner lists, or engineering jargon.
-- Demo and Production show unambiguous persistent environment/context and cannot cross records,
-  credentials, effects, or receipts; Production contains Live only after S40 cutover.
+- Local rehearsal and Production show unambiguous server-owned context and cannot cross records,
+  credentials, effects, or receipts; Production contains Live only.
 - Renewal, one-card Approval, focused Maintenance, workflow Communications, Connections, Admin, and
   Spaces meet their S41–S49 owners and exact-link contracts.
-- Vendor password/TOTP/reset/assignment isolation and resident intake token/object authorization
-  remain fail-closed.
+- Live Vendor invite/setup/TOTP/assignment/disable isolation and resident intake token/object
+  authorization remain fail-closed; the Live action keys stay closed until named activation.
 - Every enabled Live action retains exact authority, one attempt, receipt/readback, monitoring, and
   rollback; no autonomous client-facing send or generic mailbox/send exists.
 - No secrets/customer content enter git, logs, notifications, migration evidence, or value-minimized

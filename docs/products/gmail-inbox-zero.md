@@ -44,14 +44,16 @@ approval notification. In-app attention is the default notification lane.
 
 - Editor/Approver/Admin may use enabled workflow actions within role and Space scope.
 - Admin manages governance and High decisions but gains no cross-mailbox content authority.
-- A Live Vendor uses a separate verified-email/TOTP principal and the same-address OAuth mailbox,
-  limited to assigned-ticket threads.
-- Under S40, the canonical `.invalid` Demo Vendor uses password/TOTP and a Demo-owned app mailbox in
-  the Demo environment. It is rejected before OAuth/Gmail client construction; its exact workflow
-  actions produce Demo/non-Live receipts. The current implementation calls this the Test Vendor
-  until migration, but Production will expose no Test/Demo mailbox or simulated communication.
-- S48 removes the browser-only simulated email chain, hard-coded actors, anticipatory Demo drafts,
-  and lab evaluators. Demo retains the real workflow-linked product interaction, not a developer lab.
+- Production accepts only a real assigned Live Vendor with a separate verified-email/TOTP principal
+  and that Vendor's same-address OAuth mailbox, limited to assigned-ticket threads. Each mailbox
+  activates independently through its exact reviewed Live contract.
+- The former canonical synthetic/Test Vendor, app-only mailbox, simulated replies, and receipts are
+  dated contract evidence and deterministic automated-test fixtures only. No current product route
+  provisions or renders that identity or mailbox.
+- Local rehearsal resolves exactly `environmentKind:"demo"`, `dataContext:"live_readonly"`, and
+  `source:"explicit"`. It is effect-fenced before Vendor identity mutation, mailbox construction,
+  persistence, or Gmail/provider effects. A hosted Demo project and product-fixture seeder are
+  deferred rather than substitutes for the retired Test lane.
 
 ## Lease and Maintenance Context
 
@@ -84,7 +86,8 @@ maintenance-owner, or Live Vendor communication activates per action only after 
 recipient/mailbox values, exact provider identity/scopes, confirmation, one-attempt receipt,
 monitoring, and rollback are verified.
 
-Demo workflow communications can prove product behavior but cannot claim a Live Gmail action.
+Local Live-read-only rehearsal can prove bounded reads and refusals but cannot claim a Live Gmail
+action. Invented communication scenarios remain deterministic automated-test evidence only.
 
 ## Hard Boundaries
 
@@ -100,11 +103,14 @@ Demo workflow communications can prove product behavior but cannot claim a Live 
 - Wrong role/Space/mailbox/workflow/recipient/source/confirmation fails before Gmail construction or
   provider claim.
 - One exact-confirmed reply produces at most one transport attempt and a bodyless receipt.
-- Demo Vendor mailbox runs fully in Demo without OAuth/Gmail and cannot produce Live evidence;
-  Production cannot construct or render it.
+- Production cannot construct or render a synthetic/Test/Demo Vendor mailbox, and accepts a mailbox
+  only for a real assigned Live Vendor through the same-address OAuth boundary.
+- Local rehearsal carries the exact explicit Demo + Live-read-only descriptor and refuses every
+  mailbox write or provider effect; deterministic automated tests retain the retired synthetic
+  contracts without creating product records.
 - Legal hold and bounded cleanup preserve bodyless policy.
-- Signed-in desktop/phone surfaces make workflow context and Demo/Production context obvious; the
-  normal Communications page contains no simulation/lab UI.
+- Signed-in desktop/phone Production surfaces make Live workflow context obvious; local rehearsal is
+  visibly Live-read-only, and the normal Communications page contains no simulation/lab UI.
 
 Durable supporting contracts: `docs/feature-suites/gmail-live-per-user.md` governs the staff
 per-user transport boundary. `docs/legacy/owner-router-artifact-source.md` is historical source

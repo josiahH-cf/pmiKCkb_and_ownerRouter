@@ -1,6 +1,6 @@
 # Environment handoff
 
-Updated: 2026-07-30.
+Updated: 2026-08-03.
 
 This is the non-secret handoff registry for the PMI KC production application and development
 environments. Record project IDs, service identities, domains, resource IDs, setup status, and
@@ -10,45 +10,28 @@ Do not put secrets in this document, source control, command output, or release 
 
 ## Environment model
 
-S40’s target is two independently provisioned environments running the same product:
+The implemented environment boundary is:
 
-- **Demo environment** — realistic invented Demo records in Demo-owned database/namespace, storage,
-  queue/topic, secrets/OAuth audience, runtime identity, effect adapters, and receipts. It may also
-  expose a separately selected Live **read-only** context with a persistent banner, no mixed
-  projection, and zero app/provider mutation.
-- **Production environment** — Live customer/provider-backed records only. Every write identifies
-  the exact action/target and requires current human authority. Missing/unknown/Demo classification
-  fails closed; no Demo/Test selector, seed, simulator, or product lab ships.
+- **Production** — Live customer/provider-backed records only. Every write identifies the exact
+  action and target and requires current human authority. Missing or non-Live classification fails
+  closed; no Demo/Test selector, seed, simulator, fixture panel, or product lab ships.
+- **Local rehearsal** — `npm run dev` resolves the server-owned descriptor exactly to
+  `environmentKind:"demo"`, `dataContext:"live_readonly"`, and `source:"explicit"`. It may perform
+  bounded Live reads, but request-wide and direct effect fences refuse persistence and provider
+  effects. It has no seeded product fixtures.
+- **Hosted Demo** — the separately hosted GCP environment contemplated by the original S40 program
+  is deferred under `F-DEMO-DEFERRED-LOCAL-FIRST`. Do not provision it, infer resource names for it,
+  or add a fixture seeder.
 - **Blue/green** — Production candidate revision at zero traffic → exact descriptor/authenticated
-  smoke → deliberate traffic promotion → captured prior revision rollback. It is not the
-  Demo/Production boundary.
+  smoke → deliberate traffic promotion → captured prior-revision rollback. It is a Production
+  release procedure, not an environment/data selector.
 
-Demo and Production must not resolve the same project/service data namespace, Firestore database,
-storage target, queue/topic, Secret Manager boundary, OAuth redirect/audience, runtime identity, or
-effect credential. Exact Demo identifiers are not yet supplied and must never be inferred from the
-legacy Production service name.
-
-The deployed application still contains Production Live+Test lanes and missing mode currently
-resolves to Live (`F-PRODUCTION-DUAL-DATA-LANES`). That is migration input/current evidence, not the
-target. S40 inventories/backups/migrates invented fixtures to Demo and removes them from Production
-only through an owner-run reviewed command.
-
-Canonical current fixtures to migrate into Demo:
-
-| Type               | Identifier                                          | Display / address                         |
-| ------------------ | --------------------------------------------------- | ----------------------------------------- |
-| Unit               | `unit:test-maple-204`                               | `TEST — 204 Maple Court Unit 2`           |
-| Vendor             | `vendor:test-summit-plumbing`                       | `Summit Plumbing Test Vendor`             |
-| Vendor email       | —                                                   | `service@summit-plumbing.example.invalid` |
-| Lease workflow run | `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` | `TEST — 204 Maple Court Unit 2`           |
-| Lease              | `lease:test-maple-204-2027`                         | `Taylor Test Resident`                    |
-
-`vendor:test-summit-plumbing` is the stable current application identity. Its Firebase UID is an
-authentication-generation identifier, is not recorded here, and rotates during an Admin-confirmed
-Vendor reset. Rotation preserves matching fixture tickets/assignments/mailbox/receipts while
-invalidating the old password, TOTP factors, sessions, action links, and UID-bound confirmations.
-After S40 this lifecycle runs only in Demo; IDs may remain compatibility keys while product copy says
-Demo.
+S56 retired the former Production Test lane. Its backed-up migration removed exactly 90 explicit
+`data_mode:"test"` records, and a fresh query proved zero across all 28 governed collections. The
+named clone `s56-test-retirement-20260802-233824` remains retained and delete-protected; a one-record
+restore drill matched the source hash before cleanup. Historical Test receipts and identities remain
+dated evidence only. Deterministic invented fixtures now live only under automated tests/helpers and
+never enter the product graph.
 
 ## Handling values
 
@@ -62,51 +45,50 @@ Demo.
   `docs/v1-client-unblock-checklist-2026-07-14.md` is historical pre-S40 evidence, not a current
   cloud/deploy runbook. Do not turn either inventory into an all-provider application gate.
 
-### Local emulator boundary
+### Local rehearsal and automated-test boundary
 
-Local demo seed/reset/operator writes require
-`FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` and a non-secret emulator project namespace before Firebase
-Admin initialization. An absent, malformed, non-local, or stopped target fails closed. Local demo
-commands never target production and force the stub image store.
+Local product rehearsal uses the explicit Demo + Live-read-only descriptor above. It has no product
+seed/reset/operator path and cannot execute a durable write or provider effect. The local server
+refuses an invalid or missing descriptor rather than falling back to Production mutation authority.
 
-The currently deployed Production Test workspace is historical/current-state evidence. Do not add to
-it. S40 moves equivalent behavior into Demo-owned resources; Demo executors reject Live input and
-construct no Live client, while Production rejects fixture aliases.
+Automated tests may use a loopback Firestore emulator and deterministic helpers. Emulator state and
+synthetic identities remain test-only: they are not a Demo product environment and cannot target
+Production. The retired Production Test workspace is historical evidence only and must not be
+recreated.
 
 ## Environment Registry
 
-| Environment                       | Purpose                                                         | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                                   | Owner                             | State / verification                                                                                                                                                                    |
-| --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local development                 | Build, unit/E2E/emulator verification                           | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell                      | Implementer                       | Local-only; emulator guard required                                                                                                                                                     |
-| Legacy demo                       | Historical evidence only                                        | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                            | Josiah                            | Retired; no `cherrybridge.ai`/`pmikckb-test` reuse                                                                                                                                      |
-| Demo (S40 target)                 | Exact product rehearsal with Demo data; optional Live read-only | **Not provisioned; do not invent.** S40 manifest must record exact independent project/service/database/storage/queue/OAuth/runtime identity                                                                                                                                                      | Separate client Secret Manager/attached identity | Josiah technical; PMI KC business | NOT STARTED; owner provisions the named resources after a green plan, then D05 covers routine revision deploy/smoke/promotion                                                           |
-| Provider sandbox                  | Optional provider-owned sandbox when contract requires it       | Not provisioned                                                                                                                                                                                                                                                                                   | Provider/client managed vault                    | Per provider                      | Independent from Demo; only when provider requires                                                                                                                                      |
-| Production (current → S40 target) | Current serving app; target Live-only                           | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities             | Josiah technical; PMI KC business | Current commit `2bfe7d4`, revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%; rollback `7663cec` / `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Current Live+Test migrates under S40. |
+| Environment      | Purpose                                             | Non-secret identifiers                                                                                                                                                                                                                                                                    | Secret storage                       | Owner                             | State / verification                                                                                                                                                                              |
+| ---------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local rehearsal  | Product rehearsal with bounded Live reads           | `localhost:3000`; exact descriptor `environmentKind:"demo"` + `dataContext:"live_readonly"` + `source:"explicit"`                                                                                                                                                                         | `.env.local` / active shell          | Implementer                       | Explicit Live-read-only; no seeded product fixture, persistence, or provider-effect authority                                                                                                     |
+| Automated tests  | Unit/E2E/emulator verification with invented values | Loopback emulator and deterministic helpers under test-only paths                                                                                                                                                                                                                         | Test process / ignored local values  | Implementer                       | Synthetic records and identities never enter the product graph or Production                                                                                                                      |
+| Legacy demo      | Historical evidence only                            | Legacy project values                                                                                                                                                                                                                                                                     | Legacy ignored config                | Josiah                            | Retired; no `cherrybridge.ai`/`pmikckb-test` reuse                                                                                                                                                |
+| Hosted Demo      | Deferred                                            | **Not provisioned; do not invent.**                                                                                                                                                                                                                                                       | None                                 | Josiah technical; PMI KC business | Deferred by `F-DEMO-DEFERRED-LOCAL-FIRST`; do not request resources or create a fixture seeder                                                                                                    |
+| Provider sandbox | Optional provider-owned sandbox when required       | Not provisioned                                                                                                                                                                                                                                                                           | Provider/client managed vault        | Per provider                      | Independent from local rehearsal; create only when an exact provider contract requires it                                                                                                         |
+| Production       | Serving Live-only application                       | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-app`, `us-central1`; canonical URL `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Revision `pmi-kc-app-rmsd5ux3l-0b445f0442ea` serves 100%; captured predecessor `pmi-kc-app-rmsc62q55-dbcbe2db4927`. Live-only readback passed; legacy service `pmi-kc-kb-demo` is deleted/absent. |
 
-The Production service name contains `demo` for historical reasons; it is still the current
-Production service. Never use that string as environment truth or derive the new Demo name from it.
-The 2026-07-23 checkpoint passed the full deterministic gate and auth-boundary HTTP smoke; exact
-evidence is in `F-CURRENT-SERVING-CHECKPOINT-2026-07-23`, `docs/status.md`, and
+The legacy service `pmi-kc-kb-demo` and its old URL are dated rename/rollback evidence only. The
+canonical Production service and client address are now `pmi-kc-app` and
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`. The exact serving, rollback, forward-restore, and
+old-service absence evidence is recorded in `F-S55-SERVICE-RENAME-COMPLETE`, `docs/status.md`, and
 `docs/loop-state.md`.
 
 ## Production identity configuration
 
-| Item                        | State to verify                                                                                      | Setup / verification                                                                                                                             | Rollback                                                                                |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Internal Google sign-in     | Enabled; staff domain `pmikcmetro.com`                                                               | `npm run firebase:setup-auth -- --project=pmi-kc-kb-prod --authorized-domain=pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; allowed/wrong-domain smoke | Disable provider only for an Auth incident; preserve users/audit                        |
-| Authorized domains          | Firebase default hosts plus canonical Cloud Run host                                                 | Same repository command; inspect returned domain list                                                                                            | Remove only an obsolete host after traffic is gone                                      |
-| Vendor Email/Password       | Enabled; no app self-registration                                                                    | Firebase Console → Security → Authentication → Sign-in method → Email/Password → Enable                                                          | Disable new password sign-in only after Vendor sessions are revoked                     |
-| Vendor TOTP                 | Global MFA enabled; TOTP provider enabled with adjacent interval `1`; current fixture proof retained | Re-run the password/TOTP/assigned-ticket/mailbox smoke in Demo after S40; Production uses real assigned Live Vendors only                        | Disable only during an Auth incident; Vendors remain denied until a safe factor returns |
-| Runtime Auth administration | Current runtime SA can create/revoke sessions and provision/reset the current canonical fixture      | Attached `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`; S40 must not reuse this Production identity for Demo                        | Remove the role and close Vendor provisioning/session routes                            |
+| Item                        | State to verify                                                         | Setup / verification                                                                                                                         | Rollback                                                                                |
+| --------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Internal Google sign-in     | Enabled; staff domain `pmikcmetro.com`                                  | `npm run firebase:setup-auth -- --project=pmi-kc-kb-prod --authorized-domain=pmi-kc-app-kq6wuvpiva-uc.a.run.app`; allowed/wrong-domain smoke | Disable provider only for an Auth incident; preserve users/audit                        |
+| Authorized domains          | Firebase default hosts plus canonical Cloud Run host                    | Same repository command; inspect returned domain list                                                                                        | Remove only an obsolete host after traffic is gone                                      |
+| Vendor Email/Password       | Enabled; no app self-registration                                       | Firebase Console → Security → Authentication → Sign-in method → Email/Password → Enable                                                      | Disable new password sign-in only after Vendor sessions are revoked                     |
+| Vendor TOTP                 | Global MFA enabled; TOTP provider enabled with adjacent interval `1`    | Prove password/TOTP/assigned-ticket/mailbox behavior for each activated real Live Vendor                                                     | Disable only during an Auth incident; Vendors remain denied until a safe factor returns |
+| Runtime Auth administration | Production runtime identity supports the governed Auth/session boundary | Attached `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`; local rehearsal cannot invoke it for a mutation                         | Remove the role and close Vendor provisioning/session routes                            |
 
-The current canonical invented Vendor is Firebase password + TOTP with an app-only mailbox. Admin
-reset/re-enable is available only for that `.invalid` fixture from `pending_setup`, `active`, or `disabled`
-after a reasoned exact preview bound to UID/status/invite version. It rotates the UID, preserves
-stable fixture workflow data, returns one `no-store` setup link, and leaves any partial failure disabled.
-It creates no delivery, OAuth, vault, provider, Registry, or Live effect. Live Vendor OAuth is
-configured per real Vendor later and never uses DWD or an internal staff role. Identity class wins
-over email domain: `vendor:true` users are filtered out of People/Access and rejected by internal
-role/scope/session boundaries even if an address uses the hosted domain.
+Only real, assigned Live Vendor identities are valid product records. Their password/TOTP and
+optional same-address Gmail OAuth lifecycle never uses DWD or an internal staff role. Synthetic
+Vendor identities, mailbox adapters, tickets, and receipts are deterministic automated-test
+fixtures only. Identity class wins over email domain: `vendor:true` users are filtered out of
+People/Access and rejected by internal role/scope/session boundaries even if an address uses the
+hosted domain.
 
 ## Gmail live handoff
 
@@ -137,26 +119,27 @@ must remain visibly unsupported rather than receive a generic answer.
 
 ## Provider activation registry
 
-Record each provider/action independently as `unavailable`, `test_ready` (internal compatibility
-state; operator label Demo-ready), `live_configured`,
+Record each provider/action independently as `unavailable`, legacy `test_ready` (an internal
+compatibility value only, never a Production lane), `live_configured`,
 `live_proven`, `enabled`, or `suspended`.
 
-| System        | App role                                     | Non-secret activation anchors                                                       | Secret owner/location                         | Documented quota / terms                                                                                                                                                                                                                                                                                                                                                                                                         | Safe default                                                                   |
-| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| RentVine      | Operational reads; renewal/work-order writes | Tenant base URL, exact endpoints, property/unit/lease/Vendor/status/version mapping | Existing key/secret in Secret Manager; PMI KC | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Reads when healthy; unsupported writes unavailable; Demo completes internally  |
-| RentCast      | Market comps and rent estimates              | Active API plan, request budget, response attribution/storage/display policy        | API key in Secret Manager; PMI KC             | [API terms](https://www.rentcast.io/terms-api) generally permit storage, display, and distribution; [billing guidance](https://developers.rentcast.io/reference/billing-and-pricing) says request limits and overages vary by plan. Exact PMI plan and applicable third-party-data permission for storing/caching comps and displaying them to a property owner: Needs Verification. S28b activation is blocked until confirmed. | Unavailable; manual comp entry remains usable                                  |
-| Gmail         | Workflow-linked communication                | DWD subject, linked recipient/thread fields, artifact/label rule                    | Keyless DWD / attached identity               | [Official limits](https://developers.google.com/workspace/gmail/api/reference/quota): new-project limits are 1,200,000 units/min/project and 6,000 units/min/user/project, with an 80,000,000-unit/day billing threshold; `drafts.send` and `messages.send` cost 100 units. This project may retain its pre-May-2026 quotas; exact Console quota and intended-volume fit: Needs Verification.                                    | Existing enabled actions retain scope; new initiation unavailable until mapped |
-| Vendor Gmail  | Assigned-ticket Vendor communication         | OAuth client/redirect/four scopes, same Vendor address, vault reference             | Per-Vendor refresh token in Secret Manager    | [Official Gmail API limits](https://developers.google.com/workspace/gmail/api/reference/quota) apply by OAuth project and user. Exact OAuth project quota, mailbox sending limits, plan terms, and intended-volume fit: Needs Verification.                                                                                                                                                                                      | Demo mailbox app-only; Live OAuth off until that Vendor activates              |
-| Google Sheets | Renewal checklist read/write                 | Sheet/tab/row key/column, DWD subject, conflict contract                            | Keyless reader/writer identity                | [Official limits](https://developers.google.com/workspace/sheets/api/limits): 300 read and 300 write requests/min/project, 60/min/user/project, and no daily request cap within the per-minute quotas. Google notes project quotas can differ; exact production quota and intended-volume fit: Needs Verification.                                                                                                               | Existing approved read may run; write unavailable until atomic conflict proof  |
-| Dotloop       | Lease/document package                       | Account/profile/template/participant/document mapping                               | OAuth client/secret in Secret Manager         | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable; no UI endpoint inference                                          |
-| LeadSimple    | Process/task workflow                        | Account plan/endpoint, stages, assignee/due rule, conditional update                | API key in Secret Manager                     | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Demo receipts only until configured                                            |
-| QuickBooks    | Draft Bill downstream                        | OAuth/company/Vendor/account/property mapping, draft-only permission                | OAuth/vault in Secret Manager                 | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Demo draft receipt only; no post/pay path                                      |
-| Boom/SMS      | Auxiliary enrollment/outreach                | Account, applicability/consent/sender/delivery/correction                           | Provider secret only after selection          | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable/not-applicable; do not select by inference                         |
-| Drive         | Maintenance photo append                     | In-boundary folder, ticket mapping, MIME/size/scanner policy                        | Attached Workspace/Drive identity             | [Official limits](https://developers.google.com/workspace/drive/api/guides/limits): 1,000,000 units/min/project, 325,000 units/min/user/project, and 1 TB/day/project egress. This project may retain its pre-May-2026 quotas; exact Console quota, Workspace storage terms, and intended-volume fit: Needs Verification.                                                                                                        | Demo metadata only until Live upload configured; no replace/delete             |
+| System        | App role                                     | Non-secret activation anchors                                                       | Secret owner/location                         | Documented quota / terms                                                                                                                                                                                                                                                                                                                                                                                                         | Safe default                                                                                                            |
+| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| RentVine      | Operational reads; renewal/work-order writes | Tenant base URL, exact endpoints, property/unit/lease/Vendor/status/version mapping | Existing key/secret in Secret Manager; PMI KC | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Reads when healthy; unsupported writes unavailable; local rehearsal refuses effects and automated tests cover contracts |
+| RentCast      | Market comps and rent estimates              | Active API plan, request budget, response attribution/storage/display policy        | API key in Secret Manager; PMI KC             | [API terms](https://www.rentcast.io/terms-api) generally permit storage, display, and distribution; [billing guidance](https://developers.rentcast.io/reference/billing-and-pricing) says request limits and overages vary by plan. Exact PMI plan and applicable third-party-data permission for storing/caching comps and displaying them to a property owner: Needs Verification. S28b activation is blocked until confirmed. | Unavailable; manual comp entry remains usable                                                                           |
+| Gmail         | Workflow-linked communication                | DWD subject, linked recipient/thread fields, artifact/label rule                    | Keyless DWD / attached identity               | [Official limits](https://developers.google.com/workspace/gmail/api/reference/quota): new-project limits are 1,200,000 units/min/project and 6,000 units/min/user/project, with an 80,000,000-unit/day billing threshold; `drafts.send` and `messages.send` cost 100 units. This project may retain its pre-May-2026 quotas; exact Console quota and intended-volume fit: Needs Verification.                                    | Existing enabled actions retain scope; new initiation unavailable until mapped                                          |
+| Vendor Gmail  | Assigned-ticket Vendor communication         | OAuth client/redirect/four scopes, same Vendor address, vault reference             | Per-Vendor refresh token in Secret Manager    | [Official Gmail API limits](https://developers.google.com/workspace/gmail/api/reference/quota) apply by OAuth project and user. Exact OAuth project quota, mailbox sending limits, plan terms, and intended-volume fit: Needs Verification.                                                                                                                                                                                      | Live OAuth off until that real Vendor activates; synthetic mailboxes are test-only                                      |
+| Google Sheets | Renewal checklist read/write                 | Sheet/tab/row key/column, DWD subject, conflict contract                            | Keyless reader/writer identity                | [Official limits](https://developers.google.com/workspace/sheets/api/limits): 300 read and 300 write requests/min/project, 60/min/user/project, and no daily request cap within the per-minute quotas. Google notes project quotas can differ; exact production quota and intended-volume fit: Needs Verification.                                                                                                               | Existing approved read may run; write unavailable until atomic conflict proof                                           |
+| Dotloop       | Lease/document package                       | Account/profile/template/participant/document mapping                               | OAuth client/secret in Secret Manager         | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable; no UI endpoint inference                                                                                   |
+| LeadSimple    | Process/task workflow                        | Account plan/endpoint, stages, assignee/due rule, conditional update                | API key in Secret Manager                     | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable until configured; deterministic receipts remain test-only                                                   |
+| QuickBooks    | Draft Bill downstream                        | OAuth/company/Vendor/account/property mapping, draft-only permission                | OAuth/vault in Secret Manager                 | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable until configured; deterministic draft receipts are test-only; no post/pay path                              |
+| Boom/SMS      | Auxiliary enrollment/outreach                | Account, applicability/consent/sender/delivery/correction                           | Provider secret only after selection          | Needs Verification                                                                                                                                                                                                                                                                                                                                                                                                               | Unavailable/not-applicable; do not select by inference                                                                  |
+| Drive         | Maintenance photo append                     | In-boundary folder, ticket mapping, MIME/size/scanner policy                        | Attached Workspace/Drive identity             | [Official limits](https://developers.google.com/workspace/drive/api/guides/limits): 1,000,000 units/min/project, 325,000 units/min/user/project, and 1 TB/day/project egress. This project may retain its pre-May-2026 quotas; exact Console quota, Workspace storage terms, and intended-volume fit: Needs Verification.                                                                                                        | Live upload unavailable until configured; test metadata remains test-only; no replace/delete                            |
 
-An inactive row does not make the production application unready. Its exact Live action remains closed
-and visibly unavailable while the Demo workflow continues. Connections also exposes a reviewed
-generic provider front door; it is navigation only and never Live evidence/readiness.
+An inactive row does not make the production application unready. Its exact Live action remains
+closed and visibly unavailable while app-plane behavior is covered by local Live-read-only refusal
+and deterministic automated tests. Connections also exposes a reviewed generic provider front door;
+it is navigation only and never Live evidence/readiness.
 
 ## Manual Setup And Web-App Testing
 
@@ -168,18 +151,17 @@ npm run check:budget-guard
 ```
 
 If ADC is stale, the owner runs `npm run auth:session` interactively. Never substitute a personal
-account. A green posture check is not spending approval: S52's alert and hard-stop values must also
-be non-null, owner-selected from eligible baseline evidence, and verified in lockstep. While they
-remain null, use only local/read-only/print-only paths.
+account. S52 is applied and read back at a `$25` alert threshold and `$100` hard stop, with both
+enforcement points aligned. Re-read the live controls before a cost-bearing change; never lower a
+safety control without the required owner approval.
 
 Prepare/verify the ignored production environment:
 
 ```bash
 npm run prepare:production-env -- \
-  --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app \
+  --app-base-url=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app \
   --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com \
   --approval-sender="$KB_APPROVAL_SENDER"
-npm run preflight:production -- --env-file=.env.production.local
 ```
 
 The helper forces `ENVIRONMENT_KIND=production` plus `DATA_CONTEXT=live`, requires exactly one
@@ -190,38 +172,43 @@ maintenance-intake Secret Manager ids/versions: both
 `MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID` activate together, while a partial pair, plaintext-only
 configuration, or reuse of one Secret Manager id is refused. The two referenced values must live
 under different ids and be distinct, generated high-entropy values of at least 32 UTF-8 bytes. Do not
-put either secret value in the generated file.
-
-The former legacy wrapper auto-promotes immediately and therefore is not a current executable
-production runbook. Before any next deploy, S40 must land the environment-parameterized,
-zero-traffic candidate path with candidate smoke before exact-revision promotion. Use its guaranteed
-non-executing plan path while S52 is null:
+put either secret value in the generated file. Production release reads
+`.env.production.local`, not `.env.local`. Confirm that every intended non-secret value reached the
+release command's `MERGED` map:
 
 ```bash
-npm run deploy -- --plan-only --environment=production
+npm run release -- --environment=production --service=pmi-kc-app --plan-only
 ```
 
-That command is a specified S40 target until implemented; it must emit no `gcloud` call and must
-refuse unsafe local/emulator variables by name. A real D05 release becomes eligible only after the
-full local gate, fresh auth, non-null/verified S52 values, current Production manifest, four correctly
-targeted S51 policies, prior-revision capture, rollback preparation, and candidate smoke all pass.
-It deploys only to an already-provisioned service.
+The release path runs its own production preflight against that merged map. A standalone
+`npm run preflight:production` reads the ambient shell and is not release-path evidence. After the
+full local gate, fresh managed auth, current guardrail readback, prior-revision capture, and reviewed
+plan, execute only against the already provisioned service:
+
+```bash
+npm run release -- \
+  --environment=production \
+  --service=pmi-kc-app \
+  --execute \
+  --budget-confirmed
+```
+
+The release creates a candidate at zero traffic. Smoke the exact tagged revision, promote it
+deliberately, read back exact traffic, and retain the captured predecessor for revision-level
+rollback.
 
 `firestore.rules` is D12-protected: a changed ruleset is isolated and surfaced for owner review, not
 pushed or deployed under the unattended grant. Deploy `firestore:indexes` separately only when an
 actual production query requires one of the declared composite indexes; index creation is a cloud
 resource mutation, not part of D05.
 
-S40 generates separate validated Demo/Production manifests and parameterized commands before
-provisioning Demo. For Production, create the candidate at zero traffic, verify the exact descriptor
-and authenticated whole-task smoke, then promote deliberately and retain the prior revision.
-
-After S40 deploy, verify internal sign-in and wrong-domain denial; persistent environment/context
-labels; Production Live-only; Demo renewal/Maintenance/Approval/Vendor completion with zero Live
-provider construction; optional Demo Live-read-only mutation refusal/non-mixing; source-backed Ask/
-no-source; exact provider/backlinks; Gmail hydration; resident token object authorization; and
-rollback. Record only safe outcomes such as UID rotation and route/state checks—never setup links,
-passwords, tokens, TOTP material, customer content, or sessions.
+After a Production deploy, verify internal sign-in and wrong-domain denial; the Production + Live
+descriptor; zero product Test routes or fixtures; source-backed Ask/no-source; exact
+provider/backlinks; Gmail hydration; resident-token object authorization; exact-revision traffic;
+and rollback. Separately verify local `environmentKind:"demo"` +
+`dataContext:"live_readonly"` + `source:"explicit"` and mutation/provider-effect refusal. Record
+only safe route/state outcomes—never setup links, passwords, tokens, TOTP material, customer
+content, or sessions.
 
 ## Key And Secret Ownership
 
@@ -238,25 +225,24 @@ passwords, tokens, TOTP material, customer content, or sessions.
 - [x] Environment row has an owner and current revision/state.
 - [x] Every configured Live secret has a location label, owner, rotation, and revocation path.
 - [x] Firebase Email/Password, global MFA/TOTP, and authorized-domain state are recorded.
-- [x] Historical canonical Test Lease reached refresh-safe Done with eleven receipts/attempts and
-      zero Live calls.
-- [x] Historical automated Test Vendor 11/11 and Maintenance 19/19 journeys pass with zero Live calls.
-- [x] Historical Test Vendor reset/re-enable and internal-roster separation are verified/deployed.
+- [x] Historical Production Test Lease, Vendor, and Maintenance journeys remain dated evidence; their
+      deterministic equivalents remain under automated tests/helpers only.
+- [x] Exactly 90 explicit Test records were removed behind a named, retained backup and a successful
+      one-record restore drill; zero remain across all 28 governed collections.
+- [x] Local rehearsal resolves the exact explicit Demo + Live-read-only descriptor and refuses
+      durable writes and provider effects.
 - [x] Each provider's activation state is independent and visible in the app.
 - [x] Current serving checkpoint and rollback are recorded in the Environment Registry.
-- [ ] S40 owner supplies exact independent Demo resource values; green collision/dry-run packet
-      precedes provisioning.
-- [ ] S40 migrates invented fixtures out of Production after inventory/backup/rehearsal; Production
-      Live-only and Demo parity/browser tasks pass.
-- [ ] Re-run Vendor password/TOTP/assigned-ticket/mailbox/disable/reset/re-enrollment in Demo after
-      migration; no secret-bearing evidence.
-- [x] Rehearse historical `00025-mhw → 00024-6b2 → 00025-mhw` traffic rollback/restore.
+- [x] Hosted Demo provisioning and fixture seeding are explicitly deferred; no resource request is
+      open for them.
 - [x] Rehearse bounded rollback/restore between final revision
-      `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` and its captured predecessor
-      `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`.
+      `pmi-kc-app-rmsd5ux3l-0b445f0442ea` and captured predecessor
+      `pmi-kc-app-rmsc62q55-dbcbe2db4927`, then restore the final revision to 100%.
+- [x] Delete legacy service `pmi-kc-kb-demo` only after forward restore and smoke; direct describe
+      and service-list readbacks prove it absent.
 - [x] `docs/client-checklist.md` contains only genuine client inputs, not already-settled decisions.
 - [x] `docs/status.md` records verification and any exact dependent blocker.
 
-If a value is missing, block only the dependent Live action and continue with the Demo/app-plane or
-unavailable-provider default. Preserve no-autonomous-send, exact confirmation, one-attempt,
-reconciliation, and rollback controls.
+If a value is missing, block only the dependent Live action and continue with the local
+Live-read-only/app-plane or unavailable-provider default. Preserve no-autonomous-send, exact
+confirmation, one-attempt, reconciliation, and rollback controls.

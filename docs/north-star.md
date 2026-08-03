@@ -18,26 +18,19 @@ Notifications owns event history/unread state, Connections owns provider setup, 
 work status, and Spaces is the primary knowledge destination. Operators should complete work
 without learning Registry keys or provider architecture.
 
-## Demo and Production
+## Production and Local Rehearsal
 
-The S40 target is two independently provisioned environments running one product contract:
-
-- **Demo** uses realistic invented Demo data and Demo-owned stores/adapters/receipts. It can complete
-  the same product workflows with zero Live-provider effects. If separately configured, it may show
-  an explicitly selected, persistently labeled **Live read-only** context; that context never mixes
-  with Demo records/counts and cannot mutate, draft, send, execute, or write a receipt.
-- **Production** contains Live data only. Missing/unknown classification fails closed. Production
-  exposes no Demo/Test seed, mode selector, simulator, Sample control, or lab.
-- Both environments share routes, components, roles, validation, preview, decision, and receipt
-  shapes; they do not share databases/namespaces, storage, queues, secrets, OAuth audiences,
-  runtime identities, external-effect credentials, or receipts.
-- Blue/green is the Production candidate-revision promotion and rollback procedure, not the
-  Demo/Production boundary.
-
-`F-PRODUCTION-DUAL-DATA-LANES` remains an honest fact about the currently deployed application until
-S40’s backed-up migration and owner-run cutover complete. It is no longer the product target.
-Automated tests, fixtures, emulators, Demo adapters, security, and provider seams remain even though
-shipped Test/developer tools are removed.
+- **Production** is Live-only on Cloud Run service `pmi-kc-app` at
+  `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`. The former `pmi-kc-kb-demo` service is absent, and all
+  28 governed collections contain zero explicit `data_mode:"test"` records.
+- **Local rehearsal** resolves exactly `environmentKind:"demo"`,
+  `dataContext:"live_readonly"`, and `source:"explicit"`. It may perform bounded Live reads, but it
+  cannot persist, draft, send, claim, execute a provider effect, or write a receipt.
+- The separately hosted Demo GCP project and fixture seeder are deferred. A zero-traffic tagged Cloud
+  Run candidate is a Production release-validation surface, not a Demo environment.
+- Deterministic invented fixtures, fake transports, emulators, and synthetic receipts remain only in
+  automated tests/helpers. They never enter Production or count as Live-provider evidence.
+- Blue/green is the Production candidate-revision promotion and rollback procedure.
 
 ## Product and Execution Rules
 
@@ -56,19 +49,21 @@ shipped Test/developer tools are removed.
   scheduled, bulk, model-triggered, or autonomous client-facing send is a product capability.
 - Every external execution has one claim, idempotency, a value-minimized receipt, safe error state,
   readback/reconciliation, monitoring, kill switch, and correction/rollback.
-- Shipped developer/Test tools are removed in two stages. Static import reachability alone never
-  proves a provider/security/rollback module is safe to delete.
+- The retired Production Test lane, seeders, simulators, Sample controls, and product fixture tools
+  must not return. Static import reachability alone never proves a provider/security/rollback module
+  is safe to delete.
 
 ## Safety Boundaries
 
 - No secrets, tokens, customer records, Gmail bodies, bank data, SSNs, full leases, resident bearer
   tokens, or customer photos in git, URLs, manifests, release evidence, or value-minimized audit.
 - Missing or weak sources produce visible uncertainty, not generic property-management answers.
-- Demo and Production identities, records, assignments, adapters, stores, contexts, and receipts do
-  not cross. Demo Live-read-only cannot create an app or provider effect.
+- Local Live-read-only rehearsal cannot create an app or provider effect, and restored non-Live state
+  fails closed rather than crossing into Production work.
 - Personal Google identities never enter staff, connector, build, runtime, Firebase CLI, or cloud
   paths.
-- Invented aliases use `.invalid` addresses/reserved IDs in Demo and cannot be contacted externally.
+- Invented aliases use `.invalid` addresses/reserved IDs only in automated tests and cannot be
+  contacted externally.
 - Page/layout configuration cannot grant authority, change shell/roles/environment/provider gates,
   hide required controls, or invoke an executor.
 
@@ -80,9 +75,9 @@ shipped Test/developer tools are removed.
 - Readiness requires green deterministic verification, authenticated desktop/390×844 whole-task
   coverage, exact links, environment isolation, a pinned candidate revision, Production smoke,
   captured prior revision, and rollback readiness.
-- Demo workflow evidence proves product behavior only; a lane-correct Live receipt/readback proves
-  a provider. Provider activation remains per action and never changes the application’s product
-  name.
+- Deterministic automated tests prove contract behavior, and local rehearsal proves Live-read-only
+  projection/refusal behavior; only a lane-correct Live receipt/readback proves a provider. Provider
+  activation remains per action and never changes the application’s product name.
 - Preserve original specs in `docs/specs/`; current authority lives in `docs/facts.md`,
   `docs/loop-state.md`, `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, and active
   feature-suite specs.
@@ -91,6 +86,6 @@ shipped Test/developer tools are removed.
 
 The program succeeds when staff can understand every destination, complete renewal/approval/
 Maintenance/communication work end to end, inspect exact source/provider destinations, and recover
-from failures without hidden effects; residents can complete scoped Maintenance intake; Demo safely
-rehearses the exact product; Production contains only Live work; and provider activations can ship
-one action at a time without redesigning the application.
+from failures without hidden effects; residents can complete scoped Maintenance intake; local
+rehearsal safely proves bounded Live reads and effect refusals; Production contains only Live work;
+and provider activations can ship one action at a time without redesigning the application.

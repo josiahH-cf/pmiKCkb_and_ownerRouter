@@ -1,108 +1,66 @@
 # Demo Lane Retirement
 
-> **2026-07-28 clarification.** This document retires the unsafe legacy
-> `cherrybridge.ai`/`pmikckb-test` environment only. S40 now authorizes a **new**, independently
-> provisioned PMI KC managed Demo environment under
-> `docs/feature-suites/environment-deployment-separation.md`. Do not reuse or restore any identifier,
-> identity, credential, or resource from this retired lane, and do not infer the new Demo resource
-> names from current Production’s historically named `pmi-kc-kb-demo` service.
+Status: **complete; current posture reconciled 2026-08-03**.
 
-Status: **Complete (2026-06-20)** — repo side done; GCP project `pmikckb-test` deleted
-(soft-delete, recoverable ~30 days) via a one-time ephemeral `cherrybridge.ai` auth this session.
-Decision: owner directed "retire this completely now that we're in a live environment"
-(2026-06-20). Scope chosen: **dead-references only** — neutralize every repo pointer to the dead
-demo project and retire the demo _cloud_ lane, while **keeping** local-dev demo mode (deliberately
-hardened) and the sanitized demo source templates (still the live KB's only approved content
-corpus until real client sources land).
+This record covers two completed retirements:
 
-See also [`auth-identity-and-access-strategy.md`](auth-identity-and-access-strategy.md) §0 and
-[`loop-state.md`](loop-state.md).
+1. The legacy `cherrybridge.ai` / `pmikckb-test` hosted Demo project was retired on 2026-06-20.
+2. The historically named Production Cloud Run service `pmi-kc-kb-demo` was deleted on 2026-08-03,
+   after `pmi-kc-app` passed rollback and forward-restore rehearsal.
 
-## What the demo lane was
+Neither identifier is a current environment or rollback target.
 
-- **GCP project:** `pmikckb-test` (number `800237451321`), owned by and auth-locked to the
-  **`cherrybridge.ai`** org — an org `pmikcmetro.com` does **not** control.
-- **Cloud Run service:** `pmi-kc-kb-demo` (in `pmikckb-test`).
-- **Cloud Storage bucket:** `gs://pmikckb-test-lease-renewals-686407/`.
-- **Vertex Agent Search data stores:** `kb-lease-renewals-txt`, `kb-maintenance-work-order-intake-txt`,
-  `kb-move-out-deposit-disposition-txt`, `kb-owner-onboarding-txt`, and the transcript-derived
-  per-Space stores (location `us`).
-- **Firebase project:** `pmikckb-test` (auth domain `pmikckb-test.firebaseapp.com`).
-- Possible stray sibling project `pmikckb-test-8f927` (Firebase once auto-created it).
+## Current topology
 
-The live product was migrated off this lane: the cheap-live KB now runs on **`pmi-kc-kb-prod`**
-(org `pmikcmetro.com`), with its own bucket `pmi-kc-kb-prod-sources-558870356522` and data stores.
+- **Production:** project `pmi-kc-kb-prod`, Cloud Run service `pmi-kc-app`, Live data only, at
+  <https://pmi-kc-app-kq6wuvpiva-uc.a.run.app>.
+- **Local rehearsal:** `npm run dev`, resolving exactly to `environmentKind:"demo"`,
+  `dataContext:"live_readonly"`, and `source:"explicit"`.
+- **Local authority:** bounded Live reads only. Persistence and provider effects are refused.
+- **Hosted Demo:** deferred. No separate Demo GCP project is provisioned.
+- **Fixtures:** no product fixture seeder or persisted Test lane. Deterministic fixtures remain only
+  in automated tests.
 
-> ⚠️ **Name collision — do not confuse the two.** The live prod Cloud Run service is _also_ named
-> `pmi-kc-kb-demo`, but it lives in **`pmi-kc-kb-prod`**
-> (`https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`). Every teardown command below targets
-> `--project=pmikckb-test` explicitly. **Never run a delete against `pmi-kc-kb-prod`.**
+Blue/green release candidates and captured Production revisions remain deployment verification and
+rollback mechanisms. They are not Demo environments.
 
-## Done on the repo side (2026-06-20)
+## Do not restore or recreate
 
-- Neutralized dead default project ids: `scripts/deploy-demo-cloud-run.mjs`
-  (`DEFAULT_PROJECT_ID` → `pmi-kc-kb-prod`), `scripts/source-corpus-manifest.mjs`
-  (`DEFAULT_PROJECT` → `pmi-kc-kb-prod`), `scripts/setup-windows-google-dev.ps1`
-  (`$ProjectId` → `pmi-kc-kb-prod`).
-- Repointed `scripts/demo-operator.mjs` / `demo-operator.ps1` hosted-URL defaults off the dead
-  project-number URL (`…-800237451321…`) to the live service URL.
-- Removed the `firebase:setup-demo` / `firebase:setup-auth-demo` npm scripts (they hardcoded
-  `--project=pmikckb-test`); the generic `firebase:setup` / `firebase:setup-auth` remain and read
-  the project from env.
-- Revoked the legacy `cherrybridge.ai` gcloud credential locally (only `josiah@pmikcmetro.com`
-  remains).
+- Do not undelete or reuse `pmikckb-test`, its project number, Firebase identity, storage bucket,
+  Agent Search stores, `cherrybridge.ai` credential, or any other resource from that retired lane.
+- Do not recreate `pmi-kc-kb-demo` in `pmi-kc-kb-prod` or use its deleted URL.
+- Do not provision a replacement hosted Demo project or fixture seeder unless a later named suite
+  explicitly reopens that work.
+- Do not treat `data_mode` as removable cleanup. S56 retained the field so restored non-Live state
+  can be identified and refused.
+- Do not remove rejection sentinels merely because they contain retired identifiers. Tests and
+  production preflights may name those values specifically to prove they stay rejected.
 
-**Kept on purpose:** local-dev demo mode (`LOCAL_DEMO_AUTH` / `ASK_DEMO_MODE`, fenced from prod by
-the `NODE_ENV` guard); the sanitized demo source templates under `docs/demo-source-templates/`
-(current corpus); and the production preflight guardrails that **reject** `pmikckb-test` /
-`pmi-kc-kb-demo` / `800237451321` / `cherrybridge.ai` (`scripts/preflight-production-cutover.mjs`,
-`DEMO_PROJECT_IDS` / `DEMO_VALUE_PATTERNS`) — those enforce the retirement and must stay.
+## Historical record: 2026-06-20
 
-## Owner-side GCP teardown (must run from the `cherrybridge.ai` account)
+The retired legacy lane used GCP project `pmikckb-test` (project number `800237451321`) under the
+uncontrolled `cherrybridge.ai` organization. It included a Cloud Run service, Firebase, storage,
+and Agent Search resources. The project and a stray sibling were placed in `DELETE_REQUESTED`, and
+the one-time external credential was revoked immediately afterward.
 
-`pmikcmetro.com` has no access to the `cherrybridge.ai` org, so this is done either in the GCP
-Console signed in as the cherrybridge.ai owner, or via gcloud after
-`gcloud auth login josiah.hunter@cherrybridge.ai`.
+The original teardown commands are intentionally omitted here so this current-state document cannot
+be mistaken for an executable deletion or recovery runbook. Dated evidence remains in repository
+history and `docs/status.md`.
 
-> **EXECUTED 2026-06-20 (agentic, ephemeral auth).** A one-time
-> `gcloud auth login josiah.hunter@cherrybridge.ai` browser consent enabled the teardown from this
-> session. Verified the target (`pmikckb-test`, number `800237451321`, ACTIVE; service
-> `pmi-kc-kb-demo` URL hash `v6koysxdbq`, distinct from prod's `kq6wuvpiva`), then
-> `gcloud projects delete pmikckb-test` → now **`DELETE_REQUESTED`** (recoverable ~30 days via
-> `gcloud projects undelete pmikckb-test`). The stray `pmikckb-test-8f927` was already
-> `DELETE_REQUESTED`. The cherrybridge credential was **revoked immediately after**; only
-> `josiah@pmikcmetro.com` remains and ADC was untouched. The commands below are the record of what
-> was run.
+## Historical record: 2026-08-03
 
-```bash
-# 1. Confirm you are about to delete the RIGHT project (expect projectNumber 800237451321).
-gcloud projects describe pmikckb-test --format="value(projectId,projectNumber,lifecycleState)"
+S55 renamed the serving Production service to `pmi-kc-app`. The exact rollback rehearsal first
+routed the captured predecessor to 100 percent and passed its smoke checks, then restored the final
+revision to 100 percent and passed the same checks. Only then was the old `pmi-kc-kb-demo` service
+deleted, with direct describe and service-list readbacks proving absence.
 
-# 2. (Optional) Final look at what it still holds.
-gcloud run services list --project=pmikckb-test
-gcloud storage ls --project=pmikckb-test
-gcloud alpha discovery-engine data-stores list --project=pmikckb-test --location=us  # if the CLI surface is available
+S56 separately retired the Production Test lane after a named backup and one-record restore drill.
+Independent readback found zero explicit Test records across every governed collection. Local
+rehearsal now uses bounded Live reads without persistence or provider effects, and no hosted Demo or
+fixture seeder was introduced.
 
-# 3. Delete the whole project — this removes Cloud Run, the bucket, Firestore, Firebase, and the
-#    data stores in one step. Recoverable for ~30 days (gcloud projects undelete pmikckb-test).
-gcloud projects delete pmikckb-test
+## Current operator route
 
-# 4. If the stray sibling still exists, delete it too.
-gcloud projects describe pmikckb-test-8f927 2>/dev/null && gcloud projects delete pmikckb-test-8f927
-
-# 5. Verify — both should report lifecycleState DELETE_REQUESTED.
-gcloud projects describe pmikckb-test --format="value(lifecycleState)"
-```
-
-Deleting the project also stops its billing and removes its project-scoped $10 budget alert. No
-action is needed on `pmi-kc-kb-prod`.
-
-## After teardown
-
-- Confirm `npm test` stays green (the preflight guardrail tests intentionally still reference
-  `pmikckb-test` as the _rejected_ value — that is correct and must not be removed).
-- The demo ingest manifest `docs/source-corpus/demo-live-source-manifest.json` will then point at
-  a deleted bucket; it is inert (not read by the live app) and kept only as the historical record
-  of the demo ingest. Re-point or retire it if/when the demo source templates are re-homed.
-- Update [`loop-state.md`](loop-state.md) and [`auth-identity-and-access-strategy.md`](auth-identity-and-access-strategy.md)
-  §0 to mark the GCP teardown complete.
+Use [`demo-readiness.md`](demo-readiness.md) for the local readiness contract and
+[`demo-show-and-tell.md`](demo-show-and-tell.md) for the local rehearsal script. Use
+[`facts.md`](facts.md) and [`loop-state.md`](loop-state.md) for the verified Production checkpoint.

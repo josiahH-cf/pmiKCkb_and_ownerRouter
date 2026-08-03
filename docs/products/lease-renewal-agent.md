@@ -1,23 +1,25 @@
 # Lease Renewal Agent Product Lane
 
-## Product target and current transition
+## Product target and current state
 
-The Lease Renewal Agent is a working part of the deployed app. Current code already provides bounded
-Live RentVine/Sheet reads, deterministic reconciliation, decisions, drafts/actions, and a complete
-isolated Test action graph. S40/S43 now change the product shape without discarding that proven
-business/security behavior:
+The Lease Renewal Agent is a working part of the deployed Live-only app. It provides bounded Live
+RentVine/Sheet reads, deterministic reconciliation, decisions, governed drafts/actions, ordinary
+app-plane workflow runs, and independently gated provider effects:
 
 - Production opens one Live-only renewal desk.
-- Demo opens the same desk/unit components with realistic invented Demo records and zero
-  Live-provider effects; optional Live data in Demo is explicitly read-only and never mixed.
+- Local rehearsal opens the same product over bounded Live reads with the exact explicit Demo +
+  Live-read-only descriptor and refuses every durable write or provider effect.
+- There is no hosted Demo project, fixture seeder, or current product Test workspace. Invented
+  scenarios and the former Test action graph remain dated contract evidence under deterministic
+  automated-test helpers only.
 - One per-unit workspace owns Data check → Owner decision → Tenant offer → Build documents.
 - Compare sources, exact decisions, notice drafting, evidence, provider destinations, receipts, and
   history stay in that unit context.
 - Scoped Editors can access Live desk/unit work and create governed drafts; provider send/write and
   High-risk authority remain independently enforced.
 
-`F-PRODUCTION-DUAL-DATA-LANES` and the existing Test journey remain accurate deployed evidence until
-S40 migration. They are no longer the target Product IA.
+`F-S56-PRODUCTION-LIVE-ONLY` is the current environment contract. The former Production Test journey
+is retained as historical implementation evidence, not as a route, workspace, or rehearsal surface.
 
 ## Source authority
 
@@ -61,10 +63,11 @@ supplied`.
 
 - Production accepts/renders Live renewal records only; missing/unknown/Demo classification fails
   closed and no Sample/Demo/Test selector or seeder ships.
-- Demo uses Demo-owned data/adapters/receipts and the exact product UI. Demo provider-shaped actions
-  never construct a Live client or prove Live activation.
-- Demo Live-read-only is a separately selected, persistently labeled context that refuses all app/
-  provider mutations and never contributes to Demo counts/decisions/receipts.
+- Local rehearsal resolves exactly `environmentKind:"demo"`, `dataContext:"live_readonly"`, and
+  `source:"explicit"`. It uses bounded Live reads and refuses all app/provider mutations, persistence,
+  receipts, and external effects.
+- No hosted Demo environment or product-fixture seeder is provisioned. Deterministic invented
+  records/adapters/receipts live only in automated tests and cannot prove Live activation.
 
 ## Human and provider authority
 
@@ -99,8 +102,8 @@ documented, open its `production_allowed` gate, both executable allowlists, and 
 owning slice rather than leaving a finished feature preview-only.
 
 An undocumented provider method blocks that one Live action. It does not block the canonical desk,
-Demo product workflow, or unrelated actions. Never substitute browser automation or a guessed
-endpoint.
+local Live-read-only rehearsal, or unrelated actions. Never substitute browser automation, a
+synthetic product lane, or a guessed endpoint.
 
 ## Retirement
 
@@ -112,8 +115,9 @@ may remain as a contextual subview when it has a distinct historical job.
 
 ## Acceptance
 
-- Production opens one Live desk; Demo opens the same product with Demo data and zero Live provider
-  construction.
+- Production opens one Live desk and rejects non-Live product records. Local rehearsal opens bounded
+  Live reads under the exact explicit Demo + Live-read-only descriptor and constructs no mutation or
+  provider effect.
 - A scoped Editor can complete permitted work and create a draft, but cannot cross scope, perform an
   Admin-only decision, use a disabled action, or send/write without exact authority.
 - A unit completes all four stages in one refresh-safe workspace with exact evidence/backlinks and

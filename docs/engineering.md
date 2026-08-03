@@ -16,22 +16,24 @@ identity/preview/claim/receipt/reconciliation.
 
 ## Environment and Product Boundary
 
-- S40’s target is independently provisioned Demo and Production environments using the same product
-  routes/components/contracts. Production accepts Live only; Demo owns invented data/adapters/
-  receipts and may expose a separate Live-read-only context with zero mutation/effect.
+- Production is Live-only on the `pmi-kc-app` Cloud Run service at
+  <https://pmi-kc-app-kq6wuvpiva-uc.a.run.app>. It exposes no Demo/Test records, fixture seeder,
+  simulator, or product rehearsal tools.
+- Rehearsal is local. Its server-owned descriptor resolves exactly to
+  `environmentKind:"demo"`, `dataContext:"live_readonly"`, and `source:"explicit"`; persistence,
+  route mutations, server actions, drafts, sends, write-backs, and provider effects must refuse.
+- A separately hosted Demo environment and its product fixture seeder are deferred. Do not
+  provision, seed, or infer them from the local `demo` environment kind.
 - Environment/context is validated server-side. Missing/unknown classification fails closed.
   Browser input cannot select environment/provider adapter, override authority/Registry/risk/
-  evidence, or merge Demo and Live-read-only projection.
-- Demo and Production must resolve different database/namespace, storage, queue/topic, secret/OAuth
-  audience, runtime identity, and effect-credential boundaries.
-- `F-PRODUCTION-DUAL-DATA-LANES` and missing-mode→Live remain honest current implementation facts
-  until S40 migration; new code must not extend them as the target.
+  evidence, or widen local Live-read-only authority.
 - Live provider activation is per action. Missing configuration degrades that action visibly and
-  never falls back to Demo.
-- The canonical `.invalid` Vendor auth lifecycle moves to Demo without losing its repeatable reset:
-  preview binds UID/status/`inviteVersion`; execution rotates UID, clears factors, revokes sessions/
-  confirmations, preserves matching Demo tickets/mailbox/receipts, and produces no Live effect.
-  Partial failure remains disabled and exact-reset recoverable.
+  never falls back to a synthetic adapter.
+- Synthetic Vendor identities and workflow records are deterministic automated-test helpers only.
+  Product runtime paths use authoritative Live assignments and must not construct or expose those
+  helpers.
+- The former Production Live+Test lane and hosted/seeded Demo designs are dated historical evidence,
+  not current engineering instructions.
 
 ## UI and Retirement Boundary
 
@@ -65,32 +67,31 @@ Gmail actions start from an authorized renewal/maintenance entity; there is no g
 - Unit: environment/context resolution, source/citation, permissions, schemas, preview/receipt, UI states,
   and negative imports.
 - Firestore: server/client boundaries, transaction state, environment/context mismatch, and idempotency.
-- E2E: roles, Production Live-only and Demo journeys, action confirmations, failure states, and zero
-  Live-provider calls in Demo.
+- E2E: roles, Production Live-only journeys, local Live-read-only effect refusals, action
+  confirmations, failure states, and zero provider-effect calls from local rehearsal.
 - Browser: authenticated desktop/390×844 whole tasks; header/overlay/first-action/focus/headings;
-  exact field/provider/return links; Vendor password/TOTP/reset; resident token intake; Demo
-  Maintenance to Done; Production Live-only; monitoring and rollback.
+  exact field/provider/return links; Live Vendor invite/setup/TOTP/assignment/disable boundaries;
+  resident token intake; local read-only navigation and effect refusal; Production Live-only;
+  monitoring and rollback.
 - Falsify cross-environment/context identity/assignment/adapter/receipt, unknown-mode→Live, shared
-  resource identifiers, Demo provider construction, mixed Demo/Live-read-only counts, misleading
-  generic links, duplicate rendered owners, unsafe compatibility redirects/deletion, duplicate
-  claims, stale preview, changed
-  source, wrong mailbox, guessed ticket, old Vendor UID/session/confirmation after reset, partial
-  auth-reset failure, prepared-crash Admin reload/re-preview, live-lease different-reason refusal,
-  post-expiry fresh-reason rebinding, claim-versus-completion bodyless audit ordering, abandoned UID
-  reuse, forbidden replacement allocation, delayed old-owner completion against a takeover winner,
-  disable/reset lifecycle interleaving, stale mailbox reads/writes after disable/deassignment/UID
-  rotation/reset claim, and ambiguous provider results.
+  resource identifiers, local provider-effect construction, mixed context counts, misleading generic
+  links, duplicate rendered owners, unsafe compatibility redirects/deletion, duplicate claims, stale
+  preview, changed source, wrong mailbox, guessed ticket, Live invite-generation drift, delivery versus
+  disable races, stale mailbox reads/writes after disable/deassignment, and ambiguous provider results.
+- Keep the UID-rotating reset/takeover/recovery cases as deterministic automated coverage of the
+  retired Test Vendor contract only. They are not browser acceptance for a real Live Vendor.
 
 ## Security and Secrets
 
-- No secrets, setup links, resident bearer tokens, customer values, Gmail bodies, prompt payloads,
-  or sensitive records in git/logs/URLs/audit. A Demo Vendor setup link exists only in the
-  `no-store` Admin response that
-  created it; the random reset password is never returned.
+- No secrets, setup challenges, resident bearer tokens, customer values, Gmail bodies, prompt
+  payloads, or sensitive records in git/logs/audit. A Live Vendor invite is exact-confirmed and
+  delivered through governed Gmail; the setup challenge moves from the URL fragment into a body-only
+  request and never enters a receipt, cache, log, or persisted lifecycle record.
 - Prefer ADC, attached service accounts, DWD, OAuth vault references, and workload identity; never
   download service-account keys.
 - Personal Google identities are prohibited.
-- Demo emails end in `.invalid`; Live recipients must come from authoritative workflow sources.
+- `.invalid` addresses are automated-test data only; Live recipients must come from authoritative
+  workflow sources.
 
 ## Retention
 
@@ -99,7 +100,8 @@ TTL policies, additional indexes, and Scheduler automation are optional volume-d
 
 ## Definition of Done
 
-- Behavior maps to `docs/facts.md`, `docs/plan.md`, the S40–S50 program, and product/spec docs.
+- Behavior maps to `docs/facts.md`, `docs/plan.md`, the completed S55/S56 outcome, and product/spec
+  docs.
 - Tests cover happy, failure, cross-environment/context, exact-link, role, mobile, and deletion abuse
   paths.
 - Focused checks and full verification pass.

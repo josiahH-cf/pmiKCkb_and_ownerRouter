@@ -19,9 +19,8 @@ Josiah passes in `$ARGUMENTS`.
   week's work. If today is not Friday, use the last 7 days.
 - `docs/status.md` — read only the most recent dated sections (this week). It is the narrative
   history; the tail holds the latest entries.
-- `docs/loop-state.md` — the current "Next Safe Slice Candidates" and "Active Blockers And Exact
-  Client Asks".
-- `docs/client-checklist.md` — "Current Outbound Asks" (open client asks) for the Blockers section.
+- `docs/loop-state.md` — the current "Chain end state" and "Operational posture".
+- `docs/client-checklist.md` — "Current client inputs" for the Blockers section.
 - `docs/voice-and-audience.md` — the audience profile and the do/don't lexicon. This governs the
   translation in §3.
 
@@ -77,8 +76,8 @@ https://pmi-kc-app-kq6wuvpiva-uc.a.run.app". If $ARGUMENTS supplies a different 
 
 [Address-change note. Include this ONLY in the first update sent on or after 2026-08-01, then drop
 it permanently. Phrase: "The web address changed this week, so please use the link above and update
-any bookmark you saved. The old one still works for now, but it will be retired." Keep it to one
-line and do not explain the reason.]
+any bookmark you saved. The old address has been retired." Keep it to one line and do not explain
+the reason.]
 
 ✅ **Done this week**
 
@@ -88,9 +87,10 @@ line and do not explain the reason.]
 
 🔜 **Next Up**
 
-- [3 to 5 bullets from loop-state "Next Safe Slice Candidates" and the renewal next-phase plan, in
-  operator terms: defining the process in more detail, bringing drafts and real data into the app,
-  building out more workflows, showing the full process start to finish.]
+- [3 to 5 bullets from the current provider/client inputs and product roadmap, in operator terms:
+  defining the process in more detail, bringing approved drafts and real data into the app, building
+  out more workflows, and showing the full process start to finish. Do not present closed S55/S56
+  work or retired rehearsal infrastructure as future work.]
 
 🚧 **Blockers**
 

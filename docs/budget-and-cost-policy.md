@@ -11,8 +11,8 @@ Owner decision D01 (2026-07-29) retired the flat pre-production cap. S52
 - a hard monthly stop set above measured realistic burn;
 - a lower alert-only threshold that reaches the operator before the stop;
 - the GCP budget amount and the guardrail's `KILL_SWITCH_CAP_USD` moved together; and
-- coverage/disposition recorded for every project on the billing account, including the dedicated
-  Demo project once S40 supplies its identifiers.
+- coverage/disposition recorded for every project on the billing account. The separately hosted
+  Demo project is deferred and has no identifiers or current cost surface.
 
 **The replacement values are SET as of 2026-08-01: alert `$25`, hard stop `$100`.** Cost-bearing
 cloud actions now have approved headroom. Both enforcement points were moved and read back from the
@@ -72,9 +72,9 @@ that function stops running, the kill switch is inert while every budget still r
 Upgrade it before that date.
 
 The runner must still not invent a dollar amount. Values change only through measured evidence plus
-an owner decision, as this pair did. For the S40 Demo project, if one is ever created, the owner may
-select explicit initial values with a recorded rationale, expiring after Demo's first complete
-calendar month.
+an owner decision, as this pair did. If a separately hosted project is explicitly authorized later,
+its initial controls require exact identifiers and a recorded rationale; the current local rehearsal
+surface creates no such project.
 
 ## Alert delivery: two routes, one of them proven
 
@@ -126,8 +126,8 @@ applied `$25`/`$100` pair; layers 1 and 3 still create no headroom on their own.
 The third layer therefore limits how quickly one authenticated caller can reach the two paid-model
 routes: Ask allows a burst of 15 and then sustains about one call every two seconds; classification
 allows a burst of 10 and then sustains about one call every five seconds. These existing throttles
-reduce repeatability risk, but they do not make a billed model call eligible while the global S52
-cost gate is unresolved.
+reduce repeatability risk, but they do not make a billed model call eligible without the applied S52
+controls' current readback and the path-specific conditions below.
 
 ## Per-project coverage
 
@@ -137,27 +137,29 @@ Cost controls are project-scoped.
 - `adept-primacy-499822-d7` has no verified equivalent chain; the owner must choose whether to arm it
   or unlink it from the billing account. Until a live read resolves it, its declared posture is
   `pending_verification`, which is always ineligible.
-- The dedicated Demo project does not yet have owner-supplied identifiers. S40 emits its print-only
-  budget/topic/guardrail provisioning plan after those values arrive; S52 supplies the reviewed
-  owner-selected initial thresholds under the expiring new-Demo rule above.
+- No dedicated Demo project is provisioned or requested. Hosted Demo is deferred; local rehearsal
+  has no independent GCP billing surface.
 
-No suite infers a project id, number, billing relationship, or ceiling from another project. Billing,
-budget, IAM, and guardrail-enforcement mutations remain owner-run/protected-review operations.
+No suite infers a project id, number, billing relationship, or ceiling from another project. The
+Cloud Automation Grant permits in-scope billing, budget, and IAM configuration under the managed
+identity with live readback. Lowering a safety control still asks, and D12 keeps guardrail code on
+the protected-review path.
 
 ## Least-cost defaults
 
-Prefer, in order: local emulation → the separately provisioned Demo environment with zero Live
-effects → an explicitly authorized bounded cheap-live path → any broader billed path.
+Prefer, in order: deterministic local tests/emulation → effect-fenced local Live-read-only rehearsal
+→ an explicitly authorized bounded cheap-live path → any broader billed path.
 
-| Lever                               | Safe default                                | Reason                                                             |
-| ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| Local compatibility `ASK_DEMO_MODE` | `true`                                      | Avoids Vertex/Gemini calls before S40 Demo exists.                 |
-| Answer model                        | `gemini-2.5-flash`                          | The approved bounded eval model; Pro requires a separate decision. |
-| Active knowledge stores             | One named store or none                     | Bounds indexing/query exposure.                                    |
-| Cloud Run scaling                   | `--min-instances=0 --max-instances=1`       | Scale-to-zero and pilot capacity bound.                            |
-| Client-facing notifications         | Disabled unless exact workflow gate applies | Prevents autonomous/bulk send.                                     |
-| Firestore tests                     | Local emulator                              | No live database mutation.                                         |
-| Service-account keys                | Avoid                                       | Use ADC/workload identity; no downloaded long-lived credential.    |
+| Lever                       | Safe default                                                       | Reason                                                             |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Local product context       | Explicit Demo + Live-read-only; no persistence or provider effects | Rehearses current reads without recreating a fixture lane.         |
+| `ASK_DEMO_MODE`             | `false` in the current local launcher                              | The synthetic Ask product lane is retired.                         |
+| Answer model                | `gemini-2.5-flash`                                                 | The approved bounded eval model; Pro requires a separate decision. |
+| Active knowledge stores     | One named store or none                                            | Bounds indexing/query exposure.                                    |
+| Cloud Run scaling           | `--min-instances=0 --max-instances=1`                              | Scale-to-zero and pilot capacity bound.                            |
+| Client-facing notifications | Disabled unless an exact human-confirmed workflow gate applies     | Prevents autonomous/bulk send.                                     |
+| Firestore tests             | Local emulator with deterministic test-only fixtures               | No live database mutation.                                         |
+| Service-account keys        | Avoid                                                              | Use ADC/workload identity; no downloaded long-lived credential.    |
 
 These defaults reduce expected cost; they do not replace the S52 eligibility gate.
 
@@ -165,17 +167,17 @@ These defaults reduce expected cost; they do not replace the S52 eligibility gat
 
 The S52 ceiling is set, so eligibility now turns on each row's own named conditions rather than on the ceiling.
 
-| Path                           | Trigger                                 | Additional eligibility after S52                                                                                                                   |
-| ------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cloud Run deploy/promotion     | `npm run deploy` / legacy `deploy:demo` | Full local gate; fresh managed ADC/CLI auth; budget/live-cost/environment preflights; sanitized env; prior revision; rollback; bounded smoke; D05. |
-| Live Gemini answer/classify    | `ASK_DEMO_MODE=false`                   | Flash model, bounded cases/queries, one approved store, no sensitive output, fresh live-cost check.                                                |
-| S54 bounded live eval          | `npm run eval:live`                     | Exactly one run, at most 50 cases, no retries, fresh auth and live-verified ceiling, sanitized summary only.                                       |
-| Vertex AI Search create/import | import/provision commands               | Print/dry-run first, approved corpus, exact project/store, estimated usage, rollback/delete path.                                                  |
-| Cloud Storage source upload    | corpus plan / `gcloud storage cp`       | Approved low-sensitivity source and target, dry-run manifest, no customer data in git.                                                             |
-| S31 Gmail-watch Scheduler      | named S31 job                           | Narrow D37 grant, exact managed OIDC identity/audience, print-only plan reviewed, rollback/delete captured.                                        |
-| S51 monitoring resources       | monitoring plan                         | Owner-supplied operator destination; owner-run channel/policy/log-retention/IAM changes; live verifier.                                            |
-| Provider smoke/read            | provider-specific command               | Documented contract, named action/config gate, bounded read, no guessed endpoint, readback evidence.                                               |
-| Client-facing send / SoR write | product confirmation path               | Human exact confirmation plus S25/S26 preview/receipt/reconcile/rollback and named executable action key; never an unattended agent action.        |
+| Path                           | Trigger                                 | Additional eligibility after S52                                                                                                                                                                            |
+| ------------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud Run deploy/promotion     | `npm run deploy` / legacy `deploy:demo` | Full local gate; fresh managed ADC/CLI auth; budget/live-cost/environment preflights; sanitized env; prior revision; rollback; bounded smoke; D05.                                                          |
+| Live Gemini answer/classify    | `ASK_DEMO_MODE=false`                   | Flash model, bounded cases/queries, one approved store, no sensitive output, fresh live-cost check.                                                                                                         |
+| S54 bounded live eval          | `npm run eval:live`                     | Exactly one run, at most 50 cases, no retries, fresh auth and live-verified ceiling, sanitized summary only.                                                                                                |
+| Vertex AI Search create/import | import/provision commands               | Print/dry-run first, approved corpus, exact project/store, estimated usage, rollback/delete path.                                                                                                           |
+| Cloud Storage source upload    | corpus plan / `gcloud storage cp`       | Approved low-sensitivity source and target, dry-run manifest, no customer data in git.                                                                                                                      |
+| S31 Gmail-watch Scheduler      | named S31 job                           | Narrow D37 grant, exact managed OIDC identity/audience, print-only plan reviewed, rollback/delete captured.                                                                                                 |
+| S51 monitoring resources       | monitoring plan                         | Reuse the existing managed operator destinations/channels; apply in-scope channel/policy/log-retention/IAM configuration under the Cloud Automation Grant with plan, rollback, readback, and live verifier. |
+| Provider smoke/read            | provider-specific command               | Documented contract, named action/config gate, bounded read, no guessed endpoint, readback evidence.                                                                                                        |
+| Client-facing send / SoR write | product confirmation path               | Human exact confirmation plus S25/S26 preview/receipt/reconcile/rollback and named executable action key; never an unattended agent action.                                                                 |
 
 ## Required preflights
 
@@ -199,9 +201,10 @@ live-verified ceiling and its path-specific conditions above.
 
 - The runner may perform a routine application deploy, bounded read-only smoke, rollback rehearsal,
   and traffic promotion under D05 only after every eligibility condition passes.
-- The owner performs interactive auth and supplies/changes credentials, scopes, IAM, billing,
-  budgets, threshold values, operator destinations, destructive migrations/deletions, and other
-  external decisions.
+- The owner performs interactive auth and supplies credentials, external vendor actions, and client
+  decisions. In-scope cloud configuration runs under the managed identity and is read back under the
+  Cloud Automation Grant; destructive Production data operations retain their separate
+  backup/dry-run/restore requirements, and lowering a safety control still asks.
 - D12 protects `scripts/check-budget-guard.mjs` and `infra/budget-guardrail/**`; prepare and verify
   those changes for owner review. A protected cost patch parks only that activation while independent
   work continues.

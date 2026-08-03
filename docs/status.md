@@ -8890,3 +8890,47 @@ existing drill name, and the private manifest digest. Do not create another clon
 after the one-record restore is verified may `npm run s56:test-records:delete` run, followed by
 `npm run s56:test-records:verify-zero`. The latest unpiped full gate exited zero: 464 unit files /
 4,221 tests and 23 Firestore files / 109 tests. No D12 path or action gate changed.
+
+## 2026-08-03 — S56 and S55 production chain complete
+
+The managed session was refreshed and the existing S56 restore drill resumed without creating a
+second backup or drill. Named PITR clone `s56-test-retirement-20260802-233824` remains retained and
+delete-protected. Restore-drill database `s56-restore-drill-20260803-004042` restored one planned
+record, matched its source hash, and was cleaned up only after that proof. Evidence remained
+bodyless: counts, collection names, opaque identifiers, and hashes only.
+
+The verified manifest then deleted exactly 90 explicit `data_mode:"test"` records. A fresh,
+independent query read back zero such records in every one of the 28 governed collections. A
+separate exact compare-and-set migration moved four lane-only
+`process_definitions.status:"Testing"` records to `Draft`; the follow-up query returned zero
+Testing definitions. The retained `data_mode` field still marks Live records and lets legacy
+decoders refuse restored non-Live state. No customer content entered logs or repository evidence.
+
+S56's product-lane retirement is also complete. Production Test routes, executors, fixture panels,
+and isolated workspaces are absent from the product graph. Automated fixtures remain under test
+helpers, and no automated test file was deleted. Local rehearsal resolves explicitly as Demo plus
+Live-read-only, uses bounded Live reads, and refuses persistence and provider effects. The route and
+module sentinels, focused tests, and deliberate restoration of a forbidden production fixture path
+proved the retirement checks can fail before the path was removed again. AC-S56-1 through AC-S56-8
+are complete.
+
+The final unpiped local verifier recorded `GATE_EXIT=0`: 468 unit files / 4,224 tests, 23 Firestore
+files / 109 tests, formatting, lint, TypeScript, every repository policy scanner, and the Production
+build all passed. The verified product checkpoint was committed as `da87bcf`.
+
+The exact-revision release promoted `pmi-kc-app-rmsd5ux3l-0b445f0442ea` to 100 percent traffic on
+`pmi-kc-app`. The rollback rehearsal captured predecessor
+`pmi-kc-app-rmsc62q55-dbcbe2db4927`, moved traffic to it, and observed root 307, sign-in 200, and
+protected 307. Traffic was restored to the final revision, read back at 100 percent, and the same
+307 / 200 / 307 smoke sequence passed again. The canonical client URL is
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+
+Only after the restored final revision and stable-URL smoke passed was the rollback service
+`pmi-kc-kb-demo` deleted. Service inventory and direct describe readback both proved it absent; the
+captured prior `pmi-kc-app` revision remains the reversible rollback artifact. This closes S55
+AC-S55-1 through AC-S55-9, with old-service deletion performed as the last programme step.
+
+The Friday-update command is prepared with the canonical live link and the one-time address-change
+note that the old address was retired. It contains no Test-lane or Demo-environment wording presented
+as current reality. It remains a draft for human review and send; no client-facing message was sent
+by this loop.

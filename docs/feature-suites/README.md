@@ -69,67 +69,67 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > green. S51 is complete at its dependency-safe local seam; Rules, owner-run cloud activation, and
 > the fresh live rehearsal remain parked.
 
-| Suite                                       | File                                                                      | Status                                                     |
-| ------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| S1 Governance recalibration & routing       | `docs/feature-suites/governance.md`                                       | Built this cycle (spine + gate)                            |
-| S2 Voice & Copy                             | `docs/feature-suites/voice-copy.md`                                       | Built (S2)                                                 |
-| S3 Lease-renewal maturation                 | `docs/feature-suites/lease-renewal.md`                                    | Spec — discovery-gated                                     |
-| S4 Maintenance work-order intake            | `docs/feature-suites/maintenance-intake.md`                               | Spec                                                       |
-| S5 Ask portal rescope                       | `docs/feature-suites/ask-rescope.md`                                      | Spec — folded into R4                                      |
-| S6 UI / IA re-architecture                  | `docs/feature-suites/ui-ia.md`                                            | Built (F-IA-CONSOLE-HOME)                                  |
-| S7 Cross-product integration                | `docs/feature-suites/cross-product.md`                                    | Spec                                                       |
-| S8 TDD that mirrors behavior                | `docs/feature-suites/tdd.md`                                              | Spec (cross-cutting)                                       |
-| S9 Local-model live-data testing            | `docs/feature-suites/local-model.md`                                      | Built (S9, cross-cutting)                                  |
-| S10 Console app-state front door            | `docs/feature-suites/console-app-state.md`                                | Built (F-CONSOLE-APP-STATE)                                |
-| S11 Per-Space "teeth"                       | `docs/feature-suites/space-teeth.md`                                      | Spec — Q&A answered, runs via S13                          |
-| S12 Dev↔prod parity                         | `docs/feature-suites/dev-prod-parity.md`                                  | Built + live-verified (F-DEVPROD-PARITY)                   |
-| S13 Pre-customer refinement                 | `docs/feature-suites/pre-customer-refinement.md`                          | Spec — decided 2026-07-02, ready to run                    |
-| S14 Approval Queue mobile redesign          | `docs/feature-suites/approval-queue-mobile.md`                            | Spec — owner #1 target (D1 locked 2026-07-10)              |
-| S15 Gmail synthetic fallback tools          | `docs/feature-suites/gmail-hub.md`                                        | Historical; retire under S48                               |
-| S16 Role-scoped sub-users (space scopes)    | `docs/feature-suites/rbac-subusers.md`                                    | Spec — app-plane; live claim mint owner-gated              |
-| S17 Unified Console + attention hub         | `docs/feature-suites/unified-console-and-attention.md`                    | Spec — decided 2026-07-10 (D2)                             |
-| S18 Process auto-initiation (anticipation)  | `docs/feature-suites/process-auto-initiation.md`                          | Built — ordinary `/runs`; Live read-only input             |
-| S19 Workflow-bounded Gmail per user         | `docs/feature-suites/gmail-live-per-user.md`                              | Working V1; D62 race hardening remains                     |
-| S20 Risk-bounded execution authority        | `docs/feature-suites/execution-authority.md`                              | Working V1                                                 |
-| S21 Trusted immediate publication           | `docs/feature-suites/trusted-publication.md`                              | Working V1; chunked and fenced                             |
-| S22 External Vendor portal + Gmail OAuth    | `docs/feature-suites/vendor-portal-and-mailbox.md`                        | Working Test portal/auth; Live OAuth per Vendor            |
-| S23 Console Live + Test lanes               | `docs/feature-suites/console-live-data.md`                                | Current deployed state; target superseded by S40           |
-| S24 Communications policy + artifacts       | `docs/feature-suites/communications-policy.md`                            | Working V1; TTL/scheduler optional                         |
-| S25 Lease Renewal external execution        | `docs/feature-suites/lease-renewal-execution.md`                          | Working Test journey; Live per action                      |
-| S26 Maintenance external execution          | `docs/feature-suites/maintenance-execution.md`                            | Working Test journey; Live per action                      |
-| S27 Working-app release + activation        | `docs/feature-suites/v1-release-acceptance.md`                            | Working V1 — manifest 3.0/report 2.3; Live-only contract   |
-| S28 Market comp provider + screenshot       | `docs/feature-suites/market-comp-data.md`                                 | Spec — Wave 1 app-plane; Wave 2 RentCast seam              |
-| S29 Comp-informed rent suggestion           | `docs/feature-suites/rent-suggestion-admin-gated.md`                      | Built — Wave 1 app-plane (F-RENT-SUGGEST-ADMIN-GATED)      |
-| S30 RentVine renewal-write activation       | `docs/feature-suites/rentvine-write-activation.md`                        | Spec — Wave 2 seam (owner: RentVine endpoint)              |
-| S31 Gmail reply-watch + follow-up           | `docs/feature-suites/gmail-watch-inbound.md`                              | Spec — loop-only; NO owner dependency (D37)                |
-| S32 KB corrections learning + freshness     | `docs/feature-suites/kb-corrections-learning.md`                          | Built — Wave 1 app-plane (F-KB-CORRECTIONS-LEARNING)       |
-| S33 Ask box to live-action orchestration    | `docs/feature-suites/ask-to-action.md`                                    | Built — gated Live action + ordinary `/runs`               |
-| S34 Dotloop e-signature activation          | `docs/feature-suites/dotloop-esign-activation.md`                         | Spec — Wave 2 seam (owner: Dotloop OAuth app)              |
-| S35 LeadSimple connector activation         | `docs/feature-suites/leadsimple-activation.md`                            | Spec — Wave 2 seam (owner: API key + vendor)               |
-| S36 Space self-service provisioning         | `docs/feature-suites/space-self-provisioning.md`                          | Spec — Wave 2 seam (owner: billing + SA)                   |
-| S37 Full no-code page/layout builder        | `docs/feature-suites/nocode-page-builder.md`                              | Spec — sequenced after IA; executed as amended by S50      |
-| S38 Maintenance owner-notice draft          | `docs/feature-suites/maintenance-notice-activation.md`                    | Built — Gmail draft + human Gmail send is final (D33)      |
-| S39 Internal notifications + center         | `docs/feature-suites/internal-notifications.md`                           | Spec — Wave 1 app-plane (D-AUTOMATION-LINE)                |
-| S40 Demo/Production separation              | `docs/feature-suites/environment-deployment-separation.md`                | Spec — authorized; first S40–S50 suite                     |
-| S41 Shell, navigation, vocabulary           | `docs/feature-suites/shell-navigation-vocabulary.md`                      | Spec — authorized after S40                                |
-| S42 Attention ownership + Spaces flow       | `docs/feature-suites/attention-and-spaces-flow.md`                        | Spec — authorized after S41                                |
-| S43 Canonical Renewal workspace             | `docs/feature-suites/lease-renewal-canonical-workspace.md`                | Spec — authorized after S40/S41/S44                        |
-| S44 Evidence + provider backlinks           | `docs/feature-suites/evidence-provider-backlinks.md`                      | Spec — authorized foundation after S41                     |
-| S45 Approval one-card consolidation         | `docs/feature-suites/approval-queue-consolidation.md`                     | Spec — authorized after S44                                |
-| S46 Maintenance operator workspace          | `docs/feature-suites/maintenance-operator-workspace.md`                   | Spec — authorized after S44                                |
-| S47 Resident Maintenance intake             | `docs/feature-suites/resident-maintenance-intake.md`                      | Spec — app-plane + RentVine seam                           |
-| S48 Admin/Connections/tool retirement       | `docs/feature-suites/admin-connections-tool-retirement.md`                | Spec — authorized; no Test Lab                             |
-| S49 Compatibility/code/QA retirement        | `docs/feature-suites/compatibility-code-qa-retirement.md`                 | Spec — two-stage proof/delete                              |
-| S50 S37 builder recalibration               | `docs/feature-suites/nocode-builder-recalibration.md`                     | Spec — controls S37 execution after baseline               |
-| S51 Production operational readiness        | `docs/feature-suites/production-operational-readiness.md`                 | Local seam complete; protected/cloud/live parked           |
-| S52 Production cost governance              | `docs/feature-suites/production-cost-governance.md`                       | Spec — replaces the retired flat cloud cap                 |
-| S53 Green-light activation + gate integrity | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`         | Spec — named-key activation table                          |
-| S54 Verification and CI parity              | `docs/feature-suites/verification-and-ci-parity.md`                       | S54.1 locally and remotely green                           |
-| S55 Service rename + identifier cleanup     | `docs/feature-suites/production-service-rename-and-identifier-cleanup.md` | Stage one live; stage-two rollback/delete pending          |
-| S56 Production Live-only, Test lane retired | `docs/feature-suites/production-live-only-test-lane-retirement.md`        | Records zero/local complete; machinery retirement underway |
+| Suite                                       | File                                                                      | Status                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| S1 Governance recalibration & routing       | `docs/feature-suites/governance.md`                                       | Built this cycle (spine + gate)                          |
+| S2 Voice & Copy                             | `docs/feature-suites/voice-copy.md`                                       | Built (S2)                                               |
+| S3 Lease-renewal maturation                 | `docs/feature-suites/lease-renewal.md`                                    | Spec — discovery-gated                                   |
+| S4 Maintenance work-order intake            | `docs/feature-suites/maintenance-intake.md`                               | Spec                                                     |
+| S5 Ask portal rescope                       | `docs/feature-suites/ask-rescope.md`                                      | Spec — folded into R4                                    |
+| S6 UI / IA re-architecture                  | `docs/feature-suites/ui-ia.md`                                            | Built (F-IA-CONSOLE-HOME)                                |
+| S7 Cross-product integration                | `docs/feature-suites/cross-product.md`                                    | Spec                                                     |
+| S8 TDD that mirrors behavior                | `docs/feature-suites/tdd.md`                                              | Spec (cross-cutting)                                     |
+| S9 Local-model live-data testing            | `docs/feature-suites/local-model.md`                                      | Built (S9, cross-cutting)                                |
+| S10 Console app-state front door            | `docs/feature-suites/console-app-state.md`                                | Built (F-CONSOLE-APP-STATE)                              |
+| S11 Per-Space "teeth"                       | `docs/feature-suites/space-teeth.md`                                      | Spec — Q&A answered, runs via S13                        |
+| S12 Dev↔prod parity                         | `docs/feature-suites/dev-prod-parity.md`                                  | Built + live-verified (F-DEVPROD-PARITY)                 |
+| S13 Pre-customer refinement                 | `docs/feature-suites/pre-customer-refinement.md`                          | Spec — decided 2026-07-02, ready to run                  |
+| S14 Approval Queue mobile redesign          | `docs/feature-suites/approval-queue-mobile.md`                            | Spec — owner #1 target (D1 locked 2026-07-10)            |
+| S15 Gmail synthetic fallback tools          | `docs/feature-suites/gmail-hub.md`                                        | Historical; retire under S48                             |
+| S16 Role-scoped sub-users (space scopes)    | `docs/feature-suites/rbac-subusers.md`                                    | Spec — app-plane; live claim mint owner-gated            |
+| S17 Unified Console + attention hub         | `docs/feature-suites/unified-console-and-attention.md`                    | Spec — decided 2026-07-10 (D2)                           |
+| S18 Process auto-initiation (anticipation)  | `docs/feature-suites/process-auto-initiation.md`                          | Built — ordinary `/runs`; Live read-only input           |
+| S19 Workflow-bounded Gmail per user         | `docs/feature-suites/gmail-live-per-user.md`                              | Working V1; D62 race hardening remains                   |
+| S20 Risk-bounded execution authority        | `docs/feature-suites/execution-authority.md`                              | Working V1                                               |
+| S21 Trusted immediate publication           | `docs/feature-suites/trusted-publication.md`                              | Working V1; chunked and fenced                           |
+| S22 External Vendor portal + Gmail OAuth    | `docs/feature-suites/vendor-portal-and-mailbox.md`                        | Live Vendor portal/auth; Test contract is historical     |
+| S23 Console Live + Test lanes               | `docs/feature-suites/console-live-data.md`                                | Historical dual-lane contract; retired by S56            |
+| S24 Communications policy + artifacts       | `docs/feature-suites/communications-policy.md`                            | Working V1; TTL/scheduler optional                       |
+| S25 Lease Renewal external execution        | `docs/feature-suites/lease-renewal-execution.md`                          | Live action contract; Test journey is historical         |
+| S26 Maintenance external execution          | `docs/feature-suites/maintenance-execution.md`                            | Live action contract; Test journey is historical         |
+| S27 Working-app release + activation        | `docs/feature-suites/v1-release-acceptance.md`                            | Working V1 — manifest 3.0/report 2.3; Live-only contract |
+| S28 Market comp provider + screenshot       | `docs/feature-suites/market-comp-data.md`                                 | Spec — Wave 1 app-plane; Wave 2 RentCast seam            |
+| S29 Comp-informed rent suggestion           | `docs/feature-suites/rent-suggestion-admin-gated.md`                      | Built — Wave 1 app-plane (F-RENT-SUGGEST-ADMIN-GATED)    |
+| S30 RentVine renewal-write activation       | `docs/feature-suites/rentvine-write-activation.md`                        | Spec — Wave 2 seam (owner: RentVine endpoint)            |
+| S31 Gmail reply-watch + follow-up           | `docs/feature-suites/gmail-watch-inbound.md`                              | Spec — loop-only; NO owner dependency (D37)              |
+| S32 KB corrections learning + freshness     | `docs/feature-suites/kb-corrections-learning.md`                          | Built — Wave 1 app-plane (F-KB-CORRECTIONS-LEARNING)     |
+| S33 Ask box to live-action orchestration    | `docs/feature-suites/ask-to-action.md`                                    | Built — gated Live action + ordinary `/runs`             |
+| S34 Dotloop e-signature activation          | `docs/feature-suites/dotloop-esign-activation.md`                         | Spec — Wave 2 seam (owner: Dotloop OAuth app)            |
+| S35 LeadSimple connector activation         | `docs/feature-suites/leadsimple-activation.md`                            | Spec — Wave 2 seam (owner: API key + vendor)             |
+| S36 Space self-service provisioning         | `docs/feature-suites/space-self-provisioning.md`                          | Spec — Wave 2 seam (owner: billing + SA)                 |
+| S37 Full no-code page/layout builder        | `docs/feature-suites/nocode-page-builder.md`                              | Spec — sequenced after IA; executed as amended by S50    |
+| S38 Maintenance owner-notice draft          | `docs/feature-suites/maintenance-notice-activation.md`                    | Built — Gmail draft + human Gmail send is final (D33)    |
+| S39 Internal notifications + center         | `docs/feature-suites/internal-notifications.md`                           | Spec — Wave 1 app-plane (D-AUTOMATION-LINE)              |
+| S40 Demo/Production separation              | `docs/feature-suites/environment-deployment-separation.md`                | Superseded by S56 local-first Live-only posture          |
+| S41 Shell, navigation, vocabulary           | `docs/feature-suites/shell-navigation-vocabulary.md`                      | Spec — authorized after S40                              |
+| S42 Attention ownership + Spaces flow       | `docs/feature-suites/attention-and-spaces-flow.md`                        | Spec — authorized after S41                              |
+| S43 Canonical Renewal workspace             | `docs/feature-suites/lease-renewal-canonical-workspace.md`                | Spec — authorized after S40/S41/S44                      |
+| S44 Evidence + provider backlinks           | `docs/feature-suites/evidence-provider-backlinks.md`                      | Spec — authorized foundation after S41                   |
+| S45 Approval one-card consolidation         | `docs/feature-suites/approval-queue-consolidation.md`                     | Spec — authorized after S44                              |
+| S46 Maintenance operator workspace          | `docs/feature-suites/maintenance-operator-workspace.md`                   | Spec — authorized after S44                              |
+| S47 Resident Maintenance intake             | `docs/feature-suites/resident-maintenance-intake.md`                      | Spec — app-plane + RentVine seam                         |
+| S48 Admin/Connections/tool retirement       | `docs/feature-suites/admin-connections-tool-retirement.md`                | Spec — authorized; no Test Lab                           |
+| S49 Compatibility/code/QA retirement        | `docs/feature-suites/compatibility-code-qa-retirement.md`                 | Spec — two-stage proof/delete                            |
+| S50 S37 builder recalibration               | `docs/feature-suites/nocode-builder-recalibration.md`                     | Spec — controls S37 execution after baseline             |
+| S51 Production operational readiness        | `docs/feature-suites/production-operational-readiness.md`                 | Local seam complete; protected/cloud/live parked         |
+| S52 Production cost governance              | `docs/feature-suites/production-cost-governance.md`                       | Applied/live-verified — `$25` alert, `$100` hard stop    |
+| S53 Green-light activation + gate integrity | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`         | Spec — named-key activation table                        |
+| S54 Verification and CI parity              | `docs/feature-suites/verification-and-ci-parity.md`                       | S54.1 locally and remotely green                         |
+| S55 Service rename + identifier cleanup     | `docs/feature-suites/production-service-rename-and-identifier-cleanup.md` | Complete — rollback rehearsed; legacy service deleted    |
+| S56 Production Live-only, Test lane retired | `docs/feature-suites/production-live-only-test-lane-retirement.md`        | Complete — Production Live-only; local rehearsal         |
 
 The prior Production Test journeys remain dated implementation evidence, not a current product lane.
-S56 controls the current transition: intake is fenced, Production records are zero, local rehearsal is
-explicit Live-read-only, and Test machinery retirement is being verified. A hosted Demo environment is
-deferred; S40–S50 remain the broader authorized target program rather than a claim that every later UI
-suite is complete.
+S56 is complete: intake is fenced, Production records are zero, Test machinery is retired, and local
+rehearsal is explicit Live-read-only with no Live effect. A hosted Demo environment remains deferred;
+S40–S50 are broader historical and UI program context rather than a claim that every later UI suite is
+complete.

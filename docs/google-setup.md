@@ -5,12 +5,13 @@ Cloud Storage / Drive source locations, Agent Search / Vertex AI Search, Cloud R
 and Gmail send-only behavior. Keep secrets out of git and store real values in
 `.env.local` or Secret Manager.
 
-> **Demo cloud lane retired (2026-06-20).** The legacy `pmikckb-test` demo project (in the
-> `cherrybridge.ai` org) is being retired — see [`demo-lane-retirement.md`](demo-lane-retirement.md).
-> The live cheap-live KB runs on `pmi-kc-kb-prod` (`pmikcmetro.com`). The `firebase:setup-demo` /
-> `firebase:setup-auth-demo` aliases (which hardcoded `--project=pmikckb-test`) were removed; use
-> the generic `npm run firebase:setup` / `npm run firebase:setup-auth` with an explicit
-> `--project=<id>`. Sections below that name `pmikckb-test` are historical demo-setup context.
+> **Legacy setup history; do not execute it as current guidance.** Sections below that name
+> `pmikckb-test`, its hosted Demo URL, `seed:demo`, or the old `pmi-kc-kb-demo` service preserve the
+> retired 2026-05/06 setup record only. Current Production is Live-only on `pmi-kc-app` at
+> `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`. Current rehearsal is local with explicit Demo +
+> Live-read-only context and no persistence/provider effects; hosted Demo and fixture seeding are
+> deferred. Use `docs/environment-handoff.md` and the current cutover section at the end of this
+> file for active guidance.
 
 ## Local Prerequisites
 
@@ -29,10 +30,10 @@ npm --version
 java -version
 ```
 
-### Windows Demo Host Automation
+### Historical Windows Demo Host Automation (do not execute)
 
-On the current Windows demo host, future agents should run the repo command instead of
-asking the user to run PowerShell manually:
+The retired Windows-hosted Demo setup used the following repo command. It is preserved only to
+explain the dated evidence and must not be used to recreate that environment:
 
 ```bash
 npm run host:setup
@@ -50,8 +51,8 @@ This command uses `scripts/setup-windows-google-dev.ps1` to:
 - set current-user PowerShell execution policy to `RemoteSigned`;
 - enable the common demo APIs when `-EnableApis` is used.
 
-Use `npm run host:check` to verify the same host state without creating a project. The
-known demo project on this host is `pmikckb-test`.
+The historical host check verified the same state without creating a project. The retired project
+was `pmikckb-test`.
 
 After the host check passes, future agents can try to attach Firebase and register the
 demo web app with:
@@ -113,7 +114,7 @@ successful Google session can be reused by later smoke runs. Set
 `PLAYWRIGHT_CHROME_PATH` only if the host uses a non-standard Chrome or Edge install
 location.
 
-Current demo-host state:
+Historical demo-host state captured before retirement:
 
 - `pmikckb-test` is the active demo project.
 - The stray `pmikckb-test-8f927` project was deleted and may remain visible as
@@ -219,7 +220,7 @@ Record:
 - Display name.
 - Environment (`demo` or `client-production`).
 
-Current demo values:
+Historical Demo values captured before retirement:
 
 - Project: `pmikckb-test`.
 - Agent Search location: `us`.
@@ -230,7 +231,7 @@ Current demo values:
 - Ignored upload workspace: `temp/lease-renewals-drive-seed/`.
 - Approved sanitized templates and demo seed sources now exist for Lease Renewals,
   Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding.
-  The current demo project has all four imported for the multi-Space live demo.
+  The retired Demo project had all four imported for the multi-Space demonstration.
 - Transcript-derived source starters also exist for the remaining writable launch
   Spaces. They should be imported only after approval for demo/production use.
 - Template catalog and approval guidance:
@@ -570,60 +571,37 @@ prefix in `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`; the Drive upload needs a real Dri
 Create/import additional data stores with `npm run import:agent-search -- --create-data-store`
 only after uploading approved `.txt` sources and confirming the budget guardrail.
 
-## Gmail Send-Only Notifications
+## Historical Gmail Send-Only Notifications (retired)
 
-Approval notification plumbing is implemented but disabled by default. It sends only
-internal `KB Approval` notifications and logs sent/skipped/failed notifications in
-Firestore. Configure it only after the sender identity and recipients are approved:
-
-```dotenv
-KB_APPROVAL_NOTIFICATIONS_ENABLED=true
-KB_APPROVAL_SENDER=<kb-automation@pmikcmetro.com>
-KB_APPROVAL_RECIPIENTS=<dan-pmi-kc-account@pmikcmetro.com>,<josiah-pmi-kc-account@pmikcmetro.com>
-APP_BASE_URL=<deployed-kb-url>
-```
-
-The app uses only:
-
-```text
-https://www.googleapis.com/auth/gmail.send
-```
-
-Do not grant Gmail read, modify, compose, insert, labels, or full mail scopes to this
-app for v1. Gmail's scope docs list `gmail.send` as send-only:
-<https://developers.google.com/workspace/gmail/api/auth/scopes>.
+The former `KB_APPROVAL_NOTIFICATIONS_ENABLED` / `kb-automation@pmikcmetro.com` send-only design is
+hard-disabled and must not be configured. Current staff Gmail transport uses the exact DWD
+`gmail.readonly`, `gmail.compose`, `gmail.labels`, and `gmail.modify` scope set behind workflow,
+role, artifact, exact-confirmation, and per-action gates. Generic compose/send remains closed, and
+renewal and maintenance initiation create an unsent Gmail draft for a human to send.
 
 ## Human-Provided Values
 
-Provide these values to unblock live setup, without posting secrets into chat:
-
-- Demo Workspace domain.
-- Demo GCP/Firebase project ID.
-- Firebase Web app config.
-- Confirmation that Google sign-in is enabled.
-- Authorized local/demo domains.
-- Cloud Storage bucket/source prefix for `KB / Lease Renewals`.
-- Agent Search data store ID for Lease Renewals.
-- `kb-automation@pmikcmetro.com` sender for `KB Approval`.
+No hosted Demo project, Firebase app, domain, or fixture-seeder value is requested. Production's
+project, Firebase app, canonical domain, source bucket, and Agent Search store are recorded in
+`docs/environment-handoff.md`. Supply only the exact feature-scoped provider/source inputs listed in
+`docs/client-checklist.md`, and put secret values directly in Secret Manager rather than chat or git.
 
 ## Client Cutover
 
 The dated `docs/client-production-cutover.md` is preserved evidence of the pre-S40 Live+Test
-cutover; it is not the current authoritative command sequence. Current cutover is owned by
-`docs/feature-suites/environment-deployment-separation.md`, with S51 operational readiness and S52
-cost governance as prerequisites.
+cutover; it is not the current authoritative command sequence. The S55/S56 cutover completed on
+2026-08-03: `pmi-kc-app` serves the Live-only Production application, `pmi-kc-kb-demo` is absent,
+and local is the explicit effect-fenced rehearsal surface.
 
-1. The owner supplies and provisions the exact independent Demo and replacement Production
-   project/service/Auth/IAM/billing/scope resources named by S40. Do not infer identifiers.
-2. The runner validates the separate manifests and uses only S40's guaranteed non-executing
-   `--plan-only` path while auth or S52 is not green.
-3. Any `lib/auth/**` or `firestore.rules` change is isolated as D12-protected work for owner review.
-4. A real D05 release requires the full local gate, fresh managed auth, non-null owner-selected S52
-   values verified live in lockstep, four correctly targeted S51 policies, prior-revision capture,
-   and rollback preparation.
-5. Deploy a named candidate at zero traffic, verify its explicit Production descriptor and
-   authenticated smoke, then promote that exact revision deliberately. Retain the prior revision.
+1. Run the full local gate, managed-auth preflights, current S52 readback, and prior-revision capture.
+2. Confirm the production release's `--plan-only` output merged `ENVIRONMENT_KIND=production`,
+   `DATA_CONTEXT=live`, and the canonical `pmi-kc-app` URL from `.env.production.local`.
+3. Isolate any `lib/auth/**` or `firestore.rules` change as D12-protected work for owner review.
+4. Deploy a named candidate at zero traffic, verify its explicit Production descriptor and
+   authenticated smoke, then promote that exact revision deliberately.
+5. Rehearse rollback to the captured predecessor and restore forward before any retirement step.
+   The current predecessor is recorded in `F-CURRENT-SERVING-CHECKPOINT-2026-08-03`.
 
 Do not use the legacy wrapper's immediate 100% promotion as a current cutover path, and never copy
-Demo Firestore data, OAuth clients, service accounts, storage, Auth projects, or knowledge corpora
+invented/test data, OAuth clients, service accounts, storage, Auth projects, or knowledge corpora
 into Production.

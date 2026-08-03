@@ -51,24 +51,24 @@ These three durable rules were added after the pre-customer copy pass and are en
 
 ## Do / don't lexicon
 
-| Don't say (internal)                                | Say (operator)                                    |
-| --------------------------------------------------- | ------------------------------------------------- |
-| read-authoritative source of truth                  | leases, tenants, and rent                         |
-| Available in the next release.                      | (remove the control; show nothing)                |
-| All details provided — PMI will verify and connect. | Ready to connect                                  |
-| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_ |
-| KB-owned process space                              | Process space                                     |
-| Read-only source space                              | Source space                                      |
-| Sample / persistent Test / simulation-only          | Demo data (only in the Demo environment)          |
-| production_allowed / Registry eligible              | Available / Review connection                     |
-| raw reconciliation                                  | Compare sources                                   |
-| bodyless receipt                                    | Activity record                                   |
-| Final-V1 external execution                         | Provider action                                   |
-| Test environment (operator copy)                    | Demo environment                                  |
-| live/test mode selector in Production               | (remove; Production is Live-only)                 |
-| the exception and control plane                     | (say what it reads/writes/checks)                 |
-| PMI handles the setup for you                       | the app stores the credentials and checks it      |
-| Rentvine (read-authoritative)                       | RentVine _(display seam; internal id unchanged)_  |
+| Don't say (internal)                                | Say (operator)                                          |
+| --------------------------------------------------- | ------------------------------------------------------- |
+| read-authoritative source of truth                  | leases, tenants, and rent                               |
+| Available in the next release.                      | (remove the control; show nothing)                      |
+| All details provided — PMI will verify and connect. | Ready to connect                                        |
+| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_       |
+| KB-owned process space                              | Process space                                           |
+| Read-only source space                              | Source space                                            |
+| Sample / persistent Test / simulation-only          | (remove from product; keep fixtures in automated tests) |
+| production_allowed / Registry eligible              | Available / Review connection                           |
+| raw reconciliation                                  | Compare sources                                         |
+| bodyless receipt                                    | Activity record                                         |
+| Final-V1 external execution                         | Provider action                                         |
+| Test environment (operator copy)                    | Local rehearsal                                         |
+| live/test mode selector in Production               | (remove; Production is Live-only)                       |
+| the exception and control plane                     | (say what it reads/writes/checks)                       |
+| PMI handles the setup for you                       | the app stores the credentials and checks it            |
+| Rentvine (read-authoritative)                       | RentVine _(display seam; internal id unchanged)_        |
 
 The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).
 

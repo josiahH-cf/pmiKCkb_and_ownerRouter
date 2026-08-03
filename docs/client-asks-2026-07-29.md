@@ -50,21 +50,17 @@ The activation-only owner inputs below are equally real even when they are not v
 
 | Owner input / decision | Exact value still required                                                                                                                                                                                                                                | Scope                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| S40 / D11              | Dedicated Demo project id + number, region, Firestore database, storage, Pub/Sub, runtime identity, Firebase Auth project/domain, KB corpus ids, OAuth origin/audience, and rollback-safe migration approval                                              | Environment cutover         |
-| S51 / D13              | Internal managed operator notification destination; the redacted `docs/s51-production-operations-owner-packet-2026-07-30.md` is ready but was **NOT RUN**                                                                                                 | Monitoring activation       |
-| S52 / D01              | Measured baseline, alert threshold, hard-stop ceiling, and disposition of `adept-primacy-499822-d7`                                                                                                                                                       | Any cost-bearing cloud step |
-| S53 / D29              | Exact managed `KB_APPROVAL_SENDER`, if it cannot be recovered from approved non-secret config                                                                                                                                                             | Internal notices            |
 | S53 / D30              | Maintenance intake token secret and IP-hash salt in Secret Manager plus runtime access binding                                                                                                                                                            | Resident intake activation  |
 | S53 / D32              | Approve/provision the managed Sheet transaction broker below: exact-A1 stable-row mutate + status + atomic absent-key tombstone + same-value-ABA-safe effect generation/protected ranges; then create `KB Proposed — Comp basis` and confirm sheet id/tab | Sheet write-back activation |
 | S53 / D34              | One Vendor company/contact supplied through a secure out-of-repo channel                                                                                                                                                                                  | Vendor lifecycle pilot      |
-| S53 / D36              | `roles/discoveryengine.admin` grant to the exact runtime service account                                                                                                                                                                                  | S36 provisioning            |
 | S47 / D16              | Approved resident notice/troubleshooting/charge wording and a non-secret fallback contact route                                                                                                                                                           | Resident intake             |
 | D44                    | Official approved SVG and PNG artwork, provenance, and usage approval                                                                                                                                                                                     | Brand surfaces              |
 
 Before any command below that reads live Google state or mutates cloud configuration, run
-`npm run preflight:adc`. If it fails, the owner runs `npm run auth:session` interactively and reruns
-the preflight. As of 2026-07-30, both the managed CLI token and ADC token require that refresh. A
-stale token never authorizes a personal-account workaround.
+`npm run preflight:adc`. The managed session was refreshed on 2026-08-03; if a future preflight
+fails, the owner runs `npm run auth:session` interactively and reruns it. A stale token never
+authorizes a personal-account workaround. S52 is already applied at alert `$25` and hard stop
+`$100`; do not request or recompute those values here.
 
 D38, D39 go out as **one** message. D45, D52, D53, D54, D55, D21 and the D57 confirmation can go to
 Dan as **one** batch. D58 is deliberately held until after our own re-derivation — see item 8.
@@ -753,20 +749,18 @@ when it is signed so the renewal advances itself to complete — without sending
 a client ID and a client secret, and you will be asked for a redirect URI.
 
 **2. The redirect URI.** Do not register the historical
-`pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` URL. S40 replaces that service with `pmi-kc-app`, and an
-OAuth redirect must be stable and byte-identical. After S40 creates and verifies the final
-Production origin, register:
+`pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` URL. The verified Production origin is now stable on
+`pmi-kc-app`. Register this byte-identical value:
 
 ```text
-<FINAL_PRODUCTION_ORIGIN>/api/connections/dotloop/callback
+https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback
 ```
 
 Two things matter about this value. It must match `DOTLOOP_OAUTH_REDIRECT_URI` **byte for byte** — a
 trailing slash difference is enough to fail the exchange. And it is the path S34 will serve: that
 callback route does not exist in the app yet (`app/api/connections/[connectorId]/connect` is currently
-a shell that performs no redirect and no token exchange). The app registration can begin now, but
-the redirect value is not final until S40 records the verified `pmi-kc-app` origin; never substitute
-a guessed URL.
+a shell that performs no redirect and no token exchange). The app registration can begin now; use
+only the exact verified callback above and never substitute a guessed URL.
 
 **3. Place the client id and client secret in Secret Manager** after registration. Add the redirect
 URI only after the final origin is verified. These are Bash/WSL commands and create containers only
@@ -783,9 +777,8 @@ for NAME in DOTLOOP_OAUTH_CLIENT_ID DOTLOOP_OAUTH_CLIENT_SECRET; do
 done
 ```
 
-After S40 records the final origin, run the same describe-or-create/version/binding pattern once for
-`DOTLOOP_OAUTH_REDIRECT_URI`, entering the exact verified callback URL. Do not enter the placeholder
-shown above.
+Run the same describe-or-create/version/binding pattern once for `DOTLOOP_OAUTH_REDIRECT_URI`,
+entering the exact verified callback URL above.
 
 The same closed-allowlist rule applies: `scripts/deploy-demo-cloud-run.mjs` must be extended to bind
 these three names, or they will not reach the running service.
@@ -807,21 +800,22 @@ references only — never a raw token in a response, a log, or git.
 
 # Part 3 — Suggested order
 
-1. **At the next owner-present window:** run `npm run auth:session`, then confirm
-   `npm run preflight:adc` is green. This is interactive and cannot be delegated.
-2. **Before any cost-bearing cloud command:** supply S52's measured baseline/alert/ceiling values,
-   the second-project disposition, and S51's operator destination. The current observed enforcement
-   amount is not approved headroom.
+1. **Before the next live Google operation:** confirm `npm run preflight:adc` remains green. The
+   managed session was refreshed on 2026-08-03; repeat interactive auth only if it expires.
+2. **For remaining monitoring work:** reuse the existing managed operator destinations/channels; no
+   new client input is needed. The Cloud Automation Grant covers in-scope setup and readback, and the
+   plan must verify channel state before applying. S52's `$25` alert and `$100` hard stop are already
+   applied and approved headroom.
 3. **For the active S53 Sheet slice:** approve and provision D32's managed transaction broker and
    protected target/ledger ranges. The runner then builds the adapter and proves it on a synthetic
    workbook before the separate operational column/id/tab confirmation; none of these steps flips the key.
 4. **One message out:** RentVine, D38 + D39 combined (item 1). Longest expected reply time of
    anything on this page, so it should leave first among the external asks.
 5. **One message out:** LeadSimple (item 2). Also phase-blocking, also a vendor round trip.
-6. **Supply S40 identifiers/provisioning:** establish the final `pmi-kc-app` origin before registering
-   the Dotloop callback URI.
-7. **Owner self-serve after the cost gate:** place the RentCast key (item 10), begin Dotloop
-   registration, and add the final redirect only after S40 verifies it (item 11).
+6. **Use the verified Production origin:** register the exact `pmi-kc-app` Dotloop callback URI in
+   item 11. Hosted Demo resources are deferred and are not an input.
+7. **Owner self-serve:** place the RentCast key (item 10), begin Dotloop registration, and add the
+   exact verified redirect from item 11.
 8. **This week:** Chasity's template (item 3) and official brand artwork (D44).
 9. **This week, one batch to Dan:** tool access (item 4), the recipient-rule confirmation (item 5), the
    three low-priority questions (item 7), the knowledge-base review (item 8), and the credential
@@ -839,8 +833,10 @@ These hold regardless of which asks land, and no reply from any vendor or any pe
   your own staff may send automatically; that is the only automatic send.
 - **Generic, non-workflow mail stays closed.** The app cannot compose and send arbitrary email. Only
   specific, workflow-linked actions exist, and each is individually gated.
-- **Company account only.** Every authentication path runs as a `pmikcmetro.com` identity or a service
-  identity. No personal account is ever in an auth path.
+- **Company account for internal and cloud paths.** Every staff, connector, build, runtime, DWD, and
+  cloud path uses a `pmikcmetro.com` or project service identity. A real external Live Vendor is the
+  narrow assigned-ticket principal and never inherits internal authority. No personal account is in
+  an auth path.
 - **No secrets, customer data, or guessed endpoints in git.** Secret values live in Secret Manager;
   the repository holds names only. No endpoint is ever invented — an undocumented endpoint stays
   unbuilt rather than guessed.
@@ -850,9 +846,9 @@ These hold regardless of which asks land, and no reply from any vendor or any pe
 - **Client-facing sends and system-of-record writes stay human-confirmed.** Approval is bound to the
   exact previewed payload. This does not change when a vendor contract arrives; the contract only
   determines whether the action can exist at all.
-- **No cost-bearing cloud step runs until S52 records a non-null verified production ceiling.** Once
-  active, spending stays inside that ceiling, with an operator alert below a separate armed hard stop.
-  The currently observed legacy amount is enforcement state, not approved headroom.
+- **Cost-bearing cloud work stays inside S52's verified controls.** The applied `$25` operator alert
+  sits below the separate armed `$100` hard stop. Each path still runs its own preflights and reads
+  the live controls before acting.
 
 ---
 
