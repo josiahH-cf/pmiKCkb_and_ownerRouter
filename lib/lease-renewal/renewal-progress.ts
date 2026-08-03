@@ -13,7 +13,7 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { OwnerDecision } from "@/lib/lease-renewal/tenant-draft";
 
-/** Stage indices into RENEWAL_STEPS (data → owner → tenant → build). Kept in lockstep with sample-desk. */
+/** Stage indices into RENEWAL_STEPS (data → owner → tenant → build). */
 export const RENEWAL_STAGE = {
   data: 0,
   owner: 1,

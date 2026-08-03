@@ -1,76 +1,27 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
-vi.mock("@/lib/release/fake-acceptance", () => ({
-  runIntegratedFakeV1Acceptance: vi.fn(),
-}));
+const root = process.cwd();
 
-import { POST } from "@/app/api/admin/v1/fake-acceptance/route";
-import { setAuthResolverForTest } from "@/lib/auth/session";
-import { runIntegratedFakeV1Acceptance } from "@/lib/release/fake-acceptance";
-
-const SAFE_RESULT = {
-  mode: "production-test-workspace",
-  dataMode: "test",
-  liveEvidenceEligible: false,
-  liveProviderCallCount: 0,
-  vendorBoundary: { liveProviderCalls: 0 },
-  lease: {},
-  maintenance: {},
-  providerOperations: [],
-};
-
-function actor(role: "Editor" | "Admin") {
-  setAuthResolverForTest(() => ({
-    uid: `${role.toLowerCase()}-1`,
-    email: `${role.toLowerCase()}@pmikcmetro.com`,
-    hd: "pmikcmetro.com",
-    role,
-  }));
-}
-
-afterEach(() => {
-  setAuthResolverForTest(null);
-  vi.mocked(runIntegratedFakeV1Acceptance).mockReset();
-});
-
-describe("production Test workspace route", () => {
-  it("rejects non-Admins before running any workflow", async () => {
-    actor("Editor");
-
-    const response = await POST();
-
-    expect(response.status).toBe(403);
-    expect(runIntegratedFakeV1Acceptance).not.toHaveBeenCalled();
+describe("retired V1 Production Test workspace route", () => {
+  it("keeps the browser endpoint absent", () => {
+    expect(existsSync(join(root, "app/api/admin/v1/fake-acceptance/route.ts"))).toBe(
+      false,
+    );
   });
 
-  it("returns the explicit Test-only evidence boundary", async () => {
-    actor("Admin");
-    vi.mocked(runIntegratedFakeV1Acceptance).mockResolvedValue(SAFE_RESULT as never);
-
-    const response = await POST();
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      mode: "production-test-workspace",
-      dataMode: "test",
-      liveEvidenceEligible: false,
-      liveProviderCallCount: 0,
-      vendorBoundary: { liveProviderCalls: 0 },
-    });
+  it("keeps the panel and executor harness outside the Production graph", () => {
+    expect(
+      existsSync(join(root, "components/admin/V1ProductionTestWorkspacePanel.tsx")),
+    ).toBe(false);
+    expect(existsSync(join(root, "lib/release/fake-acceptance.ts"))).toBe(false);
   });
 
-  it("withholds a result that violates the zero-Live-call boundary", async () => {
-    actor("Admin");
-    vi.mocked(runIntegratedFakeV1Acceptance).mockResolvedValue({
-      ...SAFE_RESULT,
-      liveProviderCallCount: 1,
-    } as never);
-
-    const response = await POST();
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "Production Test workspace safety boundary failed.",
-    });
+  it("preserves reusable acceptance behavior only under tests/helpers", () => {
+    expect(existsSync(join(root, "tests/helpers/fake-acceptance.ts"))).toBe(true);
+    expect(
+      readFileSync(join(root, "tests/helpers/fake-acceptance.ts"), "utf8"),
+    ).toContain("runIntegratedFakeV1Acceptance");
   });
 });

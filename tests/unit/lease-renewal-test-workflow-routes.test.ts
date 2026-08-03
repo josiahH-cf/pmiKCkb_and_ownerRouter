@@ -1,216 +1,62 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
-vi.mock("@/lib/firestore/lease-renewal-test-runs", async (importActual) => {
-  const actual =
-    await importActual<typeof import("@/lib/firestore/lease-renewal-test-runs")>();
-  return {
-    ...actual,
-    createCanonicalLeaseTestRun: vi.fn(),
-    listLeaseTestBusinessEvents: vi.fn(),
-    recordLeaseTestBusinessEvent: vi.fn(),
-    simulateLeaseTestAction: vi.fn(),
-    transitionLeaseTestRun: vi.fn(),
-  };
-});
+const root = process.cwd();
 
-import { POST as createTestRun } from "@/app/api/lease-renewal/test-runs/route";
-import { PATCH as transitionTestRun } from "@/app/api/lease-renewal/test-runs/[runId]/route";
-import { POST as runTestAction } from "@/app/api/lease-renewal/test-runs/[runId]/test-actions/route";
-import {
-  GET as listBusinessEvents,
-  POST as recordBusinessEvent,
-} from "@/app/api/lease-renewal/test-runs/[runId]/business-events/route";
-import { setAuthResolverForTest } from "@/lib/auth/session";
-import {
-  createCanonicalLeaseTestRun,
-  listLeaseTestBusinessEvents,
-  recordLeaseTestBusinessEvent,
-  simulateLeaseTestAction,
-  transitionLeaseTestRun,
-} from "@/lib/firestore/lease-renewal-test-runs";
-import {
-  LEASE_TEST_BUSINESS_CONFIRMATION,
-  LEASE_TEST_CONFIRMATION,
-} from "@/lib/lease-renewal/test-workflow";
+const retiredProductionPaths = [
+  "app/api/admin/v1/fake-acceptance/route.ts",
+  "app/api/lease-renewal/test-runs/route.ts",
+  "app/api/lease-renewal/test-runs/[runId]/route.ts",
+  "app/api/lease-renewal/test-runs/[runId]/test-actions/route.ts",
+  "app/api/lease-renewal/test-runs/[runId]/business-events/route.ts",
+  "app/api/lease-renewal/owner-notice-draft/route.ts",
+  "app/api/lease-renewal/tenant-notice-draft/route.ts",
+  "app/api/process-definitions/[definitionId]/test-runs/route.ts",
+  "components/admin/V1ProductionTestWorkspacePanel.tsx",
+  "components/console/StartTestRunButton.tsx",
+  "components/lease-renewal/LeaseTestJourney.tsx",
+  "components/lease-renewal/LeaseTestRunsWorkspace.tsx",
+  "components/lease-renewal/LeaseRenewalRunClient.tsx",
+  "components/lease-renewal/PrepareOwnerEmailButton.tsx",
+  "components/lease-renewal/PrepareTenantEmailButton.tsx",
+  "components/operations/TestOperationalHandoffPanel.tsx",
+  "lib/firestore/lease-renewal-test-runs.ts",
+  "lib/lease-renewal/test-workflow.ts",
+  "lib/lease-renewal/simulation.ts",
+  "lib/lease-renewal/sample-desk.ts",
+  "lib/operations/test-handoff-loader.ts",
+  "lib/operations/test-handoffs.ts",
+  "lib/release/fake-acceptance.ts",
+  "lib/release/synthetic-execution.ts",
+  "lib/release/synthetic-vendor-acceptance.ts",
+] as const;
 
-const context = { params: Promise.resolve({ runId: "test-renewal-1" }) };
-
-function setEditor() {
-  setAuthResolverForTest(() => ({
-    email: "editor@pmikcmetro.com",
-    hd: "pmikcmetro.com",
-    role: "Editor",
-    uid: "editor-1",
-  }));
-}
-
-function jsonRequest(url: string, body: unknown, method = "POST") {
-  return new Request(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-afterEach(() => {
-  setAuthResolverForTest(null);
-  vi.mocked(createCanonicalLeaseTestRun).mockReset();
-  vi.mocked(listLeaseTestBusinessEvents).mockReset();
-  vi.mocked(recordLeaseTestBusinessEvent).mockReset();
-  vi.mocked(simulateLeaseTestAction).mockReset();
-  vi.mocked(transitionLeaseTestRun).mockReset();
-});
-
-describe("persistent Lease Test routes", () => {
-  it("creates only the canonical server-owned scenario", async () => {
-    setEditor();
-    vi.mocked(createCanonicalLeaseTestRun).mockResolvedValue({
-      id: "test-renewal-1",
-      data_mode: "test",
-    } as never);
-
-    const response = await createTestRun(
-      jsonRequest("http://localhost/api/lease-renewal/test-runs", {
-        scenario: "standard-renewal",
-      }),
-    );
-    expect(response.status).toBe(201);
-    expect(createCanonicalLeaseTestRun).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "editor-1" }),
-      { scenario: "standard-renewal" },
+describe("S56 Production Test-workspace retirement", () => {
+  it("keeps every retired route, workspace, executor harness, and persistence seam absent", () => {
+    expect(retiredProductionPaths.filter((path) => existsSync(join(root, path)))).toEqual(
+      [],
     );
   });
 
-  it("rejects browser-supplied customer aliases", async () => {
-    setEditor();
-    const response = await createTestRun(
-      jsonRequest("http://localhost/api/lease-renewal/test-runs", {
-        scenario: "standard-renewal",
-        residentEmail: "customer@example.com",
-      }),
+  it("keeps the ordinary human-started run route without restoring the Test endpoint", () => {
+    const source = readFileSync(
+      join(root, "app/api/process-definitions/[definitionId]/runs/route.ts"),
+      "utf8",
     );
-    expect(response.status).toBe(400);
-    expect(createCanonicalLeaseTestRun).not.toHaveBeenCalled();
+    expect(source).toContain("startWorkflowRun");
+    expect(source).toContain('requireCapability("edit")');
+    expect(source).not.toMatch(/TestRun|test-runs|data_mode\s*:\s*["']test/);
   });
 
-  it("requires the exact action confirmation before invoking the Test writer", async () => {
-    setEditor();
-    const response = await runTestAction(
-      jsonRequest(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/test-actions",
-        {
-          actionKey: "gmail.renewal_notice.draft_create",
-          confirmation: "yes",
-        },
-      ),
-      context,
+  it("exports no isolated Test executor constructor from the Production orchestrator", () => {
+    const source = readFileSync(
+      join(root, "lib/external-execution/orchestrator.ts"),
+      "utf8",
     );
-    expect(response.status).toBe(400);
-    expect(simulateLeaseTestAction).not.toHaveBeenCalled();
-  });
-
-  it("writes a sequential status and returns bodyless Test evidence", async () => {
-    setEditor();
-    vi.mocked(transitionLeaseTestRun).mockResolvedValue({
-      id: "test-renewal-1",
-      status: "Reviewed",
-    } as never);
-    const transitionResponse = await transitionTestRun(
-      jsonRequest(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1",
-        { nextStatus: "Reviewed" },
-        "PATCH",
-      ),
-      context,
+    expect(source).not.toMatch(
+      /createIsolatedTestExternalActionOrchestrator|markIsolatedTestExecutor|isolatedTestWorkspace/,
     );
-    expect(transitionResponse.status).toBe(200);
-
-    vi.mocked(simulateLeaseTestAction).mockResolvedValue({
-      receipt: {
-        id: "receipt-1",
-        data_mode: "test",
-        provider_contacted: false,
-        live_proof_eligible: false,
-      },
-      attempt: {
-        id: "attempt-1",
-        data_mode: "test",
-        provider_contacted: false,
-      },
-    } as never);
-    const actionResponse = await runTestAction(
-      jsonRequest(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/test-actions",
-        {
-          actionKey: "gmail.renewal_notice.draft_create",
-          confirmation: LEASE_TEST_CONFIRMATION,
-        },
-      ),
-      context,
-    );
-    expect(actionResponse.status).toBe(201);
-    expect(simulateLeaseTestAction).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "editor-1" }),
-      "test-renewal-1",
-      {
-        actionKey: "gmail.renewal_notice.draft_create",
-        confirmation: LEASE_TEST_CONFIRMATION,
-      },
-    );
-  });
-
-  it("lists and records exact bodyless business milestones", async () => {
-    setEditor();
-    vi.mocked(listLeaseTestBusinessEvents).mockResolvedValue([]);
-    const listResponse = await listBusinessEvents(
-      new Request(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
-      ),
-      context,
-    );
-    expect(listResponse.status).toBe(200);
-
-    vi.mocked(recordLeaseTestBusinessEvent).mockResolvedValue({
-      run: { id: "test-renewal-1", candidate_disposition: "included" },
-      event: {
-        id: "event-1",
-        data_mode: "test",
-        provider_contacted: false,
-        live_proof_eligible: false,
-      },
-      duplicate: false,
-    } as never);
-    const response = await recordBusinessEvent(
-      jsonRequest(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
-        {
-          action: "candidate_included",
-          confirmation: LEASE_TEST_BUSINESS_CONFIRMATION,
-        },
-      ),
-      context,
-    );
-    expect(response.status).toBe(201);
-    expect(recordLeaseTestBusinessEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "editor-1" }),
-      "test-renewal-1",
-      {
-        action: "candidate_included",
-        confirmation: LEASE_TEST_BUSINESS_CONFIRMATION,
-      },
-    );
-  });
-
-  it("rejects a stale business confirmation before the Test writer", async () => {
-    setEditor();
-    const response = await recordBusinessEvent(
-      jsonRequest(
-        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
-        { action: "candidate_included", confirmation: "yes" },
-      ),
-      context,
-    );
-    expect(response.status).toBe(400);
-    expect(recordLeaseTestBusinessEvent).not.toHaveBeenCalled();
+    expect(source).toContain("Production external execution refuses Test records.");
   });
 });

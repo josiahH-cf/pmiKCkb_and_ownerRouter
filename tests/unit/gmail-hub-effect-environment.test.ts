@@ -43,10 +43,10 @@ describe("Gmail Hub effect environment boundary", () => {
   });
 
   it.each([
-    ["demo", "demo", "test"],
+    ["demo", "demo", "live"],
     ["demo", "live_readonly", "live"],
   ] as const)(
-    "uses %s+%s state mode %s while refusing real client construction",
+    "uses %s+%s Live state mode while refusing real client construction",
     (environmentKind, dataContext, dataMode) => {
       const environment = resolveGmailHubEffectEnvironment({
         ENVIRONMENT_KIND: environmentKind,
@@ -67,10 +67,10 @@ describe("Gmail Hub effect environment boundary", () => {
   );
 
   it.each([
-    ["demo", "demo", "test"],
+    ["demo", "demo", "live"],
     ["demo", "live_readonly", "live"],
   ] as const)(
-    "binds the %s+%s state mode %s and provider defense to the same descriptor",
+    "binds the %s+%s Live state mode and provider defense to the same descriptor",
     (environmentKind, dataContext, dataMode) => {
       const store = new MemoryGmailStateStore();
       const constructClient = vi.fn(() => ({}) as GmailRuntimeClient);

@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { StartRunButton } from "@/components/console/StartRunButton";
 
-import { StartTestRunButton } from "@/components/console/StartTestRunButton";
 import type {
   AnticipatedUrgency,
   AnticipatedWorkGroup,
@@ -21,9 +21,8 @@ const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {
 
 /**
  * The Console "Anticipated work" lane. A read-only projection of the coming-up / due work across the
- * owner-named processes, each ONE CLICK from starting the existing human-run process. Anticipation never
- * executes — the start control opens a SIMULATION test run; a family with no seeded process (or a viewer
- * who cannot start runs) gets a read-only deep link instead. There is no send or system-of-record write.
+ * owner-named processes. An Editor may start one ordinary app-plane run; other rows are read-only
+ * deep links. Starting a run executes no provider, send, or system-of-record write.
  */
 export function ConsoleAnticipatedWork({
   groups,
@@ -73,20 +72,19 @@ function renderStartControl(
   if (group.count === 0) {
     return null;
   }
-  // Editor with a seeded process: one click starts a test run. Never a send/write.
   if (
     canStart &&
     group.processDefinitionId &&
     startableDefinitionIds.has(group.processDefinitionId)
   ) {
     return (
-      <StartTestRunButton
+      <StartRunButton
         fallbackHref={group.startHref}
         processDefinitionId={group.processDefinitionId}
       />
     );
   }
-  // Viewer, or a family with no seeded process: a read-only deep link, never a start control.
+  // Viewer, missing definition, or retired definition: read-only deep link.
   return (
     <Link className="console-anticipated-open" href={group.startHref}>
       Open the space

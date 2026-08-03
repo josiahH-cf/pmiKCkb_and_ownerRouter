@@ -42,20 +42,14 @@ describe("Console environment boundary", () => {
     ).toEqual([{ kind: "live" }]);
   });
 
-  it("keeps the fixture provider limited to a Demo + Demo data context", () => {
-    expect(
+  it("refuses the retired fixture context and keeps Production Live-only", () => {
+    expect(() =>
       resolveConsoleDataModes({
         DATA_CONTEXT: "demo",
         ENVIRONMENT_KIND: "demo",
         NODE_ENV: "development",
       }),
-    ).toEqual([
-      {
-        badge: "Test data",
-        deploymentName: "local",
-        kind: "test",
-      },
-    ]);
+    ).toThrow(/fixture lane is retired/);
     expect(
       resolveConsoleDataModes({
         DATA_CONTEXT: "live",
@@ -66,7 +60,6 @@ describe("Console environment boundary", () => {
   });
 
   it("never constructs the fixture provider in production and fails visibly", async () => {
-    const createTest = vi.fn();
     const provider: ConsoleDataProvider = {
       load: vi.fn(async () => {
         throw new Error("fixture-sensitive provider detail");
@@ -77,10 +70,8 @@ describe("Console environment boundary", () => {
       { kind: "live" },
       {
         createLive: () => provider,
-        createTest,
       },
     );
-    expect(createTest).not.toHaveBeenCalled();
     expect(projection.rows).toEqual([]);
     expect(projection.sourceHealth.map((source) => source.source)).toEqual([
       "Rentvine",
@@ -90,36 +81,19 @@ describe("Console environment boundary", () => {
     expect(JSON.stringify(projection)).not.toContain("fixture-sensitive");
   });
 
-  it("uses only the fixture provider in local/test mode", async () => {
-    const createLive = vi.fn();
-    const testProvider: ConsoleDataProvider = {
-      load: vi.fn(async () => ({ rows: [], sourceHealth: [] })),
-    };
-    const createTest = vi.fn(async () => testProvider);
-    await loadConsoleProjection(
-      actor,
-      { badge: "Test data", deploymentName: "automated-test", kind: "test" },
-      { createLive, createTest },
-    );
-    expect(createLive).not.toHaveBeenCalled();
-    expect(createTest).toHaveBeenCalledTimes(1);
-  });
-
-  it("constructs only the real read provider for Demo + Live-read-only", async () => {
+  it("constructs the real read provider for Demo + Live-read-only", async () => {
     const liveProvider: ConsoleDataProvider = {
       load: vi.fn(async () => ({ rows: [], sourceHealth: [] })),
     };
     const createLive = vi.fn(() => liveProvider);
-    const createTest = vi.fn();
     const mode = resolveConsoleDataMode({
       DATA_CONTEXT: "live_readonly",
       ENVIRONMENT_KIND: "demo",
       NODE_ENV: "development",
     });
 
-    await loadConsoleProjection(actor, mode, { createLive, createTest });
+    await loadConsoleProjection(actor, mode, { createLive });
 
     expect(createLive).toHaveBeenCalledOnce();
-    expect(createTest).not.toHaveBeenCalled();
   });
 });

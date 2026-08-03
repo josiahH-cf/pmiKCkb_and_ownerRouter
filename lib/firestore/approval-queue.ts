@@ -3,7 +3,6 @@ import { v7 as uuidv7 } from "uuid";
 import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/queue";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { assertTestDataModeWriteAllowed } from "@/lib/environment/data-mode-write-boundary";
 import {
   approveActionExecutionInTransaction,
   returnActionExecutionInTransaction,
@@ -46,7 +45,6 @@ const BULK_UNAVAILABLE_ITEM_MESSAGE = "Queue item is not available for this bulk
 // Approval-critical fields snapshotted into Activity when an open item refreshes.
 const APPROVAL_CRITICAL_FIELDS = [
   "data_mode",
-  "test_fixture_key",
   "status",
   "risk",
   "action_execution_id",
@@ -140,31 +138,6 @@ export async function createApprovalQueueItem(
   const parsed = CreateApprovalQueueItemInputSchema.parse(input);
   const { note, risk_signals, ...rest } = parsed;
 
-  // S56: this store is reached by generic workflow/execution code as well as by the retired
-  // fixture route. Keep the environment fence at the persistence boundary so an audit-shaped
-  // payload cannot mint a Test record in Production through a caller whose route name is not
-  // Test-specific.
-  assertTestDataModeWriteAllowed(rest.data_mode ?? "live");
-
-  if (rest.data_mode === "test" && !rest.test_fixture_key?.startsWith("audit:")) {
-    throw new EditableLayerError(
-      "Test Approval Queue items require a server-owned audit fixture key.",
-      400,
-    );
-  }
-  if (rest.test_fixture_key && rest.data_mode !== "test") {
-    throw new EditableLayerError(
-      "Approval Queue fixture keys are permitted only in Test mode.",
-      400,
-    );
-  }
-  if (rest.data_mode === "test" && rest.action_execution_id) {
-    throw new EditableLayerError(
-      "Test Approval Queue fixtures cannot attach to a Live execution ledger.",
-      400,
-    );
-  }
-
   const hasAssignee = Boolean(rest.assignee_uid);
   const hasApprover = Boolean(rest.required_approver_uid);
   const risk = classifyQueueRisk(risk_signals, { hasAssignee, hasApprover });
@@ -179,6 +152,7 @@ export async function createApprovalQueueItem(
       db,
       rest.source_trigger_key,
     );
+    for (const item of existing) assertLiveApprovalQueueItem(item);
     const openDuplicate = existing.find((item) => !isTerminal(item.status));
 
     // Same-trigger duplicate that is still open: merge into it (refresh + history),
@@ -315,6 +289,7 @@ export async function transitionApprovalQueueItem(
     const snapshot = await transaction.get(itemRef(db, itemId));
     const current = readRequiredItem(snapshot.id, snapshot.data());
     assertCanViewItem(actor, current);
+    assertLiveApprovalQueueItem(current);
 
     if (isTerminal(current.status)) {
       throw new EditableLayerError("This queue item is already closed.", 409);
@@ -570,6 +545,9 @@ async function bulkTransitionApprovalQueueItem(
       const current = readRecord<ApprovalQueueItemRecord>(snapshot.id, data);
 
       if (!canViewApprovalQueueItem(actor, current)) {
+        return unavailableBulkResult(itemId);
+      }
+      if (current.data_mode === "test") {
         return unavailableBulkResult(itemId);
       }
 
@@ -1054,6 +1032,15 @@ function assertCanViewItem(actor: AuthenticatedUser, item: ApprovalQueueItemReco
     throw new EditableLayerError(
       "Only the assignee, required approver, or an Admin can view this queue item.",
       403,
+    );
+  }
+}
+
+function assertLiveApprovalQueueItem(item: ApprovalQueueItemRecord) {
+  if (item.data_mode === "test") {
+    throw new EditableLayerError(
+      "This legacy non-Live Approval Queue record is unavailable.",
+      409,
     );
   }
 }

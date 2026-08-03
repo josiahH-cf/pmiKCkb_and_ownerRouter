@@ -16,6 +16,8 @@ describe("bodyless local V1 application and provider report", () => {
     expect(report.environment).toBe("local");
     expect(report.applicationWorkflow.required).toBeGreaterThan(0);
     expect(report.applicationWorkflow.covered).toBe(0);
+    expect(report.applicationWorkflow.localRehearsal).toBe(0);
+    expect(report.applicationWorkflow).not.toHaveProperty("productionTest");
     expect(report.providerActivation.counts.unavailable).toBe(
       report.applicationWorkflow.required,
     );

@@ -95,14 +95,7 @@ function assertMetadata(
     fail("actor_not_authorized", 403);
   }
   if (!policy.enabled) fail("policy_disabled", 409);
-  if (
-    resolveStoredDataMode(policy) !== resolveStoredDataMode(metadata) ||
-    (resolveStoredDataMode(metadata) === "test" &&
-      (!metadata.test_fixture_key?.startsWith("audit:") ||
-        metadata.test_fixture_key !== policy.test_fixture_key)) ||
-    (resolveStoredDataMode(metadata) === "live" &&
-      Boolean(metadata.test_fixture_key || policy.test_fixture_key))
-  ) {
+  if (resolveStoredDataMode(policy) !== resolveStoredDataMode(metadata)) {
     fail("data_mode_mismatch", 409);
   }
   if (policy.connectorId !== metadata.connectorId || policy.rootId !== metadata.rootId) {

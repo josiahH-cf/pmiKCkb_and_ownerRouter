@@ -21,7 +21,10 @@ import {
   mintIntakeToken,
   type MintIntakeTokenInput,
 } from "@/lib/maintenance/intake-token";
-import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
+import {
+  MAINTENANCE_TEST_PUBLIC_INTAKE,
+  mintLegacyTestIntakeToken,
+} from "@/tests/helpers/maintenance-test-workflow";
 
 const SECRET = "route-secret-32-bytes-minimum-value";
 const IP_HASH_SALT = "route-ip-salt-32-bytes-minimum-value";
@@ -76,18 +79,14 @@ afterEach(() => {
 });
 
 describe("public maintenance intake route", () => {
-  it("refuses an already-signed Test token in Production before the writer", async () => {
-    vi.stubEnv("ENVIRONMENT_KIND", "production");
-    vi.stubEnv("DATA_CONTEXT", "live");
-    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
-      dataMode: "test",
+  it("refuses an already-signed legacy Test token before reading the body or calling the writer", async () => {
+    const testToken = mintLegacyTestIntakeToken({
+      secret: SECRET,
+      propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+      now: NOW,
     });
 
-    const res = await POST(
-      req(JSON.stringify(MAINTENANCE_TEST_PUBLIC_INTAKE), {
-        "x-intake-token": testToken,
-      }),
-    );
+    const res = await POST(req(undefined, { "x-intake-token": testToken }));
 
     expect(res.status).toBe(409);
     expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
@@ -173,44 +172,6 @@ describe("public maintenance intake route", () => {
       summary: "Leaky faucet",
       singleUse: true,
     });
-  });
-
-  it("accepts only the exact invented fixture for a signed Test token", async () => {
-    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
-      dataMode: "test",
-    });
-    const res = await POST(
-      req(JSON.stringify(MAINTENANCE_TEST_PUBLIC_INTAKE), {
-        "x-intake-token": testToken,
-      }),
-    );
-    expect(res.status).toBe(202);
-    expect(createUnverifiedIntakeFromPublic).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(createUnverifiedIntakeFromPublic).mock.calls[0][0]).toMatchObject({
-      propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
-      dataMode: "test",
-      summary: MAINTENANCE_TEST_PUBLIC_INTAKE.summary,
-      description: MAINTENANCE_TEST_PUBLIC_INTAKE.description,
-      contact: MAINTENANCE_TEST_PUBLIC_INTAKE.contact,
-      singleUse: true,
-    });
-  });
-
-  it("rejects a non-fixture body even when the Test token is valid", async () => {
-    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
-      dataMode: "test",
-    });
-    const res = await POST(
-      req(
-        JSON.stringify({
-          ...MAINTENANCE_TEST_PUBLIC_INTAKE,
-          summary: "A real-looking arbitrary report",
-        }),
-        { "x-intake-token": testToken },
-      ),
-    );
-    expect(res.status).toBe(400);
-    expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
   });
 
   it("maps a replayed single-use token to 409", async () => {

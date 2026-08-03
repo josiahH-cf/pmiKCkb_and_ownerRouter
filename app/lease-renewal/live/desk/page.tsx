@@ -7,8 +7,8 @@ import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 
 // Owner-gated (Admin only). Reads live RentVine + the renewal sheet on each render, so it is never
-// statically cached. It is read-only and draft-only: no send, no sheet write-back. The sample Renewal
-// Desk stays the default landing; this surfaces the real leases with their real reconciliation.
+// statically cached. It is read-only and draft-only: no send, no sheet write-back. This is the
+// canonical Renewal landing and surfaces real leases with their real reconciliation.
 export const dynamic = "force-dynamic";
 
 const WINDOW_DAYS = 120;
@@ -19,7 +19,7 @@ const PANELS: Record<
 > = {
   not_configured: {
     title: "Live sources aren’t connected",
-    body: "Connect RentVine and the renewal sheet to run the live desk. Until then, the Renewal Desk runs on sample data.",
+    body: "Connect RentVine and the renewal sheet to run the live desk.",
     link: { href: "/connections", label: "Open Connection Center" },
   },
   account_mismatch: {
@@ -62,7 +62,7 @@ export default async function LiveRenewalDeskPage() {
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalDesk mode="live" view={outcome.view} />
+          <RenewalDesk view={outcome.view} />
         ) : (
           <LiveDeskPanel status={outcome.status} />
         )}

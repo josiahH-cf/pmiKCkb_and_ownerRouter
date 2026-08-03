@@ -43,6 +43,7 @@
     "monitoring:plan": "node scripts/setup-monitoring.mjs",
     "monitoring:verify": "node scripts/verify-monitoring.mjs",
     "rehearse:rollback": "node scripts/rehearse-rollback.mjs",
+    "rehearse-rollback": "node scripts/rehearse-rollback.mjs",
     "s56:test-records:count": "node --import tsx scripts/retire-production-test-records.ts count",
     "s56:test-records:clone-backup": "node --import tsx scripts/retire-production-test-records.ts clone-backup",
     "s56:test-records:verify-backup": "node --import tsx scripts/retire-production-test-records.ts verify-backup",

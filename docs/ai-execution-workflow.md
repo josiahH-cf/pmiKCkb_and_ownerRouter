@@ -18,22 +18,24 @@ The app is V1 when the pinned production revision, authentication, primary tabs,
 workflows, safety boundaries, monitoring, and rollback work. Provider activation is a separate
 per-action inventory.
 
-- Demo evidence may close product-workflow acceptance when it uses Demo-owned invented aliases,
-  zero Live-provider construction/calls, explicit Demo environment/data labels, and non-Live
-  receipts. The current Production Test journey remains historical evidence until S40 migration.
+- Local rehearsal evidence may close read-only/refusal acceptance only when it resolves explicitly
+  to `environmentKind:"demo"` plus `dataContext:"live_readonly"`, performs zero durable writes or
+  Live-provider effects, and creates no receipt. Former Production Test journeys remain historical
+  evidence only; deterministic invented scenarios belong in automated tests.
 - Only Live-lane evidence may claim a provider is Live-proven or enabled.
 - A missing provider contract/credential blocks that action's Live activation, not development
   or acceptance of the stable application.
 - Stakeholder signoff is tracked and useful but does not override observed application state.
-- Production becomes Live-only. Optional Demo Live-read-only is explicit, never mixes with Demo, and
-  can close no mutation/provider evidence.
+- Production is Live-only. Local Demo + Live-read-only is explicit, has no invented product lane,
+  and can close no mutation/provider evidence. The hosted Demo GCP project is deferred.
 
 ## 3. Build a Complete Slice
 
 For each slice, define:
 
 - user and desired outcome;
-- environment and mutually exclusive data context (Production+Live, Demo+Demo, or Demo+Live-read-only);
+- environment and data context: Production + Live, or local
+  `environmentKind:"demo"` + `dataContext:"live_readonly"` with `source:"explicit"`;
 - exact role/scope;
 - source of every value;
 - app write and any external effect;
@@ -42,15 +44,15 @@ For each slice, define:
 - unit, Firestore, E2E, and browser evidence;
 - documentation/fact updates.
 
-Use invented aliases and Demo adapters in the independently provisioned Demo environment when Live
-setup is unavailable. Demo records may write Demo Firestore/application state and reach Done. They
-must be structurally unable to construct a Production/Live provider client. Build the Live provider
-and full action contract to its documented seam rather than stopping at the Demo adapter.
+Use deterministic automated tests for invented aliases when Live setup is unavailable. The local
+rehearsal runtime may read bounded Live data but must be structurally unable to write application
+state, create receipts, or construct a Production/Live effect client. Build the Live provider and
+full action contract to its documented seam rather than stopping at refusal-only local evidence.
 
 For S40–S50 also define the owning surface, exact item/evidence/return link, first task action at
 desktop/390×844, plain operator copy, role/environment negative states, stage-one compatibility,
-and deletion proof. Shipped simulations/no-op Sample/Test tools leave; automated tests, Demo parity,
-security, rollback, and real provider seams stay.
+and deletion proof. Shipped simulations/no-op Sample/Test tools leave; automated tests, local
+read-only/refusal proof, security, rollback, and real provider seams stay.
 
 ## 4. Live Action Promotion
 
@@ -66,7 +68,7 @@ Activate one action at a time after verifying:
 8. monitoring and kill switch;
 9. correction/rollback rehearsal.
 
-Never infer a provider endpoint or use a Demo receipt as Live proof. When every item above is
+Never infer a provider endpoint or use local rehearsal evidence as Live proof. When every item above is
 documented, open the owning action’s `production_allowed`/allowlists/pinned tests in the same
 reviewed slice; do not leave finished actions gated by habit.
 
@@ -77,10 +79,11 @@ the working V1 default. TTL, additional indexes, and Scheduler automation are im
 consider when volume/operational evidence justifies them.
 
 Before cloud work, run ADC, identity, budget, and exact environment/production preflights. Capture
-the prior serving revision. Under S40, deploy the Production candidate at zero traffic, smoke the
-exact descriptor, promote deliberately, and preserve rollback. Verify signed-in roles,
-Demo/Production isolation, complete Demo journeys in Demo, Production Live-only behavior, provider
-activation labels, observability, and traffic rollback.
+the prior serving revision. Deploy the Production candidate at zero traffic, smoke the exact
+descriptor, promote deliberately, and preserve rollback. Verify signed-in roles, Production
+Live-only behavior, provider activation labels, observability, and traffic rollback. Verify local
+rehearsal separately with the explicit Demo + Live-read-only descriptor and mutation/effect refusals;
+do not provision a hosted Demo project.
 
 ## 6. Evidence and Documentation
 
@@ -103,7 +106,7 @@ A genuine blocker names:
 - the safest recommended default;
 - a command or UI process to resolve it;
 - the evidence that closes it;
-- work that can continue in the app-plane/Demo meanwhile.
+- work that can continue in the app-plane, automated tests, and local read-only rehearsal meanwhile.
 
 Do not write “coordinate with client” when a concrete recommendation can be made.
 

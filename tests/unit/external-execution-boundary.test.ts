@@ -7,10 +7,8 @@ import {
   externalActionRecordId,
 } from "@/lib/external-execution/identity";
 import {
-  createIsolatedTestExternalActionOrchestrator,
   externalPreviewHash,
   ExternalActionOrchestrator,
-  markIsolatedTestExecutor,
   validateExternalInput,
 } from "@/lib/external-execution/orchestrator";
 import type {
@@ -23,7 +21,7 @@ import type {
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
-import { buildSyntheticActionInput } from "@/lib/release/synthetic-execution";
+import { buildSyntheticActionInput } from "@/tests/helpers/synthetic-execution";
 
 function synthetic(definition: ExternalActionDefinition, index = 0): ExternalActionInput {
   return buildSyntheticActionInput(
@@ -104,32 +102,20 @@ describe("external action lane classification (S40 AC-S40-1)", () => {
 });
 
 describe("external execution fail-closed boundary", () => {
-  it("binds production Test receipts to no-client adapters and rejects cross-lane execution", async () => {
+  it("keeps injected executor behavior testable while Production refuses Test before execution", async () => {
     const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
       "gmail.renewal_notice.draft_create",
     )!;
     const input = synthetic(definition);
     const store = new MemoryExternalExecutionStore();
     const rawExecutor = receiptExecutor();
-    const isolated = createIsolatedTestExternalActionOrchestrator(
-      new Map([[definition.key, definition]]),
-      store,
-      new Map([[definition.key, markIsolatedTestExecutor(rawExecutor)]]),
-    );
+    const injected = orchestrator(definition, store, rawExecutor);
 
-    const prepared = await isolated.prepare(input);
+    const prepared = await injected.prepare(input);
     expect(prepared).toMatchObject({ dataMode: "test", state: "ready" });
-    await expect(isolated.execute(input, prepared.previewHash)).resolves.toMatchObject({
+    await expect(injected.execute(input, prepared.previewHash)).resolves.toMatchObject({
       receipt: { dataMode: "test", liveEvidenceEligible: false },
     });
-
-    await expect(
-      isolated.prepare({
-        ...input,
-        dataMode: "live",
-        workflowId: "renewal-live-cross-lane",
-      }),
-    ).rejects.toThrow(/cannot execute a Live record/i);
 
     const memory = new MemoryExternalExecutionStore();
     const durable = {
@@ -147,7 +133,7 @@ describe("external execution fail-closed boundary", () => {
       new Map([[definition.key, rawExecutor]]),
     );
     await expect(liveBoundary.prepare(input)).rejects.toThrow(
-      /Test records must use the isolated Test workspace/i,
+      /Production external execution refuses Test records/i,
     );
     expect(rawExecutor.execute).toHaveBeenCalledTimes(1);
   });

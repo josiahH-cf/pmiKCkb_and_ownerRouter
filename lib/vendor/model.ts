@@ -81,7 +81,7 @@ export function assertLiveVendorPrincipal(
 ) {
   if (vendorPrincipalDataMode(principal) === "test") {
     throw new VendorBoundaryError(
-      `${capability} cannot use an external provider from the Test workspace.`,
+      `${capability} cannot use an external provider for a legacy non-Live identity.`,
       403,
     );
   }

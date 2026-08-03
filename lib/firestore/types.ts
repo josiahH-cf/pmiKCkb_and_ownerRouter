@@ -118,7 +118,6 @@ export type QueueNotificationHealthStatus =
   | "Action Required";
 export type ProcessDefinitionStatus =
   | "Draft"
-  | "Testing"
   | "Pending Approval"
   | "Active"
   | "Needs Revision"
@@ -390,10 +389,8 @@ export interface QueueProcessRunRef {
 
 export interface ApprovalQueueItemRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
-  /** Legacy absence is Live; canonical audit fixtures explicitly carry Test. */
+  /** Legacy absence is Live; retained as a fail-safe decoder for historical records. */
   data_mode?: "live" | "test";
-  /** Stable identifier reserved for server-owned Test fixture restoration. */
-  test_fixture_key?: string;
   process_run_ref: QueueProcessRunRef;
   space_id?: string;
   action_execution_id?: string;
@@ -546,7 +543,6 @@ export interface ProcessDefinitionRecord {
   status: ProcessDefinitionStatus;
   pending_queue_item_id?: string;
   active_version_id?: string;
-  last_successful_test_run_id?: string;
   activation_override_reason?: string;
   created_by_uid: string;
   updated_by_uid?: string;
@@ -569,24 +565,18 @@ export interface ProcessDefinitionVersionRecord {
 
 export interface WorkflowRunRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
+  /** New runs are explicitly Live; legacy Test values remain decodable for retirement tooling. */
+  data_mode?: "live" | "test";
   definition_id: string;
+  /** Exact owning Space for scoped access; legacy runs fall back to definition-id mapping. */
+  space_id?: string;
   definition_version_id?: string;
-  /** Optional immutable source publication that this isolated Test run was started against. */
-  source_publication_pin?: {
-    data_mode: "test";
-    resource_id: string;
-    version_id: string;
-    test_fixture_key: string;
-  };
   process_name: string;
   status: WorkflowRunStatus;
   owner_uid: string;
   next_action: string;
   blocker?: string;
   due_date: string;
-  is_test_run: boolean;
-  simulation_only: boolean;
-  production_metrics_included: boolean;
   started_by_uid: string;
   outcome_notes?: string;
   completed_at?: string;

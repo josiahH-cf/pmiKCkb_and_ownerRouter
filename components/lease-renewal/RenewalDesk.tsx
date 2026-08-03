@@ -22,43 +22,25 @@ import {
   RENEWAL_STEPS,
   type DeskLeaseSummary,
   type RenewalDeskView,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/lib/lease-renewal/desk-model";
 
-type DeskMode = "sample" | "live";
-
-/** Per-lease workspace link target for the current mode. */
-function leaseHrefFor(mode: DeskMode, id: string): string {
-  return mode === "live"
-    ? `/lease-renewal/live/desk/lease/${id}`
-    : `/lease-renewal/lease/${id}`;
+function leaseHrefFor(id: string): string {
+  return `/lease-renewal/live/desk/lease/${id}`;
 }
 
 export function RenewalDesk({
   view,
   liveReviewHref,
-  mode = "sample",
-}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string; mode?: DeskMode }>) {
+}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string }>) {
   const { summary } = view.cohort;
-  const isLive = mode === "live";
-  const attention = buildRenewalAttention(view.actionable, (id) =>
-    leaseHrefFor(mode, id),
-  );
+  const attention = buildRenewalAttention(view.actionable, leaseHrefFor);
 
   return (
     <div className="ui-stack">
       <PageHeader
         actions={
           <>
-            {isLive ? (
-              <ModeChip tone="live">Live data</ModeChip>
-            ) : (
-              <ModeChip>Sample data</ModeChip>
-            )}
-            {isLive ? null : (
-              <Link className="text-link" href="/lease-renewal/runs">
-                Open Test workspace →
-              </Link>
-            )}
+            <ModeChip tone="live">Live data</ModeChip>
             {liveReviewHref ? (
               <Link className="text-link" href={liveReviewHref}>
                 View live review →
@@ -96,7 +78,7 @@ export function RenewalDesk({
         ) : (
           view.actionable.map((lease) => (
             <ActionableLeaseCard
-              href={leaseHrefFor(mode, lease.id)}
+              href={leaseHrefFor(lease.id)}
               key={lease.id}
               lease={lease}
             />
@@ -122,17 +104,8 @@ export function RenewalDesk({
 
       <Disclosure summary="Data diagnostics">
         <p className="muted">
-          {isLive
-            ? `Live RentVine and Sheet read. ${summary.total} leases classified.`
-            : `Sample data. No live read performed. ${summary.total} leases classified.`}
+          Live RentVine and Sheet read. {summary.total} leases classified.
         </p>
-        {isLive ? null : (
-          <p>
-            <Link className="text-link" href="/lease-renewal/runs">
-              View the raw reconciliation run
-            </Link>
-          </p>
-        )}
         <p>
           <Link className="text-link" href="/processes/lease-renewal">
             View process definition

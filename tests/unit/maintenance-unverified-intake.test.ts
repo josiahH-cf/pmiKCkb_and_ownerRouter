@@ -67,34 +67,17 @@ describe("createUnverifiedIntakeFromPublic", () => {
     expect(counter).toMatchObject({ property_key: "prop-1", day: DAY, count: 1 });
   });
 
-  it("isolates canonical Test intake from Live counters and records its lane", async () => {
+  it("rejects a legacy Test submission before opening a transaction", async () => {
     const db = new FakeFirestore();
-    const { id } = await run(
-      db,
-      submission({
-        propertyKey: "unit:test-maple-204",
-        dataMode: "test",
-        jti: "jti-test-1",
-        summary: "TEST — kitchen sink leak",
-        description: "TEST fixture: a slow drip needs staff review.",
-        contact: "resident-maintenance@example.invalid",
-      }),
-    );
+    const legacyTestSubmission = {
+      ...submission(),
+      dataMode: "test",
+    } as unknown as PublicIntakeSubmission;
 
-    expect(db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/${id}`)).toMatchObject({
-      data_mode: "test",
-      property_key: "unit:test-maple-204",
-    });
-    expect(
-      db.store.get(
-        `${MAINTENANCE_INTAKE_COLLECTIONS.rateCounter}/test__unit:test-maple-204__${DAY}`,
-      ),
-    ).toMatchObject({ data_mode: "test", count: 1 });
-    expect(
-      db.store.has(
-        `${MAINTENANCE_INTAKE_COLLECTIONS.rateCounter}/unit:test-maple-204__${DAY}`,
-      ),
-    ).toBe(false);
+    await expect(run(db, legacyTestSubmission)).rejects.toBeInstanceOf(
+      IntakeValidationError,
+    );
+    expect(db.store.size).toBe(0);
   });
 
   it("rejects a replayed single-use token (nonce already present)", async () => {

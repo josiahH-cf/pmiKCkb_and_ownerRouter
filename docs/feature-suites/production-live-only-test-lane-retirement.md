@@ -34,12 +34,12 @@ and prove nothing depends on it, THEN delete records and code. Nothing here is a
   records and throws if a Live record appears. **Its semantics change from "move" to "delete", which
   raises the cost of a wrong classification from a misplaced record to a destroyed one.** The
   refusal-on-unclassified behaviour becomes load-bearing rather than conservative.
-- **Stage 3 — retire the machinery, not just the data.** `lib/external-execution/orchestrator.ts`
-  (`isolatedTestWorkspace`, test executors), `lib/firestore/approval-test-fixtures.ts`,
-  `lib/publication/test-fixture.ts`, `approval-queue.ts`'s `test_fixture_key` coupling, and the
-  `data_mode` field itself across `lib/firestore/schemas.ts` and `types.ts`. Retiring the field is
-  the largest and last step and may be deferred: a Live-only Production is already achieved once no
-  test record and no test-writing route exist.
+- **Stage 3 — retire the lane machinery, not the `data_mode` field.**
+  `lib/external-execution/orchestrator.ts`'s isolated Test workspace/executors,
+  `lib/firestore/approval-test-fixtures.ts`, `lib/publication/test-fixture.ts`, and
+  `approval-queue.ts`'s `test_fixture_key` coupling are removed from Production code. The owner
+  resolved field retention on 2026-08-01: `data_mode` remains for explicit Live writes and
+  fail-closed decoding of legacy evidence. Full field removal is a separate later suite.
 - **Rehearsal moves to local, and local must say so.** Local runs Demo + Live-read-only, which S40
   already sanctions as a valid combination. It must resolve the descriptor EXPLICITLY rather than
   falling through to `legacy-node-env`, so `EnvironmentBadge` renders "Live data, read only" and the
@@ -54,10 +54,8 @@ dry-run's backup and rollback proof.
 
 **Open questions & assumptions.**
 
-- _Open:_ whether `data_mode` is retired entirely or retained as a permanently-`live` vestigial
-  field. Retaining it is cheaper and keeps `resolveStoredDataMode`'s fail-safe read behaviour;
-  retiring it touches ~85 files. **Recommend retaining the field and deleting only the Test lane**,
-  and treating full field removal as a separate later suite.
+- _RESOLVED by owner 2026-08-01:_ retain `data_mode` and retire only the Test lane. Removing the
+  field touches roughly 85 files without adding safety and belongs to a separate later suite.
 - _RESOLVED by owner 2026-08-01:_ "The team has not tested anything." No `data_mode:"test"` record is
   relied on as real, so every one of them is disposable and deletion needs no per-record judgement.
   Stage 1b's count therefore remains as EVIDENCE for the deletion record, not as a gate that waits on
@@ -79,9 +77,10 @@ dry-run's backup and rollback proof.
 
 **Adversarial acceptance checks.**
 
-- **AC-S56-1** — the test-fixtures route refuses when the descriptor is Production+Live, with a test
-  proving the refusal is by ENVIRONMENT and not only by role, so an Admin cannot mint a test record
-  in Production.
+- **AC-S56-1** — before deletion, the test-fixtures route refuses when the descriptor is
+  Production+Live, with a test proving the refusal is by ENVIRONMENT and not only by role. Stage 3
+  then removes that route and the final sentinel proves it stays absent, so an Admin cannot mint a
+  Test record in Production.
 - **AC-S56-2** — a count of `data_mode:"test"` records per collection is observable before any
   deletion, and the count is recorded in the evidence for the deletion that follows.
 - **AC-S56-3** — the dry-run is re-verified under DELETE semantics: a test asserts a Live record can
@@ -114,17 +113,34 @@ dry-run's backup and rollback proof.
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ count `data_mode:"test"` records per collection in Production and record it.
-2. _Build:_ fence the test-fixtures route by environment, with tests.
-3. _Verify:_ full gate, and confirm the count cannot increase.
-4. _Build:_ make local resolve Demo + Live-read-only explicitly, with the badge and effect fence.
-5. _Falsify:_ prove a Live effect cannot execute from local and a test record cannot be created in
+1. _Build:_ fence every Test intake and persistence seam by environment, with tests.
+2. _Build:_ make local resolve Demo + Live-read-only explicitly, with the badge and effect fence.
+3. _Falsify:_ prove a Live effect cannot execute from local and a Test record cannot be created in
    Production.
-6. _Build:_ re-verify the dry-run under delete semantics; rehearse restore on one record.
-7. _Execute:_ delete with backup, then prove zero remain.
-8. _Build:_ retire the fixture machinery in code, keeping all test coverage.
-9. _Document:_ record the deletion evidence, counts only, no record content.
+4. _Discovery:_ count `data_mode:"test"` records per collection in Production and record it.
+5. _Build:_ re-verify the dry-run under delete semantics; create a named backup and rehearse restore
+   on one record.
+6. _Execute:_ delete from the verified manifest, then independently prove zero remain.
+7. _Build:_ retire the fixture machinery in code while retaining `data_mode` and all automated test
+   coverage.
+8. _Document:_ record counts and bodyless proof only; no record content.
 
-**Deletion/merge recommendation.** KEEP until the lane is gone and Production is provably Live-only,
-then MERGE the durable outcome into `docs/feature-suites/environment-deployment-separation.md` (S40)
-and delete this file. It carries a retirement, not permanent guidance.
+**Implementation evidence (2026-08-03).** All eight acceptance checks are complete locally and the
+destructive Production steps are verified. **AC-S56-1** was deployed to both reachable services
+before the count, and the final route/module sentinel now proves the mutators are absent.
+**AC-S56-2** recorded 90 explicit Test records across 28 governed collections. **AC-S56-3** keeps
+the delete planner's Live-record and unclassified-record refusals under tests. **AC-S56-4** used
+named PITR clone `s56-test-retirement-20260802-233824`; a one-record restore into the named drill
+matched the source hash before drill cleanup. **AC-S56-5** deleted exactly those 90 records and a
+fresh query proved zero in all 28 collections; a separate exact CAS moved four lane-only
+`process_definitions.status:"Testing"` values to `Draft` and read back zero Testing statuses.
+**AC-S56-6** resolves local as explicit Demo + Live-read-only, renders the read-only badge, and
+refuses effects. **AC-S56-7** removes every Production Test route, executor, fixture panel, and
+isolated workspace while retaining legacy decoders only to refuse restored non-Live state.
+**AC-S56-8** deletes no automated test file: the prior fixture-named suites were repurposed around
+ordinary Live paths and negative absence/refusal sentinels, with focused verification and deliberate
+falsification observed. The final full-gate and deployed revision are recorded in `docs/status.md`.
+
+**Deletion/merge recommendation.** KEEP as the declaration site for **AC-S56-1** through
+**AC-S56-8**. A later documentation-only consolidation may merge the durable Live-only outcome into
+S40 only after moving every AC declaration without breaking traceability.

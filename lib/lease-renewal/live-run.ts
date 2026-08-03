@@ -1,14 +1,10 @@
-// Live renewal review entrypoint (read-only): swap the synthetic Rentvine feed for a real read.
-//
-// This is the additive sibling of `simulation.ts:getSimulationRun` — it is NOT wired into the SSR run
-// page (which keeps rendering the pure simulation, so a page render never makes a network call). A
-// live review is reached only through the opt-in smoke / a future feature-flagged route.
+// Live renewal review entrypoint (read-only): reconcile an explicit Sheet input with a real RentVine
+// read. Production callers must supply every record-bearing input; this module never fills a missing
+// Live source with invented records.
 //
 // It reads leases from Rentvine (read-only export) and maps them to the `source: "rentvine"`
-// NonSheetCandidates the pipeline already reconciles. The sheet `tables` stay the synthetic sample
-// until the live Google Sheet read lands (OQ-SHEET-1); they are injectable so that swap is a one-arg
-// change. The building-level / Google-Form candidates also stay synthetic (separately gated). The
-// pipeline result still carries `production_allowed: false` and a counts-only manifest — no writes.
+// NonSheetCandidates the pipeline already reconciles. The pipeline result still carries
+// `production_allowed: false` and a counts-only manifest — no writes.
 
 import type { RentVineClient } from "@/lib/integrations/rentvine/client";
 import {
@@ -30,10 +26,6 @@ import {
   type RenewalRunInput,
   type RenewalRunResult,
 } from "@/lib/lease-renewal/pipeline";
-import {
-  SAMPLE_NON_SHEET_CANDIDATES,
-  SAMPLE_RENEWAL_TABLES,
-} from "@/lib/lease-renewal/sample-sheet";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {
   readRenewalSheetGrids,
@@ -58,13 +50,13 @@ export interface LiveRenewalRunOptions {
    */
   cohortWindows?: DateWindow[];
   cohortConfig?: Partial<CohortConfig>;
-  /** Sheet grids; defaults to the synthetic sample until the live Sheet read (OQ-SHEET-1) lands. */
-  tables?: RawGrid[];
+  /** Explicit Sheet grids. Missing Live data is never replaced with fixtures. */
+  tables: RawGrid[];
   /** Per-row RentVine join id parallel to `tables` (from the hyperlink layer); enables the id-join. */
   tableJoinIds?: readonly (readonly (string | null)[])[];
   /**
-   * Non-sheet candidates other than the live Rentvine read (building-level / Google Form). Defaults
-   * to the synthetic set with the `source: "rentvine"` entries removed (those come from the live read).
+   * Non-sheet candidates other than the live RentVine read (building-level / Google Form). An
+   * omitted source is truthfully absent, never synthesized.
    */
   otherCandidates?: NonSheetCandidate[];
 }
@@ -105,13 +97,13 @@ export async function runLiveRenewalReview(
     fieldMap: options.fieldMap,
   });
 
-  const others = (options.otherCandidates ?? SAMPLE_NON_SHEET_CANDIDATES).filter(
+  const others = (options.otherCandidates ?? []).filter(
     (candidate) => candidate.source !== RENTVINE_SOURCE,
   );
 
   const pipelineInput: RenewalRunInput = {
     runId: options.runId,
-    tables: options.tables ?? SAMPLE_RENEWAL_TABLES,
+    tables: options.tables,
     nonSheetCandidates: [...mapping.candidates, ...others],
     tableJoinIds: options.tableJoinIds,
   };

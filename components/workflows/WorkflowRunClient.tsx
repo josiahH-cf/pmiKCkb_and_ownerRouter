@@ -36,17 +36,18 @@ export function WorkflowRunClient({
     return status !== "Checked" && status !== "Skipped";
   });
   const checklistComplete = initialSteps.length > 0 && incompleteSteps.length === 0;
-  const canUpdate =
-    canEdit && run.is_test_run && run.simulation_only && !isClosed && !isBusy;
+  const canUpdate = canEdit && !isClosed && !isBusy;
   const canComplete = canUpdate && checklistComplete;
 
-  async function updateOutcome(action: "complete_test" | "fail_test") {
+  async function updateOutcome(action: "complete" | "fail") {
     if (!canUpdate) {
       return;
     }
 
     setIsBusy(true);
-    setMessage(action === "complete_test" ? "Completing test run." : "Failing test run.");
+    setMessage(
+      action === "complete" ? "Completing workflow run." : "Failing workflow run.",
+    );
 
     try {
       const result = await fetchWorkflow<{
@@ -60,7 +61,9 @@ export function WorkflowRunClient({
       setRun(result.run);
       setTimeline(result.timeline);
       setNotes("");
-      setMessage(action === "complete_test" ? "Test run completed." : "Test run failed.");
+      setMessage(
+        action === "complete" ? "Workflow run completed." : "Workflow run failed.",
+      );
     } catch (error) {
       setMessage(readErrorMessage(error));
     } finally {
@@ -71,12 +74,6 @@ export function WorkflowRunClient({
   return (
     <div className="workflow-run-layout">
       <section className="panel">
-        {run.is_test_run ? (
-          <div className="workflow-test-banner">
-            Test run only. No external write, send, Gmail action, or live system update
-            happens from this run.
-          </div>
-        ) : null}
         <div className="panel-heading">
           <div>
             <h2>{run.process_name}</h2>
@@ -100,14 +97,6 @@ export function WorkflowRunClient({
             <strong>{run.due_date}</strong>
           </div>
           <div className="queue-detail-field">
-            <span>Metrics</span>
-            <strong>{run.production_metrics_included ? "Included" : "Excluded"}</strong>
-          </div>
-          <div className="queue-detail-field">
-            <span>Test run</span>
-            <strong>{run.simulation_only ? "Yes" : "No"}</strong>
-          </div>
-          <div className="queue-detail-field">
             <span>Started By</span>
             <strong>{run.started_by_uid}</strong>
           </div>
@@ -115,22 +104,6 @@ export function WorkflowRunClient({
             <span>Definition version</span>
             <strong>{run.definition_version_id ?? "Not pinned (draft)"}</strong>
           </div>
-          {run.source_publication_pin ? (
-            <>
-              <div className="queue-detail-field">
-                <span>Source publication mode</span>
-                <strong>TEST · never Live evidence</strong>
-              </div>
-              <div className="queue-detail-field">
-                <span>Source publication version</span>
-                <strong>{run.source_publication_pin.version_id}</strong>
-              </div>
-              <div className="queue-detail-field">
-                <span>Source resource</span>
-                <strong>{run.source_publication_pin.resource_id}</strong>
-              </div>
-            </>
-          ) : null}
         </div>
         {run.blocker ? (
           <article className="workflow-blocker">
@@ -152,7 +125,7 @@ export function WorkflowRunClient({
       </section>
 
       <aside className="panel">
-        <h2>Test Outcome</h2>
+        <h2>Outcome</h2>
         <p className="muted">
           Checklist: {initialSteps.length - incompleteSteps.length} of{" "}
           {initialSteps.length} complete. Every step must be Checked or Skipped with a
@@ -176,18 +149,18 @@ export function WorkflowRunClient({
           <button
             className="primary-button"
             disabled={!canComplete}
-            onClick={() => updateOutcome("complete_test")}
+            onClick={() => updateOutcome("complete")}
             type="button"
           >
-            Complete Test
+            Complete run
           </button>
           <button
             className="secondary-button"
             disabled={!canUpdate}
-            onClick={() => updateOutcome("fail_test")}
+            onClick={() => updateOutcome("fail")}
             type="button"
           >
-            Fail Test
+            Fail run
           </button>
         </div>
       </aside>

@@ -31,11 +31,11 @@ export default async function ProcessesPage() {
   try {
     recentRuns = filterWorkflowRunsForUser(
       user,
-      await listWorkflowRuns(user, { limit: 6, simulationOnly: true }),
+      await listWorkflowRuns(user, { limit: 6 }),
     );
   } catch {
     initialRunsError =
-      "Recent test runs are unavailable. Refresh Google credentials or check Firestore setup.";
+      "Recent workflow runs are unavailable. Refresh Google credentials or check Firestore setup.";
   }
 
   return (

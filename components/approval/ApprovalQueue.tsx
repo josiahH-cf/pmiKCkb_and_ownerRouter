@@ -36,7 +36,6 @@ import {
 import { NeedsDecisionInboxPanel } from "./NeedsDecisionInboxPanel";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
 import { WritebackQueuePanel } from "./WritebackQueuePanel";
-import { ApprovalTestFixturePanel } from "./ApprovalTestFixturePanel";
 
 type QueueView = "all" | "renewals" | "writeback";
 
@@ -531,7 +530,6 @@ export function ApprovalQueue({
 
   return (
     <div className="approval-queue-shell">
-      {currentUser.role === "Admin" ? <ApprovalTestFixturePanel /> : null}
       <NeedsDecisionInboxPanel inbox={needsInbox} />
 
       <details

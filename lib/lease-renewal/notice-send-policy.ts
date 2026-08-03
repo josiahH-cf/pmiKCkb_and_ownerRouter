@@ -10,7 +10,8 @@
 // invented. This module creates no Gmail draft; the live draft-create runtime is the separate governed
 // executor for the Action Registry action `gmail.renewal_notice.draft_create`, now authorized
 // (production_allowed:true as of 2026-07-19, F-SEND-AUTHORIZED). That executor drafts only a real run's
-// verified recipient, never this sample-desk text. Pure + deterministic: no I/O, no Date.now.
+// verified recipient, never an invented test-helper recipient. Pure + deterministic: no I/O, no
+// Date.now.
 
 import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";

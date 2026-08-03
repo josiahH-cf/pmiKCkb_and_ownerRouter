@@ -2,27 +2,20 @@ import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import {
-  getApprovalQueueItem,
-  transitionApprovalQueueItem,
-} from "@/lib/firestore/approval-queue";
+import { getApprovalQueueItem } from "@/lib/firestore/approval-queue";
 import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
 import {
   bulkTransitionApprovalQueueItemsWithWorkflowSync,
   transitionApprovalQueueItemWithWorkflowSync,
 } from "@/lib/firestore/workflow-approval-queue-sync";
 import {
-  activateProcessDefinition,
   createProcessDefinition,
   getProcessDefinition,
-  listWorkflowRunTimeline,
   listWorkflowRuns,
-  startWorkflowTestRun,
+  startWorkflowRun,
   submitProcessDefinitionForApproval,
   updateProcessDefinition,
-  updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
-import { setWorkflowRunStepCheck } from "@/lib/firestore/workflow-run-step-checks";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -90,64 +83,6 @@ describe("workflow foundation repository", () => {
       path.startsWith("approval_queue_items/"),
     );
     expect(queueItems).toHaveLength(1);
-  });
-
-  it("requires approved queue review and successful test before normal activation", async () => {
-    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
-    const submitted = await submitProcessDefinitionForApproval(
-      editor,
-      definition.id,
-      {},
-      db,
-    );
-
-    await expect(activateProcessDefinition(admin, definition.id, {}, db)).rejects.toThrow(
-      /successful test run/,
-    );
-
-    const testRun = await startWorkflowTestRun(
-      editor,
-      definition.id,
-      { due_date: "2026-06-20" },
-      db,
-    );
-    await completeChecklist(editor, testRun.id, definition.steps, db);
-    await updateWorkflowRunOutcome(
-      editor,
-      testRun.id,
-      { action: "complete_test", notes: "Simulation passed." },
-      db,
-    );
-
-    await expect(activateProcessDefinition(admin, definition.id, {}, db)).rejects.toThrow(
-      /approved process-definition queue item/,
-    );
-
-    await transitionApprovalQueueItem(
-      admin,
-      submitted.pending_queue_item_id!,
-      { action: "approve" },
-      db,
-    );
-    const active = await activateProcessDefinition(admin, definition.id, {}, db);
-
-    expect(active.status).toBe("Active");
-    expect(active.active_version_id).toBeTruthy();
-    const nextDraft = await updateProcessDefinition(
-      editor,
-      active.id,
-      { name: "Changed after active" },
-      db,
-    );
-    expect(nextDraft.status).toBe("Draft");
-    expect(nextDraft.active_version_id).toBe(active.active_version_id);
-    expect(nextDraft.pending_queue_item_id).toBeUndefined();
-
-    const fake = db as unknown as FakeFirestore;
-    const version = fake.store.get(
-      `process_definition_versions/${active.active_version_id}`,
-    );
-    expect(version?.snapshot_json).toContain("Lease Renewal Test Process");
   });
 
   it("moves returned process-definition approvals into Needs Revision", async () => {
@@ -298,174 +233,15 @@ describe("workflow foundation repository", () => {
     );
   });
 
-  it("allows Admin activation override only after source links and queue approval exist", async () => {
-    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
-    const submitted = await submitProcessDefinitionForApproval(
-      editor,
-      definition.id,
-      {},
-      db,
-    );
-    await transitionApprovalQueueItem(
-      admin,
-      submitted.pending_queue_item_id!,
-      { action: "approve" },
-      db,
-    );
-
-    const active = await activateProcessDefinition(
-      admin,
-      definition.id,
-      { override_reason: "Dan approved activation before a successful test run." },
-      db,
-    );
-
-    expect(active.status).toBe("Active");
-    expect(active.activation_override_reason).toContain("Dan approved");
-  });
-
-  it("starts simulation-only test runs and records append-only timeline entries", async () => {
-    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
-    const run = await startWorkflowTestRun(
-      editor,
-      definition.id,
-      { due_date: "2026-07-01", note: "Start with safe fixture facts." },
-      db,
-    );
-
-    expect(run).toMatchObject({
-      due_date: "2026-07-01",
-      is_test_run: true,
-      legal_hold: false,
-      product_retention_class: "indefinite",
-      product_retention_policy: "product-record-retention:v1.0",
-      production_metrics_included: false,
-      simulation_only: true,
-      status: "In Progress",
-    });
-    expect((await getProcessDefinition(editor, definition.id, db)).status).toBe(
-      "Testing",
-    );
-
-    await expect(
-      updateWorkflowRunOutcome(
-        editor,
-        run.id,
-        { action: "complete_test", notes: "This is premature." },
-        db,
-      ),
-    ).rejects.toThrow(/Complete or skip every checklist step/);
-
-    await completeChecklist(editor, run.id, definition.steps, db);
-    const completed = await updateWorkflowRunOutcome(
-      editor,
-      run.id,
-      { action: "complete_test", notes: "All simulated steps passed." },
-      db,
-    );
-    const timeline = await listWorkflowRunTimeline(editor, run.id, db);
-
-    expect(completed.status).toBe("Completed");
-    expect(timeline.map((entry) => entry.event_type)).toEqual(["started", "completed"]);
-    expect(
-      (await getProcessDefinition(editor, definition.id, db)).last_successful_test_run_id,
-    ).toBe(run.id);
-  });
-
-  it("idempotently pins an isolated Test run to active process and publication versions", async () => {
-    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
-    const submitted = await submitProcessDefinitionForApproval(
-      editor,
-      definition.id,
-      {},
-      db,
-    );
-    await transitionApprovalQueueItem(
-      admin,
-      submitted.pending_queue_item_id!,
-      { action: "approve" },
-      db,
-    );
-    const active = await activateProcessDefinition(
-      admin,
-      definition.id,
-      { override_reason: "Repository-authorized Test publication continuation." },
-      db,
-    );
-    const sourcePublicationPin = {
-      data_mode: "test" as const,
-      resource_id: "source:audit-test-publication-v1",
-      version_id: "publication-version-1",
-      test_fixture_key: "audit:trusted-publication:v1",
-    };
-
-    const first = await startWorkflowTestRun(
-      editor,
-      definition.id,
-      { note: "Start the version-pinned Test continuation." },
-      db,
-      {
-        requireActiveDefinitionVersion: true,
-        runId: "publication_test_run_1",
-        sourcePublicationPin,
-      },
-    );
-    const duplicate = await startWorkflowTestRun(
-      editor,
-      definition.id,
-      { note: "A retry must not append a second start." },
-      db,
-      {
-        requireActiveDefinitionVersion: true,
-        runId: "publication_test_run_1",
-        sourcePublicationPin,
-      },
-    );
-
-    expect(first.id).toBe(duplicate.id);
-    expect(first.definition_version_id).toBe(active.active_version_id);
-    expect(first.source_publication_pin).toEqual(sourcePublicationPin);
-    const timeline = await listWorkflowRunTimeline(editor, first.id, db);
-    expect(timeline).toHaveLength(1);
-    expect(timeline[0].summary).toContain("publication-version-1");
-  });
-
-  it("rejects outcome updates for non-test or non-simulation runs", async () => {
-    (db as unknown as FakeFirestore).seed("workflow_runs/real-run", {
-      created_at: "2026-06-06T00:00:00.000Z",
-      definition_id: "definition-1",
-      due_date: "2026-06-06",
-      id: "real-run",
-      is_test_run: false,
-      next_action: "External action",
-      owner_uid: "admin-1",
-      process_name: "Real Process",
-      production_metrics_included: true,
-      simulation_only: false,
-      started_by_uid: "editor-1",
-      status: "In Progress",
-      updated_at: "2026-06-06T00:00:00.000Z",
-    });
-
-    await expect(
-      updateWorkflowRunOutcome(
-        editor,
-        "real-run",
-        { action: "complete_test", notes: "Should not work." },
-        db,
-      ),
-    ).rejects.toThrow(/test runs can be updated/);
-  });
-
   it("lists workflow runs for a definition", async () => {
     const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
-    const first = await startWorkflowTestRun(
+    const first = await startWorkflowRun(
       editor,
       definition.id,
       { due_date: "2026-07-01" },
       db,
     );
-    const second = await startWorkflowTestRun(
+    const second = await startWorkflowRun(
       editor,
       definition.id,
       { due_date: "2026-07-02" },
@@ -477,19 +253,17 @@ describe("workflow foundation repository", () => {
     expect(runs.map((run) => run.id).sort()).toEqual([first.id, second.id].sort());
   });
 
-  it("filters recent simulation workflow runs and applies limits", async () => {
+  it("sorts ordinary workflow runs by recency and applies limits", async () => {
     const fake = db as unknown as FakeFirestore;
-    fake.seed("workflow_runs/run-old-test", {
+    fake.seed("workflow_runs/run-old", {
       created_at: "2026-06-01T00:00:00.000Z",
       definition_id: "definition-1",
       due_date: "2026-06-10",
-      id: "run-old-test",
-      is_test_run: true,
-      next_action: "Old test",
+      id: "run-old",
+      data_mode: "live",
+      next_action: "Old action",
       owner_uid: "admin-1",
-      process_name: "Old Test Process",
-      production_metrics_included: false,
-      simulation_only: true,
+      process_name: "Old Process",
       started_by_uid: "editor-1",
       status: "Completed",
       updated_at: "2026-06-01T00:00:00.000Z",
@@ -499,52 +273,33 @@ describe("workflow foundation repository", () => {
       definition_id: "definition-1",
       due_date: "2026-06-12",
       id: "run-live",
-      is_test_run: false,
+      data_mode: "live",
       next_action: "Live action",
       owner_uid: "admin-1",
       process_name: "Live Process",
-      production_metrics_included: true,
-      simulation_only: false,
       started_by_uid: "editor-1",
       status: "In Progress",
       updated_at: "2026-06-03T00:00:00.000Z",
     });
-    fake.seed("workflow_runs/run-new-test", {
+    fake.seed("workflow_runs/run-new", {
       created_at: "2026-06-04T00:00:00.000Z",
       definition_id: "definition-1",
       due_date: "2026-06-15",
-      id: "run-new-test",
-      is_test_run: true,
-      next_action: "New test",
+      id: "run-new",
+      data_mode: "live",
+      next_action: "New action",
       owner_uid: "admin-1",
-      process_name: "New Test Process",
-      production_metrics_included: false,
-      simulation_only: true,
+      process_name: "New Process",
       started_by_uid: "editor-1",
       status: "In Progress",
       updated_at: "2026-06-04T00:00:00.000Z",
     });
 
-    const runs = await listWorkflowRuns(editor, { limit: 1, simulationOnly: true }, db);
+    const runs = await listWorkflowRuns(editor, { limit: 1 }, db);
 
-    expect(runs.map((run) => run.id)).toEqual(["run-new-test"]);
+    expect(runs.map((run) => run.id)).toEqual(["run-new"]);
   });
 });
-
-async function completeChecklist(
-  actor: AuthenticatedUser,
-  runId: string,
-  steps: readonly { id: string }[],
-  firestore: Firestore,
-) {
-  for (const step of steps) {
-    await setWorkflowRunStepCheck(
-      actor,
-      { run_id: runId, step_id: step.id, status: "Checked" },
-      firestore,
-    );
-  }
-}
 
 function baseDefinitionInput(
   overrides: Partial<CreateProcessDefinitionInput> = {},

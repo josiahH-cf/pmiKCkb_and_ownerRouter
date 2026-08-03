@@ -49,7 +49,7 @@ function okRun() {
       run: {
         id: "run-1",
         process_name: "Lease Renewal",
-        status: "Test run",
+        status: "In Progress",
         next_action: "",
       },
     }),
@@ -72,7 +72,7 @@ describe("ConsoleAnticipatedWork", () => {
     expect(screen.getByText("Maintenance Work Order Intake")).toBeInTheDocument();
     expect(screen.getByText("Waiting on a maintenance signal")).toBeInTheDocument();
     // The un-fed family (count 0) produces no startable item; only the fed family gets the button.
-    expect(screen.getAllByRole("button", { name: "Start a test run" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Start run" })).toHaveLength(1);
   });
 
   it("AC-S18-4: an all-clear projection renders the exact all-clear text and the caption", () => {
@@ -104,7 +104,7 @@ describe("ConsoleAnticipatedWork", () => {
     expect(screen.getByText(ANTICIPATION_CAPTION)).toBeInTheDocument();
   });
 
-  it("AC-S18-5: starting a run POSTs exactly the test-runs endpoint and issues no send/write", async () => {
+  it("AC-S18-5: starting a run POSTs exactly the ordinary runs endpoint and issues no send/write", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn<
       (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -118,17 +118,17 @@ describe("ConsoleAnticipatedWork", () => {
         startableDefinitionIds={startable}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Start a test run" }));
+    await user.click(screen.getByRole("button", { name: "Start run" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toBe("/api/process-definitions/lease-renewal/test-runs");
+    expect(String(url)).toBe("/api/process-definitions/lease-renewal/runs");
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toHaveProperty("note");
     // The lane never sends or writes a system of record.
     expect(screen.queryByRole("button", { name: /send|execute|write/i })).toBeNull();
-    // On success it surfaces a link to the test run, never an executed action.
-    expect(await screen.findByText("View the test run")).toBeInTheDocument();
+    // On success it surfaces a link to the run, never an executed action.
+    expect(await screen.findByText("View the run")).toBeInTheDocument();
   });
 
   it("AC-S18-6: a viewer who cannot start runs sees ZERO start controls (deep link only)", () => {
@@ -139,7 +139,7 @@ describe("ConsoleAnticipatedWork", () => {
         startableDefinitionIds={startable}
       />,
     );
-    expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start run" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the space" })).toBeInTheDocument();
   });
 
@@ -151,7 +151,7 @@ describe("ConsoleAnticipatedWork", () => {
         startableDefinitionIds={new Set()}
       />,
     );
-    expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start run" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the space" })).toHaveAttribute(
       "href",
       "/lease-renewal",
@@ -176,14 +176,14 @@ describe("ConsoleAnticipatedWork", () => {
       />,
     );
 
-    const button = screen.getByRole("button", { name: "Start a test run" });
+    const button = screen.getByRole("button", { name: "Start run" });
     await Promise.all([user.click(button), user.click(button)]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     release();
-    expect(await screen.findByRole("link", { name: "Open the space" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Open the Space" })).toHaveAttribute(
       "href",
       "/lease-renewal",
     );
-    expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start run" })).toBeNull();
   });
 });

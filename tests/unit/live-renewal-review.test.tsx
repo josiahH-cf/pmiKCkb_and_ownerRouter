@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
-import { getRenewalDeskView } from "@/lib/lease-renewal/sample-desk";
+import { getRenewalDeskView } from "@/tests/helpers/sample-desk";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import {
   categorizeLiveReviewError,

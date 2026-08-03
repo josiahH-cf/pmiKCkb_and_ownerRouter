@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
-import { MAINTENANCE_TEST_VENDOR } from "@/lib/maintenance/test-workflow";
 
 afterEach(() => {
   cleanup();
@@ -59,30 +58,31 @@ describe("MaintenanceQueue status pills + history", () => {
     expect(screen.getByText("History")).toBeInTheDocument();
   });
 
-  it("focuses a linked Test ticket, selects its data lane, and opens Closed tickets", () => {
+  it("focuses a linked Live ticket and opens its Closed group", () => {
     render(
       <MaintenanceQueue
         focusedTicketId="t1"
-        initialTickets={[
-          ticket({
-            data_mode: "test",
-            status: "Closed",
-            closed_reason: "resolved",
-          }),
-        ]}
+        initialTickets={[ticket({ status: "Closed", closed_reason: "resolved" })]}
       />,
     );
 
-    expect(screen.getByLabelText("Data")).toHaveValue("test");
     expect(document.getElementById("maintenance-ticket-t1")).toHaveFocus();
     expect(screen.getByText("Closed (1)").closest("details")).toHaveAttribute("open");
     expect(screen.getByRole("button", { name: "Reopen ticket" })).toBeEnabled();
-    expect(screen.getAllByText("App ticket closed").length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole("region", {
-        name: "Maintenance business closeout evidence gates",
-      }),
-    ).toHaveTextContent("Business closeout: Not proven");
+    expect(screen.getByText("LIVE DATA")).toBeVisible();
+  });
+
+  it("omits a legacy Test record and exposes no retired workspace controls", () => {
+    render(
+      <MaintenanceQueue
+        initialTickets={[
+          ticket({ id: "legacy-test", data_mode: "test", summary: "Retired record" }),
+        ]}
+      />,
+    );
+    expect(screen.queryByText("Retired record")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Create Test ticket/ })).toBeNull();
+    expect(screen.queryByLabelText("Data")).toBeNull();
   });
 
   it("shows a bodyless denial when a linked ticket is unavailable", () => {
@@ -139,61 +139,5 @@ describe("MaintenanceQueue status pills + history", () => {
     fireEvent(details, new Event("toggle"));
     fireEvent(details, new Event("toggle"));
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("projects bodyless Vendor Test state, history, and next action to staff", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        handoff: {
-          ticketId: "t1",
-          data_mode: "test",
-          currentState: "Complete",
-          labelHistory: [
-            { state: "Waiting", createdAt: "2026-07-09T10:00:00.000Z" },
-            { state: "Complete", createdAt: "2026-07-09T11:00:00.000Z" },
-          ],
-          draftPresent: false,
-          replyCount: 2,
-          updatedAt: "2026-07-09T11:00:00.000Z",
-          externalProvider: false,
-          liveEvidenceEligible: false,
-          nextAction:
-            "Review completion evidence and continue the internal Maintenance closeout.",
-        },
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const { container } = render(
-      <MaintenanceQueue
-        initialTickets={[
-          ticket({
-            data_mode: "test",
-            vendor_id: MAINTENANCE_TEST_VENDOR.id,
-            summary: "TEST — Kitchen sink leak",
-          }),
-        ]}
-      />,
-    );
-    const details = container.querySelector(
-      "details.vendor-test-handoff",
-    ) as HTMLDetailsElement;
-    details.open = true;
-    fireEvent(details, new Event("toggle"));
-
-    const handoff = await screen.findByRole("region", {
-      name: "Test Vendor handoff",
-    });
-    expect(handoff).toHaveTextContent("Current Vendor mailbox state: Complete");
-    expect(screen.getByLabelText("Vendor mailbox state history")).toHaveTextContent(
-      "Waiting",
-    );
-    expect(screen.getByLabelText("Vendor mailbox state history")).toHaveTextContent(
-      "Complete",
-    );
-    expect(handoff).toHaveTextContent("Review completion evidence");
-    expect(screen.getByText(/Bodyless Test projection only/)).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledWith("/api/maintenance/tickets/t1/vendor-handoff");
   });
 });

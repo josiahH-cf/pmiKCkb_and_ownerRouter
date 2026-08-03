@@ -1,8 +1,8 @@
 // Operator-triggered renewal-notice reminders (S13 Wave 3 F4). Mirrors scripts/run-approval-queue-
 // notifications.ts: an operator runs it to see which leases need a notice sent, are overdue, or need a
 // follow-up. It NEVER sends and NEVER writes a system of record — it prints a deduped plan. There is
-// no Cloud Scheduler; the operator triggers it. Until a live notice feed is wired, it plans over the
-// in-boundary SAMPLE renewal batch (synthetic labels), so the output is deterministic and PII-free.
+// no Cloud Scheduler; the operator triggers it. It reads the authenticated Live Renewal Desk and
+// fails closed when those sources are unavailable; invented leases are never substituted.
 //
 //   npm run notices:reminders -- [--date=YYYY-MM-DD] [--json]
 //
@@ -12,7 +12,6 @@
 import { pathToFileURL } from "node:url";
 
 import { readNoticeRuleSet } from "../lib/firestore/lease-renewal-notice-rules";
-import { DEFAULT_NOTICE_RULE_SET } from "../lib/lease-renewal/notice-rules";
 import {
   planCallTasks,
   planNoticeReminders,
@@ -20,14 +19,16 @@ import {
   type NoticeReminderLeaseFacts,
   type NoticeReminderPlan,
 } from "../lib/lease-renewal/notice-reminders";
-import { getRenewalDeskView } from "../lib/lease-renewal/sample-desk";
+import type { RenewalDeskView } from "../lib/lease-renewal/desk-model";
+import {
+  loadLiveRenewalDesk,
+  type LiveRenewalDeskResult,
+} from "../lib/lease-renewal/live-desk";
 
 export interface NoticeRemindersCliOptions {
   help: boolean;
   json: boolean;
   referenceDate: string;
-  /** Read the seeded config record instead of the built-in defaults (needs ADC / Firestore). */
-  live: boolean;
 }
 
 export function parseNoticeRemindersArgs(
@@ -38,14 +39,12 @@ export function parseNoticeRemindersArgs(
     help: false,
     json: false,
     referenceDate: defaultDate,
-    live: false,
   };
   const args = [...argv];
   while (args.length > 0) {
     const arg = args.shift()!;
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--json") options.json = true;
-    else if (arg === "--live") options.live = true;
     else if (arg === "--date")
       options.referenceDate = readRequiredValue(args.shift(), "--date");
     else if (arg.startsWith("--date="))
@@ -56,9 +55,10 @@ export function parseNoticeRemindersArgs(
   return options;
 }
 
-/** Map the in-boundary sample desk batch to reminder facts (synthetic; no letter-sent/response set). */
-export function sampleReminderLeases(): NoticeReminderLeaseFacts[] {
-  const view = getRenewalDeskView();
+/** Map an already-authorized Live desk read to reminder facts. Pure; performs no send or write. */
+export function reminderLeasesFromDesk(
+  view: RenewalDeskView,
+): NoticeReminderLeaseFacts[] {
   return [...view.actionable, ...view.review, ...view.outOfWindow]
     .filter((summary) => summary.endDateIso !== null)
     .map((summary) => ({
@@ -70,6 +70,26 @@ export function sampleReminderLeases(): NoticeReminderLeaseFacts[] {
     }));
 }
 
+type LiveDeskLoader = (
+  windows: { startIso: string; endIso: string }[],
+  readTimestamp: string,
+) => Promise<LiveRenewalDeskResult>;
+
+/** Read the Live lease facts or refuse. No fixture/default branch exists. */
+export async function loadLiveReminderLeases(
+  referenceDateIso: string,
+  loader: LiveDeskLoader = loadLiveRenewalDesk,
+): Promise<NoticeReminderLeaseFacts[]> {
+  const outcome = await loader(
+    [{ startIso: referenceDateIso, endIso: addDaysIso(referenceDateIso, 120) }],
+    `${referenceDateIso}T00:00:00.000Z`,
+  );
+  if (outcome.status !== "ok") {
+    throw new Error(`Live renewal reminder data is unavailable (${outcome.status}).`);
+  }
+  return reminderLeasesFromDesk(outcome.view);
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const options = parseNoticeRemindersArgs(argv);
   if (options.help) {
@@ -77,8 +97,10 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const leases = sampleReminderLeases();
-  const ruleSet = options.live ? await readNoticeRuleSet() : DEFAULT_NOTICE_RULE_SET;
+  const [leases, ruleSet] = await Promise.all([
+    loadLiveReminderLeases(options.referenceDate),
+    readNoticeRuleSet(),
+  ]);
   const plan = planNoticeReminders({
     leases,
     ruleSet,
@@ -135,10 +157,10 @@ export function formatNoticeReminderPlan(
 
 function usage() {
   return [
-    "Usage: npm run notices:reminders -- [--date=YYYY-MM-DD] [--json] [--live]",
+    "Usage: npm run notices:reminders -- [--date=YYYY-MM-DD] [--json]",
     "",
     "Prints a deduped, operator-triggered reminder plan. No send, no write, no Scheduler.",
-    "Plans over the in-boundary SAMPLE batch; --live reads the seeded notice-rule config (ADC).",
+    "Reads Live renewal facts and the seeded notice-rule config (ADC); no fixture fallback.",
   ].join("\n");
 }
 
@@ -151,6 +173,12 @@ function assertIsoDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new Error("Notice reminder date must be YYYY-MM-DD.");
   }
+}
+
+function addDaysIso(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function today() {

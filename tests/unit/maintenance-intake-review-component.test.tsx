@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UnverifiedIntakeReview } from "@/components/maintenance/UnverifiedIntakeReview";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
-import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 afterEach(() => {
   cleanup();
@@ -98,42 +97,21 @@ describe("UnverifiedIntakeReview", () => {
     });
   });
 
-  it("renders and promotes Test intake without exposing a Live unit selector", async () => {
-    const fetchMock = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ ticket: { id: "test-ticket" } }), {
-          status: 201,
-        }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it("omits a legacy Test intake from the Live review surface", () => {
     render(
       <UnverifiedIntakeReview
         initialIntake={[
           intake({
             data_mode: "test",
-            property_key: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
-            summary: MAINTENANCE_TEST_PUBLIC_INTAKE.summary,
-            description: MAINTENANCE_TEST_PUBLIC_INTAKE.description,
-            contact: MAINTENANCE_TEST_PUBLIC_INTAKE.contact,
+            summary: "Retired intake",
           }),
         ]}
       />,
     );
 
-    expect(screen.getByText("TEST INTAKE")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Confirm unit (optional)")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Promote to Test ticket"));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/maintenance/intake/i1/promote",
-        expect.objectContaining({ method: "POST", body: undefined }),
-      );
-    });
-    expect(
-      await screen.findByText(/Promoted to an isolated Test ticket/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/No Live ticket or provider effect/)).toBeInTheDocument();
+    expect(screen.queryByText("Retired intake")).toBeNull();
+    expect(screen.queryByText("Promote to Test ticket")).toBeNull();
+    expect(screen.getByText("No unverified intake right now.")).toBeVisible();
   });
 
   it("requires a reason to dismiss (cancels when the prompt is empty)", async () => {

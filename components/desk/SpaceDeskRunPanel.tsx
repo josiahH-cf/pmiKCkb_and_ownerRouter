@@ -1,10 +1,7 @@
 "use client";
 
-// SpaceDeskRunPanel — the only interactive island on the desk (space-teeth E2c). Starts a run by
-// POSTing the EXISTING test-runs route, then lets the operator mark each process step
-// Unchecked / Checked / Skipped by POSTing the step-checks route. The server pre-loads the run + its
-// checks; this hydrates from props and refreshes the server tree after each write. No system-of-record
-// write, no send — both endpoints are app-plane Firestore CRUD gated at `edit`.
+// SpaceDeskRunPanel — checklist controls for an existing ordinary workflow run. Browser Test-run
+// construction is retired; this component never starts or reconstructs a run.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -45,8 +42,9 @@ export function SpaceDeskRunPanel({
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const isTerminal = run
-    ? ["Completed", "Cancelled", "Failed"].includes(run.status)
+  const ordinaryRun = run;
+  const isTerminal = ordinaryRun
+    ? ["Completed", "Cancelled", "Failed"].includes(ordinaryRun.status)
     : false;
   const canMutateChecklist = canEdit && !isTerminal;
 
@@ -54,7 +52,7 @@ export function SpaceDeskRunPanel({
     setError(null);
     setPending("__start__");
     try {
-      const response = await fetch(`/api/process-definitions/${definitionId}/test-runs`, {
+      const response = await fetch(`/api/process-definitions/${definitionId}/runs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
@@ -72,7 +70,7 @@ export function SpaceDeskRunPanel({
   }
 
   async function setStatus(stepId: string, status: WorkflowRunStepCheckStatus) {
-    if (!run) return;
+    if (!ordinaryRun) return;
     setError(null);
     const reason = reasons[stepId]?.trim();
     if (status === "Skipped" && !reason) {
@@ -81,7 +79,7 @@ export function SpaceDeskRunPanel({
     }
     setPending(stepId);
     try {
-      const response = await fetch(`/api/workflow-runs/${run.id}/step-checks`, {
+      const response = await fetch(`/api/workflow-runs/${ordinaryRun.id}/step-checks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -107,12 +105,11 @@ export function SpaceDeskRunPanel({
     }
   }
 
-  if (!run) {
+  if (!ordinaryRun) {
     return (
       <Card title="Run">
         <p className="muted">
-          No run yet. Start a run to walk this process as a checklist you can work across
-          visits.
+          No run yet. Start one to work this process as a checklist across visits.
         </p>
         {canEdit ? (
           <button
@@ -121,7 +118,7 @@ export function SpaceDeskRunPanel({
             onClick={startRun}
             type="button"
           >
-            {pending === "__start__" ? "Starting…" : "Start a run"}
+            {pending === "__start__" ? "Starting…" : "Start run"}
           </button>
         ) : (
           <p className="muted">You have read-only access to this Space.</p>

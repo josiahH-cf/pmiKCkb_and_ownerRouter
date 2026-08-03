@@ -1,7 +1,7 @@
 // Server-only loaders for the owner-gated LIVE Renewal Desk (read-only / draft-only).
 //
-// The sample desk (`sample-desk.ts`) drives the redesigned surfaces from a synthetic batch. This module
-// projects the SAME `RenewalDeskView` / `RenewalLeaseWorkspace` shapes from a REAL live read, so the
+// This module projects the neutral `RenewalDeskView` / `RenewalLeaseWorkspace` shapes from a REAL
+// live read, so the
 // existing `RenewalDesk` / `RenewalWorkspace` components render live leases unchanged. It makes exactly
 // one RentVine export read (shared, cached) plus one Google Sheet read, then reconciles each lease's
 // rent through the REAL pipeline (`runRenewalPipeline`) so the desk's conflict / data-check state is the
@@ -62,7 +62,7 @@ import {
   type DeskReconItem,
   type RenewalDeskView,
   type RenewalLeaseWorkspace,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/lib/lease-renewal/desk-model";
 import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {

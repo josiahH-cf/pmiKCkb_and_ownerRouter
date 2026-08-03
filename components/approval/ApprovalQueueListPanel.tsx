@@ -44,7 +44,7 @@ export function QueueListPanel({
               </span>
               <span className="queue-row-meta">
                 <QueuePill
-                  label={item.data_mode === "test" ? "TEST" : "LIVE"}
+                  label={item.data_mode === "test" ? "NON-LIVE: BLOCKED" : "LIVE"}
                   tone="mode"
                 />
                 <QueuePill label={item.status} tone="status" />

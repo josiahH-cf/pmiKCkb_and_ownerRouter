@@ -37,6 +37,25 @@ vi.mock("@/lib/approval/needs-decision-gather", () => ({
     counts: { total: 2, renewalFlags: 1, writebacksAwaiting: 0, queueItems: 1 },
   })),
 }));
+vi.mock("@/lib/console/environment", () => ({
+  resolveConsoleDataMode: vi.fn(() => ({ kind: "live" })),
+}));
+vi.mock("@/lib/console/live-data", () => ({
+  loadConsoleProjection: vi.fn(async () => ({
+    mode: { kind: "live" },
+    rows: [],
+    sourceHealth: [],
+  })),
+}));
+vi.mock("@/lib/lease-renewal/live-desk", async () => {
+  const { getRenewalDeskView } = await import("@/tests/helpers/sample-desk");
+  return {
+    loadLiveRenewalDesk: vi.fn(async () => ({
+      status: "ok",
+      view: getRenewalDeskView(),
+    })),
+  };
+});
 
 import { ConsoleView } from "@/components/console/ConsoleView";
 import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
@@ -65,7 +84,7 @@ describe("ConsoleView", () => {
     expect(screen.getByLabelText(/Question/)).toBeInTheDocument();
     // SEU-2 (§A.1): the explanatory intro paragraph is gone; the surface is self-descriptive.
     expect(screen.queryByText(/never touches a system of record/)).toBeNull();
-    expect(screen.getByTestId("console-test-data-badge")).toHaveTextContent("Test data");
+    expect(screen.getByTestId("console-live-data-badge")).toHaveTextContent("Live data");
     // A renewals-visible principal sees the read-only anticipation lane (S18).
     expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();
   });
@@ -76,7 +95,7 @@ describe("ConsoleView", () => {
     const ask = screen.getByLabelText(/Question/);
     const deck = screen.getByRole("heading", { name: "Needs your decision" });
     const processes = screen.getByRole("heading", { name: "Processes" });
-    const liveBadge = screen.getByTestId("console-test-data-badge");
+    const liveBadge = screen.getByTestId("console-live-data-badge");
 
     // CON-1: the Ask portal comes before the action deck (it leads the Console).
     expect(
@@ -116,7 +135,7 @@ describe("ConsoleView", () => {
     render(await ConsoleView({ user: adminUser as never }));
 
     expect(listProcessDefinitions).toHaveBeenCalledTimes(1);
-    // Editors get the process picker (canStartSimulation), populated from the loaded definitions.
+    // Editors get the ordinary process context picker, populated from the loaded definitions.
     expect(screen.getByLabelText("Process")).toHaveTextContent("Lease Renewal");
   });
 

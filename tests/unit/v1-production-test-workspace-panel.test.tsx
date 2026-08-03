@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
+import { V1ProductionTestWorkspacePanel } from "@/tests/helpers/components/V1ProductionTestWorkspacePanel";
 
 const SAFE_RESULT = {
   mode: "production-test-workspace",

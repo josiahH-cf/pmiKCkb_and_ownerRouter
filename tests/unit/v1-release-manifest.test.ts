@@ -52,22 +52,22 @@ function acceptedFixture(): {
   manifest.registryHash = actionRegistryHash(registry);
   for (const [suite, row] of Object.entries(manifest.suites)) {
     row.state = "Accepted";
-    row.evidenceLane = "production_test";
-    row.evidenceRef = `docs/evidence/v1-production-test-suites.md#${suite.toLowerCase()}`;
+    row.evidenceLane = "local_rehearsal";
+    row.evidenceRef = `docs/evidence/v1-local-rehearsal-suites.md#${suite.toLowerCase()}`;
   }
   manifest.actions = manifest.actions.map((action) => ({
     ...action,
-    applicationCoverage: "production_test",
+    applicationCoverage: "local_rehearsal",
     activation: "test_ready",
-    workflowEvidenceRef: `docs/evidence/v1-production-test-actions.md#${evidenceAnchor(action.key)}`,
+    workflowEvidenceRef: `docs/evidence/v1-local-rehearsal-actions.md#${evidenceAnchor(action.key)}`,
     oneAttemptVerified: true,
     idempotencyVerified: true,
     correctionVerified: true,
   }));
   manifest.smokeCases = [
     {
-      lane: "production_test",
-      evidenceRef: "docs/evidence/v1-production-test-workflows.md#integrated-smoke",
+      lane: "local_rehearsal",
+      evidenceRef: "docs/evidence/v1-local-rehearsal-workflows.md#integrated-smoke",
     },
   ];
   manifest.migrations = ["docs/evidence/v1-release-operations.md#migrations-none"];
@@ -141,7 +141,7 @@ describe("V1 application release and provider activation manifest", () => {
     expect(result.issues).toContain("Release stage is v1-candidate, not v1.");
     expect(result.issues).toContain("Release environment is local, not production.");
     expect(result.issues).toContain(
-      `${V1_REQUIRED_ACTION_KEYS.length} required actions lack production Test or Live workflow coverage.`,
+      `${V1_REQUIRED_ACTION_KEYS.length} required actions lack local-rehearsal or Live workflow coverage.`,
     );
     expect(result.issues).not.toEqual(
       expect.arrayContaining([expect.stringMatching(/Dan|Josiah|signoff/i)]),
@@ -153,7 +153,7 @@ describe("V1 application release and provider activation manifest", () => {
     expect(result.activation.counts.unavailable).toBe(V1_REQUIRED_ACTION_KEYS.length);
   });
 
-  it("accepts a working production V1 proven in the isolated Test lane", () => {
+  it("accepts a working production V1 whose app behavior passed local rehearsal", () => {
     const { manifest, registry } = acceptedFixture();
     const result = verifyV1ReleaseManifest(
       manifest,
@@ -170,6 +170,18 @@ describe("V1 application release and provider activation manifest", () => {
       issues: [],
       statuses: { danBusiness: "pending", josiahTechnical: "pending" },
     });
+  });
+
+  it("rejects the retired Production Test evidence lane", () => {
+    const { manifest, registry } = acceptedFixture();
+    const retired = structuredClone(manifest) as unknown as Record<string, unknown>;
+    const suites = retired.suites as Record<string, Record<string, unknown>>;
+    suites.S20.evidenceLane = "production_test";
+
+    const result = verifyV1ReleaseManifest(retired, registry);
+
+    expect(result).toMatchObject({ ok: false, state: "pre-v1" });
+    expect(result.issues.join("\n")).toMatch(/suites\.S20\.evidenceLane/);
   });
 
   it("keeps supplied signoff evidence resolution advisory", () => {
@@ -231,7 +243,7 @@ describe("V1 application release and provider activation manifest", () => {
     );
   });
 
-  it("requires trusted pins and resolves production Test evidence as durable app proof", () => {
+  it("requires trusted pins and resolves local rehearsal evidence as durable app proof", () => {
     const { manifest, registry } = acceptedFixture();
     expect(verifyV1ReleaseManifest(manifest, registry).issues).toContain(
       "V1 verification requires authoritative pins and an evidence resolver.",
@@ -369,7 +381,7 @@ describe("V1 application release and provider activation manifest", () => {
     const { manifest, registry } = acceptedFixture();
     refreshAdvisorySignoffs(manifest);
     manifest.actions[0].workflowEvidenceRef =
-      "docs/evidence/v1-production-test-actions.md#changed-after-signoff";
+      "docs/evidence/v1-local-rehearsal-actions.md#changed-after-signoff";
     const result = verifyV1ReleaseManifest(
       manifest,
       registry,

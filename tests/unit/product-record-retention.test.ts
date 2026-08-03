@@ -33,7 +33,6 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     "lib/firestore/approval-queue-notifications.ts",
     "lib/firestore/approval-queue-scheduled-notifications.ts",
     "lib/firestore/approval-queue.ts",
-    "lib/firestore/approval-test-fixtures.ts",
     "lib/vendor/live-lifecycle-runtime.ts",
     "scripts/demo-firestore.mjs",
   ],
@@ -60,11 +59,7 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
  * alias-based writers such as maintenance-intake-review.ts visible to reviewers.
  */
 const PRODUCT_RECORD_WRITER_INVENTORY = {
-  approval_queue_items: [
-    "lib/firestore/approval-queue.ts",
-    "lib/firestore/approval-test-fixtures.ts",
-    "scripts/demo-firestore.mjs",
-  ],
+  approval_queue_items: ["lib/firestore/approval-queue.ts", "scripts/demo-firestore.mjs"],
   lease_renewal_progress: ["lib/firestore/lease-renewal-progress.ts"],
   lease_renewal_resolutions: ["lib/firestore/lease-renewal-resolutions.ts"],
   maintenance_tickets: [

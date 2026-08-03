@@ -85,7 +85,7 @@ describe("defaultAudienceGroup", () => {
 });
 
 describe("createApprovalQueueItem", () => {
-  it("refuses an audit-shaped Test item at the store boundary in Production", async () => {
+  it("structurally refuses a Test item before the store runs", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "production");
     vi.stubEnv("DATA_CONTEXT", "live");
 
@@ -93,12 +93,11 @@ describe("createApprovalQueueItem", () => {
       createApprovalQueueItem(
         editor,
         baseInput({
-          data_mode: "test",
-          test_fixture_key: "audit:fixture:v1",
+          data_mode: "test" as never,
         }),
         db,
       ),
-    ).rejects.toThrow(/Test lane is retired/);
+    ).rejects.toMatchObject({ name: "ZodError" });
   });
 
   it("creates a Ready for Approval item with a created Activity entry", async () => {
@@ -128,43 +127,20 @@ describe("createApprovalQueueItem", () => {
     expect(item.created_by_uid).toBe("editor-1");
   });
 
-  it("requires server-owned fixture authority for Test items", async () => {
-    await expect(
-      createApprovalQueueItem(editor, baseInput({ data_mode: "test" }), db),
-    ).rejects.toThrow(/server-owned audit fixture key/i);
+  it("fails closed when a legacy non-Live item reaches a transition", async () => {
+    const fake = new FakeFirestore();
+    const isolatedDb = fake as unknown as Firestore;
+    const item = await createApprovalQueueItem(editor, baseInput(), isolatedDb);
+    const path = `approval_queue_items/${item.id}`;
+    fake.seed(path, { ...fake.store.get(path), data_mode: "test" });
 
     await expect(
-      createApprovalQueueItem(
-        editor,
-        baseInput({
-          data_mode: "test",
-          test_fixture_key: "user-supplied:test",
-        }),
-        db,
-      ),
-    ).rejects.toThrow(/server-owned audit fixture key/i);
-
-    await expect(
-      createApprovalQueueItem(
-        editor,
-        baseInput({ test_fixture_key: "audit:fixture:v1" }),
-        db,
-      ),
-    ).rejects.toThrow(/only in Test mode/i);
-  });
-
-  it("keeps Test fixtures detached from the Live execution ledger", async () => {
-    await expect(
-      createApprovalQueueItem(
-        editor,
-        baseInput({
-          action_execution_id: "action-execution-live-1",
-          data_mode: "test",
-          test_fixture_key: "audit:fixture:v1",
-        }),
-        db,
-      ),
-    ).rejects.toThrow(/cannot attach to a Live execution ledger/i);
+      transitionApprovalQueueItem(admin, item.id, { action: "approve" }, isolatedDb),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(fake.store.get(path)).toMatchObject({
+      data_mode: "test",
+      status: "Ready for Approval",
+    });
   });
 
   it("routes a missing required approver to Blocked", async () => {

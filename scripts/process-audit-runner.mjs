@@ -2217,7 +2217,7 @@ export async function bootstrapRemediationLedger(runDir, sourceRunDir, now = new
       required_setup_or_fixture:
         finding.blocker?.unblock_action ??
         auditCase.safe_alias ??
-        "No additional Test fixture was identified in pass one.",
+        "No additional setup prerequisite was identified in pass one.",
       code_change: finding.recommended_correction_or_investigation,
       acceptance_criteria: finding.expected_behavior,
       regression_test_mapping: [`audit-case:${finding.case_id}`],
@@ -2260,7 +2260,7 @@ export async function bootstrapCapabilityMatrix(runDir, now = new Date()) {
     case_ids: [auditCase.id],
     role: auditCase.role,
     mode: auditCase.data_mode,
-    fixture: auditCase.safe_alias ?? "Read-only observation; no mutable Test fixture.",
+    fixture: auditCase.safe_alias ?? "Read-only observation; no mutable rehearsal input.",
     test_layer: capabilityTestLayer(auditCase),
     expected_behavior: auditCase.expected.visible_result,
     current_result: "pending",
@@ -4855,8 +4855,8 @@ function reportMarkdown(manifest, summary, findings) {
     "- `summary.json` — reconciled totals",
     "- `dom-evidence/` — value-safe headings and control-state observations",
     "- `structured-evidence/` — bodyless environment/source observations",
-    "- `screenshots/` — Test-only visual evidence",
-    "- `fixtures/` — safe Test inputs used by guarded cases, when present",
+    "- `screenshots/` — value-safe local or harness visual evidence",
+    "- `fixtures/` — local audit inputs used by guarded harness cases, when present",
     "",
     "## Highest-impact findings",
     "",

@@ -28,7 +28,7 @@ const PANELS: Record<
 > = {
   not_configured: {
     title: "Live sources aren’t connected",
-    body: "Connect RentVine and the renewal sheet to run a live review. Until then, the Renewal Desk runs on sample data.",
+    body: "Connect RentVine and the renewal sheet to run a live review.",
     link: { href: "/connections", label: "Open Connection Center" },
   },
   account_mismatch: {

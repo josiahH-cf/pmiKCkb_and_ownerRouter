@@ -32,7 +32,7 @@ import { setGmailPushOidcVerifierForTest } from "@/lib/gmail-hub/pubsub";
 import { MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
-import { SIMULATION_RUN_ID } from "@/lib/lease-renewal/simulation";
+import { SIMULATION_RUN_ID } from "@/tests/helpers/lease-renewal-simulation";
 import {
   ActionRuntimeSuspendedError,
   assertProductionRuntimeActionExecutable,

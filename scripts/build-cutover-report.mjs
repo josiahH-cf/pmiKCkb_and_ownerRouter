@@ -179,24 +179,24 @@ export const PRODUCTION_SMOKE_CHECKLIST = [
       "Admin can approve, return, assign, snooze, and disable eligible queue items.",
   },
   {
-    id: "bulk-actions",
+    id: "bulk-live-controls",
     description:
-      "Admin can run Approval Queue bulk actions against real or explicitly approved test queue items, with per-item skipped reasons visible. Do not seed demo queue records in production just to test this path.",
+      "Admin can inspect Approval Queue bulk controls for eligible Live items, with per-item skipped reasons visible; rehearsal does not invoke them against Production records.",
   },
   {
-    id: "dual-data-lanes",
+    id: "production-live-only",
     description:
-      "Console shows separate Live and visibly labeled Test records; Test never falls back into Live or counts as Live evidence.",
+      "Production exposes Live records only and contains no fixture creator, rehearsal workspace, or non-Live projection.",
   },
   {
-    id: "maintenance-test-workflow",
+    id: "maintenance-live-workflow",
     description:
-      "The canonical Maintenance Test journey persists intake, assignment, status, activity, notes, simulated receipts, and Done with zero external-provider calls.",
+      "The Maintenance workspace persists Live intake, assignment, status, activity, and notes; provider effects remain on their separately confirmed and receipted surfaces.",
   },
   {
-    id: "vendor-test-workflow",
+    id: "vendor-live-workflow",
     description:
-      "The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket, uses the app-only Test mailbox, and loses access after deassignment or disable. Admin then resets that canonical identity, proves UID rotation plus preserved Test workflow state, and repeats a fresh password/TOTP sign-in without retaining a setup link or TOTP material.",
+      "A roster-backed Live Vendor sees only its assigned Live tickets and loses access after deassignment or disable; no setup link, credential, TOTP material, or customer record value enters smoke evidence.",
   },
   {
     id: "explicit-live-writes",

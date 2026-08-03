@@ -4,8 +4,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { LeaseTestJourney } from "@/components/lease-renewal/LeaseTestJourney";
-import { LeaseTestRunsWorkspace } from "@/components/lease-renewal/LeaseTestRunsWorkspace";
+import { LeaseTestJourney } from "@/tests/helpers/components/LeaseTestJourney";
+import { LeaseTestRunsWorkspace } from "@/tests/helpers/components/LeaseTestRunsWorkspace";
 import {
   LEASE_TEST_ACTIONS,
   LEASE_TEST_ALIASES,
@@ -13,7 +13,7 @@ import {
   LEASE_TEST_CONFIRMATION,
   buildLeaseTestActionEvidence,
   type LeaseTestRunRecord,
-} from "@/lib/lease-renewal/test-workflow";
+} from "@/tests/helpers/lease-renewal-test-workflow";
 
 afterEach(() => {
   cleanup();

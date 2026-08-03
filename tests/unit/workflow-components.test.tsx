@@ -50,6 +50,10 @@ describe("workflow components", () => {
       />,
     );
 
+    expect(
+      screen.getByText(/A Draft definition can still start an app-plane run/),
+    ).toBeInTheDocument();
+
     await user.type(screen.getByLabelText("Publication note"), "Ready to publish.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
 
@@ -66,18 +70,18 @@ describe("workflow components", () => {
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
   });
 
-  it("marks workflow runs as simulation-only and updates test outcomes", async () => {
+  it("updates an ordinary workflow run outcome", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("/api/workflow-runs/run-1");
       expect(JSON.parse(String(init?.body))).toEqual({
-        action: "complete_test",
-        notes: "All simulated steps passed.",
+        action: "complete",
+        notes: "All workflow steps passed.",
       });
 
       return jsonResponse({
         run: workflowRun({
-          outcome_notes: "All simulated steps passed.",
+          outcome_notes: "All workflow steps passed.",
           status: "Completed",
         }),
         timeline: [
@@ -86,7 +90,7 @@ describe("workflow components", () => {
             event_type: "completed",
             id: "timeline-2",
             new_status: "Completed",
-            summary: "All simulated steps passed.",
+            summary: "All workflow steps passed.",
           }),
         ],
       });
@@ -103,20 +107,19 @@ describe("workflow components", () => {
       />,
     );
 
-    expect(screen.getByText(/Test run only/)).toBeInTheDocument();
     expect(screen.getByText("Not pinned (draft)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Notes"), "All simulated steps passed.");
-    await user.click(screen.getByRole("button", { name: "Complete Test" }));
+    await user.type(screen.getByLabelText("Notes"), "All workflow steps passed.");
+    await user.click(screen.getByRole("button", { name: "Complete run" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Test run completed.")).toBeInTheDocument(),
+      expect(screen.getByText("Workflow run completed.")).toBeInTheDocument(),
     );
-    expect(screen.getAllByText("All simulated steps passed.")).toHaveLength(2);
+    expect(screen.getAllByText("All workflow steps passed.")).toHaveLength(2);
   });
 
-  it("keeps Test completion disabled until every definition step is checked or skipped", () => {
+  it("keeps completion disabled until every definition step is checked or skipped", () => {
     render(
       <WorkflowRunClient
         canEdit
@@ -127,23 +130,17 @@ describe("workflow components", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Complete Test" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Complete run" })).toBeDisabled();
     expect(screen.getByText(/Incomplete: Gather facts/)).toBeInTheDocument();
   });
 
-  it("shows both immutable pins on a publication-continued Test run", () => {
+  it("shows the immutable process-definition version without retired Test provenance", () => {
     render(
       <WorkflowRunClient
         canEdit
         initialChecks={[]}
         initialRun={workflowRun({
           definition_version_id: "process-version-1",
-          source_publication_pin: {
-            data_mode: "test",
-            resource_id: "source:audit-test-publication-v1",
-            version_id: "publication-version-1",
-            test_fixture_key: "audit:trusted-publication:v1",
-          },
         })}
         initialSteps={definition().steps}
         initialTimeline={[timelineEntry()]}
@@ -151,12 +148,10 @@ describe("workflow components", () => {
     );
 
     expect(screen.getByText("process-version-1")).toBeInTheDocument();
-    expect(screen.getByText("publication-version-1")).toBeInTheDocument();
-    expect(screen.getByText("source:audit-test-publication-v1")).toBeInTheDocument();
-    expect(screen.getByText("TEST · never Live evidence")).toBeInTheDocument();
+    expect(screen.queryByText(/Test run only/)).not.toBeInTheDocument();
   });
 
-  it("shows a read-only recent simulation-run index", () => {
+  it("shows a read-only recent workflow-run index", () => {
     render(
       <ProcessDefinitionListClient
         canEdit
@@ -166,32 +161,29 @@ describe("workflow components", () => {
       />,
     );
 
-    expect(screen.getByText("Recent test runs")).toBeInTheDocument();
+    expect(screen.getByText("Recent runs")).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("link", { name: "Lease Renewal Test Process" })
         .some((link) => link.getAttribute("href") === "/workflow-runs/run-2"),
     ).toBe(true);
-    expect(screen.getByText("Test run")).toBeInTheDocument();
-    expect(
-      screen.getByText("Test run. No production metrics or external actions."),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Definition version:/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
   });
 
-  it("shows a safe empty state when recent simulation runs are unavailable", () => {
+  it("shows a safe empty state when recent workflow runs are unavailable", () => {
     render(
       <ProcessDefinitionListClient
         canEdit={false}
         currentUserUid="editor-1"
         initialDefinitions={[]}
         initialRecentRuns={[]}
-        initialRunsError="Recent test runs are unavailable."
+        initialRunsError="Recent workflow runs are unavailable."
       />,
     );
 
-    expect(screen.getByText("Recent test runs are unavailable.")).toBeInTheDocument();
-    expect(screen.getByText("No test runs yet.")).toBeInTheDocument();
+    expect(screen.getByText("Recent workflow runs are unavailable.")).toBeInTheDocument();
+    expect(screen.getByText("No workflow runs yet.")).toBeInTheDocument();
   });
 });
 
@@ -224,12 +216,10 @@ function workflowRun(overrides: Partial<WorkflowRunRecord> = {}): WorkflowRunRec
     definition_id: "def-1",
     due_date: "2026-07-01",
     id: "run-1",
-    is_test_run: true,
+    data_mode: "live",
     next_action: "Gather facts",
     owner_uid: "admin-1",
     process_name: "Lease Renewal Test Process",
-    production_metrics_included: false,
-    simulation_only: true,
     started_by_uid: "editor-1",
     status: "In Progress",
     updated_at: "2026-06-06T00:00:00.000Z",
@@ -247,7 +237,7 @@ function timelineEntry(
     id: "timeline-1",
     new_status: "In Progress",
     run_id: "run-1",
-    summary: "Started simulation-only test run.",
+    summary: "Started workflow run.",
     ...overrides,
   };
 }

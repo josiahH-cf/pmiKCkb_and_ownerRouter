@@ -76,17 +76,19 @@ describe("intake token mint + verify", () => {
     }
   });
 
-  it("round-trips an explicitly signed Test lane", () => {
-    const token = mint({
-      propertyKey: "unit:test-maple-204",
-      dataMode: "test",
-    });
-    const result = verifyIntakeToken(SECRET, token, NOW);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.payload.propertyKey).toBe("unit:test-maple-204");
-      expect(result.payload.dataMode).toBe("test");
-    }
+  it("refuses to mint a Test-lane token", () => {
+    expect(() =>
+      mintIntakeToken(
+        {
+          secret: SECRET,
+          propertyKey: "legacy-test-property",
+          jti: "legacy-test-jti",
+          epoch: 0,
+          dataMode: "test" as "live",
+        },
+        NOW,
+      ),
+    ).toThrow(/Live-only/);
   });
 
   it("rejects a token signed with a different secret", () => {
@@ -197,20 +199,18 @@ describe("intake token mint + verify", () => {
             propertyKey: "prop-123",
             jti: "jti-abc",
             epoch: 0,
-            dataMode: dataMode as "live" | "test",
+            dataMode: dataMode as "live",
           },
           NOW,
         ),
-      ).toThrow(/data_mode must be exactly live or test/);
+      ).toThrow();
     }
   });
 
-  it("signs the exact lane it was given and never widens it", () => {
-    for (const dataMode of ["live", "test"] as const) {
-      const result = verifyIntakeToken(SECRET, mint({ dataMode }), NOW);
-      expect(result.ok).toBe(true);
-      if (!result.ok) throw new Error("unreachable");
-      expect(result.payload.dataMode).toBe(dataMode);
-    }
+  it("signs only the Live lane", () => {
+    const result = verifyIntakeToken(SECRET, mint({ dataMode: "live" }), NOW);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.payload.dataMode).toBe("live");
   });
 });

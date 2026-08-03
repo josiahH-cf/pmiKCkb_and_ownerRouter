@@ -56,6 +56,8 @@ export function QueueDetailPanel({
   setSnoozeUntil,
   snoozeUntil,
 }: Readonly<QueueDetailPanelProps>) {
+  const legacyNonLiveRecord = selectedItem?.data_mode === "test";
+
   return (
     <section className="panel queue-detail-panel" aria-label="Queue item detail">
       {selectedItem ? (
@@ -72,8 +74,8 @@ export function QueueDetailPanel({
 
           <div className="queue-detail-grid">
             <DetailField
-              label="Data mode"
-              value={selectedItem.data_mode === "test" ? "Test" : "Live"}
+              label="Record context"
+              value={legacyNonLiveRecord ? "Unexpected non-Live record" : "Live"}
             />
             <DetailField label="Status" value={selectedItem.status} />
             <DetailField label="Risk" value={selectedItem.risk} />
@@ -106,8 +108,8 @@ export function QueueDetailPanel({
           </div>
 
           <p className="muted">
-            {selectedItem.data_mode === "test"
-              ? "Test fixture: this decision changes app-only Test state and cannot contact a provider."
+            {legacyNonLiveRecord
+              ? "This legacy non-Live record is unavailable. Production decisions operate on Live records only."
               : selectedItem.action_execution_id
                 ? "Approval authorizes the exact execution preview. Execution remains a separate owning-workflow action."
                 : "Approval changes this app decision only; external actions stay in their owning workflow."}
@@ -122,7 +124,9 @@ export function QueueDetailPanel({
             </a>
             <button
               className="primary-button compact-button"
-              disabled={busyAction !== null || !actionAvailability?.approve}
+              disabled={
+                legacyNonLiveRecord || busyAction !== null || !actionAvailability?.approve
+              }
               onClick={onApprove}
               title={actionAvailability?.approveReason}
               type="button"
@@ -131,7 +135,11 @@ export function QueueDetailPanel({
             </button>
             <button
               className="secondary-button compact-button"
-              disabled={busyAction !== null || !actionAvailability?.returnForRevision}
+              disabled={
+                legacyNonLiveRecord ||
+                busyAction !== null ||
+                !actionAvailability?.returnForRevision
+              }
               onClick={() => onStartAction("return")}
               type="button"
             >
@@ -139,7 +147,9 @@ export function QueueDetailPanel({
             </button>
             <button
               className="secondary-button compact-button"
-              disabled={busyAction !== null || !actionAvailability?.deny}
+              disabled={
+                legacyNonLiveRecord || busyAction !== null || !actionAvailability?.deny
+              }
               onClick={() => onStartAction("deny")}
               title={actionAvailability?.denyReason}
               type="button"
@@ -148,7 +158,9 @@ export function QueueDetailPanel({
             </button>
             <button
               className="secondary-button compact-button"
-              disabled={busyAction !== null || !actionAvailability?.snooze}
+              disabled={
+                legacyNonLiveRecord || busyAction !== null || !actionAvailability?.snooze
+              }
               onClick={() => onStartAction("snooze")}
               type="button"
             >
@@ -157,7 +169,7 @@ export function QueueDetailPanel({
             {actionAvailability?.assign ? (
               <button
                 className="secondary-button compact-button"
-                disabled={busyAction !== null}
+                disabled={legacyNonLiveRecord || busyAction !== null}
                 onClick={() => onStartAction("assign")}
                 type="button"
               >
@@ -167,7 +179,7 @@ export function QueueDetailPanel({
             {actionAvailability?.disable ? (
               <button
                 className="secondary-button compact-button"
-                disabled={busyAction !== null}
+                disabled={legacyNonLiveRecord || busyAction !== null}
                 onClick={() => onStartAction("disable")}
                 type="button"
               >
@@ -176,7 +188,7 @@ export function QueueDetailPanel({
             ) : null}
           </div>
 
-          {actionMode ? (
+          {actionMode && !legacyNonLiveRecord ? (
             <div className="queue-action-form">
               {actionMode === "assign" ? (
                 <>

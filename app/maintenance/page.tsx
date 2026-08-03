@@ -8,14 +8,12 @@ import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-g
 import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review";
 import {
   type MaintenanceTicketRecord,
-  listMaintenanceTestActionReceipts,
   listMaintenanceTickets,
 } from "@/lib/firestore/maintenance-tickets";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 import { getMaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
-import type { MaintenanceTestActionReceipt } from "@/lib/maintenance/test-workflow";
 
 interface MaintenancePageProps {
   searchParams?: Promise<{ ticket_id?: string }>;
@@ -32,11 +30,9 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
   // The persisted ticket queue (console overhaul Slice E) + the public-intake triage queue (2d).
   // Read-only + non-fatal: a Firestore hiccup degrades each to a clear note rather than 500-ing the desk.
   let tickets: MaintenanceTicketRecord[] = [];
-  let testReceipts: MaintenanceTestActionReceipt[] = [];
   let unavailableNote: string | undefined;
   try {
     tickets = await listMaintenanceTickets(user);
-    testReceipts = await listMaintenanceTestActionReceipts(user);
   } catch {
     unavailableNote =
       "The ticket queue isn't available right now. Try reloading in a minute; if it keeps happening, let your administrator know.";
@@ -67,11 +63,9 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
         <h1 className="section-title">Maintenance Work Order Intake</h1>
         <p className="muted">
           Capture a maintenance issue (type or record the problem and the unit), build a
-          work-order draft, then create a tracked Live ticket. The production Test
-          workspace below uses reserved invented aliases and supports the same in-app
-          lifecycle plus internal simulation receipts. Every Live external write remains
-          an explicit, target-labeled, human-confirmed action through its configured
-          provider gate.
+          work-order draft, then create a tracked Live ticket. Every external write
+          remains an explicit, target-labeled, human-confirmed action through its
+          configured provider gate.
         </p>
         {can(user.role, "edit") ? (
           <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
@@ -86,7 +80,6 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
           assignees={assignees}
           currentUid={user.uid}
           canEdit={can(user.role, "edit")}
-          initialTestReceipts={testReceipts}
           focusedTicketId={focusedTicketId}
         />
         <MaintenanceExecutionReadiness />

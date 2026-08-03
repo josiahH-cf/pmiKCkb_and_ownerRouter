@@ -9,10 +9,7 @@ export const RENEWAL_DRAFT_ACTION_KEY = "gmail.renewal_notice.draft_create";
 export const MAINTENANCE_OWNER_DRAFT_ACTION_KEY =
   "gmail.maintenance_owner_notice.draft_create";
 
-export type AskActionSurface =
-  | "renewal-notice-draft"
-  | "maintenance-owner-notice"
-  | "process-test-run";
+export type AskActionSurface = "renewal-notice-draft" | "maintenance-owner-notice";
 
 /** A value-free route into an already-gated desk surface. Carries no recipient, rent, or tenant name. */
 export interface AskActionRoute {
@@ -25,7 +22,7 @@ export interface AskActionRoute {
 
 interface ProcessActionMapping {
   key: string;
-  surface: Exclude<AskActionSurface, "process-test-run">;
+  surface: AskActionSurface;
   label: string;
 }
 
@@ -50,9 +47,8 @@ export interface ResolveAskActionInput {
   /** Reads the committed seed gate; a closed key must yield no live route. */
   isExecutable: (key: string) => boolean;
   /**
-   * Whether S38a's maintenance owner-notice draft surface (route + button) is reachable. Default false:
-   * until S38a lands, a maintenance intent falls back to the existing process Test run, never a hollow
-   * affordance. When S38a is present the caller passes true and the maintenance draft route lights up.
+   * Whether S38a's maintenance owner-notice draft surface (route + button) is reachable. Default false;
+   * the ordinary process run remains separately available from the Console process context.
    */
   maintenanceDraftAvailable?: boolean;
 }
@@ -81,8 +77,8 @@ export function resolveAskAction(input: ResolveAskActionInput): AskActionRoute |
     };
   }
 
-  // Maintenance: only when S38a's draft surface is actually reachable; otherwise Ask falls back to the
-  // existing Test run (this returns null and the caller keeps its Test-run affordance).
+  // Maintenance: only when S38a's draft surface is actually reachable. The ordinary app-plane run is
+  // separate from this provider-action affordance.
   if (mapping.surface === "maintenance-owner-notice") {
     if (!input.maintenanceDraftAvailable) return null;
     return {

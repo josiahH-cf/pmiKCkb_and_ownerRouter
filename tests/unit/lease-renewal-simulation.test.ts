@@ -4,7 +4,7 @@ import {
   getSimulationRun,
   listSimulationRuns,
   SIMULATION_RUN_ID,
-} from "@/lib/lease-renewal/simulation";
+} from "@/tests/helpers/lease-renewal-simulation";
 
 describe("lease-renewal simulation", () => {
   it("lists one canonical simulation run", () => {

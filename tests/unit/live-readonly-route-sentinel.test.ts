@@ -428,6 +428,18 @@ function sorted<T>(items: Iterable<T>) {
 }
 
 describe("Live-read-only route sentinel", () => {
+  it("contains no retired Production Test-workspace route", () => {
+    expect(
+      inventoryRoutes()
+        .map(({ pathname }) => pathname)
+        .filter((pathname) =>
+          /\/(?:test|test-runs|test-actions|test-fixtures|test-fixture|test-seed|test-mailbox|fake-acceptance)(?:\/|$)/i.test(
+            pathname,
+          ),
+        ),
+    ).toEqual([]);
+  });
+
   it("discovers every exported route method, including factory-returned handlers", () => {
     const routes = inventoryRoutes();
     const compScreenshot = routes.find(

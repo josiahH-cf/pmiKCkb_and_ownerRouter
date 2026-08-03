@@ -16,7 +16,6 @@ export default async function VendorPage() {
   return (
     <VendorPortal
       email={principal.email}
-      dataMode={principal.dataMode ?? "live"}
       tickets={await listVendorTickets(principal, store)}
     />
   );

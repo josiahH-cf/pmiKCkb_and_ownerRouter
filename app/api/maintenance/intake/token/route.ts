@@ -6,11 +6,9 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
-import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { normalizeIntakePropertyKey } from "@/lib/maintenance/intake-sanitize";
 import { INTAKE_TOKEN_MAX_TTL_MS, mintIntakeToken } from "@/lib/maintenance/intake-token";
-import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 // Mint a public intake token for a property (edit-gated staff action). Single-use ≤7d by default; a
 // reusable link (signage) is allowed up to 30d. The token is stamped with the property's current
@@ -25,7 +23,7 @@ const REUSABLE_MAX_DAYS = INTAKE_TOKEN_MAX_TTL_MS / DAY_MS; // 30
 const MintBodySchema = z
   .object({
     propertyKey: z.string(),
-    dataMode: z.enum(["live", "test"]).default("live"),
+    dataMode: z.literal("live").default("live"),
     ttlDays: z.coerce.number().int().positive().max(REUSABLE_MAX_DAYS).optional(),
     reusable: z.boolean().optional(),
   })
@@ -45,30 +43,12 @@ export async function POST(request: Request) {
     const secret = config.maintenanceIntakeTokenSecret!;
 
     const input = await parseJsonBody(request, MintBodySchema);
-    assertTestDataModeWriteAllowed(input.dataMode);
     const propertyKey = normalizeIntakePropertyKey(input.propertyKey);
     if (!propertyKey) {
       return NextResponse.json({ error: "Invalid property key." }, { status: 400 });
     }
-    if (
-      input.dataMode === "test" &&
-      propertyKey !== MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey
-    ) {
-      return NextResponse.json(
-        { error: "Test intake tokens require the canonical invented Test property." },
-        { status: 400 },
-      );
-    }
-    if (input.dataMode === "test" && input.reusable) {
-      return NextResponse.json(
-        { error: "Test intake tokens are single-use." },
-        { status: 400 },
-      );
-    }
-
-    const singleUse = input.dataMode === "test" ? true : !input.reusable;
-    const maxDays =
-      input.dataMode === "test" ? 1 : singleUse ? SINGLE_USE_MAX_DAYS : REUSABLE_MAX_DAYS;
+    const singleUse = !input.reusable;
+    const maxDays = singleUse ? SINGLE_USE_MAX_DAYS : REUSABLE_MAX_DAYS;
     const days = Math.min(input.ttlDays ?? maxDays, maxDays);
     const ttlMs = days * DAY_MS;
 
@@ -82,7 +62,7 @@ export async function POST(request: Request) {
         epoch,
         ttlMs,
         singleUse,
-        dataMode: input.dataMode,
+        dataMode: "live",
       },
       now,
     );
@@ -90,14 +70,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       token,
       propertyKey,
-      dataMode: input.dataMode,
+      dataMode: "live",
       singleUse,
       expiresAt: new Date(now + ttlMs).toISOString(),
       submitPath: "/api/maintenance/intake/public",
       tokenHeader: "X-Intake-Token",
-      ...(input.dataMode === "test"
-        ? { testSubmission: MAINTENANCE_TEST_PUBLIC_INTAKE }
-        : {}),
     });
   } catch (error) {
     return apiErrorResponse(error);

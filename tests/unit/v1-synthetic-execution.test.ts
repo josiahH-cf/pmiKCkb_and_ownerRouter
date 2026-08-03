@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 import { MAINTENANCE_EXECUTION_ACTIONS } from "@/lib/maintenance/execution/matrix";
-import { runIntegratedFakeV1Acceptance } from "@/lib/release/fake-acceptance";
+import { runIntegratedFakeV1Acceptance } from "@/tests/helpers/fake-acceptance";
 
 describe("typed integrated V1 synthetic acceptance", () => {
   afterEach(() => {
@@ -57,13 +57,11 @@ describe("typed integrated V1 synthetic acceptance", () => {
     expect(serialized).not.toContain("Exact body");
   });
 
-  it("runs the isolated Test workspace under the production environment guard", async () => {
+  it("is refused by the Production guard instead of creating an isolated executor", async () => {
     vi.stubEnv("NODE_ENV", "production");
 
-    const result = await runIntegratedFakeV1Acceptance();
-
-    expect(result.mode).toBe("production-test-workspace");
-    expect(result.liveProviderCallCount).toBe(0);
-    expect(result.maintenance.receiptCount).toBe(result.maintenance.actionCount);
+    await expect(runIntegratedFakeV1Acceptance()).rejects.toThrow(
+      "Production external execution forbids test option overrides.",
+    );
   });
 });

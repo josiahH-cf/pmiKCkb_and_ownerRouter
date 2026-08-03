@@ -1,327 +1,244 @@
+import { createHash } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolvePublicationScanner } from "@/lib/publication/provider";
-import { resolvePublicationPolicyForSpace } from "@/lib/publication/policy";
+import { FakePublicationScanner } from "@/lib/publication/scanners";
+import { PUBLICATION_POLICY_COLLECTION } from "@/lib/publication/policy";
 import {
   listActiveTrustedPublications,
   PUBLICATION_COLLECTIONS,
+  publishTrustedContent,
+  rollbackTrustedPublication,
 } from "@/lib/publication/service";
-import {
-  continueTestPublicationToPinnedRun,
-  inspectTestPublicationFixture,
-  publishTestPublicationRevision,
-  restoreTestPublicationBaseline,
-  rollbackTestPublicationToBaseline,
-  TEST_PUBLICATION_EXACT_SCANNER_KEY,
-  TEST_PUBLICATION_POLICY_ID,
-  TEST_PUBLICATION_RESOURCE_ID,
-} from "@/lib/publication/test-fixture";
-import {
-  TEST_PUBLICATION_CONFIRMATIONS,
-  TEST_PUBLICATION_FIXTURE_KEY,
-  TEST_PUBLICATION_SPACE_ID,
-} from "@/lib/publication/test-fixture-contract";
-import { UnavailablePublicationScanner } from "@/lib/publication/scanners";
+import type {
+  PublicationEnvelope,
+  PublicationPolicyRecord,
+} from "@/lib/publication/types";
+import { validatePublication } from "@/lib/publication/validation";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
-const admin: AuthenticatedUser = {
-  email: "admin@pmikcmetro.com",
+const editor: AuthenticatedUser = {
+  email: "editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
-  role: "Admin",
-  uid: "admin-1",
+  role: "Editor",
+  uid: "editor-1",
 };
-const editor: AuthenticatedUser = { ...admin, role: "Editor", uid: "editor-1" };
-const NOW = Date.parse("2026-07-18T12:00:00.000Z");
 let fake: FakeFirestore;
 let db: Firestore;
 
 beforeEach(() => {
   fake = new FakeFirestore();
   db = fake as unknown as Firestore;
+  seedPolicy(policy());
 });
 
-describe("repository-authorized Test publication fixture", () => {
-  it("publishes, deduplicates, revises, rolls back, and restores the exact Test baseline", async () => {
-    const baseline = await restoreTestPublicationBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
+describe("ordinary trusted publication after fixture retirement", () => {
+  it("publishes immutable Live versions and rolls back through the normal service", async () => {
+    const first = await publish("first verified source");
+    const second = await publish("second verified source");
+    const rollback = await rollbackTrustedPublication(
+      editor,
+      "source:ordinary",
+      first.id,
+      "Restore the first verified source version.",
       db,
-      NOW,
-    );
-    expect(baseline).toMatchObject({
-      changed: true,
-      effect: "published",
-      status: {
-        active_revision: "baseline",
-        data_mode: "test",
-        live_evidence_eligible: false,
-        policy_ready: true,
-        state: "ready",
-        version_count: 1,
-      },
-    });
-    expect(
-      fake.store.get(`publication_policies/${TEST_PUBLICATION_POLICY_ID}`),
-    ).toMatchObject({
-      data_mode: "test",
-      scannerKey: TEST_PUBLICATION_EXACT_SCANNER_KEY,
-      test_fixture_key: TEST_PUBLICATION_FIXTURE_KEY,
-    });
-    expect(
-      fake.store.get(
-        `${PUBLICATION_COLLECTIONS.resources}/${TEST_PUBLICATION_RESOURCE_ID}`,
-      ),
-    ).toMatchObject({
-      data_mode: "test",
-      test_fixture_key: TEST_PUBLICATION_FIXTURE_KEY,
-    });
-
-    const duplicateBaseline = await restoreTestPublicationBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-      db,
-      NOW + 1,
-    );
-    expect(duplicateBaseline).toMatchObject({
-      changed: false,
-      effect: "unchanged",
-      status: { version_count: 1 },
-    });
-
-    const revision = await publishTestPublicationRevision(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.publishRevision,
-      db,
-      NOW + 2,
-    );
-    expect(revision).toMatchObject({
-      changed: true,
-      effect: "published",
-      status: { active_revision: "revision", state: "revision_active", version_count: 2 },
-    });
-    const duplicateRevision = await publishTestPublicationRevision(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.publishRevision,
-      db,
-      NOW + 3,
-    );
-    expect(duplicateRevision).toMatchObject({
-      changed: false,
-      effect: "unchanged",
-      status: { version_count: 2 },
-    });
-
-    const rollback = await rollbackTestPublicationToBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.rollbackBaseline,
-      db,
-      NOW + 4,
-    );
-    expect(rollback).toMatchObject({
-      changed: true,
-      effect: "rolled_back",
-      status: { active_revision: "baseline", state: "ready", version_count: 3 },
-    });
-    const activeVersion = fake.store.get(
-      `${PUBLICATION_COLLECTIONS.versions}/${rollback.status.active_version_id}`,
-    );
-    expect(activeVersion).toMatchObject({
-      data_mode: "test",
-      rollbackOfVersionId: baseline.status.baseline_version_id,
-      test_fixture_key: TEST_PUBLICATION_FIXTURE_KEY,
-      versionNumber: 3,
-    });
-    await expect(
-      restoreTestPublicationBaseline(
-        admin,
-        TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-        db,
-        NOW + 5,
-      ),
-    ).resolves.toMatchObject({ changed: false, effect: "unchanged" });
-  });
-
-  it("keeps Test publications out of default Live retrieval and generic upload policy resolution", async () => {
-    await restoreTestPublicationBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-      db,
-      NOW,
     );
 
-    await expect(
-      listActiveTrustedPublications(admin, TEST_PUBLICATION_SPACE_ID, db),
-    ).resolves.toEqual([]);
-    await expect(
-      listActiveTrustedPublications(admin, TEST_PUBLICATION_SPACE_ID, db, {
-        dataMode: "test",
-      }),
-    ).resolves.toEqual([
-      expect.objectContaining({
-        data_mode: "test",
-        resourceId: TEST_PUBLICATION_RESOURCE_ID,
-        validated: true,
-      }),
+    expect([first.versionNumber, second.versionNumber, rollback.versionNumber]).toEqual([
+      1, 2, 3,
     ]);
-    await expect(
-      resolvePublicationPolicyForSpace(
-        admin,
-        TEST_PUBLICATION_SPACE_ID,
-        TEST_PUBLICATION_POLICY_ID,
-        db,
-      ),
-    ).rejects.toThrow(/No enabled Live publication policy/i);
-
-    const genericScanner = resolvePublicationScanner(TEST_PUBLICATION_EXACT_SCANNER_KEY, {
-      firestoreEmulatorHost: "127.0.0.1:8080",
-      localDemoAuth: true,
-      nodeEnv: "development",
-    });
-    expect(genericScanner).toBeInstanceOf(UnavailablePublicationScanner);
-  });
-
-  it("continues a resolved Test Capture Task into one immutable version-pinned Test run", async () => {
-    const baseline = await restoreTestPublicationBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-      db,
-      NOW,
-    );
-    seedActiveLeaseProcess(fake);
-
-    const first = await continueTestPublicationToPinnedRun(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
-      db,
-      NOW + 1,
-    );
-    const duplicate = await continueTestPublicationToPinnedRun(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
-      db,
-      NOW + 2,
-    );
-
-    expect(first).toMatchObject({
-      changed: true,
-      effect: "continued",
-      status: {
-        capture_task_status: "resolved",
-        continuation_ready: true,
-        pinned_process_definition_version_id: "process-version-1",
-        pinned_publication_version_id: baseline.status.active_version_id,
-      },
-    });
-    expect(first.status.pinned_test_run_id).toBeTruthy();
-    expect(duplicate).toMatchObject({ changed: false, effect: "unchanged" });
-    expect(duplicate.status.pinned_test_run_id).toBe(first.status.pinned_test_run_id);
-    expect(
-      fake.store.get(`workflow_runs/${first.status.pinned_test_run_id}`),
-    ).toMatchObject({
-      definition_id: "lease-renewal",
-      definition_version_id: "process-version-1",
-      is_test_run: true,
-      simulation_only: true,
-      source_publication_pin: {
-        data_mode: "test",
-        resource_id: TEST_PUBLICATION_RESOURCE_ID,
-        version_id: baseline.status.active_version_id,
-        test_fixture_key: TEST_PUBLICATION_FIXTURE_KEY,
-      },
-    });
-    expect(collection(fake, "workflow_run_timeline")).toHaveLength(1);
-  });
-
-  it("refuses a pinned continuation until the owning process has an Active version", async () => {
-    await restoreTestPublicationBaseline(
-      admin,
-      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-      db,
-      NOW,
-    );
-    fake.seed("process_definitions/lease-renewal", {
-      ...activeLeaseProcess(),
-      active_version_id: undefined,
-      status: "Draft",
-    });
-
-    await expect(
-      continueTestPublicationToPinnedRun(
-        admin,
-        TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
-        db,
-        NOW + 1,
-      ),
-    ).rejects.toThrow(/published Active process definition/i);
-    expect(collection(fake, "workflow_runs")).toHaveLength(0);
-  });
-
-  it("requires Admin authority and exact operation-specific confirmation", async () => {
-    await expect(inspectTestPublicationFixture(editor, db)).rejects.toMatchObject({
-      status: 403,
-    });
-    await expect(
-      restoreTestPublicationBaseline(admin, "stale confirmation", db, NOW),
-    ).rejects.toMatchObject({ status: 409 });
-    expect(fake.store.size).toBe(0);
-  });
-
-  it("fails closed when the reserved policy identity collides with Live state", async () => {
-    fake.seed(`publication_policies/${TEST_PUBLICATION_POLICY_ID}`, {
+    expect(rollback).toMatchObject({
+      contentHash: first.contentHash,
       data_mode: "live",
-      id: TEST_PUBLICATION_POLICY_ID,
+      rollbackOfVersionId: first.id,
     });
+    expect(collection(PUBLICATION_COLLECTIONS.versions)).toHaveLength(3);
+  });
+
+  it("serializes concurrent writes through the resource-owned version sequence", async () => {
+    serializeTransactions(fake);
+    const versions = await Promise.all([
+      publish("concurrent verified source A"),
+      publish("concurrent verified source B"),
+    ]);
+
+    expect(versions.map((version) => version.versionNumber).sort()).toEqual([1, 2]);
+    expect(
+      fake.store.get(`${PUBLICATION_COLLECTIONS.resources}/source:ordinary`),
+    ).toMatchObject({ activeVersionId: expect.any(String), lastVersionNumber: 2 });
+  });
+
+  it("returns Live by default and excludes a historical Test record from that projection", async () => {
+    const live = await publish("live retrieval source");
+    fake.seed(`${PUBLICATION_COLLECTIONS.resources}/source:historical-test`, {
+      activeVersionId: "historical-test-version",
+      data_mode: "test",
+      id: "source:historical-test",
+      lastVersionNumber: 1,
+      policyId: "historical-test-policy",
+      resourceType: "file",
+      spaceId: "lease-renewals",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      updatedByUid: "historical",
+    });
+    fake.seed(`${PUBLICATION_COLLECTIONS.versions}/historical-test-version`, {
+      data_mode: "test",
+      id: "historical-test-version",
+      resourceId: "source:historical-test",
+      validated: true,
+    });
+
     await expect(
-      restoreTestPublicationBaseline(
-        admin,
-        TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
-        db,
-        NOW,
+      listActiveTrustedPublications(editor, "lease-renewals", db),
+    ).resolves.toEqual([expect.objectContaining({ id: live.id, data_mode: "live" })]);
+  });
+
+  it("binds each stored version to the SHA-256 hash of its exact content", async () => {
+    const content = "hash-bound verified source";
+    const version = await publish(content);
+
+    expect(version.contentHash).toBe(
+      createHash("sha256").update(new TextEncoder().encode(content)).digest("hex"),
+    );
+    expect(version.contentRef.contentHash).toBe(version.contentHash);
+  });
+
+  it("preserves authorization and Live-mode validation refusals", async () => {
+    const outOfScope: AuthenticatedUser = {
+      ...editor,
+      scopes: ["maintenance"],
+    };
+    await expect(
+      validatePublication(
+        outOfScope,
+        policy(),
+        envelope("unauthorized source"),
+        new FakePublicationScanner(),
+      ),
+    ).rejects.toMatchObject({ code: "actor_not_authorized", status: 403 });
+    await expect(
+      validatePublication(
+        editor,
+        policy(),
+        envelope("wrong lane", { data_mode: "test" }),
+        new FakePublicationScanner(),
+      ),
+    ).rejects.toMatchObject({ code: "data_mode_mismatch", status: 409 });
+  });
+
+  it("fails closed when another policy collides with an existing resource identity", async () => {
+    const first = await publish("first policy source");
+    const other = policy({
+      connectorId: "connector-other",
+      id: "policy-other",
+      rootId: "root-other",
+    });
+    seedPolicy(other);
+
+    await expect(
+      publishTrustedContent(
+        editor,
+        other,
+        envelope("colliding source", {
+          connectorId: other.connectorId,
+          rootId: other.rootId,
+        }),
+        new FakePublicationScanner(),
+        { db },
       ),
     ).rejects.toMatchObject({ status: 409 });
-    expect(collection(fake, PUBLICATION_COLLECTIONS.resources)).toHaveLength(0);
-    expect(collection(fake, PUBLICATION_COLLECTIONS.versions)).toHaveLength(0);
+    expect(
+      fake.store.get(`${PUBLICATION_COLLECTIONS.resources}/source:ordinary`),
+    ).toMatchObject({ activeVersionId: first.id, policyId: "policy-live" });
+    expect(collection(PUBLICATION_COLLECTIONS.versions)).toHaveLength(1);
   });
 });
 
-function collection(fakeDb: FakeFirestore, name: string) {
-  return [...fakeDb.store.entries()]
+function publish(content: string) {
+  return publishTrustedContent(
+    editor,
+    policy(),
+    envelope(content),
+    new FakePublicationScanner(),
+    { db },
+  );
+}
+
+function policy(
+  overrides: Partial<PublicationPolicyRecord> = {},
+): PublicationPolicyRecord {
+  return {
+    id: "policy-live",
+    data_mode: "live",
+    allowedSpaces: ["lease-renewals"],
+    allowedTypes: [{ extension: ".md", maxBytes: 2048, mimeTypes: ["text/markdown"] }],
+    connectorId: "connector-live",
+    createdAt: "2026-08-03T00:00:00.000Z",
+    createdByUid: "admin-1",
+    enabled: true,
+    rootId: "root-live",
+    scannerKey: "fake-clean-v1",
+    sensitivityCeiling: "Medium",
+    updatedAt: "2026-08-03T00:00:00.000Z",
+    updatedByUid: "admin-1",
+    ...overrides,
+  };
+}
+
+function envelope(
+  content: string,
+  metadata: Partial<PublicationEnvelope["metadata"]> = {},
+): PublicationEnvelope {
+  const bytes = new TextEncoder().encode(content);
+  return {
+    loadContent: async () => bytes,
+    metadata: {
+      citationLabel: "Verified source",
+      connectorId: "connector-live",
+      data_mode: "live",
+      declaredByteSize: bytes.byteLength,
+      declaredMimeType: "text/markdown",
+      detectedMimeType: "text/markdown",
+      fileName: "verified-source.md",
+      path: "sources/verified-source.md",
+      resourceId: "source:ordinary",
+      resourceType: "file",
+      rootId: "root-live",
+      sourceState: "Verified Source",
+      spaceId: "lease-renewals",
+      ...metadata,
+    },
+  };
+}
+
+function seedPolicy(value: PublicationPolicyRecord) {
+  fake.seed(
+    `${PUBLICATION_POLICY_COLLECTION}/${value.id}`,
+    value as unknown as Record<string, unknown>,
+  );
+}
+
+function collection(name: string) {
+  return [...fake.store.entries()]
     .filter(([path]) => path.startsWith(`${name}/`))
     .map(([, value]) => value);
 }
 
-function seedActiveLeaseProcess(fakeDb: FakeFirestore) {
-  fakeDb.seed("process_definitions/lease-renewal", activeLeaseProcess());
-  fakeDb.seed("process_definition_versions/process-version-1", {
-    id: "process-version-1",
-    definition_id: "lease-renewal",
-    version_number: 1,
-    activated_by_uid: admin.uid,
-    snapshot_json: "{}",
-    created_at: "2026-07-18T00:00:00.000Z",
-  });
-}
-
-function activeLeaseProcess() {
-  return {
-    id: "lease-renewal",
-    space_id: TEST_PUBLICATION_SPACE_ID,
-    name: "Lease Renewal Test Process",
-    short_outcome: "Complete the isolated Test process.",
-    trigger: "Exact Test publication is active.",
-    owner_uid: admin.uid,
-    default_approver_uid: admin.uid,
-    source_links: [{ label: "Test fixture", url: "/spaces/lease-renewals" }],
-    required_starting_inputs: [],
-    steps: [{ id: "step-1", title: "Review the pinned Test source" }],
-    action_references: [],
-    success_condition: "The Test checklist completes.",
-    status: "Active",
-    active_version_id: "process-version-1",
-    created_by_uid: admin.uid,
-    created_at: "2026-07-18T00:00:00.000Z",
-    updated_at: "2026-07-18T00:00:00.000Z",
+function serializeTransactions(fakeDb: FakeFirestore) {
+  const original = fakeDb.runTransaction.bind(fakeDb);
+  let tail = Promise.resolve();
+  fakeDb.runTransaction = async <T>(callback: Parameters<typeof original<T>>[0]) => {
+    const previous = tail;
+    let release: () => void = () => {};
+    tail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await original(callback);
+    } finally {
+      release();
+    }
   };
 }

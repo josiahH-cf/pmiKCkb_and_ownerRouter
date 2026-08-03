@@ -8,7 +8,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
+import { LeaseRenewalRunClient } from "@/tests/helpers/components/LeaseRenewalRunClient";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 const refresh = vi.fn();

@@ -1,26 +1,27 @@
 # PMI KC Working-App V1 Plan
 
-Last updated: 2026-07-30
+Last updated: 2026-08-03
 
 ## Release Contract
 
-The deployed application is a stable full-suite product. S40–S50 now define its next release
-contract: Production becomes Live-only; an independently provisioned Demo environment runs the same
-product behavior with realistic invented data and zero Live effects, plus an optional explicit Live
-read-only context that never mixes with Demo. Provider activation remains independent per action.
-Live writes are explicit, target-labeled, human-confirmed, idempotent, receipted, reconcilable,
-monitored, and reversible.
+The deployed application is a stable full-suite product. Production is Live-only. Rehearsal happens
+locally with the server-owned descriptor resolving exactly to `environmentKind:"demo"` plus
+`dataContext:"live_readonly"` and `source:"explicit"`; it permits bounded Live reads but no durable
+write, receipt, or provider effect. The separately hosted Demo GCP project is deferred under
+`F-DEMO-DEFERRED-LOCAL-FIRST`. Provider activation remains independent per action. Live writes are
+explicit, target-labeled, human-confirmed, idempotent, receipted, reconcilable, monitored, and
+reversible.
 
-P0–P8 below preserve the verified working-app/deployment history, including the currently deployed
-Production Live+Test implementation. P9 is the active target and does not become `done` until S40’s
-backed-up migration/cutover and S41–S50 acceptance are verified.
+P0–P8 below preserve verified working-app/deployment history, including the former Production
+Live+Test implementation. P9 records the current Live-only/local-rehearsal environment outcome and
+the remaining S41–S50 acceptance work.
 
 The following are not application release gates:
 
 - activation of every optional provider action;
 - Firestore TTL, extra composite indexes, or Scheduler automation;
 - named stakeholder signoff metadata;
-- replacing safe invented Demo data with customer data.
+- replacing deterministic test fixtures with customer data.
 
 They remain tracked operational/provider work where useful.
 
@@ -37,7 +38,7 @@ Acceptance:
 - `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, and current specs agree.
 - Superseded Pre-V1/every-provider/mandatory-TTL language is deleted from active guidance.
 - The historical Live/Test implementation vocabulary and per-action provider activation record are
-  stable; P9 owns the new Demo/Production product vocabulary.
+  stable; P9 owns the current Production Live-only/local-rehearsal vocabulary.
 
 ### P1 - Application Foundation
 
@@ -225,11 +226,10 @@ Current serving release, 2026-07-18:
 
 ### P9 - UI/UX Recalibration and Environment Separation (S40–S50)
 
-Status: in progress — S40 slices 1–4 are shipped (server-owned environment descriptor, Admin-page
-degradation repair, fail-closed record classification, cross-environment collision preflight); six
-S40 slices and S41–S50 remain. Environment provisioning, data migration, and the Demo deploy are
-still unperformed. D11 settled the topology: a dedicated Demo GCP project, with the owner supplying
-the exact identifiers.
+Status: in progress — Production is Live-only and the product Test lane/fixture machinery is retired.
+Local rehearsal resolves explicitly to Demo + Live-read-only and refuses durable writes/provider
+effects. The hosted Demo GCP project is deferred; do not provision it or seed invented product data.
+The remaining S41–S50 product acceptance work stays governed by its owning suites.
 
 Program:
 
@@ -243,9 +243,9 @@ Program:
 
 Acceptance:
 
-- S40 provisions/validates independent Demo and Production resource boundaries; Production accepts
-  Live only, Demo owns invented data/effects, optional Demo Live-read-only is explicit/non-mixing/
-  non-mutating, and Production delivery uses exact candidate promotion plus captured rollback.
+- Production accepts Live only; local rehearsal resolves to `environmentKind:"demo"` plus
+  `dataContext:"live_readonly"` with `source:"explicit"`, cannot mutate or receipt, and Production
+  delivery uses exact candidate promotion plus captured rollback.
 - S41–S42 deliver four daily destinations plus primary Spaces, compact role-aware mobile/desktop
   shell, plain vocabulary, one owner per attention type, and a grouped non-card Spaces flow.
 - S44 supplies exact field/evidence/return links and truthful provider destinations: verified exact
@@ -258,8 +258,8 @@ Acceptance:
 - S46–S47 supply a focused Maintenance workspace and secure no-second-login resident intake; the
   RentVine interactive endpoint blocks only S47 channel activation.
 - S48 supplies workflow-only Communications, provider Connections, task Admin, and no replacement
-  Test Lab. Shipped simulations/no-op Sample tools leave; automated tests, Demo product parity,
-  security/TOTP, rollback, and real provider seams remain.
+  Test Lab. Shipped simulations/no-op Sample tools leave; automated tests, local refusal/read-only
+  proof, security/TOTP, rollback, and real provider seams remain.
 - S49 uses hide/move/redirect/instrument before bounded deletion and proves consumers, roles,
   routes, scripts, tests, provider/security ownership, deployed usage, and rollback. Static
   reachability alone never deletes.
@@ -303,8 +303,8 @@ Program:
   draft action contracts →
   activate S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
-  routine deploy/live verification when auth and cost gates are green → resume the remaining S40
-  environment/data work and dependency-ready suite flow. Protected-path changes are parked for
+  routine deploy/live verification when auth and cost gates are green → continue the remaining
+  dependency-ready suite flow. Protected-path changes are parked for
   owner review while independent work continues.
 
 Acceptance:
@@ -329,14 +329,14 @@ Acceptance:
 
 Use these states without changing the application label:
 
-| State           | Meaning                                                                                                    |
-| --------------- | ---------------------------------------------------------------------------------------------------------- |
-| unavailable     | No usable Live provider contract/client is configured; Demo product workflow may still work.               |
-| test_ready      | Internal compatibility enum for complete isolated non-Live/Demo adapter evidence; operator copy says Demo. |
-| live_configured | Exact Live contract, identity, mapping, and credential are configured.                                     |
-| live_proven     | One authorized Live action/readback has durable evidence.                                                  |
-| enabled         | Registry permits normal Live use with monitoring and rollback.                                             |
-| suspended       | Kill switch is active; prior evidence is retained.                                                         |
+| State           | Meaning                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| unavailable     | No usable Live provider contract/client is configured; app-plane/test work may still continue.       |
+| test_ready      | Internal compatibility enum for deterministic non-Live test evidence; it is not a product data lane. |
+| live_configured | Exact Live contract, identity, mapping, and credential are configured.                               |
+| live_proven     | One authorized Live action/readback has durable evidence.                                            |
+| enabled         | Registry permits normal Live use with monitoring and rollback.                                       |
+| suspended       | Kill switch is active; prior evidence is retained.                                                   |
 
 Activation checklist for a Live write/send:
 
@@ -349,10 +349,9 @@ Activation checklist for a Live write/send:
 
 ## Safe Operational Defaults
 
-- Build/migrate toward separate Demo and Production resources. Until S40 cutover, treat deployed
-  Live+Test as current state, never as permission to add another Production Test surface.
-- Keep Demo data/effects in Demo-owned resources; Production accepts Live only. Unknown mode fails
-  closed and optional Demo Live-read-only never mutates or mixes.
+- Keep Production Live-only; never add another Production Test/Demo intake or product surface.
+- Rehearse locally only with explicit Demo + Live-read-only resolution. It has no invented records,
+  durable writes, receipts, or provider effects; the hosted Demo GCP project remains deferred.
 - Use bounded on-demand communications cleanup until measured volume justifies automation.
 - Do not create optional indexes without a query that requires them.
 - Preserve in-app notifications as the default; no event-driven approval email.
@@ -372,5 +371,5 @@ These do not prevent code/documentation/deployment completion:
 - Optional operations: TTL, Scheduler, or additional indexes if later volume warrants them.
 
 Each item must be reported with the exact action affected, recommended setup process, verification
-evidence, and the Demo product workflow that remains available meanwhile. Do not label an entire
-feature pending when only one external activation is missing.
+evidence, and the app-plane/tests/local read-only rehearsal that remain available meanwhile. Do not
+label an entire feature pending when only one external activation is missing.

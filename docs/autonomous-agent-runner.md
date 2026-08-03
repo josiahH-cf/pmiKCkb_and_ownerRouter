@@ -122,9 +122,10 @@ doc explicitly preserves a safety rule.
 
 ## Product Lane Selection
 
-- PMI KC KB is the shared runtime. The currently deployed Production Live/Test workflows remain
-  verified evidence, but S40’s target is an independent Demo environment and Live-only Production;
-  provider activation stays per action.
+- PMI KC KB is the shared runtime. Production is Live-only; the former Production Live/Test
+  workflows remain dated historical evidence. Rehearsal runs locally with explicit
+  `environmentKind:"demo"` + `dataContext:"live_readonly"`, while provider activation stays per
+  action. Hosted Demo GCP provisioning is deferred.
 - Lease Renewal Agent already has a deterministic read/reconcile/review runtime and app-plane
   decision surfaces. It remains the first backend automation target, while every external write
   waits for its own approved scope, permission, and acceptance gate.
@@ -165,7 +166,7 @@ product surface. For each suite, in order:
 
 - build the app-plane (UI, routes, state, validation) unattended;
 - build the live provider implementation, replacing any fake/synthetic provider, plus the full
-  preview/confirm/receipt/rollback action contract and its Demo-environment proof; and
+  preview/confirm/receipt/rollback action contract and deterministic test/local-refusal proof; and
 - build the gate-flip machinery (seed readiness/evidence, both `EXECUTABLE_ALLOWLIST` copies, pinned
   tests), left staged until the one named owner dependency is documented.
 
@@ -173,13 +174,14 @@ It hands back ONLY at that single named owner dependency (roadmap §5) — a doc
 credential/scope grant, a vendor confirmation, or a billing approval — recorded as a one-line owner
 step, never as "feature deferred." Do not stop a 90%-buildable feature at 0% because its last inch is
 external. Do not invent scope beyond the roadmap suites; do not lower a schema/risk gate, override the
-Registry, or use a synthetic escape to fake a Live receipt (a Demo receipt closes product-workflow
-evidence, never Live-provider evidence).
+Registry, or use a synthetic escape to fake a Live receipt (test or local-rehearsal evidence never
+closes Live-provider evidence).
 
 For S40–S50, “build” additionally means meet the suite’s observable desktop/390×844 task, exact-link,
 role/scope/environment, compatibility, and deletion-proof ACs. Named files/components are examples;
-the end state is fixed. Do not reopen D-01–D-14, create a Test Lab, mix Demo/Live-read-only, default
-unknown mode to Live, guess provider URLs/endpoints, or start S37 before S50 prerequisites.
+the end state is fixed. Do not reopen D-01–D-14, create a Test Lab or hosted Demo project, permit a
+local Live-read-only mutation, default unknown mode to Live, guess provider URLs/endpoints, or start
+S37 before S50 prerequisites.
 
 ## Cycle Packet
 
@@ -223,8 +225,9 @@ Read the trigger literally to avoid re-prompting:
 For the active goal, `/loop` or any run/continue/implement trigger follows `docs/loop-state.md` and
 the Active Production Order below. The loop flags are already open. Do not regenerate the production
 audit or UI audit, re-ask the settled D01–D64 or D-01–D-14 decisions, or infer a Live provider
-contract. Complete Demo product workflows in Demo, build Live providers to their documented seam,
-and activate only exact actions satisfying the owner/Registry contract.
+contract. Use deterministic tests for invented workflows and explicit local Live-read-only rehearsal
+for bounded reads/refusals, build Live providers to their documented seam, and activate only exact
+actions satisfying the owner/Registry contract.
 
 After an implementation packet is locked, do not ask the user to review every internal
 phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
@@ -241,8 +244,8 @@ the choice:
 - does not perform a LIVE external send or system-of-record write — building the provider, the full
   action contract, and a staged, unflipped gate is in-bounds; every real write still uses its
   exact-confirm contract, and
-- can be verified locally, in the isolated Demo environment, or through an authorized D05
-  deploy/read-only smoke after all preconditions pass.
+- can be verified in deterministic tests, in explicit local Demo + Live-read-only rehearsal, or
+  through an authorized D05 deploy/read-only Production smoke after all preconditions pass.
 
 The agent builds to the seam within those limits. Interactive authentication, a missing documented
 provider endpoint, a credential/scope/IAM/billing input, or an exact human confirmation can park one
@@ -341,10 +344,10 @@ together.
 free-tier-first defaults, the inventory of every cost-bearing path and its gate, and the
 `npm run check:budget-guard` preflight. Read it before any cost-bearing step.
 
-- Default to the cheapest safe option: local emulation, then the independently provisioned Demo
-  environment/no-Live-effect path, then an authorized bounded cheap-live path, then anything billed.
-  Until S40 provisions Demo, local `ASK_DEMO_MODE=true` remains a local-only compatibility tool and
-  is never a Production environment substitute.
+- Default to the cheapest safe option: deterministic local tests/emulation, then explicit local
+  `environmentKind:"demo"` + `dataContext:"live_readonly"` refusal/read-only proof, then an
+  authorized bounded cheap-Live path, then anything billed. Hosted Demo GCP provisioning is deferred;
+  never treat a loose `ASK_DEMO_MODE` flag as an environment descriptor or Production substitute.
 - Run `npm run check:budget-guard` before any live, deploy, import, or notification command.
   In Remote Away Mode it allows explicitly bounded multi-Space migration setup, but still
   refuses Pro and notification-send overrides.
@@ -372,8 +375,8 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
   `FIRESTORE_EMULATOR_HOST`, `GOOGLE_APPLICATION_CREDENTIALS`, and local-model overrides — whether
   they came from `.env.local` or the ambient process. If that named refusal is not implemented or
   does not pass, the deploy remains parked; do not “clean” the source file as a workaround.
-- Demo and Production secrets live in separate client-approved Secret Manager/workload
-  identity, impersonation, or equivalent managed secret storage.
+- Production secrets live in client-approved Secret Manager/workload identity, impersonation, or
+  equivalent managed secret storage. Local rehearsal receives no Production effect credential.
 - Avoid downloadable service account keys. If a key is unavoidable, record the owner,
   purpose, rotation path, storage location, and revocation plan without committing the
   key.
@@ -383,10 +386,10 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
 - Handoff docs should explain where non-secret identifiers live, who owns each
   environment, what manual setup remains, and how a future team can rotate or revoke
   access.
-- S40 requires Demo/Production manifests to resolve different data stores/namespaces, storage,
-  queues, secret boundaries, OAuth redirects/audiences, runtime identities, and effect credentials.
-  An optional Demo Live-read-only identity has no mutation scope and never shares Production effect
-  credentials.
+- Local rehearsal must resolve `environmentKind:"demo"`, `dataContext:"live_readonly"`, and
+  `source:"explicit"`; it has no mutation scope or effect credentials. The Production manifest
+  resolves Live-only resources and cannot be selected by browser state. A hosted Demo manifest is
+  deferred and must not be inferred or provisioned.
 - Use `docs/environment-handoff.md` as the central non-secret registry for environment
   IDs, key owners, manual setup state, and verification evidence.
 
@@ -517,8 +520,9 @@ Run this phase for every slice:
    - edge cases and unhandled states,
    - invalid JSON or Markdown,
    - stale command descriptions, stale prompt-chain hints, and missing linked docs,
-   - Demo/Production resource or record crossing, unknown-mode fallback to Live, Demo provider
-     construction, mixed Demo/Live-read-only projection, and misleading generic provider links,
+   - any non-Live Production record or intake, unknown-mode fallback, local-rehearsal mutation/effect
+     construction, a descriptor other than explicit Demo + Live-read-only, and misleading generic
+     provider links,
    - mobile header/overlay/first-action/focus failures and duplicate attention owners,
    - two-stage deletion without consumer/role/route/script/provider/security/deployed-boundary/
      rollback proof,

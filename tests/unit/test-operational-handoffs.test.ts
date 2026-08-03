@@ -4,17 +4,17 @@ import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import {
   MAINTENANCE_TEST_ACTIONS,
   type MaintenanceTestActionReceipt,
-} from "@/lib/maintenance/test-workflow";
+} from "@/tests/helpers/maintenance-test-workflow";
 import {
   buildLeaseTestOperationalHandoff,
   buildMaintenanceTestOperationalHandoff,
-} from "@/lib/operations/test-handoffs";
+} from "@/tests/helpers/test-handoffs";
 import {
   LEASE_TEST_ACTIONS,
   LEASE_TEST_ALIASES,
   type LeaseTestActionReceipt,
   type LeaseTestRunRecord,
-} from "@/lib/lease-renewal/test-workflow";
+} from "@/tests/helpers/lease-renewal-test-workflow";
 
 function leaseRun(overrides: Partial<LeaseTestRunRecord> = {}): LeaseTestRunRecord {
   return {

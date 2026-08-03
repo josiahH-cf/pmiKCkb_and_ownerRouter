@@ -1,158 +1,41 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-vi.mock("@/lib/admin/users", () => ({
-  listAppUsers: vi.fn(),
-}));
-vi.mock("@/lib/firestore/approval-test-fixtures", async (importActual) => {
-  const actual =
-    await importActual<typeof import("@/lib/firestore/approval-test-fixtures")>();
-  return {
-    ...actual,
-    inspectApprovalTestFixtures: vi.fn(),
-    restoreApprovalTestFixtures: vi.fn(),
-  };
-});
+import { describe, expect, it } from "vitest";
 
-import { GET, POST } from "@/app/api/approval-queue/test-fixtures/route";
-import { listAppUsers } from "@/lib/admin/users";
-import { setAuthResolverForTest } from "@/lib/auth/session";
-import {
-  APPROVAL_TEST_FIXTURE_CONFIRMATION,
-  inspectApprovalTestFixtures,
-  restoreApprovalTestFixtures,
-} from "@/lib/firestore/approval-test-fixtures";
+const root = process.cwd();
+const fixtureRoute = "app/api/approval-queue/test-fixtures/route.ts";
 
-function request(body: unknown) {
-  return new Request("http://localhost/api/approval-queue/test-fixtures", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+describe("retired Approval Queue fixture route", () => {
+  it("removes the Production Test-fixture route instead of leaving a dormant handler", () => {
+    expect(existsSync(resolve(root, fixtureRoute))).toBe(false);
   });
-}
 
-beforeEach(() => {
-  vi.mocked(listAppUsers).mockResolvedValue([
-    {
-      uid: "editor-1",
-      email: "editor@pmikcmetro.com",
-      role: "Editor",
-      scopes: ["renewals"],
-      disabled: false,
-      lastSignInAt: null,
-    },
-  ]);
-  vi.mocked(inspectApprovalTestFixtures).mockResolvedValue({
-    fixture_count: 7,
-    item_ids: ["fixture-1"],
-    ready_count: 7,
-    state: "ready",
+  it("keeps the ordinary read-only Approval Queue route", () => {
+    const route = readFileSync(resolve(root, "app/api/approval-queue/route.ts"), "utf8");
+
+    expect(route).toContain("export async function GET");
+    expect(route).toContain('requireCapabilityInSpace("read", "renewals")');
+    expect(route).not.toContain("test-fixtures");
   });
-  vi.mocked(restoreApprovalTestFixtures).mockResolvedValue({
-    fixture_count: 7,
-    item_ids: ["fixture-1"],
-    ready_count: 7,
-    restored_count: 7,
-    state: "ready",
-  });
-  setAuthResolverForTest(() => ({
-    email: "admin@pmikcmetro.com",
-    hd: "pmikcmetro.com",
-    role: "Admin",
-    uid: "admin-1",
-  }));
-});
 
-afterEach(() => {
-  setAuthResolverForTest(null);
-  vi.unstubAllEnvs();
-  vi.clearAllMocks();
-});
-
-describe("Approval Queue Test fixture route", () => {
-  it("refuses the fixture surface in Production even for an Admin", async () => {
-    vi.stubEnv("ENVIRONMENT_KIND", "production");
-    vi.stubEnv("DATA_CONTEXT", "live");
-
-    const inspectResponse = await GET();
-    const restoreResponse = await POST(
-      request({
-        action: "restore",
-        confirmation: APPROVAL_TEST_FIXTURE_CONFIRMATION,
-      }),
+  it("removes both the fixture restorer and its confirmation contract", () => {
+    expect(existsSync(resolve(root, "lib/firestore/approval-test-fixtures.ts"))).toBe(
+      false,
     );
-
-    expect(inspectResponse.status).toBe(409);
-    expect(restoreResponse.status).toBe(409);
-    await expect(inspectResponse.json()).resolves.toMatchObject({
-      code: "environment_context_not_allowed",
-    });
-    await expect(restoreResponse.json()).resolves.toMatchObject({
-      code: "environment_context_not_allowed",
-    });
-    expect(listAppUsers).not.toHaveBeenCalled();
-    expect(inspectApprovalTestFixtures).not.toHaveBeenCalled();
-    expect(restoreApprovalTestFixtures).not.toHaveBeenCalled();
-  });
-
-  it("refuses fixture restoration from the local Live-read-only context", async () => {
-    vi.stubEnv("ENVIRONMENT_KIND", "demo");
-    vi.stubEnv("DATA_CONTEXT", "live_readonly");
-
-    const response = await POST(
-      request({
-        action: "restore",
-        confirmation: APPROVAL_TEST_FIXTURE_CONFIRMATION,
-      }),
-    );
-
-    expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toMatchObject({
-      code: "environment_context_not_allowed",
-    });
-    expect(listAppUsers).not.toHaveBeenCalled();
-    expect(restoreApprovalTestFixtures).not.toHaveBeenCalled();
-  });
-
-  it("reads and restores with exact confirmation and a real restricted staff UID", async () => {
-    expect((await GET()).status).toBe(200);
-    expect(inspectApprovalTestFixtures).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "admin-1" }),
-      "editor-1",
-    );
-
-    const response = await POST(
-      request({
-        action: "restore",
-        confirmation: APPROVAL_TEST_FIXTURE_CONFIRMATION,
-      }),
-    );
-    expect(response.status).toBe(200);
-    expect(restoreApprovalTestFixtures).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "admin-1" }),
-      "editor-1",
+    expect(existsSync(resolve(root, "lib/approval/test-fixture-contract.ts"))).toBe(
+      false,
     );
   });
 
-  it("rejects a stale confirmation, non-Admin, or absent restricted staff identity", async () => {
-    expect(
-      (await POST(request({ action: "restore", confirmation: "wrong" }))).status,
-    ).toBe(400);
-
-    setAuthResolverForTest(() => ({
-      email: "editor@pmikcmetro.com",
-      hd: "pmikcmetro.com",
-      role: "Editor",
-      uid: "editor-1",
-    }));
-    expect((await GET()).status).toBe(403);
-
-    setAuthResolverForTest(() => ({
-      email: "admin@pmikcmetro.com",
-      hd: "pmikcmetro.com",
-      role: "Admin",
-      uid: "admin-1",
-    }));
-    vi.mocked(listAppUsers).mockResolvedValue([]);
-    expect((await GET()).status).toBe(409);
+  it("leaves no shipped import or URL reference to the removed fixture surface", () => {
+    for (const relative of [
+      "app/api/approval-queue/route.ts",
+      "components/approval/ApprovalQueue.tsx",
+      "lib/firestore/approval-queue.ts",
+    ]) {
+      const source = readFileSync(resolve(root, relative), "utf8");
+      expect(source).not.toMatch(/approval-test-fixtures|approval-queue\/test-fixtures/);
+    }
   });
 });

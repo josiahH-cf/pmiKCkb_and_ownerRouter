@@ -81,10 +81,16 @@ export function canAccessProcessDefinition(
 
 export function canAccessWorkflowRun(
   user: AuthenticatedUser,
-  run: Pick<WorkflowRunRecord, "definition_id">,
+  run: Pick<WorkflowRunRecord, "definition_id"> & { space_id?: string },
 ): boolean {
   if (user.scopes === undefined) {
     return true;
+  }
+  // New runs retain the exact Space authority resolved from their definition at creation. Prefer
+  // that immutable binding so custom definitions remain usable and a mismatched definition id can
+  // never widen access. Legacy runs without the field keep the established definition-id mapping.
+  if (run.space_id) {
+    return canAccessSpaceId(user, run.space_id);
   }
   return canAccessProcessDefinitionId(user, run.definition_id);
 }
@@ -113,7 +119,7 @@ export function assertProcessDefinitionRecordAccess(
 
 export function assertWorkflowRunAccess(
   user: AuthenticatedUser,
-  run: Pick<WorkflowRunRecord, "definition_id">,
+  run: Pick<WorkflowRunRecord, "definition_id"> & { space_id?: string },
 ): void {
   if (!canAccessWorkflowRun(user, run)) {
     throwScopeDenied();

@@ -1,6 +1,6 @@
 // KB-owned persistence for the Lease Renewal Phase-1 resolution loop (connector design §3.5).
 //
-// The reconciliation FLAGS are recomputed deterministically from the run (simulation today); only a
+// The reconciliation FLAGS are recomputed from an injected ordinary Live run; only a
 // human RESOLUTION and its append-only Activity persist here, in the KB's own Firestore. The three
 // resolution paths are: pick a source, enter a corrected value, or "flag is wrong / the sheet is
 // already right". A plain-English reason is captured for every manual path; a Low/Medium acceptance
@@ -27,7 +27,6 @@ import type {
   LeaseRenewalResolutionStatus,
   QueueRiskLevel,
 } from "@/lib/firestore/types";
-import { getSimulationRun } from "@/lib/lease-renewal/simulation";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
 import {
   DECISION_REASON_CODES,
@@ -223,10 +222,14 @@ export async function resolveLeaseRenewalFlag(
   actor: AuthenticatedUser,
   input: ResolveLeaseRenewalFlagInput,
   db: Firestore = getAdminFirestore(),
-  getRun: RunResolver = getSimulationRun,
+  getRun?: RunResolver,
 ): Promise<LeaseRenewalResolutionRecord> {
   assertCan(actor, "approve");
   const parsed = ResolveLeaseRenewalFlagInputSchema.parse(input);
+
+  if (!getRun) {
+    throw new Error("A Live renewal run resolver is required.");
+  }
 
   const run = await getRun(parsed.run_id);
   if (!run) throw new EditableLayerError("Renewal run was not found.", 404);

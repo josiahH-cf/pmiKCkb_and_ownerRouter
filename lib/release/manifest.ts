@@ -46,13 +46,13 @@ type V1RequiredSuite = keyof typeof V1_REQUIRED_SUITE_ACCEPTANCE_IDS;
 const ProofStateSchema = z.enum([
   "Local green",
   "Gated",
-  "Production test passed",
+  "Local rehearsal passed",
   "Live passed",
   "Accepted",
 ]);
 
-const EvidenceLaneSchema = z.enum(["production_test", "live"]);
-const WorkflowCoverageSchema = z.enum(["unverified", "production_test", "live"]);
+const EvidenceLaneSchema = z.enum(["local_rehearsal", "live"]);
+const WorkflowCoverageSchema = z.enum(["unverified", "local_rehearsal", "live"]);
 const ProviderActivationStateSchema = z.enum(PROVIDER_ACTIVATION_STATES);
 const DurableReferenceSchema = z.string().trim().min(1).max(500);
 
@@ -105,7 +105,7 @@ const SmokeCaseSchema = z
 
 export const V1ReleaseManifestSchema = z
   .object({
-    schemaVersion: z.literal("v1-release-manifest:2.0"),
+    schemaVersion: z.literal("v1-release-manifest:3.0"),
     stage: z.enum([
       "pre-v1-foundation",
       "pre-v1-data-comms",
@@ -216,11 +216,12 @@ export function actionRegistryHash(registry: readonly CreateActionRegistryInput[
 }
 
 const pendingMarker =
-  /(?:\bplaceholder\b|\bpending\b|\btodo\b|\btbd\b|\bunreleased\b|\blocal\b|undocumented|not documented|vendor[- ]confirmation[- ]required|<[^>]+>)/i;
+  /(?:\bplaceholder\b|\bpending\b|\btodo\b|\btbd\b|\bunreleased\b|undocumented|not documented|vendor[- ]confirmation[- ]required|<[^>]+>)/i;
 const nonLiveMarker =
-  /(?:\bfake\b|\bfixture\b|\bsynthetic\b|\bsample\b|\bexample\b|\bemulator\b|\bsandbox\b|production[-_ ]test|test[-_ ]lane|(?:^|[/#_.-])test(?:[/#_.-]|$))/i;
+  /(?:\bfake\b|\bfixture\b|\bsynthetic\b|\bsample\b|\bexample\b|\bemulator\b|\bsandbox\b|\blocal\b|local[-_ ]rehearsal|production[-_ ]test|test[-_ ]lane|(?:^|[/#_.-])test(?:[/#_.-]|$))/i;
+const localRehearsalMarker = /(?:local[-_ ]rehearsal|(?:^|[/#_.-])local(?:[/#_.-]|$))/i;
 
-/** Durable application evidence may describe either the production Test lane or Live lane. */
+/** Durable application evidence may describe either local rehearsal or the Live lane. */
 function durableEvidenceIdentity(value: string | undefined) {
   if (!value || pendingMarker.test(value) || value.includes("\\")) return null;
   const match =
@@ -247,12 +248,19 @@ function liveEvidenceIdentity(value: string | undefined) {
   return identity && !nonLiveMarker.test(value ?? "") ? identity : null;
 }
 
+function localRehearsalEvidenceIdentity(value: string | undefined) {
+  const identity = durableEvidenceIdentity(value);
+  return identity && localRehearsalMarker.test(value ?? "") ? identity : null;
+}
+
 function evidenceMatchesLane(
   value: string | undefined,
-  lane: "production_test" | "live" | undefined,
+  lane: "local_rehearsal" | "live" | undefined,
 ) {
   if (lane === "live") return liveEvidenceIdentity(value) !== null;
-  if (lane === "production_test") return durableEvidenceIdentity(value) !== null;
+  if (lane === "local_rehearsal") {
+    return localRehearsalEvidenceIdentity(value) !== null;
+  }
   return false;
 }
 
@@ -582,7 +590,7 @@ export function verifyV1ReleaseManifest(
   }
   if (unverifiedCoverage.length) {
     issues.push(
-      `${unverifiedCoverage.length} required actions lack production Test or Live workflow coverage.`,
+      `${unverifiedCoverage.length} required actions lack local-rehearsal or Live workflow coverage.`,
     );
   }
   if (missingWorkflowEvidence.length) {
@@ -801,7 +809,7 @@ function releaseEvidenceReferences(
 
 export function buildCurrentV1CandidateManifest(commit = "0000000"): V1ReleaseManifest {
   return {
-    schemaVersion: "v1-release-manifest:2.0",
+    schemaVersion: "v1-release-manifest:3.0",
     stage: "v1-candidate",
     commit,
     revision: "local-unreleased",
@@ -852,8 +860,8 @@ export function buildCurrentV1CandidateManifest(commit = "0000000"): V1ReleaseMa
     migrations: [],
     smokeCases: [
       {
-        lane: "production_test",
-        evidenceRef: "docs/evidence/pending-production-test.md#workflow",
+        lane: "local_rehearsal",
+        evidenceRef: "docs/evidence/pending-local-rehearsal.md#workflow",
       },
     ],
     deploymentEvidenceRef: "docs/evidence/pending-production-deploy.md#revision",

@@ -3,159 +3,130 @@ import { describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
-  APPROVAL_TEST_FIXTURE_DEFINITIONS,
-  inspectApprovalTestFixtures,
-  restoreApprovalTestFixtures,
-} from "@/lib/firestore/approval-test-fixtures";
-import { transitionApprovalQueueItem } from "@/lib/firestore/approval-queue";
+  createApprovalQueueItem,
+  listApprovalQueue,
+  listApprovalQueueActivity,
+  transitionApprovalQueueItem,
+} from "@/lib/firestore/approval-queue";
+import type { CreateApprovalQueueItemInput } from "@/lib/firestore/schemas";
 import {
   PRODUCT_RECORD_RETENTION_CLASS,
   PRODUCT_RECORD_RETENTION_POLICY,
+  stampProductRecordRetention,
 } from "@/lib/operations/product-record-retention";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
-const admin: AuthenticatedUser = {
-  email: "admin@pmikcmetro.com",
-  hd: "pmikcmetro.com",
-  role: "Admin",
-  uid: "admin-1",
-};
-const editor: AuthenticatedUser = {
-  email: "editor@pmikcmetro.com",
-  hd: "pmikcmetro.com",
-  role: "Editor",
-  uid: "editor-1",
-};
-const NOW = Date.parse("2026-07-18T12:00:00.000Z");
+const admin = user("Admin", "admin-1");
+const editor = user("Editor", "editor-1");
 
-describe("Approval Queue Test fixtures", () => {
-  it("creates the complete isolated suite and an Admin notification projection", async () => {
-    const fake = new FakeFirestore();
-    const db = fake as unknown as Firestore;
-    const result = await restoreApprovalTestFixtures(admin, editor.uid, db, NOW);
+describe("ordinary Approval Queue behavior after fixture retirement", () => {
+  it("creates one Live item with retention, activity, and notification evidence", async () => {
+    const { db, fake } = database();
+    const item = await createApprovalQueueItem(editor, input(), db);
 
-    expect(result).toMatchObject({
-      fixture_count: APPROVAL_TEST_FIXTURE_DEFINITIONS.length,
-      ready_count: APPROVAL_TEST_FIXTURE_DEFINITIONS.length,
-      restored_count: APPROVAL_TEST_FIXTURE_DEFINITIONS.length,
-      state: "ready",
-    });
-    for (const definition of APPROVAL_TEST_FIXTURE_DEFINITIONS) {
-      expect(fake.store.get(`approval_queue_items/${definition.id}`)).toMatchObject({
-        data_mode: "test",
-        test_fixture_key: definition.key,
-        assignee_uid: editor.uid,
-        required_approver_uid: admin.uid,
-        status: "Ready for Approval",
-        product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
-        product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
-        legal_hold: false,
-      });
-    }
-    const adminNotifications = collection(fake, "approval_queue_notifications").filter(
-      (record) => record.recipient_uid === admin.uid,
-    );
-    expect(adminNotifications).toHaveLength(APPROVAL_TEST_FIXTURE_DEFINITIONS.length);
-    expect(adminNotifications[0]).toMatchObject({
-      event: "created",
-      recipient_role: "Required approver",
-    });
-  });
-
-  it("is idempotent at baseline and restores a mutated item without touching Live state", async () => {
-    const fake = new FakeFirestore();
-    const db = fake as unknown as Firestore;
-    await restoreApprovalTestFixtures(admin, editor.uid, db, NOW);
-    const activityBefore = collection(fake, "approval_queue_activity").length;
-    const notificationsBefore = collection(fake, "approval_queue_notifications").length;
-
-    const unchanged = await restoreApprovalTestFixtures(admin, editor.uid, db, NOW + 1);
-    expect(unchanged.restored_count).toBe(0);
-    expect(collection(fake, "approval_queue_activity")).toHaveLength(activityBefore);
-    expect(collection(fake, "approval_queue_notifications")).toHaveLength(
-      notificationsBefore,
-    );
-
-    const itemId = APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id;
-    await transitionApprovalQueueItem(admin, itemId, { action: "approve" }, db);
-    expect(fake.store.get(`approval_queue_items/${itemId}`)).toMatchObject({
-      status: "Approved",
-    });
-
-    const restored = await restoreApprovalTestFixtures(admin, editor.uid, db, NOW + 2);
-    expect(restored.restored_count).toBe(1);
-    expect(fake.store.get(`approval_queue_items/${itemId}`)).toMatchObject({
-      data_mode: "test",
-      status: "Ready for Approval",
-    });
-    expect([...fake.store.keys()].some((path) => path.includes("live"))).toBe(false);
-  });
-
-  it("preserves an exact legal hold while restoring drifted fixture content", async () => {
-    const fake = new FakeFirestore();
-    const db = fake as unknown as Firestore;
-    await restoreApprovalTestFixtures(admin, editor.uid, db, NOW);
-    const itemId = APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id;
-    const current = fake.store.get(`approval_queue_items/${itemId}`);
-    fake.seed(`approval_queue_items/${itemId}`, {
-      ...current,
-      legal_hold: true,
-      status: "Returned",
-    });
-
-    const restored = await restoreApprovalTestFixtures(admin, editor.uid, db, NOW + 1);
-
-    expect(restored.restored_count).toBe(1);
-    expect(fake.store.get(`approval_queue_items/${itemId}`)).toMatchObject({
-      status: "Ready for Approval",
-      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+    expect(item).toMatchObject({
+      data_mode: "live",
+      legal_hold: false,
       product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      status: "Ready for Approval",
+    });
+    expect(await listApprovalQueueActivity(admin, item.id, db)).toHaveLength(1);
+    expect(collection(fake, "approval_queue_notifications")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: "created", item_id: item.id }),
+      ]),
+    );
+  });
+
+  it("idempotently refreshes one open source-trigger identity without duplicating it", async () => {
+    const { db } = database();
+    const first = await createApprovalQueueItem(editor, input(), db);
+    const second = await createApprovalQueueItem(
+      editor,
+      input({ action_needed: "Review the revised Live decision." }),
+      db,
+    );
+
+    expect(second.id).toBe(first.id);
+    expect(second.action_needed).toBe("Review the revised Live decision.");
+    expect(await listApprovalQueue(admin, {}, db)).toHaveLength(1);
+    expect(await listApprovalQueueActivity(admin, first.id, db)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "refreshed" })]),
+    );
+  });
+
+  it("preserves a legal hold while an ordinary open item is refreshed", async () => {
+    const { db, fake } = database();
+    const first = await createApprovalQueueItem(editor, input(), db);
+    const path = `approval_queue_items/${first.id}`;
+    fake.seed(path, { ...fake.store.get(path), legal_hold: true });
+
+    await createApprovalQueueItem(
+      editor,
+      input({ action_needed: "Review the held Live decision." }),
+      db,
+    );
+
+    expect(fake.store.get(path)).toMatchObject({
+      action_needed: "Review the held Live decision.",
       legal_hold: true,
     });
   });
 
-  it("reports missing/drifted/ready and requires a distinct Admin/restricted actor pair", async () => {
-    const fake = new FakeFirestore();
-    const db = fake as unknown as Firestore;
+  it("still refuses an approval from a non-required approver", async () => {
+    const { db } = database();
+    const item = await createApprovalQueueItem(editor, input(), db);
+
     await expect(
-      inspectApprovalTestFixtures(admin, editor.uid, db),
-    ).resolves.toMatchObject({ state: "missing", ready_count: 0 });
-    fake.seed(`approval_queue_items/${APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id}`, {
-      id: APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id,
-      status: "Returned",
-    });
-    await expect(
-      inspectApprovalTestFixtures(admin, editor.uid, db),
-    ).resolves.toMatchObject({ state: "drifted", ready_count: 0 });
-    await expect(
-      restoreApprovalTestFixtures(editor, "other-uid", db, NOW),
+      transitionApprovalQueueItem(editor, item.id, { action: "approve" }, db),
     ).rejects.toMatchObject({ status: 403 });
-    await expect(
-      restoreApprovalTestFixtures(admin, admin.uid, db, NOW),
-    ).rejects.toMatchObject({ status: 409 });
+    await expect(listApprovalQueueActivity(admin, item.id, db)).resolves.toHaveLength(1);
   });
 
-  it("reports missing or malformed retention as drift and refuses a partial-state rewrite", async () => {
-    const fake = new FakeFirestore();
-    const db = fake as unknown as Firestore;
-    const itemId = APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id;
-    fake.seed(`approval_queue_items/${itemId}`, {
-      id: itemId,
-      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
-      status: "Ready for Approval",
-    });
-
-    await expect(
-      inspectApprovalTestFixtures(admin, editor.uid, db),
-    ).resolves.toMatchObject({ state: "drifted", ready_count: 0 });
-    await expect(restoreApprovalTestFixtures(admin, editor.uid, db, NOW)).rejects.toThrow(
-      "Current product retention state is malformed",
-    );
+  it("fails closed instead of rewriting malformed product-retention state", () => {
+    expect(() =>
+      stampProductRecordRetention(
+        "approval_queue_items",
+        { id: "ordinary-live-item" },
+        { product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY },
+      ),
+    ).toThrow("Current product retention state is malformed");
   });
 });
+
+function database() {
+  const fake = new FakeFirestore();
+  return { db: fake as unknown as Firestore, fake };
+}
+
+function user(role: AuthenticatedUser["role"], uid: string): AuthenticatedUser {
+  return {
+    email: `${uid}@pmikcmetro.com`,
+    hd: "pmikcmetro.com",
+    role,
+    uid,
+  };
+}
+
+function input(
+  overrides: Partial<CreateApprovalQueueItemInput> = {},
+): CreateApprovalQueueItemInput {
+  return {
+    action_needed: "Review the Live decision.",
+    assignee_uid: editor.uid,
+    data_mode: "live",
+    direct_link: "/approval-queue",
+    item_type: "ApprovalPackage",
+    process_run_ref: { id: "live-run-1", label: "Live workflow" },
+    required_approver_uid: admin.uid,
+    source_trigger_key: "live-run-1:decision",
+    ...overrides,
+  };
+}
 
 function collection(fake: FakeFirestore, name: string) {
   return [...fake.store.entries()]
     .filter(([path]) => path.startsWith(`${name}/`))
-    .map(([, record]) => record);
+    .map(([, value]) => value);
 }

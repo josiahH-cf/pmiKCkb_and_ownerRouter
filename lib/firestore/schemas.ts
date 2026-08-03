@@ -258,7 +258,6 @@ export const QueueNotificationRecipientRoleSchema = z.enum([
 
 export const ProcessDefinitionStatusSchema = z.enum([
   "Draft",
-  "Testing",
   "Pending Approval",
   "Active",
   "Needs Revision",
@@ -544,8 +543,7 @@ const queueRiskSignalsSchema = z
   .optional();
 
 export const CreateApprovalQueueItemInputSchema = z.object({
-  data_mode: z.enum(["live", "test"]).optional(),
-  test_fixture_key: optionalTextSchema,
+  data_mode: z.literal("live").optional(),
   process_run_ref: queueProcessRunRefSchema,
   space_id: optionalTextSchema,
   action_execution_id: optionalTextSchema,
@@ -717,23 +715,19 @@ export const SubmitProcessDefinitionInputSchema = z.object({
   note: optionalTextSchema,
 });
 
-export const ActivateProcessDefinitionInputSchema = z.object({
-  override_reason: optionalTextSchema,
-});
-
-export const StartWorkflowTestRunInputSchema = z.object({
+export const StartWorkflowRunInputSchema = z.object({
   due_date: isoDateSchema.optional(),
   note: optionalTextSchema,
 });
 
 export const UpdateWorkflowRunInputSchema = z
   .object({
-    action: z.enum(["complete_test", "fail_test"]),
+    action: z.enum(["complete", "fail"]),
     notes: optionalTextSchema,
   })
   .refine(
-    (input) => input.action !== "fail_test" || Boolean(input.notes?.trim()),
-    "Failing a test run requires a plain-English reason.",
+    (input) => input.action !== "fail" || Boolean(input.notes?.trim()),
+    "Failing a workflow run requires a plain-English reason.",
   );
 
 export type CreateSopInput = z.input<typeof CreateSopInputSchema>;
@@ -783,10 +777,7 @@ export type ParsedUpdateProcessDefinitionInput = z.output<
 export type SubmitProcessDefinitionInput = z.input<
   typeof SubmitProcessDefinitionInputSchema
 >;
-export type ActivateProcessDefinitionInput = z.input<
-  typeof ActivateProcessDefinitionInputSchema
->;
-export type StartWorkflowTestRunInput = z.input<typeof StartWorkflowTestRunInputSchema>;
+export type StartWorkflowRunInput = z.input<typeof StartWorkflowRunInputSchema>;
 export type UpdateWorkflowRunInput = z.input<typeof UpdateWorkflowRunInputSchema>;
 export type ParsedUpdateWorkflowRunInput = z.output<typeof UpdateWorkflowRunInputSchema>;
 export type QueueRiskSignals = NonNullable<

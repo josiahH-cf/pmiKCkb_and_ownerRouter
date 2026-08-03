@@ -3,7 +3,10 @@ import { buildRenewalReviewBoard, renewalRunHref } from "@/lib/approval/renewal-
 import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import type { Severity } from "@/lib/lease-renewal/severity";
-import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
+import {
+  getSimulationRun,
+  listSimulationRuns,
+} from "@/tests/helpers/lease-renewal-simulation";
 
 // A value-bearing sentinel: every flag fixture carries this in its (ignored) candidate/suggested
 // value fields so the "value-free" assertions can prove the board never leaks it.

@@ -16,14 +16,12 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("read", "renewals");
     const input = await parseJsonBody(request, ResolveLeaseRenewalFlagInputSchema);
-    // Bind the resolver to the authenticated actor so persisted Test ids are accepted only after
-    // their isolated Test records are proven to exist. Live and deterministic simulation ids keep
-    // their existing read-only resolution paths.
+    // Only the ordinary Live-backed run id resolves; retired Test/sample ids fail closed.
     const resolution = await resolveLeaseRenewalFlag(
       user,
       input,
       undefined,
-      createRenewalRunResolver(user),
+      createRenewalRunResolver(),
     );
     const activity = await listLeaseRenewalResolutionActivity(
       user,

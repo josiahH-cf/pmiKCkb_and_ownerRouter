@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 // S13 C1 — persisted reconcile deep links (direct_link = /lease-renewal/runs/{runId}/reconciliation/
-// {fieldKey}) used to 404. The redirect route sends them to the run page with ?flag=, and the run
-// page highlights + scrolls to that flag's card so the resolve control lands in view.
+// {fieldKey}) used to 404. With the simulation workspace retired, the compatibility route sends them
+// to the canonical Live review with ?flag= so the matching reconciliation remains addressable.
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -20,21 +20,19 @@ vi.mock("@/lib/auth/page-guards", () => ({
 }));
 
 import ReconciliationDeepLinkPage from "@/app/lease-renewal/runs/[runId]/reconciliation/[fieldKey]/page";
-import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
+import { LeaseRenewalRunClient } from "@/tests/helpers/components/LeaseRenewalRunClient";
 import { requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 afterEach(() => cleanup());
 
 describe("reconciliation deep-link redirect (C1)", () => {
-  it("redirects the persisted direct_link shape to the run page with ?flag=", async () => {
+  it("redirects the persisted direct_link shape to the Live review with ?flag=", async () => {
     await expect(
       ReconciliationDeepLinkPage({
         params: Promise.resolve({ runId: "sim-renewal-001", fieldKey: "current_rent" }),
       }),
-    ).rejects.toThrow(
-      "NEXT_REDIRECT:/lease-renewal/runs/sim-renewal-001?flag=current_rent",
-    );
+    ).rejects.toThrow("NEXT_REDIRECT:/lease-renewal/live?flag=current_rent");
     expect(requirePageSpaceAccess).toHaveBeenCalledWith("renewals");
   });
 });

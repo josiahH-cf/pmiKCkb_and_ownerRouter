@@ -142,7 +142,7 @@ export class VendorGmailService {
       (!("isAdmin" in principal) && vendorPrincipalDataMode(principal) !== "live")
     ) {
       throw new VendorBoundaryError(
-        "Live Vendor Gmail cannot run from the Test workspace.",
+        "Live Vendor Gmail refuses a legacy non-Live identity.",
         403,
       );
     }
@@ -184,7 +184,7 @@ export class VendorGmailService {
       lanes.ticket !== lanes.vendor ||
       lanes.thread !== lanes.vendor
     ) {
-      // Hide whether an exact id exists or merely belongs to the isolated Test lane.
+      // Hide whether an exact id exists or belongs to retired non-Live state.
       throw new VendorBoundaryError("Ticket communication not found.", 404);
     }
     return this.dependencies.provider.getClient({

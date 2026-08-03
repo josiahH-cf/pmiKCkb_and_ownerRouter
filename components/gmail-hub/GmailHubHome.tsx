@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
 
 import { AnticipatoryDraftComposer } from "@/components/gmail-hub/AnticipatoryDraftComposer";
 import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
-import { SimulatedEmailChain } from "@/components/gmail-hub/SimulatedEmailChain";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { ThreadSummaryPanel } from "@/components/gmail-hub/ThreadSummaryPanel";
-import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import type { TemplateRecord } from "@/lib/firestore/types";
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 import { toReplyTemplate } from "@/lib/gmail-inbox-zero/reply-template-map";
 import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
-import type { TestOperationalHandoff } from "@/lib/operations/test-handoffs";
 
 // F-TMPL-2: the reply patterns the Admin composers offer come from the approved store (the
 // daily-inbox-triage Communications Space), not a hard-coded list. The server route
@@ -24,11 +21,9 @@ const REPLY_TEMPLATES_ENDPOINT = "/api/spaces/daily-inbox-triage/templates";
 export function GmailHubHome({
   authenticatedEmail = "signed-in user",
   canManageAdmin = false,
-  operationalHandoffs = [],
 }: {
   authenticatedEmail?: string;
   canManageAdmin?: boolean;
-  operationalHandoffs?: readonly TestOperationalHandoff[];
 }) {
   const [replyTemplates, setReplyTemplates] =
     useState<readonly ReplyTemplate[]>(SAMPLE_REPLY_TEMPLATES);
@@ -64,11 +59,6 @@ export function GmailHubHome({
 
       <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
 
-      <TestOperationalHandoffPanel
-        handoffs={operationalHandoffs}
-        title="Workflow-linked Test communication handoffs"
-      />
-
       {canManageAdmin ? (
         <section className="ui-stack" aria-label="Admin fallback tools">
           <div>
@@ -79,7 +69,6 @@ export function GmailHubHome({
               human step in Gmail.
             </p>
           </div>
-          <SimulatedEmailChain />
           <AnticipatoryDraftComposer templates={replyTemplates} />
           <TemplateWorkspace templates={replyTemplates} />
           <ThreadSummaryPanel />

@@ -30,8 +30,9 @@ import {
   type SpaceCardState,
 } from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
-import { resolveConsoleDataModes } from "@/lib/console/environment";
+import { resolveConsoleDataMode } from "@/lib/console/environment";
 import { loadConsoleProjection } from "@/lib/console/live-data";
+import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 
 // Map the read-only Space card state onto a connection-style dot. Slice A keeps this dot palette
 // (connected / action / none); the richer green/red/amber/purple card-color scheme lands in Slice B.
@@ -48,19 +49,15 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  *
  * Assembles three zones from ONE read-only, non-fatal gather: an always-visible action deck (what
  * needs a decision / connections to set up / space coverage), the AI question + dictation box, and a
- * read-only strip of the live processes. Editors additionally get the process picker for a SAFE
- * simulation (no system-of-record write). The one inline exception is the deck's Approve control:
+ * read-only strip of the Live processes. Editors additionally get the process picker for an ordinary
+ * app-plane run (no system-of-record write). The one inline exception is the deck's Approve control:
  * for an Approver/Admin, a queue_item row records the app-plane approval decision in place via the
  * existing item PATCH (ConsoleActionDeck A4). That decision executes no external send and no
  * system-of-record write; every other action stays on its own gated surface, reached via a deep link.
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
-  const consoleModes = resolveConsoleDataModes();
-  const consoleProjections = await Promise.all(
-    consoleModes.map((mode) => loadConsoleProjection(user, mode)),
-  );
-  const hasTestWorkspace = consoleModes.some((mode) => mode.kind === "test");
-  const canStartSimulation = can(user.role, "edit");
+  const consoleProjection = await loadConsoleProjection(user, resolveConsoleDataMode());
+  const canUseProcessContext = can(user.role, "edit");
   const canApprove = can(user.role, "approve");
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
   const visibleSpaces = launchSpaces.filter(
@@ -84,7 +81,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     user.scopes === undefined
       ? definitions
       : definitions.filter((definition) => visibleDefinitionIds.has(definition.id));
-  const processes: ProcessOption[] = canStartSimulation
+  const processes: ProcessOption[] = canUseProcessContext
     ? scopedDefinitions.map((definition) => ({
         id: definition.id,
         name: definition.name,
@@ -191,26 +188,27 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       };
     });
 
-  // Anticipated work — a read-only, request-computed projection of coming-up / due process work, each
-  // one click from starting the existing human-run process. Renewals-scoped like the approvals gather;
-  // pure + non-fatal. The sample module is dynamically imported only when a Test workspace is present.
-  //
-  // NOTE: this comment previously claimed "ordinary production never constructs it". That was false.
-  // resolveConsoleDataModes returns a Test mode UNCONDITIONALLY in production, so hasTestWorkspace is
-  // always true there and the sample module IS constructed. Removing that co-resident Test lane is
-  // the Production route/control exclusion slice; the claim is corrected here rather than left
-  // asserting a boundary that does not exist.
+  // Project anticipated work from the real read-only renewal desk. Unavailable sources produce no
+  // rows; invented sample leases are never imported or substituted.
   let anticipatedGroups: AnticipatedWorkGroup[] = [];
-  if (canSeeRenewals && hasTestWorkspace) {
-    try {
-      const { getRenewalDeskView, SAMPLE_NOTICE_REFERENCE_DATE } =
-        await import("@/lib/lease-renewal/sample-desk");
+  if (canSeeRenewals) {
+    const now = new Date();
+    const end = new Date(now);
+    end.setUTCDate(end.getUTCDate() + 120);
+    const outcome = await loadLiveRenewalDesk(
+      [
+        {
+          startIso: now.toISOString().slice(0, 10),
+          endIso: end.toISOString().slice(0, 10),
+        },
+      ],
+      now.toISOString(),
+    );
+    if (outcome.status === "ok") {
       anticipatedGroups = buildAnticipatedWork({
-        referenceDateIso: SAMPLE_NOTICE_REFERENCE_DATE,
-        deskView: getRenewalDeskView(),
+        referenceDateIso: now.toISOString().slice(0, 10),
+        deskView: outcome.view,
       }).groups;
-    } catch {
-      anticipatedGroups = [];
     }
   }
 
@@ -223,20 +221,18 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       <p className="muted console-purpose">
         Ask about a property, lease, or process, then hand the work to the right place.
       </p>
-      <AskForm canStartSimulation={canStartSimulation} processes={processes} />
+      <AskForm canUseProcessContext={canUseProcessContext} processes={processes} />
       {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <ConsoleAnticipatedWork
+        canStart={canUseProcessContext}
         groups={anticipatedGroups}
-        canStart={canStartSimulation}
         startableDefinitionIds={startableDefinitionIds}
       />
       <ConsoleProcessStrip items={processItems} />
       {/* CON-2 (Note 2 §E): Live Operations moves to the bottom as reference detail below the
           action-first zones (progressive disclosure). */}
-      {consoleProjections.map((projection) => (
-        <ConsoleLiveDataPanel key={projection.mode.kind} projection={projection} />
-      ))}
+      <ConsoleLiveDataPanel projection={consoleProjection} />
     </section>
   );
 }

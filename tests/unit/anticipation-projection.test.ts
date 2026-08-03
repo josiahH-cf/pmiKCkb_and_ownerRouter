@@ -10,7 +10,7 @@ import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import {
   getRenewalDeskView,
   SAMPLE_NOTICE_REFERENCE_DATE,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/tests/helpers/sample-desk";
 
 const GROUP_KEYS = [
   "category",

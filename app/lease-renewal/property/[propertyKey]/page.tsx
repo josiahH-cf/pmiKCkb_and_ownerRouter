@@ -3,7 +3,6 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
-import { listLeaseTestRuns } from "@/lib/firestore/lease-renewal-test-runs";
 import {
   listResolutionActivityForRun,
   listResolutionsForProperty,
@@ -20,10 +19,9 @@ import {
 import { normalizeRenewalReturnTo } from "@/lib/lease-renewal/property-history-link";
 import { buildLeaseRenewalDecisionProjections } from "@/lib/lease-renewal/decision-projection";
 import {
-  buildTestRenewalSimulation,
-  getSimulationRun,
-  listSimulationRuns,
-} from "@/lib/lease-renewal/simulation";
+  LIVE_REVIEW_RUN_ID,
+  rebuildLiveRenewalRun,
+} from "@/lib/lease-renewal/live-review";
 
 // Admin-only, and it reads persisted decision Activity on each render, so never statically cached.
 export const dynamic = "force-dynamic";
@@ -43,46 +41,26 @@ export default async function LeaseRenewalPropertyPage({
   const propertyKey = decodeURIComponent(rawKey);
   const returnTo = normalizeRenewalReturnTo((await searchParams)?.returnTo);
 
-  // getSimulationRun is pure and always available, so the header renders even with Firestore down.
-  // Only the append-only Activity needs Firestore; wrap those reads (also covers demo runs with no
-  // local ADC) and degrade to a note instead of throwing.
+  // Rebuild the one ordinary Live read-only run. The retired simulation/Test histories are never
+  // constructed on this Production route.
   const runs: PropertyRunActivity[] = [];
   let activityUnavailable = false;
-  for (const summary of listSimulationRuns()) {
-    const run = getSimulationRun(summary.runId);
-    if (!run) continue;
+  const run = await rebuildLiveRenewalRun(new Date().toISOString());
+  if (run) {
     let resolutionActivity: Awaited<ReturnType<typeof listResolutionActivityForRun>> = [];
     let approvalActivity: LeaseRenewalWritebackApprovalActivityRecord[] = [];
     try {
-      resolutionActivity = await listResolutionActivityForRun(user, run.runId);
-      const approvalByKey = await listWritebackApprovalActivityForRun(user, run.runId);
+      resolutionActivity = await listResolutionActivityForRun(user, LIVE_REVIEW_RUN_ID);
+      const approvalByKey = await listWritebackApprovalActivityForRun(
+        user,
+        LIVE_REVIEW_RUN_ID,
+      );
       approvalActivity = [...approvalByKey.values()].flat();
     } catch {
       activityUnavailable = true;
     }
     runs.push({ run, resolutionActivity, approvalActivity });
-  }
-
-  // Persistent Test reconciliation decisions share the exact run id used by their owning Test
-  // journey. Include those app-plane histories beside the sample history; never synthesize a Test
-  // run when its isolated Firestore owning record cannot be read.
-  try {
-    const testRuns = (await listLeaseTestRuns(user)).slice(0, 10);
-    for (const testRun of testRuns) {
-      const run = buildTestRenewalSimulation(testRun.id);
-      let resolutionActivity: Awaited<ReturnType<typeof listResolutionActivityForRun>> =
-        [];
-      let approvalActivity: LeaseRenewalWritebackApprovalActivityRecord[] = [];
-      try {
-        resolutionActivity = await listResolutionActivityForRun(user, run.runId);
-        const approvalByKey = await listWritebackApprovalActivityForRun(user, run.runId);
-        approvalActivity = [...approvalByKey.values()].flat();
-      } catch {
-        activityUnavailable = true;
-      }
-      runs.push({ run, resolutionActivity, approvalActivity });
-    }
-  } catch {
+  } else {
     activityUnavailable = true;
   }
 

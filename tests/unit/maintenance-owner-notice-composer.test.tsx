@@ -46,13 +46,14 @@ describe("MaintenanceOwnerNoticeDraftComposer on the queue (AC-S38-4)", () => {
     expect(screen.queryByText("Owner notice: draft")).toBeNull();
   });
 
-  it("is absent on a Test ticket even for an edit-capable user", () => {
+  it("omits a legacy Test ticket and its draft controls", () => {
     render(
       <MaintenanceQueue
         canEdit
         initialTickets={[ticket({ data_mode: "test", summary: "TEST — leak" })]}
       />,
     );
+    expect(screen.queryByText("TEST — leak")).toBeNull();
     expect(screen.queryByText("Owner notice: draft")).toBeNull();
   });
 

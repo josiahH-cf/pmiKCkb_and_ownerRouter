@@ -1,11 +1,14 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 
-import { FirestoreVendorStore, VENDOR_COLLECTIONS } from "@/lib/firestore/vendors";
+import {
+  FirestoreVendorStore,
+  VENDOR_COLLECTIONS,
+} from "@/tests/helpers/firestore-test-vendors";
 import type {
   VendorTestMailboxConfirmation,
   VendorTestMailboxRecord,
-} from "@/lib/vendor/test-mailbox";
+} from "@/tests/helpers/vendor-test-mailbox";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const vendorId = "vendor:test-summit-plumbing";

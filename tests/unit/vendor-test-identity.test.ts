@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it, vi } from "vitest";
 
-import { FirestoreVendorStore, VENDOR_COLLECTIONS } from "@/lib/firestore/vendors";
+import {
+  FirestoreVendorStore,
+  VENDOR_COLLECTIONS,
+} from "@/tests/helpers/firestore-test-vendors";
 import { beginVendorOAuth } from "@/lib/vendor/oauth";
 import { validateVendorClaims } from "@/lib/vendor/auth";
 import { VendorGmailService } from "@/lib/vendor/gmail";
@@ -19,7 +22,7 @@ import {
   testVendorAuthenticationResetPreviewForRecord,
   testVendorProvisionPreview,
   testVendorSetupLinkRegenerationPreview,
-} from "@/lib/vendor/test-identity";
+} from "@/tests/helpers/vendor-test-identity";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const admin = {
@@ -2029,9 +2032,9 @@ describe("production Test Vendor identity", () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 
-  it("requires verified-email TOTP for Test sessions and binds their mode claim", () => {
+  it("rejects legacy Test session claims before TOTP state can create a principal", () => {
     const now = 2_000_000;
-    expect(
+    expect(() =>
       validateVendorClaims(
         {
           uid: "uid-test-summit",
@@ -2045,7 +2048,7 @@ describe("production Test Vendor identity", () => {
         },
         now,
       ),
-    ).toMatchObject({ dataMode: "test", emailVerified: true, totpVerified: true });
+    ).toThrow("retired");
     expect(() =>
       validateVendorClaims(
         {
@@ -2060,7 +2063,7 @@ describe("production Test Vendor identity", () => {
         },
         now,
       ),
-    ).toThrow("TOTP");
+    ).toThrow("retired");
   });
 
   it("rejects a Test principal before OAuth or live Gmail can call a provider", async () => {
@@ -2110,7 +2113,7 @@ describe("production Test Vendor identity", () => {
             markConfirmation: vi.fn(),
           },
         }),
-    ).toThrow("Test workspace");
+    ).toThrow("Live Vendor Gmail refuses a legacy non-Live identity.");
     expect(getClient).not.toHaveBeenCalled();
   });
 });

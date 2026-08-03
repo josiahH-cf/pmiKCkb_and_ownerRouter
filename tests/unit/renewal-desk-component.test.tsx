@@ -10,20 +10,21 @@ import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/tests/helpers/sample-desk";
 
 afterEach(() => {
   cleanup();
 });
 
 describe("RenewalDesk", () => {
-  it("renders the queue, the sample-data chip, and the collapsed dispositions", () => {
+  it("renders the Live queue and the collapsed dispositions from an injected test view", () => {
     render(<RenewalDesk view={getRenewalDeskView()} />);
 
     expect(
       screen.getByRole("heading", { name: "Renewals", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Sample data")).toBeInTheDocument();
+    expect(screen.getByText("Live data")).toBeInTheDocument();
+    expect(screen.queryByText("Sample data")).not.toBeInTheDocument();
 
     // The desk now leads with a needs-attention fold; the address appears there and in the queue.
     expect(screen.getByText("Needs your attention")).toBeInTheDocument();
@@ -84,7 +85,7 @@ describe("RenewalWorkspace", () => {
     const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2");
     render(<RenewalWorkspace workspace={workspace!} />);
 
-    expect(screen.getByText("Available after the owner decides")).toBeInTheDocument();
+    expect(screen.getByText("Compose the tenant offer below")).toBeInTheDocument();
     expect(screen.getByText("Needs your decision")).toBeInTheDocument();
   });
 });

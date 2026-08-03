@@ -7,7 +7,7 @@ import {
   DEFAULT_NOTICE_RULE_SET,
   type NoticeRuleSet,
 } from "@/lib/lease-renewal/notice-rules";
-import type { RenewalDeskView } from "@/lib/lease-renewal/sample-desk";
+import type { RenewalDeskView } from "@/lib/lease-renewal/desk-model";
 import { launchSpaces, spaceHref, type LaunchSpace } from "@/lib/spaces";
 
 /**

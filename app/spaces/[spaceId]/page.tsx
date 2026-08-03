@@ -4,17 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { EvidencePacketCard } from "@/components/desk/EvidencePacketCard";
 import { NoticeRuleCard } from "@/components/desk/NoticeRuleCard";
-import {
-  OwnerRenewalDraftPreviewCard,
-  TenantRenewalDraftPreviewCard,
-} from "@/components/desk/RenewalDraftPreviewCard";
 import { SpaceDesk } from "@/components/desk/SpaceDesk";
 import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
-import { TrustedPublicationTestFixturePanel } from "@/components/spaces/TrustedPublicationTestFixturePanel";
-import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { hasSpaceAccess } from "@/lib/auth/session";
@@ -35,14 +29,12 @@ import {
 } from "@/lib/launch/content";
 import { buildWelcomeDraft } from "@/lib/move-in/welcome-draft";
 import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
-import { getRenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { launchSpaces } from "@/lib/spaces";
-import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 /** The domain-specific desk Card(s) for a Space, if any:
  *  Move-In welcome / Move-Out evidence packet; the three Renewals Spaces get the read-only effective
- *  notice-rule card (F2) and, for the outreach/notice Spaces, a sample renewal draft (F3). */
+ *  notice-rule card (F2). Renewal values and drafts stay on the Live lease workspace. */
 function buildDomainSlot(spaceId: string, welcomeEmailBodyTemplate?: string): ReactNode {
   if (spaceId === "move-in") {
     // F-TMPL-6: render the welcome draft from the Admin-approved store copy when present; the composer
@@ -60,24 +52,10 @@ function buildDomainSlot(spaceId: string, welcomeEmailBodyTemplate?: string): Re
     return <NoticeRuleCard />;
   }
   if (spaceId === "owner-renewal-outreach") {
-    const sample = getRenewalLeaseWorkspace("lease-318-cedar-7");
-    return (
-      <>
-        <NoticeRuleCard />
-        {sample ? <OwnerRenewalDraftPreviewCard draft={sample.ownerDraft} /> : null}
-      </>
-    );
+    return <NoticeRuleCard />;
   }
   if (spaceId === "tenant-renewal-notice") {
-    const sample = getRenewalLeaseWorkspace("lease-318-cedar-7");
-    return (
-      <>
-        <NoticeRuleCard />
-        {sample?.tenantDraft ? (
-          <TenantRenewalDraftPreviewCard draft={sample.tenantDraft} />
-        ) : null}
-      </>
-    );
+    return <NoticeRuleCard />;
   }
   return null;
 }
@@ -137,12 +115,6 @@ export default async function SpaceDetailPage({
   let deskStepChecks: WorkflowRunStepCheckRecord[] = [];
   let deskPresence: Record<string, boolean> = {};
   let deskConnectors: ConnectorDef[] = [];
-  const testHandoffs = await loadTestOperationalHandoffs(user, {
-    lease: space.id === "lease-renewals",
-    maintenance: space.id === "maintenance-work-order-intake",
-    limitPerKind: 5,
-  });
-
   if (hasProcess && space.processDefinitionId) {
     const definitionId = space.processDefinitionId;
     try {
@@ -155,7 +127,6 @@ export default async function SpaceDetailPage({
       try {
         processRuns = await listWorkflowRuns(user, {
           definitionId,
-          simulationOnly: true,
           limit: 5,
         });
       } catch {
@@ -171,7 +142,6 @@ export default async function SpaceDetailPage({
       try {
         const runs = await listWorkflowRuns(user, {
           definitionId,
-          simulationOnly: true,
           limit: 1,
         });
         latestRun = runs[0] ?? null;
@@ -281,24 +251,8 @@ export default async function SpaceDetailPage({
             </p>
           </div>
         )}
-        {testHandoffs.length > 0 ||
-        space.id === "lease-renewals" ||
-        space.id === "maintenance-work-order-intake" ? (
-          <TestOperationalHandoffPanel
-            handoffs={testHandoffs}
-            title={`${space.name} Test owning-record handoffs`}
-          />
-        ) : null}
         {!space.readOnly ? (
-          <>
-            <TrustedPublicationPanel
-              canEdit={can(user.role, "edit")}
-              spaceId={space.id}
-            />
-            {space.id === "lease-renewals" && can(user.role, "manageAdmin") ? (
-              <TrustedPublicationTestFixturePanel spaceId={space.id} />
-            ) : null}
-          </>
+          <TrustedPublicationPanel canEdit={can(user.role, "edit")} spaceId={space.id} />
         ) : null}
       </section>
     </AppShell>

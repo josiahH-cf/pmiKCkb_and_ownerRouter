@@ -7,7 +7,7 @@ import type {
 
 export function ConsoleLiveDataPanel({
   projection,
-  title = projection.mode.kind === "test" ? "Test workspace" : "Live operations",
+  title = "Live operations",
 }: Readonly<{ projection: ConsoleProjection; title?: string }>) {
   return (
     <section aria-label="Current operations" className="panel">
@@ -15,20 +15,12 @@ export function ConsoleLiveDataPanel({
         <div>
           <h2>{title}</h2>
           <p className="muted">
-            {projection.mode.kind === "test"
-              ? "Invented records complete the workflow here, entirely inside the test workspace."
-              : "Live facts show their source and observation time. Message bodies load only inside an authorized workflow communication panel."}
+            Live facts show their source and observation time. Message bodies load only
+            inside an authorized workflow communication panel.
           </p>
         </div>
-        <span
-          className="review-pill"
-          data-testid={
-            projection.mode.kind === "test"
-              ? "console-test-data-badge"
-              : "console-live-data-badge"
-          }
-        >
-          {projection.mode.kind === "test" ? "Test data" : "Live data"}
+        <span className="review-pill" data-testid="console-live-data-badge">
+          Live data
         </span>
       </div>
 

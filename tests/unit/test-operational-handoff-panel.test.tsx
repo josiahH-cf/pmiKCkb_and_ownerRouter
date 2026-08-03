@@ -4,8 +4,8 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it } from "vitest";
 
-import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
-import type { TestOperationalHandoff } from "@/lib/operations/test-handoffs";
+import { TestOperationalHandoffPanel } from "@/tests/helpers/components/TestOperationalHandoffPanel";
+import type { TestOperationalHandoff } from "@/tests/helpers/test-handoffs";
 
 const handoff: TestOperationalHandoff = {
   id: "test-handoff:lease:test-run-1",

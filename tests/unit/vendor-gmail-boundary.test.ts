@@ -73,7 +73,7 @@ function harness(linked = true, lanes: VendorGmailLaneContext = liveLanes) {
 }
 
 describe("Vendor assigned-thread Gmail boundary", () => {
-  it("requires Admin support to declare the Live lane explicitly", () => {
+  it("refuses a legacy non-Live Admin-support identity before provider construction", () => {
     const { assignments, getClient } = harness();
     expect(
       () =>
@@ -95,7 +95,7 @@ describe("Vendor assigned-thread Gmail boundary", () => {
             },
           },
         ),
-    ).toThrow("Test workspace");
+    ).toThrow("Live Vendor Gmail refuses a legacy non-Live identity.");
     expect(getClient).not.toHaveBeenCalled();
   });
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/tests/helpers/sample-desk";
 
 describe("getRenewalDeskView", () => {
   it("classifies the sample batch into the expected dispositions", () => {

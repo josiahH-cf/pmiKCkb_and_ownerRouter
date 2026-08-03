@@ -9,21 +9,20 @@ import {
 } from "@/app/api/process-definitions/[definitionId]/route";
 import { POST as POST_ACTIVATE } from "@/app/api/process-definitions/[definitionId]/activate/route";
 import { POST as POST_SUBMIT } from "@/app/api/process-definitions/[definitionId]/submit/route";
-import { POST as POST_TEST_RUN } from "@/app/api/process-definitions/[definitionId]/test-runs/route";
+import { POST as POST_RUN } from "@/app/api/process-definitions/[definitionId]/runs/route";
 import {
   GET as GET_RUN,
   PATCH as PATCH_RUN,
 } from "@/app/api/workflow-runs/[runId]/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
-  activateProcessDefinition,
   createProcessDefinition,
   getProcessDefinition,
   getWorkflowRun,
   listProcessDefinitions,
   listWorkflowRunTimeline,
   listWorkflowRuns,
-  startWorkflowTestRun,
+  startWorkflowRun,
   submitProcessDefinitionForApproval,
   updateProcessDefinition,
   updateWorkflowRunOutcome,
@@ -35,14 +34,13 @@ import type {
 } from "@/lib/firestore/types";
 
 vi.mock("@/lib/firestore/workflows", () => ({
-  activateProcessDefinition: vi.fn(),
   createProcessDefinition: vi.fn(),
   getProcessDefinition: vi.fn(),
   getWorkflowRun: vi.fn(),
   listProcessDefinitions: vi.fn(),
   listWorkflowRunTimeline: vi.fn(),
   listWorkflowRuns: vi.fn(),
-  startWorkflowTestRun: vi.fn(),
+  startWorkflowRun: vi.fn(),
   submitProcessDefinitionForApproval: vi.fn(),
   updateProcessDefinition: vi.fn(),
   updateWorkflowRunOutcome: vi.fn(),
@@ -50,14 +48,13 @@ vi.mock("@/lib/firestore/workflows", () => ({
 
 afterEach(() => {
   setAuthResolverForTest(null);
-  vi.mocked(activateProcessDefinition).mockReset();
   vi.mocked(createProcessDefinition).mockReset();
   vi.mocked(getProcessDefinition).mockReset();
   vi.mocked(getWorkflowRun).mockReset();
   vi.mocked(listProcessDefinitions).mockReset();
   vi.mocked(listWorkflowRunTimeline).mockReset();
   vi.mocked(listWorkflowRuns).mockReset();
-  vi.mocked(startWorkflowTestRun).mockReset();
+  vi.mocked(startWorkflowRun).mockReset();
   vi.mocked(submitProcessDefinitionForApproval).mockReset();
   vi.mocked(updateProcessDefinition).mockReset();
   vi.mocked(updateWorkflowRunOutcome).mockReset();
@@ -137,12 +134,13 @@ describe("workflow API routes", () => {
     );
   });
 
-  it("retires both approval submission and direct activation while preserving the test route (F-SPACE-2)", async () => {
+  it("retires approval submission and direct activation while preserving ordinary workflow starts (F-SPACE-2)", async () => {
     setAdmin();
     vi.mocked(submitProcessDefinitionForApproval).mockResolvedValue(
       definition({ status: "Pending Approval" }),
     );
-    vi.mocked(startWorkflowTestRun).mockResolvedValue(workflowRun());
+    vi.mocked(startWorkflowRun).mockResolvedValue(workflowRun());
+    vi.mocked(getProcessDefinition).mockResolvedValue(definition());
     vi.mocked(listWorkflowRuns).mockResolvedValue([]);
 
     const submitResponse = await POST_SUBMIT(
@@ -153,21 +151,20 @@ describe("workflow API routes", () => {
       jsonRequest({ override_reason: "Dan approved override." }),
       definitionContext("def-1"),
     );
-    const testRunResponse = await POST_TEST_RUN(
-      jsonRequest({ due_date: "2026-07-01", note: "Start test." }),
+    const runResponse = await POST_RUN(
+      jsonRequest({ due_date: "2026-07-01", note: "Start workflow." }),
       definitionContext("def-1"),
     );
 
     // Submit and direct activation are both retired (409); publish is the one canonical path to Active.
     expect(submitResponse.status).toBe(409);
     expect(activateResponse.status).toBe(409);
-    expect(testRunResponse.status).toBe(201);
+    expect(runResponse.status).toBe(201);
     expect(submitProcessDefinitionForApproval).not.toHaveBeenCalled();
-    expect(activateProcessDefinition).not.toHaveBeenCalled();
-    expect(startWorkflowTestRun).toHaveBeenCalledWith(
+    expect(startWorkflowRun).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       "def-1",
-      { due_date: "2026-07-01", note: "Start test." },
+      { due_date: "2026-07-01", note: "Start workflow." },
     );
   });
 
@@ -177,10 +174,9 @@ describe("workflow API routes", () => {
     const response = await POST_ACTIVATE(jsonRequest({}), definitionContext("def-1"));
 
     expect(response.status).toBe(403);
-    expect(activateProcessDefinition).not.toHaveBeenCalled();
   });
 
-  it("returns workflow run detail and updates simulation test outcome", async () => {
+  it("returns workflow run detail and updates an ordinary workflow outcome", async () => {
     setEditor();
     vi.mocked(getWorkflowRun).mockResolvedValue(workflowRun());
     vi.mocked(listWorkflowRunTimeline).mockResolvedValue([timelineEntry()]);
@@ -193,7 +189,7 @@ describe("workflow API routes", () => {
       runContext("run-1"),
     );
     const patchResponse = await PATCH_RUN(
-      jsonRequest({ action: "complete_test", notes: "Passed." }),
+      jsonRequest({ action: "complete", notes: "Completed." }),
       runContext("run-1"),
     );
 
@@ -209,7 +205,7 @@ describe("workflow API routes", () => {
     expect(updateWorkflowRunOutcome).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "editor-1" }),
       "run-1",
-      { action: "complete_test", notes: "Passed." },
+      { action: "complete", notes: "Completed." },
     );
   });
 
@@ -217,7 +213,7 @@ describe("workflow API routes", () => {
     setEditor();
 
     const response = await PATCH_RUN(
-      jsonRequest({ action: "fail_test", notes: "" }),
+      jsonRequest({ action: "fail", notes: "" }),
       runContext("run-1"),
     );
 
@@ -289,12 +285,10 @@ function workflowRun(overrides: Partial<WorkflowRunRecord> = {}): WorkflowRunRec
     definition_id: "def-1",
     due_date: "2026-07-01",
     id: "run-1",
-    is_test_run: true,
+    data_mode: "live",
     next_action: "Gather facts",
     owner_uid: "admin-1",
     process_name: "Lease Renewal Test Process",
-    production_metrics_included: false,
-    simulation_only: true,
     started_by_uid: "editor-1",
     status: "In Progress",
     updated_at: "2026-06-06T00:00:00.000Z",
@@ -312,7 +306,7 @@ function timelineEntry(
     id: "timeline-1",
     new_status: "In Progress",
     run_id: "run-1",
-    summary: "Started simulation-only test run.",
+    summary: "Started workflow run.",
     ...overrides,
   };
 }

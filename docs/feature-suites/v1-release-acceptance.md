@@ -6,44 +6,39 @@
 > falsifiable production application contract without conflating app readiness with every provider's
 > activation.
 >
-> **Continuation 2026-07-28.** S27 remains verified release history. S40–S50 define a new target and
-> release program; they do not invalidate prior evidence, but Production Live+Test is no longer the
-> target. Do not claim the recalibration built until its own ACs and owner-run cutover pass.
+> **Historical release record, 2026-07-15.** The original V1 acceptance used manifest `2.0`, report
+> `2.1`, and a visibly isolated Production Test workspace to prove complete app behavior without Live
+> provider effects. The pinned `38ebcf5 / pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` release and its
+> predecessor rollback/restore remain valid dated evidence. They do not describe the current runtime.
+>
+> **Live-only continuation, 2026-08-03.** S56 retires the Production Test workspace, product Test
+> routes, and Test executors while retaining automated contract coverage. The current verifier is
+> `v1-release-manifest:3.0`; report `2.3`; application workflow evidence lanes are exactly
+> `local_rehearsal | live`. `production_test` is invalid. Production is Live-only, and local rehearsal
+> resolves explicit Demo + Live-read-only with no Live effect. Provider state `test_ready` remains only
+> as a technical compatibility/readiness enum and never names a product data lane or release-evidence
+> lane.
 
-**Implementation status (2026-07-15): The working application serves from
-`38ebcf530e3fe193547806bace91246ccea20c0b / pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic.
-The final verifier, authenticated Ask, desktop/phone tab sweep, public auth boundaries, ERROR-log check,
-and exact predecessor rollback/restore rehearsal are green; only the private human Test Vendor
-password/TOTP/assigned-ticket/disable/reset ceremony remains.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
-workflow coverage, isolated production Test workspace, provider activation summary, optional advisory
-Dan/Josiah signoffs, role/mobile/failure browser plan, monitoring/rollback plan, and cutover rehearsal
-are built. The old 169 repeated external gates are replaced by grouped application-readiness gates
-plus a separate per-action provider snapshot. The local report is advisory inventory because no
-production-manifest loader exists. The canonical bodyless production evidence pins the current
-serving revision and its bounded rollback from `rmrm9mp6v-04c897acee28` to
-`rmrm8t6y7-d250f83ddfee` and back. The remaining private Vendor password/TOTP walkthrough does not
-require all providers to be Live.
-
-**Goal.** PMI KC can deploy a stable V1 application whose internal and Vendor workflows work with
-visibly isolated Live and Test records. Production Test journeys prove application state, roles,
-confirmation, receipts, failure handling, and completion with zero external calls. Real provider reads/
-writes activate per action. V1 acceptance requires production application evidence and safety—not
-Live proof for every provider, optional TTL automation, or business/technical signatures.
+**Goal.** PMI KC deploys a stable V1 application whose ordinary app-plane workflows work in
+Production over Live records and can be rehearsed locally over bounded Live read-only data without
+creating an external effect. Real provider reads/writes activate per named action. V1 acceptance
+requires production application evidence and safety, not Live proof for every optional provider,
+optional TTL automation, or business/technical signatures.
 
 **What it is / how it functions.**
 
 - **Application readiness.** V1 requires a production commit/revision, pinned Firestore rules/index
   configuration (including an explicit none-required/current configuration pin), S20–S26 suite
-  acceptance, production Test or Live workflow coverage for every required action, one-attempt/
+  acceptance, `local_rehearsal` or `live` workflow coverage for every required action, one-attempt/
   idempotency/correction verification, deploy/build/auth/safety/browser/smoke/monitoring/rollback
-  evidence, and lane isolation. A Test-covered action must be at least `test_ready`. The canonical
-  bodyless production evidence record is authoritative; a local report cannot promote or demote it.
+  evidence, and environment isolation. The canonical bodyless production evidence record is
+  authoritative; a local report cannot promote or demote it.
 - **Provider activation is separate.** Each action reports
   `unavailable|test_ready|live_configured|live_proven|enabled|suspended`. V1 does not require
   `live_proven` or `enabled`. However, a claim of `live_configured`, `live_proven`, `enabled`, or
   `suspended` must have lane-correct Registry, provider, evidence, monitoring, and rollback integrity;
   a fake/synthetic/Test reference can never prove Live.
-- **Release manifest inventory.** `v1-release-manifest:2.0` validates the shape and integrity of commit,
+- **Release manifest inventory.** `v1-release-manifest:3.0` validates the shape and integrity of commit,
   revision, production environment,
   rules/index configuration, normalized Action Registry hash, exact unique action set, S20–S26 AC
   sets, workflow evidence lane, provider activation, communication artifact/retention versions,
@@ -51,31 +46,25 @@ Live proof for every provider, optional TTL automation, or business/technical si
   in durable bodyless `docs/evidence/` references and contains no secret/customer value. Because the
   repository has no production manifest loader/CLI, this is an advisory falsification/inventory tool;
   `docs/evidence/working-app-v1-production-2026-07-15.md` is the acceptance record.
-- **Release report.** The local report is deliberately non-accepting and groups open items into release
+- **Release report.** Bodyless report `2.3` is deliberately non-accepting and groups open items into release
   identity/pins, suites, application workflows, and core production evidence. Provider activation
   counts and Dan/Josiah signoffs are advisory sections. It must not turn each missing provider proof
   field into repeated application blockers or say the application is Pre-V1 merely because an action
-  is Test-ready.
-- **Visible lane contract.** The application banner identifies V1 and says Live/Test records are
-  labeled. Every data-bearing surface shows the lane at the record/action/receipt boundary. Test
-  completion can reach `Done`/`Closed` but always remains `liveEvidenceEligible:false`; Live failure
-  never falls back to Test.
-- **Production Test acceptance.** The Admin workspace traverses all 11 S25 and 19 S26 typed executor
-  selections, one attempt/receipt each, plus Vendor invite/password/TOTP/assignment/Test-mailbox/
-  disable/reset/re-enable behavior, using invented aliases and zero Live calls. Reset acceptance binds
-  the exact current UID/status/`inviteVersion`, rotates UID, denies stale sessions/confirmations,
-  preserves Test workflow data, and fails closed through partial interruption. Expired takeover never
-  adopts an abandoned UID; it preserves one prepared invite increment/canonical reset audit, records a
-  distinct bodyless recovery-claim audit, and fences delayed old-owner work from the winner. Normal
-  product tabs also persist the full user journeys: Lease records all 11
-  explicit actions before Done; Maintenance uses `unit:test-maple-204` and
-  `vendor:test-summit-plumbing` and closes inside app-owned Firestore. The
-  Admin workspace is diagnostic typed-adapter evidence, not the primary user workflow.
+  is technically `test_ready`.
+- **Visible environment contract.** Ordinary Production renders Live product state only. Local
+  rehearsal resolves `environmentKind:"demo"` + `dataContext:"live_readonly"` with
+  `source:"explicit"`, renders “Live data, read only”, and is denied every durable writer and Live
+  provider effect. The retained `data_mode` field supports legacy fail-closed reads; it does not create
+  a second Production lane.
+- **Workflow acceptance.** Ordinary human-started `/runs` exercises the app-plane workflow without a
+  Test executor. Automated tests retain the typed S25/S26 provider contracts, one-attempt receipts,
+  role/authority failures, Vendor isolation, and recovery cases under test-owned helpers. Those helpers
+  are automated evidence only and are unreachable from product routes.
 - **Tab acceptance.** Console, Spaces, Approval Queue, Workflow Communications, Connections, Admin,
-  and Notifications each have purpose, source/failure state, role behavior, Live/Test behavior,
+  and Notifications each have purpose, source/failure state, role behavior, Live behavior,
   desktop/phone scenario, and no-dead-end acceptance. Vendor portal is the eighth external surface and
-  proves password/TOTP, assignment, Test mailbox, disabled/revoked, repeatable auth reset/re-enable,
-  stale-session denial, preserved Test records, and wrong-ticket behavior.
+  proves password/TOTP, assigned-Live-ticket isolation, disabled/revoked state, stale-session denial,
+  and wrong-ticket behavior without a product Test mailbox.
 - **Operations.** Cutover uses one reviewed GCP/Firebase/runtime identity set and captures the currently
   serving and prior Cloud Run revisions. Rollback restores traffic to the exact prior revision and
   never deletes the service. Ambiguous external effects use reconciliation/correction, not retry.
@@ -88,19 +77,21 @@ Live proof for every provider, optional TTL automation, or business/technical si
 
 **Open questions & assumptions.**
 
-- _Answered 2026-07-15:_ V1 is the stable working production application; proof comes through use of
-  the isolated Test lane and configured Live actions, not a requirement that every provider be Live.
+- _Answered 2026-08-03:_ V1 is the stable working production application; proof comes from
+  `local_rehearsal` and `live` workflow evidence, not a Production Test lane and not a requirement that
+  every provider be Live.
 - _Answered 2026-07-15:_ provider activation and Dan/Josiah signoffs are advisory to app readiness;
   false Live claims remain release-integrity failures.
 - _Answered 2026-07-15:_ TTL/index/scheduler activation is an optional operational optimization, not a
   V1 gate. The release still pins the actual rules/index configuration used by the revision.
-- _Default:_ a required action needs working production Test coverage even when its provider is not
-  used at launch; `unavailable` becomes `test_ready` only after the isolated typed adapter and safety
-  checks pass.
+- _Default:_ a required action needs automated typed-adapter/safety coverage and a valid
+  `local_rehearsal` or `live` application-evidence record even when its provider is not used at launch.
+  `test_ready` describes provider readiness only.
 - _Operational inputs, not product questions:_ each activated Live provider needs its exact credential,
   mapping, approved record, monitor, and correction/rollback evidence at activation time.
 
-**Cross-product impacts.** Covers every primary route/tab, S20–S26, data-mode isolation, Action
+**Cross-product impacts.** Covers every primary route/tab, S20–S26, Production Live-only and local
+Live-read-only isolation, Action
 Registry/provider status, cutover reports, environment handoff, status/plan/loop, Cloud Run/Firebase,
 monitoring, smoke/browser runbooks, dependency/security reports, and rollback. Supersede markers:
 `V1-INTERNAL-GMAIL-ONLY-RELEASE`, `ALL-PROVIDERS-LIVE-BEFORE-V1`, `ALL-SIGNATURES-BEFORE-V1`, and
@@ -110,61 +101,45 @@ monitoring, smoke/browser runbooks, dependency/security reports, and rollback. S
 
 - **AC-S27-1** — Manifest verifier rejects malformed production stage/environment/pins, S20–S26 AC sets,
   exact unique required action set, lane-correct durable workflow coverage, one-attempt/idempotency/
-  correction, Registry hash, and core production evidence. Every action is at least Test-ready; no
-  action must be Live. Missing/extra/duplicate/path-aliased evidence or pin drift fails the supplied
-  inventory. Production acceptance comes from the canonical bodyless evidence record rather than an
-  invented `stage:v1` command. _Verify:_ `npm
+  correction, Registry hash, and core production evidence. Manifest schema is exactly
+  `v1-release-manifest:3.0`; every application evidence lane is `local_rehearsal` or `live`, and
+  `production_test` is rejected. Every action may remain technically `test_ready`; no action must be
+  Live. Missing/extra/duplicate/path-aliased evidence or pin drift fails the supplied inventory.
+  Production acceptance comes from the canonical bodyless evidence record rather than an invented
+  `stage:v1` command. _Verify:_ `npm
 test -- v1-release-manifest v1-manifest-report`; `npm run release:manifest-report`; `npm run
 cutover:report -- --help`.
-- **AC-S27-2** — Production renders the V1 application banner and persistent Live/Test markers. Test
-  receipts/completion never say Live; unavailable/suspended Live actions remain explicit and usable
-  Test workflows do not inherit their state. No manual checkbox or other-channel receipt can fabricate
-  completion. _Verify:_ `npm test -- release-label vendor-release-label execution-completion data-mode`.
-- **AC-S27-3** — Production Test acceptance invokes all 11 S25 and 19 S26 typed selections plus the
-  Vendor password/TOTP/assignment/Test-mailbox lifecycle with exactly one attempt/receipt per action
-  and zero Live-provider calls. The canonical Test Vendor can be reset/re-enabled repeatedly from
-  `pending_setup`, `active`, or `disabled`; each exact preview binds current UID/status/
-  `inviteVersion`, each success rotates UID and preserves Test workflow data, and each staged failure
-  remains disabled and safely recoverable without a duplicate canonical reset audit/version. Initial
-  reset claim and successful reset completion are separately bodyless-audited; a failed pre-commit
-  attempt retains only its honest claim event. Expired recovery must re-preview through a normal Admin
-  reload using the original marker source without exposing UID. While the lease is live, only the
-  original reason reproduces its confirmation; after expiry a fresh reason may rebind that source and
-  must atomically record the distinct recovery-claim audit. It then quarantines every abandoned
-  source/record/Auth UID, allocates a distinct fresh UID, and makes delayed old-owner completion
-  harmless. Persistent Lease Test data
-  reaches Done only after 11 receipts; persistent Maintenance Test data closes. Disable/reset
-  interleaving refuses disable during claimed/prepared, stales reset when disable wins first, permits a
-  fresh disabled-state reset, and permits disable after completed reset. Failure/timeout/drift/
-  revocation stops dependencies without duplicate attempt or cross-lane leak. _Verify:_ `npm test --
-v1-synthetic-execution v1-production-test-workspace-route lease-renewal-test-workflow
-maintenance-test-workflow vendor-test-identity vendor-test-mailbox`; `npm run test:e2e:core --
-v1-fake-execution`.
+- **AC-S27-2** — Production renders only Live product records and offers no Test-workspace navigation,
+  route, badge, seeder, simulator, or product receipt. Local rehearsal resolves explicit Demo +
+  Live-read-only, renders “Live data, read only”, and cannot execute a durable writer or Live provider
+  effect. No manual checkbox or other-channel receipt can fabricate completion. _Verify:_ `npm test --
+release-label vendor-release-label execution-completion data-mode test-lane-environment`.
+- **AC-S27-3** — Automated acceptance retains all S25/S26 typed selections, one-attempt/receipt,
+  authority, failure, reconciliation, Vendor isolation, and recovery coverage in test-owned helpers,
+  while a source/route sentinel proves those helpers are unreachable from `app/**`, `components/**`,
+  and `lib/**` product runtime. Ordinary human-started `/runs` exercises workflow persistence through
+  the non-fixture app-plane path and constructs no provider. _Verify:_ the retained typed-contract and
+  workflow unit tests plus `tests/unit/test-lane-route-fence.test.mjs`.
 - **AC-S27-4** — Deployed browser acceptance covers Console, Spaces, Approval Queue, Workflow
   Communications, Connections, Admin, Notifications, and Vendor portal at desktop/phone widths, with
-  role/scope, both lanes, provider unavailable, success/failure/reconciliation, and no-dead-end states.
-  Admin browser coverage includes exact auth-reset preview/confirmation, one response-only setup link,
-  a prepared-crash reload where only the original reason returns the same UID-free confirmation before
-  lease expiry and a fresh reason safely claims recovery afterward, fresh password/TOTP enrollment,
-  and preserved assigned Test data after UID rotation. _Verify:_ approved browser runbook/evidence
-  against the pinned revision.
+  role/scope, Production Live state, local Live-read-only refusal, provider unavailable,
+  success/failure/reconciliation, and no-dead-end states. Vendor coverage uses assigned Live records and
+  proves password/TOTP, wrong-ticket denial, disable/revoke, and stale-session denial. _Verify:_ approved
+  browser runbook/evidence against the pinned revision plus local-rehearsal browser evidence.
 - **AC-S27-5** — Security release check proves no secret/customer/mail body in git/log/audit, no Vendor
-  cross-ticket/internal access, no generic/autonomous send, no unexpected Registry key, no lane
-  fallback, and no Test external provider construction. Any present `vendor`, `vendor_id`, or
+  cross-ticket/internal access, no generic/autonomous send, no unexpected Registry key, no data-lane
+  fallback, and no product Test route/workspace/executor/provider construction. Any present `vendor`, `vendor_id`, or
   `data_mode` claim key—including false/empty/malformed—must fail closed from internal roster,
-  role/scope, ID-token, and session authority; Vendor access requires the exact valid tuple. It also
-  proves a stale UID session or mailbox confirmation cannot act after reset, every Test mailbox read/
-  write revalidates current active UID/assignment/thread/reset state, setup links are response-only/
-  `no-store`, and partial failure stays disabled. Claim, recovery-claim, and completion audits must be
-  bodyless, correctly named, and ordered; no audit may contain a target/replacement Firebase UID, link,
-  plaintext reason, or secret. An
-  expired claimant cannot reuse an abandoned UID or mutate the takeover winner, and auth reset causes
-  zero provider/Live effects. Disable cannot bypass a claimed/prepared reset or create a Firebase/audit
-  race. _Verify:_ `npm run verify:redaction`, router/falsification/security/Firestore tests.
+  role/scope, ID-token, and session authority; Vendor access requires the exact valid Live tuple. Legacy
+  `data_mode:"test"` input refuses rather than normalizing to Live. Setup links remain response-only/
+  `no-store`, partial failure stays disabled, and audits contain no Firebase UID, link, plaintext
+  reason, or secret. _Verify:_ `npm run verify:redaction`, route-fence, router/falsification/security/
+  Firestore tests.
 - **AC-S27-6** — Every claimed Live-configured/proven/enabled action has its own documented Registry
   contract, exact authority/confirmation, budget preflight, bodyless evidence, monitoring,
-  reconciliation/correction, and rollback. Test/synthetic evidence or another provider cannot satisfy
-  the claim. Test-ready/unactivated actions are valid V1 application states. _Verify:_ manifest
+  reconciliation/correction, and rollback. Local-rehearsal/synthetic evidence or another provider
+  cannot satisfy a Live claim. Technically `test_ready`/unactivated actions are valid V1 application
+  states but are not product data lanes. _Verify:_ manifest
   activation-integrity review.
 - **AC-S27-7** — Rollback rehearsal captures the serving and exact prior Cloud Run revision, restores
   traffic without deleting the service, and suppresses commands for conflicting project/identity/
@@ -181,7 +156,8 @@ audit`, `bash scripts/verify.sh`, dependency disposition and operations report.
   document records the verdict; manifest schema/verifier and report tests remain advisory
   falsification checks.
 
-**Forbidden actions / hard gates.** No Test-to-Live fallback, simulated evidence cited as Live,
+**Forbidden actions / hard gates.** No product Test lane, Test-to-Live fallback, local-rehearsal
+evidence cited as Live,
 autonomous/bulk/generic send, blind retry, guessed provider contract, customer evidence in git, or
 provider activation inherited from another action. No Live read/write/send occurs unless that action's
 identity, contract, Registry/health, target/effect, authority, exact human confirmation, one-attempt
@@ -197,14 +173,13 @@ owner-run.
 
 **Ordered prompt sequence.**
 
-1. _Application proof:_ run focused/full verification and the production Test journeys; persist only
-   invented app data and bodyless evidence; repair any lane/role/state/dead-end failure.
+1. _Application proof:_ run focused/full verification, ordinary app-plane workflow tests, and local
+   Live-read-only refusal proof; persist no rehearsal record or external effect.
 2. _Release candidate:_ build/deploy the exact commit, pin revision/rules/index configuration/Registry,
    and validate authentication, smoke, monitoring, and rollback with no provider activation changes.
-3. _Browser acceptance:_ exercise all eight surfaces with internal roles and Vendor Test identity at
-   desktop/phone widths, including Live unavailable and Test completion/failure/reconciliation states.
-   Reset/re-enable the canonical Test Vendor, complete a fresh password/TOTP journey, prove old-session
-   denial, and confirm its assigned Test ticket/mailbox history survived the UID rotation.
+3. _Browser acceptance:_ exercise all eight surfaces with internal roles and a scoped Live Vendor at
+   desktop/phone widths, including Live unavailable and ordinary workflow completion/failure/
+   reconciliation states; separately prove local Live-read-only cannot create an effect.
 4. _Evidence acceptance:_ publish the bodyless production evidence record when grouped application
    gates pass. Run the local manifest report as advisory inventory; report provider activation and
    signoffs separately.

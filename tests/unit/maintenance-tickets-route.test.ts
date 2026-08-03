@@ -63,19 +63,13 @@ describe("maintenance tickets API route", () => {
     expect(await response.json()).toEqual({ tickets: [] });
   });
 
-  it("GET supports an explicit Test-only queue address", async () => {
+  it("GET rejects the retired Test queue before loading tickets", async () => {
     setEditor();
-    vi.mocked(listMaintenanceTickets).mockResolvedValue([
-      { id: "live", data_mode: "live" },
-      { id: "test", data_mode: "test" },
-    ] as never);
     const response = await GET(
       new Request("http://localhost/api/maintenance/tickets?data_mode=test"),
     );
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      tickets: [{ id: "test", data_mode: "test" }],
-    });
+    expect(response.status).toBe(400);
+    expect(listMaintenanceTickets).not.toHaveBeenCalled();
   });
 
   it("GET rejects an unknown data mode", async () => {
@@ -117,7 +111,7 @@ describe("maintenance tickets API route", () => {
     expect(createMaintenanceTicket).not.toHaveBeenCalled();
   });
 
-  it("POST rejects browser-created Test data in favor of the canonical seed route", async () => {
+  it("POST rejects retired Test data before any write", async () => {
     setEditor();
     const response = await POST(
       jsonRequest("http://localhost/api/maintenance/tickets", "POST", {

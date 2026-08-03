@@ -4,20 +4,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   MAINTENANCE_TICKET_COLLECTIONS,
-  createCanonicalMaintenanceTestTicket,
   createMaintenanceTicket,
   getMaintenanceTicket,
   listMaintenanceTicketActivity,
-  listMaintenanceTestActionReceipts,
   listMaintenanceTickets,
-  simulateMaintenanceTestAction,
   transitionMaintenanceTicket,
 } from "@/lib/firestore/maintenance-tickets";
 import { MAINTENANCE_TICKET_NOTIFICATION_COLLECTION } from "@/lib/firestore/maintenance-ticket-notifications";
-import {
-  MAINTENANCE_TEST_CONFIRMATION,
-  MAINTENANCE_TEST_VENDOR,
-} from "@/lib/maintenance/test-workflow";
 import {
   PRODUCT_RECORD_RETENTION_CLASS,
   PRODUCT_RECORD_RETENTION_POLICY,
@@ -161,33 +154,45 @@ afterEach(() => {
 });
 
 describe("maintenance tickets", () => {
-  it("refuses to create or transition Test tickets in Production", async () => {
+  it("rejects Test ticket construction and refuses a persisted legacy Test transition", async () => {
     const { db, store } = fakeDb();
-    vi.stubEnv("ENVIRONMENT_KIND", "production");
-    vi.stubEnv("DATA_CONTEXT", "live");
-
-    await expect(createCanonicalMaintenanceTestTicket(editor, {}, db)).rejects.toThrow(
-      /Test lane is retired/,
-    );
+    await expect(
+      createMaintenanceTicket(editor, { ...baseInput, data_mode: "test" } as never, db),
+    ).rejects.toThrow();
     expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.size ?? 0).toBe(0);
 
-    vi.stubEnv("ENVIRONMENT_KIND", "demo");
-    vi.stubEnv("DATA_CONTEXT", "demo");
-    const testTicket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
-    vi.stubEnv("ENVIRONMENT_KIND", "production");
-    vi.stubEnv("DATA_CONTEXT", "live");
-
+    store.set(
+      MAINTENANCE_TICKET_COLLECTIONS.tickets,
+      new Map([
+        [
+          "legacy-test",
+          {
+            id: "legacy-test",
+            data_mode: "test",
+            status: "Open",
+            priority: "Normal",
+            priority_provenance: "operator-set",
+            summary: "Legacy isolated record",
+            description: "Retired lane",
+            unit: null,
+            photo_refs: [],
+            reporter: { kind: "staff", uid: editor.uid },
+            labels: [],
+            space_id: "maintenance",
+            created_at: "2026-07-15T00:00:00.000Z",
+            updated_at: "2026-07-15T00:00:00.000Z",
+          },
+        ],
+      ]),
+    );
     await expect(
       transitionMaintenanceTicket(
         editor,
-        testTicket.id,
-        { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
+        "legacy-test",
+        { op: "note", text: "must not write" },
         db,
       ),
-    ).rejects.toThrow(/Test lane is retired/);
-    expect(
-      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(testTicket.id),
-    ).toBeUndefined();
+    ).rejects.toThrow(/retired/);
   });
 
   it("creates an Open ticket with a create Activity entry", async () => {
@@ -462,10 +467,8 @@ describe("maintenance tickets", () => {
 
   it.each([
     ["explicit Live", true, "vendor-live-target"],
-    ["explicit Live", true, MAINTENANCE_TEST_VENDOR.id],
     ["explicit Live", true, null],
     ["legacy Live", false, "vendor-live-target"],
-    ["legacy Live", false, MAINTENANCE_TEST_VENDOR.id],
     ["legacy Live", false, null],
   ] as const)(
     "refuses %s (explicit mode %s) generic Vendor assignment target %s without mutating ticket, assignment, or activity",
@@ -527,141 +530,14 @@ describe("maintenance tickets", () => {
         transitionMaintenanceTicket(
           editor,
           ticketId,
-          { op: "vendor-assign", vendorId },
+          { op: "vendor-assign", vendorId } as never,
           db,
         ),
-      ).rejects.toMatchObject({
-        status: 409,
-        message:
-          "Live Vendor assignment requires the confirmed Admin Vendor lifecycle action.",
-      });
+      ).rejects.toThrow();
 
       expect(snapshotStore(store)).toBe(before);
     },
   );
-
-  it("creates a reserved Test ticket and atomically mirrors Test Vendor assignment and unassignment", async () => {
-    const { db, store } = fakeDb();
-    const ticket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
-
-    expect(ticket).toMatchObject({
-      data_mode: "test",
-      unit: { unitId: "unit:test-maple-204" },
-      labels: ["TEST DATA"],
-    });
-
-    const assigned = await transitionMaintenanceTicket(
-      editor,
-      ticket.id,
-      { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
-      db,
-    );
-    expect(assigned.vendor_id).toBe(MAINTENANCE_TEST_VENDOR.id);
-    expect(
-      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(ticket.id),
-    ).toMatchObject({
-      ticket_id: ticket.id,
-      vendor_id: MAINTENANCE_TEST_VENDOR.id,
-      active: true,
-      data_mode: "test",
-    });
-
-    const unassigned = await transitionMaintenanceTicket(
-      editor,
-      ticket.id,
-      { op: "vendor-assign", vendorId: null },
-      db,
-    );
-    expect(unassigned.vendor_id).toBeUndefined();
-    expect(
-      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(ticket.id),
-    ).toMatchObject({
-      ticket_id: ticket.id,
-      vendor_id: MAINTENANCE_TEST_VENDOR.id,
-      active: false,
-      data_mode: "test",
-    });
-  });
-
-  it("records a bodyless internal Test receipt that cannot qualify as Live proof", async () => {
-    const { db } = fakeDb();
-    const ticket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
-    await transitionMaintenanceTicket(
-      editor,
-      ticket.id,
-      { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
-      db,
-    );
-
-    const receipt = await simulateMaintenanceTestAction(
-      editor,
-      ticket.id,
-      {
-        actionKey: "vendor.assignment.change",
-        confirmation: MAINTENANCE_TEST_CONFIRMATION,
-      },
-      db,
-    );
-    expect(receipt).toMatchObject({
-      data_mode: "test",
-      provider_contacted: false,
-      live_proof_eligible: false,
-      outcome: "simulated_success",
-    });
-    expect(await listMaintenanceTestActionReceipts(editor, ticket.id, db)).toEqual([
-      receipt,
-    ]);
-
-    const duplicate = await simulateMaintenanceTestAction(
-      editor,
-      ticket.id,
-      {
-        actionKey: "vendor.assignment.change",
-        confirmation: MAINTENANCE_TEST_CONFIRMATION,
-      },
-      db,
-    );
-    expect(duplicate).toEqual(receipt);
-    expect(await listMaintenanceTestActionReceipts(editor, ticket.id, db)).toEqual([
-      receipt,
-    ]);
-  });
-
-  it("rejects Test simulation for a Live ticket before writing a receipt", async () => {
-    const { db, store } = fakeDb();
-    const liveTicket = await createMaintenanceTicket(editor, baseInput, db);
-
-    await expect(
-      simulateMaintenanceTestAction(
-        editor,
-        liveTicket.id,
-        {
-          actionKey: "rentvine.work_order.create",
-          confirmation: MAINTENANCE_TEST_CONFIRMATION,
-        },
-        db,
-      ),
-    ).rejects.toMatchObject({ status: 409 });
-    expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.testActionReceipts)).toBeUndefined();
-  });
-
-  it("rejects reserved Test aliases in the Live lane", async () => {
-    const { db } = fakeDb();
-    await expect(
-      createMaintenanceTicket(
-        editor,
-        {
-          ...baseInput,
-          unit: {
-            unitId: "unit:test-maple-204",
-            label: "TEST — 204 Maple Court Unit 2",
-            confidence: "Verified",
-          },
-        },
-        db,
-      ),
-    ).rejects.toThrow(/reserved Test unit/);
-  });
 
   it("notifies the assignee on assign + status, and never on create/label/note or unassigned", async () => {
     const { db, store } = fakeDb();

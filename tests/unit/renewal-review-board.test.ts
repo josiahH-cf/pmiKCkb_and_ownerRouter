@@ -1,23 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  listLeaseTestRuns: vi.fn(),
   listResolutionsForRun: vi.fn(),
   listWritebackApprovalsForRun: vi.fn(),
+  loadLiveRenewalReview: vi.fn(),
 }));
 
-vi.mock("@/lib/firestore/lease-renewal-test-runs", () => ({
-  listLeaseTestRuns: mocks.listLeaseTestRuns,
-}));
 vi.mock("@/lib/firestore/lease-renewal-resolutions", () => ({
   listResolutionsForRun: mocks.listResolutionsForRun,
 }));
 vi.mock("@/lib/firestore/lease-renewal-writeback-approvals", () => ({
   listWritebackApprovalsForRun: mocks.listWritebackApprovalsForRun,
 }));
+vi.mock("@/lib/lease-renewal/live-review", () => ({
+  LIVE_REVIEW_RUN_ID: "live-review",
+  loadLiveRenewalReview: mocks.loadLiveRenewalReview,
+}));
 
-import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 
 const actor: AuthenticatedUser = {
   uid: "admin-1",
@@ -26,44 +27,38 @@ const actor: AuthenticatedUser = {
   role: "Admin",
 };
 
+const liveView = { runId: "live-review", label: "Live renewal review" };
+
 describe("renewal review board gather", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.listResolutionsForRun.mockResolvedValue([]);
-    mocks.listWritebackApprovalsForRun.mockResolvedValue([]);
+    mocks.listResolutionsForRun.mockResolvedValue([{ id: "resolution-1" }]);
+    mocks.listWritebackApprovalsForRun.mockResolvedValue([{ id: "approval-1" }]);
+    mocks.loadLiveRenewalReview.mockResolvedValue({ status: "ok", view: liveView });
   });
 
-  it("projects the exact persistent Test run identity into Approval", async () => {
-    mocks.listLeaseTestRuns.mockResolvedValue([
-      {
-        id: "test-renewal-persisted-1",
-        status: "Executing",
-      },
-    ]);
-
-    const views = await loadRenewalRunViews(actor);
-
-    expect(views.map((view) => view.runId)).toEqual([
-      "sim-renewal-001",
-      "test-renewal-persisted-1",
-    ]);
-    expect(views[1].label).toBe("TEST · Executing · test-renewal-persisted-1");
-    expect(mocks.listResolutionsForRun).toHaveBeenCalledWith(
-      actor,
-      "test-renewal-persisted-1",
-    );
-    expect(mocks.listWritebackApprovalsForRun).toHaveBeenCalledWith(
-      actor,
-      "test-renewal-persisted-1",
-    );
+  it("projects only the ordinary Live review with its saved overlays", async () => {
+    await expect(loadRenewalRunViews(actor)).resolves.toEqual([liveView]);
+    expect(mocks.listResolutionsForRun).toHaveBeenCalledWith(actor, "live-review");
+    expect(mocks.listWritebackApprovalsForRun).toHaveBeenCalledWith(actor, "live-review");
+    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(expect.any(String), {
+      resolutions: [{ id: "resolution-1" }],
+      approvals: [{ id: "approval-1" }],
+    });
   });
 
-  it("fails closed to the sample projection when Test persistence is unavailable", async () => {
-    mocks.listLeaseTestRuns.mockRejectedValue(new Error("Firestore unavailable"));
+  it("keeps the Live read useful when decision overlays are unavailable", async () => {
+    mocks.listResolutionsForRun.mockRejectedValue(new Error("Firestore unavailable"));
 
-    const views = await loadRenewalRunViews(actor);
+    await expect(loadRenewalRunViews(actor)).resolves.toEqual([liveView]);
+    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(expect.any(String), {
+      resolutions: [],
+      approvals: [],
+    });
+  });
 
-    expect(views.map((view) => view.runId)).toEqual(["sim-renewal-001"]);
-    expect(views.some((view) => view.label.includes("TEST ·"))).toBe(false);
+  it("returns no rows when the Live read is unavailable and never substitutes fixtures", async () => {
+    mocks.loadLiveRenewalReview.mockResolvedValue({ status: "read_error" });
+    await expect(loadRenewalRunViews(actor)).resolves.toEqual([]);
   });
 });

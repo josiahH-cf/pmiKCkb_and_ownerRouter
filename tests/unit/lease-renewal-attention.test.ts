@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ATTENTION_LANES, ATTENTION_SEVERITIES } from "@/lib/attention/lanes";
 import { buildRenewalAttention } from "@/lib/lease-renewal/attention";
-import {
-  getRenewalDeskView,
-  type DeskLeaseSummary,
-} from "@/lib/lease-renewal/sample-desk";
+import { getRenewalDeskView, type DeskLeaseSummary } from "@/tests/helpers/sample-desk";
 
 function summary(overrides: Partial<DeskLeaseSummary>): DeskLeaseSummary {
   return {

@@ -20,9 +20,8 @@ export interface PublicationAllowedType {
 
 export interface PublicationPolicyRecord {
   id: string;
-  /** Legacy absence is Live. Test policies are server-owned exact fixtures only. */
+  /** Legacy absence is Live; retained for fail-safe decoding of historical records. */
   data_mode?: DataMode;
-  test_fixture_key?: string;
   allowedSpaces: readonly string[];
   allowedTypes: readonly PublicationAllowedType[];
   connectorId: string;
@@ -52,7 +51,6 @@ export interface PublicationMetadata {
   sourceState?: SourceState;
   spaceId: string;
   data_mode?: DataMode;
-  test_fixture_key?: string;
 }
 
 export interface PublicationEnvelope {
@@ -126,7 +124,6 @@ export interface PublicationValidationResult {
 export interface PublicationVersionRecord {
   id: string;
   data_mode?: DataMode;
-  test_fixture_key?: string;
   citationLabel?: string;
   connectorId: string;
   contentByteSize: number;
@@ -152,7 +149,6 @@ export interface PublicationVersionRecord {
 export interface PublicationResourceRecord {
   id: string;
   data_mode?: DataMode;
-  test_fixture_key?: string;
   activeVersionId: string;
   /** Monotonic sequence guarded by the resource-document transaction lock. */
   lastVersionNumber: number;

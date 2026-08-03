@@ -7,9 +7,9 @@ import {
   MAINTENANCE_TEST_ACTION_TARGETS,
   MAINTENANCE_TEST_UNIT,
   MAINTENANCE_TEST_VENDOR,
-} from "@/lib/maintenance/test-workflow";
+} from "@/tests/helpers/maintenance-test-workflow";
 
-describe("Maintenance production Test contract", () => {
+describe("test-only Maintenance workflow helper", () => {
   it("uses only the canonical invented unit and non-routable Vendor identity", () => {
     expect(MAINTENANCE_TEST_UNIT.unitId).toBe("unit:test-maple-204");
     expect(MAINTENANCE_TEST_UNIT.label).toMatch(/^TEST/);
@@ -41,9 +41,9 @@ describe("Maintenance production Test contract", () => {
     expect(receipt).not.toHaveProperty("provider_ref");
   });
 
-  it("keeps the Test adapter structurally disconnected from every live provider module", () => {
+  it("keeps the test helper structurally disconnected from every live provider module", () => {
     const source = readFileSync(
-      join(process.cwd(), "lib/maintenance/test-workflow.ts"),
+      join(process.cwd(), "tests/helpers/maintenance-test-workflow.ts"),
       "utf8",
     );
     expect(source).not.toMatch(

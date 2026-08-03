@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
-import { parseExplicitDataMode } from "@/lib/data-mode";
 import {
   CreateLiveMaintenanceTicketInputSchema,
   createMaintenanceTicket,
@@ -14,17 +13,14 @@ export async function GET(request?: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "maintenance");
     const rawMode = request ? new URL(request.url).searchParams.get("data_mode") : null;
-    const mode = rawMode ? parseExplicitDataMode(rawMode) : null;
-    if (rawMode && !mode) {
+    if (rawMode && rawMode !== "live") {
       return NextResponse.json(
-        { error: "data_mode must be exactly live or test." },
+        { error: "The Production maintenance queue is Live-only." },
         { status: 400 },
       );
     }
     const tickets = await listMaintenanceTickets(user);
-    return NextResponse.json({
-      tickets: mode ? tickets.filter((ticket) => ticket.data_mode === mode) : tickets,
-    });
+    return NextResponse.json({ tickets });
   } catch (error) {
     return apiErrorResponse(error);
   }

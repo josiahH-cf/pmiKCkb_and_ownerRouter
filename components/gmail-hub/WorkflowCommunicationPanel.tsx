@@ -500,7 +500,8 @@ export function WorkflowCommunicationPanel({
         </div>
       ) : (
         <p className="muted">
-          This workflow is simulation-only; Gmail linking and mutations are disabled.
+          Gmail linking is unavailable for this workflow. Gmail mutations remain on their
+          separately gated surfaces.
         </p>
       )}
 

@@ -26,7 +26,7 @@ const PANELS: Record<
 > = {
   not_configured: {
     title: "Live sources aren’t connected",
-    body: "Connect RentVine and the renewal sheet to open a live lease. Until then, the Renewal Desk runs on sample data.",
+    body: "Connect RentVine and the renewal sheet to open a live lease.",
     link: { href: "/connections", label: "Open Connection Center" },
   },
   account_mismatch: {
@@ -69,7 +69,6 @@ export default async function LiveRenewalLeaseWorkspacePage({
         {outcome.status === "ok" ? (
           <RenewalWorkspace
             compScreenshotExecutable={compScreenshotAction.executable}
-            mode="live"
             workspace={outcome.workspace}
           />
         ) : outcome.status === "not_found" ? (

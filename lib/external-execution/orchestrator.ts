@@ -21,29 +21,6 @@ import type {
 import { ExternalExecutionError } from "@/lib/external-execution/types";
 import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
-const ISOLATED_TEST_WORKSPACE_TOKEN = Symbol("isolated-production-test-workspace");
-const ISOLATED_TEST_EXECUTOR = Symbol("isolated-test-executor");
-
-type BrandedTestExecutor = ExternalExecutor & {
-  readonly [ISOLATED_TEST_EXECUTOR]: true;
-};
-
-/** Wrap an executor whose providers are in-memory/app-only and contain no live client. */
-export function markIsolatedTestExecutor(executor: ExternalExecutor): ExternalExecutor {
-  const wrapped: BrandedTestExecutor = {
-    [ISOLATED_TEST_EXECUTOR]: true,
-    ...(executor.validate ? { validate: executor.validate.bind(executor) } : {}),
-    execute: executor.execute.bind(executor),
-    reconcile: executor.reconcile.bind(executor),
-    ...(executor.correct ? { correct: executor.correct.bind(executor) } : {}),
-  };
-  return Object.freeze(wrapped);
-}
-
-function isIsolatedTestExecutor(executor: ExternalExecutor) {
-  return (executor as Partial<BrandedTestExecutor>)[ISOLATED_TEST_EXECUTOR] === true;
-}
-
 export function externalPreviewHash(input: ExternalActionInput) {
   // S20 stores the exact value-bearing preview only. Workflow/action identity,
   // actor, refs, and scope are bound in separate immutable ledger fields and
@@ -129,8 +106,6 @@ export function validateExternalInput(
 }
 
 export class ExternalActionOrchestrator {
-  private readonly isolatedTestWorkspace: boolean;
-
   constructor(
     private readonly definitions: ReadonlyMap<string, ExternalActionDefinition>,
     private readonly store: ExternalExecutionStore,
@@ -140,24 +115,10 @@ export class ExternalActionOrchestrator {
       isRuntimeExecutable?: (actionKey: string) => Promise<boolean> | boolean;
       allowFakeContracts?: boolean;
       registry?: readonly CreateActionRegistryInput[];
-      isolatedTestWorkspaceToken?: symbol;
     } = {},
   ) {
-    const isolatedTestWorkspace =
-      options.isolatedTestWorkspaceToken === ISOLATED_TEST_WORKSPACE_TOKEN;
     if (process.env.NODE_ENV === "production") {
-      if (isolatedTestWorkspace) {
-        if (
-          store.persistence !== "memory" ||
-          options.allowFakeContracts !== true ||
-          options.registry !== ACTION_REGISTRY_SEED ||
-          ![...executors.values()].every(isIsolatedTestExecutor)
-        ) {
-          throw new Error(
-            "The production Test workspace requires memory-only state and branded Test adapters.",
-          );
-        }
-      } else if (Object.keys(options).length > 0) {
+      if (Object.keys(options).length > 0) {
         throw new Error("Production external execution forbids test option overrides.");
       } else if (store.persistence !== "firestore") {
         throw new Error(
@@ -165,7 +126,6 @@ export class ExternalActionOrchestrator {
         );
       }
     }
-    this.isolatedTestWorkspace = isolatedTestWorkspace;
   }
 
   async prepare(
@@ -395,11 +355,7 @@ export class ExternalActionOrchestrator {
   }
 
   private assertProductionDirectActor(input: ExternalActionInput) {
-    if (
-      isProductionRuntime() &&
-      !this.isolatedTestWorkspace &&
-      input.authority?.actor.role !== "Vendor"
-    ) {
+    if (isProductionRuntime() && input.authority?.actor.role !== "Vendor") {
       throw new ExternalExecutionError(
         "Internal production actors must use the S20 execution ledger.",
         "blocked",
@@ -409,38 +365,17 @@ export class ExternalActionOrchestrator {
 
   private assertExecutionLane(input: ExternalActionInput) {
     const dataMode = externalActionDataMode(input);
-    if (this.isolatedTestWorkspace && dataMode !== "test") {
+    if (isProductionRuntime() && dataMode === "test") {
       throw new ExternalExecutionError(
-        "The isolated Test workspace cannot execute a Live record.",
-        "blocked",
-      );
-    }
-    if (!this.isolatedTestWorkspace && isProductionRuntime() && dataMode === "test") {
-      throw new ExternalExecutionError(
-        "Test records must use the isolated Test workspace, never the Live provider path.",
+        "Production external execution refuses Test records.",
         "blocked",
       );
     }
   }
 
-  private executorLaneBlocker(input: ExternalActionInput, executor: ExternalExecutor) {
-    // Unit/integration harnesses deliberately use lightweight adapters. Production
-    // still has two hard barriers: normal orchestration rejects Test records and the
-    // isolated Test factory accepts only branded, memory-only adapters.
-    //
-    // S40: keyed on the server-owned descriptor rather than a raw NODE_ENV read. A deployed
-    // Demo environment reaches this path through the isolated workspace, so it keeps the
-    // lane check; the skip below covers only a non-isolated non-Production harness.
-    if (!this.isolatedTestWorkspace && !isProductionRuntime()) {
-      return null;
-    }
-    const dataMode = externalActionDataMode(input);
-    const testExecutor = isIsolatedTestExecutor(executor);
-    if (dataMode === "test" && !testExecutor) {
-      return "Test data cannot use a Live provider adapter.";
-    }
-    if (dataMode === "live" && testExecutor) {
-      return "A Test provider adapter cannot execute a Live record.";
+  private executorLaneBlocker(input: ExternalActionInput, _executor: ExternalExecutor) {
+    if (isProductionRuntime() && externalActionDataMode(input) === "test") {
+      return "Production external execution refuses Test records.";
     }
     return null;
   }
@@ -523,22 +458,5 @@ function snapshotExternalInput(input: ExternalActionInput): ExternalActionInput 
     values: Object.freeze({ ...input.values }),
     sourceRefs: Object.freeze([...input.sourceRefs]),
     ...(authority ? { authority } : {}),
-  });
-}
-
-/**
- * Creates the only production-safe Test execution workspace. It is intentionally
- * memory-only and accepts only branded adapters that contain no external client.
- */
-export function createIsolatedTestExternalActionOrchestrator(
-  definitions: ReadonlyMap<string, ExternalActionDefinition>,
-  store: ExternalExecutionStore,
-  executors: ReadonlyMap<string, ExternalExecutor>,
-) {
-  return new ExternalActionOrchestrator(definitions, store, executors, {
-    allowFakeContracts: true,
-    isRuntimeExecutable: async () => true,
-    registry: ACTION_REGISTRY_SEED,
-    isolatedTestWorkspaceToken: ISOLATED_TEST_WORKSPACE_TOKEN,
   });
 }

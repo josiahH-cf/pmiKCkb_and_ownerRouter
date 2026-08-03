@@ -11,7 +11,6 @@ import { ReindexPanel } from "@/components/admin/ReindexPanel";
 import { RuntimeSuspensionAdminPanel } from "@/components/admin/RuntimeSuspensionAdminPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
-import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { type AdminActivityEntry, readAdminActivityLog } from "@/lib/admin/activity-log";
 import {
@@ -342,7 +341,6 @@ export default async function AdminPage() {
           <p className="muted">
             Configuration, migration readiness, and connected-service consoles.
           </p>
-          <V1ProductionTestWorkspacePanel />
           <KbCorrectionsPanel
             proposed={proposedCorrections}
             unavailableNote={proposedCorrectionsNote}

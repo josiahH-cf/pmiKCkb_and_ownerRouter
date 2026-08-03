@@ -4,50 +4,32 @@
 // writes nothing — it only rebuilds a run so the persistence layer can match a flag against it.
 //
 // It is injected ONLY at the route so the persistence layer (lib/firestore/lease-renewal-resolutions)
-// stays decoupled from the live network clients; that layer keeps its pure getSimulationRun default.
+// stays decoupled from the live network clients and never grows a fixture fallback.
 
 import {
   LIVE_REVIEW_RUN_ID,
   rebuildLiveRenewalRun,
 } from "@/lib/lease-renewal/live-review";
-import type { AuthenticatedUser } from "@/lib/auth/session";
-import { getLeaseTestRun } from "@/lib/firestore/lease-renewal-test-runs";
-import type { Firestore } from "firebase-admin/firestore";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
-import {
-  buildTestRenewalSimulation,
-  getSimulationRun,
-} from "@/lib/lease-renewal/simulation";
 
 /**
  * Resolve a renewal run by id for the resolve route: rebuild the live-review run for the live id
  * (read-only; returns null when live sources are unconfigured or the read fails, never throws),
- * otherwise fall back to the pure simulation run (null for an unknown id). The live-branch read
- * timestamp does not affect the source_trigger_key, so it never changes which flag is matched.
+ * and refuse every former Test/sample id. The live-branch read timestamp does not affect the
+ * source_trigger_key, so it never changes which flag is matched.
  */
 export async function resolveRenewalRun(runId: string): Promise<RenewalRunResult | null> {
-  if (runId === LIVE_REVIEW_RUN_ID) {
-    return rebuildLiveRenewalRun(new Date().toISOString());
-  }
-  return getSimulationRun(runId);
+  return runId === LIVE_REVIEW_RUN_ID
+    ? rebuildLiveRenewalRun(new Date().toISOString())
+    : null;
 }
 
 /**
- * Builds the actor-bound resolver used by the authenticated route. Persisted production Test runs
- * intentionally reuse the synthetic source tables, but only after the addressed Test record is
- * proven to exist. The unbound resolver above remains pure and cannot turn an arbitrary id into a
- * synthetic run.
+ * Builds the resolver used by the authenticated route. Only the ordinary Live-backed run id can
+ * resolve; retired Test/sample ids cannot cause a fixture or persistence read.
  */
-export function createRenewalRunResolver(
-  actor: AuthenticatedUser,
-  db?: Firestore,
-): (runId: string) => Promise<RenewalRunResult | null> {
-  return async (runId) => {
-    const knownRun = await resolveRenewalRun(runId);
-    if (knownRun) return knownRun;
-    if (!runId.startsWith("test-renewal-")) return null;
-
-    const persisted = await getLeaseTestRun(actor, runId, db);
-    return persisted ? buildTestRenewalSimulation(runId) : null;
-  };
+export function createRenewalRunResolver(): (
+  runId: string,
+) => Promise<RenewalRunResult | null> {
+  return resolveRenewalRun;
 }

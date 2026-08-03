@@ -25,7 +25,7 @@ export interface ExternalActionDefinition {
 }
 
 export interface ExternalActionInput {
-  /** Missing legacy values resolve to Live; production Test callers must set this explicitly. */
+  /** Missing legacy values resolve to Live; explicit retired Test values fail before a provider. */
   dataMode?: DataMode;
   workflowId: string;
   actionId: string;
@@ -64,7 +64,7 @@ export interface ExternalAuthorityContext {
 export interface ExternalActionReceipt {
   actionKey: string;
   dataMode?: DataMode;
-  /** Test receipts are useful workflow evidence, but can never prove a Live provider. */
+  /** Legacy Test receipts can never prove a Live provider. */
   liveEvidenceEligible?: boolean;
   providerRef: string;
   resultHash: string;

@@ -2,7 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ConsoleLiveDataPanel } from "@/components/console/ConsoleLiveDataPanel";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -30,7 +30,6 @@ describe("Console live-data projection", () => {
       { kind: "live" },
       {
         createLive: () => provider,
-        createTest: vi.fn(),
       },
     );
     expect(projection.rows).toHaveLength(1);
@@ -55,7 +54,6 @@ describe("Console live-data projection", () => {
       { kind: "live" },
       {
         createLive: () => providerWithRows([row("lease-renewals")]),
-        createTest: vi.fn(),
       },
     );
     const serialized = JSON.stringify(projection);

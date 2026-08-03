@@ -3,7 +3,7 @@ import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore
 
 /**
  * Read-only, advisory view of the process a Space carries (Spaces ⊇ Processes). It surfaces the
- * definition + recent SAFE simulation runs beside the Space and deep-links to the full process
+ * definition + recent ordinary runs beside the Space and deep-links to the full process
  * engine at /processes/{id} — it never edits, activates, or runs anything (the engine stays the
  * canonical edit surface). `definition` is null when it is not seeded yet.
  */
@@ -51,18 +51,15 @@ export function ProcessSummaryPanel({
         ))}
       </ol>
 
-      <h3>Recent test runs</h3>
+      <h3>Recent runs</h3>
       {runs.length === 0 ? (
-        <p className="muted">No test runs yet.</p>
+        <p className="muted">No workflow runs yet.</p>
       ) : (
         <ul className="compact-list">
           {runs.map((run) => (
             <li key={run.id}>
               {run.status}: {run.next_action} · Definition version:{" "}
               {run.definition_version_id ?? "Not pinned (draft)"}
-              {run.source_publication_pin
-                ? ` · Test source publication: ${run.source_publication_pin.version_id}`
-                : ""}
             </li>
           ))}
         </ul>

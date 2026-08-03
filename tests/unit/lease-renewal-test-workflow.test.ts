@@ -14,7 +14,7 @@ import {
   simulateLeaseTestAction,
   recordLeaseTestBusinessEvent,
   transitionLeaseTestRun,
-} from "@/lib/firestore/lease-renewal-test-runs";
+} from "@/tests/helpers/lease-renewal-test-runs";
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 import {
   LEASE_TEST_ACTIONS,
@@ -23,7 +23,7 @@ import {
   LEASE_TEST_BUSINESS_CONFIRMATION,
   buildLeaseTestActionEvidence,
   leaseTestActionDependencies,
-} from "@/lib/lease-renewal/test-workflow";
+} from "@/tests/helpers/lease-renewal-test-workflow";
 
 function fakeDb() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -156,10 +156,10 @@ describe("persistent Lease production Test workflow", () => {
     expect(evidence.attempt).not.toHaveProperty("body");
   });
 
-  it("keeps both Test modules disconnected from every Live provider constructor", () => {
+  it("keeps both test-only helpers disconnected from every Live provider constructor", () => {
     for (const path of [
-      "lib/lease-renewal/test-workflow.ts",
-      "lib/firestore/lease-renewal-test-runs.ts",
+      "tests/helpers/lease-renewal-test-workflow.ts",
+      "tests/helpers/lease-renewal-test-runs.ts",
     ]) {
       const source = readFileSync(join(process.cwd(), path), "utf8");
       expect(source).not.toMatch(

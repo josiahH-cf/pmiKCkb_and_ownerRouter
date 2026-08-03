@@ -216,142 +216,59 @@ describe("Vendor assigned-ticket boundary", () => {
     }
   });
 
-  it("binds a Test Vendor assignment to Test assignment and ticket records", async () => {
+  it("refuses legacy Test Vendor records across every portal and Gmail read", async () => {
     const fake = new FakeFirestore();
-    fake.seed(`${VENDOR_COLLECTIONS.vendors}/vendor:test-summit-plumbing`, {
-      id: "vendor:test-summit-plumbing",
-      uid: "uid-test-summit",
-      email: "service@summit-plumbing.example.invalid",
+    const vendorId = "vendor:legacy-test";
+    const ticketId = "ticket:legacy-test";
+    const threadId = "thread:legacy-test";
+    fake.seed(`${VENDOR_COLLECTIONS.vendors}/${vendorId}`, {
+      id: vendorId,
+      uid: "uid-legacy-test",
+      email: "legacy@example.invalid",
       status: "active",
       inviteVersion: 1,
       data_mode: "test",
       createdAt: "2026-07-15T00:00:00.000Z",
       updatedAt: "2026-07-15T00:00:00.000Z",
     });
-    fake.seed(`${VENDOR_COLLECTIONS.assignments}/ticket:test-maple-leak`, {
-      ticket_id: "ticket:test-maple-leak",
-      vendor_id: "vendor:test-summit-plumbing",
+    fake.seed(`${VENDOR_COLLECTIONS.assignments}/${ticketId}`, {
+      ticket_id: ticketId,
+      vendor_id: vendorId,
       active: true,
       data_mode: "test",
     });
-    fake.seed("maintenance_tickets/ticket:test-maple-leak", {
-      id: "ticket:test-maple-leak",
+    fake.seed(`maintenance_tickets/${ticketId}`, {
+      id: ticketId,
       data_mode: "test",
       status: "Waiting on Vendor",
       priority: "Normal",
-      priority_provenance: "operator-set",
-      summary: "Invented leak at Maple 204",
-      description: "Invented test data",
-      unit: { unitId: "unit:test-maple-204", label: "Maple 204 · Test unit" },
-      photo_refs: [],
-      reporter: { kind: "staff" },
-      labels: [],
-      space_id: "maintenance",
-      created_at: "2026-07-15T00:00:00.000Z",
+      summary: "Legacy isolated record",
       updated_at: "2026-07-15T00:00:00.000Z",
     });
-    fake.seed(
-      `${VENDOR_COLLECTIONS.threadLinks}/vendor:test-summit-plumbing:ticket:test-maple-leak:thread:test-maple-leak`,
-      {
-        ticket_id: "ticket:test-maple-leak",
-        vendor_id: "vendor:test-summit-plumbing",
-        thread_id: "thread:test-maple-leak",
-        active: true,
-        data_mode: "test",
-      },
-    );
-    const store = new FirestoreVendorStore(fake as unknown as Firestore);
-
-    await expect(
-      store.isVendorActive(
-        "vendor:test-summit-plumbing",
-        "uid-test-summit",
-        "service@summit-plumbing.example.invalid",
-        "test",
-      ),
-    ).resolves.toBe(true);
-    await expect(
-      store.isVendorActive(
-        "vendor:test-summit-plumbing",
-        "uid-test-summit",
-        "service@summit-plumbing.example.invalid",
-        "live",
-      ),
-    ).resolves.toBe(false);
-    await expect(
-      store.getAssignedTicket({
-        vendorId: "vendor:test-summit-plumbing",
-        uid: "uid-test-summit",
-        email: "service@summit-plumbing.example.invalid",
-        dataMode: "test",
-        ticketId: "ticket:test-maple-leak",
-      }),
-    ).resolves.toMatchObject({ id: "ticket:test-maple-leak", dataMode: "test" });
-    await expect(
-      store.getGmailLaneContext({
-        vendorId: "vendor:test-summit-plumbing",
-        ticketId: "ticket:test-maple-leak",
-        threadId: "thread:test-maple-leak",
-        actorUid: "uid-test-summit",
-        actorEmail: "service@summit-plumbing.example.invalid",
-        actorDataMode: "test",
-        actorIsAdmin: false,
-      }),
-    ).resolves.toEqual({
-      vendor: "test",
-      assignment: "test",
-      ticket: "test",
-      thread: "test",
+    fake.seed(`${VENDOR_COLLECTIONS.threadLinks}/${vendorId}:${ticketId}:${threadId}`, {
+      ticket_id: ticketId,
+      vendor_id: vendorId,
+      thread_id: threadId,
+      active: true,
+      data_mode: "test",
     });
-
-    const vendorPath = `${VENDOR_COLLECTIONS.vendors}/vendor:test-summit-plumbing`;
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
     const authority = {
-      vendorId: "vendor:test-summit-plumbing",
-      uid: "uid-test-summit",
-      email: "service@summit-plumbing.example.invalid",
+      vendorId,
+      uid: "uid-legacy-test",
+      email: "legacy@example.invalid",
       dataMode: "test" as const,
     };
-    for (const status of ["claimed", "prepared"] as const) {
-      fake.seed(vendorPath, {
-        ...(fake.store.get(vendorPath) ?? {}),
-        authenticationReset: { status },
-      });
-      await expect(
-        store.isVendorActive(
-          authority.vendorId,
-          authority.uid,
-          authority.email,
-          authority.dataMode,
-        ),
-      ).resolves.toBe(false);
-      await expect(store.listAssignedTickets(authority)).resolves.toEqual([]);
-      await expect(
-        store.getAssignedTicket({ ...authority, ticketId: "ticket:test-maple-leak" }),
-      ).resolves.toBeNull();
-      await expect(
-        store.isThreadLinked({
-          ...authority,
-          ticketId: "ticket:test-maple-leak",
-          threadId: "thread:test-maple-leak",
-        }),
-      ).resolves.toBe(false);
-      await expect(
-        store.getGmailLaneContext({
-          vendorId: authority.vendorId,
-          ticketId: "ticket:test-maple-leak",
-          threadId: "thread:test-maple-leak",
-          actorUid: authority.uid,
-          actorEmail: authority.email,
-          actorDataMode: authority.dataMode,
-          actorIsAdmin: false,
-        }),
-      ).resolves.toBeNull();
-    }
 
-    fake.seed(vendorPath, {
-      ...(fake.store.get(vendorPath) ?? {}),
-      authenticationReset: { status: "completed" },
-    });
+    await expect(
+      store.activateVendor(
+        authority.vendorId,
+        authority.uid,
+        authority.email,
+        "2026-07-15T01:00:00.000Z",
+        authority.dataMode,
+      ),
+    ).resolves.toBe(false);
     await expect(
       store.isVendorActive(
         authority.vendorId,
@@ -359,33 +276,20 @@ describe("Vendor assigned-ticket boundary", () => {
         authority.email,
         authority.dataMode,
       ),
-    ).resolves.toBe(true);
-    await expect(store.listAssignedTickets(authority)).resolves.toHaveLength(1);
+    ).resolves.toBe(false);
+    await expect(store.listAssignedTickets(authority)).resolves.toEqual([]);
+    await expect(store.getAssignedTicket({ ...authority, ticketId })).resolves.toBeNull();
     await expect(
-      store.getAssignedTicket({ ...authority, ticketId: "ticket:test-maple-leak" }),
-    ).resolves.toMatchObject({ id: "ticket:test-maple-leak" });
-
-    fake.seed("maintenance_tickets/ticket:test-maple-leak", {
-      ...(fake.store.get("maintenance_tickets/ticket:test-maple-leak") ?? {}),
-      data_mode: "live",
-    });
-    await expect(
-      store.getAssignedTicket({
-        vendorId: "vendor:test-summit-plumbing",
-        uid: "uid-test-summit",
-        email: "service@summit-plumbing.example.invalid",
-        dataMode: "test",
-        ticketId: "ticket:test-maple-leak",
-      }),
-    ).resolves.toBeNull();
+      store.isThreadLinked({ ...authority, ticketId, threadId }),
+    ).resolves.toBe(false);
     await expect(
       store.getGmailLaneContext({
-        vendorId: "vendor:test-summit-plumbing",
-        ticketId: "ticket:test-maple-leak",
-        threadId: "thread:test-maple-leak",
-        actorUid: "uid-test-summit",
-        actorEmail: "service@summit-plumbing.example.invalid",
-        actorDataMode: "test",
+        vendorId,
+        ticketId,
+        threadId,
+        actorUid: authority.uid,
+        actorEmail: authority.email,
+        actorDataMode: authority.dataMode,
         actorIsAdmin: false,
       }),
     ).resolves.toBeNull();

@@ -19,7 +19,9 @@ export function UnverifiedIntakeReview({
   initialIntake,
   unavailableNote,
 }: Readonly<{ initialIntake: UnverifiedIntakeRecord[]; unavailableNote?: string }>) {
-  const [intake, setIntake] = useState(initialIntake);
+  const [intake, setIntake] = useState(
+    initialIntake.filter((record) => record.data_mode === "live"),
+  );
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   // Optional per-row unit confirmation before promotion (slice 2a). Absence keeps the default
@@ -37,12 +39,7 @@ export function UnverifiedIntakeReview({
     );
   }
 
-  async function act(
-    intakeId: string,
-    action: "promote" | "dismiss",
-    dataMode: UnverifiedIntakeRecord["data_mode"],
-    body?: unknown,
-  ) {
+  async function act(intakeId: string, action: "promote" | "dismiss", body?: unknown) {
     setPendingId(intakeId);
     setStatus("");
     try {
@@ -59,9 +56,7 @@ export function UnverifiedIntakeReview({
         setIntake((prev) => prev.filter((row) => row.id !== intakeId));
         setStatus(
           action === "promote"
-            ? dataMode === "test"
-              ? "Promoted to an isolated Test ticket. No Live ticket or provider effect was created."
-              : "Promoted to a Live app ticket (unit needs verification; no provider effect was created)."
+            ? "Promoted to a Live app ticket (unit needs verification; no provider effect was created)."
             : "Dismissed.",
         );
       } else {
@@ -82,7 +77,7 @@ export function UnverifiedIntakeReview({
     }
     const row = intake.find((candidate) => candidate.id === intakeId);
     if (!row) return;
-    void act(intakeId, "dismiss", row.data_mode, { reason });
+    void act(intakeId, "dismiss", { reason });
   }
 
   return (
@@ -90,9 +85,7 @@ export function UnverifiedIntakeReview({
       <h2 className="section-subtitle">Unverified intake ({intake.length})</h2>
       <p className="muted">
         Reports submitted through a public intake link. Review each, then promote it to a
-        mode-matched tracked ticket or dismiss it. Test intake produces only the canonical
-        invented Test ticket and stays in the Test plane; it can never create a Live
-        ticket.
+        tracked Live ticket or dismiss it.
       </p>
       {intake.length === 0 ? (
         <p className="muted">No unverified intake right now.</p>
@@ -101,11 +94,8 @@ export function UnverifiedIntakeReview({
         <article key={row.id} className="ui-card ui-stack">
           <div>
             <p>
-              <span
-                className="queue-pill"
-                data-value={row.data_mode === "test" ? "Needs Attention" : "Scheduled"}
-              >
-                {row.data_mode === "test" ? "TEST INTAKE" : "LIVE INTAKE"}
+              <span className="queue-pill" data-value="Scheduled">
+                LIVE INTAKE
               </span>{" "}
               <strong>{row.summary}</strong>
             </p>
@@ -116,25 +106,18 @@ export function UnverifiedIntakeReview({
             </div>
           </div>
           {row.description ? <p>{row.description}</p> : null}
-          {row.data_mode === "test" ? (
-            <p className="muted">
-              Promotion target: canonical invented Test unit. No Live unit can be
-              selected.
-            </p>
-          ) : (
-            <UnitTypeahead
-              id={`intake-unit-${row.id}`}
-              label="Confirm unit (optional)"
-              onSelect={(unit) =>
-                setSelectedUnits((prev) => {
-                  const next = { ...prev };
-                  if (unit) next[row.id] = unit;
-                  else delete next[row.id];
-                  return next;
-                })
-              }
-            />
-          )}
+          <UnitTypeahead
+            id={`intake-unit-${row.id}`}
+            label="Confirm unit (optional)"
+            onSelect={(unit) =>
+              setSelectedUnits((prev) => {
+                const next = { ...prev };
+                if (unit) next[row.id] = unit;
+                else delete next[row.id];
+                return next;
+              })
+            }
+          />
           <div className="ui-row">
             <button
               type="button"
@@ -143,14 +126,11 @@ export function UnverifiedIntakeReview({
                 act(
                   row.id,
                   "promote",
-                  row.data_mode,
                   selectedUnits[row.id] ? { unit: selectedUnits[row.id] } : undefined,
                 )
               }
             >
-              {row.data_mode === "test"
-                ? "Promote to Test ticket"
-                : "Promote to Live app ticket"}
+              Promote to Live app ticket
             </button>
             <button
               type="button"

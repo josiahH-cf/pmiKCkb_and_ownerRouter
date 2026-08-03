@@ -9,103 +9,63 @@
 > and is recorded below; it found one load-bearing runtime coupling that would have failed closed,
 > and one dead legacy bucket still referenced by a tracked manifest.
 
-**Goal.** The service that serves real client data stops being named `pmi-kc-kb-demo`. Today the
-only live application service carries a name that says "demo", which is precisely the confusion the
-whole Demo/Production separation programme exists to prevent: an operator or engineer reading the
-console sees a service called demo and may reasonably assume it is a safe sandbox. After this suite
-the Production service is named `pmi-kc-app`, sign-in keeps working throughout, vendor lifecycle
-actions keep working throughout, and no user sees an interruption. Separately, identifiers belonging
-to the retired `pmikckb-test` project stop being carried in tracked files as though they were live.
+**Goal.** The service that serves real client data stops being named `pmi-kc-kb-demo`. Stage one is
+complete: `pmi-kc-app` serves Production at the canonical URL, its exact hosts are authorized,
+Pub/Sub and monitoring target it, and the old service remains only as the rollback target. Stage two
+retires that rollback service after S56 and a recorded rollback rehearsal. Sign-in and vendor
+lifecycle actions must continue working throughout. Separately, identifiers belonging to the retired
+`pmikckb-test` project stop being carried in tracked files as though they were live.
 
 **What it is / how it functions.**
 
-- **The load-bearing coupling — `lib/vendor/live-lifecycle-runtime.ts`.** Line 79 pins
-  `CURRENT_PRODUCTION_APP_HOST = "pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app"`. That constant is read by
-  `validProductionAppOrigin` (checked against `config.appBaseUrl`) and `validProductionAuthDomain`,
-  both of which feed `ExecutionTechnicalGates`. Renaming the service changes the app's own URL, so
-  `APP_BASE_URL` stops matching the allowlist and the vendor lifecycle gates fail closed. Failing
-  closed is the safe direction, so this is a correctness bug rather than a safety one, but
-  `vendor.account.invite`, `vendor.account.disable`, and `vendor.assignment.change` would silently
-  stop being executable. **This constant must become a set that accepts the old and new hosts
-  simultaneously, and it must be widened BEFORE the new service is promoted.**
+- **The load-bearing coupling — `lib/vendor/live-lifecycle-runtime.ts`.** The former single-host
+  constant is now an exact set accepting the old and new Production hosts. Tests prove both accepted
+  hosts and reject an unrelated `run.app` host. This widening landed before promotion, so the vendor
+  lifecycle gates did not fail closed during the rename.
 - **Two-stage, never a flag day.** Stage one widens every allowlist and default to accept both names
   and stands up `pmi-kc-app` alongside the existing service, verified at its zero-traffic tag URL via
   the S40 `npm run release` path. Stage two retires `pmi-kc-kb-demo` only after the new service has
   served real traffic and a rollback has been rehearsed. This follows the standing rule that nothing
   is deleted big-bang: hide and instrument first, delete only with consumer, route, test, and
   rollback proof.
-- **Firebase authorized domains are a hard prerequisite.** The Identity Toolkit config for
-  `pmi-kc-kb-prod` currently authorizes `pmi-kc-kb-demo-558870356522.us-central1.run.app` and
-  `pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` (Cloud Run serves both a modern
-  `<service>-<project-number>.<region>.run.app` form and a legacy `<service>-<hash>-uc.a.run.app`
-  form for the same service). The `pmi-kc-app` equivalents must be ADDED to `authorizedDomains`
-  before promotion, or Google sign-in breaks for every operator. The addition is purely additive;
-  the old domains stay until stage two.
+- **Firebase authorized domains were a hard prerequisite.** The live Identity Toolkit config now
+  contains both Cloud Run URL forms for `pmi-kc-app`; both old-service forms remain during stage two.
+  The values were read back before promotion rather than inferred.
 - **`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` is not affected.** It resolves to
   `pmi-kc-kb-prod.firebaseapp.com`, which is project-derived and survives the rename. Verified live
   on the running revision, so it is explicitly out of scope rather than merely assumed safe.
-- **Ops scripts that default to the old service name.** `scripts/deploy-demo-cloud-run.mjs:22`
-  (`DEFAULT_SERVICE`), `scripts/rehearse-rollback.mjs:13` (`DEFAULT_SERVICE`),
-  `scripts/build-cutover-report.mjs:25` (`DEFAULT_CUTOVER_SERVICE`), and
-  `scripts/demo-operator.mjs:16` plus `scripts/demo-operator.ps1:5` (hosted base URL). Each keeps
-  working during stage one because the old service still exists; each must point at `pmi-kc-app`
-  before stage two or it silently targets a retired service.
-- **Monitoring watches the old service by name — `infra/monitoring/manifest.mjs:22,141`.** The alert
-  policies carry `service: "pmi-kc-kb-demo"` as a resource label. If this is not moved in lockstep,
-  monitoring goes quiet against the new service while continuing to look healthy, which is the worst
-  possible failure shape for an alerting system: silence that reads as success.
-- **Dead legacy bucket in a tracked manifest.** `docs/source-corpus/demo-live-source-manifest.json`
-  carries ten-plus `gs://pmikckb-test-lease-renewals-686407/...` URIs. That bucket returns 404; the
-  project is retired. `scripts/source-corpus-manifest.mjs:17` still names the file. The Admin
-  migration-readiness surface reads `client-production-source-manifest.template.json` and NOT this
-  file, so runtime severity is low, but it is dead data presented as a catalog and should be marked
-  retired rather than silently carried.
+- **Ops and monitoring defaults moved in stage one.** Deploy, rollback rehearsal, cutover report,
+  operator entrypoints, and the monitoring manifest all name `pmi-kc-app`; pinned tests keep them
+  from drifting back to the retired name.
+- **Dead legacy bucket retired.** The former `pmikckb-test` source manifest is no longer presented as
+  a live catalog, and readiness coverage pins that retirement.
 - **`DEMO_VALUE_PATTERNS` is correct and stays.** `scripts/preflight-production-cutover.mjs:12`
   denylists `pmikckb-test`, `lease-renewals-686407`, `800237451321`, and `cherrybridge.ai`. It does
   NOT denylist the substring "demo", so the current `pmi-kc-kb-demo` URL does not trip it. This was
   checked explicitly because a preflight that rejected the live Production URL would be a latent
   blocker; it does not.
 
-Buildable now (app-plane): the allowlist widening, every script/manifest default, and the tests that
-pin them. Build to the seam: the `pmi-kc-app` service stood up with `--no-traffic` and verified at
-its tag URL. Owner dependency: none remaining. The authorized-domain addition and the Cloud Run
-deploy/promote are covered by the standing cloud-automation grant recorded 2026-08-01.
+Stage-one implementation and promotion are complete. Stage two is buildable without an owner
+dependency: after S56 is green and deployed, run the print-only rollback plan with the exact serving
+and prior `pmi-kc-app` revisions, execute and verify candidate → prior → candidate traffic, then
+delete the old service and read back its absence. The standing cloud-automation grant covers those
+steps.
 
 **Open questions & assumptions.**
 
-- _Assumption:_ the new service receives the legacy-form URL `pmi-kc-app-kq6wuvpiva-uc.a.run.app` in
-  addition to `pmi-kc-app-558870356522.us-central1.run.app`, because `kq6wuvpiva` is a per-project,
-  per-region hash rather than a per-service one. **This must be read back from the created service
-  rather than assumed**, and both forms authorized if both resolve.
-- _BLOCKER, found 2026-08-01 by `--execute`:_ the production deploy preflight refuses with
-  `KB_APPROVAL_SENDER must be set to exactly one managed pmikcmetro.com mailbox because executable
-action internal.transactional_notice.send requires it`. **This is not specific to the rename: it
-  blocks ANY production deploy today.** The value is absent from `.env.local` and empty on the
-  serving revision, so the deployed revision predates the rule or the action became executable after
-  it shipped. It is the already-tracked "S53 sender value" owner dependency. Setting it to clear the
-  refusal is exactly the prohibited act, and guessing a mailbox would make internal notices come from
-  a wrong or non-existent address, so the cutover stops here. The refusal fired BEFORE any cloud
-  mutation: `pmi-kc-app` was never created and nothing needs cleaning up.
-- _Resolved 2026-08-01:_ the `kq6wuvpiva` hash is per-project-per-region, not per-service, confirmed
-  because `budget-guardrail` and `pmi-kc-kb-demo` share it and `status.url` returns the legacy form.
-  The derived host `pmi-kc-app-kq6wuvpiva-uc.a.run.app` is therefore evidence-backed, though it must
-  still be read back from the created service before any traffic moves.
-- _Open:_ whether any client-side bookmark, saved link, or externally configured webhook points at
-  the `pmi-kc-kb-demo` host. Stage two retires that host, so anything still pointing at it breaks.
-  The old service is kept serving through stage one specifically to make this discoverable.
-- _FALSIFIED 2026-08-01, was an assumption:_ the Gmail Pub/Sub push subscription DOES carry the
-  service host. `gmail-inbox0-push` has both `pushConfig.pushEndpoint` and
-  `pushConfig.oidcToken.audience` set to `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/api/gmail-hub/pubsub`.
-  This is the single hardest constraint in the cutover: a subscription can name exactly ONE endpoint,
-  so inbound Gmail push CANNOT be dual-homed across both services the way HTTP traffic can. It has a
-  genuine flip moment that must be sequenced with promotion, and the OIDC audience must move with it
-  or every inbound push is rejected as an audience mismatch.
-- _FALSIFIED 2026-08-01, found by `--plan-only`:_ the deploy map sets the app's own origin from
-  `.env.local`, so deploying the same code under a new service name produces a revision that
-  misreports its own URL. `APP_BASE_URL` and `GMAIL_PUBSUB_AUDIENCE` both still resolve to the
-  outgoing host. **`.env.local` is owner-owned and is never edited to make a deploy pass**, so these
-  two values are an explicit owner-confirmed configuration change rather than something the cutover
-  silently rewrites.
+All formerly open S55 questions are resolved; the current configuration facts are:
+
+- The live service readback proves the canonical legacy-form URL is
+  `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`; both actual URL forms are authorized.
+- The earlier sender refusal is resolved by owner-supplied managed configuration. It is not an open
+  S55 dependency.
+- The Gmail push endpoint and OIDC audience both name the new canonical URL and were read back after
+  the stage-one flip.
+- Production release configuration is merged from `.env.production.local`, not `.env.local`. The
+  release path's own `--plan-only` output is the authority for proving `APP_BASE_URL` and
+  `GMAIL_PUBSUB_AUDIENCE` reached the merged map; neither environment file is edited to clear a gate.
+- The Friday update carries the one-time address-change note, so an unknown external bookmark is not
+  an implementation blocker. The old host is deliberately retired only after rollback proof.
 
 **Cross-product impacts.** `lib/vendor/live-lifecycle-runtime.ts`;
 `scripts/deploy-demo-cloud-run.mjs`; `scripts/rehearse-rollback.mjs`;
@@ -128,8 +88,9 @@ files and `*.html` walkthroughs are historical records and must NOT be rewritten
 - **AC-S55-3** — Firebase `authorizedDomains` contains every URL form the new service actually
   resolves at, read back from the live Identity Toolkit config rather than assumed, with the old
   domains still present.
-- **AC-S55-4** — `pmi-kc-app` exists, was deployed with `--no-traffic` and its own tag, and returns a
-  signed-in-capable page at its tag URL while `pmi-kc-kb-demo` still serves 100 percent of traffic.
+- **AC-S55-4** — `pmi-kc-app` was deployed with `--no-traffic`, verified at its exact tag, promoted by
+  exact revision, and read back serving 100 percent while `pmi-kc-kb-demo` remained available as the
+  independent rollback service.
 - **AC-S55-5** — `infra/monitoring/manifest.mjs` targets the new service, and a test asserts no alert
   policy references a service name that no longer exists, so monitoring cannot go silently quiet.
 - **AC-S55-6** — Every ops script default (`deploy`, `rehearse-rollback`, `build-cutover-report`, both
@@ -174,6 +135,6 @@ files and `*.html` walkthroughs are historical records and must NOT be rewritten
 9. _Verify:_ rehearse rollback against the new service, then retire the old service.
 10. _Document:_ record the outcome and mark the stale manifest retired.
 
-**Deletion/merge recommendation.** KEEP until stage two completes, then MERGE the durable outcome
-into `docs/feature-suites/environment-deployment-separation.md` (S40) as the closed D56 item and
-delete this file. It exists to carry a cutover, not to become permanent guidance.
+**Deletion/merge recommendation.** KEEP for acceptance traceability. After stage two, the current
+deployment state is also summarized in S40 and the fact ledger; this file remains the declaration
+site for `AC-S55-*` and the ordered cutover evidence.

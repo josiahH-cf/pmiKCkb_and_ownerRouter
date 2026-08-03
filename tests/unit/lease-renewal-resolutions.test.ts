@@ -7,7 +7,10 @@ import {
   resolutionDocId,
   resolveLeaseRenewalFlag,
 } from "@/lib/firestore/lease-renewal-resolutions";
-import { getSimulationRun, SIMULATION_RUN_ID } from "@/lib/lease-renewal/simulation";
+import {
+  getSimulationRun,
+  SIMULATION_RUN_ID,
+} from "@/tests/helpers/lease-renewal-simulation";
 
 type TestRecord = Record<string, unknown>;
 
@@ -98,6 +101,25 @@ const MEDIUM_KEY = "lease_renewal:reconcile:sim-renewal-001:inspections_cadence"
 const HIGH_KEY = "lease_renewal:reconcile:sim-renewal-001:renewal_date";
 
 describe("resolveLeaseRenewalFlag reason audit", () => {
+  it("refuses an omitted Live resolver instead of falling back to fixture data", async () => {
+    const db = new ResolutionTestFirestore();
+
+    await expect(
+      resolveLeaseRenewalFlag(
+        approver,
+        {
+          run_id: SIMULATION_RUN_ID,
+          source_trigger_key: MEDIUM_KEY,
+          kind: "pick_source",
+          chosen_source: "rentvine_building",
+          reason_code: "accepted_suggestion",
+        },
+        db as unknown as Firestore,
+      ),
+    ).rejects.toThrow("A Live renewal run resolver is required.");
+    expect(db.store.size).toBe(0);
+  });
+
   it("stamps the code label verbatim on both the resolution and Activity twin", async () => {
     const db = new ResolutionTestFirestore();
 

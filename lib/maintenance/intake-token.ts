@@ -60,7 +60,7 @@ export interface MintIntakeTokenInput {
    * trusts, so an unclassified mint would carry an unclassified lane straight past the fail-closed
    * guard. There is deliberately no default.
    */
-  dataMode: "live" | "test";
+  dataMode: "live";
 }
 
 export type VerifyIntakeTokenResult =
@@ -117,6 +117,9 @@ export function mintIntakeToken(
   const jti = input.jti?.trim();
   if (!jti) {
     throw new Error("Intake token requires a jti.");
+  }
+  if (input.dataMode !== "live") {
+    throw new Error("Maintenance intake tokens are Live-only.");
   }
 
   const ttlMs = Math.min(
@@ -218,7 +221,8 @@ export function verifyIntakeToken(
   }
 
   // Backward compatibility for already-minted v1 tokens. The absent claim can only narrow to the
-  // pre-existing Live behavior; a Test lane always requires an explicitly signed claim.
+  // pre-existing Live behavior. Explicit legacy Test claims remain decodable so every current
+  // intake boundary can refuse them before a write.
   //
   // S40: minting now refuses an unclassified lane, and every token's lifetime is clamped to
   // INTAKE_TOKEN_MAX_TTL_MS, so this compatibility branch becomes unreachable one maximum TTL after

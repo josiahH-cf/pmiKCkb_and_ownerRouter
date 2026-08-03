@@ -7,7 +7,7 @@ import { setWorkflowRunStepCheck } from "@/lib/firestore/workflow-run-step-check
 import {
   createProcessDefinition,
   getProcessDefinition,
-  startWorkflowTestRun,
+  startWorkflowRun,
   submitProcessDefinitionForApproval,
   updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
@@ -146,29 +146,27 @@ describe("lease renewal process-definition template", () => {
   });
 });
 
-describe("lease renewal acceptance scenarios (simulation-only)", () => {
-  it("creates the template as a Draft definition and runs a simulation test run", async () => {
+describe("lease renewal app-plane acceptance scenarios", () => {
+  it("creates the template as a Draft definition and runs its ordinary checklist", async () => {
     const definition = await createProcessDefinition(editor, template(), db);
     expect(definition.status).toBe("Draft");
 
-    const run = await startWorkflowTestRun(
+    const run = await startWorkflowRun(
       editor,
       definition.id,
-      { note: "Acceptance scenario: simulation-only lease renewal test run." },
+      { note: "Acceptance scenario: human-started lease renewal workflow." },
       db,
     );
 
     expect(run).toMatchObject({
-      is_test_run: true,
-      simulation_only: true,
-      production_metrics_included: false,
+      data_mode: "live",
       status: "In Progress",
       next_action: "Candidate detection",
       owner_uid: "admin-dan",
     });
 
-    const testing = await getProcessDefinition(editor, definition.id, db);
-    expect(testing.status).toBe("Testing");
+    const unchanged = await getProcessDefinition(editor, definition.id, db);
+    expect(unchanged.status).toBe("Draft");
 
     for (const step of definition.steps) {
       await setWorkflowRunStepCheck(
@@ -181,15 +179,15 @@ describe("lease renewal acceptance scenarios (simulation-only)", () => {
     const completed = await updateWorkflowRunOutcome(
       editor,
       run.id,
-      { action: "complete_test", notes: "Simulation completed with fixture facts." },
+      { action: "complete", notes: "Workflow checklist completed." },
       db,
     );
     expect(completed.status).toBe("Completed");
   });
 
-  it("submits the tested definition into Pending Approval through the queue", async () => {
+  it("submits the definition into Pending Approval through the historical queue bridge", async () => {
     const definition = await createProcessDefinition(editor, template(), db);
-    await startWorkflowTestRun(editor, definition.id, {}, db);
+    await startWorkflowRun(editor, definition.id, {}, db);
 
     await submitProcessDefinitionForApproval(
       editor,

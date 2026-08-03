@@ -10,7 +10,7 @@ import {
 } from "../lib/release/manifest";
 
 export interface LocalV1ManifestReport {
-  reportVersion: "v1-local-manifest-report:2.2";
+  reportVersion: "v1-local-manifest-report:2.3";
   label: "Local V1 evidence inventory — deployment verdict intentionally not assessed";
   bodyless: true;
   productionVerdictAssessed: false;
@@ -24,7 +24,7 @@ export interface LocalV1ManifestReport {
   applicationWorkflow: {
     required: number;
     covered: number;
-    productionTest: number;
+    localRehearsal: number;
     live: number;
     oneAttemptVerified: number;
     idempotencyVerified: number;
@@ -115,7 +115,7 @@ export function buildLocalV1ManifestReport(
   ) as Record<ProviderActivationState, number>;
 
   return {
-    reportVersion: "v1-local-manifest-report:2.2",
+    reportVersion: "v1-local-manifest-report:2.3",
     label: "Local V1 evidence inventory — deployment verdict intentionally not assessed",
     bodyless: true,
     productionVerdictAssessed: false,
@@ -133,8 +133,8 @@ export function buildLocalV1ManifestReport(
       covered: manifest.actions.filter(
         (proof) => proof.applicationCoverage !== "unverified",
       ).length,
-      productionTest: manifest.actions.filter(
-        (proof) => proof.applicationCoverage === "production_test",
+      localRehearsal: manifest.actions.filter(
+        (proof) => proof.applicationCoverage === "local_rehearsal",
       ).length,
       live: manifest.actions.filter((proof) => proof.applicationCoverage === "live")
         .length,
@@ -173,7 +173,7 @@ export function formatLocalV1ManifestReport(report: LocalV1ManifestReport, json 
     `Inventory state: ${report.state}; candidate stage: ${report.stage}; environment: ${report.environment}`,
     "This local command has no deployed revision or signed-in production observations, so it does not label the application Pre-V1 or V1.",
     `Commit: ${report.commit}; revision: ${report.revision}`,
-    `Application workflow coverage: ${report.applicationWorkflow.covered}/${report.applicationWorkflow.required}; production Test: ${report.applicationWorkflow.productionTest}; Live: ${report.applicationWorkflow.live}`,
+    `Application workflow coverage: ${report.applicationWorkflow.covered}/${report.applicationWorkflow.required}; local rehearsal: ${report.applicationWorkflow.localRehearsal}; Live: ${report.applicationWorkflow.live}`,
     `Safety checks — one-attempt: ${report.applicationWorkflow.oneAttemptVerified}; idempotency: ${report.applicationWorkflow.idempotencyVerified}; correction/rollback: ${report.applicationWorkflow.correctionVerified}`,
     `Advisory provider status — ${activation}`,
     `Advisory signoffs — Dan: ${report.advisorySignoffs.danBusiness}; Josiah: ${report.advisorySignoffs.josiahTechnical}; issues: ${report.advisorySignoffs.issueCount}`,

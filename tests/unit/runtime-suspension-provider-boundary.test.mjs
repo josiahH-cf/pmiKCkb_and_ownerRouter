@@ -883,6 +883,35 @@ function hasZeroFactoryAssertion(proofStatement, factoryName) {
 }
 
 describe("runtime suspension provider-construction boundary", () => {
+  it("has no Product Test executor or isolated-workspace constructor", () => {
+    const intentionalRetirementEvidence = new Set([
+      "lib/operations/production-test-record-catalog.ts",
+      "lib/operations/production-test-retirement.ts",
+      "scripts/retire-production-test-records.ts",
+    ]);
+    const retiredMarkers = [
+      "isolatedTestWorkspace",
+      "createIsolatedTestWorkspace",
+      "approval-test-fixtures",
+      "publication/test-fixture",
+      "lease-renewal/test-workflow",
+      "maintenance/test-workflow",
+      "vendor/test-mailbox",
+      "release/synthetic-execution",
+      "release/fake-acceptance",
+    ];
+    const offenders = runtimeSources().flatMap((file) => {
+      const relativeFile = relative(ROOT, file).replaceAll("\\", "/");
+      if (intentionalRetirementEvidence.has(relativeFile)) return [];
+      const source = readFileSync(file, "utf8");
+      return retiredMarkers
+        .filter((marker) => source.includes(marker))
+        .map((marker) => `${marker}: ${relativeFile}`);
+    });
+
+    expect(offenders).toEqual([]);
+  }, 20_000);
+
   it("discovers aliased, namespace, typed-parameter, and structural provider factories", () => {
     const fixture = `
       import {

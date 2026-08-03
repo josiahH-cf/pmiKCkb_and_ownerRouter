@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AskForm } from "@/components/ask/AskForm";
 
 // The action console's ask surface: process-aware (the four Ask metadata selects are gone), an
-// editor who picks a process launches a SAFE simulation alongside the grounded answer, and the
+// editor who picks a process launches an ordinary app-plane run alongside the grounded answer, and the
 // Dictate control is a first-class affordance. The always-visible action deck + process strip live
 // in their own server components (see console-action-deck.test.tsx), not here.
 
@@ -34,7 +34,7 @@ beforeEach(() => {
       return jsonResponse({ transcript: "spoken follow-up" });
     }
     if (url.includes("/api/ask")) return jsonResponse(ANSWER);
-    if (url.includes("/test-runs")) {
+    if (/\/api\/process-definitions\/[^/]+\/runs$/.test(url)) {
       return jsonResponse(
         {
           run: {
@@ -60,7 +60,7 @@ afterEach(() => {
 
 describe("AskForm (action console)", () => {
   it("drops the four Ask metadata selects and shows no process picker for read-only users", () => {
-    render(<AskForm canStartSimulation={false} processes={[]} />);
+    render(<AskForm canUseProcessContext={false} processes={[]} />);
 
     expect(screen.queryByLabelText("Audience")).toBeNull();
     expect(screen.queryByLabelText("Channel")).toBeNull();
@@ -301,7 +301,7 @@ describe("AskForm (action console)", () => {
     });
     render(
       <AskForm
-        canStartSimulation
+        canUseProcessContext
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
@@ -343,7 +343,7 @@ describe("AskForm (action console)", () => {
     });
     render(
       <AskForm
-        canStartSimulation
+        canUseProcessContext
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
@@ -363,7 +363,7 @@ describe("AskForm (action console)", () => {
     const user = userEvent.setup();
     render(
       <AskForm
-        canStartSimulation={false}
+        canUseProcessContext={false}
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
@@ -383,11 +383,11 @@ describe("AskForm (action console)", () => {
     expect(screen.queryByText("Renewal-notice draft")).toBeNull();
   });
 
-  it("asks without a process and never starts a simulation", async () => {
+  it("asks without a process and never starts a run", async () => {
     const user = userEvent.setup();
     render(
       <AskForm
-        canStartSimulation
+        canUseProcessContext
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
@@ -398,32 +398,28 @@ describe("AskForm (action console)", () => {
     expect(await screen.findByText("Here is the grounded answer.")).toBeInTheDocument();
     const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
     expect(calledUrls.some((url) => url.includes("/api/ask"))).toBe(true);
-    expect(calledUrls.some((url) => url.includes("/test-runs"))).toBe(false);
-    expect(screen.queryByText("Test run started")).toBeNull();
+    expect(
+      calledUrls.some((url) => /\/process-definitions\/[^/]+\/runs$/.test(url)),
+    ).toBe(false);
+    expect(screen.queryByText("Run started")).toBeNull();
     expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 
-  it("launches a simulation when an editor selects a process and links to the run", async () => {
+  it("launches an ordinary run when an editor selects a process and links to it", async () => {
     const user = userEvent.setup();
     render(
       <AskForm
-        canStartSimulation
+        canUseProcessContext
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
 
     await user.type(screen.getByLabelText(/Question/), "Start a renewal");
     await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
-    expect(
-      screen.getByRole("button", { name: "Get answer + start a test run" }),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
 
-    await user.click(
-      screen.getByRole("button", { name: "Get answer + start a test run" }),
-    );
-
-    expect(await screen.findByText("Test run started")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View the test run" })).toHaveAttribute(
+    expect(await screen.findByText("Run started")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View the run" })).toHaveAttribute(
       "href",
       "/workflow-runs/run-1",
     );
@@ -432,7 +428,7 @@ describe("AskForm (action console)", () => {
       const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(
         calledUrls.some((url) =>
-          url.includes("/api/process-definitions/lease-renewal/test-runs"),
+          url.includes("/api/process-definitions/lease-renewal/runs"),
         ),
       ).toBe(true);
     });
@@ -445,7 +441,7 @@ describe("AskForm (action console)", () => {
     const user = userEvent.setup();
     render(
       <AskForm
-        canStartSimulation
+        canUseProcessContext
         processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
       />,
     );
@@ -456,9 +452,7 @@ describe("AskForm (action console)", () => {
     );
     await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
 
-    expect(
-      screen.getByRole("button", { name: "Get answer + start a test run" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Get answer" })).toBeInTheDocument();
   });
 });
 

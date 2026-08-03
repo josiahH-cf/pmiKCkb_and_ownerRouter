@@ -128,7 +128,6 @@ export async function publishTrustedContent(
           id: metadata.resourceId,
           activeVersionId: versionId,
           data_mode: resolveStoredDataMode(metadata),
-          test_fixture_key: metadata.test_fixture_key,
           lastVersionNumber: versionNumber,
           policyId: policy.id,
           resourceType: metadata.resourceType,
@@ -359,7 +358,6 @@ function versionRecord(input: {
   return stripUndefined({
     id: input.versionId,
     data_mode: resolveStoredDataMode(metadata),
-    test_fixture_key: metadata.test_fixture_key,
     citationLabel: metadata.citationLabel,
     connectorId: metadata.connectorId,
     contentByteSize: input.contentRef.byteSize,
@@ -443,8 +441,7 @@ function assertResourceIdentity(
     resource.policyId !== policyId ||
     resource.resourceType !== metadata.resourceType ||
     resource.spaceId !== metadata.spaceId ||
-    resolveStoredDataMode(resource) !== resolveStoredDataMode(metadata) ||
-    resource.test_fixture_key !== metadata.test_fixture_key
+    resolveStoredDataMode(resource) !== resolveStoredDataMode(metadata)
   ) {
     throw new EditableLayerError(
       "Publication resource identity conflicts with the existing Active resource.",
@@ -495,8 +492,6 @@ function assertRollbackAllowedByCurrentPolicy(
     !policy.enabled ||
     resolveStoredDataMode(policy) !== resolveStoredDataMode(resource) ||
     resolveStoredDataMode(resource) !== resolveStoredDataMode(target) ||
-    policy.test_fixture_key !== resource.test_fixture_key ||
-    resource.test_fixture_key !== target.test_fixture_key ||
     policy.id !== resource.policyId ||
     target.policyId !== policy.id ||
     target.spaceId !== resource.spaceId ||
@@ -524,10 +519,7 @@ function assertPublicationModesMatch(
   resource: PublicationResourceRecord,
   version: PublicationVersionRecord,
 ) {
-  if (
-    resolveStoredDataMode(resource) !== resolveStoredDataMode(version) ||
-    resource.test_fixture_key !== version.test_fixture_key
-  ) {
+  if (resolveStoredDataMode(resource) !== resolveStoredDataMode(version)) {
     throw new EditableLayerError(
       "Publication resource and version data modes do not match.",
       409,

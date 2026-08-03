@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
 import { DecisionMetricsCard } from "@/components/approval/DecisionMetricsCard";
 import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
@@ -33,7 +32,6 @@ import {
   buildLeaseRenewalDecisionProjections,
   LIVE_RENEWAL_DECISION_RUN_ID,
 } from "@/lib/lease-renewal/decision-projection";
-import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 export default async function ApprovalQueuePage({
   searchParams,
@@ -98,11 +96,6 @@ export default async function ApprovalQueuePage({
     { runId: LIVE_RENEWAL_DECISION_RUN_ID },
   );
 
-  const testHandoffs = await loadTestOperationalHandoffs(user, {
-    lease: true,
-    limitPerKind: 5,
-  });
-
   return (
     <AppShell user={user}>
       <section className="content">
@@ -120,10 +113,6 @@ export default async function ApprovalQueuePage({
           decisions={liveDecisionProjections}
           emptyMessage="No Live Review decision has been recorded yet. This projection will populate after an authorized Live app decision; it never reads or changes a provider."
           title="Live renewal decisions and write-back authorization"
-        />
-        <TestOperationalHandoffPanel
-          handoffs={testHandoffs}
-          title="Lease Test decision and handoff projections"
         />
         {/* AQ-2 (Note 2 §Q): Decision Metrics moves to the very bottom of the page. */}
         {decisionMetrics ? <DecisionMetricsCard metrics={decisionMetrics} /> : null}

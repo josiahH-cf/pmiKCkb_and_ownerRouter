@@ -22,7 +22,6 @@ import { z } from "zod";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
-import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -35,7 +34,6 @@ import type {
   MaintenanceTicketActivityRecord,
   MaintenanceTicketRecord,
 } from "@/lib/maintenance/ticket-model";
-import { MAINTENANCE_TEST_UNIT } from "@/lib/maintenance/test-workflow";
 import { inferPriority } from "@/lib/maintenance/work-order-draft";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
@@ -96,7 +94,7 @@ export async function listUnverifiedIntake(
   const snapshot = await db.collection(MAINTENANCE_INTAKE_COLLECTIONS.intake).get();
   return snapshot.docs
     .map((doc) => readIntake(doc.id, doc.data()))
-    .filter((record) => record.status === status)
+    .filter((record) => record.data_mode === "live" && record.status === status)
     .sort((left, right) => right.created_at.localeCompare(left.created_at));
 }
 
@@ -126,35 +124,27 @@ export async function promoteUnverifiedIntake(
     if (intake.status !== "unverified") {
       throw new EditableLayerError("That intake has already been reviewed.", 409);
     }
-    assertTestDataModeWriteAllowed(intake.data_mode);
+    if (intake.data_mode !== "live") {
+      throw new EditableLayerError("The retired Test intake cannot be promoted.", 409);
+    }
 
     // Priority: honor an operator override, else infer from the report text (transparent provenance).
     const priority =
       parsed.priority ?? inferPriority(`${intake.summary} ${intake.description}`);
-    const provenance = parsed.priority ? "operator-set" : "auto-inferred";
+    const provenance: MaintenanceTicketRecord["priority_provenance"] = parsed.priority
+      ? "operator-set"
+      : "auto-inferred";
 
     // Optional operator-confirmed unit (slice 2a). When present the ticket carries it and the
     // Needs-Verification label is dropped; when absent the promote is unchanged (unit:null + the label).
-    if (
-      intake.data_mode === "test" &&
-      parsed.unit &&
-      (parsed.unit.unitId !== MAINTENANCE_TEST_UNIT.unitId ||
-        parsed.unit.label !== MAINTENANCE_TEST_UNIT.label)
-    ) {
-      throw new EditableLayerError(
-        "Test intake can only use the canonical invented Test unit.",
-        409,
-      );
-    }
-    const confirmedUnit =
-      intake.data_mode === "test" ? MAINTENANCE_TEST_UNIT : (parsed.unit ?? null);
+    const confirmedUnit = parsed.unit ?? null;
 
     const ticketId = uuidv7();
     const ticket: MaintenanceTicketRecord = stampProductRecordRetention(
       MAINTENANCE_TICKET_COLLECTIONS.tickets,
       {
         id: ticketId,
-        data_mode: intake.data_mode,
+        data_mode: "live" as const,
         status: "Open" as const,
         priority,
         priority_provenance: provenance,
@@ -166,17 +156,9 @@ export async function promoteUnverifiedIntake(
           kind: "external" as const,
           ...(intake.contact ? { contact: intake.contact } : {}),
         },
-        labels:
-          intake.data_mode === "test"
-            ? ["TEST DATA"]
-            : confirmedUnit
-              ? []
-              : [NEEDS_VERIFICATION_LABEL],
+        labels: confirmedUnit ? [] : [NEEDS_VERIFICATION_LABEL],
         space_id: "maintenance-work-order-intake",
-        source_trigger_key:
-          intake.data_mode === "test"
-            ? `maintenance:test:intake:${intake.id}`
-            : `maintenance:intake:${intake.id}`,
+        source_trigger_key: `maintenance:intake:${intake.id}`,
         created_at: timestamp,
         updated_at: timestamp,
       },
@@ -188,9 +170,7 @@ export async function promoteUnverifiedIntake(
       action: "create",
       new_status: "Open",
       text: confirmedUnit
-        ? intake.data_mode === "test"
-          ? "Promoted from the canonical public Test intake fixture; no Live ticket or provider effect was created."
-          : `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
+        ? `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
         : "Promoted from a public intake report (unit needs verification).",
       created_at: timestamp,
     };
@@ -250,7 +230,9 @@ export async function dismissUnverifiedIntake(
     if (intake.status !== "unverified") {
       throw new EditableLayerError("That intake has already been reviewed.", 409);
     }
-    assertTestDataModeWriteAllowed(intake.data_mode);
+    if (intake.data_mode !== "live") {
+      throw new EditableLayerError("The retired Test intake cannot be dismissed.", 409);
+    }
 
     const dismissed: UnverifiedIntakeRecord = {
       ...intake,

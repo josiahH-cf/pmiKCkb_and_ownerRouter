@@ -2,10 +2,7 @@ import { FieldValue, type Firestore, type Transaction } from "firebase-admin/fir
 import { v7 as uuidv7 } from "uuid";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import {
-  createApprovalQueueItem,
-  getApprovalQueueItem,
-} from "@/lib/firestore/approval-queue";
+import { createApprovalQueueItem } from "@/lib/firestore/approval-queue";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -13,14 +10,12 @@ import {
   WORKFLOW_RUN_STEP_CHECK_COLLECTIONS,
 } from "@/lib/firestore/workflow-run-step-check-keys";
 import {
-  ActivateProcessDefinitionInputSchema,
-  type ActivateProcessDefinitionInput,
   CreateProcessDefinitionInputSchema,
   type CreateProcessDefinitionInput,
   type ParsedCreateProcessDefinitionInput,
   type ParsedUpdateProcessDefinitionInput,
-  StartWorkflowTestRunInputSchema,
-  type StartWorkflowTestRunInput,
+  StartWorkflowRunInputSchema,
+  type StartWorkflowRunInput,
   SubmitProcessDefinitionInputSchema,
   type SubmitProcessDefinitionInput,
   UpdateProcessDefinitionInputSchema,
@@ -34,7 +29,6 @@ import type {
   ProcessDefinitionRecord,
   ProcessDefinitionStatus,
   ProcessDefinitionStep,
-  ProcessDefinitionVersionRecord,
   WorkflowRunRecord,
   WorkflowRunStatus,
   WorkflowRunTimelineEvent,
@@ -44,7 +38,6 @@ import { productRecordRetentionFields } from "@/lib/operations/product-record-re
 
 const COLLECTIONS = {
   processDefinitions: "process_definitions",
-  processDefinitionVersions: "process_definition_versions",
   workflowRuns: "workflow_runs",
   workflowRunTimeline: "workflow_run_timeline",
 } as const;
@@ -54,7 +47,6 @@ type FirestoreValue = Record<string, unknown>;
 export interface ListWorkflowRunsOptions {
   definitionId?: string;
   limit?: number;
-  simulationOnly?: boolean;
 }
 
 export async function listProcessDefinitions(
@@ -65,7 +57,7 @@ export async function listProcessDefinitions(
   const snapshot = await db.collection(COLLECTIONS.processDefinitions).get();
 
   return snapshot.docs
-    .map((doc) => readRecord<ProcessDefinitionRecord>(doc.id, doc.data()))
+    .map((doc) => readProcessDefinition(doc.id, doc.data()))
     .sort((left, right) => right.updated_at.localeCompare(left.updated_at));
 }
 
@@ -199,128 +191,36 @@ export async function submitProcessDefinitionForApproval(
   return getProcessDefinition(actor, definitionId, db);
 }
 
-// F-SPACE-2 (D3): RETIRED as a live path. The HTTP activate route now returns 409 and points callers to
-// publish (the one canonical path to Active). This function is retained only for migration helpers and the
-// state-machine tests that document the legacy gate; it is not reachable from a product route.
-export async function activateProcessDefinition(
+export async function startWorkflowRun(
   actor: AuthenticatedUser,
   definitionId: string,
-  input: ActivateProcessDefinitionInput = {},
+  input: StartWorkflowRunInput = {},
   db = getAdminFirestore(),
-) {
-  assertCan(actor, "manageAdmin");
-  const parsed = ActivateProcessDefinitionInputSchema.parse(input);
-  const definition = await getProcessDefinition(actor, definitionId, db);
-
-  assertActivationGates(definition, parsed.override_reason);
-  const approvedQueueItem = await getApprovalQueueItem(
-    actor,
-    definition.pending_queue_item_id!,
-    db,
-  );
-
-  if (approvedQueueItem.status !== "Approved") {
-    throw new EditableLayerError(
-      "Activate requires an approved process-definition queue item.",
-      409,
-    );
-  }
-
-  await db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(definitionRef(db, definitionId));
-    const current = readRequiredProcessDefinition(snapshot.id, snapshot.data());
-    assertReadyToActivate(current, parsed.override_reason);
-
-    const versionSnapshot = await transaction.get(
-      db
-        .collection(COLLECTIONS.processDefinitionVersions)
-        .where("definition_id", "==", definitionId),
-    );
-    const versionNumber = versionSnapshot.docs.length + 1;
-    const versionId = uuidv7();
-    const versionRecord: Omit<ProcessDefinitionVersionRecord, "created_at"> & {
-      created_at: FieldValue;
-    } = {
-      id: versionId,
-      definition_id: definitionId,
-      version_number: versionNumber,
-      activated_by_uid: actor.uid,
-      snapshot_json: JSON.stringify({
-        ...current,
-        status: "Active" satisfies ProcessDefinitionStatus,
-        active_version_id: versionId,
-      }),
-      created_at: FieldValue.serverTimestamp(),
-      ...stripUndefined({
-        activation_override_reason: parsed.override_reason,
-      }),
-    };
-
-    transaction.set(
-      db.collection(COLLECTIONS.processDefinitionVersions).doc(versionId),
-      versionRecord,
-    );
-    transaction.update(definitionRef(db, definitionId), {
-      active_version_id: versionId,
-      activated_at: FieldValue.serverTimestamp(),
-      activated_by_uid: actor.uid,
-      status: "Active",
-      updated_at: FieldValue.serverTimestamp(),
-      updated_by_uid: actor.uid,
-      ...stripUndefined({
-        activation_override_reason: parsed.override_reason,
-      }),
-    });
-  });
-
-  return getProcessDefinition(actor, definitionId, db);
-}
-
-export async function startWorkflowTestRun(
-  actor: AuthenticatedUser,
-  definitionId: string,
-  input: StartWorkflowTestRunInput = {},
-  db = getAdminFirestore(),
-  options: StartWorkflowTestRunOptions = {},
+  options: StartWorkflowRunOptions = {},
 ) {
   assertCan(actor, "edit");
-  const parsed = StartWorkflowTestRunInputSchema.parse(input);
+  const parsed = StartWorkflowRunInputSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
 
   if (definition.status === "Retired") {
     throw new EditableLayerError("Retired process definitions cannot be started.", 409);
   }
-  if (
-    options.requireActiveDefinitionVersion &&
-    (definition.status !== "Active" || !definition.active_version_id)
-  ) {
-    throw new EditableLayerError(
-      "A published Active process definition is required for this version-pinned Test continuation.",
-      409,
-    );
-  }
-  const sourcePublicationPin = options.sourcePublicationPin
-    ? validateTestSourcePublicationPin(options.sourcePublicationPin)
-    : undefined;
 
-  const runId = options.runId ? validateTrustedTestRunId(options.runId) : uuidv7();
-  const dueDate = parsed.due_date ?? today();
+  const runId = options.runId ? validateTrustedWorkflowRunId(options.runId) : uuidv7();
   const run: Omit<WorkflowRunRecord, "created_at" | "updated_at"> & {
     created_at: FieldValue;
     updated_at: FieldValue;
   } = {
     id: runId,
+    data_mode: "live",
     definition_id: definition.id,
+    space_id: definition.space_id,
     definition_version_id: definition.active_version_id,
-    ...(sourcePublicationPin ? { source_publication_pin: sourcePublicationPin } : {}),
     process_name: definition.name,
     status: "In Progress",
     owner_uid: definition.default_approver_uid,
-    next_action: definition.steps[0]?.title ?? "Review test run.",
-    due_date: dueDate,
-    is_test_run: true,
-    simulation_only: true,
-    production_metrics_included: false,
+    next_action: definition.steps[0]?.title ?? "Review workflow run.",
+    due_date: parsed.due_date ?? today(),
     started_by_uid: actor.uid,
     ...productRecordRetentionFields("workflow_runs"),
     created_at: FieldValue.serverTimestamp(),
@@ -334,88 +234,51 @@ export async function startWorkflowTestRun(
         existingSnapshot.id,
         existingSnapshot.data(),
       );
-      assertIdempotentPinnedTestRun(
-        existing,
-        definitionId,
-        definition.active_version_id,
-        sourcePublicationPin,
-      );
+      assertIdempotentWorkflowRun(existing, definition, run);
       return;
     }
+
     transaction.set(runRef(db, runId), stripUndefined(run));
     appendTimeline(transaction, db, {
       actor,
       eventType: "started",
       newStatus: "In Progress",
       runId,
-      summary: `${parsed.note ?? `Started a test run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft (not immutable)"}.${sourcePublicationPin ? ` Source publication version: ${sourcePublicationPin.version_id}.` : ""}`,
+      summary: `${parsed.note ?? `Started workflow run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft"}.`,
     });
-
-    if (definition.status === "Draft") {
-      transaction.update(definitionRef(db, definition.id), {
-        status: "Testing",
-        updated_at: FieldValue.serverTimestamp(),
-        updated_by_uid: actor.uid,
-      });
-    }
   });
 
   return getWorkflowRun(actor, runId, db);
 }
 
-export interface StartWorkflowTestRunOptions {
-  /** Trusted server-owned idempotency identity; never accepted from the generic browser route. */
+export interface StartWorkflowRunOptions {
+  /** Trusted server-owned idempotency identity; never accepted from the browser route. */
   runId?: string;
-  /** Trusted server-owned Test publication pin; the generic browser route cannot supply it. */
-  sourcePublicationPin?: NonNullable<WorkflowRunRecord["source_publication_pin"]>;
-  requireActiveDefinitionVersion?: boolean;
 }
 
-function validateTrustedTestRunId(value: string) {
+function validateTrustedWorkflowRunId(value: string) {
   if (!/^[A-Za-z0-9:_-]{1,200}$/.test(value)) {
-    throw new EditableLayerError("The trusted Test run identity is invalid.", 400);
+    throw new EditableLayerError("The trusted workflow-run identity is invalid.", 400);
   }
   return value;
 }
 
-function validateTestSourcePublicationPin(
-  pin: NonNullable<WorkflowRunRecord["source_publication_pin"]>,
-) {
-  if (
-    pin.data_mode !== "test" ||
-    !pin.resource_id.trim() ||
-    !pin.version_id.trim() ||
-    !pin.test_fixture_key.trim()
-  ) {
-    throw new EditableLayerError(
-      "A version-pinned Test run requires an exact isolated Test publication reference.",
-      400,
-    );
-  }
-  return {
-    data_mode: "test" as const,
-    resource_id: pin.resource_id,
-    version_id: pin.version_id,
-    test_fixture_key: pin.test_fixture_key,
-  };
-}
-
-function assertIdempotentPinnedTestRun(
+function assertIdempotentWorkflowRun(
   existing: WorkflowRunRecord,
-  definitionId: string,
-  definitionVersionId: string | undefined,
-  pin: WorkflowRunRecord["source_publication_pin"],
+  definition: ProcessDefinitionRecord,
+  expected: Omit<WorkflowRunRecord, "created_at" | "updated_at">,
 ) {
   if (
-    !pin ||
-    existing.definition_id !== definitionId ||
-    existing.definition_version_id !== definitionVersionId ||
-    existing.is_test_run !== true ||
-    existing.simulation_only !== true ||
-    JSON.stringify(existing.source_publication_pin) !== JSON.stringify(pin)
+    existing.data_mode !== "live" ||
+    existing.definition_id !== definition.id ||
+    existing.space_id !== expected.space_id ||
+    existing.definition_version_id !== definition.active_version_id ||
+    existing.process_name !== expected.process_name ||
+    existing.owner_uid !== expected.owner_uid ||
+    existing.started_by_uid !== expected.started_by_uid
   ) {
     throw new EditableLayerError(
-      "The trusted Test run identity conflicts with an existing workflow run.",
+      "The trusted workflow-run identity conflicts with an existing workflow run.",
       409,
     );
   }
@@ -436,11 +299,6 @@ export async function listWorkflowRuns(
 
   return snapshot.docs
     .map((doc) => readRecord<WorkflowRunRecord>(doc.id, doc.data()))
-    .filter(
-      (run) =>
-        options.simulationOnly === undefined ||
-        run.simulation_only === options.simulationOnly,
-    )
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
     .slice(0, options.limit);
 }
@@ -485,15 +343,11 @@ export async function updateWorkflowRunOutcome(
     const snapshot = await transaction.get(runRef(db, runId));
     const current = readRequiredWorkflowRun(snapshot.id, snapshot.data());
 
-    if (!current.is_test_run || !current.simulation_only) {
-      throw new EditableLayerError("Only test runs can be updated here.", 409);
-    }
-
     if (isTerminalRunStatus(current.status)) {
       throw new EditableLayerError("This workflow run is already closed.", 409);
     }
 
-    if (parsed.action === "complete_test") {
+    if (parsed.action === "complete") {
       const definitionSnapshot = await transaction.get(
         definitionRef(db, current.definition_id),
       );
@@ -517,43 +371,37 @@ export async function updateWorkflowRunOutcome(
 
       if (incomplete.length > 0) {
         throw new EditableLayerError(
-          `Complete or skip every checklist step before completing this Test run. Incomplete: ${incomplete.join(", ")}.`,
+          `Complete or skip every checklist step before completing this workflow run. Incomplete: ${incomplete.join(", ")}.`,
           409,
         );
       }
     }
 
     const nextStatus: WorkflowRunStatus =
-      parsed.action === "complete_test" ? "Completed" : "Failed";
+      parsed.action === "complete" ? "Completed" : "Failed";
     const updates = stripUndefined({
       status: nextStatus,
       outcome_notes: parsed.notes,
-      blocker: parsed.action === "fail_test" ? parsed.notes : undefined,
+      blocker: parsed.action === "fail" ? parsed.notes : undefined,
       completed_at:
-        parsed.action === "complete_test" ? FieldValue.serverTimestamp() : undefined,
-      failed_at: parsed.action === "fail_test" ? FieldValue.serverTimestamp() : undefined,
+        parsed.action === "complete" ? FieldValue.serverTimestamp() : undefined,
+      failed_at: parsed.action === "fail" ? FieldValue.serverTimestamp() : undefined,
       updated_at: FieldValue.serverTimestamp(),
     });
 
     transaction.update(runRef(db, runId), updates);
     appendTimeline(transaction, db, {
       actor,
-      eventType: parsed.action === "complete_test" ? "completed" : "failed",
+      eventType: parsed.action === "complete" ? "completed" : "failed",
       newStatus: nextStatus,
       previousStatus: current.status,
       runId,
       summary:
         parsed.notes ??
-        (parsed.action === "complete_test" ? "Test run completed." : "Test run failed."),
+        (parsed.action === "complete"
+          ? "Workflow run completed."
+          : "Workflow run failed."),
     });
-
-    if (parsed.action === "complete_test") {
-      transaction.update(definitionRef(db, current.definition_id), {
-        last_successful_test_run_id: runId,
-        updated_at: FieldValue.serverTimestamp(),
-        updated_by_uid: actor.uid,
-      });
-    }
   });
 
   return getWorkflowRun(actor, runId, db);
@@ -624,43 +472,6 @@ function definitionStatusForTerminalQueueItem(
   }
 
   return null;
-}
-
-function assertActivationGates(
-  definition: ProcessDefinitionRecord,
-  overrideReason: string | undefined,
-) {
-  assertReadyToActivate(definition, overrideReason);
-
-  if (!definition.pending_queue_item_id) {
-    throw new EditableLayerError(
-      "Activate requires a submitted and approved process-definition queue item.",
-      409,
-    );
-  }
-}
-
-function assertReadyToActivate(
-  definition: ProcessDefinitionRecord,
-  overrideReason: string | undefined,
-) {
-  if (definition.source_links.length === 0) {
-    throw new EditableLayerError(
-      "Activate requires at least one source or documentation link.",
-      409,
-    );
-  }
-
-  if (!definition.last_successful_test_run_id && !overrideReason?.trim()) {
-    throw new EditableLayerError(
-      "Activate requires a successful test run or an Admin override reason.",
-      409,
-    );
-  }
-
-  if (definition.status === "Retired") {
-    throw new EditableLayerError("Retired process definitions cannot be activated.", 409);
-  }
 }
 
 function assertDefinitionEditable(definition: ProcessDefinitionRecord) {
@@ -802,7 +613,16 @@ function readRequiredProcessDefinition(id: string, data: FirestoreValue | undefi
     throw new EditableLayerError("Process definition was not found.", 404);
   }
 
-  return readRecord<ProcessDefinitionRecord>(id, data);
+  return readProcessDefinition(id, data);
+}
+
+function readProcessDefinition(id: string, data: FirestoreValue) {
+  // The S56 Production CAS migration moved every lane-only Testing status to Draft. Keep historical
+  // reads usable for a restored backup while current schemas and UI no longer emit that status.
+  return readRecord<ProcessDefinitionRecord>(id, {
+    ...data,
+    ...(data.status === "Testing" ? { status: "Draft" } : {}),
+  });
 }
 
 function readRequiredWorkflowRun(id: string, data: FirestoreValue | undefined) {

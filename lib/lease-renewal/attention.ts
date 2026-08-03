@@ -5,7 +5,7 @@
 // reads only fields already on DeskLeaseSummary; no new data, no I/O.
 
 import type { AttentionLane, AttentionSeverity } from "@/lib/attention/lanes";
-import type { DeskLeaseSummary } from "@/lib/lease-renewal/sample-desk";
+import type { DeskLeaseSummary } from "@/lib/lease-renewal/desk-model";
 
 export type AttentionUrgency = "high" | "medium";
 

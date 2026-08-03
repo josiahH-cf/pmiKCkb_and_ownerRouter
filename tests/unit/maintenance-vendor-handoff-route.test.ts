@@ -1,96 +1,26 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
-const mocks = vi.hoisted(() => ({
-  requireCapabilityInSpace: vi.fn(),
-  getTestMailboxHandoffForStaff: vi.fn(),
-}));
+import { describe, expect, it } from "vitest";
 
-vi.mock("@/lib/auth/session", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/auth/session")>();
-  return {
-    ...actual,
-    requireCapabilityInSpace: mocks.requireCapabilityInSpace,
-  };
-});
+const root = process.cwd();
+const exists = (relative: string) => fs.existsSync(path.join(root, relative));
+const read = (relative: string) => fs.readFileSync(path.join(root, relative), "utf8");
 
-vi.mock("@/lib/firestore/vendors", () => ({
-  FirestoreVendorStore: vi.fn(function FirestoreVendorStore() {
-    return {
-      getTestMailboxHandoffForStaff: mocks.getTestMailboxHandoffForStaff,
-    };
-  }),
-}));
-
-import { GET } from "@/app/api/maintenance/tickets/[ticketId]/vendor-handoff/route";
-import { AuthError } from "@/lib/auth/session";
-
-const context = { params: Promise.resolve({ ticketId: "ticket:test-maple-leak" }) };
-
-afterEach(() => vi.clearAllMocks());
-
-describe("Maintenance Vendor handoff route", () => {
-  it("requires an internal Maintenance read capability", async () => {
-    mocks.requireCapabilityInSpace.mockRejectedValue(
-      new AuthError("Authentication required.", 401),
-    );
-
-    const response = await GET(new Request("http://localhost"), context);
-
-    expect(response.status).toBe(401);
-    expect(mocks.getTestMailboxHandoffForStaff).not.toHaveBeenCalled();
-  });
-
-  it("returns only the bodyless Test handoff projection with no-store caching", async () => {
-    mocks.requireCapabilityInSpace.mockResolvedValue({ uid: "staff-admin" });
-    mocks.getTestMailboxHandoffForStaff.mockResolvedValue({
-      ticketId: "ticket:test-maple-leak",
-      data_mode: "test",
-      currentState: "Complete",
-      labelHistory: [
-        { state: "Waiting", createdAt: "2026-07-15T12:00:00.000Z" },
-        { state: "Complete", createdAt: "2026-07-15T12:05:00.000Z" },
-      ],
-      draftPresent: true,
-      replyCount: 2,
-      updatedAt: "2026-07-15T12:05:00.000Z",
-      externalProvider: false,
-      liveEvidenceEligible: false,
-      nextAction:
-        "Review completion evidence and continue the internal Maintenance closeout.",
-    });
-
-    const response = await GET(new Request("http://localhost"), context);
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(mocks.requireCapabilityInSpace).toHaveBeenCalledWith("read", "maintenance");
-    expect(mocks.getTestMailboxHandoffForStaff).toHaveBeenCalledWith(
-      "ticket:test-maple-leak",
-    );
-    expect(payload).toEqual({
-      handoff: expect.objectContaining({
-        currentState: "Complete",
-        draftPresent: true,
-        replyCount: 2,
-        externalProvider: false,
-        liveEvidenceEligible: false,
-      }),
-    });
-    expect(JSON.stringify(payload)).not.toMatch(
-      /draftBody|snippet|messageId|threadId|vendorId|actorUid|replyBody/i,
+describe("retired Maintenance Test Vendor handoff", () => {
+  it("removes the Test Vendor handoff route", () => {
+    expect(exists("app/api/maintenance/tickets/[ticketId]/vendor-handoff/route.ts")).toBe(
+      false,
     );
   });
 
-  it("returns an indistinguishable 404 when the Test join is unavailable", async () => {
-    mocks.requireCapabilityInSpace.mockResolvedValue({ uid: "staff-editor" });
-    mocks.getTestMailboxHandoffForStaff.mockResolvedValue(null);
+  it("removes generic Vendor assignment from the maintenance transition schema", () => {
+    const source = read("lib/firestore/maintenance-tickets.ts");
+    expect(source).not.toContain('op: z.literal("vendor-assign")');
+  });
 
-    const response = await GET(new Request("http://localhost"), context);
-
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({
-      error: "The Test Vendor handoff is unavailable.",
-    });
+  it("retains the exact Live Vendor lifecycle route as the supported assignment path", () => {
+    expect(exists("app/api/admin/vendors/live/actions/route.ts")).toBe(true);
+    expect(exists("lib/vendor/live-lifecycle-service.ts")).toBe(true);
   });
 });

@@ -6,7 +6,10 @@ import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalActivityRecord,
 } from "@/lib/firestore/types";
-import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
+import {
+  getSimulationRun,
+  listSimulationRuns,
+} from "@/tests/helpers/lease-renewal-simulation";
 
 // Slice B: the run-page overlay carries the append-only approval decision history, and the value-free
 // review board still never leaks it. A sentinel reason proves the board drops the activity entirely.

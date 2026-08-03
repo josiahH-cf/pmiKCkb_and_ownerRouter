@@ -20,16 +20,13 @@ const valid = {
 };
 
 describe("Vendor data-mode claim (S40 AC-S40-1)", () => {
-  it("refuses an existing Test Vendor principal in Production and local Live-read-only", () => {
-    const principal = validateVendorClaims({ ...valid, data_mode: "test" }, now);
-    for (const env of [
-      { ENVIRONMENT_KIND: "production", DATA_CONTEXT: "live" },
-      { ENVIRONMENT_KIND: "demo", DATA_CONTEXT: "live_readonly" },
-    ]) {
-      expect(() => assertVendorPrincipalLaneAllowed(principal, env)).toThrow(
-        /Test lane is retired/,
-      );
-    }
+  it("refuses a Test Vendor claim before constructing a session", () => {
+    expect(() => validateVendorClaims({ ...valid, data_mode: "test" }, now)).toThrow(
+      /Test sessions are retired/,
+    );
+    expect(() => assertVendorPrincipalLaneAllowed({ dataMode: "test" })).toThrow(
+      /Test sessions are retired/,
+    );
   });
 
   it("refuses a Vendor principal that carries no explicit lane", () => {
@@ -48,12 +45,8 @@ describe("Vendor data-mode claim (S40 AC-S40-1)", () => {
     }
   });
 
-  it("carries the exact signed lane through to the principal", () => {
-    for (const data_mode of ["live", "test"] as const) {
-      expect(validateVendorClaims({ ...valid, data_mode }, now)).toMatchObject({
-        dataMode: data_mode,
-      });
-    }
+  it("carries the exact signed Live lane through to the principal", () => {
+    expect(validateVendorClaims(valid, now)).toMatchObject({ dataMode: "live" });
   });
 });
 

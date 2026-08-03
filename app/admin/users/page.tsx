@@ -1,14 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { UserManagementPanel } from "@/components/admin/UserManagementPanel";
-import { VendorAdminPanel } from "@/components/admin/VendorAdminPanel";
 import { type AppUser, listAppUsers } from "@/lib/admin/users";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
-import {
-  listProductionTestVendors,
-  type TestVendorAdminProjection,
-} from "@/lib/vendor/admin-runtime";
 
 // In-app user role + space-scope management (console overhaul Slice D + S16). Admin-only. Degrades to a clear note if
 // the Admin SDK is unavailable in this session (matching the admin observability panel).
@@ -18,17 +13,11 @@ export default async function AdminUsersPage() {
 
   let users: AppUser[] = [];
   let unavailableNote: string | undefined;
-  let testVendors: TestVendorAdminProjection[] = [];
   try {
     users = await listAppUsers();
   } catch {
     unavailableNote =
       "The user roster is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firebase Admin setup, then reload.";
-  }
-  try {
-    testVendors = await listProductionTestVendors();
-  } catch {
-    // The Vendor panel remains usable for first-time provisioning and reports API errors.
   }
 
   return (
@@ -44,7 +33,6 @@ export default async function AdminUsersPage() {
           in Google Workspace; this manages roles and space access.
         </p>
         <UserManagementPanel initialUsers={users} unavailableNote={unavailableNote} />
-        <VendorAdminPanel initialVendors={testVendors} />
       </section>
     </AppShell>
   );

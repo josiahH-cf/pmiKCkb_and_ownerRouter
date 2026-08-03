@@ -7,19 +7,23 @@
 > disposable decision-complete packet is `docs/temp/ask-to-action-plan.md` (local-only). Owner-default
 > resolved inline so this is decision-complete: Ask REUSES the desk's existing gated surface (the same
 > preview, confirm, and receipt) and adds no executor, confirm, send, or write endpoint of its own.
+>
+> **Live-only continuation 2026-08-03.** S56 retired the Production Test lane and its `/test-runs`
+> route. The process-context control now starts one ordinary, human-initiated Live app-plane run through
+> `POST /api/process-definitions/{id}/runs`. That run persists app workflow state only: it constructs no
+> provider, sends nothing, and writes no external system of record. The former Production Test fallback
+> is historical evidence, not a current product path.
 
-**Goal.** Today the Console Ask box can answer a question, detect the process a question is about, start
-a Test run (a simulation kept inside the app), and capture a follow-up task, but it cannot start a real
-process (`components/ask/AskForm.tsx`). An operator who asks "start the renewal for 1234 Oak St" gets an
-answer and, at most, a Test run; to actually begin the live renewal they must leave Ask, open the live
-renewal desk, find the lease, and use the gated draft composer. After this suite, when Ask detects a
-renewal or maintenance intent AND resolves an authoritative live target from the RentVine read, it
-offers ONE primary "Start on the live desk" affordance that hands the operator straight into the SAME
-gated action the desk already uses, opening at that action's preview. The operator still reviews the
-preview, still confirms, and still gets the receipt (an unsent Gmail draft they send by hand); a human
-sends and a human writes any system of record, exactly as before. Ask becomes a faster front door into
-the existing gates, never a new way around them. The "safe Test run" path is untouched and stays a Test
-run. Nothing here relaxes a gate, adds a provider, adds a scope, or adds an autonomous effect.
+**Goal.** The Console Ask box answers a question, detects its process, can start an ordinary app-plane
+workflow run, and can capture a follow-up task (`components/ask/AskForm.tsx`). When Ask detects a renewal
+or maintenance intent AND resolves an authoritative Live target from the RentVine read, it also offers
+ONE primary "Start on the live desk" affordance that hands the operator straight into the SAME gated
+action the desk already uses, opening at that action's preview. The operator still reviews the preview,
+still confirms, and still gets the receipt (an unsent Gmail draft they send by hand); a human sends and
+a human writes any system of record, exactly as before. The ordinary run and the provider-action
+affordance are separate: the former records human-started app workflow progress, while the latter keeps
+the existing action gate and preview/confirm/receipt contract. Nothing here relaxes a gate, adds a
+provider, adds a scope, or adds an autonomous effect.
 
 **What it is / how it functions.** One pure intent-to-action resolver plus one read-only target lookup
 feed a single Ask affordance that REUSES the desk's already-gated composer surface and route. There is
@@ -37,7 +41,7 @@ isExecutable })` maps a detected process (from the existing deterministic `detec
   `lib/integrations/action-gate.ts`, which reads the committed SEED). For any closed key (for example
   `gmail.renewal_notice.send`, still `production_allowed:false`) it returns `null`, so Ask never
   surfaces a live affordance for a gate that is not open. The route it returns is value-free
-  (`{ actionKey, surface: "renewal-notice-draft" | "maintenance-owner-notice" | "process-test-run",
+  (`{ actionKey, surface: "renewal-notice-draft" | "maintenance-owner-notice",
 href, label }`) and carries no recipient, rent, or tenant name. Pure, deterministic, no `Date.now`,
   no I/O.
 - **Target resolver - new `lib/ask/renewal-target.ts` (pure match) + read-only route.** The target
@@ -51,7 +55,7 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   ambiguous or empty, it returns `no_match` and Ask offers NO live action rather than guessing a lease.
 - **Ask affordance - extend `components/ask/AskForm.tsx`.** When (a) the resolver yields a route, (b)
   the principal can reach that gated surface, and (c) live sources are connected, Ask renders one
-  primary control beside the existing "Get answer" and "start a Test run" controls. For the renewal
+  primary control beside the existing "Get answer" and ordinary "Start run" controls. For the renewal
   route it REUSES the exact desk component `components/lease-renewal/RenewalNoticeDraftComposer.tsx`,
   pre-seeded with the resolved `leaseId`, so the operator runs Preview (`confirm:false`) then Create
   (`confirm:true`) against the unchanged gated route `POST /api/lease-renewal/renewal-notice-draft`
@@ -59,30 +63,31 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   desk. A secondary link opens the full lease workspace
   (`/lease-renewal/live/desk/lease/{leaseId}`) for complete context. Ask itself posts to no execute,
   confirm, send, or writeback route.
-- **Maintenance parallel - reuse S38a's gated surface, else the Test run.** A detected
+- **Maintenance parallel - reuse S38a's gated surface, else the ordinary run.** A detected
   `maintenance-work-order-intake` intent routes, when the S38a maintenance owner-notice surface is
   present (`lib/maintenance/owner-notice-draft.ts`, key
   `gmail.maintenance_owner_notice.draft_create`, already `production_allowed:true`), to that same
-  preview / confirm / receipt draft surface; until then it routes to the existing maintenance process
-  Test run. Either way Ask reuses an existing surface and its gate. S33 does not depend on S38a
-  landing first.
+  preview / confirm / receipt draft surface. When that separate provider-action affordance is not
+  available, the operator may still start the ordinary maintenance app-plane run through `/runs`;
+  there is no Test executor or Test fallback. S33 does not depend on S38a landing first.
 - **High-risk stays on the full surface - mirror `components/console/ConsoleApproveButton.tsx`.** As
   with the Console in-place Approve, Ask cannot approve away a consequential decision: if a routed
   action is High-risk it is refused server-side by the gated surface, and Ask surfaces that refusal and
   points to the full surface for the exact Admin decision. In practice S33 only routes to already-open
-  draft actions and Test runs, so a High-risk live route never materializes; the invariant is asserted,
+  draft actions, while ordinary app-plane runs execute no provider action, so a High-risk live route
+  never materializes; the invariant is asserted,
   not merely assumed.
 - **Honest empty and unavailable states.** No intent match, no authoritative target, a non-permitted
   role, or unconnected live sources all resolve to NO live affordance: Ask shows the answer plus the
-  existing Test-run and capture controls, and, when live sources are simply not connected, a Connection
-  Center link that mirrors the desk's `not_configured` panel. Ask never invents a lease, a recipient,
-  or a startable item.
+  ordinary process-run and capture controls, and, when Live sources are simply not connected, a
+  Connection Center link that mirrors the desk's `not_configured` panel. Ask never invents a lease, a
+  recipient, or a startable item.
 
-- **Buildable now (app-plane).** The whole suite. It adds no system-of-record write, no autonomous
+- **Implementation state (built app-plane).** The suite adds no system-of-record write, no autonomous
   send, no new external scope, and flips no gate; it reads the already-authorized live RentVine data
   and routes into the already-open `gmail.renewal_notice.draft_create` (and, when present,
-  `gmail.maintenance_owner_notice.draft_create`) draft surfaces plus the existing process Test run. The
-  loop builds all of it unattended. Slices:
+  `gmail.maintenance_owner_notice.draft_create`) draft surfaces plus the ordinary human-started process
+  run. Its implemented slices are:
   - Slice 1 - `lib/ask/action-intent.ts` (pure `resolveAskAction`, gate-respecting, value-free route)
     plus `tests/unit/ask-action-intent.test.ts`.
   - Slice 2 - `lib/ask/renewal-target.ts` (pure strict address/unit match over injected live views)
@@ -91,8 +96,9 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   - Slice 3 - `components/ask/AskForm.tsx` renders the single live affordance, REUSING
     `RenewalNoticeDraftComposer` pre-seeded with the resolved lease; role-gated and live-availability
     gated; honest empty states; new copy passes `verify:copy-voice`. Extend `tests/unit/ask-form.test.tsx`.
-  - Slice 4 - maintenance parallel route (to the S38a draft surface when present, else the maintenance
-    Test run) plus the High-risk-refused-server-side invariant test.
+  - Slice 4 - maintenance parallel route (to the S38a draft surface when present, with the ordinary
+    app-plane run remaining independently available) plus the High-risk-refused-server-side invariant
+    test.
 - **Build to the seam (live provider).** None. S33 introduces no provider and no new action key. It
   routes only into actions that already exist at their own seams. D33 makes the closed
   `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` keys permanent
@@ -127,10 +133,10 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   follows D05; interactive auth, credentials/scopes, IAM, billing/quota, provider inputs, and
   destructive operations remain owner-run.
 - _Known implementation gap:_ S38 has landed its governed maintenance owner-notice draft route and
-  control, but Ask still passes `maintenanceDraftAvailable:false` and therefore falls back to the
-  existing process Test run. No owner decision is pending. A dependency-independent follow-up must
-  route an authoritative maintenance target to the existing S38 preview surface without introducing
-  an executor, send, or gate flip.
+  control, but Ask still passes `maintenanceDraftAvailable:false`; the ordinary maintenance app-plane
+  run remains available independently. No owner decision is pending. A dependency-independent
+  follow-up may route an authoritative maintenance target to the existing S38 preview surface without
+  introducing an executor, send, or gate flip.
 - _Note on facts.md:_ the `Q-ASK-ACTION-SCOPE` open row and the final `F-ASK-ACTION` promotion are
   recorded in `docs/facts.md` at BUILD time (this authoring pass creates only the spec file per its
   charter); the assumptions above are decision-complete so a builder needs no further owner input.
@@ -144,7 +150,7 @@ affordance, existing controls unchanged). Consumes, without changing: `lib/proce
 `components/lease-renewal/RenewalNoticeDraftComposer.tsx` and its gated route
 `app/api/lease-renewal/renewal-notice-draft/route.ts` (key `gmail.renewal_notice.draft_create`); and,
 for maintenance, `lib/maintenance/owner-notice-draft.ts` / `components/maintenance/MaintenanceCapture.tsx`
-(S38a) or the existing `POST /api/process-definitions/{id}/test-runs`. Extends the Console front door
+(S38a), plus the ordinary `POST /api/process-definitions/{id}/runs` app-plane path. Extends the Console front door
 (S10 `F-CONSOLE-APP-STATE`) and the anticipation lane (S18) with a start-into-the-gate affordance. It
 interacts with, and does NOT supersede: `F-SEND-AUTHORIZED` (human-initiated exact-confirmed send
 preserved), `F-ROADMAP-BUILD-AUTHORIZED` (this is its Wave-1 row 7), `D-AUTOMATION-LINE` (no
@@ -180,24 +186,25 @@ tests/unit/ask-action-intent.test.ts`; keep `tests/unit/action-gate.test.ts` gre
   `tests/unit/renewal-notice-draft-service.test.ts` green.
 - **AC-S33-4** - Authoritative target only. Given a fixture live RentVine read, a question whose
   address matches exactly one lease resolves that `leaseId`; a question with no match or an ambiguous
-  match returns `no_match` and Ask offers NO live route (it falls back to answer plus Test run), never
-  a fabricated or best-guess lease id. _Verify:_ `npm test -- tests/unit/ask-renewal-target.test.ts`,
+  match returns `no_match` and Ask offers NO provider-action route (the answer, ordinary app-plane run,
+  and capture controls remain available), never a fabricated or best-guess lease id. _Verify:_ `npm test -- tests/unit/ask-renewal-target.test.ts`,
   `npm test -- tests/unit/ask-live-target-route.test.ts`.
 - **AC-S33-5** - High-risk refused server-side (mirrors `ConsoleApproveButton`). A routed action that
   is High-risk is refused by the gated surface server-side (a 4xx refusal), and Ask renders that
   refusal and the pointer to the full surface; Ask never completes a High-risk action in place.
   _Verify:_ `npm test -- tests/unit/ask-form.test.tsx`; keep `tests/unit/console-approve-button.test.tsx`
   green.
-- **AC-S33-6** - The Test-run path is unchanged. "Get answer + start a Test run" still issues
-  `POST /api/process-definitions/{id}/test-runs` and remains simulation-only; the live affordance is a
-  SEPARATE, additional control that never replaces the Test run and never auto-fires (no live action
-  runs without an explicit operator click on the preview and then confirm). _Verify:_ `npm test --
+- **AC-S33-6** - The ordinary process-run path is human-started and effect-free. "Get answer + Start
+  run" issues exactly `POST /api/process-definitions/{id}/runs`; it persists an app-plane workflow run
+  but constructs no provider, sends nothing, and writes no external system of record. The gated Live
+  affordance is a SEPARATE, additional control that never replaces or auto-fires the ordinary run; no
+  provider action runs without an explicit operator preview and confirmation. _Verify:_ `npm test --
 tests/unit/ask-form.test.tsx`; keep `tests/e2e/ask.e2e.test.mjs` green.
 - **AC-S33-7** - Role and live-availability gating are honest. A principal who cannot reach the gated
   surface, or a context where live sources are not connected, renders ZERO live affordance; Ask shows
-  the answer plus Test-run/capture controls and, for the unconnected case, the Connection Center link
-  that mirrors the desk `not_configured` panel. All new copy passes the voice gate (plain language,
-  "Test run" not "simulation", "the app", no em dash). _Verify:_ `npm test -- tests/unit/ask-form.test.tsx`;
+  the answer plus ordinary-run/capture controls and, for the unconnected case, the Connection Center
+  link that mirrors the desk `not_configured` panel. All new copy passes the voice gate (plain
+  language, "Start run", "the app", no em dash). _Verify:_ `npm test -- tests/unit/ask-form.test.tsx`;
   `npm run verify:copy-voice`.
 - **AC-S33-8** - The Action Registry is untouched. This suite adds and flips NO registry entry: a
   `git diff` shows no change to `lib/integrations/action-registry-seed.ts`, to either
@@ -213,8 +220,9 @@ preview / confirm / receipt (the unsent draft the operator sends by hand). No au
 system-of-record write are introduced: the renewal and maintenance SEND keys and
 `rentvine.lease.renewal_writeback` stay `production_allowed:false` and out of reach. D33 makes the two
 client-send keys final non-targets; S30 owns the separately gated write-back seam.
-High-risk actions are refused server-side; Ask cannot approve them away. The existing "safe Test run"
-stays a Test run. No new Google scope, no Cloud Scheduler or cron or timer that starts a run, no
+High-risk actions are refused server-side; Ask cannot approve them away. The former "safe Test run"
+is retired; only the ordinary human-started app-plane `/runs` path remains, and it cannot construct a
+provider or external effect. No new Google scope, no Cloud Scheduler or cron or timer that starts a run, no
 personal account in any auth path, no secrets or customer PII or guessed endpoint in git or evidence,
 the verified non-null S52 production cost ceiling applies, and an unset ceiling closes
 cost-bearing/live/cloud work while local/app-plane work continues. Routine deploy, smoke, and traffic
@@ -246,7 +254,8 @@ a falsification.
 5. _Build:_ Slice 3 + 4 - extend `components/ask/AskForm.tsx` to render the single live affordance that
    REUSES `RenewalNoticeDraftComposer` pre-seeded with the resolved lease, role and live gated, honest
    empty states; add the maintenance parallel and the High-risk-refused invariant; extend
-   `tests/unit/ask-form.test.tsx` (AC-S33-3, 5, 6, 7). Keep the Test-run and capture controls unchanged.
+   `tests/unit/ask-form.test.tsx` (AC-S33-3, 5, 6, 7). Keep the ordinary-run and capture controls
+   independent from the gated provider affordance.
 6. _Verify:_ `npm test` (new tests plus the named sentinels), `npm run typecheck`, `npm run lint`,
    `npm run verify:copy-voice`, `npm run verify:spec-traceability`; confirm AC-S33-8 with an empty
    `git diff --stat` over the registry paths; then `bash scripts/verify.sh`. Browser-drive Ask as a

@@ -4,6 +4,10 @@ import {
   runLiveRenewalReview,
 } from "@/lib/lease-renewal/live-run";
 import type { SheetsValuesReader } from "@/lib/google-sheets/read-client";
+import {
+  SAMPLE_NON_SHEET_CANDIDATES,
+  SAMPLE_RENEWAL_TABLES,
+} from "@/lib/lease-renewal/sample-sheet";
 
 const READ_TS = "2026-06-20T00:00:00.000Z";
 
@@ -34,6 +38,7 @@ describe("runLiveRenewalReview", () => {
       rentvineClient: fakeClient(EXPORT_ROWS),
       runId: "live-1",
       readTimestamp: READ_TS,
+      tables: [],
     });
 
     expect(liveRentvineCandidates).toBe(2);
@@ -43,11 +48,13 @@ describe("runLiveRenewalReview", () => {
     expect(typeof run.manifest).toBe("object");
   });
 
-  it("replaces the synthetic Rentvine candidates while the other synthetic sources survive", async () => {
+  it("uses fixture tables and other sources only when the test injects them explicitly", async () => {
     const { run } = await runLiveRenewalReview({
       rentvineClient: fakeClient(EXPORT_ROWS),
       runId: "live-2",
       readTimestamp: READ_TS,
+      tables: SAMPLE_RENEWAL_TABLES,
+      otherCandidates: SAMPLE_NON_SHEET_CANDIDATES,
     });
 
     // Live Casey conflict -> High on current_rent (the live Rentvine read). The lease-end date no longer
@@ -70,6 +77,7 @@ describe("runLiveRenewalReview", () => {
       rentvineClient: fakeClient(EXPORT_ROWS),
       runId: "live-3",
       readTimestamp: READ_TS,
+      tables: [],
     });
     const manifestText = JSON.stringify(run.manifest);
     expect(manifestText).not.toContain("Jordan");

@@ -8,27 +8,35 @@
 > owner-default confirm-with-default: **"initiation" means app-plane draft/queue creation only** —
 > the app ANTICIPATES and PROPOSES work a human starts with one click; it never auto-runs, auto-sends,
 > or writes a system of record, and real scheduled (cron) auto-initiation stays hard-gated.
+>
+> **S56 closure amendment (2026-08-03).** Production Test runs and runtime sample-desk fallback are
+> retired. The lane now reads the real bounded renewal desk, fails closed when that read is
+> unavailable, and a person starts one ordinary Live app-plane run through
+> `POST /api/process-definitions/{id}/runs`. Deterministic invented inputs remain test helpers only.
+> This amendment controls wherever the historical build narrative below says Test, simulation, or
+> runtime SAMPLE.
 
-**Goal.** Today every process is started by hand: SpaceDesk's "Start a run", and the Console process
-picker, which starts a SIMULATION only (`components/ask/AskForm.tsx:106` → `POST
-/api/process-definitions/{id}/test-runs`). The only anticipatory logic that exists — the pure
+**Goal.** Every process remains human-started: SpaceDesk and the Console use the ordinary
+`POST /api/process-definitions/{id}/runs` app-plane route. The anticipatory logic — the pure
 `planNoticeReminders` / `planCallTasks` planners (`lib/lease-renewal/notice-reminders.ts`) over the
-renewal cohort (`lib/lease-renewal/cohort.ts`) — runs ONLY as a manual CLI dry-run (`npm run
-notices:reminders`, `scripts/run-notice-reminders.ts`) that prints and exits: no Cloud Scheduler, no
-send, nothing reads lease/meeting data to open work. After this suite the operator opens the Console
+renewal cohort (`lib/lease-renewal/cohort.ts`) — is computed on request from the real bounded
+read-only renewal desk and is also available through the Live-only manual CLI dry-run (`npm run
+notices:reminders`, `scripts/run-notice-reminders.ts`): no Cloud Scheduler and no send. The operator
+opens the Console
 and sees an "Anticipated work" lane: a read-only, value-free "coming up / due" list computed on
 request from those same pure planners, covering all four processes the owner named (lease renewals,
 owner-renewal outreach, tenant renewal notices, maintenance work orders) plus a named
 compliance/new-user placeholder — each item ONE CLICK from starting the existing human-run process
-through the existing test-run/desk path. Anticipation never executes; it only proposes work a human
+through the ordinary run/desk path. Anticipation never executes; it only proposes work a human
 starts. Real cron auto-initiation, any send, and any system-of-record write stay behind the fence.
 
 **What it is / how it functions.** One pure projection feeds one read-only Console lane; the start
-control reuses the existing simulation/desk path (no new endpoint, no new external action).
+control reuses the ordinary Live app-plane run/desk path and adds no external action.
 
-- **Projection — new `lib/anticipation/projection.ts`.** A pure `buildAnticipatedWork({
-referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` exactly: reference
-  date, the in-boundary lease batch, and the notice rule set are all INPUTS — no `Date.now()`, no I/O.
+- **Projection — new `lib/anticipation/projection.ts`.** A pure
+  `buildAnticipatedWork({ referenceDateIso, deskView, ruleSet })` that mirrors
+  `lib/lease-renewal/cohort.ts` exactly: reference date, the injected desk view, and the notice rule
+  set are all INPUTS — no `Date.now()`, no I/O.
   It folds `classifyRenewalCohort` + `planNoticeReminders` + `planCallTasks` +
   `resolveNoticeRule`/`DEFAULT_NOTICE_RULE_SET` into a value-free `AnticipatedWorkList`: one
   `AnticipatedWorkGroup` per owner-named process family (`lease-renewals`,
@@ -43,16 +51,16 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   `components/console/ConsoleProcessStrip.tsx` (read-only, deep-linking chips). Rendered by
   `components/console/ConsoleView.tsx` (which already assembles the deck + ask box + process strip
   from one non-fatal gather). Each item shows the family, its value-free count + urgency, and a
-  primary "Start a test run" control that reuses the EXISTING `POST
-/api/process-definitions/{processDefinitionId}/test-runs` the picker and `SpaceDesk` already use
-  (F-SPACE-DESK-1), landing on `/workflow-runs/{id}`; when a family has no seeded definition the item
-  deep-links to its Space (`spaceHref`) instead. The start control is editor-gated exactly like the
-  process picker (`canStartSimulation = can(user.role, "edit")`, `ConsoleView.tsx:47`).
-- **Data source (in-boundary).** V1 projects over the deterministic SAMPLE batch the desk already
-  uses (`lib/lease-renewal/sample-desk.ts` — `getRenewalDeskView` / the `sampleReminderLeases` shape
-  in `scripts/run-notice-reminders.ts:60`), so the lane is reproducible and PII-free. The renewal,
-  owner-outreach, and notice families draw real counts from the cohort + planners; maintenance and
-  compliance/new-user have no anticipation feed yet, so they render an honest `no-source-yet`
+  primary "Start run" control that reuses
+  `POST /api/process-definitions/{processDefinitionId}/runs`, landing on `/workflow-runs/{id}`. When
+  a family has no usable definition, the item deep-links to its Space (`spaceHref`) instead. The
+  start control is editor-gated exactly like the
+  process picker (`canStart` plus the loaded in-scope, non-Retired definition set).
+- **Data source (Live read-only).** Production and local rehearsal project over
+  `loadLiveRenewalDesk`; an unavailable source returns no anticipated rows and never substitutes
+  invented records. Unit tests inject deterministic helper desks to prove the pure projection. The
+  renewal, owner-outreach, and notice families draw real counts from the cohort + planners;
+  maintenance and compliance/new-user have no anticipation feed yet, so they render an honest `no-source-yet`
   placeholder ("Waiting on a maintenance signal") — a named family, never a fabricated item.
 - **Computed on request, never scheduled.** The lane renders on Console load from the pure
   projection and carries a permanent caption: "Computed on request · this never runs on a schedule
@@ -64,7 +72,7 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
     rule-set inputs; no `Date.now`, no I/O) folding cohort + `planNoticeReminders` + `planCallTasks`
     into the value-free `AnticipatedWorkList`. New `tests/unit/anticipation-projection.test.ts`.
   - **Slice 2 — Console lane.** `components/console/ConsoleAnticipatedWork.tsx` wired into
-    `ConsoleView.tsx`; read-only; editor-only one-click start reusing the existing test-runs POST /
+    `ConsoleView.tsx`; read-only; editor-only one-click start reusing the ordinary `/runs` POST /
     desk deep link (NO new endpoint). Lane styles as plain `.console-*` classes in `app/globals.css`.
     New `tests/unit/console-anticipated-work.test.tsx`.
   - **Slice 3 — honest states.** Empty/all-clear text ("All clear — nothing is coming up right now.")
@@ -79,9 +87,7 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   - Any autonomous send from an anticipated item.
   - Any system-of-record write (RentVine / Sheet / QuickBooks / bank / client Drive) triggered from
     an anticipated item (`F-WRITE-GATE`).
-  - Wiring the LIVE anticipation feed (the real lease feed + the Dan-meeting-derived signals for
-    maintenance / compliance / new-user) beyond the in-boundary sample — needs the approved data
-    source and owner sign-off.
+  - Adding the still-undefined Dan-meeting-derived signals for maintenance / compliance / new-user.
   - Routine deploy, smoke, and traffic promotion until D05's full gate is green.
 
 **Open questions & assumptions.**
@@ -98,10 +104,9 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   work (from the Dan meetings). Until supplied, those families render the honest `no-source-yet`
   placeholder; the renewal/notice/owner-outreach families are fully sourced from the existing
   planners today.
-- _Open:_ the LIVE data source. V1 projects over the in-boundary SAMPLE batch (`sample-desk.ts`);
-  swapping in the live lease feed is gated (the live Sheet + RentVine reads are verified per
-  `F-DRIVE-DWD` / the Sheets-DWD memory, but a meeting-signal feed is not built). Confirm-with-default:
-  sample batch until the live feed is wired behind the gate.
+- _RESOLVED by S56:_ the runtime source is the real bounded Live renewal desk, used read-only.
+  Unavailability fails closed. Invented renewal desks exist only under `tests/helpers`; the
+  maintenance/compliance meeting-signal feed remains unbuilt and renders `no-source-yet`.
 - _Client-owned:_ the notice-rule VALUES (deadline day, warning lead, follow-up interval) stay
   `Needs Verification:` until Dan confirms (`F-NOTICE-ENGINE`); the lane's urgency inherits them and
   is only as confirmed as they are.
@@ -117,21 +122,21 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
 `components/console/ConsoleAnticipatedWork.tsx`; consumes (unchanged)
 `lib/lease-renewal/notice-reminders.ts` (`planNoticeReminders` / `planCallTasks`),
 `lib/lease-renewal/cohort.ts` (`classifyRenewalCohort`), `lib/lease-renewal/notice-rules.ts`
-(`DEFAULT_NOTICE_RULE_SET` / `resolveNoticeRule`), and `lib/lease-renewal/sample-desk.ts` (the
-in-boundary batch). Wires into `components/console/ConsoleView.tsx`; reuses `lib/spaces.ts`
+(`DEFAULT_NOTICE_RULE_SET` / `resolveNoticeRule`) plus `lib/lease-renewal/live-desk.ts` for the
+read-only runtime input. Wires into `components/console/ConsoleView.tsx`; reuses `lib/spaces.ts`
 (`launchSpaces` + `spaceHref`) and the `lib/space-card-state.ts` semantics for the start routing;
 adds plain lane classes to `app/globals.css`. The UI is the on-screen twin of the existing dry-run
 CLI `scripts/run-notice-reminders.ts` (the projection reuses the same planners the CLI prints). New
 tests `tests/unit/anticipation-projection.test.ts` + `tests/unit/console-anticipated-work.test.tsx`.
 Interacts with (does NOT supersede): `F-NOTICE-ENGINE` (source planners), `F-PRECUST-CYCLE`
 (no-Cloud-Scheduler hard gate it honors), `F-WRITE-GATE` (no SoR write), `F-CONSOLE-ACT-IN-PLACE` /
-`F-CONSOLE-APP-STATE` (the Console front door it extends — one read-only lane + a start-a-test-run
+`F-CONSOLE-APP-STATE` (the Console front door it extends — one read-only lane + a human-started run
 control, no new external action), `F-APPROVAL-QUEUE-UNIFIED` (the value-free needs-decision inbox is
 its sibling projection). Additive; no Supersede Log entry.
 
 **Adversarial acceptance checks.**
 
-- **AC-S18-1** — Given a fixed `referenceDateIso`, the `sample-desk.ts` batch, and
+- **AC-S18-1** — Given a fixed `referenceDateIso`, an injected `RenewalDeskView`, and
   `DEFAULT_NOTICE_RULE_SET`, `buildAnticipatedWork(...)` returns deep-equal output on two consecutive
   calls (deterministic; no `Date.now`, no I/O — a `Date.now` or a network/fs import fails the check).
   _Verify:_ `npm test -- tests/unit/anticipation-projection.test.ts`; keep
@@ -145,31 +150,30 @@ tests/unit/anticipation-projection.test.ts`; keep `tests/unit/needs-decision-inb
   Renewal Outreach, Tenant Renewal Notice, Maintenance Work Order Intake) plus the compliance/new-user
   family; an un-fed family renders the `no-source-yet` placeholder text and produces NO startable item
   (never a fabricated work item). _Verify:_ `npm test -- tests/unit/console-anticipated-work.test.tsx`.
-- **AC-S18-4** — When the projection is all-clear, the lane renders the exact text "All clear —
-  nothing is coming up right now." AND still renders the caption "Computed on request · this never
-  runs on a schedule and never sends." _Verify:_ `npm test --
+- **AC-S18-4** — When the projection is all-clear, the lane renders the exact text "All clear.
+  Nothing is coming up right now." AND still renders the caption "Computed on request · it runs only
+  when you open the Console, and a person sends every message." _Verify:_ `npm test --
 tests/unit/console-anticipated-work.test.tsx`; keep `tests/unit/console-view.test.tsx` green.
-- **AC-S18-5** — Activating "Start a test run" on an anticipated item issues exactly the existing
-  `POST /api/process-definitions/{processDefinitionId}/test-runs` (or, for a definition-less family,
-  navigates to `spaceHref`); the resulting run is simulation-only and NO route that sends or writes a
-  system of record is called. _Verify:_ `npm test -- tests/unit/console-anticipated-work.test.tsx`;
-  browser-drive the lane and confirm the network target is `…/test-runs` and the run status is a test
-  run.
+- **AC-S18-5** — Activating "Start run" on an anticipated item issues exactly
+  `POST /api/process-definitions/{processDefinitionId}/runs` (or, for a definition-less family,
+  navigates to `spaceHref`); the resulting record is an explicit Live app-plane workflow run and NO
+  route that sends or writes a system of record is called. _Verify:_ `npm test --
+tests/unit/console-anticipated-work.test.tsx`; the network target is `…/runs` and the route has no
+  send/provider/system-write call.
 - **AC-S18-6** — A viewer (non-editor) role renders the read-only lane with ZERO start controls
-  (`canStartSimulation` false), mirroring the process-picker gate in `ConsoleView.tsx`. _Verify:_
+  (`canStart` false), mirroring the process-picker gate in `ConsoleView.tsx`. _Verify:_
   `npm test -- tests/unit/console-anticipated-work.test.tsx`.
 - **AC-S18-7** — A repo scan finds NO Cloud Scheduler / cron / `node-cron` / `setInterval` / timer
   that invokes `buildAnticipatedWork` or any process start; the projection is reachable only from a
   server render or an explicit editor "Refresh" (hard-gate falsification — any scheduler reference in
   the anticipation/Console path fails). _Verify:_ `rg -n "cron|setInterval|Scheduler|schedule\(" lib/anticipation components/console`
   returns nothing; `npm run typecheck`.
-- **AC-S18-8** — For a given `--date`, the lane's renewal-family counts reconcile with
-  `npm run notices:reminders -- --date=2026-07-14 --json` (the lane is the UI twin of the dry-run over
-  the same planners; a divergence means the projection forked from the planners). _Verify:_ `npm run
-notices:reminders -- --date=2026-07-14 --json`; keep `tests/unit/lease-renewal-notice-reminders.test.ts`
-  green.
-- **AC-S18-9** — All new copy passes the voice gate (plain language, "test run" not "simulation",
-  "the app", no em dash) and the suite is green under lint/typecheck. _Verify:_ `npm run
+- **AC-S18-8** — For a fixed injected desk and date, the lane's renewal-family counts reconcile with
+  `planNoticeReminders` and `planCallTasks`; the Live-only CLI loads the real desk over the same
+  bounded window and fails closed when unavailable. _Verify:_
+  `tests/unit/anticipation-projection.test.ts` and `tests/unit/notice-reminders-cli.test.ts`.
+- **AC-S18-9** — All new copy passes the voice gate (plain language, "run" rather than retired lane
+  vocabulary, "the app", no em dash) and the suite is green under lint/typecheck. _Verify:_ `npm run
 verify:copy-voice`, `npm run typecheck`, `npm run lint`; keep `tests/unit/space-card-state.test.ts`
   green.
 
@@ -178,7 +182,7 @@ human starts. No Cloud Scheduler, no cron, no `setInterval`, no timer that auto-
 (`F-PRECUST-CYCLE`). No autonomous send. No system-of-record write (RentVine / Sheet / QuickBooks /
 bank / client Drive) triggered from an anticipated item (`F-WRITE-GATE`). No new Google scope. The
 Console lane stays value-free — no address, rent, tenant name, or lease-end date on the list. The
-live meeting/lease feed stays gated; V1 projects over the in-boundary SAMPLE batch only. Every Action
+runtime lease input is a bounded Live read and never falls back to sample data. Every Action
 Registry entry `production_allowed:false` (this suite adds none). No client data on GitHub. The
 verified non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work
 is closed while local/app-plane work continues. Routine release follows D05: after the full local
@@ -190,26 +194,26 @@ operations remain owner-run. A violation of any of these is itself a falsificati
 **Ordered prompt sequence.**
 
 1. _Discovery:_ re-read `lib/lease-renewal/notice-reminders.ts`, `cohort.ts`, `notice-rules.ts`,
-   `sample-desk.ts`, `components/console/ConsoleView.tsx` + `ConsoleProcessStrip.tsx`, the test-runs
-   start path in `components/ask/AskForm.tsx:106`, and `lib/spaces.ts`; confirm the planners + cohort
-   are pure and the `…/test-runs` POST is the shared start path; grep-confirm no scheduler exists.
+   `live-desk.ts`, `components/console/ConsoleView.tsx` + `ConsoleProcessStrip.tsx`, the ordinary
+   `/runs` start route, and `lib/spaces.ts`; confirm the planners + cohort are pure and grep-confirm
+   no scheduler exists.
 2. _Build:_ Slice 1 — `lib/anticipation/projection.ts` (pure `buildAnticipatedWork`) folding
    `classifyRenewalCohort` + `planNoticeReminders` + `planCallTasks` into the value-free
    `AnticipatedWorkList` across the four families + the compliance/new-user placeholder; add
    `tests/unit/anticipation-projection.test.ts` (determinism AC-S18-1, value-free key-set AC-S18-2,
    four-families AC-S18-3). Lint/typecheck/test + a falsification pass.
 3. _Build:_ Slice 2+3+4 — `components/console/ConsoleAnticipatedWork.tsx` wired into `ConsoleView.tsx`;
-   read-only lane, editor-only one-click start reusing the existing test-runs POST / desk deep link;
+   read-only lane, editor-only one-click start reusing the ordinary `/runs` POST / desk deep link;
    honest empty/all-clear + "computed on request, never scheduled" caption + `no-source-yet`
    placeholder; plain `app/globals.css` classes; `tests/unit/console-anticipated-work.test.tsx`
    (AC-S18-4/5/6). Extend — never weaken — the value-free sentinel posture.
 4. _Verify:_ `npm test` (new + the named sentinels), `npm run typecheck`, `npm run lint`, `npm run
 verify:copy-voice`; reconcile counts with `npm run notices:reminders -- --date=2026-07-14 --json`
    (AC-S18-8); then `bash scripts/verify.sh`. Browser-drive the Console lane as an editor AND a viewer:
-   confirm one click lands on a test run at `/workflow-runs/{id}`, the viewer sees no start control,
+   confirm one click lands on an ordinary run at `/workflow-runs/{id}`, the viewer sees no start control,
    and nothing sends or writes.
-5. _Gate:_ STOP before any Cloud Scheduler / cron / timer, any live meeting-or-lease feed wiring
-   beyond the in-boundary sample, any SoR write or send. Hand back to the owner.
+5. _Gate:_ STOP before any Cloud Scheduler / cron / timer, any unverified meeting-signal wiring, any
+   SoR write, or any send. Hand back to the owner.
 6. _Owner:_ present the confirm-with-default (initiation = app-plane draft/queue creation only; no
    scheduler); collect the client-owned "what defines anticipated maintenance / compliance / new-user
    work" signals from the Dan meetings. Routine deployment follows D05 after its full gate is green.
@@ -227,5 +231,5 @@ that family as the "anticipation lane" section; until then keep it standalone.
 **2026-07-13 audit hardening (QA-006).** A projected static id is no longer sufficient to render Start.
 `ConsoleView` intersects it with the definitions actually loaded and scoped for the principal, excludes Retired
 definitions, and still requires edit permission. Missing/unavailable definitions render Open the space; a stale
-POST replaces the start control with that recovery, and pending starts are deduplicated. Starts still use only
-the existing simulation test-run endpoint.
+POST replaces the start control with that recovery, and pending starts are deduplicated. S56 moved starts to
+the ordinary Live app-plane `/runs` endpoint.

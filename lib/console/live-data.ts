@@ -68,9 +68,6 @@ export interface ConsoleDataProvider {
 
 export interface ConsoleProviderFactories {
   createLive(): ConsoleDataProvider;
-  createTest(
-    mode: Extract<ConsoleDataMode, { kind: "test" }>,
-  ): Promise<ConsoleDataProvider>;
 }
 
 export async function loadConsoleProjection(
@@ -78,8 +75,7 @@ export async function loadConsoleProjection(
   mode: ConsoleDataMode,
   factories: ConsoleProviderFactories = defaultFactories,
 ): Promise<ConsoleProjection> {
-  const provider =
-    mode.kind === "live" ? factories.createLive() : await factories.createTest(mode);
+  const provider = factories.createLive();
   try {
     const loaded = await provider.load(actor);
     return {
@@ -100,11 +96,6 @@ const defaultFactories: ConsoleProviderFactories = {
   // This module is server-only through ConsoleView. The provider performs one bounded,
   // cached Rentvine read and never substitutes Test rows on failure.
   createLive: () => createRentvineConsoleProvider(),
-  createTest: async (mode) => {
-    const { createConsoleFixtureProvider } =
-      await import("@/lib/console/test-data-provider");
-    return createConsoleFixtureProvider(mode);
-  },
 };
 
 function canSeeRow(actor: AuthenticatedUser, row: ConsoleOperationalRow) {

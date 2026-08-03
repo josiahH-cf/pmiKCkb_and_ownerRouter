@@ -37,7 +37,7 @@ export interface SpaceDeskProps {
   presence: Record<string, boolean>;
   /** The connectors this Space depends on (CONNECTORS filtered by SPACE_CONNECTOR_IDS[spaceId]). */
   connectors: readonly ConnectorDef[];
-  /** The latest simulation run, if one has been started. */
+  /** The latest ordinary workflow run, if one is attached. */
   run: WorkflowRunRecord | null;
   stepChecks: readonly WorkflowRunStepCheckRecord[];
   canEdit?: boolean;

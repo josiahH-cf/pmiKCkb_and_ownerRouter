@@ -319,17 +319,15 @@ Production smoke checklist:
 - Ask returns `No Reliable Source Found` for an unsupported question.
 - User can save or suggest editable records but cannot approve.
 - Admin can approve, return, assign, snooze, and disable eligible queue items.
-- Admin can run Approval Queue bulk actions against real or explicitly approved test queue items,
-  with per-item skipped reasons visible. Do not seed demo queue records in production just to test
-  this path.
-- Console shows separate Live and visibly labeled Test records; Test never falls back into Live or
-  counts as Live evidence.
-- The canonical Maintenance Test journey persists intake, assignment, status, activity, notes,
-  simulated receipts, and Done with zero external-provider calls.
-- The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket,
-  uses the app-only Test mailbox, and loses access after deassignment or disable. Admin then resets
-  that canonical identity, proves UID rotation plus preserved Test workflow state, and repeats a fresh
-  password/TOTP sign-in without retaining a setup link or TOTP material.
+- Admin can inspect Approval Queue bulk controls for eligible Live items, with per-item skipped
+  reasons visible; rehearsal does not invoke them against Production records.
+- Production exposes Live records only and contains no fixture creator, rehearsal workspace, or
+  non-Live projection.
+- The Maintenance workspace persists Live intake, assignment, status, activity, and notes; provider
+  effects remain on their separately confirmed and receipted surfaces.
+- A roster-backed Live Vendor sees only its assigned Live tickets and loses access after
+  deassignment or disable; no setup link, credential, TOTP material, or customer record value enters
+  smoke evidence.
 - Every enabled Live write names the exact action, target, and material values; requires the permitted
   human confirmation; emits a bodyless receipt and readback; and an unavailable action makes no
   provider call.

@@ -37,12 +37,12 @@ export interface GmailHubRuntimeDependencies {
 
 export interface GmailHubEffectEnvironment {
   descriptor: EnvironmentDescriptor;
-  dataMode: "live" | "test";
+  dataMode: "live";
 }
 
 export interface GmailHubRuntimeFactories {
   constructClient?(subject: string): GmailRuntimeClient;
-  createStore?(dataMode: "live" | "test"): GmailStateStore;
+  createStore?(dataMode: "live"): GmailStateStore;
 }
 
 let testDependencies: GmailHubRuntimeDependencies | null = null;
@@ -107,13 +107,10 @@ export function resolveGmailHubEffectEnvironment(
   };
 }
 
-export function gmailHubEffectDataMode(
-  descriptor: EnvironmentDescriptor,
-): "live" | "test" {
-  // State selection and effect authority are deliberately separate. Live-read-only must inspect
-  // the real Live state lane, but createDescriptorBoundGmailRuntimeClient and the composition guard
-  // below still refuse every provider effect outside Production+Live.
-  return descriptor.dataContext === "demo" ? "test" : "live";
+export function gmailHubEffectDataMode(_descriptor: EnvironmentDescriptor): "live" {
+  // S56 retired the persisted Test lane. Every runtime descriptor now selects Live state; the
+  // provider-construction and request boundaries still refuse effects outside Production+Live.
+  return "live";
 }
 
 export function createDefaultGmailStateStore(

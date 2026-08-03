@@ -16,8 +16,6 @@ import {
   Stepper,
   Tabs,
 } from "@/components/ui";
-import { PrepareOwnerEmailButton } from "@/components/lease-renewal/PrepareOwnerEmailButton";
-import { PrepareTenantEmailButton } from "@/components/lease-renewal/PrepareTenantEmailButton";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
 import {
   OwnerDecisionForm,
@@ -30,7 +28,7 @@ import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
   RenewalLeaseWorkspace,
-} from "@/lib/lease-renewal/sample-desk";
+} from "@/lib/lease-renewal/desk-model";
 import type { ChannelMessage } from "@/lib/lease-renewal/tenant-draft";
 
 const READINESS_STATUS_LABEL: Record<ReadinessStatus, string> = {
@@ -39,11 +37,9 @@ const READINESS_STATUS_LABEL: Record<ReadinessStatus, string> = {
   needs_input: "Needs input",
 };
 
-type WorkspaceMode = "sample" | "live";
-
 // Data-check pill per agreement. A conflict needs a human; an agreement reads clear; a single source or a
 // missing field reads as caution ("One source" / "Needs input") so an unconfirmed field is never dressed
-// up as a verified pass. Sample data only ever produces agree/conflict, so live adds the last two.
+// up as a verified pass.
 const RECON_PILL: Record<DeskReconItem["agreement"], { value: string; label: string }> = {
   conflict: { value: "Action Required", label: "Needs your decision" },
   agree: { value: "Low", label: "Agrees" },
@@ -54,30 +50,20 @@ const RECON_PILL: Record<DeskReconItem["agreement"], { value: string; label: str
 export function RenewalWorkspace({
   compScreenshotExecutable = false,
   workspace,
-  mode = "sample",
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   workspace: RenewalLeaseWorkspace;
-  mode?: WorkspaceMode;
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
   const openItems = readiness.flags.length + readiness.needsInput.length;
-  const isLive = mode === "live";
-  compScreenshotExecutable = isLive && compScreenshotExecutable;
   // Deep link seeded from the property address so the operator can pull Zillow comps in one click
   // (property address only — no tenant PII in the URL).
-  const zillowUrl = isLive ? zillowSearchUrl(summary.addressLabel) : null;
+  const zillowUrl = zillowSearchUrl(summary.addressLabel);
 
   return (
     <div className="ui-stack">
       <PageHeader
-        actions={
-          isLive ? (
-            <ModeChip tone="live">Live data</ModeChip>
-          ) : (
-            <ModeChip>Sample data</ModeChip>
-          )
-        }
+        actions={<ModeChip tone="live">Live data</ModeChip>}
         subtitle={`${summary.tenantNameLabel}${summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}`}
         title={summary.addressLabel}
       />
@@ -130,7 +116,7 @@ export function RenewalWorkspace({
       </Card>
 
       <Card title="Owner decision">
-        {isLive && workspace.live ? (
+        {workspace.live ? (
           <div className="ui-stack">
             <p className="muted">
               Record the owner’s rent decision to unlock the tenant offer.
@@ -176,7 +162,6 @@ export function RenewalWorkspace({
           </p>
           <div className="draft-box">{ownerDraft.body}</div>
         </Disclosure>
-        {isLive ? null : <PrepareOwnerEmailButton leaseId={summary.id} />}
       </Card>
 
       <Card title="Tenant offer">
@@ -203,46 +188,29 @@ export function RenewalWorkspace({
                 },
               ]}
             />
-            {isLive ? null : <PrepareTenantEmailButton leaseId={summary.id} />}
           </div>
         ) : (
           <EmptyState
-            description={
-              isLive
-                ? "Compose the tenant offer from this lease's live RentVine record in the renewal-notice draft below."
-                : "The tenant offer drafts unlock once the owner records a rent decision."
-            }
-            title={
-              isLive
-                ? "Compose the tenant offer below"
-                : "Available after the owner decides"
-            }
+            description="Compose the tenant offer from this lease's live RentVine record in the renewal-notice draft below."
+            title="Compose the tenant offer below"
           />
         )}
       </Card>
 
-      {/* The email step. In live mode this resolves the real RentVine lease by id and drafts an UNSENT
-          Gmail draft through the gated route; a human presses Send in Gmail. The sample workspace has no
-          real lease to resolve, so it points to the live notices desk instead of a control that fails. */}
+      {/* Resolves the real RentVine lease by id and drafts an UNSENT Gmail draft through the gated
+          route; a human presses Send in Gmail. */}
       <Card title="Renewal-notice draft">
-        {isLive ? (
-          <RenewalNoticeDraftComposer
-            initialOffer={
-              workspace.live?.ownerDecision
-                ? {
-                    decision: workspace.live.ownerDecision.decision,
-                    offeredRent: workspace.live.ownerDecision.offeredRent,
-                  }
-                : null
-            }
-            leaseId={summary.id}
-          />
-        ) : (
-          <EmptyState
-            description="Create renewal-notice Gmail drafts from real RentVine leases on the live notices desk."
-            title="Create renewal drafts on the live notices desk"
-          />
-        )}
+        <RenewalNoticeDraftComposer
+          initialOffer={
+            workspace.live?.ownerDecision
+              ? {
+                  decision: workspace.live.ownerDecision.decision,
+                  offeredRent: workspace.live.ownerDecision.offeredRent,
+                }
+              : null
+          }
+          leaseId={summary.id}
+        />
       </Card>
 
       <Card title="Build docs readiness">
@@ -264,7 +232,7 @@ export function RenewalWorkspace({
             </li>
           ))}
         </ul>
-        {isLive && workspace.live ? (
+        {workspace.live ? (
           <RenewalCompleteButton
             complete={workspace.live.complete}
             leaseId={workspace.live.leaseId}

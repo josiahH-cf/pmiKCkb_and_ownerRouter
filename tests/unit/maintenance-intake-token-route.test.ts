@@ -10,7 +10,6 @@ import { POST } from "@/app/api/maintenance/intake/token/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { verifyIntakeToken } from "@/lib/maintenance/intake-token";
-import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 const SECRET = "mint-secret-32-bytes-minimum-value";
 const IP_HASH_SALT = "mint-ip-salt-32-bytes-minimum-value";
@@ -46,19 +45,17 @@ afterEach(() => {
 });
 
 describe("mint intake token route", () => {
-  it("refuses a Test token in Production before reading Firestore", async () => {
-    vi.stubEnv("ENVIRONMENT_KIND", "production");
-    vi.stubEnv("DATA_CONTEXT", "live");
+  it("refuses the retired Test lane before reading Firestore", async () => {
     setEditor();
 
     const res = await POST(
       req({
-        propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+        propertyKey: "unit:legacy-test",
         dataMode: "test",
       }),
     );
 
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(400);
     expect(readIntakeEpoch).not.toHaveBeenCalled();
   });
 
@@ -130,52 +127,6 @@ describe("mint intake token route", () => {
       expect(verified.payload.singleUse).toBe(true);
       expect(verified.payload.dataMode).toBe("live");
     }
-  });
-
-  it("mints a one-day single-use token for only the canonical Test fixture", async () => {
-    setEditor();
-    const res = await POST(
-      req({
-        propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
-        dataMode: "test",
-        ttlDays: 7,
-      }),
-    );
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toMatchObject({
-      propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
-      dataMode: "test",
-      singleUse: true,
-      testSubmission: MAINTENANCE_TEST_PUBLIC_INTAKE,
-    });
-    const verified = verifyIntakeToken(SECRET, body.token, Date.now());
-    expect(verified.ok).toBe(true);
-    if (verified.ok) {
-      expect(verified.payload.dataMode).toBe("test");
-      expect(verified.payload.singleUse).toBe(true);
-      expect(verified.payload.exp - verified.payload.iat).toBeLessThanOrEqual(
-        24 * 60 * 60 * 1000,
-      );
-    }
-  });
-
-  it("rejects a Test token for a non-Test property or a reusable Test link", async () => {
-    setEditor();
-    expect((await POST(req({ propertyKey: "prop-1", dataMode: "test" }))).status).toBe(
-      400,
-    );
-    expect(
-      (
-        await POST(
-          req({
-            propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
-            dataMode: "test",
-            reusable: true,
-          }),
-        )
-      ).status,
-    ).toBe(400);
   });
 
   it("caps a single-use token at 7 days even if a longer ttl is requested", async () => {

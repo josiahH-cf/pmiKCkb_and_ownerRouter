@@ -28,7 +28,7 @@ export function ProcessDefinitionListClient({
   const [message, setMessage] = useState(
     initialError ?? "Workflow process definitions are ready.",
   );
-  const recentRunsMessage = initialRunsError ?? "Recent test runs are ready.";
+  const recentRunsMessage = initialRunsError ?? "Recent workflow runs are ready.";
   const [isBusy, setIsBusy] = useState(false);
   const [form, setForm] = useState({
     default_approver_uid: currentUserUid,
@@ -139,12 +139,12 @@ export function ProcessDefinitionListClient({
         <section className="panel workflow-run-index">
           <div className="panel-heading">
             <div>
-              <h2>Recent test runs</h2>
+              <h2>Recent runs</h2>
               <p className="muted">{recentRunsMessage}</p>
             </div>
           </div>
           {recentRuns.length === 0 ? (
-            <p className="muted">No test runs yet.</p>
+            <p className="muted">No workflow runs yet.</p>
           ) : (
             <div className="workflow-record-list">
               {recentRuns.map((run) => (
@@ -158,16 +158,10 @@ export function ProcessDefinitionListClient({
                         Due {run.due_date} - Owner {run.owner_uid}
                       </p>
                     </div>
-                    <div className="workflow-pill-group">
-                      <span className="queue-pill" data-value={run.status}>
-                        {run.status}
-                      </span>
-                      <span className="review-pill">Test run</span>
-                    </div>
+                    <span className="queue-pill" data-value={run.status}>
+                      {run.status}
+                    </span>
                   </div>
-                  <p className="muted">
-                    Test run. No production metrics or external actions.
-                  </p>
                   <p className="muted">
                     Definition version:{" "}
                     {run.definition_version_id ?? "Not pinned (draft)"}

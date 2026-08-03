@@ -38,7 +38,7 @@ export function ProcessDefinitionDetailClient({
   const [isBusy, setIsBusy] = useState(false);
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
   const [publicationNote, setPublicationNote] = useState("");
-  const [testRunForm, setTestRunForm] = useState({ due_date: "", note: "" });
+  const [runForm, setRunForm] = useState({ due_date: "", note: "" });
   const canMutate =
     canEdit && !isBusy && !["Pending Approval", "Retired"].includes(definition.status);
 
@@ -85,23 +85,19 @@ export function ProcessDefinitionDetailClient({
     });
   }
 
-  async function startTestRun() {
-    if (!canEdit || isBusy) {
-      return;
-    }
-
-    await runMutation("Starting a test run.", async () => {
+  async function startRun() {
+    if (!canEdit || isBusy) return;
+    await runMutation("Starting a workflow run.", async () => {
       const { run } = await fetchWorkflow<{ run: WorkflowRunRecord }>(
-        `/api/process-definitions/${definition.id}/test-runs`,
+        `/api/process-definitions/${definition.id}/runs`,
         {
           body: JSON.stringify({
-            due_date: testRunForm.due_date || undefined,
-            note: testRunForm.note || undefined,
+            due_date: runForm.due_date || undefined,
+            note: runForm.note || undefined,
           }),
           method: "POST",
         },
       );
-
       window.location.assign(`/workflow-runs/${run.id}`);
     });
   }
@@ -289,8 +285,8 @@ export function ProcessDefinitionDetailClient({
           </p>
           {!definition.active_version_id ? (
             <p className="muted">
-              Test runs started now follow the current mutable draft and track its edits
-              until you publish an immutable version.
+              Publishing pins an immutable version for future runs. A Draft definition can
+              still start an app-plane run, recorded as Not pinned (draft).
             </p>
           ) : null}
           <p className="muted">
@@ -303,39 +299,38 @@ export function ProcessDefinitionDetailClient({
         </section>
 
         <section className="panel">
-          <h2>Test run</h2>
+          <h2>Start run</h2>
           <p className="muted">
-            Test runs created here stay in Test and are kept out of production metrics.
+            Starts an app-plane checklist for a person to work. Provider actions and
+            system-of-record changes remain on their own confirmed surfaces.
           </p>
           <label>
             Due date
             <input
               disabled={!canEdit || isBusy}
               onChange={(event) =>
-                setTestRunForm({ ...testRunForm, due_date: event.target.value })
+                setRunForm({ ...runForm, due_date: event.target.value })
               }
               type="date"
-              value={testRunForm.due_date}
+              value={runForm.due_date}
             />
           </label>
           <label className="workflow-note-field">
             Start note
             <textarea
               disabled={!canEdit || isBusy}
-              onChange={(event) =>
-                setTestRunForm({ ...testRunForm, note: event.target.value })
-              }
+              onChange={(event) => setRunForm({ ...runForm, note: event.target.value })}
               rows={3}
-              value={testRunForm.note}
+              value={runForm.note}
             />
           </label>
           <button
             className="secondary-button"
             disabled={!canEdit || isBusy || definition.status === "Retired"}
-            onClick={startTestRun}
+            onClick={startRun}
             type="button"
           >
-            Start Test Run
+            Start run
           </button>
         </section>
 
@@ -351,7 +346,6 @@ export function ProcessDefinitionDetailClient({
                 </Link>
                 <p className="muted">
                   {run.status} - Due {run.due_date}
-                  {run.is_test_run ? " - Test" : ""}
                 </p>
                 <p className="muted">
                   Definition version: {run.definition_version_id ?? "Not pinned (draft)"}

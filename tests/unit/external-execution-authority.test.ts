@@ -13,7 +13,7 @@ import type {
 } from "@/lib/external-execution/types";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
-import { buildSyntheticActionInput } from "@/lib/release/synthetic-execution";
+import { buildSyntheticActionInput } from "@/tests/helpers/synthetic-execution";
 import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execution";
 
 function input(

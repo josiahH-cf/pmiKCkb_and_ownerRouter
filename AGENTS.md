@@ -90,24 +90,22 @@ and its canonical unattended fresh-context launcher is
 `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md` as the locked end-state contract.
 Recorded as `F-UIUX-RECALIBRATION-AUTHORIZED`.
 
-**Environment target.** S40 separates Demo and Production comprehensively. Demo runs the exact same
-product behavior with realistic invented Demo data and may expose an explicitly selected,
-unmistakably labeled Live **read-only** context; Demo and Live-read-only projections never mix and
-Demo cannot create a Live effect. Production contains Live data only and exposes no Demo/Test
-records, seeders, simulators, or product tools. Environment/data context is server-owned and
-fail-closed. Blue/green is the Production revision-promotion/rollback procedure, not a synonym for
-Demo/Production. The currently deployed Production Live+Test behavior remains a truthful
-historical/current-state fact until S40's backed-up migration and cutover complete. Provisioning,
-IAM/billing, credential/scope, and destructive migration steps remain owner-run; routine deploy,
-smoke, exact-revision traffic promotion, and rollback follow D05. The current behavior is no longer
-the target posture.
+**Environment outcome (updated by `F-DEMO-DEFERRED-LOCAL-FIRST` and S56).** Production contains Live
+data only and exposes no Demo/Test records, seeders, simulators, or product tools. Rehearsal is local:
+the server-owned descriptor must resolve exactly to `environmentKind:"demo"` plus
+`dataContext:"live_readonly"` with `source:"explicit"`, and every mutation/provider-effect path
+must refuse. The separately hosted Demo GCP project contemplated by the original S40 program is
+deferred; do not provision it or seed invented product fixtures. Blue/green remains the Production
+revision-promotion/rollback procedure, not a synonym for Demo/Production. The former Production
+Live+Test behavior and its receipts remain dated historical evidence only. Routine Production
+deploy, smoke, exact-revision traffic promotion, and rollback follow D05; authority, cost, D12, and
+destructive-migration fences remain unchanged.
 
 **Tool-retirement target.** Delete shipped browser simulations, hard-coded actors, no-op Sample
 controls, duplicate readiness matrices, and lab handoffs. Do not create a replacement Test Lab.
-Preserve automated tests, deterministic fixtures, emulators/fake test transports, Demo-environment
-product adapters, current security/TOTP/rollback controls, and real provider seams awaiting one
-documented setup dependency. Removal is two-stage and evidence-backed; static import reachability
-alone is never deletion proof.
+Preserve automated tests, deterministic test-only fixtures, emulators/fake test transports, current
+security/TOTP/rollback controls, and real provider seams awaiting one documented setup dependency.
+Removal is two-stage and evidence-backed; static import reachability alone is never deletion proof.
 
 **Gate interpretation.** Opening the program loop does not preflip action-level
 `production_allowed`. App-plane suites ship without an Action Registry gate. A provider action gate
@@ -253,8 +251,8 @@ Govern and build the PMI KC three-product workstream:
 
 - PMI KC KB: source-backed knowledge and handoff web app.
 - Lease Renewal Agent: working renewal workflow product lane; the prior Production Test journey is
-  verified implementation evidence, and S40/S43 move equivalent rehearsal into Demo while each Live
-  provider action continues to activate independently.
+  historical implementation evidence, while current rehearsal is local, explicit Demo +
+  Live-read-only and effect-refused. Each Live provider action continues to activate independently.
 - Workflow Communications: Gmail-backed communication adapter and evidence source for
   renewal and maintenance workflows; compatibility routes retain the old Gmail Hub name.
 
@@ -408,8 +406,9 @@ route new work through the three-product docs.
 - Test: `npm test`
 - E2E flow tests: `npm run test:e2e` (emulator) / `npm run test:e2e:core` (no emulator)
 - Falsification preflight: `npm run verify:falsification`
-- Reset demo data: `npm run demo:reset`
-- Demo operator: `npm run demo:operator`
+- Local rehearsal: `npm run dev` resolves `environmentKind:"demo"` +
+  `dataContext:"live_readonly"` with `source:"explicit"`; it has no seeded product fixtures and no
+  mutation/provider-effect authority.
 - Live cost preflight: `npm run check:live-cost`
 - Session auth preflight (OWNER, interactive): `npm run auth:session` — run at the START of each new session, before the agent touches a live read. Refreshes the gcloud CLI login + ADC only when stale, then confirms the RentVine env. The AGENT cannot do this (org reauth is interactive-only); the agent only CHECKS with `preflight:adc` and asks the owner to run `auth:session` if it fails.
 - ADC freshness preflight: `npm run preflight:adc` — the read-only check the agent runs FIRST (new
@@ -426,16 +425,12 @@ route new work through the three-product docs.
 - Cutover report:
   `npm run cutover:report -- --manifest=<path> --env-file=<path> --prior-revision=<captured-serving-revision> --json`
 - Seed source metadata: `npm run seed:source-meta`
-- Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`
 - Queue notifications dry-run: `npm run queue:notifications -- --dry-run --date=YYYY-MM-DD`
-- Current legacy-named deploy wrapper: `npm run deploy:demo` (despite its name, it currently targets
-  the serving Production service; S40 must replace this ambiguity with explicit environment
-  descriptors before provisioning the new Demo environment).
-- Current deployed endpoint: https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app (Cloud Run
-  `pmi-kc-kb-demo` on `pmi-kc-kb-prod`). Verify current app/UI changes against this endpoint via
-  `npm run smoke:ask-live -- --base-url=<endpoint>`; do not infer the new Demo resource name from
-  this legacy service name.
+- Production release plan: `npm run release -- --environment=production --service=pmi-kc-app --plan-only`
+- Current Production endpoint: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app (Cloud Run
+  `pmi-kc-app` on `pmi-kc-kb-prod`). Verify current app/UI changes against this endpoint via
+  `npm run smoke:ask-live -- --base-url=<endpoint>`.
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 
@@ -446,10 +441,10 @@ route new work through the three-product docs.
 - Enforce anti-hallucination in code before model calls.
 - Keep runtime changes scoped to the relevant product lane.
 - External-tool roles and per-action activation live in the Action Registry and
-  `docs/integration-architecture.md`. Under the S40 target, Production contains Live data only and
-  the isolated safe rehearsal runs in Demo with the same product contract and zero Live-provider
-  effects. The current Production Test lane is migration input/evidence, not the target. A feature is
-  Live when its reviewed gate is flipped; a Demo workflow never blocks or delays that Live action.
+  `docs/integration-architecture.md`. Production contains Live data only. Safe rehearsal runs locally
+  as explicit `environmentKind:"demo"` + `dataContext:"live_readonly"` and refuses durable writes
+  and provider effects. The retired Production Test lane is historical evidence only. A feature is
+  Live when its reviewed gate is flipped; local rehearsal never blocks or delays that Live action.
 - Add tests with any behavior change.
 - Build every roadmap suite (S28–S39, indexed by `docs/roadmap-unblock-2026-07-23.md`) to its
   external seam per the Roadmap Build Authorization above — the app-plane, the live provider, and the
@@ -521,8 +516,9 @@ answer ourselves.
   Sheets, banks, or client Drive must use its exact S25/S26 action contract, documented provider
   semantics, least-privilege identity, authoritative mapping, target/effect preview, human
   confirmation, one-attempt/idempotency guard, receipt/readback, monitoring, and rollback. An
-  unavailable contract blocks that Live action only. The isolated Demo environment may complete the
-  same product workflow with invented aliases and a Demo/non-Live receipt; Production cannot.
+  unavailable contract blocks that Live action only. Local rehearsal may exercise bounded Live
+  reads and refusal behavior, while deterministic automated tests cover invented scenarios; neither
+  creates a Live receipt or substitutes for exact Live proof.
 - Missing sources produce visible uncertainty, not generic property-management answers.
 
 ## Identity Rules
@@ -531,14 +527,9 @@ answer ourselves.
   use a `pmikcmetro.com` or `pmi-kc-kb-prod` identity. The personal
   `josiah.abernathy@gmail.com` account must never appear in any auth path. V1 has a separately scoped
   external Vendor principal: Admin invite, password setup, verified-email TOTP before ticket detail,
-  and assigned-ticket-only authorization. The canonical `.invalid` Vendor currently called Test in
-  code becomes a Demo-environment fixture under S40 and additionally has a
-  repeatable Admin-confirmed authentication reset/re-enable lifecycle: its exact preview binds the
-  current Firebase UID, status, and invite version; execution rotates the UID, revokes stale sessions
-  and confirmations, clears TOTP, increments the invite version, preserves isolated Test workflow
-  data, and returns one response-only, `no-store` setup link. Any partial failure remains disabled and
-  fail-closed. This Demo lifecycle performs no external delivery, OAuth/provider construction, or
-  Live effect. A Live Vendor uses the Vendor's own same-address Gmail/Google Workspace mailbox through
+  and assigned-ticket-only authorization. Product Test/Demo Vendor provisioning is retired; local
+  Live-read-only rehearsal cannot create, reset, assign, authenticate, or operate a Vendor. A Live
+  Vendor uses the Vendor's own same-address Gmail/Google Workspace mailbox through
   per-vendor server-side OAuth; its OAuth client/vault is an optional per-Vendor Live activation. It
   never uses DWD or gains PMI KC cloud, admin, connector, internal Space, or cross-mailbox authority.
   Identity class wins over email domain: any Firebase principal carrying a `vendor`, `vendor_id`, or
@@ -554,14 +545,12 @@ answer ourselves.
   (runtime/build). The S22 external Vendor Firebase/OAuth principal is the only scoped exception
   and cannot be reused for any of those six systems. `gcloud auth` does NOT change the runner's
   file/Drive connector, and vice-versa.
-- No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. The new S40 Demo
-  environment is a separately provisioned PMI KC managed environment and must not reuse that retired
-  identity/path or infer its resource names. No downloadable
-  key files — ADC (local human) and attached service account (runtime) only. The legacy demo
-  cloud lane is being retired (repo pointers neutralized 2026-06-20; GCP teardown is owner-side) —
-  see `docs/demo-lane-retirement.md`. Until S40 lands, local-dev demo mode remains fenced from prod
-  by the `NODE_ENV` guard; S40 replaces that weak single-variable distinction with the typed,
-  multi-resource environment manifest.
+- No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. Hosted Demo GCP
+  provisioning is deferred under `F-DEMO-DEFERRED-LOCAL-FIRST`; do not infer or create Demo cloud
+  resource names. No downloadable key files — ADC (local human) and attached service account
+  (runtime) only. Rehearsal is local and must carry the exact explicit Demo + Live-read-only typed
+  descriptor; it is not a cloud environment and cannot fall back to Production mutation authority.
+  Historical legacy-cloud retirement evidence remains in `docs/demo-lane-retirement.md`.
 - "Blocked on access" is raised as an explicit blocker, never worked around with a personal
   account or a demo-mode fallback.
 - In-app role management (console overhaul 2026-07-08, `F-ADMIN-USERS`): `/admin/users` lets an Admin change a

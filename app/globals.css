@@ -1208,7 +1208,7 @@ button {
   text-transform: uppercase;
 }
 
-/* Lease Renewal Phase-1 review surface (simulation-only). */
+/* Lease Renewal review surface. */
 .lr-run {
   display: grid;
   gap: 16px;

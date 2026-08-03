@@ -43,11 +43,10 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-/** A process the Console can start a simulation for (from the spine's definitions). */
+/** A process the Console can use to ground an answer and resolve an ordinary Live action. */
 export type ProcessOption = { id: string; name: string; status: string };
 
-/** Minimal shape of the workflow run the test-run API returns. */
-type SimulationRunSummary = {
+type WorkflowRunSummary = {
   id: string;
   process_name: string;
   status: string;
@@ -66,10 +65,10 @@ const capturableStates = new Set([
 // The Console's ask + dictation surface. The always-visible action deck and process strip live in
 // their own server components (ConsoleView assembles them); this form is just the AI question box.
 export function AskForm({
-  canStartSimulation = false,
+  canUseProcessContext = false,
   processes = [],
 }: Readonly<{
-  canStartSimulation?: boolean;
+  canUseProcessContext?: boolean;
   processes?: ProcessOption[];
 }>) {
   const [question, setQuestion] = useState("");
@@ -78,7 +77,7 @@ export function AskForm({
     writableSpaceOptions[0]?.value ?? "lease-renewals",
   );
   const [result, setResult] = useState<AskResponse | null>(null);
-  const [simulationRun, setSimulationRun] = useState<SimulationRunSummary | null>(null);
+  const [workflowRun, setWorkflowRun] = useState<WorkflowRunSummary | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [captureStatus, setCaptureStatus] = useState("");
@@ -97,8 +96,8 @@ export function AskForm({
   const [liveTarget, setLiveTarget] = useState<LiveTargetResult | null>(null);
   const dictateButtonRef = useRef<HTMLButtonElement>(null);
 
-  const showProcessPicker = canStartSimulation && processes.length > 0;
-  const willSimulate = showProcessPicker && processId !== "";
+  const showProcessPicker = canUseProcessContext && processes.length > 0;
+  const willStartRun = showProcessPicker && processId !== "";
   const processOptions: SelectOption[] = [
     { label: "Just ask (no process)", value: "" },
     ...processes.map((process) => ({
@@ -116,7 +115,7 @@ export function AskForm({
     event.preventDefault();
     setIsPending(true);
     setResult(null);
-    setSimulationRun(null);
+    setWorkflowRun(null);
     setStatusMessage("");
     setCaptureStatus("");
     setLiveTarget(null);
@@ -144,13 +143,13 @@ export function AskForm({
     // authoritative live target so Ask can offer the single gated "Start on the live desk" affordance.
     const detectedForAction =
       processId || detectProcess(question, processes)?.processId || "";
-    if (canStartSimulation && ASK_ACTION_PROCESS_IDS.has(detectedForAction)) {
+    if (canUseProcessContext && ASK_ACTION_PROCESS_IDS.has(detectedForAction)) {
       void resolveLiveTarget(question, detectedForAction);
     }
 
-    if (willSimulate) {
+    if (willStartRun) {
       const runResponse = await fetch(
-        `/api/process-definitions/${encodeURIComponent(processId)}/test-runs`,
+        `/api/process-definitions/${encodeURIComponent(processId)}/runs`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -159,13 +158,12 @@ export function AskForm({
           }),
         },
       );
-
       if (runResponse.ok) {
-        const payload = (await runResponse.json()) as { run: SimulationRunSummary };
-        setSimulationRun(payload.run);
+        const payload = (await runResponse.json()) as { run: WorkflowRunSummary };
+        setWorkflowRun(payload.run);
       } else {
         setStatusMessage(
-          await readErrorMessage(runResponse, "Test run could not be started."),
+          await readErrorMessage(runResponse, "Run could not be started."),
         );
       }
     }
@@ -340,11 +338,7 @@ export function AskForm({
   });
 
   const canCapture = result ? capturableStates.has(result.source_state) : false;
-  const submitLabel = isPending
-    ? "Working"
-    : willSimulate
-      ? "Get answer + start a test run"
-      : "Get answer";
+  const submitLabel = isPending ? "Working" : "Get answer";
 
   return (
     <div className="ask-console">
@@ -449,13 +443,6 @@ export function AskForm({
             )
           ) : null}
 
-          {willSimulate ? (
-            <p className="muted">
-              Starting this process runs a test only, kept inside the app. Any real send
-              or system-of-record write stays a separate, human step.
-            </p>
-          ) : null}
-
           <Button disabled={isPending} size="large" type="submit">
             {submitLabel}
           </Button>
@@ -546,18 +533,16 @@ export function AskForm({
                   <Link href="/connections">Open Connection Center</Link>
                 </p>
               ) : null}
-              {simulationRun ? (
+              {workflowRun ? (
                 <div className="capture-panel">
-                  <h3>Test run started</h3>
+                  <h3>Run started</h3>
                   <p>
-                    <strong>{simulationRun.process_name}</strong>: {simulationRun.status}
+                    <strong>{workflowRun.process_name}</strong>: {workflowRun.status}
                   </p>
-                  {simulationRun.next_action ? (
-                    <p className="muted">Next: {simulationRun.next_action}</p>
+                  {workflowRun.next_action ? (
+                    <p className="muted">Next: {workflowRun.next_action}</p>
                   ) : null}
-                  <Link href={`/workflow-runs/${simulationRun.id}`}>
-                    View the test run
-                  </Link>
+                  <Link href={`/workflow-runs/${workflowRun.id}`}>View the run</Link>
                 </div>
               ) : null}
               {canCapture ? (

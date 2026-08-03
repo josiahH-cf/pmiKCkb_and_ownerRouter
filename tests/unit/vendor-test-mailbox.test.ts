@@ -4,11 +4,11 @@ import type {
   VendorTestMailboxConfirmation,
   VendorTestMailboxRecord,
   VendorTestMailboxStore,
-} from "@/lib/vendor/test-mailbox";
+} from "@/tests/helpers/vendor-test-mailbox";
 import {
   projectVendorTestMailboxHandoff,
   VendorTestMailboxService,
-} from "@/lib/vendor/test-mailbox";
+} from "@/tests/helpers/vendor-test-mailbox";
 
 const principal = {
   uid: "uid-test-summit",

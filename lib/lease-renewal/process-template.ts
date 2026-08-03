@@ -6,8 +6,7 @@ import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 /**
  * Non-executable Lease Renewal process-definition template. Converts the confirmed
  * target workflow shape in docs/products/lease-renewal-agent.md into the v1 minimum
- * process-definition fields so the team can refine it through the existing Draft ->
- * Testing -> Pending Approval lifecycle with simulation-only test runs.
+ * process-definition fields so the team can refine and publish it before starting ordinary runs.
  *
  * Every action reference is derived from the Action Registry seed catalog, so target
  * systems and rollback notes cannot drift from governed metadata. The template authorizes

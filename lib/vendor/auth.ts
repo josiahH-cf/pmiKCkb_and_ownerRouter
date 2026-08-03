@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 
 import { getSessionCookieName } from "@/lib/auth/session";
 import { parseExplicitDataMode } from "@/lib/data-mode";
-import { EnvironmentContextError } from "@/lib/environment/descriptor";
-import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import {
   createFirebaseSessionCookie,
   verifyFirebaseIdToken,
@@ -60,6 +58,9 @@ export function validateVendorClaims(
   const dataMode = parseExplicitDataMode(claims.data_mode);
   if (!dataMode) {
     throw new VendorBoundaryError("Vendor data mode is invalid.", 403);
+  }
+  if (dataMode !== "live") {
+    throw new VendorBoundaryError("Vendor Test sessions are retired.", 403);
   }
 
   if (claims.vendor !== true) {
@@ -160,9 +161,10 @@ export async function requireVendorSession() {
 
 export function assertVendorPrincipalLaneAllowed(
   principal: Pick<VendorPrincipal, "dataMode">,
-  env: Record<string, string | undefined> = process.env,
 ) {
-  assertTestDataModeWriteAllowed(principal.dataMode ?? "live", env);
+  if ((principal.dataMode ?? "live") !== "live") {
+    throw new VendorBoundaryError("Vendor Test sessions are retired.", 403);
+  }
 }
 
 export function vendorMailboxKey(email: string) {
@@ -172,9 +174,6 @@ export function vendorMailboxKey(email: string) {
 export function vendorErrorResponse(error: unknown) {
   if (error instanceof VendorBoundaryError) {
     return Response.json({ error: error.message }, { status: error.status });
-  }
-  if (error instanceof EnvironmentContextError) {
-    return Response.json({ error: error.message }, { status: 409 });
   }
   throw error;
 }

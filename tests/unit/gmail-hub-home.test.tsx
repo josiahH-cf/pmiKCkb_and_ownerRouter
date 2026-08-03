@@ -19,10 +19,15 @@ describe("Workflow Communications home (AC-GW-1)", () => {
     expect(screen.queryByText("Recent inbox threads")).not.toBeInTheDocument();
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Review exact message" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: /Admin-only pasted/ })).toBeNull();
+    expect(
+      screen.queryByRole("heading", {
+        name: "Admin-only governed workflow recovery tools",
+      }),
+    ).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Simulated email chain" })).toBeNull();
   });
 
-  it("keeps pasted and synthetic tools behind the Admin capability", () => {
+  it("keeps governed recovery and paste tools Admin-only after retiring simulation", () => {
     render(<GmailHubHome canManageAdmin />);
     expect(
       screen.getByRole("heading", {
@@ -31,8 +36,18 @@ describe("Workflow Communications home (AC-GW-1)", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/draft and review workflow replies/i)).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "Simulated email chain" }),
+      screen.queryByRole("heading", { name: "Simulated email chain" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Anticipatory draft" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Template & triage workspace" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Paste sanitized facts" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Thread summary" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Compose draft" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Evaluate" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Summarize thread" })).toBeInTheDocument();

@@ -48,7 +48,7 @@ const INTAKE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days of un-triaged i
 
 export interface PublicIntakeSubmission {
   propertyKey: string;
-  dataMode: "live" | "test";
+  dataMode: "live";
   jti: string;
   tokenEpoch: number;
   singleUse: boolean;
@@ -131,7 +131,7 @@ export async function createUnverifiedIntakeFromPublic(
 ): Promise<{ id: string }> {
   const propertyKey = normalizeIntakePropertyKey(submission.propertyKey);
   if (!propertyKey) throw new IntakeValidationError();
-  if (!(["live", "test"] as const).includes(submission.dataMode)) {
+  if (submission.dataMode !== "live") {
     throw new IntakeValidationError();
   }
 
@@ -165,11 +165,7 @@ export async function createUnverifiedIntakeFromPublic(
     const nonceRef = db.collection(MAINTENANCE_INTAKE_COLLECTIONS.nonce).doc(jti);
     const counterRef = db
       .collection(MAINTENANCE_INTAKE_COLLECTIONS.rateCounter)
-      .doc(
-        submission.dataMode === "test"
-          ? `test__${propertyKey}__${isoDay(now)}`
-          : `${propertyKey}__${isoDay(now)}`,
-      );
+      .doc(`${propertyKey}__${isoDay(now)}`);
 
     const epochSnap = await transaction.get(epochRef);
     if (submission.tokenEpoch < readEpoch(epochSnap)) {
