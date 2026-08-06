@@ -63,14 +63,31 @@ finding number one. Leases 279 and 280 share one street address, so records key 
 
 ## Open owner values (do not invent)
 
-- Numeric tolerance for the rent comparison (S63 criterion 3).
-- Which two leases are already negotiated, and their agreed rents.
-- Equal-ownership tie behavior on the owner channel (S61).
-- Whether the owner/tenant separation assertion is required (S61 default: build and refuse).
-- Historical-trend presentation: link, attachment, or email body (S59/S60).
-- Under-market threshold (S60 provisional default: 10 percent below the point estimate).
-- The named daily owner for the test-set window.
-- The MKD portfolio id and its ownership structure, and whether any test lease is MKD-owned.
+Each has a `Q-` row in `docs/facts.md` with its documented safe default.
+
+1. `Q-TESTSET-TOLERANCE` — the rent-comparison tolerance. **No default.** S63 criterion 3 reads
+   `not_evaluated` until answered.
+2. `Q-TESTSET-NEGOTIATED` — which two leases are already negotiated, and their agreed rents.
+3. `Q-TESTSET-DAILY-OWNER` — who checks the test each day.
+4. `Q-OWNER-ORDERING` — what orders owner recipients, now that `percentOwned` is measured empty.
+5. `Q-CHANNEL-SEPARATION-ASSERTION` — default: build it and refuse on violation.
+6. `Q-COMP-TREND-PRESENTATION` — source resolved (`/markets`); presentation still open.
+7. `Q-UNDER-MARKET-THRESHOLD` — provisional 10 percent.
+8. `Q-LEASE-DATA-MAX-AGE` — provisional 15 minutes.
+9. `Q-RENTCAST-PLAN-TERMS` — the terms-of-service half only; the numbers are resolved.
+10. `Q-TESTSET-OWNER-SEND` — whether "email the MKD owners" means a real human send in the window.
+11. `Q-SHEET-WRITEBACK-BACKUP` — what the required backup actually is.
+12. `Q-COHORT-ADDRESS-RECORDING` — confirm the committed-versus-gitignored split.
+13. `Q-TESTSET-EVIDENCE-IN-APP` — whether Dan inspects evidence in-app.
+14. `Q-MKD-PORTFOLIO-ID` — id resolved (27); what the client's "50/50" refers to is still open.
+
+## Resolved 2026-08-06 (do not re-ask)
+
+Read these fact rows before touching S59, S61, or S62: `F-RENTCAST-KEY-PLACED`,
+`F-RENTCAST-API-CONTRACT`, `F-MKD-PORTFOLIO-IDENTIFIED`, `F-OWNER-PERCENT-OWNED-ABSENT`,
+`F-MONITORING-CHANNEL-CREATED`. In short: the key is placed, the API contract is researched (use
+`/avm/rent/long-term` and `/markets`, and overage bills automatically), MKD is `portfolioID` 27 but no
+test lease belongs to it, `percentOwned` is empty across the export, and the alert channel exists.
 
 ## Superseded 2026-08-06
 

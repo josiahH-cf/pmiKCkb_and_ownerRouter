@@ -69,6 +69,51 @@ writes nothing durable. It runs against a real key before the gate flip is propo
 backed by observed behavior rather than by unit tests over a stub. Its output is the
 `evidence_status: "Documented"` justification.
 
+**What RentCast actually offers, and which endpoint we should be calling.** Researched against the
+published API reference on 2026-08-06. This changes the design: the adapter currently calls the wrong
+endpoint for the job.
+
+| Endpoint                     | Returns                                                                 | Use here                 |
+| ---------------------------- | ----------------------------------------------------------------------- | ------------------------ |
+| `/avm/rent/long-term`        | A rent estimate plus `rentRangeLow` / `rentRangeHigh` plus scored comps | **The comp basis**       |
+| `/listings/rental/long-term` | Raw rental listings in an area                                          | What we call today       |
+| `/markets`                   | Aggregate rental statistics for one zip, with month-by-month history    | **The historical trend** |
+
+- **Switch the comp basis to `/avm/rent/long-term`.** It returns `rent`, `rentRangeLow`, and
+  `rentRangeHigh` directly, plus a `comparables[]` array in which each entry carries a `correlation`
+  score from 0 to 1 and the array is **sorted by correlation descending**. Every comp also carries
+  distance in miles, bedrooms, bathrooms, square footage, days on market, and how recently it was
+  seen. Today's adapter pulls raw listings and computes its own median — which is reimplementing
+  RentCast's own model, badly, and is exactly why an unfiltered two-mile search would mix a studio
+  with a four-bedroom. The AVM endpoint solves relevance natively.
+- **The parameters that fix the relevance problem already exist:** `propertyType`, `bedrooms`,
+  `bathrooms`, `squareFootage`, `maxRadius`, `daysOld`, and `compCount` (5 to 25, default 15). Passing
+  the unit attributes is not an enhancement; without them the estimate is for a generic property at
+  that address.
+- **Historical trend data is real and is one call.**
+  `/markets?zipCode=<zip>&dataType=Rental&historyRange=<months>` returns current rental statistics
+  plus a `history` object keyed `YYYY-MM`. Each month carries average and median rent, rent per square
+  foot, average and median days on market, new and total listing counts, and breakdowns by property
+  type and by bedroom count. History is available from April 2020, with gaps where a month had too few
+  listings to be statistically valid. This is the thing the client asked for on the call, and it was
+  previously recorded as an unknown build.
+
+**Cost, stated exactly.** One billable request is one HTTP call returning 200 with a body; the
+response size is irrelevant and **error responses are not billed**. The quota resets at the end of the
+billing period and **does not roll over**. The hard rate limit is 20 requests per second per key on
+every plan. The free Developer plan includes 50 requests per month; paid tiers step up from there.
+
+**The number that matters for the quota stop:** a renewal that uses both the AVM comp basis and the
+trend history costs **two** requests. At the roughly 10 to 15 renewals a month the client described,
+that is 20 to 30 requests — inside the free allowance with headroom, and the four-lease test set costs
+about eight.
+
+**The risk that makes the hard stop load-bearing.** Exceeding the quota does **not** fail closed at
+RentCast: overage is charged automatically per additional request, and large accumulations can trigger
+a mid-cycle invoice. So the application's own counter and hard stop are the only thing standing
+between a loop bug and a surprise bill. Size the stop at the plan's real allowance, and treat it as a
+cost control rather than a nicety.
+
 **The controlled smoke and the closed gate.** The smoke script makes a live RentCast call while
 `rentcast.rental_listings.search` is still `production_allowed:false`. That is deliberate and it is
 not a bypass: the script is an operator-run CLI, not a product request path, and it follows the same
@@ -108,26 +153,27 @@ the same slice that resolves it.
   presentation, which lives in **S60**. Recorded as a `Q-` row.
 - _Open:_ RentCast's published rate limit and whether its terms permit one free account per team
   member. The second question only matters if Q7 is revisited. Neither blocks this suite.
-- _Open:_ the real plan allowance and overage. **Provisional and uncitable** — the 50-per-month and
-  $0.20 figures come from the 2026-08-05 call, which is not committed to this repository, and
-  `docs/client-checklist.md` records the allowance as plan-specific and unverified. AC-S59-14 requires
-  reading them back from the account before the hard quota stop is sized, because that stop refuses
-  operator work when it fires.
+- _Answered 2026-08-06 (vendor documentation):_ the free Developer plan includes 50 requests per
+  month; paid tiers step up from there. A billable request is one 200 response with a body; errors are
+  not billed; the quota does not roll over; the hard rate limit is 20 requests per second per key on
+  every plan. The $0.20 overage figure from the 2026-08-05 call is NOT confirmed by the published
+  documentation, which states only that overage is charged automatically per additional request.
+  AC-S59-14 still requires reading the exact allowance and overage price back from the live account
+  before the hard stop constant is set, because that stop refuses operator work when it fires and
+  because overage bills silently.
 - _Open (`Q-RENTCAST-PLAN-TERMS`):_ whether the active plan and third-party-data terms permit storing
   or caching comp responses and displaying them to a property owner. This suite adds the caching and
   S60 adds the owner-facing display, so it is squarely in scope and is not resolved here.
-- _Open (`Q-COMP-TREND-PRESENTATION`) — larger than a formatting choice._ The 2026-08-05 call
-  described attaching historical trend reports to the owner email. **This cycle retrieves no trend
-  data at all.** The adapter calls the rental-listings search only, and the persisted provider block
-  S60 defines has no trend field. So the open question is not merely link-versus-attachment: it is
-  blocked on building a retrieval, a persisted shape, and a rendering. Recorded honestly rather than
-  implied to be a one-line choice.
-- _Assumption (provisional):_ the free allowance is 50 calls per month with overage at $0.20, as stated on the
-  2026-08-05 call. The counter and thresholds are named constants so a different real limit is a
-  one-line correction rather than a redesign.
-- _Assumption:_ a two-mile radius, a 25-result cap, and a three-comp floor are reasonable defaults,
-  not confirmed policy. They should be reviewed against the four test properties before comps are
-  shown to any owner.
+- _Open (`Q-COMP-TREND-PRESENTATION`) — the SOURCE is now known; only the presentation is open._
+  `/markets?zipCode=&dataType=Rental&historyRange=` returns month-keyed rental history from April
+  2020, so the retrieval is a known one-call build rather than an unknown. What remains genuinely open
+  is how it reaches the owner: a link, an attachment, or values rendered in the email body. It costs
+  one extra billable request per renewal.
+- _Assumption:_ the counter and thresholds stay named constants so a corrected allowance is a one-line
+  change rather than a redesign.
+- _Assumption:_ on the AVM endpoint the defaults become `compCount` (5 to 25, default 15) plus an
+  explicit `maxRadius`, with the unit attributes always passed. The three-comp fail-closed floor is
+  retained. Review these against the four test properties before comps are shown to any owner.
 
 **Cross-product impacts.**
 
@@ -190,6 +236,20 @@ the same slice that resolves it.
   recorded before the hard quota-stop constant is set. Shipping the stop against the assumed figures
   fails this AC. _Verify:_ recorded in `docs/facts.md`, and `npm test -- market-comps-route` pinned to
   the recorded value.
+
+- **AC-S59-15** — The comp basis comes from `/avm/rent/long-term`: the persisted range is the
+  provider's own `rentRangeLow`/`rentRangeHigh` and the point estimate is its `rent`, not a median the
+  app computed from raw listings. _Verify:_ `npm test -- rentcast-market-comp-provider`.
+- **AC-S59-16** — Every request carries the unit attributes that are known for the lease
+  (`propertyType`, `bedrooms`, `bathrooms`, `squareFootage`) plus an explicit `maxRadius` and
+  `compCount`. A request built without them fails the test. _Verify:_
+  `npm test -- rentcast-market-comp-provider`.
+- **AC-S59-17** — Comparables are retained in provider order with their `correlation` scores intact, so
+  an operator can see how similar each comp actually is. _Verify:_
+  `npm test -- rentcast-market-comp-provider`.
+- **AC-S59-18** — A trend lookup calls `/markets` once with `dataType=Rental` and an explicit
+  `historyRange`, and the month-keyed history is returned intact. It is a separate billable request and
+  increments the counter separately. _Verify:_ `npm test -- market-comps-route`.
 
 Keep green: `tests/unit/market-comp-provider.test.ts`,
 `tests/unit/rentcast-market-comp-provider.test.ts`, `tests/unit/action-registry-schema.test.ts`,

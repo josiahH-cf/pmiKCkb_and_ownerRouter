@@ -40,17 +40,23 @@ which returns on the **first** match and produces no `cc` at all. The docstring 
   default page — and then either delete the join in favour of the export field, or delete the stale
   comment and keep the join. Shipping a fan-out on top of an unresolved contradiction is how one
   owner silently keeps winning.
-- **Ordering has to be deliberate, not incidental.** For tenants, "first" means the first tenant on
-  the lease. For owners there is no equivalent natural order, so the `to` slot is the owner with the
-  greatest positive `percentOwned` and the remainder are `cc`. Note that `percentOwned` appears
-  **nowhere** in `recipient-resolution.ts` today — it lives only on the contacts the
-  `live-owner-recipient` join returns. So the ordering rule can only be applied on whichever path the
-  previous bullet settles on, and it must be carried explicitly rather than assumed available.
-- **The tie is a real refusal today.** `pickOwnerContactId` returns null when two contacts tie on
-  `percentOwned`, so a 50/50 co-owned portfolio resolves to no owner and the draft refuses rather
-  than guessing. That is the correct failure direction and it is preserved. It also matters
-  operationally: MKD is described as two parties, and MKD owners now receive normal outreach, so a
-  tie would stop an MKD renewal draft. This is why the tie question is called out rather than assumed.
+- **Ordering cannot use `percentOwned` — measured, not assumed.** A live read across the full
+  portfolio on 2026-08-06 (305 leases, 95 portfolios) found that `portfolio.owners[]` entries on the
+  export carry an **empty** `percentOwned`. Fifty portfolios have more than one owner, and **zero**
+  have an equal-top `percentOwned` tie — because there are no positive values to tie on. So the
+  greatest-`percentOwned` rule that `pickOwnerContactId` implements is not applicable on the export
+  path at all, and `percentOwned` appears nowhere in `recipient-resolution.ts`.
+  **Consequence:** the ordering rule must be something the data actually supports. The default taken
+  is the portfolio's own owner order, which is stable across reads, with the first entry as `to` and
+  the rest as `cc` — the same shape the tenant channel already uses. Any rule that depends on
+  ownership percentage must first establish that the percentage exists on the path being used.
+- **The tie refusal is real, but it is not the failure mode that will actually bite.**
+  `pickOwnerContactId` returns null when two contacts tie on the greatest positive `percentOwned`, and
+  it also returns null when there is no positive `percentOwned` at all. The 2026-08-06 live read shows
+  the latter is the common case on the export path, not the former. So the risk is not "a 50/50
+  portfolio refuses" — it is "**every** multi-owner portfolio refuses, for want of a field". The
+  slice must establish which owner shape the join actually returns before relying on either rule, and
+  must keep refusing rather than guessing when neither is available.
 - **Separation becomes enforceable.** Add an assertion in the draft-composition path: the resolved
   recipient set for a channel must contain no address that also resolves as an authoritative address
   on the other channel for the same lease. A violation refuses the draft and reports why. This turns
@@ -67,18 +73,20 @@ run.
 
 **Open questions & assumptions.**
 
-- _Open (owner, `Q-OWNER-TIE-BEHAVIOR`):_ equal-ownership tie behavior — refuse and flag, address both, or use a
-  designated billing contact. Documented safe default applied: **keep the current refuse-and-flag
-  behavior**, since it is what ships today and it never guesses. Recorded as a `Q-` row. If the answer
-  is "address both", it is a one-line change to the ordering rule.
+- _Open (owner, `Q-OWNER-ORDERING`):_ what orders the owner recipients. The question was originally
+  framed as tie-breaking on ownership share; the 2026-08-06 measurement showed there are no ownership
+  shares on the export path, so the real question is which stable key decides `to` versus `cc`.
+  Documented safe default applied: **the portfolio's own owner order**, first entry to `to` and the
+  rest to `cc`, matching the tenant channel's shape. Refuse rather than guess when no authoritative
+  address exists at all.
 - _Open (owner, `Q-CHANNEL-SEPARATION-ASSERTION`):_ whether the structural owner-versus-tenant separation assertion is required.
   Documented safe default applied: **build it and refuse on violation**, because the client stated
   separation as an absolute and a refusal is reversible while a leaked contact is not. Recorded as a
   `Q-` row so the decision is visible rather than silent.
-- _Open (client, `Q-MKD-PORTFOLIO-ID`):_ whether any of the four test leases is MKD-owned. Dan referred to one MKD
-  property among the leases ending 2026-09-30. If one of leases 278, 279, 280, or 297 is MKD and MKD
-  is co-owned at equal percentages, the tie refusal blocks that lease's owner draft during the test
-  set. Must be answered before **S63** runs.
+- _Answered 2026-08-06 (`F-MKD-PORTFOLIO-IDENTIFIED`):_ **no test-cohort lease is MKD-owned.** MKD is
+  `portfolioID` 27; the four leases resolve to portfolios 84, 92, 92, and 95. So the MKD case does not
+  gate S63, and the owner-ordering behavior will be exercised by ordinary multi-owner portfolios
+  instead — of which the live export has fifty.
 - _Assumption:_ every distinct authoritative owner address should be addressed rather than filtered
   by role. Per-owner contact-by-topic routing is deferred and recorded as future work; until it
   exists, "all owners" is the honest interpretation of Dan's answer.

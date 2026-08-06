@@ -67,10 +67,17 @@ else is built and tested against fixtures; a rule cannot be created without a re
 
 **Open questions & assumptions.**
 
-- _Client-owned (`Q-MKD-PORTFOLIO-ID`):_ which RentVine portfolio id is MKD, and whether its owners hold equal
-  percentages. The second half matters beyond this suite: an equal tie refuses the owner draft under
-  **S61**, and MKD owners now receive outreach, so a tie would stop an MKD renewal during the test
-  set.
+- _Answered 2026-08-06 by live read-only discovery (`Q-MKD-PORTFOLIO-ID`):_ **MKD is RentVine
+  `portfolioID` 27**, carrying **39 leases** and **3 owner records** — not two. A name scan across all
+  95 portfolios in the live export matched exactly one, so the identification is unambiguous. Two
+  things follow that the owner's "it's 50/50" answer did not anticipate: there are **three** owners,
+  not two; and every `percentOwned` value on the export's owner records is **empty**, so there is no
+  ownership percentage to split 50/50 or otherwise. Confirm with Dan what "50/50" refers to before any
+  rule keys on ownership share; the rule itself keys on `portfolioID` 27 and does not need it.
+- _Answered 2026-08-06:_ **none of the four test leases is MKD-owned.** They resolve to portfolios 84,
+  92, 92, and 95. So this suite is **not exercised by the test cohort** — S62 can be built and unit-
+  proven, but S63 will produce no live evidence for it. If the client wants MKD covered by the proof,
+  a fifth lease from portfolio 27 has to be added to the cohort deliberately.
 - _Client-owned:_ whether "3.5% every renewal until told otherwise" applies to every property in the
   portfolio without exception, or has carve-outs. Default taken: portfolio-wide with a per-lease
   override slot available but unused.

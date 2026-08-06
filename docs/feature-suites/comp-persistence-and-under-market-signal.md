@@ -26,7 +26,9 @@ lookup. The numbers are rendered once on screen and discarded.
   `[Needs Verification: market comp range from Zillow]` while a valid RentCast median sits on screen
   and is thrown away. Both outcomes are wrong in opposite directions.
 - **Two bases, kept apart.** Extend the persisted basis with an optional `provider` block —
-  `{ source, rangeLow, rangeHigh, pointEstimate, compCount, retrievedAt, radiusMiles, unitFilters }`
+  `{ source, rangeLow, rangeHigh, pointEstimate, compCount, retrievedAt, radiusMiles, unitFilters,
+comps[], trend }`, where `comps[]` keeps each comparable's correlation score and distance, and
+  `trend` holds the month-keyed rental history returned by RentCast's `/markets` endpoint
   — beside the existing operator-typed fields. The operator's numbers are never overwritten by a
   lookup and a lookup is never overwritten by the operator; both can coexist and the draft states
   which one it used. `normalizeMarketBasis` validates the new block with the same
