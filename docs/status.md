@@ -11,6 +11,48 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## Renewal proof program opened; the desk was reading 25 of 305 leases (2026-08-06)
+
+The 2026-08-05 client call plus a prepared agenda were analysed against the code, and the owner
+authorized a new program scoped to four things: the four-lease test set, RentCast, recipient handling,
+and owner-policy rules. Specs S57–S63 are written and registered; S64 is specified and deliberately
+unauthorized; S65 is authorized narrowly.
+
+**The finding that reordered the program.** A live read-only probe established that RentVine's
+`/leases/export` is page-limited and that every production caller passes no page parameter. No
+parameters returns 25 rows (lease ids 1–25); `pageSize` returns 305 distinct leases at 500, 1000, and
+2000; `limit` is accepted and ignored. So the Live Renewal Desk, the Console live projection, and the
+maintenance unit matcher have all been reading 25 of 305 leases, and **none of the four named test
+leases is inside that page**. S57 became the first slice because nothing else in the program is
+reachable until it lands. A consequence worth carrying: every earlier live-read coverage figure in
+this repository was measured on leases 1–25 and is unrepresentative rather than wrong.
+
+**Hard refresh completed, read-only.** The RentVine field map was re-derived live with zero drift
+against the 2026-07-22 map, which satisfies the D58 prerequisite and unblocks that ask to Dan. The
+live Sheet read was green at 27 tabs with `Lease Renewal` at 520 rows. A fresh golden capture was
+written gitignored and must be re-run after S57, because it captured the default page.
+
+**Cohort resolved.** Sheet rows 507–510 join to lease ids 278, 279, 280, and 297. Lease 297 ends on 10
+October rather than 30 September, and reads a zero RentVine rent against a non-zero Sheet figure,
+kept as the test set's first finding. Leases 279 and 280 share one address, so records key on lease id. The
+exact end dates are recorded in `docs/production-capacity-and-pilot.md` and in the S63 spec.
+
+**Four client-facing statements from the call were corrected** in a draft note for owner review: the
+app does not watch for replies, RentVine write is not a toggle (the endpoint is the blocker, not the
+key), notification email is not built, and per-item approval relaxation does not exist.
+
+**Owner reversal recorded.** The 2026-08-05 premise that MKD owners need no outreach is withdrawn.
+MKD owner recipients are emailed through the normal reviewed process and are in the test set.
+
+Also verified and recorded: the owner channel addresses one owner while tenants fan out; the ±15%
+rent-suggestion clamp is inert in production; the RentCast adapter has never been reachable in any
+environment and persists none of its results. Eight owner values remain deliberately unanswered rather
+than defaulted, tracked as `Q-` rows.
+
+**Environment gotcha:** `node_modules` in the primary tree is installed for linux-x64, so every `tsx`
+script fails in the Windows shell. Run them through WSL with `GOOGLE_APPLICATION_CREDENTIALS` pointed
+at the Windows ADC file. Do not run `npm ci` on Windows.
+
 ## S40's remaining environment/data slices: two, not five (2026-08-01)
 
 The loop-state list named five. Checking each against the code, three were already covered: the

@@ -431,7 +431,15 @@ to one resolver.
 
 **Type.** External ask, **sequenced behind our own work**. **Who.** Dan. **Blocking.** Sequenced.
 
-**Do not send this yet.** The decision changed the order: **we re-derive the field map from a fresh
+**READY TO SEND as of 2026-08-06.** Step 1 below is DONE: the field map was re-derived from a fresh
+live read-only RentVine export on 2026-08-06 with zero drift against the 2026-07-22 map
+(`F-HARD-REFRESH-2026-08-06`). The sequencing condition is satisfied, so the ask below may go to Dan
+now. One caveat to state when sending: that re-derivation ran against RentVine's default export page,
+which is 25 of 305 leases. S57 re-measures across the full portfolio, so a second confirmation may be
+needed if the wider read surfaces a field that behaves differently. The original sequencing note
+follows for context.
+
+**Do not send this yet (superseded 2026-08-06).** The decision changed the order: **we re-derive the field map from a fresh
 live RentVine export first, and only then does Dan confirm it.** Asking Dan to confirm field names
 against a map derived from a single 2026-07-22 export would be asking him to rubber-stamp work we
 have not refreshed.

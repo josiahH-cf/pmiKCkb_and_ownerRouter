@@ -3,6 +3,26 @@
 Canonical fresh-context launcher for the live production phase authorized 2026-07-29. Hand this
 whole file to any agent runner as its opening instruction.
 
+> **ACTIVE PROGRAM UPDATE — 2026-08-06. Read this before anything else in this file.**
+>
+> The production-control sequence this launcher was written for (S51–S54) plus the S55/S56 chain are
+> **closed**. The active program is now the **S57–S63 renewal proof program**, authorized by the
+> owner on 2026-08-06 and recorded as the Renewal Proof Program Authorization in `AGENTS.md` and as
+> `F-RENEWAL-PROOF-PROGRAM-AUTHORIZED` in `docs/facts.md`.
+>
+> **Start at `docs/loop-state.md`.** It carries the current `next_suite`, `next_spec`, and slice
+> pointer, and it wins over every dated checkpoint in this file.
+>
+> Order: **S57 → S58 → S59 → S60 → S61 → S62 → S63.** S57 is first because RentVine's
+> `/leases/export` is page-limited and the Live Renewal Desk has been reading 25 of 305 leases, with
+> none of the four named test leases inside that page — nothing else in the program is reachable
+> until it lands. **S65** (feedback closure) is separately authorized and may interleave when no
+> slice is mid-flight. **S64** is specified and **not** authorized; do not start it.
+>
+> Sections §1 (auth preflight), §3 (authority), §5 (how to run one slice), §6 (safety invariants),
+> and §8 (reporting) are program-independent and still apply verbatim. The dated baselines and
+> "next slice" statements in §0 and §4 below are **historical** and must not be replayed.
+
 **Runner-neutral by design.** Nothing here assumes a particular model, vendor, context window, or
 harness. It does not assume you can spawn sub-agents, run tasks in parallel, or hold the whole
 repository in context. Where a capability might be absent, the instruction says how to proceed
@@ -26,9 +46,10 @@ You are not asked to redesign the product, revisit settled decisions, or invent 
 **No-replay rule.** `docs/loop-state.md` is the sole mutable handoff. Its `next_suite`, `next_spec`,
 `active_slice`, and `last_completed_slice` fields select the work; §4 supplies constraints and
 dependencies, not permission to replay completed numbered items. Inspect fresh code and evidence
-before trusting any dated checkpoint. As of the 2026-07-30 handoff, the last verified application
-baseline is `373f968` (an ancestor of the documentation handoff); the next slice is S25's
-`gmail.label.apply` contract, followed by the renewal and maintenance draft pair.
+before trusting any dated checkpoint. **Superseded 2026-08-06:** the former "next slice is S25's
+`gmail.label.apply` contract" pointer is historical — that work shipped on 2026-07-31, and the
+S55/S56 chain completed on 2026-08-03 at commit `da87bcf`. The current pointer is S57, per
+`docs/loop-state.md` and the update banner at the top of this file.
 
 ---
 

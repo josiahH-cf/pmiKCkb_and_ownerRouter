@@ -3,120 +3,110 @@
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 `docs/status.md`.
 
-Last updated: 2026-08-03.
+Last updated: 2026-08-06.
 
 ```yaml
-last_updated: 2026-08-03
-active_program: S55_S56_PRODUCTION_CHAIN
-program_suites: S55-S56
+last_updated: 2026-08-06
+active_program: S57_S63_RENEWAL_PROOF
+program_suites: S57-S63 (+S65 independent; S64 specified but NOT authorized)
 spec_writing_allowed: true
 loop_execution_allowed: true
 loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: COMPLETE
-next_suite: NONE
-next_spec: NONE
-session_auth_status: READY_MANAGED_IDENTITY
-active_slice: NONE_CHAIN_COMPLETE
+implementation_status: NOT_STARTED
+next_suite: S57
+next_spec: docs/feature-suites/portfolio-complete-lease-reads.md
+session_auth_status: READY_ADC_FRESH_2026_08_06
+active_slice: NONE_NOT_STARTED
+next_slice: S57_PORTFOLIO_COMPLETE_LEASE_READS
 last_completed_slice: S55_STAGE_TWO_OLD_SERVICE_RETIRED
 runtime_action_gates_preflipped: false
 ```
 
 ## Authority
 
-- Owner authorized the production phase, unattended implementation, routine commit/push/deploy,
-  and cloud configuration under the managed identity.
-- Cloud changes require live readback and an append-only verified fact; lowering a safety control
-  still asks.
-- S52's verified ceiling remains alert `$25` and hard stop `$100`.
-- Live resident, owner, and lease data processing in Production is authorized.
+- The Renewal Proof Program Authorization in `AGENTS.md` (owner, 2026-08-06) opens S57–S63, scoped to
+  the four-lease test set, RentCast, recipient handling, and owner-policy rules.
+- S64 is specified and **not authorized**: it falls outside all four scope items and needs an
+  explicit grant extension naming it. The owner DID settle its design question (per person), recorded
+  as `F-APPROVAL-RELAXATION-AXIS` independently of the spec.
+- S65 is authorized narrowly by the owner's direct instruction to add feedback closure.
+- All prior grants stand unchanged: D05 deploy, D12 protected paths, the Cloud Automation Grant, the
+  S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
 - Activation remains per exact Action Registry key, never by category or inference.
-- D12's six protected paths remain prepare-and-surface only.
-- Human initiation and exact confirmation still govern client-facing sends and system-of-record
-  writes.
 
-## Chain end state
+## Why S57 is first
 
-- **S56 AC-S56-1 through AC-S56-8 are complete.**
-- Production holds Live data only: all 28 governed collections read back zero explicit
-  `data_mode:"test"` records.
-- Every serving Test intake was fenced before deletion; the current source graph has no Production
-  Test route, executor, fixture panel, or isolated workspace that can recreate the lane.
-- The `data_mode` field remains. Legacy decoding exists only to identify and refuse restored
-  non-Live state.
-- Local is the rehearsal surface and resolves `environmentKind:"demo"`,
-  `dataContext:"live_readonly"`, and `source:"explicit"`.
-- Local uses bounded Live reads and refuses persistence and provider effects. No Demo GCP project
-  or fixture seeder exists.
-- **S55 AC-S55-1 through AC-S55-9 are complete.**
-- The Production service is `pmi-kc-app`; the old `pmi-kc-kb-demo` service is absent.
-- The Friday client-update command carries the canonical link and one-time address-change note,
-  with no retired Test-lane or Demo-environment description presented as current.
+A live read-only probe on 2026-08-06 found RentVine's `/leases/export` is page-limited and every
+production caller passes no page parameter. The desk has been reading **25 of 305 leases**. `pageSize`
+is the honoured parameter; `limit` is accepted and ignored. **None of the four test leases is inside
+the default page**, so no later slice is reachable until this lands.
 
-## Record migration proof
+## Hard refresh completed 2026-08-06
 
-- The post-fence inventory found exactly 90 explicit Test records across the governed catalog.
-- Named PITR clone `s56-test-retirement-20260802-233824` is retained and delete-protected.
-- Existing drill `s56-restore-drill-20260803-004042` restored one planned record and matched its
-  source hash before drill cleanup.
-- The manifest deletion removed exactly those 90 records.
-- A fresh independent query proved zero explicit Test records across all 28 governed collections.
-- A separate exact compare-and-set moved four lane-only
-  `process_definitions.status:"Testing"` records to `Draft`; readback proved zero Testing.
-- Evidence contains counts, collection names, opaque identifiers, and hashes only. It contains no
-  record body, secret, token, or customer content.
+- RentVine field map re-derived live; zero drift against the 2026-07-22 map. Tenant email
+  `tenants[].email`, owner email `portfolio.owners[].email`, lease end `endDate`, rent `currentRent`.
+- Live Sheet read green: 27 tabs, 26 in scope, `Lease Renewal` 520 rows.
+- Fresh golden capture `capture-2026-08-06T12-08-22-192Z` written gitignored. **Re-run after S57** —
+  it captured the 25-row default page.
+- All prior live-read coverage figures in this repo were measured on leases 1–25 and are
+  unrepresentative rather than wrong.
 
-## Code and verification proof
+## Test cohort (resolved 2026-08-06)
 
-- Production fixture machinery is retired while automated fixtures remain under test helpers.
-- No automated test file was deleted; fixture-named tests now prove ordinary Live behavior and
-  negative route/module absence.
-- Deliberate falsification restored a forbidden production fixture path, observed the sentinel
-  fail on that path, then removed it and observed the sentinel pass.
-- The final unpiped gate recorded `GATE_EXIT=0`: 468 unit files / 4,224 tests and 23 Firestore
-  files / 109 tests, plus formatting, lint, TypeScript, policy scanners, and Production build.
-- Verified checkpoint commit: `da87bcf`.
-- No D12 path, Action Registry authority, client send, or system-of-record effect changed.
+Sheet rows 507–510 joined to RentVine lease ids **278, 279, 280, 297**. Detail is gitignored at
+`temp/test-cohort/cohort-resolution.json`. Lease 297 ends 2026-10-10 (not 09-30) and reads a zero
+current rent in RentVine against a non-zero Sheet figure — a real day-zero discrepancy, kept as test
+finding number one. Leases 279 and 280 share one street address, so records key on lease id.
 
-## Live release and rollback proof
+## Open owner values (do not invent)
 
-- Serving revision: `pmi-kc-app-rmsd5ux3l-0b445f0442ea` at 100 percent traffic.
-- Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Captured predecessor: `pmi-kc-app-rmsc62q55-dbcbe2db4927`.
-- Rollback rehearsal moved traffic to the predecessor and observed root 307, sign-in 200, and
-  protected 307.
-- Traffic returned to the final revision, read back at 100 percent, and repeated the same
-  307 / 200 / 307 smoke sequence.
-- Only after restored-final smoke did stage two delete `pmi-kc-kb-demo`; list and direct describe
-  readbacks proved absence.
-- The captured predecessor remains the reversible revision-level rollback artifact.
+- Numeric tolerance for the rent comparison (S63 criterion 3).
+- Which two leases are already negotiated, and their agreed rents.
+- Equal-ownership tie behavior on the owner channel (S61).
+- Whether the owner/tenant separation assertion is required (S61 default: build and refuse).
+- Historical-trend presentation: link, attachment, or email body (S59/S60).
+- Under-market threshold (S60 provisional default: 10 percent below the point estimate).
+- The named daily owner for the test-set window.
+- The MKD portfolio id and its ownership structure, and whether any test lease is MKD-owned.
 
-## Operational posture
+## Superseded 2026-08-06
 
-- Managed CLI authentication is ready; there is no authentication blocker in this chain.
-- The named S56 backup remains retained and delete-protected.
-- The cost guard remains armed at the verified ceiling.
-- Provider actions remain at their independently verified exact-key states.
-- No external credential, vendor action, client decision, or protected patch remains for S55/S56.
-- No unrelated roadmap suite is selected by this pointer.
+The 2026-08-05 premise that MKD owners need no outreach is **withdrawn by owner direction**. MKD owner
+recipients are emailed through the normal reviewed process and are included in the test set. No
+outreach-skip path may be built.
 
 ## Locked safety
 
 - No autonomous, scheduled, bulk, or model-triggered client-facing send.
-- Every client-facing send and system-of-record write stays human-initiated and exact-confirmed.
+- Renewal and maintenance notice initiation stays draft-only under D33.
+- Nothing in this program sends to an owner or a resident.
 - No guessed endpoint, record URL, identity, or customer value.
 - No personal account in an auth path; managed organization or service identities only.
 - No secret, token, PII, Gmail body, customer content, or photo in git or evidence.
-- Every Live effect remains one-attempt, idempotent, receipted, monitored, and reversible.
-- No safety control is lowered and no protected path is pushed without its required review.
+- The RentCast key lives in Secret Manager only; never a file, command line, log, or fixture.
+- D12 protected changes (the RentCast `production_allowed` flip, new `firestore.rules` declarations,
+  any `lib/auth/**` edit) are prepared and surfaced, never pushed.
 
 ## Resume
 
-**The ordered S55/S56 production chain is complete.** Do not restart its migrations, recreate its
-Test lane, provision a Demo project, or delete the retained backup by inference.
+Start **S57** at `docs/feature-suites/portfolio-complete-lease-reads.md`. Build the paged complete
+read, switch the three no-param callers, make the Console display cap honest, render the
+incomplete-read state, add the paging boundary test, falsify it, then re-run field discovery and `golden:capture` live across the full portfolio
+and record real coverage.
 
-`active_slice:NONE_CHAIN_COMPLETE` is intentional. Stop and report this end state; do not start an
-unrelated suite from this pointer. The Friday update remains a prepared draft for Josiah's human
-review and send.
+Then S58 → S59 → S60 → S61 → S62 → S63. S65 may interleave whenever no slice is mid-flight. Do not
+start S64.
+
+**Do first, before any slice:** the client correction note at
+`docs/temp/client-correction-note-2026-08-06.md` (gitignored, owner-send only) is drafted and awaits
+Josiah's review and send. The owner directed it be done first, ahead of the training session. It
+corrects four statements made on the 2026-08-05 call that the app does not do: reply self-updating,
+RentVine write being a toggle, notification email, and per-item approval relaxation.
+
+**Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
+fail in the Windows shell. Run them through WSL, exporting
+`GOOGLE_APPLICATION_CREDENTIALS=/mnt/c/Users/josia/AppData/Roaming/gcloud/application_default_credentials.json`
+for Google reads. Do not run `npm ci` on Windows.

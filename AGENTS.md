@@ -225,6 +225,65 @@ preview/confirm/receipt/rollback contract; sample data never becomes a real draf
 managed `pmikcmetro.com`/service identities only; no guessed provider endpoint; every live effect
 reversible. A green light activates a documented capability — it never relaxes one of these.
 
+## Renewal Proof Program Authorization (standing grant, 2026-08-06)
+
+The owner authorized a new program after the 2026-08-05 client call, in a recorded answer round, with
+the words "A — Authorized. I explicitly authorize adding a standing-grant section to AGENTS.md that
+opens this program". The program exists to answer one question with evidence: **does the app do the
+lease renewal job correctly?** Its scope is exactly four things, as named by the owner:
+
+1. the four-lease test set;
+2. RentCast integration and validation;
+3. owner and tenant recipient handling;
+4. owner-policy rules.
+
+The executable suites are **S57–S63**, indexed by `docs/feature-suites/README.md`, in that dependency
+order. `docs/feature-suites/four-lease-renewal-test-set.md` (S63) is the controlling proof artifact.
+Recorded as `F-RENEWAL-PROOF-PROGRAM-AUTHORIZED`.
+
+**Why S57 comes first.** A live read-only probe on 2026-08-06 established that RentVine's
+`/leases/export` is page-limited and that every production caller passes no page parameter, so the
+Live Renewal Desk has been showing **25 of 305 leases**. None of the four named test leases is inside
+that page. No other slice in this program is reachable until that is fixed.
+
+**One acknowledged reach beyond the four items.** The defect S57 fixes lives in a shared RentVine
+client, and two of its three defective callers are the Console live projection and the maintenance
+unit matcher. Fixing the renewal desk without them would leave the same silent truncation in place on
+two other surfaces. S57 therefore touches `lib/console/rentvine-live-provider.ts` and
+`lib/maintenance/live-unit-source.ts`. That is the only reach outside the four scope items, it is a
+read-path correctness fix rather than new capability, and it is recorded here rather than taken
+quietly.
+
+**What this grant does NOT open.** `docs/feature-suites/per-person-approval-authority.md` (S64) is
+specified but **not authorized**: widening who may approve is lowering a safety control, which the
+Cloud Automation Grant above still requires asking about. It is built only if the owner extends this
+grant to name it. `docs/feature-suites/feedback-report-closure.md` (S65) is authorized separately and
+narrowly by the owner's direct instruction to add a report-closure control; it is not part of the four
+scope items.
+
+**Owner decisions baked in (2026-08-06).** The test set proves process **and** number, so RentCast is
+proven operational before the number comparison runs. RentCast uses one shared company key with
+caching and a usage counter; a per-user credential subsystem is explicitly not built. The owner notice
+addresses all owners of record, mirroring the shipped all-tenants behavior. An owner-policy rule
+produces an Admin-approvable suggestion keyed on the RentVine portfolio id and never sets the offered
+rent. Cohort enforcement for the test set is procedural, not a code boundary. The rent-versus-market
+under-market comparison is built rather than deferred, and stays internal.
+
+**One superseded premise.** The 2026-08-05 call recorded that MKD-owned properties need no owner
+outreach. The owner **withdrew that on 2026-08-06**: MKD owner recipients are emailed through the
+normal reviewed process and are included in the test set. No outreach-skip path, auto-recorded owner
+decision, or skipped-outreach evidence field may be built. Recorded in the `docs/facts.md` Supersede
+Log.
+
+**Unchanged by this grant.** Every safety invariant above survives intact: no autonomous, scheduled,
+bulk, or model-triggered client-facing send; renewal and maintenance notice initiation stays
+draft-only under D33; secrets in Secret Manager, never git; a Live system-of-record write keeps its
+preview, confirm, receipt, and rollback contract; managed `pmikcmetro.com` or service identities only;
+no guessed provider endpoint; the S52 production cost ceiling; every live effect reversible. The D12
+protected paths are unchanged, so the RentCast `production_allowed` flip, the new `firestore.rules`
+declarations, and any `lib/auth/**` change are prepared and surfaced for owner review rather than
+pushed. Nothing in this program sends to an owner or a resident.
+
 ## Per-Runner Pointers
 
 This repository is **runner-neutral**: `AGENTS.md` (this file) plus `docs/` hold every
@@ -302,6 +361,18 @@ route new work through the three-product docs.
 | Production cost governance (S52)        | `docs/feature-suites/production-cost-governance.md`                                                                    |
 | Green-light activation + gates (S53)    | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`                                                      |
 | Verification and CI parity (S54)        | `docs/feature-suites/verification-and-ci-parity.md`                                                                    |
+| **Renewal proof program (S57–S63)**     | `docs/feature-suites/README.md` S57–S63 rows; authorization above; the proof artifact is S63                           |
+| Portfolio-complete lease reads (S57)    | `docs/feature-suites/portfolio-complete-lease-reads.md`                                                                |
+| Live lease data currency (S58)          | `docs/feature-suites/live-lease-data-currency.md`                                                                      |
+| RentCast live activation (S59)          | `docs/feature-suites/rentcast-live-activation.md`                                                                      |
+| Comp persistence + under-market (S60)   | `docs/feature-suites/comp-persistence-and-under-market-signal.md`                                                      |
+| Recipient fan-out + separation (S61)    | `docs/feature-suites/renewal-recipient-fanout-and-separation.md`                                                       |
+| Owner-policy renewal pricing (S62)      | `docs/feature-suites/owner-policy-renewal-pricing.md`                                                                  |
+| Four-lease renewal test set (S63)       | `docs/feature-suites/four-lease-renewal-test-set.md`                                                                   |
+| Per-person approval authority (S64)     | `docs/feature-suites/per-person-approval-authority.md` (specified; NOT authorized)                                     |
+| Feedback report closure (S65)           | `docs/feature-suites/feedback-report-closure.md` (authorized separately; outside the four scope items)                 |
+| RentCast operator setup procedure       | `docs/rentcast-setup-runbook.md`                                                                                       |
+| Renewal-proof owner decision record     | `docs/renewal-proof-owner-decisions-2026-08-06.md`                                                                     |
 | Production decision record              | `docs/production-phase-decision-record-2026-07-29.md`                                                                  |
 | Client/vendor asks for this phase       | `docs/client-asks-2026-07-29.md`                                                                                       |
 | V1 execution authority (S20)            | `docs/feature-suites/execution-authority.md`                                                                           |

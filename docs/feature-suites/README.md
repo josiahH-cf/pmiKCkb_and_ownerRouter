@@ -127,6 +127,36 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S54 Verification and CI parity              | `docs/feature-suites/verification-and-ci-parity.md`                       | S54.1 locally and remotely green                         |
 | S55 Service rename + identifier cleanup     | `docs/feature-suites/production-service-rename-and-identifier-cleanup.md` | Complete — rollback rehearsed; legacy service deleted    |
 | S56 Production Live-only, Test lane retired | `docs/feature-suites/production-live-only-test-lane-retirement.md`        | Complete — Production Live-only; local rehearsal         |
+| S57 Portfolio-complete lease reads          | `docs/feature-suites/portfolio-complete-lease-reads.md`                   | Spec — first slice; desk reads 25 of 305 today           |
+| S58 Live lease data currency + refresh      | `docs/feature-suites/live-lease-data-currency.md`                         | Spec — staleness contract; depends on S57                |
+| S59 RentCast live activation                | `docs/feature-suites/rentcast-live-activation.md`                         | Spec — activates S28; owner dep is the key               |
+| S60 Comp persistence + under-market signal  | `docs/feature-suites/comp-persistence-and-under-market-signal.md`         | Spec — owner-draft truth; depends on S59                 |
+| S61 Recipient fan-out + channel separation  | `docs/feature-suites/renewal-recipient-fanout-and-separation.md`          | Spec — all owners; amends S24                            |
+| S62 Owner-policy renewal pricing            | `docs/feature-suites/owner-policy-renewal-pricing.md`                     | Spec — MKD rule; owner dep is the portfolio id           |
+| S63 Four-lease renewal test set             | `docs/feature-suites/four-lease-renewal-test-set.md`                      | Spec — the core-functionality proof                      |
+| S64 Per-person approval authority           | `docs/feature-suites/per-person-approval-authority.md`                    | Spec — NOT authorized; needs a grant extension           |
+| S65 Feedback report closure                 | `docs/feature-suites/feedback-report-closure.md`                          | Spec — small; before training volume starts              |
+
+S57–S63 are the authorized 2026-08-06 program. S64 is specified but NOT authorized. S65 is authorized separately and narrowly, outside the four scope items. Ordered dependency: S57 first (nothing else is
+reachable until the desk reads the whole portfolio), then S58, then S59, then S60, then S61,
+then S62, then S63 as the proof. S64 is specified but deliberately unauthorized. S65 is independent.
+
+## Deferred, with owner direction to keep it visible (2026-08-06)
+
+These were consciously deferred rather than dropped. They are recorded here so they do not disappear
+from scope, per the owner's direction on the contact directory in particular. None is in the S57–S63
+program; each needs its own slice or suite when it is picked up.
+
+| Item                                            | Owner direction                                   | Where the detail lives                             |
+| ----------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| Per-owner contact-by-topic directory            | Defer past the test set, keep visible (N6)        | `Q-CONTACT-BY-TOPIC-DIRECTORY` in `docs/facts.md`  |
+| Budget-guardrail Node 20 upgrade (hard date)    | Defer, keep visible (N5)                          | `Q-GUARDRAIL-NODE20-OWNER` in `docs/facts.md`      |
+| Product rename off "KCKB"                       | Keep KCKB this cycle (N3)                         | `Q-PRODUCT-RENAME-SCOPE` in `docs/facts.md`        |
+| Per-user RentCast credentials                   | Evaluate only after the shared key is proven (Q7) | `docs/feature-suites/rentcast-live-activation.md`  |
+| S51 monitoring activation in the cloud          | Pending one alert address (A3)                    | `Q-MONITORING-OPERATOR-ADDRESS` in `docs/facts.md` |
+| F-AUTH-1 onboarding sequencing                  | Unresolved; Bailey is an Admin instead (Q8)       | `docs/whats-next.md` §2.1 (historical rationale)   |
+| Whether Dan inspects test evidence in-app       | Not specified (Q11)                               | `Q-TESTSET-EVIDENCE-IN-APP` in `docs/facts.md`     |
+| Restoring the Sheet-vs-RentVine date comparison | Leave as-is, do not restore (N2)                  | `F-RENEWAL-DATE-SEMANTICS` in `docs/facts.md`      |
 
 The prior Production Test journeys remain dated implementation evidence, not a current product lane.
 S56 is complete: intake is fenced, Production records are zero, Test machinery is retired, and local

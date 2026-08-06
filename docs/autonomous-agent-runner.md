@@ -11,7 +11,9 @@ Recalibration, and Production Phase Authorizations in `AGENTS.md` (`F-SEND-AUTHO
 `F-ROADMAP-BUILD-AUTHORIZED`, `F-UIUX-RECALIBRATION-AUTHORIZED`,
 `F-PRODUCTION-PHASE-AUTHORIZED`), the DEFAULT is to build every authorized suite to its observable
 end state or external seam. The active sequence begins with the production-control prerequisites in
-S54, S53, S52, and S51, then resumes S40–S50 and dependency-ready S28–S39 work in the order recorded
+S54, S53, S52, and S51. As of 2026-08-06 that production-control sequence is closed and the active
+program is the authorized S57–S63 renewal proof program (plus the separately authorized S65); after
+it, work resumes on S40–S50 and dependency-ready S28–S39 in the order recorded
 in `docs/loop-state.md`.
 
 Keep implementation and activation claims separate. A locally verified provider is
@@ -160,9 +162,11 @@ questions before implementation.
 
 Before selecting the next slice, confirm it advances the production-control sequence in
 `docs/meta-prompts/production-phase-unattended-loop.md`, the authorized S40–S50 program in
-`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, a dependency-ready S28–S39
-provider seam, or a real regression in shipped behavior. The runner BUILDS — it does not defer
-product surface. For each suite, in order:
+`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, the authorized S57–S63 renewal proof
+program plus the separately authorized S65, indexed by `docs/feature-suites/README.md` (see the
+Renewal Proof Program Authorization in `AGENTS.md`), a dependency-ready S28–S39 provider seam, or a
+real regression in shipped behavior. S64 is specified and NOT admissible. The
+runner BUILDS — it does not defer product surface. For each suite, in order:
 
 - build the app-plane (UI, routes, state, validation) unattended;
 - build the live provider implementation, replacing any fake/synthetic provider, plus the full
@@ -237,7 +241,7 @@ phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine 
 An agent may choose conservative implementation details when active docs define the direction and
 the choice:
 
-- stays within an authorized S51–S54, S40–S50, or dependency-ready S28–S39 slice,
+- stays within an authorized S57–S63 (or S65), S51–S54, S40–S50, or dependency-ready S28–S39 slice,
 - does not expose private data,
 - obeys the S52 cost gate before any cost-bearing command,
 - does not create or change credentials, scopes, IAM, billing, or quotas,
@@ -604,7 +608,7 @@ next action in `docs/loop-state.md`.
 - Context reset needed: the working context is large or drifting, lane focus is slipping,
   or accumulated state risks errors. Write `docs/loop-state.md`, recommend a fresh context
   window, and stop.
-- Program complete: S51–S54 and every authorized S40–S50 suite are either active with runtime
+- Program complete: the authorized S57–S63 suites, S51–S54, and every authorized S40–S50 suite are either active with runtime
   evidence or built to a named external seam, S49 has explicit retained/deleted dispositions, and
   S50 is verified; record remaining S28–S39/S47/S43 owner dependencies and stop.
 

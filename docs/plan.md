@@ -325,6 +325,47 @@ Acceptance:
   `KILL_SWITCH_CAP_USD` moved in lockstep and covered per project (S52, D01).
 - Live operation runs as a bounded pilot with a stated abort trigger (D08, `F-PILOT-ROLLOUT`).
 
+### P11 - Renewal Proof Program (S57–S63)
+
+Status: in progress — the owner authorized this program on 2026-08-06 after the 2026-08-05 client
+call, scoped to the four-lease test set, RentCast integration and validation, owner and tenant
+recipient handling, and owner-policy rules. Specs S57–S63 are written and registered; no
+implementation slice has started. S64 is specified and deliberately unauthorized. S65 is authorized
+separately and narrowly.
+
+Program:
+
+- Authority: the Renewal Proof Program Authorization in `AGENTS.md`;
+  `F-RENEWAL-PROOF-PROGRAM-AUTHORIZED`.
+- Suites: S57 portfolio-complete lease reads, S58 live lease data currency, S59 RentCast live
+  activation, S60 comp persistence and the under-market signal, S61 recipient fan-out and channel
+  separation, S62 owner-policy renewal pricing, S63 the four-lease test set.
+- Before any slice: the client correction note at `docs/temp/client-correction-note-2026-08-06.md`
+  is drafted and awaits owner review and send. The owner directed it be done first.
+- Order: S57 first, because RentVine's `/leases/export` is page-limited and the desk has been reading
+  25 of 305 leases, with none of the four test leases inside that page. Then S58, then S59, then S60, then S61,
+  then S62, then S63 as the proof. S65 may interleave.
+- Flags: `loop_execution_allowed:true`, `loop_commit_push_allowed:true`, `loop_deploy_allowed:true`,
+  `runtime_action_gates_preflipped:false`.
+
+Acceptance:
+
+- The Live Renewal Desk reads the whole portfolio, a truncated read is visible rather than silent, and
+  an architecture sentinel forbids a bare unpaged call (S57).
+- Lease-data staleness is a bounded, visible, testable property, and the frozen test baseline is
+  immutable under every refresh path (S58).
+- RentCast is proven operational end to end — key, deploy wiring, connectivity, a controlled live
+  smoke, caching, quota accounting, and legible failure — before any number comparison runs (S59).
+- The owner draft never attributes one basis's numbers to another basis's source, and the
+  rent-versus-market signal stays internal (S60).
+- The owner notice addresses all owners of record, and an owner address can never appear on a tenant
+  draft or the reverse (S61).
+- An owner-policy rule produces an Admin-approvable suggestion keyed on the RentVine portfolio id and
+  never sets the offered rent; no outreach-skip path exists (S62).
+- Four leases produce a per-lease evidence record and a generated report against four stated pass
+  criteria, with nothing sent to any owner or resident, and a criterion whose inputs are missing
+  reads as not-evaluated rather than as a pass (S63).
+
 ## Per-Action Provider Activation
 
 Use these states without changing the application label:

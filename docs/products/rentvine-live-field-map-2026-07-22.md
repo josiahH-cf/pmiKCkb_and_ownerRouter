@@ -1,5 +1,23 @@
 # RentVine Live Field Map — confirmed 2026-07-22 (Slice 1 discovery)
 
+> **Correction 2026-08-06 — read this before using the numbers below.** Two things changed.
+>
+> 1. **The coverage figures on this page are a 25-lease sample, not portfolio coverage.**
+>    `/leases/export` is page-limited and this discovery ran against the default page, which returns
+>    lease ids 1 through 25. The real portfolio is 305 leases (`pageSize` is the honoured parameter;
+>    `limit` is accepted and ignored). Every "25/25" below therefore means "all of the first 25
+>    leases", which is a non-random sample. Portfolio-wide coverage is re-measured by S57
+>    (`docs/feature-suites/portfolio-complete-lease-reads.md`) and recorded in `docs/facts.md` as
+>    `F-RENTVINE-EXPORT-PAGE-LIMITED`.
+> 2. **The D10 note below is stale.** It states that `resolveRenewalRecipient` resolves the OWNER
+>    channel 0/25. That Slice 6 wiring landed: a live re-derivation on 2026-08-06 resolved the owner
+>    channel on every lease scanned via `portfolio.owners[0].email`. What remains open is different —
+>    the owner branch returns only the **first** owner and produces no Cc, which S61
+>    (`docs/feature-suites/renewal-recipient-fanout-and-separation.md`) fixes.
+>
+> The field **paths** on this page were re-derived live on 2026-08-06 with **zero drift**. They are
+> current. Only the coverage denominators and the D10 resolver note were wrong.
+
 Read-only live discovery against `pmikcmetro.rentvine.com` `GET /leases/export` (25 rows), via
 `npm run discover:rentvine-fields -- --live --limit 25` (`scripts/discover-rentvine-fields.ts`).
 Output is **paths + presence + coverage only** — no email, name, rent, or address value was printed or

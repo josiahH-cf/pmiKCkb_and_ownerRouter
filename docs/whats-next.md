@@ -3,8 +3,10 @@
 **2026-07-29 supersession — this file is now history, not a to-do list.** The owner directed the
 production phase after the 64-item production-unblock audit (round 1). The source questionnaire's
 browser-local selections were not exported; the sanitized decision record therefore labels each
-entry's provenance and leaves receipt-needed choices closed rather than inventing an answer. Current
-execution truth is the
+entry's provenance and leaves receipt-needed choices closed rather than inventing an answer. **Superseded again 2026-08-06:** current execution truth is the **Renewal Proof Program
+Authorization** in `AGENTS.md` (`F-RENEWAL-PROOF-PROGRAM-AUTHORIZED`, suites S57-S63). The
+2026-07-29 text below is retained for history. Current
+execution truth was the
 **Production Phase Authorization** in `AGENTS.md`, `F-PRODUCTION-PHASE-AUTHORIZED` in
 `docs/facts.md`, `docs/loop-state.md`, and suites S51–S54. Outstanding client/vendor asks moved to
 `docs/client-asks-2026-07-29.md`. Specifically resolved since this file was written:

@@ -1,0 +1,229 @@
+<!-- spec-shape: overhaul-v1 -->
+
+# S59 — RentCast live activation and operational hardening
+
+> New 2026-08-06. Opened by the post-2026-08-05 program grant in `AGENTS.md`. Owner direction (Q3):
+> RentCast goes live **before** the four-lease test set runs, and must be proven "a stable,
+> repeatable process" first. Owner direction (Q7): one shared company key with caching and a usage
+> counter; a per-user credential subsystem is explicitly **not** built now. This suite ACTIVATES and
+> HARDENS the adapter specified by **S28**; it does not re-specify the adapter itself.
+
+**Goal.** A person on the renewal desk clicks for comparables and gets a real, current market range
+from RentCast, or a clear refusal that names why. It works the same way on the tenth click as on the
+first, it cannot quietly exhaust a 50-call monthly allowance, and when RentCast is slow, broken, or
+out of quota the desk degrades to hand-entered numbers instead of failing or fabricating. When this
+suite is done, no external dependency remains open on the comps path.
+
+**What it is / how it functions.** The adapter at
+`lib/lease-renewal/providers/rentcast-market-comp-provider.ts` is real, deterministic, unit-proven,
+and correctly fails closed. It has also **never been reachable in any environment**. Activation is
+five independent problems, not a switch.
+
+- **Problem 1 — the provider selector is unset everywhere.** `MARKET_COMP_PROVIDER` is absent from
+  both `.env.local` and `.env.production.local`, so `z.enum(["manual","rentcast"]).default("manual")`
+  at `lib/config/server.ts:116` resolves to `manual` and the RentCast branch at
+  `lib/lease-renewal/market-comp-provider.ts:99-102` is unreachable. Local dev has never exercised it
+  either; every existing test uses a stubbed transport.
+- **Problem 2 — the deploy wrapper drops both variables.** `readRuntimeEnv` in
+  `scripts/deploy-demo-cloud-run.mjs` is a closed literal allowlist that names neither
+  `MARKET_COMP_PROVIDER` nor `RENTCAST_API_KEY`, and it is emitted with a **replacing**
+  `--set-env-vars` map, so anything set out of band is wiped on the next deploy. `readRuntimeSecrets`
+  binds only the two RentVine secrets and otherwise emits `--clear-secrets`. A key sitting in Secret
+  Manager therefore binds to nothing. This is the step that silently breaks integrations, and it
+  ships in the same reviewed change as the gate.
+- **Problem 3 — the gate is four fences and a pinned test, not one boolean.**
+  `rentcast.rental_listings.search` is `production_allowed:false` with `readiness:"Planned"` and
+  `evidence_status:"Undocumented"`. `lib/firestore/schemas.ts` refuses `production_allowed:true`
+  unless readiness is `Approved for Execution` **and** evidence_status is `Documented`, and
+  `lib/integrations/action-gate.ts` **re-parses the seed entry on every request**, so flipping only
+  the boolean throws at runtime rather than at seed time. The key is also absent from both
+  `EXECUTABLE_ALLOWLIST` copies (`scripts/seed-action-registry.ts`, `lib/admin/migration-readiness.ts`)
+  and is pinned in the gated-off list in `tests/unit/action-registry-schema.test.ts`. **A
+  `production_allowed` change is a D12 protected path**: this suite prepares that change as an
+  isolated, reviewed patch and surfaces it. It does not push it under the standing grant.
+- **Problem 4 — no cache, quota, counter, or throttle exists.** A grep across the route and both
+  provider files returns zero matches for cache, quota, throttle, or rate limit. One button click is
+  one uncached, unmetered call against a 50-per-month free allowance. This suite adds: a per-address
+  result cache with an explicit TTL; a persisted monthly call counter; a soft warning threshold; and
+  a hard stop that refuses further live calls for the period and falls back to hand entry. The
+  counter is the operator-visible answer to "how many do we have left."
+- **Problem 5 — the query is half-wired and one input is poisoned.** The route schema and the
+  provider's URL builder both accept `bedrooms`, `bathrooms`, and `propertyType`, but the only caller
+  sends none of them, so a first real call is an unfiltered two-mile search that mixes a studio and a
+  four-bedroom into one min/max range. Worse, `RenewalProgressControls.tsx` posts
+  `(address ?? "").trim() || "Unknown"`, so a lease with no address label sends the literal string
+  `"Unknown"`, which clears the provider's blank-address guard and spends a billable call on nonsense.
+  Both are fixed here: the unit attributes are passed through, and a missing address refuses locally
+  before any call is made.
+
+**Errors, timeouts, and fallback.** The adapter already fails closed on missing key, blank address,
+non-2xx, parse error, and fewer than three usable comps, returning `Needs Verification` with no
+numbers. This suite makes the failure _legible_: each refusal reason is distinguishable in the UI, a
+timeout is reported as a timeout rather than as "no comps found", and every failure path leaves the
+operator able to type the numbers by hand. The manual provider remains the fallback, not a
+deprecated path.
+
+**Validation and the controlled smoke test.** A read-only smoke script performs exactly one live
+RentCast call against one known address, prints the resolved range, comp count, and source, and
+writes nothing durable. It runs against a real key before the gate flip is proposed, so the flip is
+backed by observed behavior rather than by unit tests over a stub. Its output is the
+`evidence_status: "Documented"` justification.
+
+**The controlled smoke and the closed gate.** The smoke script makes a live RentCast call while
+`rentcast.rental_listings.search` is still `production_allowed:false`. That is deliberate and it is
+not a bypass: the script is an operator-run CLI, not a product request path, and it follows the same
+pattern as the existing `smoke:rentvine-read`. The Action Registry governs what the **application**
+may do on a user's behalf; a reviewed operator script is how the `evidence_status: "Documented"`
+justification is produced in the first place. Stated explicitly here because the two facts sitting
+side by side otherwise read as a contradiction.
+
+Buildable now (app-plane): the cache, counter, quota stop, query pass-through, address refusal,
+failure legibility, and the smoke script. Build to the seam (live provider): the deploy-wrapper
+binding, the config wiring, and the health probe behind `health.rentcast.api_key`, whose contract
+already declares a `rentcast.rate_limit` step with no implementation.
+
+**Owner dependencies — there are TWO, not one.**
+
+1. `RENTCAST_API_KEY` present in Secret Manager on `pmi-kc-kb-prod` and readable by the runtime
+   service account. Owner-run; the procedure is `docs/rentcast-setup-runbook.md`.
+2. The reviewed **D12 protected-path patch** that opens `rentcast.rental_listings.search`. This suite
+   prepares it and surfaces it; it does not push it. Until it lands the route correctly refuses, so
+   the comps path is not live no matter what else is done.
+
+A third item is an external confirmation this suite does not resolve and must not paper over: the
+RentCast **plan and third-party-data terms** question already recorded in
+`docs/client-checklist.md` — whether the active plan permits **storing/caching** comp responses and
+**displaying them to a property owner**. This suite adds exactly that caching, and S60 puts the
+numbers in front of an owner. `docs/environment-handoff.md` and the S52 cost-control fact both pin
+the same gate. It is tracked as `Q-RENTCAST-PLAN-TERMS`, and those three records must be updated in
+the same slice that resolves it.
+
+**Open questions & assumptions.**
+
+- _Answered 2026-08-06 (owner, Q7):_ one shared company key. The per-user credential subsystem is
+  deferred and must not be built here. Today no user identity reaches the comps request at all: the
+  request schema is strict and carries no credential field.
+- _Open (owner, `Q-COMP-TREND-PRESENTATION`, raised under Q7):_ how historical trend data is presented to the owner — a link, an attachment,
+  or values rendered in the email body. This does not block activation; it blocks the owner-draft
+  presentation, which lives in **S60**. Recorded as a `Q-` row.
+- _Open:_ RentCast's published rate limit and whether its terms permit one free account per team
+  member. The second question only matters if Q7 is revisited. Neither blocks this suite.
+- _Open:_ the real plan allowance and overage. **Provisional and uncitable** — the 50-per-month and
+  $0.20 figures come from the 2026-08-05 call, which is not committed to this repository, and
+  `docs/client-checklist.md` records the allowance as plan-specific and unverified. AC-S59-14 requires
+  reading them back from the account before the hard quota stop is sized, because that stop refuses
+  operator work when it fires.
+- _Open (`Q-RENTCAST-PLAN-TERMS`):_ whether the active plan and third-party-data terms permit storing
+  or caching comp responses and displaying them to a property owner. This suite adds the caching and
+  S60 adds the owner-facing display, so it is squarely in scope and is not resolved here.
+- _Open (`Q-COMP-TREND-PRESENTATION`) — larger than a formatting choice._ The 2026-08-05 call
+  described attaching historical trend reports to the owner email. **This cycle retrieves no trend
+  data at all.** The adapter calls the rental-listings search only, and the persisted provider block
+  S60 defines has no trend field. So the open question is not merely link-versus-attachment: it is
+  blocked on building a retrieval, a persisted shape, and a rendering. Recorded honestly rather than
+  implied to be a one-line choice.
+- _Assumption (provisional):_ the free allowance is 50 calls per month with overage at $0.20, as stated on the
+  2026-08-05 call. The counter and thresholds are named constants so a different real limit is a
+  one-line correction rather than a redesign.
+- _Assumption:_ a two-mile radius, a 25-result cap, and a three-comp floor are reasonable defaults,
+  not confirmed policy. They should be reviewed against the four test properties before comps are
+  shown to any owner.
+
+**Cross-product impacts.**
+
+- `lib/config/server.ts`, `.env.example`, `.env.production.local` — provider selector and key.
+- `scripts/deploy-demo-cloud-run.mjs` — `readRuntimeEnv` and `readRuntimeSecrets` bindings.
+- `lib/lease-renewal/providers/rentcast-market-comp-provider.ts` — query pass-through, failure
+  legibility, timeout classification.
+- `app/api/lease-renewal/market-comps/route.ts` — cache, counter, quota stop, address refusal.
+- `components/lease-renewal/RenewalProgressControls.tsx` — send unit attributes; stop sending
+  `"Unknown"`; render the distinct refusal reasons and the remaining-calls figure.
+- `lib/integrations/health-checks.ts` — implement the declared `rentcast.rate_limit` step.
+- `lib/integrations/action-registry-seed.ts` — **D12 protected**; prepared and parked, not pushed.
+- Extends **S28** (`docs/feature-suites/market-comp-data.md`), which keeps its adapter ACs. Feeds
+  **S60** (persistence and the owner draft) and **S63** (the test set's number comparison). Depends on
+  **S58** for the refusal to run comps against expired lease data.
+
+**Adversarial acceptance checks.**
+
+- **AC-S59-1** — With the provider selector set to `rentcast` and a valid key, one desk lookup
+  performs exactly one live call and renders a range, a point estimate, and a comp count. _Verify:_
+  the controlled smoke script, output recorded.
+- **AC-S59-2** — A deployed revision reports both `MARKET_COMP_PROVIDER` and a bound
+  `RENTCAST_API_KEY` secret in its describe readback. A deploy that drops either fails the check.
+  _Verify:_ `gcloud run services describe pmi-kc-app --format=json` read back after deploy.
+- **AC-S59-3** — Repeating the same address inside the cache TTL performs **zero** additional live
+  calls and returns the identical range. _Verify:_ `npm test -- market-comp-provider`.
+- **AC-S59-4** — The monthly counter increments only on a real live call, never on a cache hit and
+  never on a refusal that made no request. _Verify:_ `npm test -- market-comps-route`.
+- **AC-S59-5** — At the hard quota stop the route refuses with an explicit out-of-allowance reason,
+  makes no call, and the desk still permits hand-entered comps. _Verify:_
+  `npm test -- market-comps-route`.
+- **AC-S59-6** — A lease with no address label refuses locally and makes **no** call. The literal
+  string `"Unknown"` is never sent. _Verify:_ `npm test -- RenewalProgressControls`.
+- **AC-S59-7** — Bedrooms, bathrooms, and property type reach the provider URL when known. _Verify:_
+  `npm test -- rentcast-market-comp-provider`.
+- **AC-S59-8** — Timeout, non-2xx, parse failure, and fewer-than-three-comps each render a
+  distinguishable reason. None renders as a number, and none renders as the same generic message.
+  _Verify:_ `npm test -- rentcast-market-comp-provider market-comps-route`.
+- **AC-S59-9** — With the action gated off, the route refuses before parsing the body and makes no
+  call. This is the pre-flip state and must hold until the reviewed flip lands. _Verify:_
+  `npm test -- market-comps-route`.
+- **AC-S59-10** — `health.rentcast.api_key` executes a real probe and reports authentication and rate
+  limit as observed values rather than as contract metadata. _Verify:_
+  `npm test -- health-checks` plus one live run.
+- **AC-S59-11** — The prepared `production_allowed` patch changes `readiness`, `evidence_status`, and
+  the boolean together, adds the key to both `EXECUTABLE_ALLOWLIST` copies, and updates the pinned
+  schema test. Changing the boolean alone throws at request time. _Verify:_
+  `npm test -- action-registry-schema`, plus a deliberate boolean-only edit observed to fail.
+- **AC-S59-12** — Everything this suite owns is readable back from the running system: a
+  `gcloud run services describe` on the serving revision shows `MARKET_COMP_PROVIDER` set and
+  `RENTCAST_API_KEY` bound as a secret, the controlled smoke recorded one live call with its range
+  and comp count, and the quota counter reads a non-zero value afterwards. _Verify:_ the describe
+  output and the smoke output, both recorded.
+- **AC-S59-13** — The two owner dependencies are reported as **explicitly open or explicitly closed**,
+  never as absent: the Secret Manager key placement, and the reviewed D12 patch that opens the action.
+  While either is open, the comps path reports itself as not live and S63's number criterion stays
+  `not_evaluated`. _Verify:_ `npm test -- market-comps-route`, plus a seed readback of
+  `production_allowed`.
+- **AC-S59-14** — The RentCast plan allowance and overage are read back from the real account and
+  recorded before the hard quota-stop constant is set. Shipping the stop against the assumed figures
+  fails this AC. _Verify:_ recorded in `docs/facts.md`, and `npm test -- market-comps-route` pinned to
+  the recorded value.
+
+Keep green: `tests/unit/market-comp-provider.test.ts`,
+`tests/unit/rentcast-market-comp-provider.test.ts`, `tests/unit/action-registry-schema.test.ts`,
+`tests/unit/environment-handoff-provider-table.test.mjs`.
+
+**Forbidden actions / hard gates.** No autonomous client-facing send; generic non-workflow
+`gmail.message.send` stays Registry-closed; no personal account in any auth path; no secret, token,
+PII, or guessed endpoint in git; the S52 production cost ceiling stands; every live effect stays
+one-attempt, idempotent, receipted, and reversible. The RentCast key is **never** written to a file,
+a command line, a log, a test fixture, or this repository; it lives in Secret Manager and reaches the
+runtime only through the deploy wrapper's secret binding. This suite must **not** push the
+`production_allowed` change: `lib/integrations/action-registry-seed.ts` is a D12 protected path, so
+the patch is prepared, isolated, and surfaced for owner review while the rest of the suite continues.
+It must not build a per-user credential store. It must not fabricate a comp number, and a refusal
+must never be rendered as a range. Overage spend beyond the free allowance requires an explicit owner
+decision before the hard stop is raised.
+
+**Ordered prompt sequence.**
+
+1. _Discovery:_ confirm the selector is absent from both env files and that the deploy wrapper names
+   neither variable.
+2. _Build:_ cache, monthly counter, soft warning, hard stop, and the operator-visible remaining count.
+3. _Build:_ query pass-through and the missing-address local refusal.
+4. _Build:_ failure legibility, including timeout classification.
+5. _Build:_ the read-only controlled smoke script.
+6. _Build:_ implement the declared `rentcast.rate_limit` health step.
+7. _Owner:_ confirm `RENTCAST_API_KEY` is in Secret Manager and readable by the runtime identity.
+8. _Build:_ deploy-wrapper env and secret bindings; set the selector in the production env file.
+9. _Verify:_ run the controlled smoke against the live API; record range, comp count, and source.
+10. _Gate:_ prepare the isolated D12 seed patch (readiness + evidence_status + boolean + both
+    allowlists + pinned test) and **surface it for owner review**; do not push it.
+11. _Verify:_ full gate, then deploy and read back the revision's env and secret bindings.
+12. _Context update:_ `docs/facts.md` `F-` row citing AC-S59-1 through AC-S59-12; `Q-` row for the
+    open trend-presentation choice; update `docs/loop-state.md` and `docs/status.md`.
+
+**Deletion/merge recommendation.** KEEP, and cross-reference from S28 rather than merging. S28 owns
+the adapter contract; this file owns activation and operational behavior. The disposable cycle packet `docs/temp/rentcast-live-activation-plan.md` is CREATED AT SLICE START, not by this spec.
