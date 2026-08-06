@@ -35,7 +35,7 @@ import {
   buildLiveRenewalConfig,
   type LiveRenewalConfig,
 } from "@/lib/lease-renewal/live-config";
-import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { getLiveLeaseRead } from "@/lib/lease-renewal/live-lease-cache";
 import {
   runRenewalPipeline,
   type ReconciledFieldOutcome,
@@ -264,7 +264,7 @@ export async function loadLiveRenewalDesk(
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const views = await getLiveLeaseViews(
+    const { views, complete } = await getLiveLeaseRead(
       config.rentvineClient,
       Date.parse(readTimestamp),
     );
@@ -295,6 +295,9 @@ export async function loadLiveRenewalDesk(
       view: {
         windows,
         cohort,
+        // S57: a paged read that hit its page cap is rendered as an explicit partial, never as the
+        // portfolio. The desk component keys its incomplete-read notice off this flag.
+        readComplete: complete,
         actionable: summaries.filter((s) => s.disposition === "actionable"),
         review: summaries.filter((s) => s.disposition === "review"),
         skipped: summaries.filter((s) => s.disposition === "skip"),
@@ -328,12 +331,14 @@ export async function loadLiveRenewalLeaseWorkspace(
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const views = await getLiveLeaseViews(
+    const { views, complete } = await getLiveLeaseRead(
       config.rentvineClient,
       Date.parse(readTimestamp),
     );
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
-    if (!view) return { status: "not_found" };
+    // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads
+    // as a failed read, never as "not found".
+    if (!view) return { status: complete ? "not_found" : "read_error" };
 
     // Classify this one lease against its own end-date window, so its disposition matches what the desk
     // shows for a linked (actionable) lease without threading the page's batch windows through.

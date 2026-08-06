@@ -80,20 +80,21 @@ interface ClientOverrides {
 }
 
 function fakeClient(overrides: ClientOverrides = {}) {
-  const listLeasesExport = vi.fn(
-    async () =>
-      overrides.exportRows ?? [
-        {
-          lease: {
-            leaseID: 42,
-            endDate: "2026-09-30",
-            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
-          },
-          unit: { rent: 1400 },
-          property: { streetName: "200 Cedar Ct" },
+  const listAllLeasesExport = vi.fn(async () => ({
+    rows: overrides.exportRows ?? [
+      {
+        lease: {
+          leaseID: 42,
+          endDate: "2026-09-30",
+          tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
         },
-      ],
-  );
+        unit: { rent: 1400 },
+        property: { streetName: "200 Cedar Ct" },
+      },
+    ],
+    pages: 1,
+    complete: true,
+  }));
   const getLease = vi.fn(async () => overrides.lease ?? { leaseID: 42, propertyID: 7 });
   const getProperty = vi.fn(
     async () => overrides.property ?? { propertyID: 7, portfolioID: 9 },
@@ -111,13 +112,20 @@ function fakeClient(overrides: ClientOverrides = {}) {
     async () => overrides.contact ?? { email: "owner42@cedar-holdings.com" },
   );
   const client = {
-    listLeasesExport,
+    listAllLeasesExport,
     getLease,
     getProperty,
     getPortfolio,
     getContact,
   };
-  return { client, listLeasesExport, getLease, getProperty, getPortfolio, getContact };
+  return {
+    client,
+    listAllLeasesExport,
+    getLease,
+    getProperty,
+    getPortfolio,
+    getContact,
+  };
 }
 
 function useClient(client: unknown) {

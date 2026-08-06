@@ -308,6 +308,8 @@ export interface DeskLeaseSummary {
 export interface RenewalDeskView {
   windows: DateWindow[];
   cohort: RenewalCohort;
+  /** S57: whether the underlying lease read returned the whole portfolio (samples always do). */
+  readComplete: boolean;
   actionable: DeskLeaseSummary[];
   review: DeskLeaseSummary[];
   skipped: DeskLeaseSummary[];
@@ -373,6 +375,7 @@ export function getRenewalDeskView(): RenewalDeskView {
   return {
     windows: SAMPLE_DESK_WINDOWS,
     cohort,
+    readComplete: true,
     actionable: summaries.filter((s) => s.disposition === "actionable"),
     review: summaries.filter((s) => s.disposition === "review"),
     skipped: summaries.filter((s) => s.disposition === "skip"),

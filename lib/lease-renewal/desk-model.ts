@@ -77,6 +77,12 @@ export interface DeskLeaseSummary {
 export interface RenewalDeskView {
   windows: DateWindow[];
   cohort: RenewalCohort;
+  /**
+   * S57: whether the underlying paged RentVine export read returned the whole portfolio. When false
+   * the desk renders an explicit incomplete-read notice and labels its counts as partial — a partial
+   * read is never presented as the portfolio.
+   */
+  readComplete: boolean;
   actionable: DeskLeaseSummary[];
   review: DeskLeaseSummary[];
   skipped: DeskLeaseSummary[];

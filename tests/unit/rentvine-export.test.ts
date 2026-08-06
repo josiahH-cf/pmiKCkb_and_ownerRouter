@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  LEASE_EXPORT_PAGE_SIZE,
   RentVineClient,
+  type RentVineHttpRequest,
   type RentVineHttpResponse,
   type RentVineHttpTransport,
 } from "@/lib/integrations/rentvine/client";
@@ -114,6 +116,128 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     // The one good row survives; the bad elements are dropped, not fatal.
     expect(views).toHaveLength(1);
     expect(views[0].leaseID).toBe(1);
+  });
+});
+
+// S57: a paging stub keyed on the request's page/pageSize params. Returns whatever rows the
+// per-page factory produces, so tests can simulate full pages forever, overlapping pages, and
+// short final pages.
+function pagingClient(
+  rowsForPage: (page: number, pageSize: number) => Record<string, unknown>[],
+): { client: RentVineClient; requests: URL[] } {
+  const requests: URL[] = [];
+  const transport: RentVineHttpTransport = {
+    async send(request: RentVineHttpRequest): Promise<RentVineHttpResponse> {
+      const url = new URL(request.url);
+      requests.push(url);
+      const page = Number(url.searchParams.get("page") ?? 1);
+      const pageSize = Number(url.searchParams.get("pageSize") ?? 25);
+      const bodyText = JSON.stringify(rowsForPage(page, pageSize));
+      return {
+        status: 200,
+        headers: {},
+        text: async () => bodyText,
+        json: async () => JSON.parse(bodyText) as unknown,
+      };
+    },
+  };
+  return {
+    client: new RentVineClient(
+      { baseUrl: BASE_URL, apiKey: "demo-key", apiSecret: "demo-secret" },
+      transport,
+    ),
+    requests,
+  };
+}
+
+function exportRow(id: number): Record<string, unknown> {
+  return { lease: { leaseID: id } };
+}
+
+describe("listAllLeasesExport (S57 complete paged read)", () => {
+  it("pages with an explicit pageSize until a short page and reports complete:true", async () => {
+    // 7 distinct rows served 3 per page: pages 1-2 full, page 3 short (1 row) ends the read.
+    const { client, requests } = pagingClient((page, pageSize) => {
+      const start = (page - 1) * pageSize;
+      return Array.from({ length: Math.max(0, Math.min(pageSize, 7 - start)) }, (_, i) =>
+        exportRow(start + i + 1),
+      );
+    });
+    const result = await client.listAllLeasesExport({ pageSize: 3 });
+    expect(result.complete).toBe(true);
+    expect(result.pages).toBe(3);
+    expect(result.rows).toHaveLength(7);
+    // Every request carried the explicit paging params (never the bare default page).
+    for (const url of requests) {
+      expect(url.searchParams.get("pageSize")).toBe("3");
+      expect(url.searchParams.get("page")).toBeTruthy();
+    }
+  });
+
+  it("uses the default portfolio-scale pageSize when none is given", async () => {
+    const { client, requests } = pagingClient(() => [exportRow(1)]);
+    const result = await client.listAllLeasesExport();
+    expect(result.complete).toBe(true);
+    expect(requests[0].searchParams.get("pageSize")).toBe(String(LEASE_EXPORT_PAGE_SIZE));
+  });
+
+  // AC-S57-3: a transport returning exactly pageSize rows on every page never ends on a short
+  // page; the reader stops at the page cap and NEVER reports a short set as complete.
+  it("stops at the page cap with complete:false when every page comes back full", async () => {
+    const { client } = pagingClient((page, pageSize) =>
+      Array.from({ length: pageSize }, (_, i) =>
+        exportRow((page - 1) * pageSize + i + 1),
+      ),
+    );
+    const result = await client.listAllLeasesExport({ pageSize: 5, maxPages: 4 });
+    expect(result.complete).toBe(false);
+    expect(result.pages).toBe(4);
+    expect(result.rows).toHaveLength(20);
+  });
+
+  // AC-S57-4: page/pageSize interaction is observed behavior, not contract — overlapping pages
+  // must not produce duplicate lease ids.
+  it("deduplicates overlapping pages by lease id", async () => {
+    // Page 1: ids 1..5. Page 2: ids 4..8 (overlap of 2). Page 3: short → complete.
+    const { client } = pagingClient((page) => {
+      if (page === 1) return [1, 2, 3, 4, 5].map(exportRow);
+      if (page === 2) return [4, 5, 6, 7, 8].map(exportRow);
+      return [];
+    });
+    const result = await client.listAllLeasesExport({ pageSize: 5 });
+    expect(result.complete).toBe(true);
+    const ids = result.rows.map((row) => (row.lease as { leaseID: number }).leaseID);
+    expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it("keeps id-less rows instead of collapsing them into one another", async () => {
+    const { client } = pagingClient((page) =>
+      page === 1 ? [{ lease: {} }, { lease: {} }, exportRow(1)] : [],
+    );
+    const result = await client.listAllLeasesExport({ pageSize: 3 });
+    expect(result.rows).toHaveLength(3);
+  });
+
+  it("refuses a non-positive pageSize or maxPages", async () => {
+    const { client } = pagingClient(() => []);
+    await expect(client.listAllLeasesExport({ pageSize: 0 })).rejects.toThrow(
+      /positive integer pageSize/,
+    );
+    await expect(client.listAllLeasesExport({ maxPages: 0 })).rejects.toThrow(
+      /positive integer maxPages/,
+    );
+  });
+
+  it("forwards extra params while owning page and pageSize", async () => {
+    const { client, requests } = pagingClient(() => [exportRow(1)]);
+    await client.listAllLeasesExport({
+      pageSize: 3,
+      params: { status: "active", pageSize: 999_999, page: 42 },
+    });
+    // The pager's own paging values win over params trying to override them.
+    expect(requests[0].searchParams.get("pageSize")).toBe("3");
+    expect(requests[0].searchParams.get("page")).toBe("1");
+    expect(requests[0].searchParams.get("status")).toBe("active");
   });
 });
 

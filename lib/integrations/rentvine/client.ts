@@ -198,6 +198,45 @@ export interface RentVineProbeResult {
   error?: string;
 }
 
+// S57: /leases/export is page-limited. Measured live 2026-08-06: no params returns 25 rows,
+// `pageSize` is the honoured parameter (500/1000/2000 all return the full 305), `limit` is accepted
+// and silently ignored. A complete read must therefore page explicitly.
+export const LEASE_EXPORT_PAGE_SIZE = 500;
+// Hard cap on pages per complete read (default 20 → 10,000 leases at the default page size). Reaching
+// it reports `complete:false` rather than returning a short set as if it were whole.
+export const LEASE_EXPORT_MAX_PAGES = 20;
+
+/** The result of a paged, deduplicated /leases/export read. */
+export interface LeaseExportReadResult {
+  rows: Record<string, unknown>[];
+  /** Pages actually fetched. */
+  pages: number;
+  /** False when the page cap was reached before a short page — the set may be incomplete. */
+  complete: boolean;
+}
+
+export interface ListAllLeasesExportOptions {
+  pageSize?: number;
+  maxPages?: number;
+  /** Extra export query params (e.g. a lease-end window). `page`/`pageSize` are reserved. */
+  params?: Record<string, string | number>;
+}
+
+/** Dedupe key for an export row: the lease id off the `lease` append (or the row itself). */
+export function leaseExportRowId(row: Record<string, unknown>): string | null {
+  const lease =
+    row.lease && typeof row.lease === "object" && !Array.isArray(row.lease)
+      ? (row.lease as Record<string, unknown>)
+      : row;
+  for (const key of ["leaseID", "leaseId", "id"]) {
+    const value = lease[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
+
 export class RentVineClient {
   private readonly base: URL;
   private readonly authHeader: string;
@@ -322,6 +361,52 @@ export class RentVineClient {
       return (body as Record<string, unknown>).leases as Record<string, unknown>[];
     }
     throw new RentVineError("Unexpected Rentvine lease-export response shape.", 0);
+  }
+
+  /**
+   * Read the COMPLETE lease export (read-only), paging with an explicit `pageSize` until a page
+   * returns fewer rows than requested. `page`/`pageSize` interaction is observed provider behavior
+   * rather than documented contract, so rows are deduplicated by lease id across pages (id-less rows
+   * are kept). Reaching `maxPages` while pages are still full reports `complete:false` — a short set
+   * is never returned as if it were whole.
+   */
+  async listAllLeasesExport(
+    options: ListAllLeasesExportOptions = {},
+  ): Promise<LeaseExportReadResult> {
+    const pageSize = options.pageSize ?? LEASE_EXPORT_PAGE_SIZE;
+    const maxPages = options.maxPages ?? LEASE_EXPORT_MAX_PAGES;
+    if (!Number.isInteger(pageSize) || pageSize < 1) {
+      throw new Error("listAllLeasesExport requires a positive integer pageSize.");
+    }
+    if (!Number.isInteger(maxPages) || maxPages < 1) {
+      throw new Error("listAllLeasesExport requires a positive integer maxPages.");
+    }
+
+    const rows: Record<string, unknown>[] = [];
+    const seenIds = new Set<string>();
+    let pages = 0;
+    let complete = false;
+    for (let page = 1; page <= maxPages; page += 1) {
+      const pageRows = await this.listLeasesExport({
+        ...(options.params ?? {}),
+        pageSize,
+        page,
+      });
+      pages += 1;
+      for (const row of pageRows) {
+        const id = leaseExportRowId(row);
+        if (id !== null) {
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+        }
+        rows.push(row);
+      }
+      if (pageRows.length < pageSize) {
+        complete = true;
+        break;
+      }
+    }
+    return { rows, pages, complete };
   }
 
   /**

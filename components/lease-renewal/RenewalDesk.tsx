@@ -48,9 +48,26 @@ export function RenewalDesk({
             ) : null}
           </>
         }
-        subtitle={`${summary.total} leases in your current renewal window`}
+        subtitle={
+          view.readComplete
+            ? `${summary.total} leases in your current renewal window`
+            : `${summary.total} leases loaded so far (partial read)`
+        }
         title="Renewals"
       />
+
+      {view.readComplete ? null : (
+        <Card>
+          <div role="status">
+            <h2 className="ui-card-title">Live read incomplete</h2>
+            <p className="muted">
+              The lease read stopped before it reached the whole portfolio, so this page
+              shows a partial list. Some leases are missing. Reload to read again, and if
+              this notice stays, check the RentVine connection.
+            </p>
+          </div>
+        </Card>
+      )}
 
       {attention.length > 0 ? (
         <section aria-label="Needs your attention" className="ui-stack">
@@ -104,7 +121,8 @@ export function RenewalDesk({
 
       <Disclosure summary="Data diagnostics">
         <p className="muted">
-          Live RentVine and Sheet read. {summary.total} leases classified.
+          Live RentVine and Sheet read. {summary.total} leases classified
+          {view.readComplete ? "" : " from an incomplete read"}.
         </p>
         <p>
           <Link className="text-link" href="/processes/lease-renewal">

@@ -329,9 +329,10 @@ Acceptance:
 
 Status: in progress — the owner authorized this program on 2026-08-06 after the 2026-08-05 client
 call, scoped to the four-lease test set, RentCast integration and validation, owner and tenant
-recipient handling, and owner-policy rules. Specs S57–S63 are written and registered; no
-implementation slice has started. S64 is specified and deliberately unauthorized. S65 is authorized
-separately and narrowly.
+recipient handling, and owner-policy rules. Specs S57–S63 are written and registered. **S57 is done**
+(`F-PORTFOLIO-COMPLETE-READS`, 2026-08-06): the desk reads the whole 305-lease portfolio, truncation
+is visible rather than silent, and the paging sentinel is falsification-proven. Next slice: S58. S64
+is specified and deliberately unauthorized. S65 is authorized separately and narrowly.
 
 Program:
 
@@ -341,7 +342,7 @@ Program:
   activation, S60 comp persistence and the under-market signal, S61 recipient fan-out and channel
   separation, S62 owner-policy renewal pricing, S63 the four-lease test set.
 - Before any slice: the client correction note at `docs/temp/client-correction-note-2026-08-06.md`
-  is drafted and awaits owner review and send. The owner directed it be done first.
+  was drafted first as directed, then reviewed and SENT by the owner on 2026-08-06. Do not re-send.
 - Order: S57 first, because RentVine's `/leases/export` is page-limited and the desk has been reading
   25 of 305 leases, with none of the four test leases inside that page. Then S58, then S59, then S60, then S61,
   then S62, then S63 as the proof. S65 may interleave.

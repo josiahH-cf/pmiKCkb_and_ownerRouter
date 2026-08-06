@@ -26,8 +26,8 @@ const EXPORT_ROWS = [
 
 function fakeClient(rows: Record<string, unknown>[]) {
   return {
-    async listLeasesExport(): Promise<Record<string, unknown>[]> {
-      return rows;
+    async listAllLeasesExport() {
+      return { rows, pages: 1, complete: true };
     },
   };
 }

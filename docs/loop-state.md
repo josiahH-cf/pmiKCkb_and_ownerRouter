@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: NOT_STARTED
-next_suite: S57
-next_spec: docs/feature-suites/portfolio-complete-lease-reads.md
+implementation_status: S57_DONE
+next_suite: S58
+next_spec: docs/feature-suites/live-lease-data-currency.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
-active_slice: NONE_NOT_STARTED
-next_slice: S57_PORTFOLIO_COMPLETE_LEASE_READS
-last_completed_slice: S55_STAGE_TWO_OLD_SERVICE_RETIRED
+active_slice: NONE_BETWEEN_SLICES
+next_slice: S58_LIVE_LEASE_DATA_CURRENCY
+last_completed_slice: S57_PORTFOLIO_COMPLETE_LEASE_READS
 runtime_action_gates_preflipped: false
 ```
 
@@ -49,10 +49,10 @@ the default page**, so no later slice is reachable until this lands.
 - RentVine field map re-derived live; zero drift against the 2026-07-22 map. Tenant email
   `tenants[].email`, owner email `portfolio.owners[].email`, lease end `endDate`, rent `currentRent`.
 - Live Sheet read green: 27 tabs, 26 in scope, `Lease Renewal` 520 rows.
-- Fresh golden capture `capture-2026-08-06T12-08-22-192Z` written gitignored. **Re-run after S57** —
-  it captured the 25-row default page.
-- All prior live-read coverage figures in this repo were measured on leases 1–25 and are
-  unrepresentative rather than wrong.
+- Golden capture RE-RUN after S57 (`capture-2026-08-06T20-35-30-564Z`, gitignored): 305 live
+  candidates, 20 High candidate flags portfolio-wide. The earlier 25-row capture is superseded.
+- Portfolio-wide coverage now measured (S57): tenant email 302/305, owner email 305/305, 146/305
+  leases with more than one owner email. Prior 1–25 figures were unrepresentative rather than wrong.
 
 ## Test cohort (resolved 2026-08-06)
 
@@ -113,13 +113,16 @@ outreach-skip path may be built.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-Start **S57** at `docs/feature-suites/portfolio-complete-lease-reads.md`. Build the paged complete
-read, switch the three no-param callers, make the Console display cap honest, render the
-incomplete-read state, add the paging boundary test, falsify it, then re-run field discovery and `golden:capture` live across the full portfolio
-and record real coverage.
+**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, AC-S57-1..10): complete paged read, three callers
+switched, honest Console cap, incomplete-read state, sentinel falsified, field discovery + golden
+capture re-run portfolio-wide (305/305 complete; tenant email 302/305, owner email 305/305, 146/305
+multi-owner-email; capture 305 candidates, 20 High flags). Known-red carried forward:
+`test:e2e:core` fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`),
+identical on a clean-HEAD baseline; not S57 fallout and not this program's work.
 
-Then S58 → S59 → S60 → S61 → S62 → S63. S65 may interleave whenever no slice is mid-flight. Do not
-start S64.
+Start **S58** at `docs/feature-suites/live-lease-data-currency.md` (max lease-data age 15 minutes is
+decided policy, `Q-LEASE-DATA-MAX-AGE`). Then S59 → S60 → S61 → S62 → S63. S65 may interleave
+whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at
 `docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four

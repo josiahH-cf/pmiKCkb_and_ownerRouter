@@ -43,6 +43,23 @@ describe("RenewalDesk", () => {
     expect(screen.getByText("Needs review (1)")).toBeInTheDocument();
     expect(screen.getByText("Out of window (1)")).toBeInTheDocument();
     expect(screen.getByText("Data diagnostics")).toBeInTheDocument();
+
+    // A complete read renders as a normal desk: no incomplete-read notice, no partial labels.
+    expect(screen.queryByText("Live read incomplete")).not.toBeInTheDocument();
+    expect(screen.queryByText(/partial read/)).not.toBeInTheDocument();
+  });
+
+  // AC-S57-5: a partial read never renders as a normal desk — the incomplete-read notice is
+  // visible and the lease count is labeled as partial.
+  it("renders a visible incomplete-read notice and labels the count partial when the read is incomplete", () => {
+    const view = { ...getRenewalDeskView(), readComplete: false };
+    render(<RenewalDesk view={view} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Live read incomplete");
+    expect(screen.getByText(/leases loaded so far \(partial read\)/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/leases in your current renewal window/),
+    ).not.toBeInTheDocument();
   });
 });
 

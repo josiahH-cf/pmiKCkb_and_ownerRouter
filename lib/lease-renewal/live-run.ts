@@ -34,13 +34,16 @@ import {
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 
 export interface LiveRenewalRunOptions {
-  /** Only the read-only export read is used — a fake satisfies this in tests. */
-  rentvineClient: Pick<RentVineClient, "listLeasesExport">;
+  /** Only the read-only COMPLETE export read is used — a fake satisfies this in tests. */
+  rentvineClient: Pick<RentVineClient, "listAllLeasesExport">;
   runId: string;
   /** Read timestamp captured at read time; accepted as INPUT, never Date.now(). */
   readTimestamp: string;
   fieldMap?: RentVineLeaseFieldMap;
-  /** Optional Rentvine export query params (e.g. a lease-end window). */
+  /**
+   * Optional extra Rentvine export query params (e.g. a lease-end window), forwarded to the paged
+   * complete read. `page`/`pageSize` are owned by the pager (S57) and cannot be set here.
+   */
   listParams?: Record<string, string | number>;
   /**
    * When set, classify the live leases into the active renewal cohort and reconcile ONLY the
@@ -68,19 +71,24 @@ export interface LiveRenewalRunResult {
   pipelineInput: RenewalRunInput;
   liveRentvineCandidates: number;
   skippedLeases: number;
+  /** S57: whether the paged export read returned the whole portfolio (false at the page cap). */
+  exportComplete: boolean;
   /** Present only when `cohortWindows` was supplied — the actionable/skip/review breakdown. */
   cohort?: RenewalCohort;
 }
 
 /**
  * Run the Phase-1 review over a live Rentvine read (read-only). Returns the pipeline result plus the
- * count of live candidates and skipped leases. Makes exactly one Rentvine read; no writes.
+ * count of live candidates and skipped leases. Makes exactly one COMPLETE paged export read (S57);
+ * no writes.
  */
 export async function runLiveRenewalReview(
   options: LiveRenewalRunOptions,
 ): Promise<LiveRenewalRunResult> {
-  const rows = await options.rentvineClient.listLeasesExport(options.listParams);
-  const views = leaseViewsFromExport(rows);
+  const exportRead = await options.rentvineClient.listAllLeasesExport(
+    options.listParams ? { params: options.listParams } : {},
+  );
+  const views = leaseViewsFromExport(exportRead.rows);
 
   let viewsToMap = views;
   let cohort: RenewalCohort | undefined;
@@ -114,6 +122,7 @@ export async function runLiveRenewalReview(
     pipelineInput,
     liveRentvineCandidates: mapping.candidates.length,
     skippedLeases: mapping.skipped,
+    exportComplete: exportRead.complete,
     ...(cohort ? { cohort } : {}),
   };
 }

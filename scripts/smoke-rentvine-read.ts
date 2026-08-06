@@ -94,7 +94,10 @@ async function main(): Promise<void> {
   const apiKey = readEnv("RENTVINE_API_KEY");
   const apiSecret = readEnv("RENTVINE_API_SECRET");
   const live = hasArg("--live");
-  const limit = Number(readArg("--limit") ?? 1);
+  // S57: `--limit` bounds only the locally scanned sample (RentVine ignores a `limit` query param);
+  // omitted, the smoke scans every view from the complete paged read.
+  const limitArg = readArg("--limit");
+  const limit = limitArg === undefined ? undefined : Number(limitArg);
   const timeoutMs = Number(readArg("--timeout-ms") ?? 30_000);
   const artifactDir = resolve(readArg("--artifacts") ?? "temp/rentvine-read-smoke");
 
@@ -120,10 +123,10 @@ async function main(): Promise<void> {
 
   if (!live) {
     console.log(
-      `Rentvine read smoke (DRY). Would GET ${normalizedBase}/leases?limit=${limit} via HTTP Basic as account "${account}".`,
+      `Rentvine read smoke (DRY). Would page GET ${normalizedBase}/leases/export?pageSize=…&page=… via HTTP Basic as account "${account}" until the read is complete.`,
     );
     console.log(
-      "Pass --live to make the single read-only call (free; no GCP budget spend).",
+      "Pass --live to make the read-only paged read (free; no GCP budget spend).",
     );
     return;
   }
@@ -151,8 +154,14 @@ async function main(): Promise<void> {
   let rawRows: Record<string, unknown>[] = [];
   let readError: string | null = null;
   try {
-    rawRows = await client.listLeasesExport({ limit });
-    leases = leaseViewsFromExport(rawRows);
+    // S57: the paged complete read — RentVine ignores `limit`, so the old `{limit}` call silently
+    // read the 25-row default page.
+    rawRows = (await client.listAllLeasesExport()).rows;
+    const views = leaseViewsFromExport(rawRows);
+    leases =
+      limit !== undefined && Number.isFinite(limit) && limit > 0
+        ? views.slice(0, limit)
+        : views;
   } catch (error) {
     readError =
       error instanceof Error ? `${error.name}: ${error.message}` : String(error);

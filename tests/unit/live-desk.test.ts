@@ -83,16 +83,33 @@ function fakeSheetsReader() {
   };
 }
 
+type FakeExportRead = {
+  rows: Record<string, unknown>[];
+  pages: number;
+  complete: boolean;
+};
+
 function okConfig(
-  listLeasesExport: () => Promise<Record<string, unknown>[]> = async () =>
-    EXPORT_ROWS as Record<string, unknown>[],
+  listAllLeasesExport: () => Promise<FakeExportRead> = async () => ({
+    rows: EXPORT_ROWS as Record<string, unknown>[],
+    pages: 1,
+    complete: true,
+  }),
 ) {
   return {
     ok: true as const,
-    rentvineClient: { listLeasesExport },
+    rentvineClient: { listAllLeasesExport },
     sheetsReader: fakeSheetsReader(),
     spreadsheetId: "sheet-id",
   };
+}
+
+function incompleteConfig() {
+  return okConfig(async () => ({
+    rows: EXPORT_ROWS as Record<string, unknown>[],
+    pages: 20,
+    complete: false,
+  }));
 }
 
 type DeskConfigArg = Parameters<typeof loadLiveRenewalDesk>[2];
@@ -169,6 +186,27 @@ describe("loadLiveRenewalDesk", () => {
     );
     expect(result).toEqual({ status: "read_error" });
   });
+
+  // S57: the view carries the export read's completeness so the desk can render a partial read as
+  // an explicit partial, never as the portfolio.
+  it("marks the view readComplete on a complete read and not on a capped one", async () => {
+    const complete = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+    );
+    if (complete.status !== "ok") throw new Error(complete.status);
+    expect(complete.view.readComplete).toBe(true);
+
+    clearLiveLeaseCache();
+    const partial = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      incompleteConfig() as unknown as DeskConfigArg,
+    );
+    if (partial.status !== "ok") throw new Error(partial.status);
+    expect(partial.view.readComplete).toBe(false);
+  });
 });
 
 describe("loadLiveRenewalLeaseWorkspace", () => {
@@ -240,6 +278,26 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
       okConfig() as unknown as WorkspaceConfigArg,
     );
     expect(skipped).toEqual({ status: "not_found" });
+  });
+
+  // S57: an incomplete read cannot prove absence — a miss on a partial portfolio is a read
+  // failure, never a "not found" claim.
+  it("returns read_error, not not_found, when the lease is missing from an incomplete read", async () => {
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "does-not-exist",
+      READ_TS,
+      incompleteConfig() as unknown as WorkspaceConfigArg,
+    );
+    expect(result).toEqual({ status: "read_error" });
+
+    clearLiveLeaseCache();
+    // A lease PRESENT in the partial read still resolves — presence needs no completeness proof.
+    const present = await loadLiveRenewalLeaseWorkspace(
+      "5001",
+      READ_TS,
+      incompleteConfig() as unknown as WorkspaceConfigArg,
+    );
+    expect(present.status).toBe("ok");
   });
 
   it("degrades to the config status and to read_error without throwing", async () => {

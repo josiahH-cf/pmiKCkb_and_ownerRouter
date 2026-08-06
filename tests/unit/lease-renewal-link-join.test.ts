@@ -162,17 +162,21 @@ describe("readRenewalSheetGridsWithLinks", () => {
 
 describe("runFullyLiveRenewalReview with linkJoin + cohort forwarding", () => {
   const rentvineClient = {
-    async listLeasesExport() {
-      return [
-        {
-          lease: { leaseID: 5, endDate: "2026-08-31", tenants: [{ name: "Guy" }] },
-          unit: { rent: "1100" },
-        },
-        {
-          lease: { leaseID: 9, endDate: "2026-12-31", tenants: [{ name: "Out" }] },
-          unit: { rent: "1000" },
-        },
-      ];
+    async listAllLeasesExport() {
+      return {
+        rows: [
+          {
+            lease: { leaseID: 5, endDate: "2026-08-31", tenants: [{ name: "Guy" }] },
+            unit: { rent: "1100" },
+          },
+          {
+            lease: { leaseID: 9, endDate: "2026-12-31", tenants: [{ name: "Out" }] },
+            unit: { rent: "1000" },
+          },
+        ],
+        pages: 1,
+        complete: true,
+      };
     },
   };
 

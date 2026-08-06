@@ -76,13 +76,17 @@ describe("loadLiveRenewalNotices", () => {
     const fakeConfig = {
       ok: true as const,
       rentvineClient: {
-        listLeasesExport: async () => rows as Record<string, unknown>[],
+        listAllLeasesExport: async () => ({
+          rows: rows as Record<string, unknown>[],
+          pages: 1,
+          complete: true,
+        }),
       },
     };
     const result = await loadLiveRenewalNotices(
       WINDOWS,
       READ_TS,
-      // Only listLeasesExport is used by the loader.
+      // Only the complete export read is used by the loader.
       fakeConfig as unknown as Parameters<typeof loadLiveRenewalNotices>[2],
     );
     expect(result.status).toBe("ok");
@@ -95,7 +99,7 @@ describe("loadLiveRenewalNotices", () => {
     const fakeConfig = {
       ok: true as const,
       rentvineClient: {
-        listLeasesExport: async () => {
+        listAllLeasesExport: async () => {
           throw new Error("boom");
         },
       },

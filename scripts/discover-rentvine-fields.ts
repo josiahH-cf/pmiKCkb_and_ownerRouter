@@ -12,7 +12,11 @@
 //
 //   npm run discover:rentvine-fields            # dry: prints the calls it would make
 //   npm run discover:rentvine-fields -- --live  # read-only live discovery (free; no GCP budget)
-//   npm run discover:rentvine-fields -- --live --limit 25   # scan all leases for owner-email coverage
+//
+// S57: the live read is the COMPLETE paged export (`listAllLeasesExport`), never the provider's
+// 25-row default page, and the output prints the distinct-lease-id count plus the completeness flag
+// (AC-S57-1) and portfolio-wide email coverage (AC-S57-8). `--page-size` / `--max-pages` override the
+// pager defaults; the old `--limit` flag is gone because RentVine silently ignores `limit`.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -22,6 +26,7 @@ import {
   RentVineClient,
   assertRentVineAccount,
   createFetchTransport,
+  leaseExportRowId,
   rentVineAccountCode,
 } from "../lib/integrations/rentvine/client";
 import {
@@ -181,7 +186,10 @@ async function main(): Promise<void> {
   const apiKey = readEnv("RENTVINE_API_KEY");
   const apiSecret = readEnv("RENTVINE_API_SECRET");
   const live = hasArg("--live");
-  const limit = Number(readArg("--limit") ?? 25);
+  const pageSizeArg = readArg("--page-size");
+  const maxPagesArg = readArg("--max-pages");
+  const pageSize = pageSizeArg === undefined ? undefined : Number(pageSizeArg);
+  const maxPages = maxPagesArg === undefined ? undefined : Number(maxPagesArg);
   const timeoutMs = Number(readArg("--timeout-ms") ?? 30_000);
   const maxDepth = Number(readArg("--depth") ?? 4);
   const artifactDir = resolve(readArg("--artifacts") ?? "temp/rentvine-field-discovery");
@@ -208,10 +216,10 @@ async function main(): Promise<void> {
 
   if (!live) {
     console.log(
-      `RentVine field discovery (DRY). Would GET ${normalizedBase}/leases/export?limit=${limit} via HTTP Basic as account "${account}", then enumerate PATHS + PRESENCE only (no PII).`,
+      `RentVine field discovery (DRY). Would page GET ${normalizedBase}/leases/export?pageSize=…&page=… via HTTP Basic as account "${account}" until the read is complete, then enumerate PATHS + PRESENCE only (no PII).`,
     );
     console.log(
-      "Pass --live to make the single read-only call (free; no GCP budget spend).",
+      "Pass --live to make the read-only paged read (free; no GCP budget spend).",
     );
     return;
   }
@@ -222,9 +230,17 @@ async function main(): Promise<void> {
   );
 
   let rawRows: Record<string, unknown>[] = [];
+  let pagesFetched = 0;
+  let exportComplete = false;
   let readError: string | null = null;
   try {
-    rawRows = await client.listLeasesExport({ limit });
+    const exportRead = await client.listAllLeasesExport({
+      ...(pageSize !== undefined ? { pageSize } : {}),
+      ...(maxPages !== undefined ? { maxPages } : {}),
+    });
+    rawRows = exportRead.rows;
+    pagesFetched = exportRead.pages;
+    exportComplete = exportRead.complete;
   } catch (error) {
     readError =
       error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -294,11 +310,58 @@ async function main(): Promise<void> {
     fieldMap: DEFAULT_RENTVINE_LEASE_FIELD_MAP,
   });
 
+  // S57 / AC-S57-1 + AC-S57-8: distinct-lease-id count over the COMPLETE read, plus any-element
+  // email coverage for lease.tenants[].email and portfolio.owners[].email across the full portfolio
+  // (counts only, never values), including how many leases carry more than one owner email.
+  const distinctLeaseIds = new Set(
+    rawRows.map((row) => leaseExportRowId(row)).filter((id): id is string => id !== null),
+  ).size;
+  const emailCountAt = (
+    row: Record<string, unknown>,
+    container: string,
+    list: string,
+  ) => {
+    const parent = row[container];
+    const items =
+      parent && typeof parent === "object"
+        ? (parent as Record<string, unknown>)[list]
+        : undefined;
+    if (!Array.isArray(items)) return 0;
+    let count = 0;
+    for (const item of items) {
+      const email =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>).email
+          : undefined;
+      if (typeof email === "string" && EMAIL_RE.test(email.trim())) count += 1;
+    }
+    return count;
+  };
+  let tenantEmailLeases = 0;
+  let ownerEmailLeases = 0;
+  let multiOwnerEmailLeases = 0;
+  for (const row of rawRows) {
+    if (emailCountAt(row, "lease", "tenants") > 0) tenantEmailLeases += 1;
+    const ownerEmails = emailCountAt(row, "portfolio", "owners");
+    if (ownerEmails > 0) ownerEmailLeases += 1;
+    if (ownerEmails > 1) multiOwnerEmailLeases += 1;
+  }
+  const portfolioCoverage = {
+    of: rawRows.length,
+    tenantEmailLeases,
+    ownerEmailLeases,
+    multiOwnerEmailLeases,
+  };
+
   const proof = {
     host,
     account,
     mode: "live" as const,
     scannedRows: rawRows.length,
+    distinctLeaseIds,
+    exportComplete,
+    pagesFetched,
+    portfolioCoverage,
     leaseViews: views.length,
     // F-LEASE-3: which source keys resolved rent + lease-end (names only).
     resolvedKeys: mapping.resolvedKeys,
@@ -335,6 +398,12 @@ async function main(): Promise<void> {
 
   console.log(`RentVine field discovery (LIVE) — host ${host}, account ${account}`);
   console.log(`Scanned export rows: ${rawRows.length} (lease views: ${views.length})`);
+  console.log(
+    `Distinct lease ids: ${distinctLeaseIds} (complete=${exportComplete}, pages=${pagesFetched})`,
+  );
+  console.log(
+    `Portfolio email coverage: tenant-email leases ${tenantEmailLeases}/${rawRows.length}; owner-email leases ${ownerEmailLeases}/${rawRows.length}; multi-owner-email leases ${multiOwnerEmailLeases}/${rawRows.length}`,
+  );
   console.log(
     `Resolved rent/date keys (F-LEASE-3): ${JSON.stringify(mapping.resolvedKeys)}`,
   );

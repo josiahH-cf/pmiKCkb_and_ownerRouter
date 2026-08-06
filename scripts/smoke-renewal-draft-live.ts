@@ -76,7 +76,7 @@ export interface RenewalDraftSmokeDependencies {
     baseUrl: string;
     apiKey: string;
     apiSecret: string;
-  }): Pick<RentVineClient, "listLeasesExport">;
+  }): Pick<RentVineClient, "listAllLeasesExport">;
   mintGmailToken(input: {
     subject: string;
     scope: string;
@@ -290,7 +290,9 @@ async function runLive(
     apiKey,
     apiSecret,
   });
-  const rows = await rentvineClient.listLeasesExport();
+  // S57: complete paged read — the bare export call read only the 25-row default page, which would
+  // miss any lease outside it (including the whole test cohort).
+  const rows = (await rentvineClient.listAllLeasesExport()).rows;
   const leases = leaseViewsFromExport(rows).slice(0, Number.isFinite(limit) ? limit : 25);
   dependencies.logger.log(
     `RentVine account ${rentVineAccountCode(baseUrl)}: scanned ${leases.length} lease view(s) for recipient resolution.`,

@@ -240,9 +240,13 @@ describe("effect-capable live smoke runtime suspension", () => {
       const { dependencies, effects } = renewalDependencies({
         assertRuntimeExecutable: assertion,
       });
-      const listLeasesExport = vi.fn(async () => []);
+      const listAllLeasesExport = vi.fn(async () => ({
+        rows: [],
+        pages: 1,
+        complete: true,
+      }));
       effects.createRentVineClient.mockImplementation(() => ({
-        listLeasesExport,
+        listAllLeasesExport,
       }));
       effects.mintGmailToken.mockImplementation(async () => {
         behavior = stoppedBehavior;
@@ -265,7 +269,7 @@ describe("effect-capable live smoke runtime suspension", () => {
       ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
 
       expect(effects.createRentVineClient).toHaveBeenCalledTimes(1);
-      expect(listLeasesExport).toHaveBeenCalledTimes(1);
+      expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
       expect(effects.mintGmailToken).toHaveBeenCalledTimes(1);
       expect(finalExecutor).toHaveBeenCalledTimes(1);
       expect(assertion).toHaveBeenCalledTimes(4);

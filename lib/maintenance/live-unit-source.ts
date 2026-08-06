@@ -1,8 +1,9 @@
 // Server-only: read-only live source of RentVine unit candidates for the maintenance location→unit
-// matcher. Makes ONE RentVine /leases/export read and derives value-free-per-item unit candidates
-// (unit id + composed street label). Read-only — no write, no system-of-record update. Degrades to a
-// discriminated status (never throws to the caller / never leaks the underlying error message) so the
-// route can return a clear panel when RentVine is not connected.
+// matcher. Makes ONE COMPLETE (paged, S57) RentVine /leases/export read and derives
+// value-free-per-item unit candidates (unit id + composed street label) over the full portfolio, with
+// no row cap. Read-only — no write, no system-of-record update. Degrades to a discriminated status
+// (never throws to the caller / never leaks the underlying error message) so the route can return a
+// clear panel when RentVine is not connected.
 
 import {
   buildLiveRentVineConfig,
@@ -35,8 +36,8 @@ export async function loadLiveUnitCandidates(
   if (!config.ok) return { status: config.reason };
 
   try {
-    const rows = await config.rentvineClient.listLeasesExport();
-    const { candidates, skipped } = deriveUnitCandidatesFromExport(rows);
+    const exportRead = await config.rentvineClient.listAllLeasesExport();
+    const { candidates, skipped } = deriveUnitCandidatesFromExport(exportRead.rows);
     return { status: "ok", candidates, skipped };
   } catch (error) {
     if (error instanceof RentVineAuthError) return { status: "auth_error" };

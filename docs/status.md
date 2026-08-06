@@ -11,6 +11,47 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S57 shipped: the desk reads the whole portfolio, and truncation can no longer be silent (2026-08-06)
+
+S57 (`docs/feature-suites/portfolio-complete-lease-reads.md`) is built and locally verified,
+satisfying AC-S57-1 through AC-S57-10; recorded as `F-PORTFOLIO-COMPLETE-READS`.
+
+**What shipped.** `listAllLeasesExport` on the RentVine client pages the export with an explicit
+`pageSize`, dedupes by lease id across pages (page interaction is observed behavior, not contract),
+stops on a short page, and reports `complete:false` at a hard page cap instead of returning a short
+set as if it were whole. The three defective callers all moved to the complete read: the shared live
+lease cache now returns views plus completeness, the Console projection applies its 30-row display
+cap only after a complete read and states "first 30 of 305" in its source health (an incomplete read
+degrades to needs_review), and the maintenance unit matcher receives the full set with no cap. The
+desk renders a visible incomplete-read notice and labels its count partial; a per-lease workspace
+miss on an incomplete read answers `read_error`, never `not_found`, because a partial read cannot
+prove absence. `live-run.ts`'s dormant `listParams` seam now feeds the paged read, so
+`smoke:renewal-review` and `golden:capture` cover the portfolio. The discovery and smoke scripts
+dropped the `limit` parameter RentVine silently ignores.
+
+**The sentinel and its falsification.** `tests/unit/lease-export-paging-boundary.test.ts` forbids the
+raw `listLeasesExport` identifier anywhere under `app/` or `lib/` except the client itself, which is
+stricter than "no bare call" and therefore covers the `limit` trap too. Falsified for real: a bare
+call deliberately reintroduced in `lib/maintenance/live-unit-source.ts` turned the sentinel red
+naming exactly that file; restoring it turned the sentinel green.
+
+**Live evidence, read-only.** Field discovery over the complete read: 305 rows, 305 distinct lease
+ids, `complete=true` in one page; cohort leases 278, 279, 280, and 297 all present. Portfolio-wide
+coverage recorded for the first time: tenant email on 302/305 leases, owner email on 305/305, and
+146/305 leases carry more than one owner email — the real population S61's owner fan-out addresses.
+The golden capture re-run recorded `liveRentvineCandidates: 305` (previously 25) and 20 High
+candidate flags portfolio-wide, a re-baselined number for the labeling round, written gitignored
+with counts-only stdout.
+
+**Gates.** format:check, lint (0 errors), typecheck, the full unit suite (469 files / 4279 tests),
+copy-voice, router-boundary, falsification preflight, context-freshness, spec-traceability, and the
+production build all pass (all run through WSL; `verify.sh` was not used because it begins with
+`npm ci`, which the environment note forbids on this machine). `test:e2e:core` fails 8 demo-mode
+tests — and an identical clean-HEAD baseline run proved all 8 pre-date S57: the S56 fixture-lane
+retirement makes `resolveConsoleDataMode` refuse the e2e server's `demo` descriptor, so Console
+pages 500 in that harness. Recorded as `Q-E2E-DEMO-LANE-RED`; S57's e2e delta is zero and the
+refusal itself is correct S56 behavior.
+
 ## Renewal proof program opened; the desk was reading 25 of 305 leases (2026-08-06)
 
 The 2026-08-05 client call plus a prepared agenda were analysed against the code, and the owner

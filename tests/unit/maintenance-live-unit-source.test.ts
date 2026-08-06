@@ -5,12 +5,14 @@ import { RentVineAuthError } from "@/lib/integrations/rentvine/client";
 import { loadLiveUnitCandidates } from "@/lib/maintenance/live-unit-source";
 
 function clientReturning(rows: Record<string, unknown>[]): RentVineClient {
-  return { listLeasesExport: async () => rows } as unknown as RentVineClient;
+  return {
+    listAllLeasesExport: async () => ({ rows, pages: 1, complete: true }),
+  } as unknown as RentVineClient;
 }
 
 function clientThrowing(error: unknown): RentVineClient {
   return {
-    listLeasesExport: async () => {
+    listAllLeasesExport: async () => {
       throw error;
     },
   } as unknown as RentVineClient;
@@ -59,6 +61,25 @@ describe("loadLiveUnitCandidates", () => {
       expect(outcome.candidates).toEqual([
         { unitId: "unit:456", label: "123 Main Street" },
       ]);
+    }
+  });
+
+  // AC-S57-10: the matcher receives the COMPLETE lease set with no row cap.
+  it("derives a candidate per unit across the full portfolio with no row cap", async () => {
+    const rows = Array.from({ length: 305 }, (_, i) => ({
+      unit: {
+        unitID: String(i + 1),
+        streetNumber: String(i + 1),
+        streetName: "Main Street",
+      },
+    }));
+    const outcome = await loadLiveUnitCandidates({
+      ok: true,
+      rentvineClient: clientReturning(rows),
+    });
+    expect(outcome.status).toBe("ok");
+    if (outcome.status === "ok") {
+      expect(outcome.candidates).toHaveLength(305);
     }
   });
 

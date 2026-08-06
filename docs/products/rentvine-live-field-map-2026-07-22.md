@@ -17,6 +17,13 @@
 >
 > The field **paths** on this page were re-derived live on 2026-08-06 with **zero drift**. They are
 > current. Only the coverage denominators and the D10 resolver note were wrong.
+>
+> **Portfolio-wide coverage, measured 2026-08-06 after S57's complete paged read** (305 rows, 305
+> distinct lease ids, `complete=true`, AC-S57-8): tenant email present on **302/305** leases
+> (`lease.tenants[].email`, any element; `tenants[0].email` alone covers 301); owner email present on
+> **305/305** leases (`portfolio.owners[].email`, any element; `owners[0].email` alone covers 303);
+> **146/305** leases carry **more than one** owner email, which is the population S61's owner fan-out
+> addresses. The 25/25 figures in the table below are retained as the historical default-page sample.
 
 Read-only live discovery against `pmikcmetro.rentvine.com` `GET /leases/export` (25 rows), via
 `npm run discover:rentvine-fields -- --live --limit 25` (`scripts/discover-rentvine-fields.ts`).
@@ -67,5 +74,7 @@ RentVine renewal-write endpoint (path, method, payload, idempotency + rollback s
 
 ## Re-verify
 
-`npm run discover:rentvine-fields -- --live --limit 25` (free; read-only; no GCP budget). Needs a fresh
-ADC/RentVine session (`npm run auth:session`) and `.env.local` RentVine creds.
+`npm run discover:rentvine-fields -- --live` (free; read-only; no GCP budget). Since S57 this reads
+the complete paged export and prints the distinct-lease-id count plus the completeness flag; the old
+`--limit` flag is gone because RentVine silently ignores `limit`. Needs a fresh ADC/RentVine session
+(`npm run auth:session`) and `.env.local` RentVine creds.

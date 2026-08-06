@@ -8,12 +8,16 @@ import type {
   ConsoleSourceHealth,
 } from "@/lib/console/live-data";
 
+// S57: the Console is a summary surface, so a display cap is kept — but it is applied AFTER a
+// COMPLETE paged read, and the projection says it is showing a capped subset of a stated total.
+// A cap that hides its own existence is the silent-truncation defect in miniature.
 const MAX_ROWS = 30;
 const CACHE_MS = 5 * 60 * 1_000;
 
 interface CachedRows {
   expiresAt: number;
   rows: ConsoleOperationalRow[];
+  sourceHealth: ConsoleSourceHealth[];
 }
 
 let cache: CachedRows | null = null;
@@ -24,7 +28,7 @@ export function resetRentvineConsoleCacheForTests() {
 
 export function createRentvineConsoleProvider(
   options: {
-    client?: Pick<RentVineClient, "listLeasesExport">;
+    client?: Pick<RentVineClient, "listAllLeasesExport">;
     now?: () => Date;
   } = {},
 ): ConsoleDataProvider {
@@ -43,19 +47,25 @@ export function createRentvineConsoleProvider(
       }
 
       if (!options.client && cache && cache.expiresAt > now().getTime()) {
-        return { rows: cache.rows, sourceHealth: healthySourceState() };
+        return { rows: cache.rows, sourceHealth: cache.sourceHealth };
       }
 
       try {
-        const rawRows = await client.listLeasesExport();
-        const rows = rawRows
+        const exportRead = await client.listAllLeasesExport();
+        const totalLeases = exportRead.rows.length;
+        const rows = exportRead.rows
           .slice(0, MAX_ROWS)
           .map((row) => toConsoleRow(row, observedAt))
           .filter((row): row is ConsoleOperationalRow => row !== null);
+        const sourceHealth = healthySourceState(
+          rows.length,
+          totalLeases,
+          exportRead.complete,
+        );
         if (!options.client) {
-          cache = { expiresAt: now().getTime() + CACHE_MS, rows };
+          cache = { expiresAt: now().getTime() + CACHE_MS, rows, sourceHealth };
         }
-        return { rows, sourceHealth: healthySourceState() };
+        return { rows, sourceHealth };
       } catch {
         return {
           rows: [],
@@ -222,13 +232,29 @@ function field<T>(
   };
 }
 
-function healthySourceState(): ConsoleSourceHealth[] {
+function healthySourceState(
+  shownRows: number,
+  totalLeases: number,
+  complete: boolean,
+): ConsoleSourceHealth[] {
+  // The stated total is honest either way: a complete read states the portfolio size the cap was
+  // applied to; an incomplete read says the total itself is partial and degrades the health state.
+  const rentvineHealth: ConsoleSourceHealth = complete
+    ? {
+        guidance:
+          totalLeases > shownRows
+            ? `Live lease facts loaded from the configured Rentvine account. Showing the first ${shownRows} of ${totalLeases} leases; open the workflow for the full list.`
+            : "Live lease facts loaded from the configured Rentvine account.",
+        source: "Rentvine",
+        state: "fresh",
+      }
+    : {
+        guidance: `The Rentvine lease read stopped early, so this is a partial view (${shownRows} of at least ${totalLeases} leases). Reload to read again.`,
+        source: "Rentvine",
+        state: "needs_review",
+      };
   return [
-    {
-      guidance: "Live lease facts loaded from the configured Rentvine account.",
-      source: "Rentvine",
-      state: "fresh",
-    },
+    rentvineHealth,
     {
       guidance: "Open the workflow to review current app state and actions.",
       source: "PMI KC workflow",
