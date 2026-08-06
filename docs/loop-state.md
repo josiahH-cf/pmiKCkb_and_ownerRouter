@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_DONE
-next_suite: S58
-next_spec: docs/feature-suites/live-lease-data-currency.md
+implementation_status: S57_S58_DONE
+next_suite: S59
+next_spec: docs/feature-suites/rentcast-live-activation.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S58_LIVE_LEASE_DATA_CURRENCY
-last_completed_slice: S57_PORTFOLIO_COMPLETE_LEASE_READS
+next_slice: S59_RENTCAST_LIVE_ACTIVATION
+last_completed_slice: S58_LIVE_LEASE_DATA_CURRENCY
 runtime_action_gates_preflipped: false
 ```
 
@@ -37,12 +37,11 @@ runtime_action_gates_preflipped: false
   S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
 - Activation remains per exact Action Registry key, never by category or inference.
 
-## Why S57 is first
+## Why S57 was first (RESOLVED by `F-PORTFOLIO-COMPLETE-READS`)
 
-A live read-only probe on 2026-08-06 found RentVine's `/leases/export` is page-limited and every
-production caller passes no page parameter. The desk has been reading **25 of 305 leases**. `pageSize`
-is the honoured parameter; `limit` is accepted and ignored. **None of the four test leases is inside
-the default page**, so no later slice is reachable until this lands.
+RentVine's `/leases/export` is page-limited (`pageSize` honoured, `limit` silently ignored) and the
+desk read 25 of 305 leases with no test lease in the page. S57 fixed it; the paging sentinel keeps
+it fixed.
 
 ## Hard refresh completed 2026-08-06
 
@@ -63,24 +62,15 @@ finding number one. Leases 279 and 280 share one street address, so records key 
 
 ## Owner values — ALL ANSWERED 2026-08-06
 
-Every value the program needs is decided. Read the `Q-` rows in `docs/facts.md` for the exact wording;
-none of these is a judgement call any more.
-
-- Tolerance: plus-or-minus 5 percent or 50 dollars, whichever is larger.
-- Comparison basis: the Sheet's own Market Value column, all four leases (`F-TESTSET-COMPARISON-BASIS`).
-- Daily owner: Bailey, escalating to Josiah.
-- Owner ordering: the portfolio's own owner order, first to `to`, rest to `cc`.
-- Channel separation assertion: build it, refuse on violation.
-- Trend presentation: rendered range inline plus a source link. No attachment.
-- Under-market threshold: 10 percent below the provider point estimate.
-- Max lease-data age: 15 minutes.
-- RentCast terms: caching, storage, and owner-facing display are expressly permitted.
-- Test-window sends: compose-and-review only.
-- Sheet write-back backup: a Drive copy pinned to a named revision, owner-verified first.
-- Cohort data split, evidence in-app, MKD cohort membership: all settled.
-
-One residual, non-blocking: what the client's "50/50" referred to, given MKD carries three owner
-records and no ownership percentages. It blocks nothing, because the rule keys on `portfolioID` 27.
+Every value the program needs is decided; none is a judgement call. The full table is §6 of
+`docs/meta-prompts/renewal-proof-unattended-loop.md` and the exact wording is in the `Q-` rows of
+`docs/facts.md`: tolerance ±5% or $50 (larger); comparison basis = the Sheet's Market Value column;
+daily owner Bailey → Josiah; owner ordering = portfolio order, first `to`, rest `cc`; separation
+assertion built + refuses; trend inline + link; under-market 10%; max lease-data age 15 minutes;
+RentCast caching/storage/display permitted; test-window sends compose-and-review only; write-back
+backup = owner-verified pinned Drive copy; cohort data split settled. One residual, non-blocking:
+what the client's "50/50" meant (MKD has three owner records, no percentages); the S62 rule keys on
+`portfolioID` 27 and does not need it.
 
 ## Resolved 2026-08-06 (do not re-ask)
 
@@ -113,15 +103,21 @@ outreach-skip path may be built.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, AC-S57-1..10): complete paged read, three callers
-switched, honest Console cap, incomplete-read state, sentinel falsified, field discovery + golden
-capture re-run portfolio-wide (305/305 complete; tenant email 302/305, owner email 305/305, 146/305
-multi-owner-email; capture 305 candidates, 20 High flags). Known-red carried forward:
-`test:e2e:core` fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`),
-identical on a clean-HEAD baseline; not S57 fallout and not this program's work.
+**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, AC-S57-1..10, commit `fb57e0b`): complete paged
+read, three callers switched, honest Console cap, incomplete-read state, sentinel falsified, field
+discovery + golden capture re-run portfolio-wide (305/305 complete; tenant email 302/305, owner
+email 305/305, 146/305 multi-owner-email; capture 305 candidates, 20 High flags).
 
-Start **S58** at `docs/feature-suites/live-lease-data-currency.md` (max lease-data age 15 minutes is
-decided policy, `Q-LEASE-DATA-MAX-AGE`). Then S59 → S60 → S61 → S62 → S63. S65 may interleave
+**S58 is DONE** (`F-LEASE-DATA-CURRENCY`, AC-S58-1..10): three-age contract (60s soft TTL / 15-min
+hard max per `Q-LEASE-DATA-MAX-AGE`), SWR revalidation with backoff, expired refuses compose/record
+(409) while browsing stays open, four desk states + manual refresh + focus revalidation, write-back
+invalidation, baseline-immutability sentinel falsified. Known-red carried forward: `test:e2e:core`
+fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`), identical on a
+clean-HEAD baseline; not this program's fallout.
+
+Start **S59** at `docs/feature-suites/rentcast-live-activation.md` (key is PLACED,
+`F-RENTCAST-KEY-PLACED`; API contract researched, `F-RENTCAST-API-CONTRACT`; owner dependency = the
+reviewed D12 seed patch + deploy-wrapper binding). Then S60 → S61 → S62 → S63. S65 may interleave
 whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at

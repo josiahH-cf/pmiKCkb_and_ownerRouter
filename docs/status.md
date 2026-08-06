@@ -11,6 +11,38 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S58 shipped: lease-data staleness is bounded, visible, and refusable (2026-08-06)
+
+S58 (`docs/feature-suites/live-lease-data-currency.md`) is built and locally verified, satisfying
+AC-S58-1 through AC-S58-10; recorded as `F-LEASE-DATA-CURRENCY`.
+
+**What shipped.** The shared live lease cache now applies a three-age contract: fresh (under the
+60-second soft TTL) serves with no provider call; stale (up to the hard max) serves immediately and
+revalidates in the background; expired (15 minutes, the owner-adopted `Q-LEASE-DATA-MAX-AGE` value,
+one named constant) attempts a blocking refresh and otherwise keeps serving the last good rows
+marked expired — a provider failure never renders as an empty portfolio, which would read as "no
+renewals due". Failed refreshes back off exponentially (5 seconds doubling to a 5-minute cap)
+instead of issuing one read per request. Refresh stays demand-driven: no cron, no scheduler, no
+timer, min-instances untouched. The draft and progress routes refuse an expired snapshot with an
+explicit 409 `lease_data_expired` and create nothing. The desk shows exactly one of four states
+with the age derived from the snapshot timestamp; the workspace pauses compose/record controls on
+expired. A visible Refresh control forces a read through the new rate-limited
+`/api/lease-renewal/refresh` route; window focus revalidates only when the snapshot is older than
+the soft TTL. A successful Sheet write-back (write and correction) invalidates the cache so the
+next read hits the provider — wired now so a future RentVine write cannot ship without it.
+
+**The sentinel and its falsification.** AC-S58-10 ships in its named form:
+`testset-baseline-immutability-boundary` asserts the refresh path (cache module + refresh route)
+imports no write-capable module and exports no write-shaped capability — the S63 baseline store
+does not exist yet, and this records that fact instead of letting a vacuous green pass as proof
+(the full assertion is AC-S63-3). Falsified for real: importing a Firestore writer into the cache
+module turned the sentinel red naming the file; removing it turned it green.
+
+**Gates.** typecheck clean, format:check clean, focused suites green (cache 17, refresh route 5,
+progress route 10, desk component 9, refresh control 3, write-back 61, draft route 10, live-desk
+14). Full unit suite, lint, e2e:core delta versus the `Q-E2E-DEMO-LANE-RED` baseline, and the
+production build recorded at commit time in this entry's commit.
+
 ## S57 shipped: the desk reads the whole portfolio, and truncation can no longer be silent (2026-08-06)
 
 S57 (`docs/feature-suites/portfolio-complete-lease-reads.md`) is built and locally verified,

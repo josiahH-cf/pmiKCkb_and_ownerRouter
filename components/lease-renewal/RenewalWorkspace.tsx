@@ -59,6 +59,9 @@ export function RenewalWorkspace({
   // Deep link seeded from the property address so the operator can pull Zillow comps in one click
   // (property address only — no tenant PII in the URL).
   const zillowUrl = zillowSearchUrl(summary.addressLabel);
+  // S58: expired lease data pauses composing and recording (the routes refuse server-side too);
+  // looking at the workspace stays allowed.
+  const dataExpired = workspace.dataCurrency?.state === "expired";
 
   return (
     <div className="ui-stack">
@@ -69,6 +72,19 @@ export function RenewalWorkspace({
       />
 
       <Stepper currentIndex={workspace.currentStepIndex} steps={workspace.steps} />
+
+      {dataExpired ? (
+        <Card>
+          <div role="status">
+            <h2 className="ui-card-title">Data too old to act on</h2>
+            <p className="muted">
+              This lease data is past the freshness limit, so recording a decision and
+              composing drafts are paused. Open the Renewals desk and refresh the data,
+              then come back to this lease.
+            </p>
+          </div>
+        </Card>
+      ) : null}
 
       {workspace.notice ? (
         <Card title="Notice timing">
@@ -116,7 +132,7 @@ export function RenewalWorkspace({
       </Card>
 
       <Card title="Owner decision">
-        {workspace.live ? (
+        {workspace.live && !dataExpired ? (
           <div className="ui-stack">
             <p className="muted">
               Record the owner’s rent decision to unlock the tenant offer.
@@ -139,6 +155,12 @@ export function RenewalWorkspace({
                 per-number approval control. It enters the owner draft only after an Admin approves it. */}
             <RentSuggestionApproval leaseId={workspace.live.leaseId} />
           </div>
+        ) : null}
+        {workspace.live && dataExpired ? (
+          <p className="muted">
+            Recording is paused while the lease data is past the freshness limit. Refresh
+            the desk data first.
+          </p>
         ) : null}
         <p className="muted">{DRAFT_BANNER}</p>
         <ul className="ui-rows">
@@ -200,17 +222,24 @@ export function RenewalWorkspace({
       {/* Resolves the real RentVine lease by id and drafts an UNSENT Gmail draft through the gated
           route; a human presses Send in Gmail. */}
       <Card title="Renewal-notice draft">
-        <RenewalNoticeDraftComposer
-          initialOffer={
-            workspace.live?.ownerDecision
-              ? {
-                  decision: workspace.live.ownerDecision.decision,
-                  offeredRent: workspace.live.ownerDecision.offeredRent,
-                }
-              : null
-          }
-          leaseId={summary.id}
-        />
+        {dataExpired ? (
+          <p className="muted">
+            Composing is paused while the lease data is past the freshness limit. Refresh
+            the desk data first.
+          </p>
+        ) : (
+          <RenewalNoticeDraftComposer
+            initialOffer={
+              workspace.live?.ownerDecision
+                ? {
+                    decision: workspace.live.ownerDecision.decision,
+                    offeredRent: workspace.live.ownerDecision.offeredRent,
+                  }
+                : null
+            }
+            leaseId={summary.id}
+          />
+        )}
       </Card>
 
       <Card title="Build docs readiness">
@@ -232,7 +261,7 @@ export function RenewalWorkspace({
             </li>
           ))}
         </ul>
-        {workspace.live ? (
+        {workspace.live && !dataExpired ? (
           <RenewalCompleteButton
             complete={workspace.live.complete}
             leaseId={workspace.live.leaseId}

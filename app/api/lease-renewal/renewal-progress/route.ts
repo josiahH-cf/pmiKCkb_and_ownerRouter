@@ -7,6 +7,11 @@ import {
   markRenewalComplete,
   recordOwnerDecision,
 } from "@/lib/firestore/lease-renewal-progress";
+import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import {
+  LeaseDataExpiredError,
+  requireCurrentLeaseViews,
+} from "@/lib/lease-renewal/live-lease-cache";
 
 // A rent/market figure: finite and strictly positive (a $0 renewal offer is never valid).
 const positiveMoney = z.number().finite().positive();
@@ -66,12 +71,27 @@ export interface RenewalProgressRouteDeps {
   requireCapabilityInSpace: typeof requireCapabilityInSpace;
   recordDecision: typeof recordOwnerDecision;
   markComplete: typeof markRenewalComplete;
+  /** S58: refuses (LeaseDataExpiredError) when the live lease snapshot is past the hard max age. */
+  assertLeaseDataCurrent: () => Promise<void>;
+}
+
+/**
+ * S58 default currency assertion: when live RentVine is configured, recording a decision requires
+ * the shared snapshot to be inside the hard max age (the check itself revalidates an expired entry
+ * before refusing). When live RentVine is NOT configured there is no live snapshot to be stale, and
+ * the route keeps its existing behavior — progress is the operator's own forward state.
+ */
+async function defaultAssertLeaseDataCurrent(): Promise<void> {
+  const config = buildLiveRentVineConfig();
+  if (!config.ok) return;
+  await requireCurrentLeaseViews(config.rentvineClient, Date.now());
 }
 
 const DEFAULT_ROUTE_DEPS: RenewalProgressRouteDeps = {
   requireCapabilityInSpace,
   recordDecision: recordOwnerDecision,
   markComplete: markRenewalComplete,
+  assertLeaseDataCurrent: defaultAssertLeaseDataCurrent,
 };
 
 export function createRenewalProgressPostHandler(
@@ -82,6 +102,20 @@ export function createRenewalProgressPostHandler(
     try {
       const user = await deps.requireCapabilityInSpace("edit", "renewals");
       const body = await parseJsonBody(request, RenewalProgressBodySchema);
+
+      // S58: a decision recorded against data past the hard max age is a decision about a lease
+      // that may no longer look like that. Refuse with the explicit reason; record nothing.
+      try {
+        await deps.assertLeaseDataCurrent();
+      } catch (error) {
+        if (error instanceof LeaseDataExpiredError) {
+          return NextResponse.json(
+            { error: error.message, error_type: "lease_data_expired" },
+            { status: 409 },
+          );
+        }
+        throw error;
+      }
 
       if (body.action === "owner_decision") {
         // The Firestore transaction derives any screenshot attachment from the exact current receipt.

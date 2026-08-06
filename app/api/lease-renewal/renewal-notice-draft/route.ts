@@ -9,7 +9,10 @@ import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
-import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  LeaseDataExpiredError,
+  requireCurrentLeaseViews,
+} from "@/lib/lease-renewal/live-lease-cache";
 import { resolveLiveOwnerEmail } from "@/lib/lease-renewal/live-owner-recipient";
 import {
   prepareRenewalNoticeDraft,
@@ -138,7 +141,9 @@ export async function POST(request: Request) {
     const outcome = await prepareRenewalNoticeDraft(
       {
         async loadLease(leaseId) {
-          const views = await getLiveLeaseViews(rentvineClient, nowMs);
+          // S58: composing refuses expired lease data (LeaseDataExpiredError → 409 below) rather
+          // than drafting from a snapshot past the hard max age.
+          const views = await requireCurrentLeaseViews(rentvineClient, nowMs);
           const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
           if (!view) return null;
           // OWNER channel only: RentVine's lease/export rows carry no owner email, so resolve it via the
@@ -191,6 +196,13 @@ export async function POST(request: Request) {
           error_type: error.code,
         },
         { status: error.status },
+      );
+    }
+    if (error instanceof LeaseDataExpiredError) {
+      // S58: explicit expired-data refusal — nothing was prepared or created.
+      return NextResponse.json(
+        { error: error.message, error_type: "lease_data_expired" },
+        { status: 409 },
       );
     }
     return apiErrorResponse(error);

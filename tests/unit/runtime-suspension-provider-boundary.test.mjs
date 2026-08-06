@@ -107,7 +107,11 @@ const EXPECTED_BOUNDARIES = [
 // classifying the leaf constructors cannot hide a new reachable, ungated caller.
 const EXPECTED_LIVE_CONFIG_CALLS = [
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
+  // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
+  "app/api/lease-renewal/refresh/route.ts:POST:buildLiveRentVineConfig",
   "app/api/lease-renewal/renewal-notice-draft/route.ts:POST:buildLiveRentVineConfig",
+  // S58: the currency assertion before recording progress (read-only; refuses expired data).
+  "app/api/lease-renewal/renewal-progress/route.ts:defaultAssertLeaseDataCurrent:buildLiveRentVineConfig",
   "app/api/maintenance/owner-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",

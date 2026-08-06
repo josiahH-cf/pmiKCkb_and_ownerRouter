@@ -19,6 +19,7 @@ vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
 }));
 
 import { createRenewalProgressPostHandler } from "@/app/api/lease-renewal/renewal-progress/route";
+import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 
 const user = {
   uid: "u1",
@@ -207,5 +208,57 @@ describe("renewal-progress route", () => {
     mocks.requireCapabilityInSpace.mockResolvedValue(user);
     const res = await post({ action: "explode", leaseId: "5001" });
     expect(res.status).toBe(400);
+  });
+
+  // AC-S58-3: expired lease data refuses with the explicit reason and records nothing.
+  it("refuses to record a decision on expired lease data and creates nothing", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    const handler = createRenewalProgressPostHandler({
+      requireCapabilityInSpace: mocks.requireCapabilityInSpace,
+      recordDecision: mocks.recordOwnerDecision,
+      markComplete: mocks.markRenewalComplete,
+      assertLeaseDataCurrent: vi
+        .fn()
+        .mockRejectedValue(new LeaseDataExpiredError(16 * 60_000)),
+    });
+    const res = await handler(
+      new Request("http://localhost/api/lease-renewal/renewal-progress", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "owner_decision",
+          leaseId: "5001",
+          decision: "increase",
+          offeredRent: 1300,
+        }),
+      }),
+    );
+    expect(res.status).toBe(409);
+    const json = (await res.json()) as { error: string; error_type: string };
+    expect(json.error_type).toBe("lease_data_expired");
+    expect(json.error).toContain("minute");
+    expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
+    expect(mocks.markRenewalComplete).not.toHaveBeenCalled();
+  });
+
+  it("refuses mark_complete on expired lease data too", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    const handler = createRenewalProgressPostHandler({
+      requireCapabilityInSpace: mocks.requireCapabilityInSpace,
+      recordDecision: mocks.recordOwnerDecision,
+      markComplete: mocks.markRenewalComplete,
+      assertLeaseDataCurrent: vi
+        .fn()
+        .mockRejectedValue(new LeaseDataExpiredError(20 * 60_000)),
+    });
+    const res = await handler(
+      new Request("http://localhost/api/lease-renewal/renewal-progress", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "mark_complete", leaseId: "5001" }),
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(mocks.markRenewalComplete).not.toHaveBeenCalled();
   });
 });

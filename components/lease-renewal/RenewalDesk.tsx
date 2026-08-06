@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 
+import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
 import {
   Card,
   Disclosure,
@@ -19,13 +20,68 @@ import {
 } from "@/components/ui";
 import { buildRenewalAttention, type AttentionItem } from "@/lib/lease-renewal/attention";
 import {
+  LEASE_EXPORT_MAX_AGE_MS,
+  LEASE_EXPORT_TTL_MS,
+} from "@/lib/lease-renewal/live-lease-cache";
+import {
   RENEWAL_STEPS,
+  type DeskDataCurrency,
   type DeskLeaseSummary,
   type RenewalDeskView,
 } from "@/lib/lease-renewal/desk-model";
 
 function leaseHrefFor(id: string): string {
   return `/lease-renewal/live/desk/lease/${id}`;
+}
+
+/** Age copy from the snapshot timestamp (never render time). */
+export function formatSnapshotAge(ageMs: number): string {
+  const seconds = Math.max(0, Math.round(ageMs / 1000));
+  if (seconds < 90) return seconds === 1 ? "1 second" : `${seconds} seconds`;
+  const minutes = Math.round(seconds / 60);
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+}
+
+/**
+ * S58: exactly ONE of the four currency states renders at all times, in precedence order:
+ * too-old-to-act, refreshing, could-not-refresh, updated-with-age.
+ */
+function DataCurrencyBanner({ currency }: Readonly<{ currency: DeskDataCurrency }>) {
+  const age = formatSnapshotAge(currency.ageMs);
+  const maxMinutes = Math.round(LEASE_EXPORT_MAX_AGE_MS / 60_000);
+  if (currency.state === "expired") {
+    return (
+      <Card>
+        <div role="status">
+          <h2 className="ui-card-title">Data too old to act on</h2>
+          <p className="muted">
+            This lease data is {age} old, past the {maxMinutes}-minute limit. Composing
+            and recording are paused until a refresh completes. You can still look at the
+            list.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+  if (currency.refreshing) {
+    return (
+      <p className="muted" role="status">
+        Refreshing lease data. Showing data from {age} ago while the new read completes.
+      </p>
+    );
+  }
+  if (currency.lastError) {
+    return (
+      <p className="muted" role="status">
+        Last updated {age} ago. The latest refresh did not complete; the app will retry.
+      </p>
+    );
+  }
+  return (
+    <p className="muted" role="status">
+      Updated {age} ago.
+    </p>
+  );
 }
 
 export function RenewalDesk({
@@ -41,6 +97,10 @@ export function RenewalDesk({
         actions={
           <>
             <ModeChip tone="live">Live data</ModeChip>
+            <RenewalDeskRefresh
+              readAtMs={Date.parse(view.dataCurrency.readAtIso)}
+              ttlMs={LEASE_EXPORT_TTL_MS}
+            />
             {liveReviewHref ? (
               <Link className="text-link" href={liveReviewHref}>
                 View live review →
@@ -55,6 +115,8 @@ export function RenewalDesk({
         }
         title="Renewals"
       />
+
+      <DataCurrencyBanner currency={view.dataCurrency} />
 
       {view.readComplete ? null : (
         <Card>

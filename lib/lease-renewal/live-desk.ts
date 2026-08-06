@@ -35,7 +35,10 @@ import {
   buildLiveRenewalConfig,
   type LiveRenewalConfig,
 } from "@/lib/lease-renewal/live-config";
-import { getLiveLeaseRead } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  getLiveLeaseSnapshot,
+  type LiveLeaseCurrency,
+} from "@/lib/lease-renewal/live-lease-cache";
 import {
   runRenewalPipeline,
   type ReconciledFieldOutcome,
@@ -88,6 +91,17 @@ export type LiveRenewalDeskResult =
 export type LiveRenewalLeaseWorkspaceResult =
   | { status: "ok"; workspace: RenewalLeaseWorkspace }
   | { status: LiveDeskStatus | "not_found" };
+
+/** S58: project the cache's currency facts into the serializable desk shape. */
+function toDeskCurrency(currency: LiveLeaseCurrency) {
+  return {
+    state: currency.state,
+    readAtIso: new Date(currency.readAtMs).toISOString(),
+    ageMs: currency.ageMs,
+    refreshing: currency.refreshing,
+    lastError: currency.lastError,
+  };
+}
 
 /** Stable lease id keys (byte-identical to the cohort + the draft route's own resolver). */
 function leaseIdOf(view: RawLease): string | undefined {
@@ -264,10 +278,11 @@ export async function loadLiveRenewalDesk(
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const { views, complete } = await getLiveLeaseRead(
+    const { snapshot, currency } = await getLiveLeaseSnapshot(
       config.rentvineClient,
       Date.parse(readTimestamp),
     );
+    const { views, complete } = snapshot;
     const { tables } = await readRenewalSheetGrids({
       reader: config.sheetsReader,
       spreadsheetId: config.spreadsheetId,
@@ -298,6 +313,8 @@ export async function loadLiveRenewalDesk(
         // S57: a paged read that hit its page cap is rendered as an explicit partial, never as the
         // portfolio. The desk component keys its incomplete-read notice off this flag.
         readComplete: complete,
+        // S58: the snapshot's age facts drive the desk's four-state currency banner.
+        dataCurrency: toDeskCurrency(currency),
         actionable: summaries.filter((s) => s.disposition === "actionable"),
         review: summaries.filter((s) => s.disposition === "review"),
         skipped: summaries.filter((s) => s.disposition === "skip"),
@@ -331,10 +348,11 @@ export async function loadLiveRenewalLeaseWorkspace(
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const { views, complete } = await getLiveLeaseRead(
+    const { snapshot, currency } = await getLiveLeaseSnapshot(
       config.rentvineClient,
       Date.parse(readTimestamp),
     );
+    const { views, complete } = snapshot;
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
     // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads
     // as a failed read, never as "not found".
@@ -419,6 +437,9 @@ export async function loadLiveRenewalLeaseWorkspace(
         tenantOfferDraftId: progress?.tenantOfferDraftId ?? null,
         complete: progress?.complete ?? false,
       },
+      // S58: expired data disables compose/record controls in the workspace UI; the routes refuse
+      // server-side regardless.
+      dataCurrency: toDeskCurrency(currency),
     };
     return { status: "ok", workspace };
   } catch {

@@ -3,13 +3,17 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
+// The desk embeds the S58 client refresh control, which uses the app router.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
+import { formatSnapshotAge, RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
+  type DeskDataCurrency,
 } from "@/tests/helpers/sample-desk";
 
 afterEach(() => {
@@ -55,11 +59,95 @@ describe("RenewalDesk", () => {
     const view = { ...getRenewalDeskView(), readComplete: false };
     render(<RenewalDesk view={view} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Live read incomplete");
+    const statuses = screen
+      .getAllByRole("status")
+      .map((node) => node.textContent)
+      .join(" ");
+    expect(statuses).toContain("Live read incomplete");
     expect(screen.getByText(/leases loaded so far \(partial read\)/)).toBeInTheDocument();
     expect(
       screen.queryByText(/leases in your current renewal window/),
     ).not.toBeInTheDocument();
+  });
+});
+
+// S58: the four currency states. Exactly one renders at all times (AC-S58-9), the age comes from
+// the snapshot timestamp, and a failed refresh never renders as fresh or empty (AC-S58-4).
+describe("RenewalDesk data currency", () => {
+  function currency(overrides: Partial<DeskDataCurrency>): DeskDataCurrency {
+    return {
+      state: "fresh",
+      readAtIso: "2026-07-14T00:00:00.000Z",
+      ageMs: 5_000,
+      refreshing: false,
+      lastError: false,
+      ...overrides,
+    };
+  }
+  const withCurrency = (c: DeskDataCurrency) => ({
+    ...getRenewalDeskView(),
+    dataCurrency: c,
+  });
+
+  const UPDATED = /Updated 5 seconds ago/;
+  const REFRESHING = /Refreshing lease data/;
+  const FAILED = /did not complete/;
+  const TOO_OLD = /Data too old to act on/;
+
+  it("renders exactly the updated state on fresh data", () => {
+    render(<RenewalDesk view={withCurrency(currency({}))} />);
+    expect(screen.getByText(UPDATED)).toBeInTheDocument();
+    expect(screen.queryByText(REFRESHING)).not.toBeInTheDocument();
+    expect(screen.queryByText(FAILED)).not.toBeInTheDocument();
+    expect(screen.queryByText(TOO_OLD)).not.toBeInTheDocument();
+  });
+
+  it("renders exactly the refreshing state while a revalidation is in flight", () => {
+    render(
+      <RenewalDesk view={withCurrency(currency({ state: "stale", refreshing: true }))} />,
+    );
+    expect(screen.getByText(REFRESHING)).toBeInTheDocument();
+    expect(screen.queryByText(UPDATED)).not.toBeInTheDocument();
+    expect(screen.queryByText(FAILED)).not.toBeInTheDocument();
+    expect(screen.queryByText(TOO_OLD)).not.toBeInTheDocument();
+  });
+
+  // AC-S58-4: failed refresh → last good rows, failed state, visible age; never empty, never fresh.
+  it("renders the could-not-refresh state with the rows and a visible age after a failed refresh", () => {
+    render(
+      <RenewalDesk
+        view={withCurrency(currency({ state: "stale", lastError: true, ageMs: 120_000 }))}
+      />,
+    );
+    expect(screen.getByText(/Last updated 2 minutes ago/)).toBeInTheDocument();
+    expect(screen.getByText(FAILED)).toBeInTheDocument();
+    expect(screen.queryByText(UPDATED)).not.toBeInTheDocument();
+    expect(screen.queryByText(TOO_OLD)).not.toBeInTheDocument();
+    // The desk still shows its rows — a provider failure never renders an empty portfolio.
+    expect(screen.getAllByRole("link", { name: "Open" }).length).toBeGreaterThan(0);
+  });
+
+  it("renders exactly the too-old state when the snapshot is expired", () => {
+    render(
+      <RenewalDesk
+        view={withCurrency(
+          currency({ state: "expired", lastError: true, ageMs: 16 * 60_000 }),
+        )}
+      />,
+    );
+    expect(screen.getByText(TOO_OLD)).toBeInTheDocument();
+    expect(screen.getByText(/16 minutes old/)).toBeInTheDocument();
+    expect(screen.queryByText(UPDATED)).not.toBeInTheDocument();
+    expect(screen.queryByText(REFRESHING)).not.toBeInTheDocument();
+    expect(screen.queryByText(FAILED)).not.toBeInTheDocument();
+  });
+
+  it("derives the displayed age from the snapshot timestamp, not render time", () => {
+    expect(formatSnapshotAge(0)).toBe("0 seconds");
+    expect(formatSnapshotAge(1_000)).toBe("1 second");
+    expect(formatSnapshotAge(89_000)).toBe("89 seconds");
+    expect(formatSnapshotAge(120_000)).toBe("2 minutes");
+    expect(formatSnapshotAge(16 * 60_000)).toBe("16 minutes");
   });
 });
 

@@ -74,6 +74,20 @@ export interface DeskLeaseSummary {
   openConflicts: number;
 }
 
+/**
+ * S58: the age/refresh facts of the snapshot a surface rendered. Exactly one of four UI states
+ * derives from these (in precedence order): expired → too-old-to-act; refreshing → refreshing;
+ * lastError → last-updated-and-could-not-refresh; otherwise → updated-with-age. The age comes from
+ * the snapshot timestamp, never from render time.
+ */
+export interface DeskDataCurrency {
+  state: "fresh" | "stale" | "expired";
+  readAtIso: string;
+  ageMs: number;
+  refreshing: boolean;
+  lastError: boolean;
+}
+
 export interface RenewalDeskView {
   windows: DateWindow[];
   cohort: RenewalCohort;
@@ -83,6 +97,8 @@ export interface RenewalDeskView {
    * read is never presented as the portfolio.
    */
   readComplete: boolean;
+  /** S58: the served snapshot's currency. */
+  dataCurrency: DeskDataCurrency;
   actionable: DeskLeaseSummary[];
   review: DeskLeaseSummary[];
   skipped: DeskLeaseSummary[];
@@ -106,4 +122,7 @@ export interface RenewalLeaseWorkspace {
   readiness: RenewalReadinessResult;
   notice: EffectiveRuleView | null;
   live?: RenewalWorkspaceLiveState;
+  /** S58: present on the LIVE workspace; expired disables compose/record controls with a plain
+   *  explanation (the routes refuse server-side regardless). The sample workspace omits it. */
+  dataCurrency?: DeskDataCurrency;
 }

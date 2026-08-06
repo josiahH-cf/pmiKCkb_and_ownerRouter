@@ -28,6 +28,10 @@ import type {
 } from "@/lib/google-sheets/write-client";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
+  clearLiveLeaseCache,
+  getLiveLeaseViews,
+} from "@/lib/lease-renewal/live-lease-cache";
+import {
   ActionNotExecutableError,
   isActionExecutable,
 } from "@/lib/integrations/action-gate";
@@ -717,6 +721,42 @@ describe("Sheet write-back immutable action contract", () => {
       state: "succeeded",
       receipt: committed.receipt,
     });
+  });
+
+  // AC-S58-8: our own successful write invalidates the shared live lease read, so the next read is
+  // a provider read rather than a cache hit.
+  it("invalidates the live lease cache on a successful write", async () => {
+    clearLiveLeaseCache();
+    const listAllLeasesExport = vi.fn(async () => ({
+      rows: [{ lease: { leaseID: 1 } }],
+      pages: 1,
+      complete: true,
+    }));
+    const leaseReader = { listAllLeasesExport };
+    await getLiveLeaseViews(leaseReader, START_MS);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+    // Inside the TTL a read would normally be a cache hit.
+    await getLiveLeaseViews(leaseReader, START_MS + 1);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+
+    enable();
+    const { h, outcome } = await prepare();
+    const committed = await prepareOrCommitWriteback(
+      admin,
+      writeInput({
+        confirm: true,
+        executionId: outcome.preview.executionId,
+        previewHash: outcome.preview.hash,
+      }),
+      READ_TS,
+      h.deps,
+      context(),
+    );
+    expect(committed.status).toBe("written");
+
+    await getLiveLeaseViews(leaseReader, START_MS + 2);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    clearLiveLeaseCache();
   });
 
   it("preserves the exact nonempty approved raw value through preview, hash, and provider mutation", async () => {

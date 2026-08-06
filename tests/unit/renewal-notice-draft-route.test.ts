@@ -69,7 +69,10 @@ vi.mock("@/lib/gmail-runtime/client", () => ({
 import { POST } from "@/app/api/lease-renewal/renewal-notice-draft/route";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
-import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  clearLiveLeaseCache,
+  getLiveLeaseViews,
+} from "@/lib/lease-renewal/live-lease-cache";
 
 interface ClientOverrides {
   exportRows?: Record<string, unknown>[];
@@ -192,6 +195,36 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     });
     expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
     expect(GmailRuntimeClient).not.toHaveBeenCalled();
+  });
+
+  // AC-S58-3: composing refuses expired lease data with an explicit reason and creates nothing.
+  it("refuses with 409 lease_data_expired when the live snapshot is past the hard max age", async () => {
+    const { client } = fakeClient();
+    // Seed the shared cache at t0 with a healthy read, then advance past the hard max with the
+    // provider failing, so the served snapshot is expired-and-unrefreshable.
+    const t0 = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(t0);
+    try {
+      await getLiveLeaseViews(
+        client as unknown as Parameters<typeof getLiveLeaseViews>[0],
+        t0,
+      );
+      const { client: failingClient } = fakeClient();
+      failingClient.listAllLeasesExport = vi.fn(async () => {
+        throw new Error("provider down");
+      }) as never;
+      useClient(failingClient);
+      nowSpy.mockReturnValue(t0 + 16 * 60_000);
+
+      const response = await POST(req(tenantBody()));
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        error_type: "lease_data_expired",
+      });
+      expect(createDraftMock).not.toHaveBeenCalled();
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it("previews a real owner draft with the recipient resolved through the join", async () => {

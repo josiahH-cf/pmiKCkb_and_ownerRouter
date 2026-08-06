@@ -29,6 +29,7 @@ import {
   type SheetsAnchoredMutationWriter,
 } from "@/lib/google-sheets/write-client";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import { invalidateLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 import { rebuildLiveRenewalRun } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
 import {
@@ -441,6 +442,9 @@ async function commitWriteback(
     }
     const candidateReceipt = buildSheetWritebackReceipt(record, mutation, false);
     const receipt = await deps.store.finish(record.id, candidateReceipt);
+    // S58: our own successful write invalidates the shared live lease read rather than waiting out
+    // the TTL. A future RentVine write path joins this same invalidation point.
+    invalidateLiveLeaseCache();
     let readbackWarning: string | undefined;
     try {
       const readback = await inspectAnchoredWritebackTarget(
@@ -690,6 +694,8 @@ async function commitCorrection(
       false,
     );
     const receipt = await deps.store.finish(record.id, candidateReceipt);
+    // S58: a successful correction is also our own write; same invalidation point.
+    invalidateLiveLeaseCache();
     return {
       status: "corrected",
       a1: receipt.verifiedA1,

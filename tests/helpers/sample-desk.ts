@@ -305,11 +305,22 @@ export interface DeskLeaseSummary {
   openConflicts: number;
 }
 
+/** S58: snapshot age facts (mirrors the live desk-model shape; samples are always fresh). */
+export interface DeskDataCurrency {
+  state: "fresh" | "stale" | "expired";
+  readAtIso: string;
+  ageMs: number;
+  refreshing: boolean;
+  lastError: boolean;
+}
+
 export interface RenewalDeskView {
   windows: DateWindow[];
   cohort: RenewalCohort;
   /** S57: whether the underlying lease read returned the whole portfolio (samples always do). */
   readComplete: boolean;
+  /** S58: the served snapshot's currency (samples render as freshly updated). */
+  dataCurrency: DeskDataCurrency;
   actionable: DeskLeaseSummary[];
   review: DeskLeaseSummary[];
   skipped: DeskLeaseSummary[];
@@ -376,6 +387,13 @@ export function getRenewalDeskView(): RenewalDeskView {
     windows: SAMPLE_DESK_WINDOWS,
     cohort,
     readComplete: true,
+    dataCurrency: {
+      state: "fresh",
+      readAtIso: `${SAMPLE_NOTICE_REFERENCE_DATE}T00:00:00.000Z`,
+      ageMs: 0,
+      refreshing: false,
+      lastError: false,
+    },
     actionable: summaries.filter((s) => s.disposition === "actionable"),
     review: summaries.filter((s) => s.disposition === "review"),
     skipped: summaries.filter((s) => s.disposition === "skip"),

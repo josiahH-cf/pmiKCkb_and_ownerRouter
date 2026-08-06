@@ -4,9 +4,17 @@ import type { LeaseExportReadResult } from "@/lib/integrations/rentvine/client";
 import {
   clearLiveLeaseCache,
   getLiveLeaseRead,
+  getLiveLeaseSnapshot,
   getLiveLeaseViews,
+  invalidateLiveLeaseCache,
+  LeaseDataExpiredError,
+  LEASE_EXPORT_MAX_AGE_MS,
   LEASE_EXPORT_TTL_MS,
+  LEASE_REFRESH_BACKOFF_BASE_MS,
+  requireCurrentLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
+
+const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(clearLiveLeaseCache);
 
@@ -83,6 +91,158 @@ describe("getLiveLeaseViews", () => {
     for (const cohortId of ["278", "279", "280", "297"]) {
       expect(ids.has(cohortId)).toBe(true);
     }
+  });
+});
+
+describe("getLiveLeaseSnapshot (S58 age contract)", () => {
+  // AC-S58-1: inside the soft TTL a second request performs no provider read.
+  it("serves fresh data with no provider read inside the soft TTL", async () => {
+    const { client, listAllLeasesExport } = reader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    const second = await getLiveLeaseSnapshot(client, 1_000 + LEASE_EXPORT_TTL_MS - 1);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(second.currency.state).toBe("fresh");
+    expect(second.currency.ageMs).toBe(LEASE_EXPORT_TTL_MS - 1);
+  });
+
+  // AC-S58-2: stale serves immediately and revalidates in the background.
+  it("serves stale rows immediately and revalidates without delaying the response", async () => {
+    let resolveRead: ((result: LeaseExportReadResult) => void) | null = null;
+    let calls = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        calls += 1;
+        if (calls === 1) {
+          return { rows: [{ lease: { leaseID: 1 } }], pages: 1, complete: true };
+        }
+        return new Promise((resolve) => {
+          resolveRead = resolve;
+        });
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    const staleAt = 1_000 + LEASE_EXPORT_TTL_MS + 1;
+    const served = await getLiveLeaseSnapshot(client, staleAt);
+    // Served from cache instantly even though the revalidation read has not resolved.
+    expect(served.snapshot.views[0].leaseID).toBe(1);
+    expect(served.currency.state).toBe("stale");
+    expect(served.currency.refreshing).toBe(true);
+    expect(calls).toBe(2);
+    resolveRead!({ rows: [{ lease: { leaseID: 2 } }], pages: 1, complete: true });
+    await flushAsync();
+    const after = await getLiveLeaseSnapshot(client, staleAt + 1);
+    expect(after.snapshot.views[0].leaseID).toBe(2);
+    expect(calls).toBe(2);
+  });
+
+  it("re-reads blocking at expiry and returns the fresh snapshot", async () => {
+    const { client, listAllLeasesExport } = reader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    const result = await getLiveLeaseSnapshot(
+      client,
+      1_000 + LEASE_EXPORT_MAX_AGE_MS + 1,
+    );
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(result.currency.state).toBe("fresh");
+  });
+
+  // AC-S58-4 (cache half): a failed refresh keeps the last good rows, marked expired with a
+  // visible age — never an empty portfolio, never a fresh claim.
+  it("keeps serving the last good rows marked expired when the refresh fails", async () => {
+    let calls = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        calls += 1;
+        if (calls === 1) {
+          return { rows: [{ lease: { leaseID: 7 } }], pages: 1, complete: true };
+        }
+        throw new Error("provider down");
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    const expiredAt = 1_000 + LEASE_EXPORT_MAX_AGE_MS + 1;
+    const served = await getLiveLeaseSnapshot(client, expiredAt);
+    expect(served.snapshot.views[0].leaseID).toBe(7);
+    expect(served.snapshot.views).toHaveLength(1);
+    expect(served.currency.state).toBe("expired");
+    expect(served.currency.lastError).toBe(true);
+    expect(served.currency.ageMs).toBe(expiredAt - 1_000);
+  });
+
+  // AC-S58-5: repeated failures back off; not one provider read per request.
+  it("backs off after a failed refresh instead of reading on every request", async () => {
+    let calls = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        calls += 1;
+        if (calls === 1) {
+          return { rows: [{ lease: { leaseID: 1 } }], pages: 1, complete: true };
+        }
+        throw new Error("provider down");
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    const expiredAt = 1_000 + LEASE_EXPORT_MAX_AGE_MS + 1;
+    await getLiveLeaseSnapshot(client, expiredAt); // failed refresh no. 1
+    expect(calls).toBe(2);
+    // Inside the backoff window: served expired, no new provider read.
+    const inWindow = await getLiveLeaseSnapshot(client, expiredAt + 1_000);
+    expect(inWindow.currency.state).toBe("expired");
+    expect(calls).toBe(2);
+    // Past the base backoff: the retry happens (and fails, doubling the window).
+    await getLiveLeaseSnapshot(client, expiredAt + LEASE_REFRESH_BACKOFF_BASE_MS + 1);
+    expect(calls).toBe(3);
+    // Inside the doubled window: still no read.
+    await getLiveLeaseSnapshot(
+      client,
+      expiredAt + LEASE_REFRESH_BACKOFF_BASE_MS + 1 + LEASE_REFRESH_BACKOFF_BASE_MS,
+    );
+    expect(calls).toBe(3);
+  });
+
+  // AC-S58-8 (cache half): invalidation forces the next read to the provider.
+  it("invalidateLiveLeaseCache makes the next read a provider read even inside the TTL", async () => {
+    const { client, listAllLeasesExport } = reader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    invalidateLiveLeaseCache();
+    const result = await getLiveLeaseSnapshot(client, 1_001);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(result.currency.state).toBe("fresh");
+  });
+
+  it("propagates a cold-miss failure (there is no last good data to serve)", async () => {
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        throw new Error("cold boom");
+      }),
+    };
+    await expect(getLiveLeaseSnapshot(client, 1_000)).rejects.toThrow(/cold boom/);
+  });
+});
+
+describe("requireCurrentLeaseViews", () => {
+  it("returns views while the snapshot is inside the hard max age", async () => {
+    const { client } = reader();
+    const views = await requireCurrentLeaseViews(client, 1_000);
+    expect(views[0].leaseID).toBe(1);
+  });
+
+  // AC-S58-3 (cache half): expired-and-unrefreshable data refuses action paths.
+  it("throws LeaseDataExpiredError when the served snapshot is expired", async () => {
+    let calls = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        calls += 1;
+        if (calls === 1) {
+          return { rows: [{ lease: { leaseID: 1 } }], pages: 1, complete: true };
+        }
+        throw new Error("provider down");
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    await expect(
+      requireCurrentLeaseViews(client, 1_000 + LEASE_EXPORT_MAX_AGE_MS + 1),
+    ).rejects.toBeInstanceOf(LeaseDataExpiredError);
   });
 });
 
