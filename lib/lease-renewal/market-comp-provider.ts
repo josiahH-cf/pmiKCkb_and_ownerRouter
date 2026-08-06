@@ -23,22 +23,57 @@ export interface MarketCompQuery {
   addressLabel: string;
   bedrooms?: number;
   bathrooms?: number;
+  squareFootage?: number;
   propertyType?: string;
+}
+
+/**
+ * S59: every refusal names why, so a timeout never renders as "no comps found" and each failure is
+ * distinguishable in the UI. None of these ever comes with numbers.
+ */
+export type MarketCompFailureReason =
+  | "missing_key"
+  | "missing_address"
+  | "timeout"
+  | "network_error"
+  | "http_error"
+  | "parse_error"
+  | "too_few_comps"
+  | "out_of_allowance"
+  | "provider_not_live";
+
+/** One comparable, retained in PROVIDER order with its correlation intact (AC-S59-17). */
+export interface MarketComparable {
+  rent: number;
+  /** RentCast's 0-to-1 similarity score; higher is more similar. */
+  correlation?: number;
+  distanceMiles?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  daysOnMarket?: number;
 }
 
 /** A DISPLAY-only comparable-rent result. Any numeric field is optional; absent → Needs Verification. */
 export interface MarketCompResult {
   rangeLow?: number;
   rangeHigh?: number;
-  /** The point estimate (RentCast: the MEDIAN of the comps; Manual: the operator's own PMI number). */
+  /** The point estimate (RentCast: the provider's own AVM `rent`; Manual: the operator's PMI number). */
   pointEstimate?: number;
   /** How many comparable listings backed the result (RentCast only). */
   compCount?: number;
+  /** The comparables themselves, provider-ordered with correlation (RentCast only). */
+  comparables?: MarketComparable[];
   /** Attribution shown on the reference display and carried onto the owner-draft comp fact. */
   source: string;
   /** ISO timestamp the result was retrieved (RentCast receipt); omitted for the manual echo. */
   retrievedAt?: string;
   confidence: "Likely" | "Needs Verification";
+  /** Present on a refusal: the legible, distinguishable cause (AC-S59-8). */
+  reason?: MarketCompFailureReason;
+  /** Present on an http_error refusal: the observed status code (a 400 is not a 401). */
+  httpStatus?: number;
+  /** True when a billable (2xx-with-body) RentCast call was made; the usage counter keys on this. */
+  billed?: boolean;
 }
 
 export interface MarketCompProvider {

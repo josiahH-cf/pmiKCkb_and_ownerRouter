@@ -417,6 +417,10 @@ function readRuntimeEnv(env, project, region, searchLocation) {
       "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
       "false",
     ),
+    // S59: the market-comp provider selector. Default manual (the operator's own numbers); an
+    // explicit "rentcast" survives this wrapper's replacing --set-env-vars map so the deployed
+    // revision reads it back (AC-S59-2). The key itself travels only via readRuntimeSecrets.
+    MARKET_COMP_PROVIDER: withDefault("MARKET_COMP_PROVIDER", "manual"),
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
   };
@@ -444,6 +448,15 @@ function readRuntimeSecrets(env, errors) {
   const intake = resolveMaintenanceIntakeSecretBindings(env);
   errors.push(...intake.errors);
   Object.assign(bindings, intake.bindings);
+
+  // S59: bind the RentCast key from Secret Manager when the selector chooses the live provider.
+  // The selector is the activation signal (mirroring RentVine's base-URL signal); without it the
+  // key binds to nothing and the manual provider needs no secret.
+  if (readString(env.MARKET_COMP_PROVIDER) === "rentcast") {
+    const secretId = readString(env.RENTCAST_API_KEY_SECRET_ID) ?? "RENTCAST_API_KEY";
+    const version = readString(env.RENTCAST_API_KEY_SECRET_VERSION) ?? "latest";
+    bindings.RENTCAST_API_KEY = `${secretId}:${version}`;
+  }
 
   return bindings;
 }

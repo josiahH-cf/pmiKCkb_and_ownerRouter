@@ -125,4 +125,10 @@ export interface RenewalLeaseWorkspace {
   /** S58: present on the LIVE workspace; expired disables compose/record controls with a plain
    *  explanation (the routes refuse server-side regardless). The sample workspace omits it. */
   dataCurrency?: DeskDataCurrency;
+  /**
+   * S59: the lease's known unit attributes from the live export (`unit.beds`,
+   * `unit.fullBaths`/`unit.halfBaths`, `unit.postalCode`/`property.postalCode`), threaded to the
+   * comp lookup so the estimate fits the unit. Absent attributes stay absent — never guessed.
+   */
+  compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
 }

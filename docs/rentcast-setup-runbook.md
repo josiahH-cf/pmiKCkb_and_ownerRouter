@@ -4,6 +4,14 @@ Date: 2026-08-06. Owns the "explicit setup instructions" the owner required (Q3)
 four-lease test set runs. Companion to `docs/feature-suites/rentcast-live-activation.md` (S59), which
 owns the code. This file is the operator procedure.
 
+> **OPEN OWNER STEP, measured 2026-08-06 (`Q-RENTCAST-ACCOUNT-403`).** The placed key answers
+> **HTTP 403** on both `/avm/rent/long-term` and `/markets` (observed by the controlled smoke,
+> `npm run smoke:rentcast-comp`). A 401 would mean a bad key; a 403 means RentCast recognizes the
+> key but the account has **no active API plan/subscription**. Fix in the RentCast dashboard:
+> Billing → select the API plan (the free Developer plan must still be explicitly activated), then
+> re-run the smoke. While in the dashboard, complete step 1.2 below (read back the real allowance,
+> overage price, and rate limit) — the same visit closes `AC-S59-14`.
+
 **Nothing here echoes a key.** The API key never appears in a file, a command line, a log, a test
 fixture, or this repository. Every step below either prompts for it or reads it back by name only.
 

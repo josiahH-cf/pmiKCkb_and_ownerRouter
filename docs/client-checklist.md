@@ -82,7 +82,7 @@ not ask for broad or unnecessary access.
 | Provider            | Ask for                                                                                                                                                                                                  | Never ask for or infer                                                                |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior; resident portal/text invitation plus interactive reply/webhook semantics                        | Guessed write/resident endpoint or unconditional overwrite                            |
-| RentCast            | Exact active API plan, monthly request allowance/overage, and confirmation that applicable plan and third-party-data terms permit storing/caching comp responses and displaying them to a property owner | Account-specific permission from public terms, or S28b activation before confirmation |
+| RentCast            | Exact active API plan and its real monthly allowance/overage read back from the account (the published API Terms already permit caching, storage, and owner-facing display, `Q-RENTCAST-PLAN-TERMS`); an ACTIVE API subscription — the placed key answers 403 until the plan is activated in the dashboard (`Q-RENTCAST-ACCOUNT-403`)                                | Sizing the hard quota stop from assumed figures, or the gate flip before a working smoke |
 | Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                                                                                                                       | Customer rows in git or read-then-unconditional-write                                 |
 | Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label                                                                                                              | General inbox browsing, free-form compose, autonomous send                            |
 | Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                                                                                                                        | DWD, shared PMI mailbox, Admin consent on Vendor's behalf                             |
@@ -92,12 +92,14 @@ not ask for broad or unnecessary access.
 | Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                                                                                                                             | Purchasing/selecting a provider by inference                                          |
 | Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                                                                                                                               | Replace/delete behavior or source-folder overreach                                    |
 
-RentCast confirm-with-default: the public [API terms](https://www.rentcast.io/terms-api) generally
-permit storage, display, and distribution, while the
-[billing guidance](https://developers.rentcast.io/reference/billing-and-pricing) makes the request
-allowance and overage plan-specific. The exact PMI subscription and any applicable third-party-data
-conditions for owner-facing storage/display/caching remain Needs Verification. Until confirmed,
-S28b remains unavailable; manual comp entry and dependency-independent app-plane work continue.
+RentCast, resolved 2026-08-06 (`Q-RENTCAST-PLAN-TERMS`): the published
+[API Terms of Use](https://www.rentcast.io/terms-api) expressly grant the right to store, cache,
+display, and distribute the API data, with no attribution requirement and no stated retention
+limit, so S59's caching and S60's owner-facing display are permitted. What remains owner-confirmed
+at the account: an ACTIVE API subscription (the placed key answers 403 until the plan is activated
+in the dashboard, `Q-RENTCAST-ACCOUNT-403`) and the plan's real allowance and overage figures
+(AC-S59-14), which size the app-side hard quota stop. Until then the RentCast action stays gated;
+manual comp entry continues.
 
 The first Live proof is one bounded, explicit, human-confirmed action with an idempotency key,
 bodyless receipt, provider readback, and documented correction. A failed or ambiguous result is

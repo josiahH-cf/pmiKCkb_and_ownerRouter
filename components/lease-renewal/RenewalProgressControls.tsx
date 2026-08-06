@@ -37,7 +37,34 @@ interface CompLookup {
   source: string;
   retrievedAt?: string;
   confidence: "Likely" | "Needs Verification";
+  /** S59: the legible refusal cause; each renders as a distinct message (AC-S59-8). */
+  reason?: string;
+  /** S59: the operator-visible remaining-calls figure on the RentCast path. */
+  quota?: { used: number; allowance: number; remaining: number; warn: boolean };
+  cached?: boolean;
 }
+
+// S59 / AC-S59-8: each refusal cause renders as its own plain sentence, never one generic message
+// and never a number. Hand entry stays available on every one of them.
+const COMP_REFUSAL_COPY: Record<string, string> = {
+  missing_key:
+    "The comp service key is not set up on this environment. Enter your own comp numbers.",
+  missing_address:
+    "This lease has no address on file, so there is nothing to search. Enter your own comp numbers.",
+  timeout: "The comp lookup timed out. Try again, or enter your own comp numbers.",
+  network_error:
+    "The comp service could not be reached. Try again, or enter your own comp numbers.",
+  http_error:
+    "The comp service answered with an error. Try again, or enter your own comp numbers.",
+  parse_error:
+    "The comp service sent a response the app could not read. Enter your own comp numbers.",
+  too_few_comps:
+    "Fewer than three comparable listings came back, which is too thin to stand on. Enter your own comp numbers.",
+  out_of_allowance:
+    "The monthly comp-lookup allowance is used up, so no live lookup ran. Enter your own comp numbers.",
+  provider_not_live:
+    "Live comp lookups are not turned on for this environment. Enter your own comp numbers.",
+};
 
 interface ScreenshotReceipt {
   executionId: string;
@@ -112,12 +139,15 @@ export function OwnerDecisionForm({
   leaseId,
   current,
   address,
+  compAttributes,
   compScreenshotExecutable = false,
 }: Readonly<{
   leaseId: string;
   current: RecordedDecision | null;
   /** The in-boundary property address, used only for the reference-only comp lookup (never PII/rent). */
   address?: string;
+  /** S59: the lease's known unit attributes, passed through so the estimate fits the unit (AC-S59-7). */
+  compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
   /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
   compScreenshotExecutable?: boolean;
 }>) {
@@ -179,7 +209,18 @@ export function OwnerDecisionForm({
   // Reference-only market-comp lookup: runs the configured provider (the manual adapter echoes the
   // operator's own numbers; RentCast is refused until its gate flips) and DISPLAYS the range. It never
   // sets the offered rent — the comp-derived SUGGESTED number is the separate Admin-gated S29.
+  // S59: a lease with no address refuses LOCALLY and makes no request at all — the literal string
+  // "Unknown" is never sent (AC-S59-6) — and the known unit attributes ride along (AC-S59-7).
   async function lookupComps() {
+    const trimmedAddress = (address ?? "").trim();
+    if (trimmedAddress === "") {
+      setCompLookup({
+        source: "RentCast",
+        confidence: "Needs Verification",
+        reason: "missing_address",
+      });
+      return;
+    }
     setLookupPending(true);
     try {
       const manualBasis: Record<string, number> = {};
@@ -190,7 +231,13 @@ export function OwnerDecisionForm({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          address: (address ?? "").trim() || "Unknown",
+          address: trimmedAddress,
+          ...(compAttributes?.bedrooms !== undefined
+            ? { bedrooms: compAttributes.bedrooms }
+            : {}),
+          ...(compAttributes?.bathrooms !== undefined
+            ? { bathrooms: compAttributes.bathrooms }
+            : {}),
           ...(Object.keys(manualBasis).length > 0 ? { manualBasis } : {}),
         }),
       });
@@ -883,9 +930,21 @@ export function OwnerDecisionForm({
                   compLookup.pointEstimate !== undefined
                     ? ` (point estimate ${formatMoney(compLookup.pointEstimate)})`
                     : ""
+                }${
+                  compLookup.compCount !== undefined
+                    ? ` from ${compLookup.compCount} comps`
+                    : ""
                 } · Source: ${compLookup.source}`
-              : `No comparable range is available yet (${compLookup.source}). Needs verification.`}
+              : (COMP_REFUSAL_COPY[compLookup.reason ?? ""] ??
+                `No comparable range is available yet (${compLookup.source}). Needs verification.`)}
           </p>
+          {compLookup.quota ? (
+            <p className="muted">
+              {compLookup.quota.remaining} of {compLookup.quota.allowance} comp lookups
+              left this month.
+              {compLookup.quota.warn ? " Running low; use them deliberately." : ""}
+            </p>
+          ) : null}
           <p className="muted">Reference only. Does not set the rent.</p>
         </div>
       ) : null}

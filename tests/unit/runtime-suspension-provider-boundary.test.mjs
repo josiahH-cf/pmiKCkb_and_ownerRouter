@@ -35,7 +35,7 @@ const ORCHESTRATION_FACTORY_WRAPPERS = new Set([
 // instead of silently becoming an unwired runtime-suspension call site.
 const EXPECTED_BOUNDARIES = [
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
-  "app/api/lease-renewal/market-comps/route.ts:lookup:createMarketCompProvider",
+  "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
   "lib/external-execution/governed-draft-execution.ts:reconcileGovernedDraft:request.createClient",
@@ -96,6 +96,8 @@ const EXPECTED_BOUNDARIES = [
   "scripts/smoke-renewal-draft-live.ts:runLive:dependencies.createRentVineClient",
   "scripts/smoke-renewal-review.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new RentVineClient",
+  // S59: the controlled RentCast smoke — an operator-run read-only diagnostic (AC-S59-1).
+  "scripts/smoke-rentcast-comp.ts:main:new RentCastMarketCompProvider",
   "scripts/smoke-rentvine-read.ts:main:new RentVineClient",
   "scripts/smoke-sheet-read.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-sheet-write.ts:createWriter:new GoogleSheetsApiWriter",
@@ -191,6 +193,7 @@ const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
   "scripts/smoke-renewal-review.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new RentVineClient",
+  "scripts/smoke-rentcast-comp.ts:main:new RentCastMarketCompProvider",
   "scripts/smoke-rentvine-read.ts:main:new RentVineClient",
   "scripts/smoke-sheet-read.ts:main:new GoogleSheetsApiReader",
 ]);
@@ -202,7 +205,7 @@ const OWNER_PROVISIONING_SCRIPT_BOUNDARIES = new Set([
 
 const GATED_PROVIDER_ADAPTERS = new Set([
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
-  "app/api/lease-renewal/market-comps/route.ts:lookup:createMarketCompProvider",
+  "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
   "lib/gmail-hub/service.ts:connection:this.createClient",
@@ -243,7 +246,7 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     },
   ],
   [
-    "app/api/lease-renewal/market-comps/route.ts:lookup:createMarketCompProvider",
+    "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
     {
       file: "tests/unit/market-comp-provider.test.ts",
       marker: "S51_DYNAMIC_REFUSAL:market-comp-provider",

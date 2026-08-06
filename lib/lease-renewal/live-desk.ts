@@ -92,6 +92,58 @@ export type LiveRenewalLeaseWorkspaceResult =
   | { status: "ok"; workspace: RenewalLeaseWorkspace }
   | { status: LiveDeskStatus | "not_found" };
 
+/** Coerce a RentVine numeric field (number or numeric string) to a finite number, else undefined. */
+function coerceFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function coerceZip(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = value.trim().match(/^\d{5}/);
+  return match ? match[0] : undefined;
+}
+
+/**
+ * S59: the lease's known unit attributes for the comp lookup, from the LIVE-MEASURED export paths
+ * (`unit.beds`, `unit.fullBaths` + half of `unit.halfBaths`, `unit.postalCode` falling back to
+ * `property.postalCode`). An absent attribute is omitted, never guessed; `property.propertyTypeID`
+ * is a RentVine-internal id with no documented RentCast mapping, so propertyType is deliberately
+ * not derived from it.
+ */
+function compAttributesOf(
+  view: RawLease,
+): { bedrooms?: number; bathrooms?: number; postalCode?: string } | undefined {
+  const unit =
+    view.unit && typeof view.unit === "object" && !Array.isArray(view.unit)
+      ? (view.unit as Record<string, unknown>)
+      : undefined;
+  const property =
+    view.property && typeof view.property === "object" && !Array.isArray(view.property)
+      ? (view.property as Record<string, unknown>)
+      : undefined;
+  const bedrooms = coerceFiniteNumber(unit?.beds);
+  const fullBaths = coerceFiniteNumber(unit?.fullBaths);
+  const halfBaths = coerceFiniteNumber(unit?.halfBaths);
+  const bathrooms =
+    fullBaths !== undefined || halfBaths !== undefined
+      ? (fullBaths ?? 0) + 0.5 * (halfBaths ?? 0)
+      : undefined;
+  const postalCode = coerceZip(unit?.postalCode) ?? coerceZip(property?.postalCode);
+  if (bedrooms === undefined && bathrooms === undefined && postalCode === undefined) {
+    return undefined;
+  }
+  return {
+    ...(bedrooms !== undefined ? { bedrooms } : {}),
+    ...(bathrooms !== undefined && bathrooms > 0 ? { bathrooms } : {}),
+    ...(postalCode ? { postalCode } : {}),
+  };
+}
+
 /** S58: project the cache's currency facts into the serializable desk shape. */
 function toDeskCurrency(currency: LiveLeaseCurrency) {
   return {
@@ -371,6 +423,8 @@ export async function loadLiveRenewalLeaseWorkspace(
       tabTitles: LIVE_DESK_TABS,
     });
     const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+    // S59: known unit attributes for the comp lookup; absent stays absent.
+    const compAttributes = compAttributesOf(view);
     const summary = toLiveSummary(view, classification, dataCheck, progress);
 
     // Once the owner decision is RECORDED, the Tenant-offer step shows a real offer built from those
@@ -440,6 +494,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       // S58: expired data disables compose/record controls in the workspace UI; the routes refuse
       // server-side regardless.
       dataCurrency: toDeskCurrency(currency),
+      ...(compAttributes ? { compAttributes } : {}),
     };
     return { status: "ok", workspace };
   } catch {

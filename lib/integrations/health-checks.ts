@@ -321,20 +321,24 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
       {
         id: "rentcast.auth",
         kind: "auth_validation",
-        description: "The API key authenticates against the listings-search endpoint.",
-        expected_evidence: "Authenticated response from the read-only listings search.",
+        description:
+          "The API key authenticates against the AVM rent-estimate endpoint via an unbilled parameter probe (S59).",
+        expected_evidence:
+          "A 4xx parameter answer proves the key (unbilled); 401/403 fails the step.",
       },
       {
         id: "rentcast.probe",
         kind: "endpoint_probe",
-        description: "The /listings/rental/long-term endpoint answers a read-only probe.",
-        expected_evidence: "Successful listings response; read-only, no mutation exists.",
+        description: "The /avm/rent/long-term endpoint answers a read-only probe.",
+        expected_evidence:
+          "The endpoint answers; no billable body is requested by the probe.",
       },
       {
         id: "rentcast.rate_limit",
         kind: "rate_limit_read",
-        description: "Rate-limit posture is read from the response headers.",
-        expected_evidence: "Documented or observed rate-limit headers recorded.",
+        description: "Rate-limit posture is read from the observed response headers.",
+        expected_evidence:
+          "Observed rate-limit header names recorded, or their absence recorded with the documented 20 requests-per-second limit.",
       },
     ],
   },

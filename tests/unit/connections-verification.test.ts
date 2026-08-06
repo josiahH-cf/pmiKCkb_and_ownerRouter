@@ -3,13 +3,19 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { buildLiveRentVineConfig, buildLiveRenewalConfig, rentvineOk, sheetsOk } =
-  vi.hoisted(() => ({
-    buildLiveRentVineConfig: vi.fn(),
-    buildLiveRenewalConfig: vi.fn(),
-    rentvineOk: { value: true },
-    sheetsOk: { value: true },
-  }));
+const {
+  buildLiveRentVineConfig,
+  buildLiveRenewalConfig,
+  rentvineOk,
+  sheetsOk,
+  rentcastOk,
+} = vi.hoisted(() => ({
+  buildLiveRentVineConfig: vi.fn(),
+  buildLiveRenewalConfig: vi.fn(),
+  rentvineOk: { value: true },
+  sheetsOk: { value: true },
+  rentcastOk: { value: true },
+}));
 
 vi.mock("@/lib/lease-renewal/live-config", () => ({
   buildLiveRentVineConfig,
@@ -25,6 +31,11 @@ vi.mock("@/lib/integrations/rentvine/health-probe", () => ({
 vi.mock("@/lib/google-sheets/health-probe", () => ({
   createGoogleSheetsHealthCheckTransport: () => ({
     probe: async () => ({ ok: sheetsOk.value, detail: "counts-only" }),
+  }),
+}));
+vi.mock("@/lib/lease-renewal/providers/rentcast-health-probe", () => ({
+  createRentcastHealthCheckTransport: () => ({
+    probe: async () => ({ ok: rentcastOk.value, detail: "counts-only" }),
   }),
 }));
 
@@ -58,8 +69,25 @@ afterEach(() => {
 describe("getVerifiedConnectorIds", () => {
   it("verifies both built connectors when their live probes pass", async () => {
     const ids = await getVerifiedConnectorIds({}, T0);
+    // RentCast is registered but unconfigured in an empty env, so it stays unverified here.
     expect([...ids].sort()).toEqual(["google_sheets", "rentvine"]);
-    expect(LIVE_VERIFIABLE_CONNECTOR_IDS).toEqual(["rentvine", "google_sheets"]);
+    expect(LIVE_VERIFIABLE_CONNECTOR_IDS).toEqual([
+      "rentvine",
+      "google_sheets",
+      "rentcast",
+    ]);
+  });
+
+  // S59: the RentCast key probe joins the verifiable set once the key env is present.
+  it("verifies rentcast when its key is configured and the probe passes", async () => {
+    const ids = await getVerifiedConnectorIds({ RENTCAST_API_KEY: "k" }, T0);
+    expect([...ids].sort()).toEqual(["google_sheets", "rentcast", "rentvine"]);
+  });
+
+  it("treats a failing rentcast probe as unverified", async () => {
+    rentcastOk.value = false;
+    const ids = await getVerifiedConnectorIds({ RENTCAST_API_KEY: "k" }, T0);
+    expect([...ids].sort()).toEqual(["google_sheets", "rentvine"]);
   });
 
   it("treats an unconfigured connector as unverified, never an error", async () => {

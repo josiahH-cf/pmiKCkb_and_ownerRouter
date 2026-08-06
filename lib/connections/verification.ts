@@ -15,6 +15,7 @@ import {
   type HealthCheckTransport,
 } from "@/lib/integrations/health-checks";
 import { createRentVineHealthCheckTransport } from "@/lib/integrations/rentvine/health-probe";
+import { createRentcastHealthCheckTransport } from "@/lib/lease-renewal/providers/rentcast-health-probe";
 import {
   buildLiveRentVineConfig,
   buildLiveRenewalConfig,
@@ -34,7 +35,7 @@ interface LiveProbeDef {
   buildTransport(env: EnvLike): HealthCheckTransport | null;
 }
 
-// The two connectors with BUILT live read paths. Others join here as their clients are built.
+// The connectors with BUILT live read paths. Others join here as their clients are built.
 const LIVE_PROBES: readonly LiveProbeDef[] = [
   {
     connectorId: "rentvine",
@@ -55,6 +56,16 @@ const LIVE_PROBES: readonly LiveProbeDef[] = [
             config.spreadsheetId,
           )
         : null;
+    },
+  },
+  // S59: the RentCast key probe. Cost-aware — the auth probe is an unbilled parameter error, so a
+  // verification run never spends the monthly allowance.
+  {
+    connectorId: "rentcast",
+    contractId: "health.rentcast.api_key",
+    buildTransport(env) {
+      const apiKey = env.RENTCAST_API_KEY?.trim();
+      return apiKey ? createRentcastHealthCheckTransport({ apiKey }) : null;
     },
   },
 ];

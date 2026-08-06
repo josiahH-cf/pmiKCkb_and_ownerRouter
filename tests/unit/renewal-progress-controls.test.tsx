@@ -55,6 +55,91 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     );
   });
 
+  // AC-S59-6: no address → refuse locally; NO lookup request; "Unknown" is never sent. The mount
+  // effect's screenshot-status GET shares the fetch stub, so assertions filter to the lookup POST.
+  it("refuses a comp lookup locally when the lease has no address and sends nothing", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({
+      ok: true,
+      json: async () => ({}),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<OwnerDecisionForm address="   " current={null} leaseId="L1" />);
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/no address on file/)).toBeInTheDocument(),
+    );
+    const lookupCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes("market-comps"),
+    );
+    expect(lookupCalls).toHaveLength(0);
+  });
+
+  // AC-S59-7 client half: the known unit attributes ride along with the lookup.
+  it("sends the lease's known unit attributes with the lookup", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({
+      ok: true,
+      json: async () => ({ source: "RentCast", confidence: "Needs Verification" }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm
+        address="104 NE Lindsay Ave"
+        compAttributes={{ bedrooms: 3, bathrooms: 2.5, postalCode: "64118" }}
+        current={null}
+        leaseId="L1"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() => {
+      const lookupCalls = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("market-comps"),
+      );
+      expect(lookupCalls).toHaveLength(1);
+    });
+    const lookupCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("market-comps"),
+    )!;
+    const body = JSON.parse(String(lookupCall[1]?.body ?? "{}")) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toMatchObject({
+      address: "104 NE Lindsay Ave",
+      bedrooms: 3,
+      bathrooms: 2.5,
+    });
+    expect(JSON.stringify(body)).not.toContain("Unknown");
+  });
+
+  it("renders the distinct out-of-allowance refusal with the remaining-count figure", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        source: "RentCast",
+        confidence: "Needs Verification",
+        reason: "out_of_allowance",
+        quota: { used: 50, allowance: 50, remaining: 0, warn: true },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/monthly comp-lookup allowance is used up/),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/0 of 50 comp lookups left this month/)).toBeInTheDocument();
+  });
+
   it("fails closed without rendering the comps-screenshot file control by default", () => {
     render(
       <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,

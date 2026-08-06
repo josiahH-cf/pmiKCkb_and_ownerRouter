@@ -159,17 +159,22 @@ describe("S52 provider quota and terms registry", () => {
     expect(drive).toContain("Needs Verification");
   });
 
-  it("fails RentCast and S28b closed until exact storage/display/caching rights are confirmed", () => {
+  // S59 (2026-08-06): `Q-RENTCAST-PLAN-TERMS`'s legal half is RESOLVED from the published API
+  // Terms (caching/storage/owner-facing display expressly permitted), so the pin now enforces the
+  // resolved wording — while STILL requiring the row to keep the action account-gated: an active
+  // API subscription (the 403 finding) and the real allowance/overage readback (AC-S59-14).
+  it("records the resolved RentCast terms while keeping the action account-gated", () => {
     const rentcast = providerRows.get("RentCast")[quotaIndex];
     const normalized = rentcast.toLowerCase();
 
     expect(rentcast).toContain(PRIMARY_SOURCE_URLS.rentcastTerms);
-    expect(rentcast).toContain(PRIMARY_SOURCE_URLS.rentcastBilling);
-    expect(rentcast).toContain("Needs Verification");
-    expect(normalized).toContain("storing/caching");
+    expect(rentcast).toContain("RESOLVED 2026-08-06");
+    expect(normalized).toContain("caching");
     expect(normalized).toContain("displaying");
-    expect(normalized).toContain("property owner");
-    expect(rentcast).toContain("S28b activation is blocked");
+    expect(normalized).toContain("active api subscription");
+    expect(rentcast).toContain("Q-RENTCAST-ACCOUNT-403");
+    expect(rentcast).toContain("AC-S59-14");
+    expect(rentcast).toContain("hard quota stop");
   });
 
   it("routes the exact RentCast confirmation and safe default to the client checklist", () => {
@@ -185,15 +190,14 @@ describe("S52 provider quota and terms registry", () => {
 
     const request = rentcast[1].toLowerCase();
     expect(request).toContain("active api plan");
-    expect(request).toContain("monthly request");
-    expect(request).toContain("storing/caching");
-    expect(request).toContain("displaying");
-    expect(request).toContain("property owner");
-    expect(rentcast[2]).toContain("S28b activation before confirmation");
+    expect(request).toContain("monthly allowance/overage");
+    expect(request).toContain("active api subscription");
+    expect(request).toContain("q-rentcast-account-403");
+    expect(rentcast[2].toLowerCase()).toContain("gate flip before a working smoke");
 
     expect(checklistSection).toContain(PRIMARY_SOURCE_URLS.rentcastTerms);
-    expect(checklistSection).toContain(PRIMARY_SOURCE_URLS.rentcastBilling);
-    expect(checklistSection).toContain("remain Needs Verification");
-    expect(checklistSection).toContain("S28b remains unavailable");
+    expect(checklistSection).toContain("Q-RENTCAST-PLAN-TERMS");
+    expect(checklistSection).toContain("the RentCast action stays gated");
+    expect(checklistSection).toContain("manual comp entry continues");
   });
 });
