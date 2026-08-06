@@ -11,6 +11,43 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S59 shipped and deployed: RentCast hardened; the account, not the app, is what remains (2026-08-06)
+
+S59 (`docs/feature-suites/rentcast-live-activation.md`) is built, verified, and DEPLOYED (commit
+`0283773`, revision `pmi-kc-app-rmsi5llfz-8332ff9656c8`); recorded as
+`F-RENTCAST-ACTIVATION-HARDENED` with the new serving checkpoint
+`F-CURRENT-SERVING-CHECKPOINT-2026-08-06`.
+
+**What shipped.** The comp basis moved to RentCast's own AVM endpoint: provider-native rent and
+range, comparables in provider order with their correlation scores, unit attributes plus explicit
+radius and comp count on every request, and the three-comp fail-closed floor kept. Nine
+distinguishable, numberless refusal reasons replace the generic failure (a timeout says timeout; an
+http error carries its status). Cost is controlled at four layers: a persisted monthly counter of
+BILLED calls (mirroring RentCast's own 2xx-with-body billing, since overage bills automatically), a
+per-address six-hour cache whose hits cost nothing and still serve after exhaustion, an 80 percent
+soft warning, and a hard stop at the env-overridable allowance (documented free-plan 50) that
+refuses live calls while hand entry keeps working. Trend lookups against `/markets` are separately
+metered. The composer refuses locally on a missing address — the literal "Unknown" can no longer
+spend a billable call — and shows the remaining-calls figure. The health probe proves the key with
+an UNBILLED parameterless 4xx and reports rate limit as observed. The deploy wrapper forwards the
+selector and binds the key secret; the serving revision reads both back, with rollback and forward
+restore each smoked `307/200/307`.
+
+**The finding.** The first functional test of the placed key — the controlled smoke, key read from
+Secret Manager at runtime only — answered HTTP 403 on both endpoints. The key is recognized; the
+account has NO ACTIVE API SUBSCRIPTION (`Q-RENTCAST-ACCOUNT-403`). One owner dashboard visit closes
+it: activate the plan, read back the real allowance and overage (AC-S59-14), re-run the smoke. The
+D12 gate-flip patch is prepared and parked (`docs/temp/rentcast-gate-flip-d12-patch.md`), correctly
+unpushable until that smoke observes a real range.
+
+**Falsification.** A boolean-only `production_allowed` flip failed both schema pins (the parse
+refusal and the executable-set pin) and was reverted green — the four-fence gate holds.
+
+**Gates.** typecheck, format, lint (0 errors), full unit suite green after classifying the new
+provider call sites in their pinning sentinels, production build compiled, deploy + readback +
+rollback proof complete. The provider-table doc pin was updated alongside the resolved
+`Q-RENTCAST-PLAN-TERMS` wording it enforces.
+
 ## S58 shipped: lease-data staleness is bounded, visible, and refusable (2026-08-06)
 
 S58 (`docs/feature-suites/live-lease-data-currency.md`) is built and locally verified, satisfying

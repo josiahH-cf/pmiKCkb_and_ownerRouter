@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_S58_DONE
-next_suite: S59
-next_spec: docs/feature-suites/rentcast-live-activation.md
+implementation_status: S57_S58_S59_DONE
+next_suite: S60
+next_spec: docs/feature-suites/comp-persistence-and-under-market-signal.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S59_RENTCAST_LIVE_ACTIVATION
-last_completed_slice: S58_LIVE_LEASE_DATA_CURRENCY
+next_slice: S60_COMP_PERSISTENCE_AND_UNDER_MARKET
+last_completed_slice: S59_RENTCAST_LIVE_ACTIVATION
 runtime_action_gates_preflipped: false
 ```
 
@@ -82,9 +82,8 @@ test lease belongs to it, `percentOwned` is empty across the export, and the ale
 
 ## Superseded 2026-08-06
 
-The 2026-08-05 premise that MKD owners need no outreach is **withdrawn by owner direction**. MKD owner
-recipients are emailed through the normal reviewed process and are included in the test set. No
-outreach-skip path may be built.
+The 2026-08-05 premise that MKD owners need no outreach is **withdrawn by owner direction**: MKD
+owners are emailed through the normal reviewed process and are in the test set; no skip path.
 
 ## Locked safety
 
@@ -103,22 +102,28 @@ outreach-skip path may be built.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, AC-S57-1..10, commit `fb57e0b`): complete paged
-read, three callers switched, honest Console cap, incomplete-read state, sentinel falsified, field
-discovery + golden capture re-run portfolio-wide (305/305 complete; tenant email 302/305, owner
-email 305/305, 146/305 multi-owner-email; capture 305 candidates, 20 High flags).
+**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, commit `fb57e0b`): complete paged read everywhere,
+sentinel falsified; portfolio-wide coverage measured (tenant email 302/305, owner email 305/305,
+146/305 multi-owner-email; golden capture 305 candidates, 20 High flags).
 
-**S58 is DONE** (`F-LEASE-DATA-CURRENCY`, AC-S58-1..10): three-age contract (60s soft TTL / 15-min
-hard max per `Q-LEASE-DATA-MAX-AGE`), SWR revalidation with backoff, expired refuses compose/record
-(409) while browsing stays open, four desk states + manual refresh + focus revalidation, write-back
-invalidation, baseline-immutability sentinel falsified. Known-red carried forward: `test:e2e:core`
-fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`), identical on a
-clean-HEAD baseline; not this program's fallout.
+**S58 is DONE** (`F-LEASE-DATA-CURRENCY`, commit `79b820d`): three-age contract (60s TTL / 15-min
+hard max), SWR + backoff, expired refuses compose/record, four desk states + manual/focus refresh,
+write-back invalidation, baseline sentinel falsified. Known-red carried forward: `test:e2e:core`
+fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`).
 
-Start **S59** at `docs/feature-suites/rentcast-live-activation.md` (key is PLACED,
-`F-RENTCAST-KEY-PLACED`; API contract researched, `F-RENTCAST-API-CONTRACT`; owner dependency = the
-reviewed D12 seed patch + deploy-wrapper binding). Then S60 → S61 → S62 → S63. S65 may interleave
-whenever no slice is mid-flight. Do not start S64.
+**S59 is DONE and DEPLOYED** (`F-RENTCAST-ACTIVATION-HARDENED`, commit `0283773`, revision
+`pmi-kc-app-rmsi5llfz-8332ff9656c8`, checkpoint `F-CURRENT-SERVING-CHECKPOINT-2026-08-06`): AVM comp
+basis, legible refusals, cache + billed-call counter + hard quota stop, health probe, deploy
+bindings read back, rollback proven. **OWNER STEP OPEN (`Q-RENTCAST-ACCOUNT-403`)**: the placed key
+answers 403 — activate the API plan in the RentCast dashboard, read back the real allowance/overage
+(AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
+(`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
+
+Start **S60** at `docs/feature-suites/comp-persistence-and-under-market-signal.md` (under-market
+threshold 10 percent below the provider point estimate, `Q-UNDER-MARKET-THRESHOLD`; trend inline
+plus source link, `Q-COMP-TREND-PRESENTATION`; clamp repair, `F-RENT-SUGGESTION-CLAMP-INERT`). S60's
+LIVE comp evidence waits on `Q-RENTCAST-ACCOUNT-403`; its build work does not. Then S61 → S62 → S63.
+S65 may interleave whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at
 `docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four
