@@ -22,24 +22,53 @@ fixture, or this repository. Every step below either prompts for it or reads it 
 
 ## 2. Place the key in Secret Manager
 
-Owner-run. Safe to rerun — it creates the container only when absent, then adds a new version. Paste
-the key at the prompt and press **Ctrl-D**; it never touches disk.
+Owner-run. **Use the PowerShell block — this repository's owner works in Windows PowerShell 5.1**,
+where `||` is not a statement separator and `>/dev/null 2>&1` is not valid redirection. A bash-shaped
+block fails on the first line and then fails again at the IAM step with a confusing 404, because the
+secret was never created.
 
-```bash
-gcloud secrets describe RENTCAST_API_KEY --project=pmi-kc-kb-prod >/dev/null 2>&1 || gcloud secrets create RENTCAST_API_KEY --project=pmi-kc-kb-prod --replication-policy=automatic
-gcloud secrets versions add RENTCAST_API_KEY --project=pmi-kc-kb-prod --data-file=-
+Two things this procedure gets right that a naive one does not. It never puts the key on a command
+line, so it stays out of shell history. And it writes the value with **no trailing newline** — a
+newline captured into the secret becomes part of the `X-Api-Key` header and produces an
+authentication failure that looks like a bad key.
+
+### PowerShell (primary)
+
+Run from any directory. Paste the key at the prompt; the input is masked.
+
+```powershell
+gcloud secrets create RENTCAST_API_KEY --project=pmi-kc-kb-prod --replication-policy=automatic
+$sec = Read-Host "Paste the RentCast API key" -AsSecureString
+$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+$plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+$tmp = Join-Path $env:TEMP "rentcast.key"
+[IO.File]::WriteAllText($tmp, $plain)
+gcloud secrets versions add RENTCAST_API_KEY --project=pmi-kc-kb-prod --data-file="$tmp"
+Remove-Item $tmp -Force
+$plain = $null; $sec = $null; [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
 gcloud secrets add-iam-policy-binding RENTCAST_API_KEY --project=pmi-kc-kb-prod --member=serviceAccount:pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
 ```
 
-Read back that it exists and has a version, without revealing the value:
+The temp file exists for the duration of one command, lives outside the repository, and is removed on
+the next line. That is a deliberate trade: PowerShell's pipeline appends a newline to anything sent to
+a native executable, so piping the key would silently corrupt it.
 
-```bash
+If the secret already exists, the first line errors with `ALREADY_EXISTS`. That is safe to ignore —
+the remaining lines add a new version to it.
+
+### Verify without revealing the value
+
+```powershell
 gcloud secrets versions list RENTCAST_API_KEY --project=pmi-kc-kb-prod --limit=1
+(gcloud secrets versions access latest --secret=RENTCAST_API_KEY --project=pmi-kc-kb-prod).Length
 ```
 
-Report completion as "RentCast key is in Secret Manager" — never the value. If the key was ever
-pasted into a chat, a ticket, or an email, roll it in the RentCast dashboard after setup and repeat
-this section; rolling costs nothing.
+The second command prints only a character count. It should equal the key's length exactly. A count
+one higher than expected means a trailing newline was captured; redo the add step.
+
+Report completion as "RentCast key is in Secret Manager" — never the value. If the key was ever pasted
+into a chat, a ticket, or an email, roll it in the RentCast dashboard after setup and repeat this
+section; rolling costs nothing.
 
 ## 3. The paired code change — required, not optional
 

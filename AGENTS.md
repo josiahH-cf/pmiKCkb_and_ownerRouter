@@ -361,6 +361,7 @@ route new work through the three-product docs.
 | Production cost governance (S52)        | `docs/feature-suites/production-cost-governance.md`                                                                    |
 | Green-light activation + gates (S53)    | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`                                                      |
 | Verification and CI parity (S54)        | `docs/feature-suites/verification-and-ci-parity.md`                                                                    |
+| **Unattended renewal proof loop**       | `docs/meta-prompts/renewal-proof-unattended-loop.md` (canonical fresh-context launcher for S57–S63)                    |
 | **Renewal proof program (S57–S63)**     | `docs/feature-suites/README.md` S57–S63 rows; authorization above; the proof artifact is S63                           |
 | Portfolio-complete lease reads (S57)    | `docs/feature-suites/portfolio-complete-lease-reads.md`                                                                |
 | Live lease data currency (S58)          | `docs/feature-suites/live-lease-data-currency.md`                                                                      |

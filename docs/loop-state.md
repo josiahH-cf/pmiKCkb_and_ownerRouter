@@ -92,6 +92,9 @@ outreach-skip path may be built.
 
 ## Resume
 
+**Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
+to a new session to run this program unattended.
+
 Start **S57** at `docs/feature-suites/portfolio-complete-lease-reads.md`. Build the paged complete
 read, switch the three no-param callers, make the Console display cap honest, render the
 incomplete-read state, add the paging boundary test, falsify it, then re-run field discovery and `golden:capture` live across the full portfolio
@@ -100,11 +103,16 @@ and record real coverage.
 Then S58 → S59 → S60 → S61 → S62 → S63. S65 may interleave whenever no slice is mid-flight. Do not
 start S64.
 
-**Do first, before any slice:** the client correction note at
-`docs/temp/client-correction-note-2026-08-06.md` (gitignored, owner-send only) is drafted and awaits
-Josiah's review and send. The owner directed it be done first, ahead of the training session. It
-corrects four statements made on the 2026-08-05 call that the app does not do: reply self-updating,
-RentVine write being a toggle, notification email, and per-item approval relaxation.
+**Correction note: DONE 2026-08-06.** The client correction note at
+`docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four
+statements made on the 2026-08-05 call that the app does not do: reply self-updating, RentVine write
+being a toggle, notification email, and per-item approval relaxation. Do not re-send it. The client
+now knows the four leases are not visible until S57 lands.
+
+**RentCast key: owner action IN FLIGHT.** The owner is placing `RENTCAST_API_KEY` in Secret Manager
+per `docs/rentcast-setup-runbook.md`. Until it is confirmed placed AND the reviewed D12 seed patch
+lands, S59 stops at its named dependency and S63's number criterion stays `not_evaluated`. S57 and
+S58 do not wait on it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL, exporting
