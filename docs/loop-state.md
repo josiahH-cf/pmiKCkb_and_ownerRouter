@@ -61,25 +61,26 @@ Sheet rows 507–510 joined to RentVine lease ids **278, 279, 280, 297**. Detail
 current rent in RentVine against a non-zero Sheet figure — a real day-zero discrepancy, kept as test
 finding number one. Leases 279 and 280 share one street address, so records key on lease id.
 
-## Open owner values (do not invent)
+## Owner values — ALL ANSWERED 2026-08-06
 
-Each has a `Q-` row in `docs/facts.md` with its documented safe default.
+Every value the program needs is decided. Read the `Q-` rows in `docs/facts.md` for the exact wording;
+none of these is a judgement call any more.
 
-1. `Q-TESTSET-TOLERANCE` — the rent-comparison tolerance. **No default.** S63 criterion 3 reads
-   `not_evaluated` until answered.
-2. `Q-TESTSET-NEGOTIATED` — which two leases are already negotiated, and their agreed rents.
-3. `Q-TESTSET-DAILY-OWNER` — who checks the test each day.
-4. `Q-OWNER-ORDERING` — what orders owner recipients, now that `percentOwned` is measured empty.
-5. `Q-CHANNEL-SEPARATION-ASSERTION` — default: build it and refuse on violation.
-6. `Q-COMP-TREND-PRESENTATION` — source resolved (`/markets`); presentation still open.
-7. `Q-UNDER-MARKET-THRESHOLD` — provisional 10 percent.
-8. `Q-LEASE-DATA-MAX-AGE` — provisional 15 minutes.
-9. `Q-RENTCAST-PLAN-TERMS` — the terms-of-service half only; the numbers are resolved.
-10. `Q-TESTSET-OWNER-SEND` — whether "email the MKD owners" means a real human send in the window.
-11. `Q-SHEET-WRITEBACK-BACKUP` — what the required backup actually is.
-12. `Q-COHORT-ADDRESS-RECORDING` — confirm the committed-versus-gitignored split.
-13. `Q-TESTSET-EVIDENCE-IN-APP` — whether Dan inspects evidence in-app.
-14. `Q-MKD-PORTFOLIO-ID` — id resolved (27); what the client's "50/50" refers to is still open.
+- Tolerance: plus-or-minus 5 percent or 50 dollars, whichever is larger.
+- Comparison basis: the Sheet's own Market Value column, all four leases (`F-TESTSET-COMPARISON-BASIS`).
+- Daily owner: Bailey, escalating to Josiah.
+- Owner ordering: the portfolio's own owner order, first to `to`, rest to `cc`.
+- Channel separation assertion: build it, refuse on violation.
+- Trend presentation: rendered range inline plus a source link. No attachment.
+- Under-market threshold: 10 percent below the provider point estimate.
+- Max lease-data age: 15 minutes.
+- RentCast terms: caching, storage, and owner-facing display are expressly permitted.
+- Test-window sends: compose-and-review only.
+- Sheet write-back backup: a Drive copy pinned to a named revision, owner-verified first.
+- Cohort data split, evidence in-app, MKD cohort membership: all settled.
+
+One residual, non-blocking: what the client's "50/50" referred to, given MKD carries three owner
+records and no ownership percentages. It blocks nothing, because the rule keys on `portfolioID` 27.
 
 ## Resolved 2026-08-06 (do not re-ask)
 
@@ -126,10 +127,8 @@ statements made on the 2026-08-05 call that the app does not do: reply self-upda
 being a toggle, notification email, and per-item approval relaxation. Do not re-send it. The client
 now knows the four leases are not visible until S57 lands.
 
-**RentCast key: owner action IN FLIGHT.** The owner is placing `RENTCAST_API_KEY` in Secret Manager
-per `docs/rentcast-setup-runbook.md`. Until it is confirmed placed AND the reviewed D12 seed patch
-lands, S59 stops at its named dependency and S63's number criterion stays `not_evaluated`. S57 and
-S58 do not wait on it.
+**RentCast key: PLACED and verified 2026-08-06** (`F-RENTCAST-KEY-PLACED`). S59's remaining owner
+dependency is the reviewed D12 seed patch plus the deploy-wrapper binding, not the credential.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL, exporting

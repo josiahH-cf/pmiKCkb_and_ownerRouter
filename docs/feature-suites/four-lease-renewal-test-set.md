@@ -73,15 +73,20 @@ alone does not identify a lease.
 2. **Fact accuracy.** The rent, lease end, and recipients the app resolves match the authoritative
    sources, or the app raises a discrepancy where they genuinely disagree. Lease 297's rent mismatch
    must appear as a raised discrepancy, not as a silently accepted number.
-3. **Number agreement.** On the leases where the team has an independently negotiated figure, the
-   app's derived position falls within the agreed tolerance. This is the criterion that requires
-   **S59** and **S60** to have landed, because until then the app's suggested number is the median of
-   the operator's own typed comps and it is comparing the human to themselves.
+3. **Number agreement.** The app's provider-derived estimate falls within **plus-or-minus 5 percent
+   or 50 dollars, whichever is larger**, of the team's own recorded Market Value for that lease.
+   A live Sheet read on 2026-08-06 established that no cohort lease carries a negotiated rent — all
+   four record only that owner outreach was sent — but every one already carries a human-entered
+   Market Value beside its Current Rent. That is the comparison basis, and it applies to all four
+   leases rather than two (`F-TESTSET-COMPARISON-BASIS`). The criterion still requires **S59** and
+   **S60** to have landed, because until then the app's number is the median of the operator's own
+   typed comps and it is comparing the human to themselves. If a renewal actually closes during the
+   window, its agreed rent is recorded as an additional comparison.
 4. **Communication correctness.** Owner and tenant drafts are composed with the right recipients on
    the right channels, never mixed, and every number in the draft is attributed to the source it
    actually came from.
 
-**An unresolved tension the owner must settle (`Q-TESTSET-OWNER-SEND`).** The 2026-08-06 direction on
+**Settled 2026-08-06 (`Q-TESTSET-OWNER-SEND`): compose-and-review only.** The 2026-08-06 direction on
 MKD says to email the owner recipients and "include that communication in the process test". Read
 strictly, that could mean a real reviewed human send during the test window. Everything else about the
 test set says nothing goes out. The reading applied here, as a documented safe default, is
@@ -102,7 +107,7 @@ that "nothing was sent" is a checked statement rather than a remembered one.
 
 Buildable now (app-plane): the baseline store, the evidence record, the activity reader, the report
 generator, and the verdict logic. Build to the seam (live provider): none new. Owner dependency (the
-one flip): none for the machinery. The test **run** depends on `Q-TESTSET-TOLERANCE`, `Q-TESTSET-NEGOTIATED` (which two leases
+one flip): none for the machinery. The test **run** depends on `Q-TESTSET-TOLERANCE`, `F-TESTSET-COMPARISON-BASIS` (which two leases
 are negotiated and their agreed rents), and a named daily owner.
 
 **Open questions & assumptions.**
@@ -110,7 +115,7 @@ are negotiated and their agreed rents), and a named daily owner.
 - _Open (owner, `Q-TESTSET-TOLERANCE`):_ the numeric tolerance for criterion 3, in dollars or percent. Deliberately
   **not** defaulted — a tolerance invented by the runner would make the pass criterion meaningless.
   Criterion 3 cannot be evaluated until this is answered; the other three can.
-- _Open (owner, `Q-TESTSET-NEGOTIATED`):_ which two of the four leases are already negotiated, and the rent the team
+- _Open (owner, `F-TESTSET-COMPARISON-BASIS`):_ which two of the four leases are already negotiated, and the rent the team
   landed on for each. Without this there is no reference value for criterion 3.
 - _Open (owner):_ the named person responsible for checking the test each day. D08 requires it and no
   daily-owner, on-call, or rotation concept exists anywhere in the repository. What exists instead is
@@ -207,7 +212,7 @@ It must not silently substitute the app's number for the human's, or the reverse
 4. _Build:_ the verdict logic for the four criteria, with `not_evaluated` as a first-class outcome.
 5. _Build:_ the report generator, writing outside git.
 6. _Gate:_ prepare the `firestore.rules` declarations as an isolated D12 patch and surface it.
-7. _Owner:_ obtain the tolerance (`Q-TESTSET-TOLERANCE`), the negotiated reference rents (`Q-TESTSET-NEGOTIATED`), the daily owner, and
+7. _Owner:_ obtain the tolerance (`Q-TESTSET-TOLERANCE`), the negotiated reference rents (`F-TESTSET-COMPARISON-BASIS`), the daily owner, and
    the MKD answer (`Q-MKD-PORTFOLIO-ID`).
 8. _Verify:_ falsify by attempting a baseline mutation and observing AC-S63-3 fail, then restoring.
 9. _Verify:_ full gate including `test:firestore` and `verify:redaction`.

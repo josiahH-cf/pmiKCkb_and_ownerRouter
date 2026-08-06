@@ -163,25 +163,35 @@ If you author a new spec: line 1 must be `<!-- spec-shape: overhaul-v1 -->`, the
 
 ---
 
-## 6. Values you must NOT invent
+## 6. Decided values — apply them, do not re-open them
 
-The owner deliberately left these open. Applying a documented safe default and continuing is correct;
-inventing a number and presenting it as decided is not. Each has a `Q-` row in `docs/facts.md`.
+Every value this program needs was settled by the owner on 2026-08-06. The exact wording is in the
+`Q-` rows of `docs/facts.md`. Apply these; do not treat any of them as a judgement call, and do not
+ask the owner again.
 
-- `Q-TESTSET-TOLERANCE` — the rent-comparison tolerance. **No default.** S63 criterion 3 evaluates as
-  `not_evaluated` until answered. A missing input must never read as a pass.
-- `Q-TESTSET-NEGOTIATED` — which two leases are already negotiated, and their agreed rents.
-- `Q-TESTSET-DAILY-OWNER` — who checks the test each day.
-- `Q-OWNER-TIE-BEHAVIOR` — equal-ownership tie. Default: keep the current refuse-and-flag.
-- `Q-CHANNEL-SEPARATION-ASSERTION` — default: build it and refuse on violation.
-- `Q-COMP-TREND-PRESENTATION` — and note no trend data is retrieved this cycle at all.
-- `Q-UNDER-MARKET-THRESHOLD` — provisional 10 percent; the test is parameterised, not pinned.
-- `Q-LEASE-DATA-MAX-AGE` — provisional 15 minutes; it refuses operator work when exceeded.
-- `Q-MKD-PORTFOLIO-ID` — client-owned. S62 cannot create a real rule without it.
-- `Q-RENTCAST-PLAN-TERMS` — whether the plan permits caching and owner-facing display.
-- `Q-TESTSET-OWNER-SEND` — whether "email the MKD owners" means a real human send during the window.
+| Value                             | Decision                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| Rent-comparison tolerance         | plus-or-minus 5 percent, or 50 dollars, whichever is larger              |
+| Comparison basis                  | the Sheet's own Market Value column, all four leases                     |
+| Daily owner for the window        | Bailey, escalating to Josiah                                             |
+| Owner recipient ordering          | the portfolio's own owner order: first to `to`, rest to `cc`             |
+| Owner/tenant separation assertion | build it; refuse the draft on violation                                  |
+| Trend presentation                | rendered range inline plus a source link; no attachment                  |
+| Under-market threshold            | 10 percent below the provider point estimate                             |
+| Max lease-data age                | 15 minutes                                                               |
+| RentCast data terms               | caching, storage, and owner-facing display are expressly permitted       |
+| Sends during the test window      | compose-and-review only; nothing goes out                                |
+| Sheet write-back backup           | a Drive copy pinned to a named revision, owner-verified first            |
+| Cohort data in git                | lease ids, rows, dates, counts committed; rents and addresses gitignored |
+| Test evidence surface             | the generated report is sufficient; no in-app viewer this cycle          |
 
----
+**The one thing that is still genuinely unknown**, and it blocks nothing: what the client's "50/50"
+remark about MKD ownership referred to, given `portfolioID` 27 carries three owner records and no
+ownership percentages at all. The S62 rule keys on the portfolio id and does not need it.
+
+**The discipline this replaces still applies to anything NEW.** If you hit a value the owner has not
+decided, apply a documented safe default, record it as a `Q-` row, and keep building. Never invent an
+acceptance value and present it as decided, and never let a missing input read as a pass.
 
 ## 7. Safety invariants
 
@@ -232,8 +242,18 @@ Never promote one to another in a fact row without the evidence.
 - Specs S57–S65 are committed at `daaf3cc` and CI is green. No code has been written yet.
 - The client correction note was **sent**. Do not re-send it. The client knows the four test leases
   are not visible until S57 lands.
-- The RentCast key placement is **in flight** with the owner; `docs/rentcast-setup-runbook.md` has the
-  procedure. S57 and S58 do not wait on it.
+- The RentCast key is **placed and verified** in Secret Manager with the runtime service account
+  bound. S59's remaining owner dependency is the reviewed D12 seed patch plus the deploy-wrapper
+  binding, not the credential.
+- The RentCast API contract is researched. **Use `/avm/rent/long-term` for the comp basis** (it
+  returns its own low/high range and correlation-scored comps) and **`/markets` for trend history**.
+  Overage is charged automatically, so the app-side hard stop is a cost control.
+- **MKD is `portfolioID` 27** (39 leases, 3 owners) and **no test-cohort lease belongs to it**, so S62
+  gets no live evidence from this cohort.
+- **`percentOwned` is empty across the entire live export.** Fifty portfolios have multiple owners and
+  none has a tie, because there is nothing to tie on.
+- The operations alert channel exists and is enabled. The four alert policies remain uncreated S51
+  work with two known defects.
 - The hard refresh is done: field map re-derived live with zero drift, Sheet read green, golden
   capture written. **Re-run the golden capture after S57** — it captured the 25-row default page.
 - Every prior live-read coverage figure in this repository was measured on leases 1–25 and is

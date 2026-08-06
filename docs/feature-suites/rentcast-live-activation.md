@@ -135,13 +135,14 @@ already declares a `rentcast.rate_limit` step with no implementation.
    prepares it and surfaces it; it does not push it. Until it lands the route correctly refuses, so
    the comps path is not live no matter what else is done.
 
-A third item is an external confirmation this suite does not resolve and must not paper over: the
-RentCast **plan and third-party-data terms** question already recorded in
-`docs/client-checklist.md` — whether the active plan permits **storing/caching** comp responses and
-**displaying them to a property owner**. This suite adds exactly that caching, and S60 puts the
-numbers in front of an owner. `docs/environment-handoff.md` and the S52 cost-control fact both pin
-the same gate. It is tracked as `Q-RENTCAST-PLAN-TERMS`, and those three records must be updated in
-the same slice that resolves it.
+The third item that was previously open here is **resolved** (`Q-RENTCAST-PLAN-TERMS`). RentCast's
+published API Terms of Use grant a limited right to "use and/or store the API Data", expressly
+including the right "to sublicense, disclose, display, resell and distribute the API Data to third
+parties" and "to incorporate and store the API Data within your internal systems". Caching,
+persistence, and showing a comp to a property owner are all permitted; attribution is expressly not
+required; no retention limit is stated. The only relevant duty is to prevent unauthorized parties
+from scraping the data through our own application. `docs/client-checklist.md` and
+`docs/environment-handoff.md` still carry the old gate wording and must be corrected in this slice.
 
 **Open questions & assumptions.**
 
