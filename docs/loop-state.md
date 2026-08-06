@@ -37,12 +37,6 @@ runtime_action_gates_preflipped: false
   S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
 - Activation remains per exact Action Registry key, never by category or inference.
 
-## Why S57 was first (RESOLVED by `F-PORTFOLIO-COMPLETE-READS`)
-
-RentVine's `/leases/export` is page-limited (`pageSize` honoured, `limit` silently ignored) and the
-desk read 25 of 305 leases with no test lease in the page. S57 fixed it; the paging sentinel keeps
-it fixed.
-
 ## Hard refresh completed 2026-08-06
 
 - RentVine field map re-derived live; zero drift against the 2026-07-22 map. Tenant email
