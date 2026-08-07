@@ -42,16 +42,24 @@ export interface RentSuggestionInput {
 
 export type RentSuggestionStatus = "suggested" | "needs_verification";
 
+/** How the suggested number was derived (S62 widens the original comp-median-only union). */
+export type RentSuggestionMethod = "comp_median" | "owner_policy_percent";
+
 export interface RentSuggestion {
-  /** The suggested monthly rent, or null when there is no defensible comp set (never fabricated). */
+  /** The suggested monthly rent, or null when there is no defensible basis (never fabricated). */
   suggestedRent: number | null;
-  /** The aggregation method. V1 is the comp median (owner-confirmed 2026-07-23). */
-  method: "comp_median";
-  /** The comps that produced the number. Non-empty exactly when `suggestedRent` is non-null. */
+  /** The derivation method: the comp median (S29) or an owner-policy percentage rule (S62). */
+  method: RentSuggestionMethod;
+  /** The sources that produced the number. Non-empty exactly when `suggestedRent` is non-null. */
   comps: CompSource[];
   status: RentSuggestionStatus;
   /** Plain-English explanation of how the number was derived, for display beside it. */
   rationale: string;
+  /**
+   * S62 precedence context (AC-S62-6): when an owner-policy rule proposes the number and a comp
+   * median also exists, the median stays VISIBLE here rather than being silently discarded.
+   */
+  context?: { compMedian: number | null };
 }
 
 const DEFAULT_MAX_DEVIATION_FRACTION = 0.15;
@@ -66,6 +74,70 @@ const NEEDS_VERIFICATION: RentSuggestion = Object.freeze({
 
 function isUsableRent(value: number): boolean {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+/** The owner-policy rule shape the pure computation needs (mirrors the S62 store's rule). */
+export interface OwnerPolicyPercentInput {
+  portfolioId: string;
+  percent: number;
+  note?: string;
+}
+
+/**
+ * S62: compute the owner-policy suggested renewal rent — the authoritative current rent increased
+ * by the rule's flat percentage, rounded by the existing whole-dollar convention. Pure and
+ * deterministic. A zero, missing, or non-numeric base REFUSES with an explicit reason rather than
+ * computing a percentage of nothing (AC-S62-5), and an invalid percentage refuses too. The result
+ * enters the SAME `suggested` state the S29 approval FSM guards, so approval semantics are
+ * unchanged rather than special-cased.
+ */
+export function computeOwnerPolicySuggestion(input: {
+  currentRent: number | null | undefined;
+  rule: OwnerPolicyPercentInput;
+}): RentSuggestion {
+  const { rule } = input;
+  const label = `Owner policy: +${rule.percent}% (portfolio ${rule.portfolioId})`;
+  if (
+    typeof input.currentRent !== "number" ||
+    !Number.isFinite(input.currentRent) ||
+    input.currentRent <= 0
+  ) {
+    return {
+      suggestedRent: null,
+      method: "owner_policy_percent",
+      comps: [],
+      status: "needs_verification",
+      rationale: `${label} cannot be applied: the authoritative current rent is missing or zero, and a percentage of nothing is not a number. Needs verification.`,
+    };
+  }
+  if (
+    typeof rule.percent !== "number" ||
+    !Number.isFinite(rule.percent) ||
+    rule.percent <= 0
+  ) {
+    return {
+      suggestedRent: null,
+      method: "owner_policy_percent",
+      comps: [],
+      status: "needs_verification",
+      rationale:
+        "The owner-policy percentage is not a usable number. Needs verification.",
+    };
+  }
+  const suggested = Math.round(input.currentRent * (1 + rule.percent / 100));
+  return {
+    suggestedRent: suggested,
+    method: "owner_policy_percent",
+    comps: [
+      {
+        rent: suggested,
+        source: label,
+        ...(rule.note ? { label: rule.note } : {}),
+      },
+    ],
+    status: "suggested",
+    rationale: `${label}: ${formatWhole(input.currentRent)} current rent plus ${rule.percent}% is ${formatWhole(suggested)}.${rule.note ? ` Rule note: ${rule.note}` : ""}`,
+  };
 }
 
 function median(sortedAscending: readonly number[]): number {

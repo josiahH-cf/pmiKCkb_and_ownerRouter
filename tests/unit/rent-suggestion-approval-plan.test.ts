@@ -94,6 +94,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Comps support this." },
       null,
+      null,
       fs(),
     );
 
@@ -115,7 +116,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({ action: "approve", new_state: "Approved" });
 
-    const approved = await getApprovedRentSuggestion(admin, LEASE_ID, null, fs());
+    const approved = await getApprovedRentSuggestion(admin, LEASE_ID, null, null, fs());
     expect(approved?.value).toBe(2300);
   });
 
@@ -125,15 +126,16 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Approved 2300." },
       null,
+      null,
       fs(),
     );
-    expect((await getApprovedRentSuggestion(admin, LEASE_ID, null, fs()))?.value).toBe(
-      2300,
-    );
+    expect(
+      (await getApprovedRentSuggestion(admin, LEASE_ID, null, null, fs()))?.value,
+    ).toBe(2300);
 
     // The operator revises the comps; the median is now 2600. The prior approval no longer authorizes it.
     seedProgress(db, { zillow_low: 2500, zillow_high: 2800, pmi_number: 2600 });
-    expect(await getApprovedRentSuggestion(admin, LEASE_ID, null, fs())).toBeNull();
+    expect(await getApprovedRentSuggestion(admin, LEASE_ID, null, null, fs())).toBeNull();
 
     // A record still exists but no longer matches the current number: nothing silently authorized.
     const stored = await getRentSuggestionApproval(admin, LEASE_ID, fs());
@@ -148,12 +150,13 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
         reason: "Approving the revised number.",
       },
       null,
+      null,
       fs(),
     );
     expect(reapproved.approved_value).toBe(2600);
-    expect((await getApprovedRentSuggestion(admin, LEASE_ID, null, fs()))?.value).toBe(
-      2600,
-    );
+    expect(
+      (await getApprovedRentSuggestion(admin, LEASE_ID, null, null, fs()))?.value,
+    ).toBe(2600);
   });
 
   it("refuses to decide when there is no defensible comp set (needs verification)", async () => {
@@ -162,6 +165,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       decideRentSuggestionApproval(
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
+        null,
         null,
         fs(),
       ),
@@ -176,6 +180,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
         editor,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
         null,
+        null,
         fs(),
       ),
     ).rejects.toThrow(EditableLayerError);
@@ -189,6 +194,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "   " },
         null,
+        null,
         fs(),
       ),
     ).rejects.toThrow();
@@ -200,12 +206,14 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "First approve." },
       null,
+      null,
       fs(),
     );
     await expect(
       decideRentSuggestionApproval(
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "Second approve." },
+        null,
         null,
         fs(),
       ),
@@ -223,6 +231,7 @@ describe("S60 clamp repair", () => {
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Clamp check." },
       2000,
+      null,
       fs(),
     );
     // Median 3200 is >15% above 2000 → clamped to 2300 (2000 * 1.15).
@@ -235,6 +244,7 @@ describe("S60 clamp repair", () => {
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "No live rent." },
       null,
+      null,
       fs(),
     );
     expect(approval.approved_value).toBe(3200);
@@ -242,8 +252,109 @@ describe("S60 clamp repair", () => {
 
   it("requires the current-rent argument at the signature level (an omitting call site fails)", () => {
     // Function.length counts required params: (actor, leaseId, currentRent) before the db default.
-    expect(resolveLeaseRentSuggestion.length).toBe(3);
-    expect(decideRentSuggestionApproval.length).toBe(3);
-    expect(getApprovedRentSuggestion.length).toBe(3);
+    // S62 widened each by the portfolio id (owner-policy rules), so the pin is now 4.
+    expect(resolveLeaseRentSuggestion.length).toBe(4);
+    expect(decideRentSuggestionApproval.length).toBe(4);
+    expect(getApprovedRentSuggestion.length).toBe(4);
+  });
+});
+
+// S62: a policy-derived number rides the SAME approval plane as a comp-derived one.
+describe("owner-policy suggestion approval (AC-S62-3, AC-S62-4)", () => {
+  function seedRule(percent: number): void {
+    db.seed("owner_policy_rules/27", {
+      id: "27",
+      portfolio_id: "27",
+      kind: "flat_percent_increase",
+      percent,
+      effective_from: "2026-01-01",
+      note: "MKD standing agreement.",
+      updated_by_uid: "admin-1",
+      updated_at: "2026-08-01T00:00:00.000Z",
+    });
+  }
+
+  // AC-S62-3: same Admin approval, recomputed server-side at decision time, never client-supplied.
+  it("approves the server-recomputed policy number through the S29 plane (AC-S62-3)", async () => {
+    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedRule(3.5);
+
+    // The decision input carries NO number field at all — the value is recomputed server-side.
+    const approval = await decideRentSuggestionApproval(
+      admin,
+      { lease_id: LEASE_ID, decision: "approve", reason: "Standing MKD policy." },
+      2000,
+      "27",
+      fs(),
+    );
+    expect(approval.state).toBe("Approved");
+    // 2000 * 1.035 = 2070 — the rule's number, not the comp median (2300).
+    expect(approval.approved_value).toBe(2070);
+    expect(approval.method).toBe("owner_policy_percent");
+    expect(approval.executed).toBe(false);
+
+    // Same Admin gate: an Editor cannot approve a policy number either.
+    await expect(
+      decideRentSuggestionApproval(
+        editor,
+        { lease_id: LEASE_ID, decision: "approve", reason: "x" },
+        2000,
+        "27",
+        fs(),
+      ),
+    ).rejects.toThrow(EditableLayerError);
+  });
+
+  // AC-S62-4: changing the rule makes the prior approval stale, exactly as a changed comp basis does.
+  it("marks a prior approval stale when the rule changes (AC-S62-4)", async () => {
+    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedRule(3.5);
+    await decideRentSuggestionApproval(
+      admin,
+      { lease_id: LEASE_ID, decision: "approve", reason: "Approved 2070." },
+      2000,
+      "27",
+      fs(),
+    );
+    expect(
+      (await getApprovedRentSuggestion(admin, LEASE_ID, 2000, "27", fs()))?.value,
+    ).toBe(2070);
+
+    // The Admin updates the rule to 5%; the recompute is now 2100 and 2070 no longer authorizes.
+    seedRule(5);
+    expect(await getApprovedRentSuggestion(admin, LEASE_ID, 2000, "27", fs())).toBeNull();
+
+    // Re-approving snapshots the new policy number.
+    const reapproved = await decideRentSuggestionApproval(
+      admin,
+      { lease_id: LEASE_ID, decision: "approve", reason: "Approving the 5% number." },
+      2000,
+      "27",
+      fs(),
+    );
+    expect(reapproved.approved_value).toBe(2100);
+  });
+
+  it("falls back to the comp median when no rule is active for the portfolio", async () => {
+    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    // Rule is future-dated: recorded, visible to Admins, but never applied yet.
+    db.seed("owner_policy_rules/27", {
+      id: "27",
+      portfolio_id: "27",
+      kind: "flat_percent_increase",
+      percent: 3.5,
+      effective_from: "2099-01-01",
+      note: "Not yet in force.",
+      updated_by_uid: "admin-1",
+    });
+    const suggestion = await resolveLeaseRentSuggestion(
+      admin,
+      LEASE_ID,
+      2300,
+      "27",
+      fs(),
+    );
+    expect(suggestion.method).toBe("comp_median");
+    expect(suggestion.suggestedRent).toBe(2300);
   });
 });

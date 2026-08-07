@@ -13,24 +13,32 @@ import {
 import {
   findLeaseViewById,
   leaseCurrentRent,
+  leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 
 /**
- * S60 (AC-S60-10): resolve the AUTHORITATIVE current rent for the clamp from the shared live
- * RentVine read. Null when live RentVine is not configured or the lease is absent from the read —
- * which leaves the median visibly unclamped rather than clamped against a guessed rent.
+ * S60 (AC-S60-10) + S62: resolve the AUTHORITATIVE current rent (for the clamp) and the portfolio
+ * id (for owner-policy rules) from the shared live RentVine read. Nulls when live RentVine is not
+ * configured or the lease is absent — the recompute stays visibly unclamped and rule-free rather
+ * than working from a guess.
  */
-async function resolveAuthoritativeCurrentRent(leaseId: string): Promise<number | null> {
+async function resolveLeaseLiveFacts(
+  leaseId: string,
+): Promise<{ currentRent: number | null; portfolioId: string | null }> {
   const config = buildLiveRentVineConfig();
-  if (!config.ok) return null;
+  if (!config.ok) return { currentRent: null, portfolioId: null };
   try {
     const views = await getLiveLeaseViews(config.rentvineClient, Date.now());
     const view = findLeaseViewById(views, leaseId);
-    return view ? (leaseCurrentRent(view) ?? null) : null;
+    if (!view) return { currentRent: null, portfolioId: null };
+    return {
+      currentRent: leaseCurrentRent(view) ?? null,
+      portfolioId: leasePortfolioId(view) ?? null,
+    };
   } catch {
-    return null;
+    return { currentRent: null, portfolioId: null };
   }
 }
 
@@ -43,10 +51,12 @@ export async function GET(request: Request) {
     if (leaseId === "") {
       return NextResponse.json({ error: "A lease_id is required." }, { status: 400 });
     }
+    const facts = await resolveLeaseLiveFacts(leaseId);
     const suggestion = await resolveLeaseRentSuggestion(
       user,
       leaseId,
-      await resolveAuthoritativeCurrentRent(leaseId),
+      facts.currentRent,
+      facts.portfolioId,
     );
     const approval = await getRentSuggestionApproval(user, leaseId);
     const activity = await listRentSuggestionApprovalActivity(user, leaseId);
@@ -66,10 +76,12 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("read", "renewals");
     const input = await parseJsonBody(request, DecideRentSuggestionApprovalInputSchema);
+    const facts = await resolveLeaseLiveFacts(input.lease_id);
     const approval = await decideRentSuggestionApproval(
       user,
       input,
-      await resolveAuthoritativeCurrentRent(input.lease_id),
+      facts.currentRent,
+      facts.portfolioId,
     );
     const activity = await listRentSuggestionApprovalActivity(user, input.lease_id);
     return NextResponse.json({ approval, activity });

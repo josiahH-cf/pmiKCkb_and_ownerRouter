@@ -11,6 +11,42 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S62 shipped: a standing owner pricing agreement is a recorded rule, not tribal knowledge (2026-08-06)
+
+S62 (`docs/feature-suites/owner-policy-renewal-pricing.md`) is built and locally verified,
+satisfying AC-S62-1 through AC-S62-11; recorded as `F-OWNER-POLICY-PRICING`.
+
+**What shipped.** An Admin can now record a per-portfolio pricing rule (`flat_percent_increase`,
+the one kind the client has described) keyed on the numeric RentVine `portfolioID` — MKD is 27 —
+with a required plain-English reason and an append-only activity record. A free-text owner name is
+refused, a rule for a portfolio id that does not resolve against a live lease view is refused, and
+a future-dated rule is recorded and listed but never applied. When an active rule exists, the S29
+rent-suggestion plane proposes the rule's number (`current rent × (1 + percent)`, rounded by the
+existing convention, refusing outright on a zero or missing base) labeled `Owner policy: +X%
+(portfolio N)`, while the comp median stays rendered beside it as context — neither number is
+hidden. Approval semantics are reused unchanged: Admin-only, server-side recompute at decision
+time (no client number is ever accepted), and a changed rule makes a prior approval stale exactly
+as a changed comp basis does. Management lives on `/admin` beside the notice rules, backed by
+`/api/admin/owner-policy-rules`.
+
+**What a rule can never do.** Two architecture sentinels make the governance structural rather
+than promised: the offered-rent writer boundary forbids any owner-policy reference on the
+progress-write path (a rule can never set the operator-entered offer), and the outreach-skip
+sentinel forbids the draft-composition path from importing the rule store (a rule can never
+suppress an owner draft or auto-record a decision — the 2026-08-05 MKD skip premise stays
+withdrawn; MKD owners are emailed through the normal reviewed process). AC-S62-10 pins that the
+Sheet's free-text pricing prose is never parsed into a number.
+
+**Falsification.** Four probes, each observed red then green: a deliberate owner-policy import
+wired toward the progress path turned the writer boundary red naming the file; suppressing the
+comp-median render turned the precedence test red; a percent-extraction planted on the
+`owner_pricing_confirmed` line turned the prose sentinel red; the stale-on-rule-change test
+observed 2070 authorize, then null after the rule moved to 5%, then 2100 on re-approval.
+
+**Parked for owner review (D12).** `docs/temp/s62-firestore-rules-explicit-deny-d12-patch.md` —
+optional explicit-deny blocks for the two new collections. Legibility only: the rules file's
+default-deny catch-all already denies them to every client SDK caller today. Never pushed.
+
 ## S61 shipped: every owner of record is addressed, and channel separation now refuses instead of trusting a comment (2026-08-06)
 
 S61 (`docs/feature-suites/renewal-recipient-fanout-and-separation.md`) is built and locally

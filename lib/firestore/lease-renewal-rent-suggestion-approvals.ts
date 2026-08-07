@@ -29,9 +29,11 @@ import type {
 import { DECISION_REASON_CODES } from "@/lib/lease-renewal/reason-codes";
 import {
   compsFromMarketBasis,
+  computeOwnerPolicySuggestion,
   computeRentSuggestion,
   type RentSuggestion,
 } from "@/lib/lease-renewal/rent-suggestion";
+import { getActiveOwnerPolicyRule } from "@/lib/firestore/owner-policy-rules";
 import {
   planRentSuggestionApprovalDecision,
   RENT_SUGGESTION_AWAITING_APPROVAL,
@@ -73,16 +75,45 @@ export async function resolveLeaseRentSuggestion(
   // call site so the ±15% clamp actually engages on the live path; pass null only when the live
   // read is genuinely unavailable, which leaves the median visibly unclamped as before.
   currentRent: number | null,
+  // S62: the lease's RentVine portfolio id from the live view (null when unavailable). An ACTIVE
+  // owner-policy rule for the portfolio proposes the number; the comp median stays visible as
+  // context (AC-S62-6). No rule → the S29 comp median, unchanged.
+  portfolioId: string | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<RentSuggestion> {
   assertCan(actor, "read");
   const progress = await getRenewalProgress(actor, leaseId, db);
   const market = progress?.ownerDecision?.market;
   const comps = market ? compsFromMarketBasis(market) : [];
-  return computeRentSuggestion({
+  const compSuggestion = computeRentSuggestion({
     comps,
     ...(currentRent !== null ? { currentRent } : {}),
   });
+
+  if (portfolioId !== null) {
+    const rule = await getActiveOwnerPolicyRule(
+      actor,
+      portfolioId,
+      new Date().toISOString(),
+      db,
+    );
+    if (rule) {
+      const policySuggestion = computeOwnerPolicySuggestion({
+        currentRent,
+        rule: {
+          portfolioId: rule.portfolioId,
+          percent: rule.percent,
+          ...(rule.note ? { note: rule.note } : {}),
+        },
+      });
+      // The rule is the proposed number; the comp median is rendered beside it, never hidden.
+      return {
+        ...policySuggestion,
+        context: { compMedian: compSuggestion.suggestedRent },
+      };
+    }
+  }
+  return compSuggestion;
 }
 
 /**
@@ -97,6 +128,7 @@ export async function decideRentSuggestionApproval(
   actor: AuthenticatedUser,
   input: DecideRentSuggestionApprovalInput,
   currentRent: number | null,
+  portfolioId: string | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<LeaseRenewalRentSuggestionApprovalRecord> {
   assertCan(actor, "manageAdmin");
@@ -106,7 +138,13 @@ export async function decideRentSuggestionApproval(
     throw new EditableLayerError("A lease id is required.", 400);
   }
 
-  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, currentRent, db);
+  const suggestion = await resolveLeaseRentSuggestion(
+    actor,
+    leaseId,
+    currentRent,
+    portfolioId,
+    db,
+  );
   if (suggestion.status !== "suggested" || suggestion.suggestedRent === null) {
     throw new EditableLayerError(
       "There is no suggested rent number to decide for this lease. Capture comp data first.",
@@ -209,12 +247,19 @@ export async function getApprovedRentSuggestion(
   actor: AuthenticatedUser,
   leaseId: string,
   currentRent: number | null,
+  portfolioId: string | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<ApprovedRentSuggestion | null> {
   assertCan(actor, "read");
   const record = await getRentSuggestionApproval(actor, leaseId, db);
   if (!record || record.state !== "Approved") return null;
-  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, currentRent, db);
+  const suggestion = await resolveLeaseRentSuggestion(
+    actor,
+    leaseId,
+    currentRent,
+    portfolioId,
+    db,
+  );
   if (suggestion.status !== "suggested" || suggestion.suggestedRent === null) return null;
   const comps = suggestion.comps.map(toStoredComp);
   if (isStale(record, suggestion.suggestedRent, comps)) return null;

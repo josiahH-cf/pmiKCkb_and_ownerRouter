@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  computeOwnerPolicySuggestion,
   computeRentSuggestion,
   type CompSource,
 } from "@/lib/lease-renewal/rent-suggestion";
@@ -102,5 +103,52 @@ describe("computeRentSuggestion (AC-S29-1)", () => {
     expect(source).not.toMatch(/from\s+["']node:fs["']/);
     expect(source).not.toMatch(/from\s+["']node:https?["']/);
     expect(source).not.toMatch(/generateContent|model-provider|llm\/answer/);
+  });
+});
+
+// S62: the owner-policy suggestion (AC-S62-1, AC-S62-5).
+describe("computeOwnerPolicySuggestion", () => {
+  const RULE = { portfolioId: "27", percent: 3.5, note: "MKD standing agreement." };
+
+  it("applies the flat percentage to the authoritative current rent, rounded whole", () => {
+    const result = computeOwnerPolicySuggestion({ currentRent: 1400, rule: RULE });
+    expect(result.status).toBe("suggested");
+    expect(result.suggestedRent).toBe(1449); // 1400 * 1.035 = 1449
+    expect(result.method).toBe("owner_policy_percent");
+    expect(result.rationale).toContain("Owner policy: +3.5% (portfolio 27)");
+    expect(result.rationale).toContain("MKD standing agreement.");
+    expect(result.comps.length).toBeGreaterThan(0);
+    expect(result.comps[0].source).toContain("Owner policy");
+  });
+
+  // AC-S62-5: a zero/missing/non-numeric base refuses explicitly; never a percentage of nothing.
+  it.each([0, -5, Number.NaN, null, undefined])(
+    "refuses with an explicit reason when the base rent is %s",
+    (base) => {
+      const result = computeOwnerPolicySuggestion({
+        currentRent: base as number,
+        rule: RULE,
+      });
+      expect(result.status).toBe("needs_verification");
+      expect(result.suggestedRent).toBeNull();
+      expect(result.comps).toEqual([]);
+      expect(result.rationale).toContain("missing or zero");
+    },
+  );
+
+  it("refuses an unusable percentage rather than guessing", () => {
+    const result = computeOwnerPolicySuggestion({
+      currentRent: 1400,
+      rule: { portfolioId: "27", percent: 0 },
+    });
+    expect(result.status).toBe("needs_verification");
+    expect(result.suggestedRent).toBeNull();
+  });
+
+  it("is deterministic", () => {
+    const input = { currentRent: 1400, rule: RULE };
+    expect(computeOwnerPolicySuggestion(input)).toEqual(
+      computeOwnerPolicySuggestion(input),
+    );
   });
 });

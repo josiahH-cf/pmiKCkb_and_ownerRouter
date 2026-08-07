@@ -137,6 +137,29 @@ export function findLeaseViewById(
 }
 
 /**
+ * S62: the lease's RentVine portfolio id from the export view (`portfolio.portfolioID`, measured
+ * present live). Owner-policy rules key on it. Undefined when absent — never guessed.
+ */
+export function leasePortfolioId(lease: RawLease): string | undefined {
+  const portfolio =
+    lease.portfolio &&
+    typeof lease.portfolio === "object" &&
+    !Array.isArray(lease.portfolio)
+      ? (lease.portfolio as Record<string, unknown>)
+      : undefined;
+  for (const source of [portfolio, lease] as const) {
+    if (!source) continue;
+    for (const key of ["portfolioID", "portfolioId"]) {
+      const value = source[key];
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
  * Best-effort property address label for a live lease view (export-shaped). Reads the owner-bearing
  * `property` sibling first, then the lease itself, over the same key set the draft service uses. In
  * boundary only (never written to git); returns undefined when no address is on the record so callers

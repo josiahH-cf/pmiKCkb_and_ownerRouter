@@ -9,6 +9,7 @@ import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-scr
 import {
   findLeaseViewById,
   leaseCurrentRent,
+  leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
@@ -59,6 +60,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const liveConfig = buildLiveRenewalConfig();
   const readTimestamp = new Date().toISOString();
   let authoritativeCurrentRent: number | null = null;
+  let authoritativePortfolioId: string | null = null;
   if (liveConfig.ok) {
     try {
       const views = await getLiveLeaseViews(
@@ -67,6 +69,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       );
       const view = findLeaseViewById(views, leaseId);
       authoritativeCurrentRent = view ? (leaseCurrentRent(view) ?? null) : null;
+      authoritativePortfolioId = view ? (leasePortfolioId(view) ?? null) : null;
     } catch {
       authoritativeCurrentRent = null;
     }
@@ -77,6 +80,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     user,
     leaseId,
     authoritativeCurrentRent,
+    authoritativePortfolioId,
   );
   const compScreenshotAction = await getRenewalCompScreenshotActionView();
   const outcome = await loadLiveRenewalLeaseWorkspace(

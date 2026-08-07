@@ -22,8 +22,12 @@ export interface RentSuggestionCompView {
 export interface RentSuggestionView {
   suggestedRent: number | null;
   status: "suggested" | "needs_verification";
+  /** S62: how the number was derived; an owner-policy rule names itself in the rationale. */
+  method?: "comp_median" | "owner_policy_percent";
   comps: RentSuggestionCompView[];
   rationale: string;
+  /** S62 (AC-S62-6): when a rule proposes the number, the comp median stays visible beside it. */
+  context?: { compMedian: number | null };
 }
 
 export interface RentSuggestionApprovalStateView {
@@ -163,6 +167,15 @@ export function RentSuggestionApproval({
           ))}
         </ul>
         <p className="muted">{suggestion.rationale}</p>
+        {/* S62 precedence (AC-S62-6): a rule-proposed number never hides the comp median. */}
+        {suggestion.method === "owner_policy_percent" &&
+        suggestion.context?.compMedian != null ? (
+          <p className="muted">
+            For comparison, the comp median for this lease is{" "}
+            {formatUsd(suggestion.context.compMedian)}. The owner-policy number above is
+            the proposal; both are shown so nothing is hidden.
+          </p>
+        ) : null}
       </div>
       <p className="muted">
         This number enters the owner email only after an Admin approves it, and a person

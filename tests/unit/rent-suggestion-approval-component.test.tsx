@@ -85,3 +85,61 @@ describe("RentSuggestionApproval (AC-S29-6)", () => {
     expect(screen.queryByRole("button", { name: /Approve this number/ })).toBeNull();
   });
 });
+
+// S62: the owner-policy label and the precedence rendering (AC-S62-2, AC-S62-6).
+describe("owner-policy suggestion rendering (S62)", () => {
+  it("names the policy in the label and keeps the comp median visible beside it", () => {
+    render(
+      <RentSuggestionApproval
+        initialData={{
+          suggestion: {
+            suggestedRent: 1449,
+            status: "suggested",
+            method: "owner_policy_percent",
+            comps: [
+              {
+                rent: 1449,
+                source: "Owner policy: +3.5% (portfolio 27)",
+                label: "MKD standing agreement.",
+              },
+            ],
+            rationale:
+              "Owner policy: +3.5% (portfolio 27): $1,400 current rent plus 3.5% is $1,449.",
+            context: { compMedian: 1520 },
+          },
+          approval: null,
+          canApprove: true,
+        }}
+        leaseId="L-27"
+      />,
+    );
+    // AC-S62-2: the label names the policy, not a comp-derived phrasing (it appears both as
+    // the comp source and inside the rationale, so match all).
+    expect(
+      screen.getAllByText(/Owner policy: \+3\.5% \(portfolio 27\)/).length,
+    ).toBeGreaterThanOrEqual(1);
+    // AC-S62-6: the comp median stays visible beside the rule-proposed number.
+    expect(screen.getByText(/comp median for this lease is \$1,520/)).toBeInTheDocument();
+    expect(screen.getByText(/nothing is hidden/)).toBeInTheDocument();
+  });
+
+  it("renders no comparison line for a plain comp-median suggestion", () => {
+    render(
+      <RentSuggestionApproval
+        initialData={{
+          suggestion: {
+            suggestedRent: 2300,
+            status: "suggested",
+            method: "comp_median",
+            comps: [{ rent: 2300, source: "PMI rental analysis" }],
+            rationale: "Median of 1 comparable rent ($2,300) is $2,300.",
+          },
+          approval: null,
+          canApprove: false,
+        }}
+        leaseId="L-99"
+      />,
+    );
+    expect(screen.queryByText(/comp median for this lease/)).not.toBeInTheDocument();
+  });
+});

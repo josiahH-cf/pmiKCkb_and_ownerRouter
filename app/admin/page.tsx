@@ -6,6 +6,7 @@ import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
 import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
+import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { ReindexPanel } from "@/components/admin/ReindexPanel";
 import { RuntimeSuspensionAdminPanel } from "@/components/admin/RuntimeSuspensionAdminPanel";
@@ -34,6 +35,10 @@ import {
   type NoticeRuleSetRecord,
   readNoticeRuleConfigRecord,
 } from "@/lib/firestore/lease-renewal-notice-rules";
+import {
+  listOwnerPolicyRules,
+  type OwnerPolicyRule,
+} from "@/lib/firestore/owner-policy-rules";
 import {
   type ReindexRequest,
   listReindexRequests,
@@ -81,6 +86,7 @@ export default async function AdminPage() {
   let supportAttention = { newCount: 0, followUpDueCount: 0 };
   let noticeRules: NoticeRuleSetRecord | undefined;
   let noticeRulesNote: string | undefined;
+  let ownerPolicyRules: OwnerPolicyRule[] = [];
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
   let runtimeSuspensionActions = listRuntimeSuspensionActionOptions();
@@ -161,6 +167,14 @@ export default async function AdminPage() {
       .catch(() => {
         noticeRulesNote =
           "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+      }),
+    // S62: owner-policy pricing rules. Degrades to an empty list; the panel still renders.
+    listOwnerPolicyRules(user)
+      .then((rules) => {
+        ownerPolicyRules = rules;
+      })
+      .catch(() => {
+        ownerPolicyRules = [];
       }),
     readAdminActivityLog()
       .then((entries) => {
@@ -403,6 +417,10 @@ export default async function AdminPage() {
               <p className="muted">{noticeRulesNote}</p>
             </article>
           )}
+          <article className="panel">
+            <h2>Owner Pricing Rules</h2>
+            <OwnerPolicyRulesAdminPanel initialRules={ownerPolicyRules} />
+          </article>
           <article className="panel">
             <h2>Workflow Communications</h2>
             <p className="muted">

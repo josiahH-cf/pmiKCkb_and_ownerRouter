@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
@@ -251,5 +253,28 @@ describe("computeUnderMarketSignal", () => {
     expect(draft.body).not.toContain("below the market");
     expect(draft.body).not.toContain("Internal note");
     expect(JSON.stringify(draft.facts)).not.toContain("below the market");
+  });
+});
+
+// S62 (AC-S62-10): the Sheet's free-text pricing column is never parsed into a number or a
+// percentage. The normalizer collapses `owner_pricing_confirmed` to a boolean-shaped signal and no
+// module extracts a percent from that prose — a pricing rule inferred from prose is exactly the
+// guess the governance forbids. The rule store keys on the RentVine portfolio id instead.
+describe("Sheet pricing prose is never parsed (AC-S62-10)", () => {
+  it("no lease-renewal module extracts a percentage from the owner-pricing prose field", () => {
+    const files = [
+      "lib/lease-renewal/headers.ts",
+      "lib/lease-renewal/field-reconciliation-rules.ts",
+      "lib/lease-renewal/severity.ts",
+      "lib/firestore/owner-policy-rules.ts",
+    ];
+    for (const rel of files) {
+      const source = readFileSync(join(process.cwd(), rel), "utf8");
+      // The prose field may be named and routed, but no percent-extraction over it may exist.
+      expect(
+        /owner_pricing_confirmed[^\n]*(parse|percent|%|match\(|exec\()/i.test(source),
+        rel,
+      ).toBe(false);
+    }
   });
 });

@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_S58_S59_S60_S61_DONE
-next_suite: S62
-next_spec: docs/feature-suites/owner-policy-renewal-pricing.md
+implementation_status: S57_S58_S59_S60_S61_S62_DONE
+next_suite: S63
+next_spec: docs/feature-suites/four-lease-renewal-test-set.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S62_OWNER_POLICY_RENEWAL_PRICING
-last_completed_slice: S61_RECIPIENT_FANOUT_AND_SEPARATION
+next_slice: S63_FOUR_LEASE_RENEWAL_TEST_SET
+last_completed_slice: S62_OWNER_POLICY_RENEWAL_PRICING
 runtime_action_gates_preflipped: false
 ```
 
@@ -96,33 +96,29 @@ owners are emailed through the normal reviewed process and are in the test set; 
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, `fb57e0b`) and **S58 is DONE**
-(`F-LEASE-DATA-CURRENCY`, `79b820d`): complete paged reads everywhere with portfolio-wide coverage
-measured (owner email 305/305, 146/305 multi-owner), and the three-age currency contract (60s TTL /
-15-min hard max) with refusals on expired. Known-red carried forward: `test:e2e:core` fails 8
-PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`).
-
-**S59 is DONE and DEPLOYED** (`F-RENTCAST-ACTIVATION-HARDENED`, commit `0283773`, revision
-`pmi-kc-app-rmsi5llfz-8332ff9656c8`, checkpoint `F-CURRENT-SERVING-CHECKPOINT-2026-08-06`): AVM comp
-basis, legible refusals, cache + billed-call counter + hard quota stop, health probe, deploy
-bindings read back, rollback proven. **OWNER STEP OPEN (`Q-RENTCAST-ACCOUNT-403`)**: the placed key
-answers 403 — activate the API plan in the RentCast dashboard, read back the real allowance/overage
+**S57–S61 are DONE** (`F-PORTFOLIO-COMPLETE-READS` `fb57e0b`; `F-LEASE-DATA-CURRENCY` `79b820d`;
+`F-RENTCAST-ACTIVATION-HARDENED` `0283773`, DEPLOYED, revision `pmi-kc-app-rmsi5llfz-8332ff9656c8`,
+checkpoint `F-CURRENT-SERVING-CHECKPOINT-2026-08-06`; `F-COMP-PERSISTENCE-TRUTH` `e83f876`;
+`F-RECIPIENT-FANOUT-SEPARATION` `b8e26f3`): complete paged reads (owner email 305/305, 146/305
+multi-owner), the three-age currency contract with refusals on expired, the RentCast comp basis
+with cache/quota-stop/health-probe and rollback proven, provider-basis persistence + the internal
+10% signal, and owner-channel fan-out with structural channel separation. Known-red carried:
+`test:e2e:core` fails 8 PRE-EXISTING demo-mode tests on main (`Q-E2E-DEMO-LANE-RED`). **OWNER STEP
+OPEN (`Q-RENTCAST-ACCOUNT-403`)**: activate the RentCast API plan, read back the allowance
 (AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
 (`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
 
-**S60 is DONE** (`F-COMP-PERSISTENCE-TRUTH`, commit `e83f876`): provider basis persisted beside
-typed values, owner draft names its real source, under-market signal internal at the confirmed 10
-percent, clamp repaired. LIVE comp evidence still waits on `Q-RENTCAST-ACCOUNT-403`.
+**S62 is DONE** (`F-OWNER-POLICY-PRICING`): owner-policy pricing rules keyed on `portfolioID`
+(MKD = 27), Admin-only with reason + append-only audit, the policy number through the UNCHANGED
+S29 approval plane with the comp median rendered beside it, stale on rule change, sentinels
+forbidding any offered-rent write or outreach skip (both falsified red/green). Optional
+firestore.rules explicit-deny patch PARKED at
+`docs/temp/s62-firestore-rules-explicit-deny-d12-patch.md` (legibility-only; never push).
 
-**S61 is DONE** (`F-RECIPIENT-FANOUT-SEPARATION`): owner channel fans out to all owners of record
-(portfolio order; the route's single-owner join injection deleted for the measured 305/305 export
-field), structural channel separation refuses on collision, S24 amended, D57 note updated for the
-owner to send.
-
-Start **S62** at `docs/feature-suites/owner-policy-renewal-pricing.md` (MKD = `portfolioID` 27,
-`F-MKD-PORTFOLIO-IDENTIFIED`; Admin-approvable suggestion keyed on the portfolio id; never sets the
-offered rent; no cohort lease is MKD-owned so S63 yields no live MKD evidence). Then S63. S65 may
-interleave whenever no slice is mid-flight. Do not start S64.
+Start **S63** at `docs/feature-suites/four-lease-renewal-test-set.md` (cohort 278/279/280/297 =
+Sheet rows 507–510; compose-and-review only; tolerance ±5% or $50 vs the Sheet Market Value
+column; lease 297's zero-rent discrepancy is finding one; AC-S63-3 completes the S58 baseline
+sentinel). S65 may interleave whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at
 `docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four
