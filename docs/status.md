@@ -11,6 +11,32 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## Two verification footguns closed: deploy write-back coupling and evidence-path CI parity (2026-08-07)
+
+Both issues surfaced by the training-day work are fixed, tested, and falsified.
+
+The deploy could ship the live Sheet write-back runtime switch ON. It resolves runtime env from a
+reviewed file, but `--env-file` accepts any file and `.env.local` carries
+`LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` for local work, so one CLI argument pointed a
+write-enabled runtime at the team's operational spreadsheet. Fixed by coupling the runtime switch to
+its reviewed gate rather than by restricting `--env-file`: a deploy now refuses when the switch is
+true while `google_sheets.renewal_checklist.writeback` is not `production_allowed:true` in the
+committed seed. An unresolvable gate refuses too. This was chosen because it self-releases when the
+gate is legitimately opened, leaving no second place to remember. Proven end-to-end rather than only
+by unit test: the `--env-file=.env.local` invocation now refuses by name while the reviewed-file
+deploy still builds and still emits the flag as `false`.
+
+The context-freshness gate reported green on a condition that failed in CI. It resolved Evidence
+paths with `existsSync` alone, so a row citing a gitignored artifact passed locally and failed
+remotely; main was red for three commits on exactly that, invisible because the local gate was
+green. The gate now also refuses a gitignored evidence path. It tests ignored-ness rather than
+tracked-ness on purpose, so a file created during the current slice still passes before `git add`,
+and it fails open when git cannot answer so the gate stays runnable off-repo.
+
+Both were falsified. Removing the deploy wiring line turned its test red and restoring it turned it
+green; reintroducing the exact offending citation turned the freshness gate red naming the row.
+Recorded as `Q-ENVLOCAL-WRITEBACK-DIVERGENCE` (now Verified) and `F-EVIDENCE-PATH-CI-PARITY`.
+
 ## S60-S63 + S65 deployed; four-lease test window opened; training doc published (2026-08-07)
 
 Deployed code commit `9ab1647` to Cloud Run `pmi-kc-app` as revision
