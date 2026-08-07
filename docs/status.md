@@ -11,6 +11,36 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S61 shipped: every owner of record is addressed, and channel separation now refuses instead of trusting a comment (2026-08-06)
+
+S61 (`docs/feature-suites/renewal-recipient-fanout-and-separation.md`) is built and locally
+verified, satisfying AC-S61-1 through AC-S61-9; recorded as `F-RECIPIENT-FANOUT-SEPARATION`.
+
+**What shipped.** The owner channel mirrors the shipped tenant behavior: first owner of record to
+`to`, every other distinct owner address to `cc`, each with its own source pointer, deduplicated,
+ordered by the portfolio's own owner order (the export path has no `percentOwned` to order by — a
+measured fact, not an assumption). The spec's named trap was real and is closed: swapping the
+resolver alone would have changed nothing, because the draft route resolved owners through a
+separate three-read contact join and injected a single synthesized `owner:{email}` that always won.
+That join is deleted in favour of the export's own `portfolio.owners[]` — measured present on
+305/305 leases portfolio-wide, with 146/305 carrying more than one owner address — which also
+removes three RentVine reads per draft. The greatest-`percentOwned` rule and its tie refusal
+survive only where the field genuinely exists: the maintenance property-keyed join. Separation
+stopped being a comment: the draft preview resolves both channels and refuses, naming the address,
+whenever anything in the requested channel's set also resolves authoritatively on the other side.
+S24 is amended; the D57 courtesy note to Dan now describes both channels and the structural
+separation, ready for the owner to send.
+
+**Falsification.** A crafted lease whose tenant address also appears as an owner of record refused
+BOTH channels with the collision named; removing the collision drafted normally. Both directions
+observed in the route tests, not just the resolver.
+
+**Gates.** typecheck clean; lint 0 errors; focused S61 group 40/40; full unit suite green except
+one KNOWN mount-contention flake (`governed-draft-execution`'s source-scan sentinel timed out under
+parallel I/O and passed 17/17 in isolation — same pattern as the S60 run); format, copy-voice,
+router-boundary, spec-traceability all pass; e2e delta and production build recorded with this
+entry's commit.
+
 ## S60 shipped: the owner draft names its real source, and under-market rents get an internal flag (2026-08-06)
 
 S60 (`docs/feature-suites/comp-persistence-and-under-market-signal.md`) is built and locally

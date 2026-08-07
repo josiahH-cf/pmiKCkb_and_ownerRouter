@@ -387,12 +387,17 @@ either: `F-V1-REMEDIATION-DECISIONS` in `docs/facts.md` records a standing requi
 or Dan verifies the multi-tenant recipient **before real drafts reach residents**. So treat it as a
 pre-live gate on the first live renewal notice, not as optional courtesy.
 
-**What this is.** This is **not** an open question any more. The decision was made: To = the first
-tenant on the lease, Cc = every other tenant on the lease. That behaviour is **shipped** —
-`resolveRenewalRecipient` in `lib/lease-renewal/recipient-resolution.ts` takes the first authoritative
-tenant email as `to` and every other distinct tenant email as `cc`, each with its own source pointer
-back to the lease record. No address is ever invented; when no authoritative email exists the channel
-returns `Needs Verification` and the draft refuses rather than guessing.
+**What this is.** This is **not** an open question any more. The decisions were made: on the tenant
+side, To = the first tenant on the lease, Cc = every other tenant; and since S61 (2026-08-06, per
+Dan's own "probably just all owners" answer and the owner's Q6 direction) the owner side mirrors it:
+To = the first owner of record on the portfolio, Cc = every other owner of record. Both behaviours
+are **shipped** — `resolveRenewalRecipient` in `lib/lease-renewal/recipient-resolution.ts` takes the
+first authoritative email as `to` and every other distinct email as `cc` on BOTH channels, each with
+its own source pointer back to the lease record. No address is ever invented; when no authoritative
+email exists the channel returns `Needs Verification` and the draft refuses rather than guessing.
+S61 also made the separation structural: a draft refuses outright if any address would resolve on
+both the owner and tenant side of the same lease, so neither party can ever see the other's contact
+information.
 
 So the ask to Dan is a courtesy confirmation, phrased as "here is what it does, tell us if that's
 wrong" — not "what should it do."
@@ -406,13 +411,18 @@ Hi Dan,
 
 Quick confirmation, no action needed unless something below is wrong.
 
-When the app drafts a renewal notice, it addresses the first tenant on the lease and copies
-every other tenant on that same lease. All addresses come from the lease record itself — the
-app never types in or guesses an address, and if a lease has no email on file the draft stops
-and flags it rather than sending to a best guess.
+When the app drafts a renewal notice to tenants, it addresses the first tenant on the lease
+and copies every other tenant on that same lease.
 
-That means co-tenants always see the notice, which we assumed is what you want since they're
-on the lease too.
+When it drafts the owner email, it does the same thing on the owner side: it addresses the
+first owner on record for the property and copies every other owner on record. You said "all
+owners" on our last call, so that is how it works.
+
+All addresses come from the lease record itself — the app never types in or guesses an
+address, and if a lease has no email on file the draft stops and flags it rather than sending
+to a best guess. Owner emails and tenant emails can never appear on the same message; if the
+records ever put one person on both sides of a lease, the draft stops and asks a person to
+straighten out the contact records first.
 
 If you'd rather it worked differently — one named contact only, or a different order — say the
 word and we'll change it.

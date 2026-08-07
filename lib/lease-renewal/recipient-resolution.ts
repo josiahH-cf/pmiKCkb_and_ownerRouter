@@ -7,13 +7,19 @@
 // (`rentvine:lease:<id>:<field-path>`) that the governed executor stores as `recipient_source_ref`.
 //
 // Honest coverage note: Rentvine's `/leases/export` row carries the tenant on `lease.tenants[]` and the
-// authoritative property OWNER on `portfolio.owners[]` (both preserved on the flattened lease view by
-// leaseViewsFromExport), so BOTH channels resolve directly from the live read — the owner email was
-// confirmed present + email-shaped on 25/25 leases (Slice 1, 2026-07-22,
-// docs/products/rentvine-live-field-map-2026-07-22.md). When no authoritative email is present the
-// channel stays honestly `Needs Verification` rather than guessing. To avoid MIS-attribution, a party's
-// email is read only from that party's own scoped object (or a lease-level key that explicitly names the
-// party) — never from a generic top-level `email` that could belong to the other side.
+// authoritative property OWNER(s) on `portfolio.owners[]` (both preserved on the flattened lease view by
+// leaseViewsFromExport), so BOTH channels resolve directly from the live read — measured PORTFOLIO-WIDE
+// on 2026-08-06 after S57: owner email present on 305/305 leases, tenant email on 302/305, and 146/305
+// leases carry MORE than one owner email. When no authoritative email is present the channel stays
+// honestly `Needs Verification` rather than guessing. To avoid MIS-attribution, a party's email is read
+// only from that party's own scoped object (or a lease-level key that explicitly names the party) —
+// never from a generic top-level `email` that could belong to the other side.
+//
+// S61: BOTH channels fan out. The owner branch mirrors the shipped tenant behavior (owner direction Q6,
+// 2026-08-06): the first authoritative owner in the portfolio's own order is `to` and every other
+// distinct owner address is `cc` — the ordering key is the portfolio's own owner order because the
+// export's `percentOwned` is empty across the entire live read (`F-OWNER-PERCENT-OWNED-ABSENT`), so an
+// ownership-share rule has nothing to key on along this path.
 
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 
@@ -41,10 +47,10 @@ export interface RenewalRecipientResolution {
   /** Authoritative source pointer, e.g. `rentvine:lease:123:tenants[0].email`. Present with `to`. */
   recipientSourceRef?: string;
   /**
-   * Additional authoritative CO-TENANT emails to Cc (F-LEASE-6 default: address ALL tenants on the lease
-   * when the single intended recipient is unconfirmed). Only populated for the TENANT channel, only from
-   * the live lease's own tenant objects (never invented), distinct from `to`. Empty for a single-tenant
-   * lease and for the owner channel.
+   * Additional authoritative emails to Cc, from the lease's own party objects (never invented) and
+   * distinct from `to`. Tenant channel: every other co-tenant (F-LEASE-6). Owner channel (S61):
+   * every other distinct owner of record, mirroring the tenant behavior. Empty for a single-party
+   * lease on either channel.
    */
   cc?: string[];
   /** Authoritative source pointers for each `cc` entry, index-aligned with `cc`. */
@@ -91,17 +97,27 @@ export function resolveRenewalRecipient(input: {
     };
   }
 
-  const hit = findEmail(ownerContainers(lease, fieldMap), leaseLabel);
-  if (hit) {
-    return {
-      channel,
-      to: hit.email,
-      recipientSourceRef: hit.sourceRef,
-      verified: true,
-      missing: [],
-    };
+  // S61: the owner channel addresses ALL owners of record, mirroring the tenant behavior (owner
+  // direction Q6). First authoritative owner in the portfolio's own order → `to`; every other
+  // distinct owner address → `cc`, each individually attributable via its source ref.
+  const hits = collectEmails(ownerContainers(lease, fieldMap), leaseLabel);
+  if (hits.length === 0) {
+    return { channel, verified: false, missing: ["owner email"] };
   }
-  return { channel, verified: false, missing: ["owner email"] };
+  const [primary, ...rest] = hits;
+  return {
+    channel,
+    to: primary.email,
+    recipientSourceRef: primary.sourceRef,
+    ...(rest.length
+      ? {
+          cc: rest.map((hit) => hit.email),
+          ccSourceRefs: rest.map((hit) => hit.sourceRef),
+        }
+      : {}),
+    verified: true,
+    missing: [],
+  };
 }
 
 interface EmailSearch {

@@ -84,6 +84,36 @@ export function buildRenewalNoticeDraftPreview(
     };
   }
 
+  // S61 channel-separation assertion (owner direction, stated as an absolute: owners and residents
+  // never see each other's contact info). The requested channel's full recipient set must contain
+  // no address that ALSO resolves as an authoritative address on the other channel for this lease.
+  // A violation refuses the draft and names the collision — a refusal is reversible; a leaked
+  // contact is not.
+  const otherChannel: RenewalRecipientChannel =
+    input.channel === "owner" ? "tenant" : "owner";
+  const otherResolution = resolveRenewalRecipient({
+    lease: input.lease,
+    channel: otherChannel,
+    ...(input.recipientFieldMap ? { fieldMap: input.recipientFieldMap } : {}),
+  });
+  const otherAddresses = new Set(
+    [otherResolution.to, ...(otherResolution.cc ?? [])].filter((email): email is string =>
+      Boolean(email),
+    ),
+  );
+  const requestedAddresses = [resolution.to, ...(resolution.cc ?? [])];
+  const collisions = requestedAddresses.filter((email) => otherAddresses.has(email));
+  if (collisions.length > 0) {
+    return {
+      status: "blocked",
+      channel: input.channel,
+      reasons: collisions.map(
+        (email) =>
+          `Channel separation: ${email} resolves as an authoritative address on both the owner and tenant channels for this lease. The draft is refused so neither side sees the other's contact information; correct the lease's contact records first.`,
+      ),
+    };
+  }
+
   const recipient: AuthoritativeAddress = {
     email: resolution.to,
     sourceRef: resolution.recipientSourceRef,

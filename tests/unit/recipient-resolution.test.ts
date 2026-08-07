@@ -79,13 +79,77 @@ describe("resolveRenewalRecipient", () => {
     expect(result.cc).toBeUndefined();
   });
 
-  it("never emits a Cc on the owner channel", () => {
+  // AC-S61-3: a single-owner lease produces exactly one recipient and an empty cc, unchanged.
+  it("emits no Cc for a single-owner lease", () => {
     const result = resolveRenewalRecipient({
       channel: "owner",
       lease: { leaseID: 4, owner: { email: "owner@example.com" } },
     });
+    expect(result.to).toBe("owner@example.com");
     expect(result.cc).toBeUndefined();
     expect(result.ccSourceRefs).toBeUndefined();
+  });
+
+  // AC-S61-1 (resolver half): every other distinct owner of record becomes an authoritative Cc,
+  // each with its own index-aligned source ref, in the portfolio's own order (Q-OWNER-ORDERING).
+  it("addresses ALL owners: first portfolio owner To, the rest authoritative Cc (S61)", () => {
+    const result = resolveRenewalRecipient({
+      channel: "owner",
+      lease: {
+        leaseID: 7100,
+        portfolio: {
+          owners: [
+            { name: "Owner One", email: "Owner.One@Example.com" },
+            { name: "Owner Two", email: "owner.two@example.com" },
+            { name: "Owner Three", email: "OWNER.THREE@example.com" },
+          ],
+        },
+        tenants: [{ email: "tenant@example.com" }],
+      },
+    });
+    expect(result.verified).toBe(true);
+    expect(result.to).toBe("owner.one@example.com");
+    expect(result.recipientSourceRef).toBe(
+      "rentvine:lease:7100:portfolio.owners[0].email",
+    );
+    expect(result.cc).toEqual(["owner.two@example.com", "owner.three@example.com"]);
+    expect(result.ccSourceRefs).toEqual([
+      "rentvine:lease:7100:portfolio.owners[1].email",
+      "rentvine:lease:7100:portfolio.owners[2].email",
+    ]);
+    // Never grabs the tenant address on the owner channel.
+    expect([result.to, ...(result.cc ?? [])]).not.toContain("tenant@example.com");
+  });
+
+  // AC-S61-2: the same address listed twice on the portfolio is addressed once.
+  it("deduplicates an owner listed twice on the portfolio", () => {
+    const result = resolveRenewalRecipient({
+      channel: "owner",
+      lease: {
+        leaseID: 7101,
+        portfolio: {
+          owners: [
+            { email: "shared@example.com" },
+            { email: "SHARED@example.com" },
+            { email: "second@example.com" },
+          ],
+        },
+      },
+    });
+    expect(result.to).toBe("shared@example.com");
+    expect(result.cc).toEqual(["second@example.com"]);
+  });
+
+  it("is deterministic across runs over the same multi-owner lease", () => {
+    const lease = {
+      leaseID: 7102,
+      portfolio: {
+        owners: [{ email: "a@example.com" }, { email: "b@example.com" }],
+      },
+    };
+    const first = resolveRenewalRecipient({ channel: "owner", lease });
+    const second = resolveRenewalRecipient({ channel: "owner", lease });
+    expect(second).toEqual(first);
   });
 
   it("resolves an owner email from lease.owner and lowercases + trims it", () => {
@@ -130,9 +194,10 @@ describe("resolveRenewalRecipient", () => {
     expect(viaOwnersArray.recipientSourceRef).toBe("rentvine:lease:9:owners[0].email");
   });
 
-  it("resolves the owner from portfolio.owners[] (the live RentVine export shape, Slice 1 2026-07-22)", () => {
+  it("resolves the owner from portfolio.owners[] (the live RentVine export shape; 305/305 portfolio-wide)", () => {
     // The authoritative property-owner email lives on portfolio.owners[].email (a plural array), NOT the
-    // singular portfolio.owner. This is the shape leaseViewsFromExport preserves; confirmed 25/25 live.
+    // singular portfolio.owner. This is the shape leaseViewsFromExport preserves; measured present on
+    // 305/305 leases after S57 (2026-08-06).
     const result = resolveRenewalRecipient({
       channel: "owner",
       lease: {
@@ -149,7 +214,7 @@ describe("resolveRenewalRecipient", () => {
     expect(result.recipientSourceRef).toBe(
       "rentvine:lease:6001:portfolio.owners[0].email",
     );
-    // Never grabs the tenant address for the owner channel; the owner channel never emits Cc.
+    // Never grabs the tenant address for the owner channel; one owner means no Cc.
     expect(result.to).not.toBe("tenant@example.com");
     expect(result.cc).toBeUndefined();
   });

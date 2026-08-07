@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_S58_S59_S60_DONE
-next_suite: S61
-next_spec: docs/feature-suites/renewal-recipient-fanout-and-separation.md
+implementation_status: S57_S58_S59_S60_S61_DONE
+next_suite: S62
+next_spec: docs/feature-suites/owner-policy-renewal-pricing.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S61_RECIPIENT_FANOUT_AND_SEPARATION
-last_completed_slice: S60_COMP_PERSISTENCE_AND_UNDER_MARKET
+next_slice: S62_OWNER_POLICY_RENEWAL_PRICING
+last_completed_slice: S61_RECIPIENT_FANOUT_AND_SEPARATION
 runtime_action_gates_preflipped: false
 ```
 
@@ -96,14 +96,11 @@ owners are emailed through the normal reviewed process and are in the test set; 
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, commit `fb57e0b`): complete paged read everywhere,
-sentinel falsified; portfolio-wide coverage measured (tenant email 302/305, owner email 305/305,
-146/305 multi-owner-email; golden capture 305 candidates, 20 High flags).
-
-**S58 is DONE** (`F-LEASE-DATA-CURRENCY`, commit `79b820d`): three-age contract (60s TTL / 15-min
-hard max), SWR + backoff, expired refuses compose/record, four desk states + manual/focus refresh,
-write-back invalidation, baseline sentinel falsified. Known-red carried forward: `test:e2e:core`
-fails 8 PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`).
+**S57 is DONE** (`F-PORTFOLIO-COMPLETE-READS`, `fb57e0b`) and **S58 is DONE**
+(`F-LEASE-DATA-CURRENCY`, `79b820d`): complete paged reads everywhere with portfolio-wide coverage
+measured (owner email 305/305, 146/305 multi-owner), and the three-age currency contract (60s TTL /
+15-min hard max) with refusals on expired. Known-red carried forward: `test:e2e:core` fails 8
+PRE-EXISTING demo-mode tests on main itself (`Q-E2E-DEMO-LANE-RED`).
 
 **S59 is DONE and DEPLOYED** (`F-RENTCAST-ACTIVATION-HARDENED`, commit `0283773`, revision
 `pmi-kc-app-rmsi5llfz-8332ff9656c8`, checkpoint `F-CURRENT-SERVING-CHECKPOINT-2026-08-06`): AVM comp
@@ -113,15 +110,18 @@ answers 403 — activate the API plan in the RentCast dashboard, read back the r
 (AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
 (`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
 
-**S60 is DONE** (`F-COMP-PERSISTENCE-TRUTH`): provider basis persisted beside typed values, owner
-draft names its real source (Zillow literal gone; trend inline + link), under-market signal at the
-confirmed 10 percent stays internal, ±15 percent clamp repaired with signature-level arity pins.
-S60's LIVE comp evidence still waits on `Q-RENTCAST-ACCOUNT-403`.
+**S60 is DONE** (`F-COMP-PERSISTENCE-TRUTH`, commit `e83f876`): provider basis persisted beside
+typed values, owner draft names its real source, under-market signal internal at the confirmed 10
+percent, clamp repaired. LIVE comp evidence still waits on `Q-RENTCAST-ACCOUNT-403`.
 
-Start **S61** at `docs/feature-suites/renewal-recipient-fanout-and-separation.md` (owner ordering =
-portfolio's own order first-to-`to` rest-to-`cc`, `Q-OWNER-ORDERING`; separation assertion built and
-refusing on violation, `Q-CHANNEL-SEPARATION-ASSERTION`; the real population is 146/305 multi-owner
-leases, `F-OWNER-CHANNEL-SINGLE-RECIPIENT`/`F-OWNER-PERCENT-OWNED-ABSENT`). Then S62 → S63. S65 may
+**S61 is DONE** (`F-RECIPIENT-FANOUT-SEPARATION`): owner channel fans out to all owners of record
+(portfolio order; the route's single-owner join injection deleted for the measured 305/305 export
+field), structural channel separation refuses on collision, S24 amended, D57 note updated for the
+owner to send.
+
+Start **S62** at `docs/feature-suites/owner-policy-renewal-pricing.md` (MKD = `portfolioID` 27,
+`F-MKD-PORTFOLIO-IDENTIFIED`; Admin-approvable suggestion keyed on the portfolio id; never sets the
+offered rent; no cohort lease is MKD-owned so S63 yields no live MKD evidence). Then S63. S65 may
 interleave whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at

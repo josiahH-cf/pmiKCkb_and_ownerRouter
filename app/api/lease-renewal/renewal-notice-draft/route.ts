@@ -14,7 +14,6 @@ import {
   LeaseDataExpiredError,
   requireCurrentLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
-import { resolveLiveOwnerEmail } from "@/lib/lease-renewal/live-owner-recipient";
 import {
   prepareRenewalNoticeDraft,
   type RenewalNoticeDraftInput,
@@ -159,23 +158,14 @@ export async function POST(request: Request) {
         async loadLease(leaseId) {
           // S58: composing refuses expired lease data (LeaseDataExpiredError → 409 below) rather
           // than drafting from a snapshot past the hard max age.
+          //
+          // S61: the OWNER channel resolves directly from the view's own `portfolio.owners[]` —
+          // measured portfolio-wide on 2026-08-06: owner email present on 305/305 export rows, so
+          // the former property → portfolio → contact join (which injected a SINGLE synthesized
+          // `owner: { email }` and silently defeated the fan-out) is removed. The resolver sees the
+          // full owner array and addresses every owner of record.
           const views = await requireCurrentLeaseViews(rentvineClient, nowMs);
-          const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
-          if (!view) return null;
-          // OWNER channel only: RentVine's lease/export rows carry no owner email, so resolve it via the
-          // proven read-only property -> portfolio -> contact join and attach it as an owner-scoped object
-          // so resolveRenewalRecipient({ channel: "owner" }) can read `owner.email`. When the join cannot
-          // resolve authoritatively it returns null and the view is left unenriched, so the owner channel
-          // blocks honestly ("owner email Needs Verification") rather than guessing. The tenant channel is
-          // untouched and makes no property/portfolio/contact reads. The enriched value still flows through
-          // assertAuthoritativeRenewalRecipient in the executor. Copy (never mutate) the shared cache view.
-          if (channel === "owner") {
-            const owner = await resolveLiveOwnerEmail(rentvineClient, leaseId);
-            if (owner) {
-              return { ...view, owner: { email: owner.email } };
-            }
-          }
-          return view;
+          return views.find((candidate) => leaseIdOf(candidate) === leaseId) ?? null;
         },
         // Descriptor-bound: Demo and Live-read-only refuse here, so no provider is constructed.
         createGmailClient: (subject) =>

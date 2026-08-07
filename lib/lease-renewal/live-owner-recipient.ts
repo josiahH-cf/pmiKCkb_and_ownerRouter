@@ -1,21 +1,22 @@
-// Resolve the LIVE owner recipient for a renewal notice OR a maintenance owner-notice via a proven
-// read-only RentVine join.
+// Resolve the LIVE owner contact for the MAINTENANCE owner-notice via a proven read-only RentVine
+// property → portfolio → contact join.
 //
-// RentVine's lease record (and the /leases/export row) carry NO owner email, so the owner channel could
-// never resolve from the lease alone. The owner contact lives one join away — and, crucially, the OWNER
-// is a PROPERTY attribute, not a lease/unit one, so the join key is the property id:
+// S61 correction (2026-08-06): the former claim here that "/leases/export carries NO owner email"
+// was measured FALSE on the full portfolio — `portfolio.owners[].email` is present on 305/305
+// export rows — so the RENEWAL owner channel now resolves directly from the export view through
+// `resolveRenewalRecipient` (with the S61 all-owners fan-out), and the lease-keyed
+// `resolveLiveOwnerEmail` entry this module used to export is DELETED. What remains is the
+// maintenance path, which starts from a unit's propertyId with no export row in hand:
 //   getProperty(propertyID) -> portfolioID
 //   getPortfolio(portfolioID) -> contacts[] ({ contactID, percentOwned, ... })
 //   getContact(contactID) -> email (+ optional display name)
-// The OWNER is the contact holding the greatest positive `percentOwned`. `resolveOwnerContactFromPropertyId`
-// walks that property-anchored tail; `resolveLiveOwnerEmail` is the lease-keyed entry that reads a lease's
-// propertyID first, then reuses the same tail (so both callers share one owner-picking rule). Maintenance
-// resolves the same tail directly from a unit's RentVine propertyId — no `getUnit` hop, which the client
-// does not have. Both return null when ANY hop is missing or the top ownership is ambiguous (a tie); they
-// NEVER guess. Any missing hop, invalid email, ambiguous owner, or thrown read collapses to null so the
-// caller blocks honestly.
+// On THIS path the portfolio `contacts[]` genuinely carry `percentOwned`, so the owner is the
+// contact holding the strictly-greatest positive share, and an equal-top tie refuses (null) rather
+// than guessing — the rule stays here because its ordering key actually exists here, unlike the
+// export path (`F-OWNER-PERCENT-OWNED-ABSENT`). Any missing hop, invalid email, ambiguous owner, or
+// thrown read collapses to null so the caller blocks honestly.
 //
-// Reads only (getLease/getProperty/getPortfolio/getContact are GET-only on the client). No send-capable
+// Reads only (getProperty/getPortfolio/getContact are GET-only on the client). No send-capable
 // import, no write path, no logging of any email/name — only ids flow through the request paths.
 
 import type {
@@ -38,13 +39,6 @@ export type PropertyOwnerClient = Pick<
   LiveOwnerRecipientClient,
   "getProperty" | "getPortfolio" | "getContact"
 >;
-
-export interface LiveOwnerEmail {
-  /** The authoritative owner email, trimmed + lowercased. */
-  email: string;
-  /** Authoritative source pointer for the resolved email (never a sample/test/synthetic prefix). */
-  sourceRef: string;
-}
 
 export interface OwnerContact {
   /** The authoritative owner email, trimmed + lowercased. */
@@ -85,35 +79,6 @@ export async function resolveOwnerContactFromPropertyId(
 
     const name = ownerDisplayName(contact);
     return { email, portfolioId, contactId, ...(name ? { name } : {}) };
-  } catch {
-    // Any thrown hop (network, auth, unexpected shape) collapses to an honest block — never a guess.
-    return null;
-  }
-}
-
-/**
- * Resolve the live owner email for a LEASE through the property -> portfolio -> contact join.
- * Returns the authoritative email + source ref on success, or null when any hop is missing, the top
- * ownership is a tie, or the contact carries no valid email. Pure over the injected `client`; never
- * throws and never guesses. The lease is read only to obtain its propertyID; the owner tail is shared
- * with `resolveOwnerContactFromPropertyId`.
- */
-export async function resolveLiveOwnerEmail(
-  client: LiveOwnerRecipientClient,
-  leaseId: string,
-): Promise<LiveOwnerEmail | null> {
-  try {
-    const lease = await client.getLease(leaseId);
-    const propertyId = readId(lease, ["propertyID", "propertyId"]);
-    if (propertyId === null) return null;
-
-    const owner = await resolveOwnerContactFromPropertyId(client, propertyId);
-    if (owner === null) return null;
-
-    return {
-      email: owner.email,
-      sourceRef: `rentvine:lease:${leaseId}:portfolio:${owner.portfolioId}:contact:${owner.contactId}.email`,
-    };
   } catch {
     // Any thrown hop (network, auth, unexpected shape) collapses to an honest block — never a guess.
     return null;

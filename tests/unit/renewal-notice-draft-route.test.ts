@@ -93,6 +93,11 @@ function fakeClient(overrides: ClientOverrides = {}) {
         },
         unit: { rent: 1400 },
         property: { streetName: "200 Cedar Ct" },
+        // S61: the export row's own owner array — the renewal owner channel resolves from HERE
+        // (measured 305/305 portfolio-wide), never through the removed contact join.
+        portfolio: {
+          owners: [{ name: "Cedar Holdings", email: "owner42@cedar-holdings.com" }],
+        },
       },
     ],
     pages: 1,
@@ -227,8 +232,8 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     }
   });
 
-  it("previews a real owner draft with the recipient resolved through the join", async () => {
-    const { client, getContact } = fakeClient();
+  it("previews a real owner draft resolved from the export row's own owners (no join reads)", async () => {
+    const { client, getContact, getProperty, getPortfolio } = fakeClient();
     useClient(client);
 
     const response = await POST(req(ownerBody()));
@@ -238,8 +243,88 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(payload.status).toBe("preview");
     expect(payload.channel).toBe("owner");
     expect(payload.recipient.to).toBe("owner42@cedar-holdings.com");
-    expect(getContact).toHaveBeenCalledWith(3);
+    // S61: the contact join is gone — the owner channel makes no extra RentVine reads.
+    expect(getProperty).not.toHaveBeenCalled();
+    expect(getPortfolio).not.toHaveBeenCalled();
+    expect(getContact).not.toHaveBeenCalled();
     expect(GmailRuntimeClient).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  // AC-S61-1 + AC-S61-1b: the LIVE route fans out to every owner of record — to plus a cc entry
+  // per other distinct owner address — not merely the resolver in isolation.
+  it("addresses every owner of record on the live route: first To, the rest Cc", async () => {
+    const { client } = fakeClient({
+      exportRows: [
+        {
+          lease: {
+            leaseID: 42,
+            endDate: "2026-09-30",
+            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
+          },
+          unit: { rent: 1400 },
+          property: { streetName: "200 Cedar Ct" },
+          portfolio: {
+            owners: [
+              { name: "Owner One", email: "owner.one@cedar-holdings.com" },
+              { name: "Owner Two", email: "owner.two@cedar-holdings.com" },
+              { name: "Owner Two Again", email: "OWNER.TWO@cedar-holdings.com" },
+              { name: "Owner Three", email: "owner.three@cedar-holdings.com" },
+            ],
+          },
+        },
+      ],
+    });
+    useClient(client);
+
+    const response = await POST(req(ownerBody()));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("preview");
+    expect(payload.recipient.to).toBe("owner.one@cedar-holdings.com");
+    // Deduplicated (AC-S61-2) and in the portfolio's own order (Q-OWNER-ORDERING).
+    expect(payload.recipient.cc).toEqual([
+      "owner.two@cedar-holdings.com",
+      "owner.three@cedar-holdings.com",
+    ]);
+  });
+
+  // AC-S61-7 falsification: a crafted lease whose tenant address also resolves as an owner
+  // address refuses BOTH channels naming the collision; the clean lease drafts normally (the
+  // preceding tests are the clean half).
+  it("refuses both channels when an address resolves on owner AND tenant for the same lease", async () => {
+    const collidingRows = [
+      {
+        lease: {
+          leaseID: 42,
+          endDate: "2026-09-30",
+          tenants: [{ name: "Ada Rowan", email: "shared@cedar-holdings.com" }],
+        },
+        unit: { rent: 1400 },
+        property: { streetName: "200 Cedar Ct" },
+        portfolio: {
+          owners: [
+            { name: "Owner One", email: "owner.one@cedar-holdings.com" },
+            { name: "Shared Person", email: "shared@cedar-holdings.com" },
+          ],
+        },
+      },
+    ];
+    const owner = fakeClient({ exportRows: collidingRows });
+    useClient(owner.client);
+    const ownerPayload = await (await POST(req(ownerBody()))).json();
+    expect(ownerPayload.status).toBe("blocked");
+    expect(ownerPayload.reasons.join(" ")).toContain("Channel separation");
+    expect(ownerPayload.reasons.join(" ")).toContain("shared@cedar-holdings.com");
+    expect(createDraftMock).not.toHaveBeenCalled();
+
+    clearLiveLeaseCache();
+    const tenant = fakeClient({ exportRows: collidingRows });
+    useClient(tenant.client);
+    const tenantPayload = await (await POST(req(tenantBody()))).json();
+    expect(tenantPayload.status).toBe("blocked");
+    expect(tenantPayload.reasons.join(" ")).toContain("Channel separation");
     expect(createDraftMock).not.toHaveBeenCalled();
   });
 
@@ -314,8 +399,22 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(payload.body).toContain("$1,550");
   });
 
-  it("blocks honestly (never invents) when the join cannot resolve the owner email", async () => {
-    const { client } = fakeClient({ contact: { contactID: 3 } }); // contact has no email -> null
+  // AC-S61-6: no authoritative owner address on the export row → Needs Verification, no guess.
+  it("blocks honestly (never invents) when the export row carries no owner email", async () => {
+    const { client } = fakeClient({
+      exportRows: [
+        {
+          lease: {
+            leaseID: 42,
+            endDate: "2026-09-30",
+            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
+          },
+          unit: { rent: 1400 },
+          property: { streetName: "200 Cedar Ct" },
+          portfolio: { owners: [{ name: "No Email Owner" }] },
+        },
+      ],
+    });
     useClient(client);
 
     const response = await POST(req(ownerBody()));
@@ -325,25 +424,6 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(payload.status).toBe("blocked");
     expect(payload.channel).toBe("owner");
     expect(payload.reasons.join(" ")).toMatch(/needs verification/i);
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("blocks honestly when the top ownership is ambiguous (a percentOwned tie)", async () => {
-    const { client, getContact } = fakeClient({
-      portfolio: {
-        contacts: [
-          { contactID: 3, percentOwned: 50 },
-          { contactID: 4, percentOwned: 50 },
-        ],
-      },
-    });
-    useClient(client);
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(payload.status).toBe("blocked");
-    expect(getContact).not.toHaveBeenCalled();
     expect(createDraftMock).not.toHaveBeenCalled();
   });
 });

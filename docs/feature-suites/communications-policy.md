@@ -78,6 +78,13 @@ bodyless unless Gmail is queried on demand through an authorized workflow link.
   stores no case narrative or message content.
 - _Assumption:_ authoritative recipients are resolved at runtime from the selected workflow's approved
   source adapter; a browser address is never authoritative. Per-system mapping is delivered in S25/S26.
+- _Amended by S61 (2026-08-06, owner Q6):_ the renewal recipient rule fans out on BOTH channels —
+  the first authoritative party in record order is `to` and every other distinct party address is
+  `cc` (tenants per F-LEASE-6; owners of record mirroring it per
+  `docs/feature-suites/renewal-recipient-fanout-and-separation.md`) — and owner/tenant channel
+  separation is structural: a draft whose recipient set contains an address that also resolves
+  authoritatively on the other channel for the same lease REFUSES with the collision named, rather
+  than relying on convention.
 - _Client-owned:_ a later written legal policy may replace periods; until then `v1.0` is operative.
 
 **Cross-product impacts.** Evolves S19 Gmail state/service/artifacts, S22 vendor Gmail, S25/S26 message
