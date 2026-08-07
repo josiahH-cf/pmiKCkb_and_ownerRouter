@@ -37,6 +37,7 @@ import {
   planMarkComplete,
   planRecordOwnerDecision,
   planRecordTenantOfferDraft,
+  type RenewalMarketProviderBasis,
   type RenewalOwnerDecision,
   type RenewalOwnerDecisionWriteInput,
   type RenewalProgress,
@@ -228,6 +229,7 @@ async function applyTransition(
                       comp_screenshot_result_hash: attachment?.resultHash,
                       comp_source: next.ownerDecision.market.compSource,
                       comp_retrieved_at: next.ownerDecision.market.compRetrievedAt,
+                      provider: providerBasisToRecord(next.ownerDecision.market.provider),
                     })
                   : undefined,
               })
@@ -340,6 +342,134 @@ function progressScreenshotAttachment(
   };
 }
 
+type ProviderBasisRecord = NonNullable<
+  NonNullable<
+    NonNullable<LeaseRenewalProgressRecord["owner_decision"]>["market"]
+  >["provider"]
+>;
+
+/** S60: persist the provider basis snake_case, verbatim — never a synthesized value. */
+function providerBasisToRecord(
+  provider: RenewalMarketProviderBasis | undefined,
+): ProviderBasisRecord | undefined {
+  if (!provider) return undefined;
+  return stripUndefined({
+    source: provider.source,
+    range_low: provider.rangeLow,
+    range_high: provider.rangeHigh,
+    point_estimate: provider.pointEstimate,
+    comp_count: provider.compCount,
+    retrieved_at: provider.retrievedAt,
+    radius_miles: provider.radiusMiles,
+    unit_filters: provider.unitFilters
+      ? stripUndefined({
+          bedrooms: provider.unitFilters.bedrooms,
+          bathrooms: provider.unitFilters.bathrooms,
+          square_footage: provider.unitFilters.squareFootage,
+          property_type: provider.unitFilters.propertyType,
+        })
+      : undefined,
+    comps: provider.comps
+      ? provider.comps.map((comp) =>
+          stripUndefined({
+            rent: comp.rent,
+            correlation: comp.correlation,
+            distance_miles: comp.distanceMiles,
+            bedrooms: comp.bedrooms,
+            bathrooms: comp.bathrooms,
+            days_on_market: comp.daysOnMarket,
+          }),
+        )
+      : undefined,
+    trend: provider.trend
+      ? {
+          zip_code: provider.trend.zipCode,
+          retrieved_at: provider.trend.retrievedAt,
+          months: Object.fromEntries(
+            Object.entries(provider.trend.months).map(([month, values]) => [
+              month,
+              stripUndefined({
+                average_rent: values.averageRent,
+                median_rent: values.medianRent,
+              }),
+            ]),
+          ),
+        }
+      : undefined,
+  }) as ProviderBasisRecord;
+}
+
+/** S60: project the persisted provider basis back onto the app shape. */
+function providerBasisFromRecord(
+  record: ProviderBasisRecord | undefined,
+): RenewalMarketProviderBasis | undefined {
+  if (!record) return undefined;
+  return {
+    source: record.source,
+    rangeLow: record.range_low,
+    rangeHigh: record.range_high,
+    pointEstimate: record.point_estimate,
+    compCount: record.comp_count,
+    retrievedAt: record.retrieved_at,
+    ...(record.radius_miles !== undefined ? { radiusMiles: record.radius_miles } : {}),
+    ...(record.unit_filters
+      ? {
+          unitFilters: {
+            ...(record.unit_filters.bedrooms !== undefined
+              ? { bedrooms: record.unit_filters.bedrooms }
+              : {}),
+            ...(record.unit_filters.bathrooms !== undefined
+              ? { bathrooms: record.unit_filters.bathrooms }
+              : {}),
+            ...(record.unit_filters.square_footage !== undefined
+              ? { squareFootage: record.unit_filters.square_footage }
+              : {}),
+            ...(record.unit_filters.property_type !== undefined
+              ? { propertyType: record.unit_filters.property_type }
+              : {}),
+          },
+        }
+      : {}),
+    ...(record.comps
+      ? {
+          comps: record.comps.map((comp) => ({
+            rent: comp.rent,
+            ...(comp.correlation !== undefined ? { correlation: comp.correlation } : {}),
+            ...(comp.distance_miles !== undefined
+              ? { distanceMiles: comp.distance_miles }
+              : {}),
+            ...(comp.bedrooms !== undefined ? { bedrooms: comp.bedrooms } : {}),
+            ...(comp.bathrooms !== undefined ? { bathrooms: comp.bathrooms } : {}),
+            ...(comp.days_on_market !== undefined
+              ? { daysOnMarket: comp.days_on_market }
+              : {}),
+          })),
+        }
+      : {}),
+    ...(record.trend
+      ? {
+          trend: {
+            zipCode: record.trend.zip_code,
+            retrievedAt: record.trend.retrieved_at,
+            months: Object.fromEntries(
+              Object.entries(record.trend.months ?? {}).map(([month, values]) => [
+                month,
+                {
+                  ...(values.average_rent !== undefined
+                    ? { averageRent: values.average_rent }
+                    : {}),
+                  ...(values.median_rent !== undefined
+                    ? { medianRent: values.median_rent }
+                    : {}),
+                },
+              ]),
+            ),
+          },
+        }
+      : {}),
+  };
+}
+
 /** Project the persisted (snake_case) record onto the app-shaped RenewalProgress. */
 function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress {
   const decision = record.owner_decision;
@@ -376,6 +506,9 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
                     : {}),
                   ...(decision.market.comp_retrieved_at !== undefined
                     ? { compRetrievedAt: decision.market.comp_retrieved_at }
+                    : {}),
+                  ...(decision.market.provider
+                    ? { provider: providerBasisFromRecord(decision.market.provider) }
                     : {}),
                 },
               }

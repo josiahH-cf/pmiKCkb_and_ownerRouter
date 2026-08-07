@@ -140,6 +140,56 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     expect(screen.getByText(/0 of 50 comp lookups left this month/)).toBeInTheDocument();
   });
 
+  // AC-S60-6: no operator-facing label reads "Zillow low" or "Zillow high".
+  it("labels the typed comp fields as typed, never as Zillow", () => {
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    expect(screen.getByLabelText(/Comp low \(typed/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Comp high \(typed/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Zillow low/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Zillow high/)).not.toBeInTheDocument();
+  });
+
+  // AC-S60-8 + AC-S60-9 (component half): the internal signal renders from a PERSISTED provider
+  // basis and never from operator-typed numbers alone.
+  it("renders the under-market signal from a provider basis and not from typed numbers", () => {
+    render(
+      <OwnerDecisionForm
+        address="104 NE Lindsay Ave"
+        current={{
+          decision: "increase",
+          offeredRent: 1300,
+          market: {
+            provider: {
+              source: "RentCast",
+              pointEstimate: 1550,
+              retrievedAt: "2026-08-06T12:00:00.000Z",
+            },
+          },
+        }}
+        currentRent={1300}
+        leaseId="L1"
+      />,
+    );
+    expect(screen.getByText(/below the market point estimate/)).toBeInTheDocument();
+
+    cleanup();
+    render(
+      <OwnerDecisionForm
+        address="104 NE Lindsay Ave"
+        current={{
+          decision: "increase",
+          offeredRent: 1300,
+          market: { zillowLow: 1500, zillowHigh: 1600 },
+        }}
+        currentRent={1300}
+        leaseId="L2"
+      />,
+    );
+    expect(screen.queryByText(/below the market point estimate/)).not.toBeInTheDocument();
+  });
+
   it("fails closed without rendering the comps-screenshot file control by default", () => {
     render(
       <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,

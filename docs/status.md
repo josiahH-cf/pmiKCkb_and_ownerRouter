@@ -11,6 +11,35 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S60 shipped: the owner draft names its real source, and under-market rents get an internal flag (2026-08-06)
+
+S60 (`docs/feature-suites/comp-persistence-and-under-market-signal.md`) is built and locally
+verified, satisfying AC-S60-1 through AC-S60-10; recorded as `F-COMP-PERSISTENCE-TRUTH`.
+
+**What shipped.** The market basis gained a provider block — the provider's own range, point
+estimate, comp count, retrieval date, correlation-ordered comparables, and a month-keyed market
+trend — persisted verbatim beside the operator-typed fields, with neither ever overwriting the
+other. The owner draft now tells the truth or says nothing: provider numbers wear the provider's
+label and date; typed numbers wear "Operator-entered" and can never be dressed as a provider; an
+absent basis names no provider at all, and the literal "Zillow" left every generated draft (the
+Zillow deep link stays, as a human convenience distinct from a data-source claim). The market trend
+renders inline with a source link, the decided presentation. The under-market signal computes only
+from a provider basis at the confirmed 10 percent policy threshold, renders the actual percentage
+internally, and is provably absent from every client-facing draft. The dead ±15 percent
+rent-suggestion clamp is repaired end to end: all three recompute functions require the
+authoritative current rent at the signature level, the routes resolve it from the shared live lease
+read, and an outlier median now clamps on the live path.
+
+**Falsification, test-first.** The AC-S60-3 assertion (typed numbers + `compSource:"RentCast"`
+must not be attributed to RentCast) was written before the fix and observed FAILING against the
+pre-S60 code — the exact defect the spec names — then the fix landed and it passed, along with the
+no-Zillow-literal check.
+
+**Gates.** typecheck clean; lint 0 errors after fixing an impure-render call the rule caught; full
+unit suite green after pinning the one new live-config call site and updating the S29 mock arity;
+`test:firestore` 23 files / 109 tests; format, copy-voice, router-boundary, spec-traceability all
+pass; production build recorded with this entry's commit.
+
 ## S59 shipped and deployed: RentCast hardened; the account, not the app, is what remains (2026-08-06)
 
 S59 (`docs/feature-suites/rentcast-live-activation.md`) is built, verified, and DEPLOYED (commit

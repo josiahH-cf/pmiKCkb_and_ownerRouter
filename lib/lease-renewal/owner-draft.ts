@@ -30,16 +30,34 @@ export interface OwnerDraftApprovedCompSource {
   label?: string;
 }
 
+/** S60: the inline market-trend rendering input (decided presentation: inline range + source link). */
+export interface OwnerDraftTrendInput {
+  zipCode: string;
+  firstMonth: string;
+  lastMonth: string;
+  firstAverage?: number;
+  lastAverage?: number;
+  retrievedAt: string;
+}
+
 export interface OwnerDraftMarketInput {
   /** The specific number from the PMI/franchise rental-analysis tool (Dan's source-of-truth number). */
   specificNumber?: number;
-  /** Zillow comp range for justification. */
+  /** Comparable-rent range for justification. */
   rangeLow?: number;
   rangeHigh?: number;
   /** A link/placeholder for the comps screenshot Dan pastes into the email (S28a: a stored drive:<id> ref). */
   compsScreenshotRef?: string;
-  /** Attribution for the comparable range (S28a: e.g. "RentCast" or "Manual entry"); defaults to "Zillow". */
+  /**
+   * S60: attribution for the comparable range. Set ONLY from where the numbers genuinely came:
+   * the provider's own label when the provider basis supplied them, or the operator-entered label
+   * for typed numbers. Never a provider name over typed numbers, never defaulted to a provider.
+   */
   rangeSource?: string;
+  /** ISO retrieval timestamp shown beside a provider-sourced range. */
+  rangeRetrievedAt?: string;
+  /** S60: month-keyed market trend, rendered inline with a source link (never an attachment). */
+  trend?: OwnerDraftTrendInput;
   /**
    * S29: an Admin-APPROVED comp-derived suggested rent number, resolved server-side from the rent-suggestion
    * control plane (never the raw computed value, never client-trusted). When present it fills the
@@ -55,6 +73,15 @@ export interface OwnerDraftMarketInput {
 
 /** The distinct source label an Admin-approved comp-derived number wears in the draft (S29). */
 export const APPROVED_SUGGESTION_SOURCE = "Comp-derived suggestion (Admin-approved)";
+
+/** S60: the label operator-typed comp numbers wear. A provider name never labels typed numbers. */
+export const OPERATOR_ENTERED_SOURCE = "Operator-entered";
+
+/** S60: the provider-free label an absent comp range wears (names no provider at all). */
+export const MARKET_COMPS_PLACEHOLDER_SOURCE = "Market comps";
+
+/** The vendor's real public site, used as the trend source link (no guessed deep-link pattern). */
+export const RENTCAST_PUBLIC_URL = "https://www.rentcast.io";
 
 export interface OwnerDraftInput {
   /** Property address label (in-boundary; never written to git). */
@@ -86,6 +113,7 @@ export const OWNER_RENEWAL_V1_BASE_COPY = Object.freeze({
     "We have a renewal coming up for {{address}}. We are currently charging {{current_rent}}.",
     "",
     "{{range_line}}",
+    "{{trend_line}}",
     "{{suggestion_line}}",
     "{{screenshot}}",
     "",
@@ -102,24 +130,56 @@ export function formatUsd(amount: number): string {
 }
 
 /**
- * Map the operator's recorded comp basis (RenewalMarketBasis) onto the owner-draft market input, copying
- * only the fields that were actually entered. The app never fills a missing number — an absent field stays
+ * Map the recorded comp basis (RenewalMarketBasis) onto the owner-draft market input, copying only
+ * fields that were actually captured. The app never fills a missing number — an absent field stays
  * absent so the draft renders a visible `Needs Verification:` marker instead of an invented value.
+ *
+ * S60 source truth: when the PROVIDER basis is present its numbers, its own source label, and its
+ * retrieval date are used. Otherwise the operator-typed numbers are used and labeled
+ * operator-entered — `compSource` is display metadata about a lookup the operator ran and NEVER
+ * labels typed numbers. One basis's numbers are never combined with the other's label.
  */
 export function ownerDraftMarketFromBasis(
   market: RenewalMarketBasis,
 ): OwnerDraftMarketInput {
   const out: OwnerDraftMarketInput = {};
   if (market.pmiNumber !== undefined) out.specificNumber = market.pmiNumber;
-  if (market.zillowLow !== undefined) out.rangeLow = market.zillowLow;
-  if (market.zillowHigh !== undefined) out.rangeHigh = market.zillowHigh;
+
+  const provider = market.provider;
+  if (provider) {
+    out.rangeLow = provider.rangeLow;
+    out.rangeHigh = provider.rangeHigh;
+    out.rangeSource = provider.source;
+    out.rangeRetrievedAt = provider.retrievedAt;
+    const trend = provider.trend;
+    if (trend) {
+      const months = Object.keys(trend.months).sort();
+      if (months.length > 0) {
+        const firstMonth = months[0];
+        const lastMonth = months[months.length - 1];
+        const firstAverage = trend.months[firstMonth]?.averageRent;
+        const lastAverage = trend.months[lastMonth]?.averageRent;
+        out.trend = {
+          zipCode: trend.zipCode,
+          firstMonth,
+          lastMonth,
+          ...(firstAverage !== undefined ? { firstAverage } : {}),
+          ...(lastAverage !== undefined ? { lastAverage } : {}),
+          retrievedAt: trend.retrievedAt,
+        };
+      }
+    }
+  } else {
+    if (market.zillowLow !== undefined) out.rangeLow = market.zillowLow;
+    if (market.zillowHigh !== undefined) out.rangeHigh = market.zillowHigh;
+    if (market.zillowLow !== undefined || market.zillowHigh !== undefined) {
+      out.rangeSource = OPERATOR_ENTERED_SOURCE;
+    }
+  }
+
   // Prefer the stored Drive screenshot ref (S28a); fall back to the pasted URL for back-compat.
   const screenshotRef = market.compScreenshotRef?.trim() || market.compsUrl?.trim();
   if (screenshotRef) out.compsScreenshotRef = screenshotRef;
-  // Carry the provider attribution onto the comparable-range fact (defaults to "Zillow" when absent).
-  if (market.compSource && market.compSource.trim() !== "") {
-    out.rangeSource = market.compSource.trim();
-  }
   return out;
 }
 
@@ -144,26 +204,51 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
   });
 
   const market = input.market ?? {};
-  // S28a: the comparable-range fact wears the provider's attribution ("Manual entry" / "RentCast" / …),
-  // defaulting to "Zillow" to preserve prior behavior when no provider source was recorded.
-  const rangeSource = market.rangeSource ?? "Zillow";
+  // S60: the comparable-range fact wears the label of where its numbers GENUINELY came from — the
+  // provider's own label, or operator-entered. An absent range renders a marker naming no provider.
+  const rangeSource = market.rangeSource ?? OPERATOR_ENTERED_SOURCE;
   const hasRange = market.rangeLow !== undefined && market.rangeHigh !== undefined;
   if (hasRange) {
     facts.push({
       key: "market_range",
       label: "Comparable range",
       value: `${formatUsd(market.rangeLow!)}–${formatUsd(market.rangeHigh!)}`,
-      source: rangeSource,
+      source: market.rangeRetrievedAt
+        ? `${rangeSource} (retrieved ${market.rangeRetrievedAt.slice(0, 10)})`
+        : rangeSource,
       confidence: "Likely",
     });
   } else {
-    missingInputs.push("market comp range (Zillow)");
+    missingInputs.push("market comp range");
     facts.push({
       key: "market_range",
       label: "Comparable range",
-      value: `[${NEEDS_VERIFICATION}: market comp range from Zillow]`,
-      source: "Zillow",
+      value: `[${NEEDS_VERIFICATION}: market comp range]`,
+      source: MARKET_COMPS_PLACEHOLDER_SOURCE,
       confidence: NEEDS_VERIFICATION,
+    });
+  }
+
+  // S60: the market trend renders INLINE with a source link (the decided presentation; never an
+  // attachment). Only the provider's own retrieved figures appear; an absent trend renders nothing.
+  const trend = market.trend;
+  let trendLine = "";
+  if (trend && (trend.firstAverage !== undefined || trend.lastAverage !== undefined)) {
+    const from =
+      trend.firstAverage !== undefined
+        ? `${formatUsd(trend.firstAverage)} in ${trend.firstMonth}`
+        : trend.firstMonth;
+    const to =
+      trend.lastAverage !== undefined
+        ? `${formatUsd(trend.lastAverage)} in ${trend.lastMonth}`
+        : trend.lastMonth;
+    trendLine = `Average area rent for ${trend.zipCode} moved from ${from} to ${to} (source: RentCast, ${RENTCAST_PUBLIC_URL}, retrieved ${trend.retrievedAt.slice(0, 10)}).`;
+    facts.push({
+      key: "market_trend",
+      label: "Market trend",
+      value: `${from} to ${to} (${trend.zipCode})`,
+      source: `RentCast (retrieved ${trend.retrievedAt.slice(0, 10)})`,
+      confidence: "Likely",
     });
   }
 
@@ -193,7 +278,7 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
 
   const rangeLine = hasRange
     ? `I'm seeing comparable rents ranging from ${formatUsd(market.rangeLow!)} to ${formatUsd(market.rangeHigh!)}.`
-    : `I'm seeing comparable rents ranging from [${NEEDS_VERIFICATION}: market comp range from Zillow].`;
+    : `I'm seeing comparable rents ranging from [${NEEDS_VERIFICATION}: market comp range].`;
   const suggestionLine =
     suggestedValue !== undefined
       ? `Based on ${approvedSuggestion ? "comparable rents" : "the analysis"}, a renewal around ${formatUsd(suggestedValue)} looks reasonable.`
@@ -203,12 +288,18 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     address: input.addressLabel,
     current_rent: formatUsd(input.currentRent),
     range_line: rangeLine,
+    trend_line: trendLine,
     suggestion_line: suggestionLine,
     screenshot,
   };
   const subject = renderBaseCopy(OWNER_RENEWAL_V1_BASE_COPY.subject, replacements);
   const body = OWNER_RENEWAL_V1_BASE_COPY.body
     .map((line) => renderBaseCopy(line, replacements))
+    // An absent trend drops its slot entirely rather than leaving a stray blank line.
+    .filter((line, index) => {
+      const template = OWNER_RENEWAL_V1_BASE_COPY.body[index];
+      return !(template === "{{trend_line}}" && line === "");
+    })
     .join("\n");
 
   return {

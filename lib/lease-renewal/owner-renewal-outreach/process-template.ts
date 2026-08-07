@@ -17,7 +17,7 @@ const OWNER_RENEWAL_OUTREACH_STEPS: ReadonlyArray<{
   {
     title: "Gather facts",
     description:
-      "Read the outreach facts: address + current rent (RentVine, read-authoritative), a market comp range (Zillow), and the specific market number (PMI rental-analysis tool). Missing market inputs render as visible Needs-Verification markers, so the app uses only verified facts.",
+      "Read the outreach facts: address + current rent (RentVine, read-authoritative), a market comp range (provider-retrieved or operator-entered, labeled by where it came from), and the specific market number (PMI rental-analysis tool). Missing market inputs render as visible Needs-Verification markers, so the app uses only verified facts.",
   },
   {
     title: "Compose owner outreach draft",

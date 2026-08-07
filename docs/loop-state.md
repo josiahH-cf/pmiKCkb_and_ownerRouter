@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_S58_S59_DONE
-next_suite: S60
-next_spec: docs/feature-suites/comp-persistence-and-under-market-signal.md
+implementation_status: S57_S58_S59_S60_DONE
+next_suite: S61
+next_spec: docs/feature-suites/renewal-recipient-fanout-and-separation.md
 session_auth_status: READY_ADC_FRESH_2026_08_06
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S60_COMP_PERSISTENCE_AND_UNDER_MARKET
-last_completed_slice: S59_RENTCAST_LIVE_ACTIVATION
+next_slice: S61_RECIPIENT_FANOUT_AND_SEPARATION
+last_completed_slice: S60_COMP_PERSISTENCE_AND_UNDER_MARKET
 runtime_action_gates_preflipped: false
 ```
 
@@ -113,11 +113,16 @@ answers 403 — activate the API plan in the RentCast dashboard, read back the r
 (AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
 (`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
 
-Start **S60** at `docs/feature-suites/comp-persistence-and-under-market-signal.md` (under-market
-threshold 10 percent below the provider point estimate, `Q-UNDER-MARKET-THRESHOLD`; trend inline
-plus source link, `Q-COMP-TREND-PRESENTATION`; clamp repair, `F-RENT-SUGGESTION-CLAMP-INERT`). S60's
-LIVE comp evidence waits on `Q-RENTCAST-ACCOUNT-403`; its build work does not. Then S61 → S62 → S63.
-S65 may interleave whenever no slice is mid-flight. Do not start S64.
+**S60 is DONE** (`F-COMP-PERSISTENCE-TRUTH`): provider basis persisted beside typed values, owner
+draft names its real source (Zillow literal gone; trend inline + link), under-market signal at the
+confirmed 10 percent stays internal, ±15 percent clamp repaired with signature-level arity pins.
+S60's LIVE comp evidence still waits on `Q-RENTCAST-ACCOUNT-403`.
+
+Start **S61** at `docs/feature-suites/renewal-recipient-fanout-and-separation.md` (owner ordering =
+portfolio's own order first-to-`to` rest-to-`cc`, `Q-OWNER-ORDERING`; separation assertion built and
+refusing on violation, `Q-CHANNEL-SEPARATION-ASSERTION`; the real population is 146/305 multi-owner
+leases, `F-OWNER-CHANNEL-SINGLE-RECIPIENT`/`F-OWNER-PERCENT-OWNED-ABSENT`). Then S62 → S63. S65 may
+interleave whenever no slice is mid-flight. Do not start S64.
 
 **Correction note: DONE 2026-08-06.** The client correction note at
 `docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four

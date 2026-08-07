@@ -150,6 +150,7 @@ export function RenewalWorkspace({
               compAttributes={workspace.compAttributes}
               compScreenshotExecutable={compScreenshotExecutable}
               current={workspace.live.ownerDecision}
+              currentRent={workspace.currentRent}
               leaseId={workspace.live.leaseId}
             />
             {/* S29: the comp-derived suggested rent number, shown beside its comps, with the Admin-only

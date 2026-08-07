@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
+import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
 // Phase-A LIVE workspace controls that make the renewal flow move. They persist the operator's own
 // forward progress through /api/lease-renewal/renewal-progress and refresh the server-rendered workspace.
@@ -25,6 +26,8 @@ interface RecordedDecision {
     compScreenshotRef?: string;
     compSource?: string;
     compRetrievedAt?: string;
+    /** S60: the persisted provider basis (only the fields this surface reads). */
+    provider?: { source: string; pointEstimate: number; retrievedAt: string };
   };
 }
 
@@ -34,6 +37,15 @@ interface CompLookup {
   rangeHigh?: number;
   pointEstimate?: number;
   compCount?: number;
+  /** S60: provider comparables, kept in provider order with correlation intact. */
+  comparables?: {
+    rent: number;
+    correlation?: number;
+    distanceMiles?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    daysOnMarket?: number;
+  }[];
   source: string;
   retrievedAt?: string;
   confidence: "Likely" | "Needs Verification";
@@ -42,6 +54,14 @@ interface CompLookup {
   /** S59: the operator-visible remaining-calls figure on the RentCast path. */
   quota?: { used: number; allowance: number; remaining: number; warn: boolean };
   cached?: boolean;
+}
+
+/** S60: the /markets trend lookup result the composer persists with the provider basis. */
+interface TrendLookup {
+  zipCode?: string;
+  retrievedAt?: string;
+  history?: Record<string, { averageRent?: unknown; medianRent?: unknown }>;
+  confidence?: string;
 }
 
 // S59 / AC-S59-8: each refusal cause renders as its own plain sentence, never one generic message
@@ -140,6 +160,7 @@ export function OwnerDecisionForm({
   current,
   address,
   compAttributes,
+  currentRent,
   compScreenshotExecutable = false,
 }: Readonly<{
   leaseId: string;
@@ -148,6 +169,8 @@ export function OwnerDecisionForm({
   address?: string;
   /** S59: the lease's known unit attributes, passed through so the estimate fits the unit (AC-S59-7). */
   compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
+  /** S60: the authoritative current rent (RentVine), for the INTERNAL under-market signal only. */
+  currentRent?: number;
   /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
   compScreenshotExecutable?: boolean;
 }>) {
@@ -189,7 +212,19 @@ export function OwnerDecisionForm({
   const [rollbackPreview, setRollbackPreview] =
     useState<ScreenshotRollbackPreview | null>(null);
   const [compLookup, setCompLookup] = useState<CompLookup | null>(null);
+  const [trendLookup, setTrendLookup] = useState<TrendLookup | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
+  // S60: the INTERNAL under-market signal. Computed only from a PROVIDER basis (a fresh live
+  // lookup, else the persisted provider block) against the authoritative current rent — never from
+  // the operator's own typed numbers, and never rendered into any client draft.
+  const providerPointEstimate =
+    compLookup?.confidence === "Likely" && compLookup.source === "RentCast"
+      ? compLookup.pointEstimate
+      : current?.market?.provider?.pointEstimate;
+  const underMarketSignal =
+    currentRent !== undefined
+      ? computeUnderMarketSignal({ currentRent, providerPointEstimate })
+      : null;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -245,6 +280,32 @@ export function OwnerDecisionForm({
         error?: string;
       };
       setCompLookup(response.ok ? payload : null);
+      // S60: one deliberate follow-on trend call (separately billed and metered) when the lease's
+      // zip is known and the comps lookup itself came back live. The decided presentation renders
+      // it inline in the owner draft with a source link.
+      if (
+        response.ok &&
+        payload.confidence === "Likely" &&
+        payload.source === "RentCast" &&
+        compAttributes?.postalCode
+      ) {
+        try {
+          const trendResponse = await fetch("/api/lease-renewal/market-comps", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              operation: "trend",
+              zipCode: compAttributes.postalCode,
+            }),
+          });
+          const trendPayload = (await trendResponse
+            .json()
+            .catch(() => ({}))) as TrendLookup;
+          setTrendLookup(trendResponse.ok ? trendPayload : null);
+        } catch {
+          setTrendLookup(null);
+        }
+      }
     } catch {
       setCompLookup(null);
     } finally {
@@ -678,6 +739,73 @@ export function OwnerDecisionForm({
     // a client-supplied Drive reference as renewal progress.
     if (compLookup?.source) market.compSource = compLookup.source;
     if (compLookup?.retrievedAt) market.compRetrievedAt = compLookup.retrievedAt;
+    // S60: persist the PROVIDER-RETRIEVED basis verbatim, beside (never over) the typed fields, so
+    // the owner draft prints the number it actually retrieved under the source it came from.
+    if (
+      compLookup &&
+      compLookup.confidence === "Likely" &&
+      compLookup.source === "RentCast" &&
+      compLookup.rangeLow !== undefined &&
+      compLookup.rangeHigh !== undefined &&
+      compLookup.pointEstimate !== undefined &&
+      compLookup.compCount !== undefined &&
+      compLookup.retrievedAt
+    ) {
+      const trendMonths: Record<string, { averageRent?: number; medianRent?: number }> =
+        {};
+      for (const [month, values] of Object.entries(trendLookup?.history ?? {})) {
+        if (!/^\d{4}-\d{2}$/.test(month)) continue;
+        const entry: { averageRent?: number; medianRent?: number } = {};
+        if (
+          typeof values?.averageRent === "number" &&
+          Number.isFinite(values.averageRent)
+        ) {
+          entry.averageRent = values.averageRent;
+        }
+        if (
+          typeof values?.medianRent === "number" &&
+          Number.isFinite(values.medianRent)
+        ) {
+          entry.medianRent = values.medianRent;
+        }
+        if (Object.keys(entry).length > 0) trendMonths[month] = entry;
+      }
+      market.provider = {
+        source: compLookup.source,
+        rangeLow: compLookup.rangeLow,
+        rangeHigh: compLookup.rangeHigh,
+        pointEstimate: compLookup.pointEstimate,
+        compCount: compLookup.compCount,
+        retrievedAt: compLookup.retrievedAt,
+        ...(compAttributes?.bedrooms !== undefined ||
+        compAttributes?.bathrooms !== undefined
+          ? {
+              unitFilters: {
+                ...(compAttributes?.bedrooms !== undefined
+                  ? { bedrooms: compAttributes.bedrooms }
+                  : {}),
+                ...(compAttributes?.bathrooms !== undefined
+                  ? { bathrooms: compAttributes.bathrooms }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(compLookup.comparables && compLookup.comparables.length > 0
+          ? { comps: compLookup.comparables.slice(0, 50) }
+          : {}),
+        ...(trendLookup?.zipCode &&
+        trendLookup.retrievedAt &&
+        Object.keys(trendMonths).length > 0
+          ? {
+              trend: {
+                zipCode: trendLookup.zipCode,
+                retrievedAt: trendLookup.retrievedAt,
+                months: trendMonths,
+              },
+            }
+          : {}),
+      };
+    }
     if (Object.keys(market).length > 0) body.market = market;
     try {
       const response = await fetch("/api/lease-renewal/renewal-progress", {
@@ -764,7 +892,7 @@ export function OwnerDecisionForm({
         separate comp-derived suggestion needs Admin approval before it enters a draft.
       </p>
       <div className="ui-row">
-        <Field htmlFor={id.zillowLow} label="Zillow low (optional)">
+        <Field htmlFor={id.zillowLow} label="Comp low (typed, optional)">
           <input
             id={id.zillowLow}
             inputMode="decimal"
@@ -774,7 +902,7 @@ export function OwnerDecisionForm({
             value={zillowLow}
           />
         </Field>
-        <Field htmlFor={id.zillowHigh} label="Zillow high (optional)">
+        <Field htmlFor={id.zillowHigh} label="Comp high (typed, optional)">
           <input
             id={id.zillowHigh}
             inputMode="decimal"
@@ -947,6 +1075,11 @@ export function OwnerDecisionForm({
           ) : null}
           <p className="muted">Reference only. Does not set the rent.</p>
         </div>
+      ) : null}
+      {underMarketSignal ? (
+        <p className="muted" role="note">
+          {underMarketSignal.message}
+        </p>
       ) : null}
       <div className="ui-row">
         <Button disabled={!ready || pending} onClick={() => void submit()} type="button">

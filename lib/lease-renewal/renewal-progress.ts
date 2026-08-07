@@ -30,21 +30,66 @@ export const MAX_RENEWAL_STAGE = RENEWAL_STAGE.build;
  * behind explicit per-number Admin approval (S29, D-RENT-SUGGEST); this comp basis never becomes that
  * suggestion on its own. All optional so a decision can be recorded before the comps are gathered.
  */
+/** One provider comparable, kept in provider order with its correlation intact (S60). */
+export interface RenewalMarketProviderComp {
+  rent: number;
+  correlation?: number;
+  distanceMiles?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  daysOnMarket?: number;
+}
+
+/** Month-keyed rental trend distilled from the provider's /markets history (S60). */
+export interface RenewalMarketProviderTrend {
+  zipCode: string;
+  retrievedAt: string;
+  /** Keyed YYYY-MM. Only the provider's own aggregate figures; never a synthesized value. */
+  months: Record<string, { averageRent?: number; medianRent?: number }>;
+}
+
+/**
+ * S60: the PROVIDER-RETRIEVED comp basis, persisted verbatim so the owner draft prints the number
+ * it actually retrieved under the source it actually came from. Kept strictly apart from the
+ * operator-typed fields below: neither ever overwrites the other, and a draft never combines one
+ * basis's numbers with the other's label.
+ */
+export interface RenewalMarketProviderBasis {
+  /** The provider's own source label (e.g. "RentCast"). */
+  source: string;
+  rangeLow: number;
+  rangeHigh: number;
+  pointEstimate: number;
+  compCount: number;
+  retrievedAt: string;
+  radiusMiles?: number;
+  unitFilters?: {
+    bedrooms?: number;
+    bathrooms?: number;
+    squareFootage?: number;
+    propertyType?: string;
+  };
+  comps?: RenewalMarketProviderComp[];
+  trend?: RenewalMarketProviderTrend;
+}
+
 export interface RenewalMarketBasis {
-  /** Zillow comparable-rent range low. */
+  /** Operator-typed comp-range low ("Comp low (typed)" in the UI; persisted key name retained). */
   zillowLow?: number;
-  /** Zillow comparable-rent range high. */
+  /** Operator-typed comp-range high ("Comp high (typed)" in the UI; persisted key name retained). */
   zillowHigh?: number;
   /** The specific number from the PMI/franchise rental-analysis tool. */
   pmiNumber?: number;
-  /** The Zillow comps-search URL the operator used (property address only; no tenant PII). */
+  /** The comps-search URL the operator used (property address only; no tenant PII). */
   compsUrl?: string;
   /** The stored Drive ref (drive:<id>) for the uploaded comps screenshot (S28a; distinct from compsUrl). */
   compScreenshotRef?: string;
-  /** Attribution for the comp range (e.g. "Manual entry" or "RentCast"). Display string only; no number. */
+  /** Display-only attribution metadata for the lookup the operator ran. NEVER labels typed numbers. */
   compSource?: string;
   /** ISO timestamp the comp range was retrieved (RentCast receipt). Display string only; no number. */
   compRetrievedAt?: string;
+  /** S60: the provider-retrieved basis, kept apart from the typed fields above. */
+  provider?: RenewalMarketProviderBasis;
 }
 
 /** The recorded owner rent decision that unlocks the tenant offer. Values are the operator's inputs. */
@@ -176,7 +221,147 @@ function normalizeMarketBasis(
   if (input.compRetrievedAt && input.compRetrievedAt.trim() !== "") {
     market.compRetrievedAt = input.compRetrievedAt.trim();
   }
+  const provider = normalizeProviderBasis(input.provider);
+  if (provider) market.provider = provider;
   return Object.keys(market).length > 0 ? market : undefined;
+}
+
+/**
+ * S60: validate the provider-retrieved basis with the same never-fabricate discipline. Every number
+ * must be finite and coherent or the whole block is refused — a partially-valid provider block would
+ * be a fabrication wearing a provider label. Returns undefined when absent.
+ */
+function normalizeProviderBasis(
+  input: RenewalMarketProviderBasis | undefined,
+): RenewalMarketProviderBasis | undefined {
+  if (!input) return undefined;
+  const source = typeof input.source === "string" ? input.source.trim() : "";
+  const retrievedAt =
+    typeof input.retrievedAt === "string" ? input.retrievedAt.trim() : "";
+  if (source === "" || retrievedAt === "") {
+    throw new EditableLayerError(
+      "A provider comp basis needs its source label and retrieval time.",
+      400,
+    );
+  }
+  const rangeLow = assertMoney(input.rangeLow, "Provider range low", true);
+  const rangeHigh = assertMoney(input.rangeHigh, "Provider range high", true);
+  const pointEstimate = assertMoney(input.pointEstimate, "Provider point estimate", true);
+  if (rangeHigh < rangeLow) {
+    throw new EditableLayerError(
+      "Provider range high cannot be less than provider range low.",
+      400,
+    );
+  }
+  if (!Number.isInteger(input.compCount) || input.compCount < 1) {
+    throw new EditableLayerError(
+      "A provider comp basis needs a positive comp count.",
+      400,
+    );
+  }
+  const provider: RenewalMarketProviderBasis = {
+    source,
+    rangeLow,
+    rangeHigh,
+    pointEstimate,
+    compCount: input.compCount,
+    retrievedAt,
+  };
+  if (input.radiusMiles !== undefined) {
+    provider.radiusMiles = assertMoney(input.radiusMiles, "Provider radius", true);
+  }
+  if (input.unitFilters) {
+    const filters: NonNullable<RenewalMarketProviderBasis["unitFilters"]> = {};
+    if (input.unitFilters.bedrooms !== undefined) {
+      filters.bedrooms = assertMoney(input.unitFilters.bedrooms, "Bedrooms", true);
+    }
+    if (input.unitFilters.bathrooms !== undefined) {
+      filters.bathrooms = assertMoney(input.unitFilters.bathrooms, "Bathrooms", true);
+    }
+    if (input.unitFilters.squareFootage !== undefined) {
+      filters.squareFootage = assertMoney(
+        input.unitFilters.squareFootage,
+        "Square footage",
+        true,
+      );
+    }
+    if (
+      typeof input.unitFilters.propertyType === "string" &&
+      input.unitFilters.propertyType.trim() !== ""
+    ) {
+      filters.propertyType = input.unitFilters.propertyType.trim();
+    }
+    if (Object.keys(filters).length > 0) provider.unitFilters = filters;
+  }
+  if (input.comps !== undefined) {
+    if (!Array.isArray(input.comps)) {
+      throw new EditableLayerError("Provider comps must be a list.", 400);
+    }
+    provider.comps = input.comps.map((comp) => {
+      const rent = assertMoney(comp.rent, "Provider comp rent", true);
+      const normalized: RenewalMarketProviderComp = { rent };
+      if (comp.correlation !== undefined) {
+        if (
+          typeof comp.correlation !== "number" ||
+          !Number.isFinite(comp.correlation) ||
+          comp.correlation < 0 ||
+          comp.correlation > 1
+        ) {
+          throw new EditableLayerError(
+            "A comp correlation must sit between 0 and 1.",
+            400,
+          );
+        }
+        normalized.correlation = comp.correlation;
+      }
+      if (comp.distanceMiles !== undefined) {
+        normalized.distanceMiles = assertMoney(comp.distanceMiles, "Comp distance", true);
+      }
+      if (comp.bedrooms !== undefined) {
+        normalized.bedrooms = assertMoney(comp.bedrooms, "Comp bedrooms", true);
+      }
+      if (comp.bathrooms !== undefined) {
+        normalized.bathrooms = assertMoney(comp.bathrooms, "Comp bathrooms", true);
+      }
+      if (comp.daysOnMarket !== undefined) {
+        normalized.daysOnMarket = assertMoney(
+          comp.daysOnMarket,
+          "Comp days on market",
+          true,
+        );
+      }
+      return normalized;
+    });
+  }
+  if (input.trend !== undefined) {
+    const zip = typeof input.trend.zipCode === "string" ? input.trend.zipCode.trim() : "";
+    const trendRetrievedAt =
+      typeof input.trend.retrievedAt === "string" ? input.trend.retrievedAt.trim() : "";
+    if (!/^\d{5}$/.test(zip) || trendRetrievedAt === "") {
+      throw new EditableLayerError(
+        "A market trend needs its 5-digit zip and retrieval time.",
+        400,
+      );
+    }
+    const months: RenewalMarketProviderTrend["months"] = {};
+    for (const [month, values] of Object.entries(input.trend.months ?? {})) {
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        throw new EditableLayerError("Trend months must be keyed YYYY-MM.", 400);
+      }
+      const entry: { averageRent?: number; medianRent?: number } = {};
+      if (values?.averageRent !== undefined) {
+        entry.averageRent = assertMoney(values.averageRent, "Trend average rent", true);
+      }
+      if (values?.medianRent !== undefined) {
+        entry.medianRent = assertMoney(values.medianRent, "Trend median rent", true);
+      }
+      if (Object.keys(entry).length > 0) months[month] = entry;
+    }
+    if (Object.keys(months).length > 0) {
+      provider.trend = { zipCode: zip, retrievedAt: trendRetrievedAt, months };
+    }
+  }
+  return provider;
 }
 
 /**

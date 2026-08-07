@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildOwnerRenewalDraft, formatUsd } from "@/lib/lease-renewal/owner-draft";
+import {
+  buildOwnerRenewalDraft,
+  formatUsd,
+  ownerDraftMarketFromBasis,
+} from "@/lib/lease-renewal/owner-draft";
 
 describe("formatUsd", () => {
   it("formats whole and fractional dollars with separators", () => {
@@ -46,7 +50,7 @@ describe("buildOwnerRenewalDraft", () => {
 
     expect(draft.body).toContain("Needs Verification");
     expect(draft.missingInputs).toEqual([
-      "market comp range (Zillow)",
+      "market comp range",
       "specific market number (PMI rental-analysis tool)",
       "comps screenshot",
     ]);
@@ -144,5 +148,37 @@ describe("buildOwnerRenewalDraft", () => {
     expect(marketNumber?.value).toBe("$2,350");
     expect(marketNumber?.source).toBe("Comp-derived suggestion (Admin-approved)");
     expect(draft.body).not.toContain("$9,999");
+  });
+});
+
+// S60: the draft tells the truth about its source or says nothing.
+describe("S60 owner-draft source truth", () => {
+  // AC-S60-3 (the exact pre-S60 defect): operator-typed numbers with compSource set to a provider
+  // name must NEVER be attributed to that provider.
+  it("never attributes operator-typed numbers to a provider label", () => {
+    const market = ownerDraftMarketFromBasis({
+      zillowLow: 1400,
+      zillowHigh: 1600,
+      compSource: "RentCast",
+    });
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 1250,
+      market,
+    });
+    const range = draft.facts.find((fact) => fact.key === "market_range");
+    expect(range?.value).toContain("$1,400");
+    expect(range?.source).not.toBe("RentCast");
+  });
+
+  // AC-S60-4: with no basis, the marker names no provider; the literal "Zillow" appears nowhere.
+  it("renders a provider-free Needs Verification marker and never the literal Zillow", () => {
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 1250,
+    });
+    expect(draft.body).not.toContain("Zillow");
+    expect(JSON.stringify(draft.facts)).not.toContain("Zillow");
+    expect(draft.missingInputs.join(" ")).not.toContain("Zillow");
   });
 });

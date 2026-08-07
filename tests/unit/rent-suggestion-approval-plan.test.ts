@@ -13,6 +13,7 @@ import {
   getApprovedRentSuggestion,
   getRentSuggestionApproval,
   listRentSuggestionApprovalActivity,
+  resolveLeaseRentSuggestion,
 } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import {
   planRentSuggestionApprovalDecision,
@@ -92,6 +93,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     const approval = await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Comps support this." },
+      null,
       fs(),
     );
 
@@ -113,7 +115,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({ action: "approve", new_state: "Approved" });
 
-    const approved = await getApprovedRentSuggestion(admin, LEASE_ID, fs());
+    const approved = await getApprovedRentSuggestion(admin, LEASE_ID, null, fs());
     expect(approved?.value).toBe(2300);
   });
 
@@ -122,13 +124,16 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Approved 2300." },
+      null,
       fs(),
     );
-    expect((await getApprovedRentSuggestion(admin, LEASE_ID, fs()))?.value).toBe(2300);
+    expect((await getApprovedRentSuggestion(admin, LEASE_ID, null, fs()))?.value).toBe(
+      2300,
+    );
 
     // The operator revises the comps; the median is now 2600. The prior approval no longer authorizes it.
     seedProgress(db, { zillow_low: 2500, zillow_high: 2800, pmi_number: 2600 });
-    expect(await getApprovedRentSuggestion(admin, LEASE_ID, fs())).toBeNull();
+    expect(await getApprovedRentSuggestion(admin, LEASE_ID, null, fs())).toBeNull();
 
     // A record still exists but no longer matches the current number: nothing silently authorized.
     const stored = await getRentSuggestionApproval(admin, LEASE_ID, fs());
@@ -142,10 +147,13 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
         decision: "approve",
         reason: "Approving the revised number.",
       },
+      null,
       fs(),
     );
     expect(reapproved.approved_value).toBe(2600);
-    expect((await getApprovedRentSuggestion(admin, LEASE_ID, fs()))?.value).toBe(2600);
+    expect((await getApprovedRentSuggestion(admin, LEASE_ID, null, fs()))?.value).toBe(
+      2600,
+    );
   });
 
   it("refuses to decide when there is no defensible comp set (needs verification)", async () => {
@@ -154,6 +162,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       decideRentSuggestionApproval(
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
+        null,
         fs(),
       ),
     ).rejects.toThrow(/no suggested rent number/i);
@@ -166,6 +175,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       decideRentSuggestionApproval(
         editor,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
+        null,
         fs(),
       ),
     ).rejects.toThrow(EditableLayerError);
@@ -178,6 +188,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       decideRentSuggestionApproval(
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "   " },
+        null,
         fs(),
       ),
     ).rejects.toThrow();
@@ -188,14 +199,51 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "First approve." },
+      null,
       fs(),
     );
     await expect(
       decideRentSuggestionApproval(
         admin,
         { lease_id: LEASE_ID, decision: "approve", reason: "Second approve." },
+        null,
         fs(),
       ),
     ).rejects.toThrow(EditableLayerError);
+  });
+});
+
+// S60 (AC-S60-10): the ±15% clamp engages on the live path because every call site passes the
+// authoritative current rent.
+describe("S60 clamp repair", () => {
+  it("clamps an outlier comp median when the authoritative current rent is passed", async () => {
+    // Median of [2200, 2500, 9000] = 2500... use values whose median is far from current rent:
+    seedProgress(db, { zillow_low: 3000, zillow_high: 3400, pmi_number: 3200 });
+    const approval = await decideRentSuggestionApproval(
+      admin,
+      { lease_id: LEASE_ID, decision: "approve", reason: "Clamp check." },
+      2000,
+      fs(),
+    );
+    // Median 3200 is >15% above 2000 → clamped to 2300 (2000 * 1.15).
+    expect(approval.approved_value).toBe(2300);
+  });
+
+  it("leaves the median unclamped only when the live rent is genuinely unavailable (null)", async () => {
+    seedProgress(db, { zillow_low: 3000, zillow_high: 3400, pmi_number: 3200 });
+    const approval = await decideRentSuggestionApproval(
+      admin,
+      { lease_id: LEASE_ID, decision: "approve", reason: "No live rent." },
+      null,
+      fs(),
+    );
+    expect(approval.approved_value).toBe(3200);
+  });
+
+  it("requires the current-rent argument at the signature level (an omitting call site fails)", () => {
+    // Function.length counts required params: (actor, leaseId, currentRent) before the db default.
+    expect(resolveLeaseRentSuggestion.length).toBe(3);
+    expect(decideRentSuggestionApproval.length).toBe(3);
+    expect(getApprovedRentSuggestion.length).toBe(3);
   });
 });

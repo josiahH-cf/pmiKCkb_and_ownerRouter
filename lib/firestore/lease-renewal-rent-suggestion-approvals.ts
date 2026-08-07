@@ -69,13 +69,20 @@ export interface ApprovedRentSuggestion {
 export async function resolveLeaseRentSuggestion(
   actor: AuthenticatedUser,
   leaseId: string,
+  // S60 (AC-S60-10): the AUTHORITATIVE current rent from the live RentVine read. Required at every
+  // call site so the ±15% clamp actually engages on the live path; pass null only when the live
+  // read is genuinely unavailable, which leaves the median visibly unclamped as before.
+  currentRent: number | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<RentSuggestion> {
   assertCan(actor, "read");
   const progress = await getRenewalProgress(actor, leaseId, db);
   const market = progress?.ownerDecision?.market;
   const comps = market ? compsFromMarketBasis(market) : [];
-  return computeRentSuggestion({ comps });
+  return computeRentSuggestion({
+    comps,
+    ...(currentRent !== null ? { currentRent } : {}),
+  });
 }
 
 /**
@@ -89,6 +96,7 @@ export async function resolveLeaseRentSuggestion(
 export async function decideRentSuggestionApproval(
   actor: AuthenticatedUser,
   input: DecideRentSuggestionApprovalInput,
+  currentRent: number | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<LeaseRenewalRentSuggestionApprovalRecord> {
   assertCan(actor, "manageAdmin");
@@ -98,7 +106,7 @@ export async function decideRentSuggestionApproval(
     throw new EditableLayerError("A lease id is required.", 400);
   }
 
-  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, db);
+  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, currentRent, db);
   if (suggestion.status !== "suggested" || suggestion.suggestedRent === null) {
     throw new EditableLayerError(
       "There is no suggested rent number to decide for this lease. Capture comp data first.",
@@ -200,12 +208,13 @@ export async function getRentSuggestionApproval(
 export async function getApprovedRentSuggestion(
   actor: AuthenticatedUser,
   leaseId: string,
+  currentRent: number | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<ApprovedRentSuggestion | null> {
   assertCan(actor, "read");
   const record = await getRentSuggestionApproval(actor, leaseId, db);
   if (!record || record.state !== "Approved") return null;
-  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, db);
+  const suggestion = await resolveLeaseRentSuggestion(actor, leaseId, currentRent, db);
   if (suggestion.status !== "suggested" || suggestion.suggestedRent === null) return null;
   const comps = suggestion.comps.map(toStoredComp);
   if (isStale(record, suggestion.suggestedRent, comps)) return null;

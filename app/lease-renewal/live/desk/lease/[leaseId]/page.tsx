@@ -6,7 +6,12 @@ import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-g
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-screenshot-action";
+import {
+  findLeaseViewById,
+  leaseCurrentRent,
+} from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
@@ -48,14 +53,36 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const { leaseId } = await params;
 
   const progress = await getRenewalProgress(user, leaseId);
+  // S60 (AC-S60-10): the approval re-verify recomputes against the AUTHORITATIVE current rent from
+  // the shared live read (a coalesced cache read the workspace loader reuses). Null when the live
+  // source is unavailable, which leaves the recompute visibly unclamped rather than guessed.
+  const liveConfig = buildLiveRenewalConfig();
+  const readTimestamp = new Date().toISOString();
+  let authoritativeCurrentRent: number | null = null;
+  if (liveConfig.ok) {
+    try {
+      const views = await getLiveLeaseViews(
+        liveConfig.rentvineClient,
+        Date.parse(readTimestamp),
+      );
+      const view = findLeaseViewById(views, leaseId);
+      authoritativeCurrentRent = view ? (leaseCurrentRent(view) ?? null) : null;
+    } catch {
+      authoritativeCurrentRent = null;
+    }
+  }
   // S29: the exact Admin-approved comp-derived rent number (or null). It flows into the owner-draft preview
   // only when an Approved record still matches the current recompute; it is never the raw computed value.
-  const approvedSuggestion = await getApprovedRentSuggestion(user, leaseId);
+  const approvedSuggestion = await getApprovedRentSuggestion(
+    user,
+    leaseId,
+    authoritativeCurrentRent,
+  );
   const compScreenshotAction = await getRenewalCompScreenshotActionView();
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
-    new Date().toISOString(),
-    buildLiveRenewalConfig(),
+    readTimestamp,
+    liveConfig,
     progress,
     approvedSuggestion,
   );

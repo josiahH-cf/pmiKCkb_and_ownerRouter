@@ -295,6 +295,9 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(mocks.getApprovedRentSuggestion).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "editor-1" }),
       "42",
+      // S60 (AC-S60-10): the re-verify recomputes against the authoritative live rent (1400 in the
+      // fake export row for lease 42).
+      1400,
     );
   });
 

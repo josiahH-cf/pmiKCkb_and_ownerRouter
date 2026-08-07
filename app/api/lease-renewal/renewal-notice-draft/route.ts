@@ -6,6 +6,7 @@ import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
+import { leaseCurrentRent } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
@@ -129,7 +130,22 @@ export async function POST(request: Request) {
     // the number is NEVER client-supplied; getApprovedRentSuggestion returns it only when an Approved
     // record still matches the current server recompute (otherwise null, and the draft stays unchanged).
     if (input.channel === "owner") {
-      const approved = await getApprovedRentSuggestion(user, body.leaseId);
+      // S60 (AC-S60-10): the stale-approval re-verify recomputes with the same authoritative rent
+      // the approval was clamped against; the shared cache makes this read a coalesced hit.
+      let approvalCurrentRent: number | null = null;
+      try {
+        const views = await requireCurrentLeaseViews(rentvineClient, nowMs);
+        const view = views.find((candidate) => leaseIdOf(candidate) === body.leaseId);
+        approvalCurrentRent = view ? (leaseCurrentRent(view) ?? null) : null;
+      } catch (error) {
+        if (error instanceof LeaseDataExpiredError) throw error;
+        approvalCurrentRent = null;
+      }
+      const approved = await getApprovedRentSuggestion(
+        user,
+        body.leaseId,
+        approvalCurrentRent,
+      );
       if (approved) {
         input.offer.market = {
           ...input.offer.market,

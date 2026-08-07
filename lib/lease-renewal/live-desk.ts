@@ -495,6 +495,10 @@ export async function loadLiveRenewalLeaseWorkspace(
       // server-side regardless.
       dataCurrency: toDeskCurrency(currency),
       ...(compAttributes ? { compAttributes } : {}),
+      // S60: the authoritative rent for the internal under-market signal (never a draft input).
+      ...(leaseCurrentRent(view) !== undefined
+        ? { currentRent: leaseCurrentRent(view) }
+        : {}),
     };
     return { status: "ok", workspace };
   } catch {

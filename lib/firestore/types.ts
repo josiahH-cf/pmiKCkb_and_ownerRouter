@@ -716,6 +716,35 @@ export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetenti
       comp_screenshot_result_hash?: string;
       comp_source?: string;
       comp_retrieved_at?: string;
+      /** S60: the provider-retrieved basis, persisted verbatim and kept apart from typed values. */
+      provider?: {
+        source: string;
+        range_low: number;
+        range_high: number;
+        point_estimate: number;
+        comp_count: number;
+        retrieved_at: string;
+        radius_miles?: number;
+        unit_filters?: {
+          bedrooms?: number;
+          bathrooms?: number;
+          square_footage?: number;
+          property_type?: string;
+        };
+        comps?: {
+          rent: number;
+          correlation?: number;
+          distance_miles?: number;
+          bedrooms?: number;
+          bathrooms?: number;
+          days_on_market?: number;
+        }[];
+        trend?: {
+          zip_code: string;
+          retrieved_at: string;
+          months: Record<string, { average_rent?: number; median_rent?: number }>;
+        };
+      };
     };
   };
   tenant_offer_draft_id?: string;

@@ -117,6 +117,25 @@ export function leaseCurrentRent(
   return hit ? (toRentNumber(hit.value) ?? undefined) : undefined;
 }
 
+/** Stable lease-id read (byte-identical key order to the cohort and desk resolvers). */
+export function leaseViewId(lease: RawLease): string | undefined {
+  for (const key of ["leaseID", "leaseId", "id"]) {
+    const value = lease[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return undefined;
+}
+
+/** Find one lease view by its RentVine id in a shared live read. */
+export function findLeaseViewById(
+  views: readonly RawLease[],
+  leaseId: string,
+): RawLease | undefined {
+  return views.find((view) => leaseViewId(view) === leaseId);
+}
+
 /**
  * Best-effort property address label for a live lease view (export-shaped). Reads the owner-bearing
  * `property` sibling first, then the lease itself, over the same key set the draft service uses. In

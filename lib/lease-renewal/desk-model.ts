@@ -131,4 +131,6 @@ export interface RenewalLeaseWorkspace {
    * comp lookup so the estimate fits the unit. Absent attributes stay absent — never guessed.
    */
   compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
+  /** S60: the authoritative current rent (RentVine), for the INTERNAL under-market signal only. */
+  currentRent?: number;
 }

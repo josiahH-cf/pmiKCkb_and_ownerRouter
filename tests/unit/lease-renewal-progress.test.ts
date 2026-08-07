@@ -674,3 +674,99 @@ describe("lease-renewal-progress store", () => {
     expect(all.get(LEASE_ID)?.complete).toBe(true);
   });
 });
+
+// S60: the provider-retrieved basis persists verbatim, beside (never over) the typed fields.
+describe("S60 provider comp basis persistence", () => {
+  const PROVIDER = {
+    source: "RentCast",
+    rangeLow: 1450,
+    rangeHigh: 1650,
+    pointEstimate: 1550,
+    compCount: 12,
+    retrievedAt: "2026-08-06T12:00:00.000Z",
+    comps: [
+      { rent: 1600, correlation: 0.97, distanceMiles: 0.4 },
+      { rent: 1500, correlation: 0.93 },
+    ],
+    trend: {
+      zipCode: "64118",
+      retrievedAt: "2026-08-06T12:00:00.000Z",
+      months: {
+        "2024-08": { averageRent: 1400 },
+        "2026-07": { averageRent: 1520, medianRent: 1500 },
+      },
+    },
+  };
+
+  // AC-S60-1 + AC-S60-5: both bases survive the round trip; neither write clears the other.
+  it("persists provider and typed values together and reads both back", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      {
+        decision: "increase",
+        offeredRent: 1300,
+        market: { zillowLow: 1400, zillowHigh: 1500, provider: PROVIDER },
+      },
+      db as unknown as Firestore,
+    );
+    const readBack = await getRenewalProgress(
+      editor,
+      LEASE_ID,
+      db as unknown as Firestore,
+    );
+    const market = readBack?.ownerDecision?.market;
+    expect(market?.zillowLow).toBe(1400);
+    expect(market?.zillowHigh).toBe(1500);
+    expect(market?.provider).toMatchObject({
+      source: "RentCast",
+      rangeLow: 1450,
+      rangeHigh: 1650,
+      pointEstimate: 1550,
+      compCount: 12,
+      retrievedAt: "2026-08-06T12:00:00.000Z",
+    });
+    expect(market?.provider?.comps?.map((comp) => comp.correlation)).toEqual([
+      0.97, 0.93,
+    ]);
+    expect(market?.provider?.trend?.months["2026-07"]).toEqual({
+      averageRent: 1520,
+      medianRent: 1500,
+    });
+
+    const record = db.store.get(
+      `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`,
+    ) as Record<string, never>;
+    const persisted = (record as Record<string, Record<string, Record<string, unknown>>>)
+      .owner_decision.market;
+    expect(persisted.provider).toMatchObject({
+      source: "RentCast",
+      range_low: 1450,
+      range_high: 1650,
+      point_estimate: 1550,
+      comp_count: 12,
+    });
+  });
+
+  it("refuses an incoherent provider block instead of persisting a half-truth", () => {
+    expect(() =>
+      planRecordOwnerDecision(null, {
+        decision: "increase",
+        offeredRent: 1300,
+        market: {
+          provider: { ...PROVIDER, rangeHigh: 1000 },
+        },
+      }),
+    ).toThrow(/range high/i);
+    expect(() =>
+      planRecordOwnerDecision(null, {
+        decision: "increase",
+        offeredRent: 1300,
+        market: {
+          provider: { ...PROVIDER, source: "  " },
+        },
+      }),
+    ).toThrow(/source label/i);
+  });
+});

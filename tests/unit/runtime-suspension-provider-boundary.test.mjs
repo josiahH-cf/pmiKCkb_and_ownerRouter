@@ -114,6 +114,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "app/api/lease-renewal/renewal-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   // S58: the currency assertion before recording progress (read-only; refuses expired data).
   "app/api/lease-renewal/renewal-progress/route.ts:defaultAssertLeaseDataCurrent:buildLiveRentVineConfig",
+  // S60: the clamp's authoritative-rent read for the suggestion recompute (read-only).
+  "app/api/lease-renewal/rent-suggestion/route.ts:resolveAuthoritativeCurrentRent:buildLiveRentVineConfig",
   "app/api/maintenance/owner-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
