@@ -11,6 +11,29 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S65 shipped: a feedback report can be finished (2026-08-06)
+
+S65 (`docs/feature-suites/feedback-report-closure.md`) is built and locally verified,
+satisfying AC-S65-1 through AC-S65-6; recorded as `F-FEEDBACK-CLOSURE`. Authorized
+independently of the S57–S63 program by the owner's N4 instruction and interleaved after the
+S63 slice closed.
+
+**What shipped.** The transition and nothing more. An Admin moves a report between the three
+statuses that already existed — the type modeled them, and no code path anywhere ever wrote them,
+so every report ever filed was becoming permanently overdue. The transition is a field-level
+transactional update (status plus who/when), so the report body, its indefinite retention class,
+and its legal-hold flag are untouched; a status change is never a deletion, and the store still
+exposes no delete path. Every transition appends an audit entry naming the actor, both statuses,
+and an optional short note. A non-Admin attempt is refused with nothing written. The Admin panel
+gains a per-report control; the counts needed no change because the lane already excluded
+`resolved` — that contract is now pinned in its own test file so closing a report visibly
+decrements the badge. The training walkthrough's stale control names were corrected to the
+shipped "Feedback" naming. No reporter notification exists, per the spec's default.
+
+**Falsification.** The resolved-exclusion in `isSupportFollowUpDue` was inverted: five tests
+across both lane files went red, then green on restore. The non-Admin refusal is asserted to
+leave the stored status unchanged with no audit row.
+
 ## S63 machinery shipped: the test set can now prove what it claims (2026-08-06)
 
 S63 (`docs/feature-suites/four-lease-renewal-test-set.md`) machinery is built and locally

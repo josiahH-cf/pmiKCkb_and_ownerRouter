@@ -1,8 +1,11 @@
+import { SupportReportStatusControl } from "@/components/admin/SupportReportStatusControl";
 import type { SupportReportRecord } from "@/lib/firestore/types";
 
-// Admin review surface for the support queue (F-SUPP-1). Read-only list of recent "Report an issue"
-// submissions, newest first, so reported problems reach a human instead of a write-only log. The page
-// that renders this is Admin-gated; the reporter's description is shown here for triage.
+// Admin review surface for the support queue (F-SUPP-1). Lists recent "Feedback" submissions,
+// newest first, so reported problems reach a human instead of a write-only log. S65 adds the
+// closure control: an Admin moves each report between the three existing statuses, audited, so a
+// finished report stops counting as past follow-up. The page that renders this is Admin-gated;
+// the reporter's description is shown here for triage.
 export function SupportReportsPanel({
   reports,
   unavailableNote,
@@ -67,6 +70,7 @@ export function SupportReportsPanel({
               {report.error_digest ? (
                 <p className="muted">Error reference: {report.error_digest}</p>
               ) : null}
+              <SupportReportStatusControl reportId={report.id} status={report.status} />
             </article>
           ))}
         </div>

@@ -506,6 +506,9 @@ export interface SupportReportRecord extends Partial<ProductRecordRetentionField
   element?: SupportReportElementHint;
   error_digest?: string;
   created_at: string;
+  /** S65: set by the Admin status transition; absent on a never-transitioned report. */
+  status_updated_at?: string;
+  status_updated_by_uid?: string;
 }
 
 export interface ApprovalQueueNotificationHealth {

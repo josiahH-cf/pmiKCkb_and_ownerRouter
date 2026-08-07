@@ -24,8 +24,15 @@ import type {
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 const COLLECTION = "support_reports";
+const ACTIVITY_COLLECTION = "support_report_activity";
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
+
+const SUPPORT_REPORT_STATUSES: readonly SupportReportRecord["status"][] = [
+  "new",
+  "acknowledged",
+  "resolved",
+];
 
 export interface CreateSupportReportInput {
   route: string;
@@ -100,6 +107,74 @@ function assertAdmin(actor: AuthenticatedUser) {
   if (!can(actor.role, "manageAdmin")) {
     throw new EditableLayerError("Only Admins can view support reports.", 403);
   }
+}
+
+export interface TransitionSupportReportInput {
+  reportId: string;
+  status: SupportReportRecord["status"];
+  /** Optional short note recorded on the audit entry (e.g. "won't fix: duplicate of #12"). */
+  note?: string;
+}
+
+/**
+ * S65 (AC-S65-1/2/3/6): move a report between the three statuses that already exist. Admin-only.
+ * Every transition appends an audit record naming the actor and both statuses. A status change is
+ * never a deletion: only the status fields move; the report body, its retention class, and its
+ * legal-hold flag are untouched. No new status value exists beyond the three already typed.
+ */
+export async function transitionSupportReport(
+  actor: AuthenticatedUser,
+  input: TransitionSupportReportInput,
+  db: Firestore = getAdminFirestore(),
+): Promise<SupportReportRecord> {
+  assertAdmin(actor);
+  const reportId = String(input.reportId ?? "").trim();
+  if (reportId === "") {
+    throw new EditableLayerError("A report id is required.", 400);
+  }
+  if (!SUPPORT_REPORT_STATUSES.includes(input.status)) {
+    throw new EditableLayerError(
+      "The status must be one of new, acknowledged, or resolved.",
+      400,
+    );
+  }
+  const note = typeof input.note === "string" ? input.note.trim().slice(0, 500) : "";
+
+  const ref = db.collection(COLLECTION).doc(reportId);
+  const nowIso = new Date().toISOString();
+  const activityId = uuidv7();
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      throw new EditableLayerError("That report does not exist.", 404);
+    }
+    const previousStatus = (snapshot.data() as SupportReportRecord).status;
+    if (previousStatus === input.status) {
+      throw new EditableLayerError(`The report is already ${input.status}.`, 409);
+    }
+    // Field-level update: the report body, retention class, and legal-hold flag are untouched.
+    transaction.update(ref, {
+      status: input.status,
+      status_updated_at: nowIso,
+      status_updated_by_uid: actor.uid,
+    });
+    transaction.create(
+      db.collection(ACTIVITY_COLLECTION).doc(activityId),
+      stripUndefined({
+        id: activityId,
+        report_id: reportId,
+        actor_uid: actor.uid,
+        previous_status: previousStatus,
+        new_status: input.status,
+        ...(note !== "" ? { note } : {}),
+        created_at: nowIso,
+      }),
+    );
+  });
+
+  const saved = await ref.get();
+  return readRecord(saved.id, saved.data()!);
 }
 
 function readRecord(id: string, data: Record<string, unknown>): SupportReportRecord {

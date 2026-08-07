@@ -1,9 +1,8 @@
 # Loop State
 
-Read `docs/facts.md` first. This is the short resume pointer; history belongs in
-`docs/status.md`.
+Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-06 (S63 machinery).
+Last updated: 2026-08-06 (program complete).
 
 ```yaml
 last_updated: 2026-08-06
@@ -15,13 +14,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_THROUGH_S63_MACHINERY_DONE
-next_suite: S65
-next_spec: docs/feature-suites/feedback-report-closure.md
+implementation_status: PROGRAM_COMPLETE_S57_S63_MACHINERY_PLUS_S65
+next_suite: NONE_PROGRAM_COMPLETE
+next_spec: none — the S57–S63 program and S65 are done; S64 stays unauthorized
 session_auth_status: REAUTH_WALLED_invalid_rapt_2026_08_06_owner_auth_session_needed
-active_slice: NONE_BETWEEN_SLICES
-next_slice: S65_FEEDBACK_REPORT_CLOSURE
-last_completed_slice: S63_FOUR_LEASE_TEST_SET_MACHINERY
+active_slice: NONE_PROGRAM_COMPLETE
+next_slice: NONE_OWNER_STEPS_REMAIN
+last_completed_slice: S65_FEEDBACK_REPORT_CLOSURE
 runtime_action_gates_preflipped: false
 ```
 
@@ -68,16 +67,15 @@ what the client's "50/50" meant (MKD has three owner records, no percentages); t
 
 ## Resolved 2026-08-06 (do not re-ask)
 
-Read these fact rows before touching S59, S61, or S62: `F-RENTCAST-KEY-PLACED`,
-`F-RENTCAST-API-CONTRACT`, `F-MKD-PORTFOLIO-IDENTIFIED`, `F-OWNER-PERCENT-OWNED-ABSENT`,
-`F-MONITORING-CHANNEL-CREATED`. In short: the key is placed, the API contract is researched (use
-`/avm/rent/long-term` and `/markets`, and overage bills automatically), MKD is `portfolioID` 27 but no
-test lease belongs to it, `percentOwned` is empty across the export, and the alert channel exists.
+Fact rows: `F-RENTCAST-KEY-PLACED`, `F-RENTCAST-API-CONTRACT`, `F-MKD-PORTFOLIO-IDENTIFIED`,
+`F-OWNER-PERCENT-OWNED-ABSENT`, `F-MONITORING-CHANNEL-CREATED`. In short: key placed; use
+`/avm/rent/long-term` + `/markets` (overage bills automatically); MKD = `portfolioID` 27, no test
+lease belongs to it; `percentOwned` empty across the export; the alert channel exists.
 
 ## Superseded 2026-08-06
 
-The 2026-08-05 MKD no-outreach premise is **withdrawn**: MKD owners are emailed through the
-normal reviewed process; no skip path (structural sentinel since S62).
+The 2026-08-05 MKD no-outreach premise is **withdrawn**: MKD owners are emailed through
+the normal reviewed process; no skip path (structural sentinel since S62).
 
 ## Locked safety
 
@@ -123,13 +121,17 @@ pinned transactional-send prose. **OWNER STEP (window opening): cloud auth is re
 (`invalid_rapt`) — run `npm run auth:session`, then `npm run testset:capture-baseline` and
 `npm run testset:report`.** Parked D12 patch: `docs/temp/s63-firestore-rules-d12-patch.md`.
 
-Next: **S65** (`docs/feature-suites/feedback-report-closure.md`), separately authorized. Do not
-start S64. After S65 the S57–S63 program is complete at the machinery level; the test WINDOW runs
-under the owner steps above.
+**S65 is DONE** (`F-FEEDBACK-CLOSURE`): the Admin-only, audited feedback status transition, the
+panel control, the pinned resolved-exclusion (falsified), and the walkthrough copy fix.
 
-**Correction note: DONE 2026-08-06** — the owner reviewed and sent
-`docs/temp/client-correction-note-2026-08-06.md` (four 2026-08-05 call corrections). Do not
-re-send it.
+**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized).
+What remains is owner-only: (1) `npm run auth:session`, then `testset:capture-baseline` and
+`testset:report` to open the D08 window; (2) RentCast plan activation
+(`Q-RENTCAST-ACCOUNT-403`) + allowance readback + `smoke:rentcast-comp`; (3) the parked D12
+patches under `docs/temp/`; (4) the D57 note send.
+
+**Correction note: DONE 2026-08-06** — the owner sent
+`docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL, exporting
