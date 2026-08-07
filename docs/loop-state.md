@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-06 (program complete).
+Last updated: 2026-08-07 (program complete; S60-S63 + S65 deployed, D08 window open).
 
 ```yaml
-last_updated: 2026-08-06
+last_updated: 2026-08-07
 active_program: S57_S63_RENEWAL_PROOF
 program_suites: S57-S63 (+S65 independent; S64 specified but NOT authorized)
 spec_writing_allowed: true
@@ -17,7 +17,7 @@ spec_package_status: COMPLETE
 implementation_status: PROGRAM_COMPLETE_S57_S63_MACHINERY_PLUS_S65
 next_suite: NONE_PROGRAM_COMPLETE
 next_spec: none — the S57–S63 program and S65 are done; S64 stays unauthorized
-session_auth_status: REAUTH_WALLED_invalid_rapt_2026_08_06_owner_auth_session_needed
+session_auth_status: FRESH_2026_08_07_preflight_adc_green_owner_ran_auth_session
 active_slice: NONE_PROGRAM_COMPLETE
 next_slice: NONE_OWNER_STEPS_REMAIN
 last_completed_slice: S65_FEEDBACK_REPORT_CLOSURE
@@ -117,18 +117,18 @@ tamper witness (immutability sentinel completed to its AC-S63-3 full form and fa
 append-only evidence records with blind-vs-informed ordering, the activity trail's first reader,
 verdict logic with `not_evaluated` first-class at the decided max(±5%, $50) tolerance, the
 records-generated report (writes only under gitignored `temp/test-set/`), and the corrected +
-pinned transactional-send prose. **OWNER STEP (window opening): cloud auth is reauth-walled
-(`invalid_rapt`) — run `npm run auth:session`, then `npm run testset:capture-baseline` and
-`npm run testset:report`.** Parked D12 patch: `docs/temp/s63-firestore-rules-d12-patch.md`.
+pinned transactional-send prose. **The D08 window is OPEN** (`F-TESTSET-WINDOW-OPENED`, 2026-08-07):
+four sha256 baselines captured, immutability falsified by a refused re-capture, report generated
+under gitignored `temp/test-set/`. Parked D12 patch: `docs/temp/s63-firestore-rules-d12-patch.md`.
 
 **S65 is DONE** (`F-FEEDBACK-CLOSURE`): the Admin-only, audited feedback status transition, the
 panel control, the pinned resolved-exclusion (falsified), and the walkthrough copy fix.
 
-**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized).
-What remains is owner-only: (1) `npm run auth:session`, then `testset:capture-baseline` and
-`testset:report` to open the D08 window; (2) RentCast plan activation
-(`Q-RENTCAST-ACCOUNT-403`) + allowance readback + `smoke:rentcast-comp`; (3) the parked D12
-patches under `docs/temp/`; (4) the D57 note send.
+**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized), and
+S60–S63 + S65 are DEPLOYED (`F-CURRENT-SERVING-CHECKPOINT-2026-08-07`, rollback proven both ways).
+What remains is owner-only: (1) RentCast plan activation (`Q-RENTCAST-ACCOUNT-403`) + allowance
+readback + `smoke:rentcast-comp`; (2) the parked D12 patches under `docs/temp/`; (3) the D57 note
+send; (4) promote Bailey to Admin (`F-BAILEY-ADMIN-2026-08-06`; effective on her next sign-in).
 
 **Correction note: DONE 2026-08-06** — the owner sent
 `docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
