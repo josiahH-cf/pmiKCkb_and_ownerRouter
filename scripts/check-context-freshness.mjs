@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -166,6 +167,40 @@ export function checkFactsText(factsText) {
   return { problems, warnings, ledger };
 }
 
+/**
+ * Return the subset of `paths` that git ignores, so the gate can refuse evidence that exists on a
+ * developer machine and never in a fresh checkout. Batched through one `git check-ignore --stdin`.
+ *
+ * Fails OPEN deliberately: outside a work tree, or with git unavailable, this returns an empty set
+ * and the existing existsSync check still applies. A doc gate must not become unrunnable off-repo,
+ * and the CI job that this protects always has git.
+ */
+export function gitIgnoredPaths(paths, root = ROOT) {
+  const unique = [...new Set(paths)].filter(Boolean);
+  if (unique.length === 0) return new Set();
+
+  // check-ignore exits 1 when nothing matches, which execSync throws on; the useful stdout is on the
+  // error. Exit 128 (not a repo) leaves stdout empty and yields the fail-open empty set.
+  let stdout = "";
+  try {
+    stdout = execSync("git check-ignore --stdin", {
+      cwd: root,
+      encoding: "utf8",
+      input: unique.join("\n"),
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+  } catch (error) {
+    stdout = typeof error?.stdout === "string" ? error.stdout : "";
+  }
+
+  return new Set(
+    stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim().replace(/\\/g, "/"))
+      .filter(Boolean),
+  );
+}
+
 /** Full gate: reads docs/facts.md, docs/loop-state.md, docs/status.md and the active set. */
 export function evaluateContextFreshness(root = ROOT) {
   const read = (rel) => {
@@ -181,13 +216,28 @@ export function evaluateContextFreshness(root = ROOT) {
 
   const { problems, warnings, ledger } = checkFactsText(factsText);
 
-  // Evidence path tokens must exist (no doc points at a deleted path).
-  for (const row of ledger.rows) {
-    for (const token of extractPathTokens(row.evidence)) {
-      if (!fileExists(token)) {
+  // Evidence path tokens must exist (no doc points at a deleted path) AND must be committable.
+  // The gitignored case is the one this gate used to MISS: a row citing docs/temp/* or temp/*
+  // resolves on a developer machine and never in CI, so the local gate reported green while
+  // tests/unit/facts-ledger.test.mjs failed remotely — main was red from 3859059 to 9ab1647 for
+  // exactly this. Ignored-ness, not tracked-ness, is the right test: a file created for the current
+  // slice is untracked until `git add` and must still pass.
+  const evidenceTokens = ledger.rows.map((row) => ({
+    id: row.id || "(no id)",
+    tokens: extractPathTokens(row.evidence),
+  }));
+  const ignored = gitIgnoredPaths(
+    evidenceTokens.flatMap((row) => row.tokens),
+    root,
+  );
+  for (const { id, tokens } of evidenceTokens) {
+    for (const token of tokens) {
+      if (ignored.has(token)) {
         problems.push(
-          `Fact ${row.id || "(no id)"} cites a path that does not exist: ${token}`,
+          `Fact ${id} cites a gitignored path as evidence: ${token}. It resolves locally but never in CI; name it in the claim prose instead and cite a committed path here.`,
         );
+      } else if (!fileExists(token)) {
+        problems.push(`Fact ${id} cites a path that does not exist: ${token}`);
       }
     }
   }

@@ -1,9 +1,12 @@
-import { dirname } from "node:path";
+import { rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   checkFactsText,
   evaluateContextFreshness,
+  gitIgnoredPaths,
 } from "../../scripts/check-context-freshness.mjs";
 
 // Structural guard for the solidified-context spine. Mirrors plan-status-sync.test.mjs: it asserts
@@ -54,5 +57,45 @@ describe("context-freshness gate", () => {
 
     const { problems } = checkFactsText(bad);
     expect(problems.some((p) => p.includes("must be one of"))).toBe(true);
+  });
+
+  // Regression: the gate used to resolve evidence paths with existsSync alone, so a row citing a
+  // gitignored artifact passed locally and failed only in CI. main was red from 3859059 to 9ab1647
+  // for exactly that. These pin the LOCAL gate to the same verdict CI reaches.
+  describe("gitignored evidence paths", () => {
+    it("reports a gitignored path as ignored", () => {
+      const ignored = gitIgnoredPaths(
+        ["docs/temp/rentcast-gate-flip-d12-patch.md", "docs/facts.md"],
+        root,
+      );
+      expect(ignored.has("docs/temp/rentcast-gate-flip-d12-patch.md")).toBe(true);
+      expect(ignored.has("docs/facts.md")).toBe(false);
+    });
+
+    it("does not flag a committed path, and stays empty for an empty input", () => {
+      expect(
+        gitIgnoredPaths(["AGENTS.md", "scripts/check-context-freshness.mjs"], root),
+      ).toEqual(new Set());
+      expect(gitIgnoredPaths([], root)).toEqual(new Set());
+    });
+
+    it("fails open rather than throwing when git cannot answer", () => {
+      // Outside a work tree check-ignore exits 128; the gate must degrade to its existsSync check
+      // rather than becoming unrunnable off-repo.
+      expect(() => gitIgnoredPaths(["docs/facts.md"], tmpdir())).not.toThrow();
+      expect(gitIgnoredPaths(["docs/facts.md"], tmpdir())).toEqual(new Set());
+    });
+
+    it("does not treat a merely-untracked new file as a violation", () => {
+      // A file created for the current slice is untracked until `git add`. Only ignored-ness fails,
+      // otherwise authoring a fact alongside a new file would be impossible.
+      const fresh = join(root, `not-added-${process.pid}.md`);
+      writeFileSync(fresh, "temp\n");
+      try {
+        expect(gitIgnoredPaths([`not-added-${process.pid}.md`], root)).toEqual(new Set());
+      } finally {
+        rmSync(fresh, { force: true });
+      }
+    });
   });
 });

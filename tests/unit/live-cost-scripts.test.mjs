@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 import {
@@ -11,6 +12,8 @@ import {
   createDeployRevisionSuffix,
   executeDemoDeployPlan,
   formatGcloudMapFlag,
+  readSeedProductionAllowed,
+  validateSheetWritebackGateCoupling,
 } from "../../scripts/deploy-demo-cloud-run.mjs";
 import {
   buildSourceMetaRecord,
@@ -1384,5 +1387,83 @@ describe("cheap live setup scripts", () => {
     expect(defaultReset).toHaveLength(demoRecords.length);
     expect(defaultReset.map((record) => record.id)).not.toContain("launch-move-in-sop");
     expect(resetWithSkeletons.map((record) => record.id)).toContain("launch-move-in-sop");
+  });
+});
+
+// Q-ENVLOCAL-WRITEBACK-DIVERGENCE: the deploy resolves runtime env from a REVIEWED file, but
+// --env-file accepts any file, and .env.local carries LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true
+// for local work. One CLI argument was therefore enough to ship a write-enabled runtime at the
+// team's operational spreadsheet. The runtime switch is now coupled to its reviewed Action Registry
+// gate, so it can never lead the gate.
+describe("sheet write-back runtime switch is coupled to its reviewed gate", () => {
+  const KEY = "google_sheets.renewal_checklist.writeback";
+
+  it("reads the committed gate out of the action registry seed", () => {
+    // Pinned to the seed's real values: a closed gate reads false, an open one reads true, and an
+    // unknown key reads null so the caller can fail closed rather than treat it as open.
+    expect(readSeedProductionAllowed(KEY)).toBe(false);
+    expect(readSeedProductionAllowed("gmail.label.apply")).toBe(true);
+    expect(readSeedProductionAllowed("no.such.action.key")).toBeNull();
+  });
+
+  it("allows the switch off or absent", () => {
+    expect(validateSheetWritebackGateCoupling({})).toEqual([]);
+    expect(
+      validateSheetWritebackGateCoupling({
+        LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "false",
+      }),
+    ).toEqual([]);
+  });
+
+  it("refuses the switch on while the gate is closed", () => {
+    const problems = validateSheetWritebackGateCoupling({
+      LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true",
+    });
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true refused");
+    expect(problems[0]).toContain("production_allowed:false");
+  });
+
+  it("refuses when the gate cannot be resolved, rather than assuming it is open", () => {
+    // "cannot prove the gate is open" and "the gate is open" must never be the same outcome, so an
+    // unreadable seed (here: a root with no lib/) refuses too.
+    const problems = validateSheetWritebackGateCoupling(
+      { LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true" },
+      tmpdir(),
+    );
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("could not be resolved");
+  });
+
+  it("refuses the whole deploy command, not just the flag", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({ LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true" }),
+      localEnv: {},
+      revisionSuffix: createDeployRevisionSuffix(),
+    });
+
+    expect(command.ok).toBe(false);
+    expect(command.errors.join("\n")).toContain(
+      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true refused",
+    );
+  });
+
+  it("still builds when the switch is off", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({ LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "false" }),
+      localEnv: {},
+      revisionSuffix: createDeployRevisionSuffix(),
+    });
+
+    expect(command.ok).toBe(true);
+    expect(
+      command.args.some((argument) =>
+        argument.includes("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false"),
+      ),
+    ).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -125,6 +125,7 @@ export function buildDemoDeployCommand({
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
   const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
   const runtimeSecrets = readRuntimeSecrets(mergedEnv, errors);
+  errors.push(...validateSheetWritebackGateCoupling(runtimeEnv));
   const serviceAccount =
     args.serviceAccount ?? readEnv("CLOUD_RUN_SERVICE_ACCOUNT") ?? undefined;
   errors.push(
@@ -259,6 +260,64 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   }
 
   await executeDemoDeployPlan(command, revisionTrafficCommand);
+}
+
+// The Action Registry key that governs the live Sheet write-back effect. Its seed entry is the
+// REVIEWED control; LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED is only the runtime switch in front of it.
+const SHEET_WRITEBACK_ACTION_KEY = "google_sheets.renewal_checklist.writeback";
+const SHEET_WRITEBACK_ENV_NAME = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+
+/**
+ * Read one action's committed `production_allowed` out of the seed by text, returning null when the
+ * key or its flag cannot be resolved. The seed is TypeScript and this script is plain ESM, so it is
+ * parsed rather than imported; an unreadable seed yields null and the caller fails CLOSED.
+ */
+export function readSeedProductionAllowed(actionKey, rootDir = root) {
+  let text;
+  try {
+    text = readFileSync(
+      resolve(rootDir, "lib", "integrations", "action-registry-seed.ts"),
+      "utf8",
+    );
+  } catch {
+    return null;
+  }
+
+  const keyIndex = text.indexOf(`key: "${actionKey}"`);
+  if (keyIndex === -1) return null;
+
+  // Scope the search to this entry: stop at the next `key:` so a later entry's flag is never read.
+  const nextKeyIndex = text.indexOf('\n    key: "', keyIndex + 1);
+  const entry = text.slice(keyIndex, nextKeyIndex === -1 ? undefined : nextKeyIndex);
+  const flag = /\n\s*production_allowed:\s*(true|false)\s*,/.exec(entry);
+  return flag ? flag[1] === "true" : null;
+}
+
+/**
+ * Refuse a deploy that would turn the live Sheet write-back runtime switch ON while its reviewed
+ * Action Registry gate is still closed.
+ *
+ * Why this exists: the deploy resolves its runtime env from a reviewed file, but `--env-file` accepts
+ * ANY file. `.env.local` carries `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` for local work, so one
+ * CLI argument was enough to ship a write-enabled runtime at the team's operational spreadsheet
+ * (Q-ENVLOCAL-WRITEBACK-DIVERGENCE). Coupling the switch to the gate removes the footgun without
+ * freezing the flag: when the gate is legitimately opened by its reviewed D12 change, this stops
+ * refusing on its own. An unreadable seed refuses too, because "cannot prove the gate is open" and
+ * "the gate is open" must never be the same outcome.
+ */
+export function validateSheetWritebackGateCoupling(runtimeEnv, rootDir = root) {
+  if (String(runtimeEnv?.[SHEET_WRITEBACK_ENV_NAME]) !== "true") return [];
+
+  const allowed = readSeedProductionAllowed(SHEET_WRITEBACK_ACTION_KEY, rootDir);
+  if (allowed === true) return [];
+
+  const because =
+    allowed === false
+      ? `${SHEET_WRITEBACK_ACTION_KEY} is production_allowed:false`
+      : `${SHEET_WRITEBACK_ACTION_KEY} could not be resolved from the action registry seed`;
+  return [
+    `${SHEET_WRITEBACK_ENV_NAME}=true refused: ${because}. The runtime switch may not lead its reviewed gate. Deploy from the reviewed production env file (a local .env.local sets this true for local work), or open the gate first via its reviewed D12 change.`,
+  ];
 }
 
 function readProductionDeployEnv(envFile, errors) {
