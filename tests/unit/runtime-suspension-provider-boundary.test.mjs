@@ -82,6 +82,8 @@ const EXPECTED_BOUNDARIES = [
   "lib/vendor/live-lifecycle-runtime.ts:reconcile:this.createProvider",
   "scripts/capture-golden-data.ts:main:new GoogleSheetsApiReader",
   "scripts/capture-golden-data.ts:main:new RentVineClient",
+  "scripts/capture-test-set-baseline.ts:main:new GoogleSheetsApiReader",
+  "scripts/capture-test-set-baseline.ts:main:new RentVineClient",
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
   "scripts/ensure-maintenance-drive-folder.ts:main:new GoogleDriveClient",
   "scripts/import-agent-search-documents.mjs:ensureDataStore:dataStoreClient.createDataStore",
@@ -194,6 +196,8 @@ const LAZY_SCRIPT_PROVIDER_FACTORIES = new Set([
 const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
   "scripts/capture-golden-data.ts:main:new GoogleSheetsApiReader",
   "scripts/capture-golden-data.ts:main:new RentVineClient",
+  "scripts/capture-test-set-baseline.ts:main:new GoogleSheetsApiReader",
+  "scripts/capture-test-set-baseline.ts:main:new RentVineClient",
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
   "scripts/smoke-renewal-review.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new RentVineClient",

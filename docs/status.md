@@ -11,6 +11,49 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S63 machinery shipped: the test set can now prove what it claims (2026-08-06)
+
+S63 (`docs/feature-suites/four-lease-renewal-test-set.md`) machinery is built and locally
+verified, satisfying AC-S63-1 through AC-S63-14 at the machinery level; recorded as
+`F-TESTSET-MACHINERY`.
+
+**What shipped.** The three artifacts the test must never conflate now exist as separate,
+differently-shaped stores. The **frozen baseline** is create-only: its only write primitive is a
+transactional `create`, so a second capture is an API error rather than a replacement, and a
+sha256 hash over the canonical JSON of both frozen sources (the RentVine facts and the Sheet row)
+is the tamper witness. The **evidence record** is append-only by construction — one create-only
+document per entry — so the app's number and the human's number coexist, a re-recorded decision
+preserves its predecessor, and every entry's timestamp lets a reader tell whether the human's
+figure was blind or informed. The **live view** keeps refreshing independently, and the upgraded
+immutability sentinel (the same test file S58 planted) now proves a REAL captured baseline
+survives a full refresh cycle byte-identically. The activity trail gained its first reader ever.
+Verdict logic makes `not_evaluated` a first-class outcome with a required reason: criterion 3
+stays not_evaluated (never a pass) while the RentCast account is inactive, and applies the decided
+tolerance — the larger of ±5% and $50 — against the Sheet's Market Value. The report generator
+builds the document from the records: the procedural cohort boundary, both open send keys scoped
+out in writing, the application-send count, and an unconditional limits section make an
+unqualified pass unrenderable. It writes only under gitignored `temp/test-set/` and refuses any
+other destination. The stale `internal.transactional_notice.send` registry prose now states its
+real flipped state, pinned by test.
+
+**Live evidence.** Cohort re-verified read-only before the build: complete 305-row export, all
+four leases reachable, end dates September 30 ×3 and October 10 for lease 297, tenant counts
+1/2/1/5, and 297's zero-rent flag still true. Decided values applied: tolerance, comparison
+basis, daily owner (Bailey, Josiah fallback), compose-and-review only — all recorded in
+`docs/production-capacity-and-pilot.md`, closing `Q-TESTSET-DAILY-OWNER`, `Q-TESTSET-TOLERANCE`,
+and `Q-TESTSET-OWNER-SEND`.
+
+**Falsification.** The baseline store's `create` was deliberately swapped for `set`: the source
+sentinel AND the behavioral refresh-cycle test both went red naming the mutation, then green on
+restore. The stale-prose pin was falsified by restoring the old registry text (red), then the
+correction (green).
+
+**Named owner step (window opening).** The agent's cloud auth is reauth-walled (`invalid_rapt`
+from both Windows and WSL ADC). Run `npm run auth:session`, then `npm run
+testset:capture-baseline` (create-only; refuses on re-run) and `npm run testset:report`. The
+rules patch is parked at `docs/temp/s63-firestore-rules-d12-patch.md` (legibility-only, never
+pushed).
+
 ## S62 shipped: a standing owner pricing agreement is a recorded rule, not tribal knowledge (2026-08-06)
 
 S62 (`docs/feature-suites/owner-policy-renewal-pricing.md`) is built and locally verified,

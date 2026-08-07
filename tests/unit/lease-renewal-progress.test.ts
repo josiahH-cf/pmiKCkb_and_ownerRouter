@@ -6,6 +6,7 @@ import {
   LEASE_RENEWAL_PROGRESS_COLLECTIONS,
   getRenewalProgress,
   listAllRenewalProgress,
+  listRenewalProgressActivity,
   markRenewalComplete,
   progressDocId,
   recordOwnerDecision,
@@ -249,6 +250,19 @@ class ProgressTestFirestore {
             id: path.slice(name.length + 1),
             data: () => structuredClone(record),
           })),
+      }),
+      // S63: single-field equality query, mirroring the real API surface the activity reader uses.
+      where: (field: string, _operator: "==", value: unknown) => ({
+        get: async () => ({
+          docs: [...store.entries()]
+            .filter(
+              ([path, record]) => path.startsWith(`${name}/`) && record[field] === value,
+            )
+            .map(([path, record]) => ({
+              id: path.slice(name.length + 1),
+              data: () => structuredClone(record),
+            })),
+        }),
       }),
     };
   }
@@ -768,5 +782,54 @@ describe("S60 provider comp basis persistence", () => {
         },
       }),
     ).toThrow(/source label/i);
+  });
+});
+
+// S63 (AC-S63-6): the activity trail's first reader. Written on every transition; until this
+// suite nothing anywhere read it.
+describe("listRenewalProgressActivity (AC-S63-6)", () => {
+  it("returns a lease's transitions in time order after a real write", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "increase", offeredRent: 1300 },
+      db as unknown as Firestore,
+    );
+    // A second, EARLIER entry for the same lease plus one for a different lease.
+    db.store.set(`${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity}/earlier`, {
+      id: "earlier",
+      lease_id: LEASE_ID,
+      actor_uid: "editor-0",
+      action: "owner_decision",
+      stage_index: 1,
+      created_at: "2026-07-01T00:00:00.000Z",
+    });
+    db.store.set(`${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity}/other-lease`, {
+      id: "other-lease",
+      lease_id: "9999",
+      actor_uid: "editor-0",
+      action: "mark_complete",
+      stage_index: 3,
+      created_at: "2026-07-02T00:00:00.000Z",
+    });
+
+    const timeline = await listRenewalProgressActivity(
+      editor,
+      LEASE_ID,
+      db as unknown as Firestore,
+    );
+    expect(timeline).toHaveLength(2);
+    // Time order: the seeded July entry precedes the transition just written.
+    expect(timeline[0]).toMatchObject({ id: "earlier", lease_id: LEASE_ID });
+    expect(timeline[1]).toMatchObject({ lease_id: LEASE_ID, action: "owner_decision" });
+    expect(timeline.map((entry) => entry.lease_id)).not.toContain("9999");
+  });
+
+  it("returns an empty timeline for a blank lease id", async () => {
+    const db = new ProgressTestFirestore();
+    expect(
+      await listRenewalProgressActivity(editor, "  ", db as unknown as Firestore),
+    ).toEqual([]);
   });
 });

@@ -44,13 +44,25 @@ per-lease deep links. No lease filter, allowlist, or pilot flag exists in the pr
 report states plainly that the boundary was operational rather than enforced by code.
 
 The **window** is two to four weeks from the day the test set opens. The **abort trigger** is
-unchanged and already stated above. The **daily owner is still unnamed** and is tracked as
-`Q-TESTSET-DAILY-OWNER` in `docs/facts.md`; D08 requires one, and no daily-owner, on-call, or rotation
-concept exists anywhere in the product or the docs. What exists instead is the acknowledgement-window
-contract in `docs/production-incident-runbook.md`.
+unchanged and already stated above. The **daily owner is Bailey, with Josiah as fallback** (owner
+decision, 2026-08-06, recorded with the §6 program values in
+`docs/meta-prompts/renewal-proof-unattended-loop.md`); this closes `Q-TESTSET-DAILY-OWNER`. The
+acknowledgement-window contract in `docs/production-incident-runbook.md` continues to apply
+alongside the named daily owner.
+
+Test-window communication is **compose-and-review only** (`Q-TESTSET-OWNER-SEND`, safe-default
+reading recorded 2026-08-06): owner drafts are produced and human-reviewed in Gmail and are not
+sent during the window. Criterion 3 compares the app's provider estimate against the Sheet's
+human-entered **Market Value** for all four leases, within the larger of ±5% and $50
+(`Q-TESTSET-TOLERANCE`, `F-TESTSET-COMPARISON-BASIS`).
 
 The full goals, evidence model, and pass criteria live in
-`docs/feature-suites/four-lease-renewal-test-set.md` (S63).
+`docs/feature-suites/four-lease-renewal-test-set.md` (S63). The machinery shipped 2026-08-06:
+frozen per-lease baselines (`npm run testset:capture-baseline`, create-only), the append-only
+evidence record, the activity-trail reader, verdict logic with `not_evaluated` first-class, and
+the report generator (`npm run testset:report`, writes under the gitignored `temp/test-set/`).
+Opening the window takes one owner console step: refresh the agent's cloud auth
+(`npm run auth:session`), then run the capture and report commands above.
 
 ## Exact capacity change signal
 

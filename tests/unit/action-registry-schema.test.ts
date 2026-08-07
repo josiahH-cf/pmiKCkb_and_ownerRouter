@@ -175,7 +175,7 @@ describe("Action Registry seed catalog", () => {
         // S28a gated-OFF entries (production_allowed:false, absent from the executable allowlist).
         "google_drive.renewal_comp_screenshot.store",
         "rentcast.rental_listings.search",
-        // S39.2 gated-OFF internal transactional send (dedicated key; generic gmail.message.send unchanged).
+        // S39.2-built internal transactional send, FLIPPED on by S39.3 (dedicated key; generic gmail.message.send unchanged).
         "internal.transactional_notice.send",
         "rentvine.lease.read",
         "rentvine.work_order.read",
@@ -214,7 +214,7 @@ describe("Action Registry seed catalog", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-    // 16 + the S39.2 gated-OFF internal.transactional_notice.send (Gmail transport, production_allowed:false).
+    // 16 + internal.transactional_notice.send (Gmail transport; flipped on by S39.3, production_allowed:true).
     expect(gmailEntries).toHaveLength(17);
 
     // Authorized for production by the 2026-07-19 owner grant (F-SEND-AUTHORIZED): draft-into-Gmail,
@@ -388,5 +388,25 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(missing.errors).toContain(
       'Missing required preview field "verification_link".',
     );
+  });
+});
+
+// S63 (AC-S63-14): the S63 report cites this key's send scope-out, so its prose must match its
+// ACTUAL flipped state. The documented_evidence tail claimed "Gated production_allowed:false"
+// while the flag was true — the report would have cited stale prose.
+describe("internal.transactional_notice.send prose matches its flipped state (AC-S63-14)", () => {
+  const entry = ACTION_REGISTRY_SEED.find(
+    (candidate) => candidate.key === "internal.transactional_notice.send",
+  );
+
+  it("the flag is on and the evidence prose says so", () => {
+    expect(entry?.production_allowed).toBe(true);
+    expect(entry?.documented_evidence).toMatch(/FLIPPED to production_allowed:true/);
+    expect(entry?.documented_evidence).toMatch(/2026-07-23/);
+    // The stale claim is gone: the prose never again reads as currently-gated-off.
+    expect(entry?.documented_evidence).not.toMatch(
+      /Gated production_allowed:false in S39\.2/,
+    );
+    expect(entry?.test_notes).not.toMatch(/No real send occurs until the S39\.3 flip/);
   });
 });

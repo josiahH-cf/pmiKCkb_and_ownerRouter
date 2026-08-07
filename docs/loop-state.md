@@ -3,7 +3,7 @@
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 `docs/status.md`.
 
-Last updated: 2026-08-06.
+Last updated: 2026-08-06 (S63 machinery).
 
 ```yaml
 last_updated: 2026-08-06
@@ -15,13 +15,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S57_S58_S59_S60_S61_S62_DONE
-next_suite: S63
-next_spec: docs/feature-suites/four-lease-renewal-test-set.md
-session_auth_status: READY_ADC_FRESH_2026_08_06
+implementation_status: S57_THROUGH_S63_MACHINERY_DONE
+next_suite: S65
+next_spec: docs/feature-suites/feedback-report-closure.md
+session_auth_status: REAUTH_WALLED_invalid_rapt_2026_08_06_owner_auth_session_needed
 active_slice: NONE_BETWEEN_SLICES
-next_slice: S63_FOUR_LEASE_RENEWAL_TEST_SET
-last_completed_slice: S62_OWNER_POLICY_RENEWAL_PRICING
+next_slice: S65_FEEDBACK_REPORT_CLOSURE
+last_completed_slice: S63_FOUR_LEASE_TEST_SET_MACHINERY
 runtime_action_gates_preflipped: false
 ```
 
@@ -39,9 +39,9 @@ runtime_action_gates_preflipped: false
 
 ## Hard refresh completed 2026-08-06
 
-- RentVine field map re-derived live; zero drift against the 2026-07-22 map. Tenant email
-  `tenants[].email`, owner email `portfolio.owners[].email`, lease end `endDate`, rent `currentRent`.
-- Live Sheet read green: 27 tabs, 26 in scope, `Lease Renewal` 520 rows.
+- RentVine field map re-derived live; zero drift vs the 2026-07-22 map (tenant `tenants[].email`,
+  owner `portfolio.owners[].email`, end `endDate`, rent `currentRent`). Sheet read green: 27 tabs,
+  26 in scope, `Lease Renewal` 520 rows.
 - Golden capture RE-RUN after S57 (`capture-2026-08-06T20-35-30-564Z`, gitignored): 305 live
   candidates, 20 High candidate flags portfolio-wide. The earlier 25-row capture is superseded.
 - Portfolio-wide coverage now measured (S57): tenant email 302/305, owner email 305/305, 146/305
@@ -76,8 +76,8 @@ test lease belongs to it, `percentOwned` is empty across the export, and the ale
 
 ## Superseded 2026-08-06
 
-The 2026-08-05 premise that MKD owners need no outreach is **withdrawn by owner direction**: MKD
-owners are emailed through the normal reviewed process and are in the test set; no skip path.
+The 2026-08-05 MKD no-outreach premise is **withdrawn**: MKD owners are emailed through the
+normal reviewed process; no skip path (structural sentinel since S62).
 
 ## Locked safety
 
@@ -108,26 +108,28 @@ OPEN (`Q-RENTCAST-ACCOUNT-403`)**: activate the RentCast API plan, read back the
 (AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
 (`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
 
-**S62 is DONE** (`F-OWNER-POLICY-PRICING`): owner-policy pricing rules keyed on `portfolioID`
-(MKD = 27), Admin-only with reason + append-only audit, the policy number through the UNCHANGED
-S29 approval plane with the comp median rendered beside it, stale on rule change, sentinels
-forbidding any offered-rent write or outreach skip (both falsified red/green). Optional
-firestore.rules explicit-deny patch PARKED at
-`docs/temp/s62-firestore-rules-explicit-deny-d12-patch.md` (legibility-only; never push).
+**S62 is DONE** (`F-OWNER-POLICY-PRICING`, `a1fc024`): owner-policy pricing rules keyed on
+`portfolioID` (MKD = 27), Admin-only with reason + append-only audit, the policy number through
+the UNCHANGED S29 approval plane with the comp median rendered beside it, stale on rule change,
+sentinels forbidding any offered-rent write or outreach skip (falsified red/green). Parked D12
+patch: `docs/temp/s62-firestore-rules-explicit-deny-d12-patch.md` (legibility-only; never push).
 
-Start **S63** at `docs/feature-suites/four-lease-renewal-test-set.md` (cohort 278/279/280/297 =
-Sheet rows 507–510; compose-and-review only; tolerance ±5% or $50 vs the Sheet Market Value
-column; lease 297's zero-rent discrepancy is finding one; AC-S63-3 completes the S58 baseline
-sentinel). S65 may interleave whenever no slice is mid-flight. Do not start S64.
+**S63 MACHINERY is DONE** (`F-TESTSET-MACHINERY`): create-only frozen baselines with a sha256
+tamper witness (immutability sentinel completed to its AC-S63-3 full form and falsified),
+append-only evidence records with blind-vs-informed ordering, the activity trail's first reader,
+verdict logic with `not_evaluated` first-class at the decided max(±5%, $50) tolerance, the
+records-generated report (writes only under gitignored `temp/test-set/`), and the corrected +
+pinned transactional-send prose. **OWNER STEP (window opening): cloud auth is reauth-walled
+(`invalid_rapt`) — run `npm run auth:session`, then `npm run testset:capture-baseline` and
+`npm run testset:report`.** Parked D12 patch: `docs/temp/s63-firestore-rules-d12-patch.md`.
 
-**Correction note: DONE 2026-08-06.** The client correction note at
-`docs/temp/client-correction-note-2026-08-06.md` was reviewed and sent by the owner. It corrected four
-statements made on the 2026-08-05 call that the app does not do: reply self-updating, RentVine write
-being a toggle, notification email, and per-item approval relaxation. Do not re-send it. The client
-now knows the four leases are not visible until S57 lands.
+Next: **S65** (`docs/feature-suites/feedback-report-closure.md`), separately authorized. Do not
+start S64. After S65 the S57–S63 program is complete at the machinery level; the test WINDOW runs
+under the owner steps above.
 
-**RentCast key: PLACED and verified 2026-08-06** (`F-RENTCAST-KEY-PLACED`). S59's remaining owner
-dependency is the reviewed D12 seed patch plus the deploy-wrapper binding, not the credential.
+**Correction note: DONE 2026-08-06** — the owner reviewed and sent
+`docs/temp/client-correction-note-2026-08-06.md` (four 2026-08-05 call corrections). Do not
+re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL, exporting

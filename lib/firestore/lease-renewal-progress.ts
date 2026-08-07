@@ -162,6 +162,46 @@ export async function listAllRenewalProgress(
 }
 
 /**
+ * S63 (AC-S63-6): the first reader the activity trail has ever had. The collection is written on
+ * every transition and until this suite nothing anywhere read it — no query, no page, no export.
+ * Returns one lease's transitions in time order (created_at, uuidv7 id tie-break), which is most
+ * of the per-lease test-set timeline for free. Read-gated like the sibling progress readers.
+ */
+export async function listRenewalProgressActivity(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalProgressActivityRecord[]> {
+  assertCan(actor, "read");
+  const trimmedLeaseId = leaseId.trim();
+  if (trimmedLeaseId === "") return [];
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity)
+    .where("lease_id", "==", trimmedLeaseId)
+    .get();
+  const entries: LeaseRenewalProgressActivityRecord[] = [];
+  for (const doc of snapshot.docs) {
+    const raw = normalizeFirestoreValue({ ...doc.data(), id: doc.id }) as Record<
+      string,
+      unknown
+    >;
+    if (
+      typeof raw.lease_id === "string" &&
+      typeof raw.actor_uid === "string" &&
+      typeof raw.action === "string" &&
+      typeof raw.stage_index === "number"
+    ) {
+      entries.push(raw as unknown as LeaseRenewalProgressActivityRecord);
+    }
+  }
+  return entries.sort(
+    (left, right) =>
+      String(left.created_at).localeCompare(String(right.created_at)) ||
+      left.id.localeCompare(right.id),
+  );
+}
+
+/**
  * Shared transition core: edit-gate, read the current record inside a transaction, run the pure planner
  * (which validates and throws EditableLayerError on a bad/out-of-order move), then persist the new state
  * plus an append-only Activity row. Reads the record back so the caller returns the canonical shape.
