@@ -11,6 +11,45 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S60-S63 + S65 deployed; four-lease test window opened; training doc published (2026-08-07)
+
+Deployed code commit `9ab1647` to Cloud Run `pmi-kc-app` as revision
+`pmi-kc-app-rmsisg7di-1f914cfeae0d` at 100% traffic under D05, ahead of the 11:30 CDT operator
+training. This is the first revision carrying S60 comp persistence, S61 owner recipient fan-out,
+S62 owner-policy pricing, S63 test-set machinery, and S65 feedback closure; the prior revision
+carried only S57-S59. Full gate green beforehand: 4432/4432 unit tests, 109/109 Firestore, build,
+typecheck, lint (0 errors), and all six policy gates. One unit failure during the first run was
+environmental rather than real: an exported `GOOGLE_APPLICATION_CREDENTIALS` tripped the guard in
+`release-plan-only` that exists precisely to stop a release carrying local credentials; the file
+passes 5/5 in a clean shell and the deploy ran without the variable set.
+
+Rollback was proven by execution rather than by plan: traffic moved to predecessor
+`pmi-kc-app-rmsi5llfz-8332ff9656c8` at 100% and was read back, then forward-restored to the
+candidate with smoke `307/200/307`. The revision readback is byte-identical to the prior serving
+state on every gate, flag, Space map, identity, and secret binding, so the deploy changed
+application code only. Recorded as `F-CURRENT-SERVING-CHECKPOINT-2026-08-07`.
+
+The D08 window is OPEN (`F-TESTSET-WINDOW-OPENED`). All four cohort baselines were captured
+create-only with sha256 witnesses, and immutability was falsified by execution when an immediate
+second capture refused all four. Cohort reachability was re-verified live the same morning through
+the complete paged read: 305 rows, `complete=true`, leases 278/279/280 ending September 30 and 297
+ending October 10, with 297 still reading a zero RentVine rent against a non-zero Sheet figure.
+`testset:report` writes under gitignored `temp/test-set/` and correctly reports every criterion as
+`not_evaluated` at day zero rather than a false pass.
+
+Published `docs/pmi-kc-lease-renewal-training-2026-08-07.html`, the client-facing PMI-branded
+training walkthrough and agenda. It carries no address, rent figure, tenant name, or contact
+detail. Two behaviors were corrected in it against the running code rather than the docs: the
+tenant offer renders email, resident portal, and text channels but only email can be sent, and the
+app refuses to act on lease data older than fifteen minutes.
+
+One divergence surfaced rather than fixed: `.env.local` sets
+`LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` and an 11-Space map against production's `false` and
+1, so a deploy invoked with `--env-file=.env.local` would ship live Sheet write-back ON. Neither
+value has reached production; both `.env.production.local` and the serving revision read back
+clean. Recorded as `Q-ENVLOCAL-WRITEBACK-DIVERGENCE`. A stale `FIRESTORE_EMULATOR_HOST` in the
+same file, which silently failed the baseline capture against a dead emulator, is now commented out.
+
 ## S65 shipped: a feedback report can be finished (2026-08-06)
 
 S65 (`docs/feature-suites/feedback-report-closure.md`) is built and locally verified,
