@@ -3,8 +3,24 @@
 # S28 - Market comp data provider + comp screenshot attach
 
 > New 2026-07-23 (operator note). S28 sits under the Roadmap Build Authorization (`F-ROADMAP-BUILD-AUTHORIZED`); it implements roadmap rows #1 and #3 (`docs/roadmap-unblock-2026-07-23.md` §2), split across Wave 1 "S28a" (provider abstraction + comp screenshot, pure app-plane) and Wave 2 "S28b" (RentCast live adapter, built to the one owner key). Not started; the loop builds S28a immediately and S28b to the seam.
+>
+> **Approved specification amendment, 2026-08-10.** The 2026-08-07 training transcript and the
+> owner's 2026-08-10 approval supersede preservation of the historical Zillow research surface.
+> Zillow has no user-visible or behavioral role in the intended end state. Legacy persisted field
+> names may remain only as read-only compatibility aliases. This amendment is specification-only.
 
-**Goal.** Today the renewal flow has no market-data mechanism: the only "comp" affordance is an address-only Zillow deep LINK (`lib/lease-renewal/market-links.ts:7`), every rent-adjacent number is typed by the operator by hand, and the comps screenshot is a raw text URL the operator pastes (`lib/lease-renewal/owner-draft.ts:152`, fed from the free-text `compsUrl` input in `components/lease-renewal/RenewalProgressControls.tsx:224-234`). After this suite the operator gets two real capabilities on the same live workspace. First, a pluggable market-comp PROVIDER: a manual/typed-entry adapter that reproduces exactly today's operator-entered behavior now, plus a RentCast rental-listings SEARCH adapter (owner-confirmed 2026-07-23: it queries comparable rentals near the subject and aggregates them into the range, MEDIAN as the point estimate) built behind the same interface and switched on later with one key. The provider only DISPLAYS a comparable-rent range as reference next to the owner-decision form; it never fills or moves the offered-rent number (that stays the operator's decision, and the comp-derived SUGGESTED number is the separate Admin-approval-gated S29). Second, the comps screenshot becomes a real image upload to the in-boundary Drive folder (reusing the proven maintenance Drive seam), so the owner renewal draft attaches a stored `drive:<id>` reference instead of a pasted string. Absent comp data still renders a visible `Needs Verification` marker, never a fabricated value, preserving `F-NEGOTIATION-EXCLUDED` behavior unchanged. No Zillow scraping is added (ToS); live numbers come only from the licensed API.
+**Goal.** Today the renewal flow has no complete market-data mechanism: the historical comp
+affordance is an address-only third-party research link, every rent-adjacent number is typed by the
+operator, and the comps screenshot is a raw text URL. After this suite the operator gets two real
+capabilities in the live workspace. First, a pluggable market-comp provider: a manual/typed-entry
+adapter plus a RentCast rental-listings search adapter that aggregates comparable rentals into a
+range and median point estimate. The provider displays reference evidence only; it never fills or
+moves the offered-rent decision, and S29/S62 remain separate approval-gated suggestion contracts.
+Second, the comps screenshot becomes a real image upload to the in-boundary Drive folder, so the
+owner renewal draft references a stored `drive:<id>` artifact instead of pasted text. Absent data
+shows `Needs Verification`, never a fabricated value. The historical Zillow link, label, URL,
+lookup, and current-source attribution are removed from the intended product behavior; live numbers
+come only from the configured provider or an explicitly labeled manual entry.
 
 **What it is / how it functions.** A market-comp provider seam plus a comp-screenshot upload seam, composed over the SAME per-lease live workspace and the SAME owner-draft composer that exist today. Nothing here writes a system of record, sends anything, or moves the rent number; RentVine and the Sheet stay read-only and the owner email stays draft-only (`production_allowed:false`, `send_allowed:false` in `buildOwnerRenewalDraft`).
 
@@ -13,9 +29,22 @@
 - **Comp screenshot store: `lib/lease-renewal/comp-screenshot-action.ts` (new) reusing `lib/maintenance/image-store.ts`.** The screenshot upload reuses the proven maintenance Drive seam verbatim: `MaintenanceImageStore` / `DriveMaintenanceImageStore` (Drive v3 multipart upload, keyless domain-wide delegation as a `pmikcmetro.com` subject, `F-DRIVE-DWD`, `Q-MAINT-STORAGE` resolved) with a renewal-comp folder id. A new gate view module mirrors `lib/maintenance/photo-action.ts` exactly (`RENEWAL_COMP_SCREENSHOT_ACTION_KEY = "google_drive.renewal_comp_screenshot.store"`, an executable/closed view, and a closed-action response), so the actual upload rides its own Action Registry gate.
 - **RentCast adapter: `lib/lease-renewal/providers/rentcast-market-comp-provider.ts` (new).** `RentCastMarketCompProvider` implements `MarketCompProvider` against RentCast's rental-listings SEARCH endpoint (`/listings/rental/long-term`) over an injected transport that mirrors `ImageHttpTransport` (`image-store.ts:44-78`), with the API key read only from env/Secret Manager. It queries comparable rentals by geo plus optional beds/baths within a radius, then AGGREGATES the returned listings deterministically (owner-confirmed 2026-07-23): `pointEstimate` = the MEDIAN of the comparable rents, `rangeLow`/`rangeHigh` = the min/max (or 25th/75th percentile) of the set, `compCount` = the number of comps, and the backing listings are carried for display. It FAILS CLOSED: any HTTP error, empty body, or fewer than a minimum comp count maps to `confidence:"Needs Verification"` with no numbers, never a fabricated figure. It is a read: target-labeled, one-attempt, receipted (query plus `retrievedAt` logged), health-checked, and cost-bounded; there is no mutation to roll back. Built and wired, but inert until its gate is flipped.
 - **Read + upload routes: `app/api/lease-renewal/market-comps/route.ts` and `app/api/lease-renewal/comp-screenshot/route.ts` (new).** The comps route runs the configured provider for a lease and returns a DISPLAY-only result; when the live RentCast adapter is selected it is gated by `rentcast.rental_listings.search` and refuses with the closed-action response until flipped, while the manual adapter path needs no gate. The screenshot route accepts the image, uploads it through the comp-screenshot store, returns the `StoredImage` ref/url, and refuses with `error_type:"action_not_production_allowed"` when the Drive action gate is closed.
-- **Owner-draft wiring: `lib/lease-renewal/owner-draft.ts` (edit).** `ownerDraftMarketFromBasis` maps the stored Drive screenshot ref (preferred) into `compsScreenshotRef`, so the screenshot fact renders the Drive link rather than a pasted string, and carries the provider `source` (for example `"RentCast"` or `"Manual entry"`) onto the comparable-range fact instead of the hard-coded `"Zillow"`. Both `Needs Verification` fallbacks and the `production_allowed:false` / `send_allowed:false` guarantees are unchanged.
-- **Progress-state wiring: `lib/lease-renewal/renewal-progress.ts` (edit).** `RenewalMarketBasis` gains an optional `compScreenshotRef` (the Drive ref, distinct from the existing address-only `compsUrl` Zillow deep link) plus optional `compSource` / `compRetrievedAt` attribution; `normalizeMarketBasis` validates them (trim, drop blank, treat source/date as display strings) and still never invents a number.
-- **Workspace surface: `components/lease-renewal/RenewalProgressControls.tsx` (edit).** The single free-text "Comps screenshot / Zillow search URL" input is split into (a) a comps-screenshot FILE upload that POSTs to the screenshot route and stores the returned Drive ref in `compScreenshotRef`, and (b) an optional "Look up market comps (reference only)" button that calls the comps route and renders the returned range as read-only reference text with an explicit "Reference only. Does not set the rent." caption. The `offeredRent` input is NEVER bound to a provider result. The existing address-only Zillow deep link is preserved as research.
+- **Owner-draft wiring: `lib/lease-renewal/owner-draft.ts` (edit).** `ownerDraftMarketFromBasis`
+  maps the stored Drive screenshot ref into `compsScreenshotRef` and carries the neutral provider
+  source (`"RentCast"` or `"Manual entry"`) onto the comparable-range fact. Drafts never label a
+  current fact as Zillow. Both `Needs Verification` fallbacks and the
+  `production_allowed:false` / `send_allowed:false` guarantees are unchanged.
+- **Progress-state compatibility: `lib/lease-renewal/renewal-progress.ts` (edit).** New state uses
+  `compRangeLow`, `compRangeHigh`, `compScreenshotRef`, `compSource`, and `compRetrievedAt` (exact
+  final symbols may follow the existing typed model). Existing `zillowLow`, `zillowHigh`, and
+  `compsUrl` values may be decoded only as legacy read aliases into neutral manual/reference facts.
+  New saves, drafts, APIs, and UI state must not emit those legacy keys or treat a legacy URL as a
+  current source. Compatibility decoding trims and validates values and never invents a number.
+- **Workspace surface: `components/lease-renewal/RenewalProgressControls.tsx` (edit).** Replace the
+  historical combined URL control with (a) a comps-screenshot file upload that stores the returned
+  Drive ref and (b) `Look up market comps (reference only)`, which renders a read-only range with
+  `Reference only. Does not set the rent.` The `offeredRent` input is never bound to a provider
+  result. No Zillow link, label, logo, URL, lookup, or research affordance remains.
 
 - **Buildable now (app-plane).** Adds no system-of-record write, no autonomous send, no new external scope, and stays `production_allowed:false`; the loop builds these unattended (roadmap Wave 1, "S28a").
   - **B1 Provider interface + manual adapter.** `market-comp-provider.ts` with `MarketCompProvider`, the query/result types, `ManualMarketCompProvider` reproducing today's typed behavior, and the prod-fenced `createMarketCompProvider` factory. Pure, deterministic, no network. (AC-S28-1, AC-S28-2)
@@ -47,6 +76,9 @@
 **Open questions & assumptions.**
 
 - _Answered 2026-07-23 (owner):_ the provider is RentCast's rental-listings SEARCH (`/listings/rental/long-term`), and the adapter aggregates the returned comps (MEDIAN = point estimate); RentCast has no usable rent-estimate endpoint, so the app builds the comp logic. If the owner later swaps to a different search/listings API, only the adapter behind `MarketCompProvider` changes; the app-plane, the routes, and the owner-draft/progress wiring are unaffected.
+- _Answered 2026-08-10:_ remove every user-visible and behavioral Zillow dependency. Historical
+  stored keys may be read as compatibility aliases only; they receive a neutral manual/reference
+  label and are never written by a new save.
 - _Assumption:_ the comp-screenshot upload reuses the existing maintenance Drive image-store seam
   (`lib/maintenance/image-store.ts`, keyless DWD, `F-DRIVE-DWD`, `Q-MAINT-STORAGE` resolved) with a
   renewal-comp folder id, rather than a new upload path. The Drive scope is already authorized
@@ -57,16 +89,39 @@
 - _Open:_ the exact RentCast tier + rate limits for `/listings/rental/long-term` (free tier is ~50 calls/mo) and the search parameters (radius, minimum comp count) that yield a defensible comp set. The endpoint (rental-listings search) and the MEDIAN aggregation are owner-confirmed (2026-07-23); only the tier/rate-limit detail rides with owner-dependency #2 (roadmap §5). The adapter is built against the documented listings-search response and stays inert until the key lands. The build step records this as a `Q-RENTCAST-ENDPOINT` row in `docs/facts.md`.
 - _Assumption (authoring boundary):_ this pass authors ONLY this spec file. The `Q-`/`A-` rows and the shipped-work `F-*` promotion the template calls for are performed by the BUILD steps below (Context update), not by this authoring pass, and the README plus AGENTS.md registration rows are handed back for the operator to apply.
 
-**Cross-product impacts.** New `lib/lease-renewal/market-comp-provider.ts`, `lib/lease-renewal/providers/rentcast-market-comp-provider.ts`, `lib/lease-renewal/comp-screenshot-action.ts`, `app/api/lease-renewal/market-comps/route.ts`, and `app/api/lease-renewal/comp-screenshot/route.ts`. Edits to `lib/lease-renewal/owner-draft.ts` (`ownerDraftMarketFromBasis` prefers the Drive ref, carries provider `source`), `lib/lease-renewal/renewal-progress.ts` (`RenewalMarketBasis` gains `compScreenshotRef` / `compSource` / `compRetrievedAt`, validated in `normalizeMarketBasis`), `components/lease-renewal/RenewalProgressControls.tsx` (screenshot file upload + reference-only comp lookup), `lib/integrations/action-registry-seed.ts` (two new gated-OFF entries), `lib/config/server.ts` (provider selection + renewal-comp folder id, prod-fenced), and `.env.example` (name-only entries for the RentCast key and the renewal-comp Drive folder id). Reuses `lib/maintenance/image-store.ts` unchanged in contract. This suite is additive: it interacts with but does NOT supersede any active fact. It preserves `F-NEGOTIATION-EXCLUDED` (S29 supersedes that when built, not S28), reuses `F-DRIVE-DWD` / `Q-MAINT-STORAGE`, runs under `F-ROADMAP-BUILD-AUTHORIZED`, and keeps `F-SEND-AUTHORIZED`'s draft-only posture. It FEEDS S29 (the Admin-gated suggestion consumes this provider); do not merge the two. No delete-on-supersede action falls to this spec.
+**Cross-product impacts.** New `lib/lease-renewal/market-comp-provider.ts`,
+`lib/lease-renewal/providers/rentcast-market-comp-provider.ts`,
+`lib/lease-renewal/comp-screenshot-action.ts`,
+`app/api/lease-renewal/market-comps/route.ts`, and
+`app/api/lease-renewal/comp-screenshot/route.ts`. Edits include the owner-draft and progress models,
+the renewal controls, action seed/config, and name-only environment declarations described above.
+`lib/lease-renewal/market-links.ts` and every consumer are retirement candidates: retain code only
+if it is proven necessary for bounded legacy decoding, never as a UI or request producer. S60 owns
+persisted comp truth and must apply the same neutral compatibility boundary. S28 feeds S29/S60/S62;
+none may restore a removed research link or silently set the offered rent. The Drive, cost, gate,
+and draft-only invariants remain unchanged.
 
 **Adversarial acceptance checks.** Falsifiable Done-when states, each with a stable id and a Verify command.
 
-- **AC-S28-1** The manual adapter reproduces today's behavior with no network call: given operator-entered Zillow low/high plus PMI number, `ManualMarketCompProvider.lookup()` returns exactly those numbers with `source:"Manual entry"` and `confidence:"Likely"`; given no inputs it returns a result with no numeric fields and `confidence:"Needs Verification"`, and it never synthesizes a value. _Verify:_ `npm test -- market-comp-provider`; keep `tests/unit/comp-basis-and-market.test.ts` green.
+- **AC-S28-1** The manual adapter performs no network call: given operator-entered comp low/high
+  plus PMI number, `ManualMarketCompProvider.lookup()` returns exactly those numbers with
+  `source:"Manual entry"` and `confidence:"Likely"`; given no inputs it returns no numeric fields
+  and `confidence:"Needs Verification"`, and it never synthesizes a value. _Verify:_
+  `npm test -- market-comp-provider`; keep `tests/unit/comp-basis-and-market.test.ts` green.
 - **AC-S28-2** Reference-only, no auto-select: after a comp lookup returns a range, the owner-decision form shows the range as read-only reference text with the "Does not set the rent." caption AND the `offeredRent` input value is unchanged (never set from the result), and no POST to `/api/lease-renewal/renewal-progress` carries an app-derived rent figure. _Verify:_ `npm test -- renewal-progress-controls`; keep `tests/unit/comp-basis-and-market.test.ts` green.
 - **AC-S28-3** Absent comp data renders `Needs Verification`, never fabricated: when the provider returns no estimate (empty or error), `buildOwnerRenewalDraft` emits the `Needs Verification: market comp range` marker, adds it to `missingInputs`, and no numeric range string appears in the draft body. _Verify:_ `npm test -- owner-draft`, `npm test -- market-comp-provider`.
 - **AC-S28-4** The comps screenshot is a Drive ref, not a pasted string: uploading an image via the screenshot control stores it through the Drive image-store seam and the owner draft's screenshot fact resolves to a `StoredImage` ref (`drive:<id>` or its webViewLink), not the operator's typed text; when the Drive action gate is closed the route returns `error_type:"action_not_production_allowed"` and the draft still renders the `Needs Verification: paste comps screenshot` marker. _Verify:_ `npm test -- comp-screenshot`, `npm test -- image-store`.
 - **AC-S28-5** The RentCast adapter is built but inert: `rentcast.rental_listings.search` is `production_allowed:false` and absent from both `EXECUTABLE_ALLOWLIST` copies, so `isActionExecutable` returns false and the live comps route refuses with the closed-action response; the adapter fails closed so any HTTP error or empty body yields a `Needs Verification` result with no numbers. _Verify:_ `npm test -- rentcast-market-comp-provider`, `npm test -- action-registry-schema`; keep `tests/unit/seed-action-registry-allowlist.test.ts` green.
-- **AC-S28-6** No key or PII in git and no Zillow scraping: the RentCast key is read only from env/Secret Manager, `.env.example` names it with no value, the repo contains no key literal, and no Zillow HTML fetch or scrape path exists (only the pre-existing address-only `zillowSearchUrl` deep link remains). _Verify:_ `npm run lint`, `npm run verify:context-freshness`; grep confirms no `RENTCAST` value literal and no `zillow.com` fetch outside `market-links.ts`.
+- **AC-S28-6** No key or PII enters git: the RentCast key is read only from env/Secret Manager,
+  `.env.example` names it with no value, and the provider query contains only approved property
+  facts. No runtime request fetches, scrapes, redirects to, or constructs a Zillow URL. No
+  user-visible UI, draft, API response, analytics label, or current source attribution contains
+  Zillow. _Verify:_ secrets scan plus static/runtime request and rendered-copy sentinels.
+- **AC-S28-7** A record containing legacy `zillowLow`, `zillowHigh`, or `compsUrl` can be opened
+  without data loss: valid numeric values appear only as neutral legacy/manual reference facts and
+  a URL is not rendered or followed. The next save emits only the current comp schema. A newly
+  created record contains none of those keys. _Verify:_ legacy fixture read/migrate-on-save and new
+  record serialization tests.
 
 _Verify (whole suite):_ `npm run typecheck`, `npm run lint`, `npm test`, `npm run verify:spec-traceability`, `npm run verify:context-freshness`, and `bash scripts/verify.sh`. Named sentinels to keep green throughout: `tests/unit/comp-basis-and-market.test.ts` (D19 no-invented-number invariant), `tests/unit/action-registry-schema.test.ts` and `tests/unit/seed-action-registry-allowlist.test.ts` (gate/allowlist integrity), and `tests/unit/feature-suite-spec-shape.test.mjs` (this spec's shape gate).
 
@@ -94,13 +149,17 @@ which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned 
 Suite-specific hard stops: (a) the provider is DISPLAY-only reference and MUST NOT auto-select,
 auto-fill, or otherwise move the `offeredRent` number; the comp-derived SUGGESTED number is S29
 (Admin-approval-gated), never S28. (b) Absent comp data renders `Needs Verification`, never a
-fabricated number (`F-NEGOTIATION-EXCLUDED` preserved). (c) No Zillow scraping or HTML fetch (ToS);
-live numbers come only from the licensed API, and the only Zillow surface remains the existing
-address-only deep link.
+fabricated number (`F-NEGOTIATION-EXCLUDED` preserved). (c) Zillow is neither a current source nor
+a research surface: no visible label, link, URL, logo, redirect, lookup, fetch, scrape, new stored
+field, or behavioral dependency is allowed. Legacy persisted names are read-only compatibility
+aliases and cannot escape into UI, drafts, provider requests, analytics, or new writes.
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ re-read `lib/lease-renewal/market-links.ts`, `lib/lease-renewal/owner-draft.ts:26-34` + `:152-154`, `lib/lease-renewal/renewal-progress.ts:32-41` + `:132-157`, `components/lease-renewal/RenewalProgressControls.tsx:57-107` + `:224-234`, `lib/maintenance/image-store.ts`, `lib/maintenance/photo-action.ts`, the maintenance photo seed entry (`lib/integrations/action-registry-seed.ts:962-1007`), the config fence (`lib/config/server.ts:154-186`), and the gate-flip recipe (roadmap §6).
+1. _Discovery (on a later execution turn under the suite's existing authority):_ inventory
+   `market-links.ts` and every legacy-key/link consumer, owner-draft/progress serialization,
+   renewal controls, the image-store/action seam, provider config, and the existing gate contract.
+   Prove which legacy fields require bounded read compatibility before editing product code.
 2. _Build:_ B1 first (pure core) - `market-comp-provider.ts` with the interface, query/result types, `ManualMarketCompProvider` reproducing today's typed behavior, and the prod-fenced factory. Golden-data-first unit tests for every branch, including the empty-input `Needs Verification` path (AC-S28-1).
 3. _Build:_ B2 - the reference-only comps route plus the DISPLAY-only surface and "Does not set the rent." caption in `RenewalProgressControls.tsx`, with `offeredRent` never bound to a result (AC-S28-2).
 4. _Build:_ B3 - `comp-screenshot-action.ts` mirroring `photo-action.ts`, the screenshot route reusing `DriveMaintenanceImageStore` (Stub in dev/test), and the `RenewalMarketBasis.compScreenshotRef` wiring (AC-S28-4).
@@ -113,7 +172,9 @@ address-only deep link.
    flips the same routine way once the renewal-comp folder id is set (Drive scope already
    authorized). The subsequent routine deploy, smoke, and traffic promotion follow D05 after its
    full gate is green.
-9. _Verify:_ each slice runs `npm run typecheck`, `npm run lint`, `npm test`, and a falsification pass; extend, never weaken, the named sentinels; end-of-suite `bash scripts/verify.sh`.
-10. _Context update:_ promote the shipped app-plane and seam work to a `docs/facts.md` `F-*` row (for example `F-MARKET-COMP-PROVIDER`) citing AC-S28-1..AC-S28-6, record the `Q-RENTCAST-ENDPOINT` open question, note that S28 preserves the no-app-suggested-number behavior (whichever of `F-NEGOTIATION-EXCLUDED` / S29's `F-RENT-SUGGEST-ADMIN-GATED` is active when S28 ships) and feeds S29, and update `docs/loop-state.md` at each slice boundary.
+9. _Verify:_ run AC-S28-1 through AC-S28-7, including legacy-read/new-write and rendered/runtime
+   no-Zillow falsification, then the normal type/lint/test/full-verifier gates.
+10. _Context update:_ after later execution under the existing authority, promote only verified shipped behavior and
+    update the loop at slice boundaries; specification approval alone creates no shipped fact.
 
 **Deletion/merge recommendation.** KEEP this file as the tracked S28 contract. It is the shared spec for BOTH Wave-1 "S28a" (provider abstraction plus comp screenshot, app-plane) and Wave-2 "S28b" (RentCast live adapter); do not fork S28a/S28b into separate files. The disposable `docs/temp/market-comp-data-plan.md` packet, if authored, stays local-only evidence and is deleted when the suite ships. Do NOT merge S28 into S29: S29 is the separate, Admin-approval-gated comp-derived rent SUGGESTION that consumes this provider; S28 is the reference display plus the data and screenshot seam that stays strictly non-suggesting.

@@ -6,6 +6,11 @@
 > build the rent-versus-market comparison as part of the RentCast integration rather than deferring
 > it. Owner direction (N7): repair the dead ±15% clamp in the same slice. Depends on **S59**; without
 > it there is no provider number to persist.
+>
+> **Approved specification amendment, 2026-08-10.** The 2026-08-07 training transcript and the
+> owner's 2026-08-10 approval supersede the field/link preservation described in the original
+> draft. Zillow has no user-visible or behavioral role. Historical field names are bounded,
+> read-only compatibility aliases only. This amendment authorizes specification edits, not work.
 
 **Goal.** When the app shows a market range next to a renewal, that range is the number it actually
 retrieved, labeled with the source it actually came from. Today, activating RentCast without this
@@ -29,9 +34,9 @@ lookup. The numbers are rendered once on screen and discarded.
   `{ source, rangeLow, rangeHigh, pointEstimate, compCount, retrievedAt, radiusMiles, unitFilters,
 comps[], trend }`, where `comps[]` keeps each comparable's correlation score and distance, and
   `trend` holds the month-keyed rental history returned by RentCast's `/markets` endpoint
-  — beside the existing operator-typed fields. The operator's numbers are never overwritten by a
-  lookup and a lookup is never overwritten by the operator; both can coexist and the draft states
-  which one it used. `normalizeMarketBasis` validates the new block with the same
+  — beside neutral operator-typed `manual` comp fields. The operator's numbers are never overwritten
+  by a lookup and a lookup is never overwritten by the operator; both can coexist and the draft
+  states which one it used. `normalizeMarketBasis` validates the new blocks with the same
   never-fabricate discipline it already applies.
 - **The draft tells the truth or says nothing.** `ownerDraftMarketFromBasis` prefers the provider
   block when present and labels it with the provider's own source string and retrieval date. With no
@@ -39,12 +44,14 @@ comps[], trend }`, where `comps[]` keeps each comparable's correlation score and
   combine one basis's numbers with the other's label. The hard-coded `"Zillow"` fallbacks in
   `owner-draft.ts` are removed; an absent basis produces a `Needs Verification` marker that names no
   provider at all.
-- **Field naming.** The persisted keys `zillowLow` / `zillowHigh` are retained as the operator-typed
-  basis to avoid a data migration for a cosmetic gain, but every operator-facing label changes from
-  "Zillow low/high" to "Comp low/high (typed)". The Zillow deep link in
-  `lib/lease-renewal/market-links.ts` stays: a human opening Zillow to sanity-check a number is a
-  legitimate workflow, distinct from the app claiming Zillow as a data source. A rename of the
-  persisted keys is recorded as deferred, not silently skipped.
+- **Field naming and compatibility boundary.** Current records use neutral `manual.rangeLow` and
+  `manual.rangeHigh` (or equivalently neutral typed fields selected during implementation
+  discovery). Existing `zillowLow` / `zillowHigh` values may be decoded only as legacy read aliases
+  into that neutral manual basis. Existing `compsUrl` may be recognized solely so it can be ignored
+  or migrated safely; it is never rendered, followed, attributed, or copied forward. New creates,
+  updates, drafts, APIs, analytics, and UI state write only the current schema. A compatibility
+  decoder may remain until stored records are proven migrated, but no current behavior depends on
+  it. `lib/lease-renewal/market-links.ts` and all of its product consumers are retirement targets.
 - **The under-market signal.** Compare the authoritative current rent against the provider point
   estimate and flag when it falls materially below. The flag is **internal only**: it surfaces on the
   desk and in the operator's view, and it never enters a client draft, because a statement about
@@ -58,9 +65,11 @@ comps[], trend }`, where `comps[]` keeps each comparable's correlation score and
   authoritative current rent at the call site and add a test that fails if it is omitted again. This
   is a live correctness defect independent of RentCast.
 
-Buildable now (app-plane): the schema extension, the draft mapping, the labels, the clamp repair, and
-the signal. Build to the seam (live provider): none beyond S59. Owner dependency (the one flip): none
-— this suite adds no Action Registry key and opens none.
+Buildable under the existing Renewal Proof Program authority (app-plane): the schema extension,
+compatibility decoder, truthful draft mapping, labels, clamp repair, and signal. Build to the seam
+(live provider): none beyond S59. Owner dependency (the one flip): none — this suite adds no Action
+Registry key and opens none. The 2026-08-10 turn performs only this specification amendment and does
+not itself execute that standing authority.
 
 **Open questions & assumptions.**
 
@@ -74,8 +83,9 @@ the signal. Build to the seam (live provider): none beyond S59. Owner dependency
   waits on this answer.
 - _Assumption:_ the provider point estimate is the right comparison basis rather than the range
   midpoint, matching the existing median-based suggestion method.
-- _Assumption:_ retaining `zillowLow` / `zillowHigh` as persisted key names is acceptable because they
-  are operator-typed values and no client-facing string derives from the key name.
+- _Answered 2026-08-10:_ do not retain historical Zillow-named keys as the current write schema and
+  do not retain the deep link. The only permitted legacy treatment is read-only decoding into a
+  neutral manual basis until stored-record migration is proven.
 
 **Cross-product impacts.**
 
@@ -87,7 +97,8 @@ the signal. Build to the seam (live provider): none beyond S59. Owner dependency
   fields; render the under-market signal.
 - `lib/lease-renewal/rent-suggestion.ts`,
   `lib/firestore/lease-renewal-rent-suggestion-approvals.ts` — clamp repair.
-- `lib/lease-renewal/market-links.ts` — unchanged, documented as a human convenience link.
+- `lib/lease-renewal/market-links.ts` and its consumers — retire after proving no current or legacy
+  read path requires them; a compatibility decoder must not construct a URL.
 - Depends on **S59**. Feeds **S62** (an owner-policy number is compared against a real market basis)
   and **S63** (the test set's number comparison needs a persisted provider figure to compare).
   Interacts with **S29** (`rent-suggestion-admin-gated.md`), whose Admin approval path is unchanged.
@@ -122,6 +133,15 @@ the signal. Build to the seam (live provider): none beyond S59. Owner dependency
 - **AC-S60-10** — `resolveLeaseRentSuggestion` passes the authoritative current rent, and a comp
   median more than 15 percent from current rent is clamped on the live path. A call site that omits
   current rent fails the test. _Verify:_ `npm test -- rent-suggestion`.
+- **AC-S60-11** — A legacy record with valid `zillowLow` / `zillowHigh` opens with the values labeled
+  only as `Manual entry`/typed comp evidence; any `compsUrl` is neither rendered nor requested. The
+  next successful save writes the neutral current schema and does not copy any legacy key or URL.
+  Invalid legacy values fail to `Needs Verification` rather than being coerced. _Verify:_ legacy
+  fixture read/migrate-on-save and request-spy tests.
+- **AC-S60-12** — A new record, API response, draft, analytics event, and rendered workspace contains
+  no Zillow field, label, URL, source attribution, or behavior. Removing the compatibility decoder
+  after all stored fixtures migrate changes no current behavior. _Verify:_ new-record serialization,
+  rendered-copy, draft, analytics, and runtime network sentinels.
 
 Keep green: `tests/unit/rent-suggestion-approval-route.test.ts`,
 `tests/unit/rent-suggestion-approval-plan.test.ts`, `tests/unit/renewal-comp-screenshot.test.ts`,
@@ -135,25 +155,27 @@ writes human-confirmed. This suite must not put the under-market signal, or any 
 a property should rent for, into a client-facing draft. It must not let a provider label attach to
 operator-typed numbers or the reverse. It must not fabricate a range when the provider refused. It
 must not open or prepare any Action Registry key, and it must not weaken the S29 Admin approval that
-governs a comp-derived suggested number entering a draft.
+governs a comp-derived suggested number entering a draft. It must not preserve Zillow as a visible
+source, link, URL, label, analytics value, new storage key, request target, or current behavior.
+Legacy names may exist only inside a bounded read decoder and its migration tests.
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ re-read `RenewalMarketBasis`, `normalizeMarketBasis`, `ownerDraftMarketFromBasis`,
-   and the submit path in `RenewalProgressControls.tsx`; confirm the label-versus-value split.
-2. _Build:_ extend the basis with the provider block and validate it.
+1. _Discovery (on a later execution turn under the suite's existing authority):_ re-read `RenewalMarketBasis`,
+   `normalizeMarketBasis`, `ownerDraftMarketFromBasis`, the submit path, `market-links.ts`, every
+   legacy-key consumer, and stored fixtures; confirm the label/value split and bounded migration set.
+2. _Build:_ extend the basis with provider and neutral manual blocks, plus a read-only legacy decoder.
 3. _Build:_ persist the provider block from a lookup; keep operator values independent.
 4. _Build:_ truthful owner-draft mapping; remove the `"Zillow"` fallbacks.
-5. _Build:_ relabel operator-facing comp fields.
+5. _Build:_ remove the historical link/current keys and relabel operator-facing comp fields.
 6. _Build:_ the internal under-market signal with its named threshold constant.
 7. _Build:_ the clamp repair plus a test that fails when current rent is omitted.
-8. _Verify:_ falsify by setting `compSource` to a provider name with only typed numbers present and
-   observing AC-S60-3 fail before the fix and pass after.
+8. _Verify:_ falsify source/value mixing and run AC-S60-1 through AC-S60-12, including legacy read,
+   current write, rendered copy, analytics, and zero-network Zillow sentinels.
 9. _Gate:_ `format:check`, `lint`, `typecheck`, `npm test`, `test:firestore`,
    `verify:falsification`, `verify:context-freshness`, `verify:spec-traceability`, `npm run build`.
-10. _Context update:_ `docs/facts.md` `F-` row citing AC-S60-1 through AC-S60-10; `Q-` rows for the
-    under-market threshold and the trend presentation; update `docs/loop-state.md` and
-    `docs/status.md`.
+10. _Context update:_ after later execution under the existing authority, promote only verified shipped behavior and
+    cite AC-S60-1 through AC-S60-12; specification approval alone creates no shipped fact.
 
 **Deletion/merge recommendation.** KEEP. This is the record of why the owner draft can be trusted to
 name its own source. The disposable cycle packet `docs/temp/comp-persistence-and-under-market-signal-plan.md` is CREATED AT SLICE START, not by this spec.

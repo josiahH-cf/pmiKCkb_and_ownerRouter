@@ -136,10 +136,19 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S63 Four-lease renewal test set             | `docs/feature-suites/four-lease-renewal-test-set.md`                      | Spec — the core-functionality proof                      |
 | S64 Per-person approval authority           | `docs/feature-suites/per-person-approval-authority.md`                    | Spec — NOT authorized; needs a grant extension           |
 | S65 Feedback report closure                 | `docs/feature-suites/feedback-report-closure.md`                          | Spec — small; before training volume starts              |
+| S66 Lease document packet truth + prefill   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`          | Spec only — no implementation authority                  |
+| S67 Feedback dictation intake               | `docs/feature-suites/feedback-dictation-intake.md`                        | Spec only — no implementation authority                  |
+| S68 Staff work assignment + accountability  | `docs/feature-suites/staff-work-assignment-and-accountability.md`         | Spec only — no implementation authority                  |
 
 S57–S63 are the authorized 2026-08-06 program. S64 is specified but NOT authorized. S65 is authorized separately and narrowly, outside the four scope items. Ordered dependency: S57 first (nothing else is
 reachable until the desk reads the whole portfolio), then S58, then S59, then S60, then S61,
 then S62, then S63 as the proof. S64 is specified but deliberately unauthorized. S65 is independent.
+
+S66–S68 are the specification-only output of the 2026-08-07 training-transcript discovery and the
+owner's 2026-08-10 plan approval. They are registered for traceability but are not inserted into the
+S57–S63 execution order, do not open a new unattended loop, and do not authorize implementation,
+provider/action activation, protected-path changes, deployment, sends, writes, monitoring, or an
+employee-policy change.
 
 ## Deferred, with owner direction to keep it visible (2026-08-06)
 
