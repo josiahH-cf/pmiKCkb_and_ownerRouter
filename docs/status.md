@@ -9360,3 +9360,46 @@ production build. `test:e2e:core` reproduced exactly the eight stale Demo/Test-l
 
 The slice is built and pushed, not deployed. Deployment remains parked behind the owner-run
 `npm run auth:session` checkpoint. The next independent app-plane slice is S68.
+
+# 2026-08-11 — S68 staff work accountability built and pushed
+
+S68 is pushed on `main` at `b883763`. The app now owns explicit tasks and user-started work sessions
+through My work and Admin Team work. Admin-created, self-created, and approved mapping-derived tasks
+carry source identity/version/status but never source content. One versioned expectation snapshot is
+attached when a task is created, and an explicit audited rebase is required to move it.
+
+The transactional session lock proves one active session per person across tabs: repeated Start on
+the same task is idempotent, while Start on another task atomically pauses the former session before
+opening the next. No time exists before Start. A value-free heartbeat supports the accessible
+13-minute warning and exact 15-minute idle cutoff; hiding, closing, sleeping, crashing, or going
+offline cannot extend work. Pause, Block, Complete, and Cancel atomically close active work.
+Corrections preserve immutable originals and append actor/reason/old/new/task-reassociation audit;
+overlap, active-session, cross-user, stale-version, future, and reversed intervals refuse.
+
+The surfaces include explicit empty, loading, failure, retry, blocked, completed, overdue,
+concurrency, and retention states; assignment, mapping, correction, rebase, and retention controls
+are permission-bound. Admin Team work shows factual durations and expectation ranges only. Structural
+sentinels prohibit keystrokes, content, screenshots, coordinates, inferred productivity, rankings,
+compensation or discipline recommendations, source-body persistence, value-bearing heartbeats, and
+staff-identity rewriting. The 12-month retention contract previews an exact hash, confirms that hash,
+rechecks inside the transaction, honors legal holds, deletes in dependency order, and leaves linked
+workflow/maintenance/approval/renewal records untouched. Every S68 mutation refuses in local Demo +
+Live-read-only. No provider action, send, client system-of-record mutation, Action Registry key, or
+D12 path was added.
+
+Falsification inserted a temporary forbidden `productivity` marker, observed the privacy sentinel
+fail by name, removed it, and restored green. The focused emulator journey passed task creation,
+explicit/idempotent Start, atomic switch, Pause, My work truth, and Admin Team work truth. Real Chrome
+smoke passed `/work` and `/admin/team-work` at 1280x900 and 390x844, including correction/retention
+states and no horizontal overflow. The complete exact-tree verifier passed 497 unit files / 4,605
+tests, 25 Firestore files / 115 tests, formatting, lint with zero errors, typecheck, every policy
+scanner, and a 99-page production build. The Firebase CLI unauthenticated line remains the known auth
+advisory. `test:e2e:core` reproduced the eight known stale-Demo-lane failures; the full E2E command
+reported 14 tests in the same retired Demo/simulation family, while the focused S68 E2E passed.
+
+The transcript-derived app-plane program is built and pushed, not deployed. Live config/host/auth
+readback, Bailey's exact managed-roster Admin promotion and refreshed claim, and deployment remain
+parked behind one human step: from Windows PowerShell in this repository, run `npm run auth:session`
+as `josiah@pmikcmetro.com` and add no `--scopes`. After confirmation, WSL ADC discovery must be
+bridged by the exact non-copying symlink procedure and all independent auth preflights rerun before
+any live/cloud claim.

@@ -2,7 +2,7 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-11 (transcript implementation active; S28/S60 + S66/S67 pushed, S68 next).
+Last updated: 2026-08-11 (transcript app-plane implementation pushed; authentication checkpoint next).
 
 ```yaml
 last_updated: 2026-08-11
@@ -14,13 +14,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_PUSHED
-next_suite: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY
-next_spec: docs/feature-suites/staff-work-assignment-and-accountability.md
+implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_S68_PUSHED
+next_suite: AUTHENTICATION_UNBLOCK
+next_spec: docs/auth-identity-and-access-strategy.md
 session_auth_status: OWNER_CHECKPOINT_OPEN_INVALID_RAPT_ADC_NOT_WSL_DISCOVERABLE_FIREBASE_CLI_UNAUTHENTICATED
-active_slice: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY
-next_slice: S68_EXPLICIT_TASKS_AND_USER_STARTED_WORK_SESSIONS
-last_completed_slice: S67_FEEDBACK_DICTATION_INTAKE_77c757c
+active_slice: NONE_EXTERNAL_OWNER_CHECKPOINT
+next_slice: OWNER_RUN_AUTH_SESSION_THEN_WSL_ADC_FIREBASE_PRODUCT_AUTH_BAILEY_DEPLOY
+last_completed_slice: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY_B883763
 runtime_action_gates_preflipped: false
 ```
 
@@ -51,7 +51,12 @@ runtime_action_gates_preflipped: false
 - S67 is pushed at `77c757c` (`F-FEEDBACK-DICTATION-INTAKE`): optional feedback dictation reuses the
   recorder and configured Google STT seam, appends editable text without truncation, aborts/discards
   raw audio on every exit, and leaves the S65 report shape/lifecycle unchanged.
-- **Next:** S68 explicit tasks and user-started work sessions.
+- S68 is pushed at `b883763` (`F-WORK-ACCOUNTABILITY`): app-owned tasks, explicit user-started work
+  sessions, factual My work/Admin Team work surfaces, idle/correction/expectation/concurrency truth,
+  and the 12-month retention contract are built without provider actions, content surveillance, or
+  HR inference.
+- **Next:** resume only the authentication-dependent readbacks, Bailey Admin action, and routine
+  deployment after the owner completes the exact managed-account checkpoint below.
 - **Authentication remains independently parked:** managed gcloud account/project are correct, but
   CLI token refresh is RAPT-walled; Windows ADC has safe authorized-user/quota-project metadata but
   WSL default ADC is absent; Firebase CLI reports unauthenticated during emulator startup. Owner runs
@@ -121,6 +126,8 @@ send; (4) promote Bailey to Admin (`F-BAILEY-ADMIN-2026-08-06`; effective on her
 `docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
-fail in the Windows shell. Run them through WSL, exporting
-`GOOGLE_APPLICATION_CREDENTIALS=/mnt/c/Users/josia/AppData/Roaming/gcloud/application_default_credentials.json`
-for Google reads. Do not run `npm ci` on Windows.
+fail in the Windows shell. Run them through WSL. The former instruction to export
+`GOOGLE_APPLICATION_CREDENTIALS` is stale and conflicts with the managed identity preflight; keep
+that variable unset. After the owner completes `npm run auth:session`, verify the Windows ADC safe
+metadata and bridge normal WSL ADC discovery with the exact symlink described in
+`docs/auth-identity-and-access-strategy.md`. Do not run `npm ci` on Windows.

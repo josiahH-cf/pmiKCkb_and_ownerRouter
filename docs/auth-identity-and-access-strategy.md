@@ -23,16 +23,16 @@ contract evidence and deterministic automated-test fixtures only.
 > silently. See also [`environment-handoff.md`](environment-handoff.md) and
 > [`client-production-cutover.md`](client-production-cutover.md).
 
-## 0. Current State (2026-08-03)
+## 0. Current State (2026-08-11)
 
-| Surface                    | State                                                                                                                                                                        | Remaining                                                                                                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                         | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                                      |
-| (b) Human gcloud / ADC     | ✅ `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`; managed-domain ADC and session preflights are implemented.                                                                   | Run `npm run auth:session` only when the read-only freshness check reports stale interactive credentials.                                                     |
-| (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                 | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                                          |
-| (d) Firebase end-user auth | ✅ Staff Google auth is configured; the Admin-provisioned Live Vendor Email/Password + TOTP boundary is built and fail-closed; Production is Live-only.                      | Activate a real assigned Vendor and that Vendor's same-address mailbox only through its exact reviewed Live contracts; synthetic identities remain test-only. |
-| (e) Firebase CLI           | ✅ Firestore rules are deployed as ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`.                                                                                           | Composite indexes are optional and deployed only when an actual production query requires one; unused index creation is not a working-V1 step.                |
-| (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run. | Periodically review its documented build-only IAM inventory; this does not block the already working application.                                             |
+| Surface                    | State                                                                                                                                                                        | Remaining                                                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                         | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                                       |
+| (b) Human gcloud / ADC     | ⚠️ CLI account/project are managed and correct, but CLI and ADC freshness are RAPT-walled; Windows ADC safe metadata is correct and WSL normal discovery is absent.          | Run `npm run auth:session` in Windows PowerShell as `josiah@pmikcmetro.com`, no `--scopes`; then apply and verify the non-copying WSL symlink procedure below. |
+| (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                 | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                                           |
+| (d) Firebase end-user auth | ✅ Staff Google auth is configured; the Admin-provisioned Live Vendor Email/Password + TOTP boundary is built and fail-closed; Production is Live-only.                      | Activate a real assigned Vendor and that Vendor's same-address mailbox only through its exact reviewed Live contracts; synthetic identities remain test-only.  |
+| (e) Firebase CLI           | ⚠️ Deployed ruleset evidence remains `63b31613-59ba-495c-9ef3-455a5c593f51`, but the local Firebase CLI currently reports unauthenticated.                                   | After the gcloud/ADC checkpoint, verify the installed CLI's managed account independently and use its documented interactive login only if still required.     |
+| (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run. | Periodically review its documented build-only IAM inventory; this does not block the already working application.                                              |
 
 **Legacy demo cloud lane** (`pmikckb-test` project / `pmi-kc-kb-demo` service, in the
 `cherrybridge.ai` org) is **retired**. Repo pointers to the dead project were neutralized
@@ -99,18 +99,27 @@ places and do **not** cascade. The most dangerous misconception is that
 
 ### (b) Human gcloud user / ADC
 
-- **Today:** `gcloud auth login` active as `josiah@pmikcmetro.com` (org-correct), project
-  `pmi-kc-kb-prod` — verified this session. The legacy `cherrybridge.ai` account was also
-  credentialed locally but has been **revoked (2026-06-20)**; only `josiah@pmikcmetro.com`
-  remains. **ADC is present and resolves to `josiah@pmikcmetro.com`** (verified via
-  `npm run preflight:identity`). An earlier "missing" reading was a wrong-path check — on
-  Windows ADC lives under `%APPDATA%\gcloud`, not `~/.config/gcloud`.
-- **Target:** `gcloud auth application-default login` as `josiah@pmikcmetro.com`;
-  `gcloud config set project pmi-kc-kb-prod`; `gcloud config set billing/quota_project pmi-kc-kb-prod`;
-  no JSON keys. Revoke the `cherrybridge.ai` account locally **only after** ADC is minted under
-  pmikcmetro (revoking first can break local `applicationDefault()`). Verify via
-  `npm run host:setup` / `npm run host:check` — note that script persists user env vars into the
-  Windows registry, so stale `cherrybridge`/`pmikckb-test` values must be overwritten.
+- **Current observation (2026-08-11):** the active gcloud CLI account is
+  `josiah@pmikcmetro.com` and the selected project is `pmi-kc-kb-prod`, but CLI token refresh and
+  Windows ADC refresh both fail at the interactive RAPT boundary. The Windows ADC exists at
+  `%APPDATA%\gcloud\application_default_credentials.json`; safe metadata reads `authorized_user`,
+  quota project `pmi-kc-kb-prod`, and a present refresh-token field. WSL's normal ADC path is absent,
+  so WSL does not discover that file. No principal or token freshness is claimed from metadata alone.
+- **One human checkpoint:** from Windows PowerShell in this repository, run
+  `npm run auth:session` as `josiah@pmikcmetro.com`, complete the browser flow, and add no
+  `--scopes`. RAPT cannot be bypassed by the runner.
+- **WSL discovery after that confirmation:** keep `GOOGLE_APPLICATION_CREDENTIALS` unset. Verify
+  only the safe metadata above, then inspect
+  `/home/josiah/.config/gcloud/application_default_credentials.json`. Preserve it if it is already a
+  symlink to the exact Windows ADC path. If absent, create the parent directory and that exact
+  symlink; never copy the credential. If another file or symlink exists, do not overwrite it: compare
+  nonsecret metadata and resolve the conflict explicitly. Then run `npm run preflight:adc`,
+  `npm run preflight:identity`, and `gcloud auth print-access-token >/dev/null` with the variable
+  still unset.
+- **Boundary:** never print or retain the ADC JSON, refresh token, client id, client secret, or
+  access token. Never use a downloaded key, CI token, personal account, or
+  `GOOGLE_APPLICATION_CREDENTIALS` workaround for this human ADC path. Firebase CLI, Firebase
+  end-user auth, runtime identity, build identity, and connector identities remain separate checks.
 
 ### (c) App runtime service account
 
