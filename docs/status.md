@@ -9403,3 +9403,51 @@ parked behind one human step: from Windows PowerShell in this repository, run `n
 as `josiah@pmikcmetro.com` and add no `--scopes`. After confirmation, WSL ADC discovery must be
 bridged by the exact non-copying symlink procedure and all independent auth preflights rerun before
 any live/cloud claim.
+
+# 2026-08-11 — Authentication unblocked; transcript package deployed with rollback proven
+
+The owner's managed-domain reauthentication cleared both Windows gcloud CLI and ADC. The Windows
+ADC safe metadata is `authorized_user`, quota project `pmi-kc-kb-prod`, and refresh-token-present.
+WSL now discovers that exact ADC through a non-copying symlink while
+`GOOGLE_APPLICATION_CREDENTIALS` remains unset; `preflight:adc` and `preflight:identity` passed and
+resolved `josiah@pmikcmetro.com`. The pre-existing WSL gcloud store remained separate and stale, so
+it was preserved rather than overwritten. All deployment commands used the refreshed managed
+Windows CLI store through its explicit `CLOUDSDK_CONFIG`. The independent Windows Firebase CLI store
+resolved from WSL as the managed account through `XDG_CONFIG_HOME`; its unrelated empty WSL default
+file was also preserved.
+
+Live auth/config readback found Google sign-in enabled, the canonical and modern `pmi-kc-app` hosts
+authorized, and the serving revision pinned to `ALLOWED_HD=pmikcmetro.com`, Production + Live, both
+demo-auth flags false, and the managed runtime service account. Four core auth/Admin files passed 88
+tests covering wrong-domain, missing/malformed claims, unverified/stale sessions, non-Google and
+Vendor drift, revoked/invalid cookies, and route guards. Bailey's action was already complete: the
+authenticated roster had exactly one managed exact-display-name match, current Admin claim, a
+matching append-only Admin-surface audit record, and a later Firebase sign-in. No resolved email or
+UID was emitted or committed, and S64 remains unauthorized.
+
+Before deployment, all 19 required APIs and Native Firestore passed live readback. S52 readback
+confirmed the `$25` project alert, `$100` project hard stop, `$100` account backstop, and guardrail
+cap `100`. The complete code gate remained the already-observed 497 unit files / 4,605 tests, 25
+Firestore files / 115 tests, all static/policy checks, and 99-page build; the later durable-doc-only
+tree passed formatting, context/spec/copy/redaction/router/falsification checks and 228 ledger/spec
+shape tests.
+
+Source checkpoint `495ca1d` deployed first as zero-traffic candidate
+`pmi-kc-app-rmsol14wb-9fe02e7af754`. Exact-tag smoke returned root 307, sign-in 200, and protected
+307; `/work` and `/admin/team-work` redirected to sign-in and `/api/work` returned 401. Readback
+confirmed Production + Live, `ALLOWED_HD=pmikcmetro.com`, local/Demo auth off, Sheet write-back off,
+RentCast selected, all existing RentVine/RentCast secret references bound, and runtime identity
+`pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`. Only then was that exact revision
+promoted to 100%.
+
+Rollback was proven by execution in both directions. Traffic moved to captured predecessor
+`pmi-kc-app-rmsisg7di-1f914cfeae0d` at 100%; stable root/sign-in/renewal/Admin smoke passed. Traffic
+then returned to `pmi-kc-app-rmsol14wb-9fe02e7af754`, read back at 100%, and final stable smoke
+passed. Final unauthenticated probes returned 401 at the S66 packet-truth API, S67 transcription API,
+and S68 work API. The canonical client URL remains
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+
+The transcript-derived implementation loop is complete: S28/S60 and S66-S68 are built, verified,
+pushed, and deployed. No provider action or Action Registry key was activated, and no send or
+system-of-record write ran. S66's exact approved-artifact catalog and provider seams remain named
+external dependencies; Dotloop activation stays separate.

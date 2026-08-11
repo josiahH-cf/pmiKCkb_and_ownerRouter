@@ -2,7 +2,7 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-11 (transcript app-plane implementation pushed; authentication checkpoint next).
+Last updated: 2026-08-11 (transcript implementation verified, pushed, and deployed; auth unblocked).
 
 ```yaml
 last_updated: 2026-08-11
@@ -14,13 +14,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_S68_PUSHED
-next_suite: AUTHENTICATION_UNBLOCK
-next_spec: docs/auth-identity-and-access-strategy.md
-session_auth_status: OWNER_CHECKPOINT_OPEN_INVALID_RAPT_ADC_NOT_WSL_DISCOVERABLE_FIREBASE_CLI_UNAUTHENTICATED
-active_slice: NONE_EXTERNAL_OWNER_CHECKPOINT
-next_slice: OWNER_RUN_AUTH_SESSION_THEN_WSL_ADC_FIREBASE_PRODUCT_AUTH_BAILEY_DEPLOY
-last_completed_slice: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY_B883763
+implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_S68_DEPLOYED
+next_suite: NONE_TRANSCRIPT_PROGRAM_COMPLETE
+next_spec: NONE
+session_auth_status: GREEN_MANAGED_WINDOWS_CLI_ADC_WSL_ADC_FIREBASE_RUNTIME_END_USER_CONFIG_BUILD
+active_slice: NONE_PROGRAM_COMPLETE
+next_slice: NONE
+last_completed_slice: PRODUCTION_DEPLOY_PMI_KC_APP_RMSOL14WB_9FE02E7AF754
 runtime_action_gates_preflipped: false
 ```
 
@@ -55,13 +55,18 @@ runtime_action_gates_preflipped: false
   sessions, factual My work/Admin Team work surfaces, idle/correction/expectation/concurrency truth,
   and the 12-month retention contract are built without provider actions, content surveillance, or
   HR inference.
-- **Next:** resume only the authentication-dependent readbacks, Bailey Admin action, and routine
-  deployment after the owner completes the exact managed-account checkpoint below.
-- **Authentication remains independently parked:** managed gcloud account/project are correct, but
-  CLI token refresh is RAPT-walled; Windows ADC has safe authorized-user/quota-project metadata but
-  WSL default ADC is absent; Firebase CLI reports unauthenticated during emulator startup. Owner runs
-  `npm run auth:session` in Windows PowerShell as `josiah@pmikcmetro.com`, with no `--scopes`; only
-  after confirmation may the runner create the exact WSL ADC symlink and rerun each preflight.
+- Authentication is unblocked (`F-AUTH-UNBLOCKED-2026-08-11`): managed Windows gcloud CLI and ADC
+  tokens are fresh; WSL discovers the exact Windows ADC through a non-copying symlink with
+  `GOOGLE_APPLICATION_CREDENTIALS` unset; the managed Windows gcloud/Firebase stores are usable from
+  WSL through their explicit config roots; provider/domain/runtime/build identity readbacks passed.
+- Bailey's authorized Admin action is complete (`F-BAILEY-ADMIN-COMPLETE-2026-08-11`): one exact
+  managed roster match has the Admin claim, an audited Admin-surface transition, and a later sign-in.
+- S28/S60 plus S66-S68 are deployed on `pmi-kc-app-rmsol14wb-9fe02e7af754` at 100% traffic
+  (`F-CURRENT-SERVING-CHECKPOINT-2026-08-11`). Exact-candidate and stable smoke passed; rollback to
+  `pmi-kc-app-rmsisg7di-1f914cfeae0d` and forward restoration were executed and read back.
+- **Next:** no dependency-independent transcript-program work remains. S66 still names its exact
+  approved-artifact catalog/provider seams, and Dotloop activation remains a separate external
+  dependency; neither is silently treated as ready or active.
 
 ## Prior renewal-proof evidence
 
@@ -117,17 +122,18 @@ under gitignored `temp/test-set/`. Parked D12 patch: `docs/temp/s63-firestore-ru
 panel control, the pinned resolved-exclusion (falsified), and the walkthrough copy fix.
 
 **THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized), and
-S60–S63 + S65 are DEPLOYED (`F-CURRENT-SERVING-CHECKPOINT-2026-08-07`, rollback proven both ways).
+S60–S63 + S65 remain deployed through `F-CURRENT-SERVING-CHECKPOINT-2026-08-11`, with rollback
+proven both ways.
 What remains is owner-only: (1) RentCast plan activation (`Q-RENTCAST-ACCOUNT-403`) + allowance
 readback + `smoke:rentcast-comp`; (2) the parked D12 patches under `docs/temp/`; (3) the D57 note
-send; (4) promote Bailey to Admin (`F-BAILEY-ADMIN-2026-08-06`; effective on her next sign-in).
+send. Bailey's Admin action and later sign-in are complete under
+`F-BAILEY-ADMIN-COMPLETE-2026-08-11`.
 
 **Correction note: DONE 2026-08-06** — the owner sent
 `docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
-fail in the Windows shell. Run them through WSL. The former instruction to export
-`GOOGLE_APPLICATION_CREDENTIALS` is stale and conflicts with the managed identity preflight; keep
-that variable unset. After the owner completes `npm run auth:session`, verify the Windows ADC safe
-metadata and bridge normal WSL ADC discovery with the exact symlink described in
-`docs/auth-identity-and-access-strategy.md`. Do not run `npm ci` on Windows.
+fail in the Windows shell. Run them through WSL and keep `GOOGLE_APPLICATION_CREDENTIALS` unset. WSL
+ADC uses the verified exact symlink; gcloud CLI and Firebase CLI use the explicit managed Windows
+config roots documented in `docs/auth-identity-and-access-strategy.md`. Do not run `npm ci` on
+Windows.

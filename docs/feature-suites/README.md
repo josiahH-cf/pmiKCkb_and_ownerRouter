@@ -136,9 +136,9 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S63 Four-lease renewal test set             | `docs/feature-suites/four-lease-renewal-test-set.md`                      | Spec — the core-functionality proof                      |
 | S64 Per-person approval authority           | `docs/feature-suites/per-person-approval-authority.md`                    | Spec — NOT authorized; needs a grant extension           |
 | S65 Feedback report closure                 | `docs/feature-suites/feedback-report-closure.md`                          | Spec — small; before training volume starts              |
-| S66 Lease document packet truth + prefill   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`          | Built/pushed — exact content/provider seams named        |
-| S67 Feedback dictation intake               | `docs/feature-suites/feedback-dictation-intake.md`                        | Built/pushed — volatile audio, editable transcript       |
-| S68 Staff work assignment + accountability  | `docs/feature-suites/staff-work-assignment-and-accountability.md`         | Built/pushed — app-owned tasks and explicit sessions     |
+| S66 Lease document packet truth + prefill   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`          | Deployed — exact content/provider seams remain named     |
+| S67 Feedback dictation intake               | `docs/feature-suites/feedback-dictation-intake.md`                        | Deployed — volatile audio, editable transcript           |
+| S68 Staff work assignment + accountability  | `docs/feature-suites/staff-work-assignment-and-accountability.md`         | Deployed — app-owned tasks and explicit sessions         |
 
 S57–S63 are the authorized 2026-08-06 program. S64 is specified but NOT authorized. S65 is authorized separately and narrowly, outside the four scope items. Ordered dependency: S57 first (nothing else is
 reachable until the desk reads the whole portfolio), then S58, then S59, then S60, then S61,

@@ -25,14 +25,14 @@ contract evidence and deterministic automated-test fixtures only.
 
 ## 0. Current State (2026-08-11)
 
-| Surface                    | State                                                                                                                                                                        | Remaining                                                                                                                                                      |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                         | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                                       |
-| (b) Human gcloud / ADC     | ⚠️ CLI account/project are managed and correct, but CLI and ADC freshness are RAPT-walled; Windows ADC safe metadata is correct and WSL normal discovery is absent.          | Run `npm run auth:session` in Windows PowerShell as `josiah@pmikcmetro.com`, no `--scopes`; then apply and verify the non-copying WSL symlink procedure below. |
-| (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                 | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                                           |
-| (d) Firebase end-user auth | ✅ Staff Google auth is configured; the Admin-provisioned Live Vendor Email/Password + TOTP boundary is built and fail-closed; Production is Live-only.                      | Activate a real assigned Vendor and that Vendor's same-address mailbox only through its exact reviewed Live contracts; synthetic identities remain test-only.  |
-| (e) Firebase CLI           | ⚠️ Deployed ruleset evidence remains `63b31613-59ba-495c-9ef3-455a5c593f51`, but the local Firebase CLI currently reports unauthenticated.                                   | After the gcloud/ADC checkpoint, verify the installed CLI's managed account independently and use its documented interactive login only if still required.     |
-| (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run. | Periodically review its documented build-only IAM inventory; this does not block the already working application.                                              |
+| Surface                    | State                                                                                                                                                                        | Remaining                                                                                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                         | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                                           |
+| (b) Human gcloud / ADC     | ✅ Windows CLI and ADC are fresh for the managed account/project; WSL ADC resolves through the exact non-copying Windows-file symlink with the key-file variable unset.      | In WSL, point `CLOUDSDK_CONFIG` at the managed Windows gcloud directory for CLI/deploy commands; preserve the separate stale WSL store rather than overwriting it. |
+| (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                 | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                                               |
+| (d) Firebase end-user auth | ✅ Google provider, both current Cloud Run domains, `ALLOWED_HD=pmikcmetro.com`, Production+Live, and demo-auth-off were read back; fail-closed auth tests passed.           | Activate a real assigned Vendor and that Vendor's same-address mailbox only through its exact reviewed Live contracts; synthetic identities remain test-only.      |
+| (e) Firebase CLI           | ✅ The Windows Firebase CLI store resolves to the managed account from WSL through its explicit config root; the unrelated empty WSL default store was preserved.            | Keep Firebase CLI identity separate from gcloud and use the explicit managed config root for any future rules/index operation.                                     |
+| (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run. | Periodically review its documented build-only IAM inventory; this does not block the already working application.                                                  |
 
 **Legacy demo cloud lane** (`pmikckb-test` project / `pmi-kc-kb-demo` service, in the
 `cherrybridge.ai` org) is **retired**. Repo pointers to the dead project were neutralized
@@ -99,23 +99,28 @@ places and do **not** cascade. The most dangerous misconception is that
 
 ### (b) Human gcloud user / ADC
 
-- **Current observation (2026-08-11):** the active gcloud CLI account is
-  `josiah@pmikcmetro.com` and the selected project is `pmi-kc-kb-prod`, but CLI token refresh and
-  Windows ADC refresh both fail at the interactive RAPT boundary. The Windows ADC exists at
-  `%APPDATA%\gcloud\application_default_credentials.json`; safe metadata reads `authorized_user`,
-  quota project `pmi-kc-kb-prod`, and a present refresh-token field. WSL's normal ADC path is absent,
-  so WSL does not discover that file. No principal or token freshness is claimed from metadata alone.
-- **One human checkpoint:** from Windows PowerShell in this repository, run
-  `npm run auth:session` as `josiah@pmikcmetro.com`, complete the browser flow, and add no
-  `--scopes`. RAPT cannot be bypassed by the runner.
-- **WSL discovery after that confirmation:** keep `GOOGLE_APPLICATION_CREDENTIALS` unset. Verify
-  only the safe metadata above, then inspect
-  `/home/josiah/.config/gcloud/application_default_credentials.json`. Preserve it if it is already a
-  symlink to the exact Windows ADC path. If absent, create the parent directory and that exact
-  symlink; never copy the credential. If another file or symlink exists, do not overwrite it: compare
-  nonsecret metadata and resolve the conflict explicitly. Then run `npm run preflight:adc`,
-  `npm run preflight:identity`, and `gcloud auth print-access-token >/dev/null` with the variable
-  still unset.
+- **Verified 2026-08-11:** Windows gcloud CLI and ADC tokens are fresh for
+  `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`. Safe ADC metadata is `authorized_user`, quota project
+  `pmi-kc-kb-prod`, with a refresh-token field present. No token or credential body was printed.
+- **WSL ADC discovery:** `GOOGLE_APPLICATION_CREDENTIALS` stays unset.
+  `/home/josiah/.config/gcloud/application_default_credentials.json` is a symlink to the exact
+  Windows ADC file under `%APPDATA%\gcloud`; the credential was not copied. `preflight:adc` minted a
+  fresh token and `preflight:identity` resolved the managed principal and correct quota project.
+- **WSL gcloud CLI discovery:** the pre-existing WSL gcloud store is separate and stale, so it was
+  not overwritten. For managed CLI/deploy work use:
+
+  ```bash
+  export CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud
+  unset GOOGLE_APPLICATION_CREDENTIALS
+  ```
+
+  With that explicit store, active-account/project readback and
+  `gcloud auth print-access-token >/dev/null` pass. This is a CLI config root, not a
+  credential-file/key override.
+
+- **WSL Firebase CLI discovery:** the empty default WSL config was also preserved. Use
+  `XDG_CONFIG_HOME=/mnt/c/Users/josia/.config npm exec -- firebase login:list`; it resolves only the
+  managed account. Firebase remains an independent identity check.
 - **Boundary:** never print or retain the ADC JSON, refresh token, client id, client secret, or
   access token. Never use a downloaded key, CI token, personal account, or
   `GOOGLE_APPLICATION_CREDENTIALS` workaround for this human ADC path. Firebase CLI, Firebase
