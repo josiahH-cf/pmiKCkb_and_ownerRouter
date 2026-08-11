@@ -364,8 +364,8 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
       approvalId: "42",
       value: 2350,
       comps: [
-        { rent: 2200, source: "Zillow low" },
-        { rent: 2500, source: "Zillow high" },
+        { rent: 2200, source: "Manual comp low" },
+        { rent: 2500, source: "Manual comp high" },
       ],
     });
 

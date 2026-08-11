@@ -8,7 +8,7 @@
 /**
  * Clean a stored source-system label for display. Strips the "(read-authoritative)" precedence
  * qualifier and normalizes the RentVine brand casing. Any other label (Renewal sheet, Google Form
- * intake, Zillow, …) is returned unchanged, so this is safe to apply at every source render point.
+ * intake, and so on) is returned unchanged, so this is safe to apply at every source render point.
  * A null/undefined source (e.g. a write-back proposal with no winning source) returns "".
  */
 export function displaySourceLabel(source: string | null | undefined): string {

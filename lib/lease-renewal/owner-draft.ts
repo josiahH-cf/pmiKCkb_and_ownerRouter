@@ -18,7 +18,7 @@ export interface DraftFact {
   key: string;
   label: string;
   value: string;
-  /** Where the fact came from (e.g. "Rentvine (read-authoritative)", "Zillow", "PMI rental analysis"). */
+  /** Where the fact came from (e.g. "Rentvine (read-authoritative)" or "PMI rental analysis"). */
   source: string;
   confidence: FactConfidence;
 }
@@ -136,8 +136,7 @@ export function formatUsd(amount: number): string {
  *
  * S60 source truth: when the PROVIDER basis is present its numbers, its own source label, and its
  * retrieval date are used. Otherwise the operator-typed numbers are used and labeled
- * operator-entered — `compSource` is display metadata about a lookup the operator ran and NEVER
- * labels typed numbers. One basis's numbers are never combined with the other's label.
+ * operator-entered. One basis's numbers are never combined with the other's label.
  */
 export function ownerDraftMarketFromBasis(
   market: RenewalMarketBasis,
@@ -170,15 +169,16 @@ export function ownerDraftMarketFromBasis(
       }
     }
   } else {
-    if (market.zillowLow !== undefined) out.rangeLow = market.zillowLow;
-    if (market.zillowHigh !== undefined) out.rangeHigh = market.zillowHigh;
-    if (market.zillowLow !== undefined || market.zillowHigh !== undefined) {
+    if (market.rangeLow !== undefined) out.rangeLow = market.rangeLow;
+    if (market.rangeHigh !== undefined) out.rangeHigh = market.rangeHigh;
+    if (market.rangeLow !== undefined || market.rangeHigh !== undefined) {
       out.rangeSource = OPERATOR_ENTERED_SOURCE;
     }
   }
 
-  // Prefer the stored Drive screenshot ref (S28a); fall back to the pasted URL for back-compat.
-  const screenshotRef = market.compScreenshotRef?.trim() || market.compsUrl?.trim();
+  // Only a server-attached stored Drive receipt can become screenshot evidence. Historical URLs are
+  // deliberately ignored by the bounded compatibility decoder and never reach this current model.
+  const screenshotRef = market.compScreenshotRef?.trim();
   if (screenshotRef) out.compsScreenshotRef = screenshotRef;
   return out;
 }

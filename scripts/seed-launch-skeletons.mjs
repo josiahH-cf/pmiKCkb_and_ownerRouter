@@ -20,7 +20,7 @@ const skeletonDefinitions = [
     prompt:
       "Approved owner renewal outreach wording, comp lookup screenshots, and follow-up cadence still need source confirmation.",
     sourceHint:
-      "Transcript context supports manual Zillow/PMI comp lookup and owner follow-up pain, but exact wording/cadence requires approved sources.",
+      "Transcript context supports manual/PMI comp review and owner follow-up pain, but exact wording/cadence requires approved sources.",
     templateName: "Owner Renewal Outreach Placeholder",
   },
   {

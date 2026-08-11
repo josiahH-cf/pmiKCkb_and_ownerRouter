@@ -74,15 +74,13 @@ export interface RenewalMarketProviderBasis {
 }
 
 export interface RenewalMarketBasis {
-  /** Operator-typed comp-range low ("Comp low (typed)" in the UI; persisted key name retained). */
-  zillowLow?: number;
-  /** Operator-typed comp-range high ("Comp high (typed)" in the UI; persisted key name retained). */
-  zillowHigh?: number;
+  /** Operator-typed comp-range low ("Comp low (typed)" in the UI). */
+  rangeLow?: number;
+  /** Operator-typed comp-range high ("Comp high (typed)" in the UI). */
+  rangeHigh?: number;
   /** The specific number from the PMI/franchise rental-analysis tool. */
   pmiNumber?: number;
-  /** The comps-search URL the operator used (property address only; no tenant PII). */
-  compsUrl?: string;
-  /** The stored Drive ref (drive:<id>) for the uploaded comps screenshot (S28a; distinct from compsUrl). */
+  /** The stored Drive ref (drive:<id>) for the uploaded comps screenshot (S28a). */
   compScreenshotRef?: string;
   /** Display-only attribution metadata for the lookup the operator ran. NEVER labels typed numbers. */
   compSource?: string;
@@ -101,7 +99,7 @@ export interface RenewalOwnerDecision {
   charges?: { rbp?: number; insurance?: number };
   /** Optional tenant info-gathering form link. */
   infoFormUrl?: string;
-  /** Optional operator comp basis (Zillow range + PMI number + comps URL). */
+  /** Optional operator comp basis (typed range + PMI number). */
   market?: RenewalMarketBasis;
 }
 
@@ -183,32 +181,32 @@ export function normalizeOwnerDecision(
 
 /**
  * Validate + normalize the operator's comp basis. Numbers must be non-negative and finite (a comp is
- * never negative); the comps URL is trimmed and dropped when blank. Returns undefined when nothing was
- * entered, so a decision without comps carries no `market` field. Never invents a value.
+ * never negative). Returns undefined when nothing was entered, so a decision without comps carries no
+ * `market` field. Never invents a value.
  */
 function normalizeMarketBasis(
   input: RenewalMarketBasis | undefined,
 ): RenewalMarketBasis | undefined {
   if (!input) return undefined;
   const market: RenewalMarketBasis = {};
-  if (input.zillowLow !== undefined) {
-    market.zillowLow = assertMoney(input.zillowLow, "Zillow low", true);
+  if (input.rangeLow !== undefined) {
+    market.rangeLow = assertMoney(input.rangeLow, "Comp range low", true);
   }
-  if (input.zillowHigh !== undefined) {
-    market.zillowHigh = assertMoney(input.zillowHigh, "Zillow high", true);
+  if (input.rangeHigh !== undefined) {
+    market.rangeHigh = assertMoney(input.rangeHigh, "Comp range high", true);
   }
   if (input.pmiNumber !== undefined) {
     market.pmiNumber = assertMoney(input.pmiNumber, "PMI rental-analysis number", true);
   }
   if (
-    market.zillowLow !== undefined &&
-    market.zillowHigh !== undefined &&
-    market.zillowHigh < market.zillowLow
+    market.rangeLow !== undefined &&
+    market.rangeHigh !== undefined &&
+    market.rangeHigh < market.rangeLow
   ) {
-    throw new EditableLayerError("Zillow high cannot be less than Zillow low.", 400);
-  }
-  if (input.compsUrl && input.compsUrl.trim() !== "") {
-    market.compsUrl = input.compsUrl.trim();
+    throw new EditableLayerError(
+      "Comp range high cannot be less than comp range low.",
+      400,
+    );
   }
   // S28a display-only attribution + the stored screenshot ref. Trimmed, blank dropped; never a number, so
   // the no-invented-number invariant is untouched by these fields.

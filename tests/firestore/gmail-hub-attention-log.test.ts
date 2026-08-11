@@ -226,6 +226,8 @@ describe("Gmail watch A2 transition seam", () => {
     expect(emitAttention).toHaveBeenCalledTimes(1);
   });
 
+  // Two real emulator transactions can serialize beyond Vitest's five-second default on the
+  // supported Windows/WSL mount. Keep the concurrency assertion unchanged and bound only this case.
   it("emits once for concurrent explicit ambiguous transitions", async () => {
     const attemptKeyHash = "concurrent-watch-transition";
     await seedMailbox(watchState(attemptKeyHash));
@@ -251,7 +253,7 @@ describe("Gmail watch A2 transition seam", () => {
     await expect(store.getMailboxState(mailboxEmail)).resolves.toMatchObject({
       watch_attempt: { state: "ambiguous" },
     });
-  });
+  }, 15_000);
 
   it.each([
     ["same-key stale replay", "stale-watch-attempt"],

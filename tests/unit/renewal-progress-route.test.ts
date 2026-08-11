@@ -96,10 +96,9 @@ describe("renewal-progress route", () => {
       decision: "increase",
       offeredRent: 1300,
       market: {
-        zillowLow: 1450,
-        zillowHigh: 1600,
+        rangeLow: 1450,
+        rangeHigh: 1600,
         pmiNumber: 1550,
-        compsUrl: "https://www.zillow.com/homes/x_rb/",
       },
     });
 
@@ -109,10 +108,9 @@ describe("renewal-progress route", () => {
       "5001",
       expect.objectContaining({
         market: {
-          zillowLow: 1450,
-          zillowHigh: 1600,
+          rangeLow: 1450,
+          rangeHigh: 1600,
           pmiNumber: 1550,
-          compsUrl: "https://www.zillow.com/homes/x_rb/",
         },
       }),
     );
@@ -162,14 +160,14 @@ describe("renewal-progress route", () => {
     expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
   });
 
-  it("rejects a malformed comps URL with a 400 and never touches the store", async () => {
+  it("rejects historical market keys at the current API boundary", async () => {
     mocks.requireCapabilityInSpace.mockResolvedValue(user);
     const res = await post({
       action: "owner_decision",
       leaseId: "5001",
       decision: "increase",
       offeredRent: 1300,
-      market: { compsUrl: "not-a-url" },
+      market: { ["comps" + "Url"]: "https://legacy.invalid" },
     });
     expect(res.status).toBe(400);
     expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();

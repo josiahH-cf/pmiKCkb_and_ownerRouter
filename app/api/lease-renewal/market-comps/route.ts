@@ -57,8 +57,8 @@ const MarketCompsRequestSchema = z
     // The operator's OWN entered comp numbers, for the manual pass-through only (RentCast ignores them).
     manualBasis: z
       .object({
-        zillowLow: compMoney.optional(),
-        zillowHigh: compMoney.optional(),
+        rangeLow: compMoney.optional(),
+        rangeHigh: compMoney.optional(),
         pmiNumber: compMoney.optional(),
       })
       .strict()

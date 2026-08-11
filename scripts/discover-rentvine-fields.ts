@@ -265,7 +265,7 @@ async function main(): Promise<void> {
       ...emailLikePaths,
       "portfolio.owners[0].email", // D10 owner-email candidate (Slice 6)
       "lease.tenants[0].email", // F-LEASE-3 tenant recipient
-      "property.streetName", // Slice 3 Zillow deep-link address
+      "property.streetName", // Slice 3 property-address candidate
       "property.address",
       "property.city",
     ]),

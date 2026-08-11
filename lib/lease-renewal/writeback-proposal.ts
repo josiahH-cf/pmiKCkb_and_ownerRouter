@@ -110,7 +110,7 @@ export function buildWritebackProposal(
 
 /**
  * Build the append-only write-back proposal for the operator's COMP BASIS (Slice 3, D08). Unlike a
- * reconciliation proposal this is not a source conflict — it is the operator's own Zillow range + PMI
+ * reconciliation proposal this is not a source conflict — it is the operator's own typed range + PMI
  * number, formatted into one cell for the "KB Proposed — Comp basis" column. It rides the SAME gate:
  * suggestion only, requires approval, never auto-applied, append-only, never overwrites. When no comp
  * numbers were entered it returns a value-LESS Blocked proposal — a value is never invented.
@@ -130,8 +130,8 @@ export function buildCompBasisProposal(
   };
 
   const parts: string[] = [];
-  if (market?.zillowLow !== undefined && market?.zillowHigh !== undefined) {
-    parts.push(`Zillow ${formatUsd(market.zillowLow)}–${formatUsd(market.zillowHigh)}`);
+  if (market?.rangeLow !== undefined && market?.rangeHigh !== undefined) {
+    parts.push(`Manual ${formatUsd(market.rangeLow)}–${formatUsd(market.rangeHigh)}`);
   }
   if (market?.pmiNumber !== undefined) {
     parts.push(`PMI ${formatUsd(market.pmiNumber)}`);
@@ -144,21 +144,20 @@ export function buildCompBasisProposal(
       proposedValue: null,
       sourceSystem: null,
       rationale:
-        "No comp basis proposed: the operator has not entered a Zillow range or PMI number yet. " +
+        "No comp basis proposed: the operator has not entered a manual range or PMI number yet. " +
         "No value is ever invented.",
       status: "Blocked",
       valueReady: false,
     };
   }
 
-  const sourceSystem = "Operator comp basis (Zillow + PMI rental analysis)";
-  const compsSuffix = market?.compsUrl ? ` (comps: ${market.compsUrl})` : "";
+  const sourceSystem = "Operator comp basis (manual + PMI rental analysis)";
   return {
     ...base,
     proposedValue,
     sourceSystem,
     rationale:
-      `Append the operator's comp basis "${proposedValue}"${compsSuffix} to a new ` +
+      `Append the operator's comp basis "${proposedValue}" to a new ` +
       `"${proposedColumnHeader}" column (suggestion only — needs approval; appended, never overwrites).`,
     status: "Proposed",
     valueReady: true,

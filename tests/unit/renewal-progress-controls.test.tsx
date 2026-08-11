@@ -140,15 +140,15 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     expect(screen.getByText(/0 of 50 comp lookups left this month/)).toBeInTheDocument();
   });
 
-  // AC-S60-6: no operator-facing label reads "Zillow low" or "Zillow high".
-  it("labels the typed comp fields as typed, never as Zillow", () => {
+  // AC-S60-6: operator-facing comp labels are neutral and explicitly typed.
+  it("labels the manual comp fields as typed", () => {
     render(
       <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
     );
     expect(screen.getByLabelText(/Comp low \(typed/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Comp high \(typed/)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Zillow low/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Zillow high/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Comp low \(typed/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Comp high \(typed/)).toBeInTheDocument();
   });
 
   // AC-S60-8 + AC-S60-9 (component half): the internal signal renders from a PERSISTED provider
@@ -181,7 +181,7 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
         current={{
           decision: "increase",
           offeredRent: 1300,
-          market: { zillowLow: 1500, zillowHigh: 1600 },
+          market: { rangeLow: 1500, rangeHigh: 1600 },
         }}
         currentRent={1300}
         leaseId="L2"

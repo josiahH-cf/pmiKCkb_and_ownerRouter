@@ -9,7 +9,7 @@
 // RentCastMarketCompProvider (built behind this interface, inert until its gate flips) queries the
 // licensed rental-listings search API. Selecting the adapter is prod-fenced by config exactly like
 // createMaintenanceImageStore. The ONLY external datum is the property address (D07/D08 boundary,
-// matching market-links.ts) — never tenant PII, never a rent figure.
+// never tenant PII, never a rent figure.
 
 import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 import {
@@ -85,7 +85,7 @@ export const MANUAL_MARKET_COMP_SOURCE = "Manual entry";
 
 /**
  * The manual adapter: passes the operator's OWN entered comp numbers straight through as a result, with
- * NO network call and no synthesis. Given any of the operator's Zillow low/high or PMI number it returns
+ * NO network call and no synthesis. Given any operator-typed range or PMI number it returns
  * exactly those (source "Manual entry", confidence "Likely"); given nothing it returns a numberless
  * "Needs Verification" result. It never invents a value (D19 / F-NEGOTIATION-EXCLUDED).
  */
@@ -94,15 +94,15 @@ export class ManualMarketCompProvider implements MarketCompProvider {
 
   async lookup(_query: MarketCompQuery): Promise<MarketCompResult> {
     void _query;
-    const { zillowLow, zillowHigh, pmiNumber } = this.basis;
+    const { rangeLow, rangeHigh, pmiNumber } = this.basis;
     const hasAny =
-      zillowLow !== undefined || zillowHigh !== undefined || pmiNumber !== undefined;
+      rangeLow !== undefined || rangeHigh !== undefined || pmiNumber !== undefined;
     if (!hasAny) {
       return { source: MANUAL_MARKET_COMP_SOURCE, confidence: "Needs Verification" };
     }
     return {
-      ...(zillowLow !== undefined ? { rangeLow: zillowLow } : {}),
-      ...(zillowHigh !== undefined ? { rangeHigh: zillowHigh } : {}),
+      ...(rangeLow !== undefined ? { rangeLow } : {}),
+      ...(rangeHigh !== undefined ? { rangeHigh } : {}),
       ...(pmiNumber !== undefined ? { pointEstimate: pmiNumber } : {}),
       source: MANUAL_MARKET_COMP_SOURCE,
       confidence: "Likely",

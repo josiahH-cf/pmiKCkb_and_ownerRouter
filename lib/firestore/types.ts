@@ -709,10 +709,9 @@ export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetenti
     charges?: { rbp?: number; insurance?: number };
     info_form_url?: string;
     market?: {
-      zillow_low?: number;
-      zillow_high?: number;
+      range_low?: number;
+      range_high?: number;
       pmi_number?: number;
-      comps_url?: string;
       comp_screenshot_ref?: string;
       comp_screenshot_execution_id?: string;
       comp_screenshot_receipt_id?: string;

@@ -14,7 +14,7 @@ describe("displaySourceLabel", () => {
   it("leaves other source labels unchanged", () => {
     expect(displaySourceLabel("Renewal sheet")).toBe("Renewal sheet");
     expect(displaySourceLabel("Google Form intake")).toBe("Google Form intake");
-    expect(displaySourceLabel("Zillow")).toBe("Zillow");
+    expect(displaySourceLabel("Manual entry")).toBe("Manual entry");
     expect(displaySourceLabel("Sheet")).toBe("Sheet");
   });
 

@@ -210,7 +210,7 @@ export async function runSheetWriteSmoke(
     ];
     await writer.updateValues(spreadsheetId, `${TAB}!A1`, seed);
 
-    const proposedValue = "Zillow 1450-1600; PMI 1550 (synthetic test)";
+    const proposedValue = "Manual comps 1450-1600; PMI 1550 (synthetic test)";
 
     // 1. Prove only the fixed-A1 primitive against the synthetic throwaway row.
     const written = await writer.writeValuesIfEmpty(

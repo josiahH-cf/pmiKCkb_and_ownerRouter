@@ -19,8 +19,8 @@ const SUGGESTED: RentSuggestionData = {
     suggestedRent: 2350,
     status: "suggested",
     comps: [
-      { rent: 2200, source: "Zillow low" },
-      { rent: 2500, source: "Zillow high" },
+      { rent: 2200, source: "Manual comp low" },
+      { rent: 2500, source: "Manual comp high" },
     ],
     rationale: "Median of 2 comparable rents ($2,200, $2,500) is $2,350.",
   },
@@ -45,8 +45,8 @@ describe("RentSuggestionApproval (AC-S29-6)", () => {
     // The number is present...
     expect(screen.getByText("$2,350")).toBeInTheDocument();
     // ...and so is its comp source list.
-    expect(screen.getByText("Zillow low")).toBeInTheDocument();
-    expect(screen.getByText("Zillow high")).toBeInTheDocument();
+    expect(screen.getByText("Manual comp low")).toBeInTheDocument();
+    expect(screen.getByText("Manual comp high")).toBeInTheDocument();
     expect(screen.getByText(/Comparable rents/)).toBeInTheDocument();
   });
 
@@ -69,7 +69,7 @@ describe("RentSuggestionApproval (AC-S29-6)", () => {
     );
     // The number and its comps still render read-only...
     expect(screen.getByText("$2,350")).toBeInTheDocument();
-    expect(screen.getByText("Zillow low")).toBeInTheDocument();
+    expect(screen.getByText("Manual comp low")).toBeInTheDocument();
     // ...but there is no approve/return affordance.
     expect(screen.queryByRole("button", { name: /Approve this number/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Return for revision/ })).toBeNull();

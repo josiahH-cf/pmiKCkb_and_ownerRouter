@@ -61,7 +61,7 @@ export function buildOwnerRenewalOutreachProcessTemplate(
     required_starting_inputs: [
       "Property address (content-keyed)",
       "Current rent (RentVine, read-authoritative)",
-      "Market comps (Zillow range + PMI rental-analysis number, operator-entered)",
+      "Market comps (provider/manual range + PMI rental-analysis number)",
     ],
     steps: OWNER_RENEWAL_OUTREACH_STEPS.map((step) => ({
       title: step.title,

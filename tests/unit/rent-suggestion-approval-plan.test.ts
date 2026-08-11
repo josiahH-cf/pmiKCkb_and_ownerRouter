@@ -88,7 +88,7 @@ describe("planRentSuggestionApprovalDecision (FSM)", () => {
 
 describe("decideRentSuggestionApproval — exact-number binding + stale-on-change (AC-S29-4)", () => {
   it("approves the server-recomputed comp median, snapshotting the exact number and its comp sources", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
 
     const approval = await decideRentSuggestionApproval(
       admin,
@@ -107,8 +107,8 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     // The number is never stored without its comp sources.
     expect(approval.approved_comps.length).toBeGreaterThan(0);
     expect(approval.approved_comps.map((c) => c.source)).toEqual([
-      "Zillow low",
-      "Zillow high",
+      "Manual comp low",
+      "Manual comp high",
       "PMI rental analysis",
     ]);
 
@@ -121,7 +121,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
   });
 
   it("marks a prior approval stale when the comp basis recomputes to a different number", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Approved 2300." },
@@ -134,7 +134,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     ).toBe(2300);
 
     // The operator revises the comps; the median is now 2600. The prior approval no longer authorizes it.
-    seedProgress(db, { zillow_low: 2500, zillow_high: 2800, pmi_number: 2600 });
+    seedProgress(db, { range_low: 2500, range_high: 2800, pmi_number: 2600 });
     expect(await getApprovedRentSuggestion(admin, LEASE_ID, null, null, fs())).toBeNull();
 
     // A record still exists but no longer matches the current number: nothing silently authorized.
@@ -174,7 +174,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
   });
 
   it("is Admin-only — an Editor cannot approve, and no record is written", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     await expect(
       decideRentSuggestionApproval(
         editor,
@@ -188,7 +188,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
   });
 
   it("requires a plain-English reason", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     await expect(
       decideRentSuggestionApproval(
         admin,
@@ -201,7 +201,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
   });
 
   it("rejects a double-approve at the store layer (already Approved is terminal until recompute changes)", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "First approve." },
@@ -226,7 +226,7 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
 describe("S60 clamp repair", () => {
   it("clamps an outlier comp median when the authoritative current rent is passed", async () => {
     // Median of [2200, 2500, 9000] = 2500... use values whose median is far from current rent:
-    seedProgress(db, { zillow_low: 3000, zillow_high: 3400, pmi_number: 3200 });
+    seedProgress(db, { range_low: 3000, range_high: 3400, pmi_number: 3200 });
     const approval = await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "Clamp check." },
@@ -239,7 +239,7 @@ describe("S60 clamp repair", () => {
   });
 
   it("leaves the median unclamped only when the live rent is genuinely unavailable (null)", async () => {
-    seedProgress(db, { zillow_low: 3000, zillow_high: 3400, pmi_number: 3200 });
+    seedProgress(db, { range_low: 3000, range_high: 3400, pmi_number: 3200 });
     const approval = await decideRentSuggestionApproval(
       admin,
       { lease_id: LEASE_ID, decision: "approve", reason: "No live rent." },
@@ -276,7 +276,7 @@ describe("owner-policy suggestion approval (AC-S62-3, AC-S62-4)", () => {
 
   // AC-S62-3: same Admin approval, recomputed server-side at decision time, never client-supplied.
   it("approves the server-recomputed policy number through the S29 plane (AC-S62-3)", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     seedRule(3.5);
 
     // The decision input carries NO number field at all — the value is recomputed server-side.
@@ -307,7 +307,7 @@ describe("owner-policy suggestion approval (AC-S62-3, AC-S62-4)", () => {
 
   // AC-S62-4: changing the rule makes the prior approval stale, exactly as a changed comp basis does.
   it("marks a prior approval stale when the rule changes (AC-S62-4)", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     seedRule(3.5);
     await decideRentSuggestionApproval(
       admin,
@@ -336,7 +336,7 @@ describe("owner-policy suggestion approval (AC-S62-3, AC-S62-4)", () => {
   });
 
   it("falls back to the comp median when no rule is active for the portfolio", async () => {
-    seedProgress(db, { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 });
+    seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     // Rule is future-dated: recorded, visible to Admins, but never applied yet.
     db.seed("owner_policy_rules/27", {
       id: "27",

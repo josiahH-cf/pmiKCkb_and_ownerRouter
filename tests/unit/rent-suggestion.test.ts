@@ -10,9 +10,9 @@ import {
 } from "@/lib/lease-renewal/rent-suggestion";
 
 const COMPS: CompSource[] = [
-  { rent: 2200, source: "Zillow low", label: "Comp A" },
-  { rent: 2300, source: "Zillow median", label: "Comp B" },
-  { rent: 2500, source: "Zillow high", label: "Comp C" },
+  { rent: 2200, source: "Manual comp low", label: "Comp A" },
+  { rent: 2300, source: "Manual comp midpoint", label: "Comp B" },
+  { rent: 2500, source: "Manual comp high", label: "Comp C" },
 ];
 
 describe("computeRentSuggestion (AC-S29-1)", () => {

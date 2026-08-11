@@ -17,7 +17,7 @@ import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 export interface CompSource {
   /** The comparable monthly rent. Only finite, positive values contribute to the suggestion. */
   rent: number;
-  /** Human attribution for this comp (e.g. "Zillow low", "PMI rental analysis", "RentCast median"). */
+  /** Human attribution for this comp (e.g. "Manual comp low" or "RentCast median"). */
   source: string;
   /** Optional address or descriptive label for display. */
   label?: string;
@@ -199,18 +199,18 @@ function formatWhole(amount: number): string {
 }
 
 /**
- * Map the operator's already-captured comp basis (Zillow low/high plus the PMI rental-analysis number)
+ * Map the operator's already-captured comp basis (typed low/high plus the PMI rental-analysis number)
  * onto the comp set the suggestion aggregates. Every value is the operator's OWN input; this only
  * relabels the present, usable numbers as comps and never synthesizes one. Until S28's live comp
  * provider lands, this is the input to `computeRentSuggestion` for a live lease. Pure and deterministic.
  */
 export function compsFromMarketBasis(market: RenewalMarketBasis): CompSource[] {
   const comps: CompSource[] = [];
-  if (market.zillowLow !== undefined && isUsableRent(market.zillowLow)) {
-    comps.push({ rent: market.zillowLow, source: "Zillow low" });
+  if (market.rangeLow !== undefined && isUsableRent(market.rangeLow)) {
+    comps.push({ rent: market.rangeLow, source: "Manual comp low" });
   }
-  if (market.zillowHigh !== undefined && isUsableRent(market.zillowHigh)) {
-    comps.push({ rent: market.zillowHigh, source: "Zillow high" });
+  if (market.rangeHigh !== undefined && isUsableRent(market.rangeHigh)) {
+    comps.push({ rent: market.rangeHigh, source: "Manual comp high" });
   }
   if (market.pmiNumber !== undefined && isUsableRent(market.pmiNumber)) {
     comps.push({ rent: market.pmiNumber, source: "PMI rental analysis" });

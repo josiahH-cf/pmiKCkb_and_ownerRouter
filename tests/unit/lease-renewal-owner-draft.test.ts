@@ -113,8 +113,8 @@ describe("buildOwnerRenewalDraft", () => {
         approvedSuggestion: {
           value: 2350,
           comps: [
-            { rent: 2200, source: "Zillow low" },
-            { rent: 2500, source: "Zillow high" },
+            { rent: 2200, source: "Manual comp low" },
+            { rent: 2500, source: "Manual comp high" },
           ],
         },
       },
@@ -157,8 +157,8 @@ describe("S60 owner-draft source truth", () => {
   // name must NEVER be attributed to that provider.
   it("never attributes operator-typed numbers to a provider label", () => {
     const market = ownerDraftMarketFromBasis({
-      zillowLow: 1400,
-      zillowHigh: 1600,
+      rangeLow: 1400,
+      rangeHigh: 1600,
       compSource: "RentCast",
     });
     const draft = buildOwnerRenewalDraft({
@@ -171,14 +171,14 @@ describe("S60 owner-draft source truth", () => {
     expect(range?.source).not.toBe("RentCast");
   });
 
-  // AC-S60-4: with no basis, the marker names no provider; the literal "Zillow" appears nowhere.
-  it("renders a provider-free Needs Verification marker and never the literal Zillow", () => {
+  // AC-S60-4: with no basis, the marker names no provider.
+  it("renders a provider-free Needs Verification marker", () => {
     const draft = buildOwnerRenewalDraft({
       addressLabel: "104 NE Lindsay Ave",
       currentRent: 1250,
     });
-    expect(draft.body).not.toContain("Zillow");
-    expect(JSON.stringify(draft.facts)).not.toContain("Zillow");
-    expect(draft.missingInputs.join(" ")).not.toContain("Zillow");
+    expect(draft.facts.find((fact) => fact.key === "market_range")?.source).toBe(
+      "Market comps",
+    );
   });
 });

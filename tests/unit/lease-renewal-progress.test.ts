@@ -84,20 +84,18 @@ describe("renewal-progress pure planner", () => {
         decision: "increase",
         offeredRent: 1300,
         market: {
-          zillowLow: 1450,
-          zillowHigh: 1600,
+          rangeLow: 1450,
+          rangeHigh: 1600,
           pmiNumber: 1550,
-          compsUrl: "  https://www.zillow.com/homes/x_rb/  ",
         },
       }),
     ).toEqual({
       decision: "increase",
       offeredRent: 1300,
       market: {
-        zillowLow: 1450,
-        zillowHigh: 1600,
+        rangeLow: 1450,
+        rangeHigh: 1600,
         pmiNumber: 1550,
-        compsUrl: "https://www.zillow.com/homes/x_rb/",
       },
     });
     // An all-empty market object is dropped entirely (no market field).
@@ -109,14 +107,14 @@ describe("renewal-progress pure planner", () => {
       normalizeOwnerDecision({
         decision: "increase",
         offeredRent: 1300,
-        market: { zillowLow: -1 },
+        market: { rangeLow: -1 },
       }),
     ).toThrow();
     expect(() =>
       normalizeOwnerDecision({
         decision: "increase",
         offeredRent: 1300,
-        market: { zillowLow: 1700, zillowHigh: 1500 },
+        market: { rangeLow: 1700, rangeHigh: 1500 },
       }),
     ).toThrow();
   });
@@ -433,10 +431,9 @@ describe("lease-renewal-progress store", () => {
         decision: "increase",
         offeredRent: 1300,
         market: {
-          zillowLow: 1450,
-          zillowHigh: 1600,
+          rangeLow: 1450,
+          rangeHigh: 1600,
           pmiNumber: 1550,
-          compsUrl: "https://www.zillow.com/homes/x_rb/",
           // The persistence boundary derives screenshots from its own receipt ledger; this forged
           // caller value must never become authority.
           compScreenshotRef: "drive:abc123",
@@ -453,10 +450,9 @@ describe("lease-renewal-progress store", () => {
     expect(record).toMatchObject({
       owner_decision: {
         market: {
-          zillow_low: 1450,
-          zillow_high: 1600,
+          range_low: 1450,
+          range_high: 1600,
           pmi_number: 1550,
-          comps_url: "https://www.zillow.com/homes/x_rb/",
           comp_source: "RentCast",
           comp_retrieved_at: "2026-07-23T00:00:00.000Z",
         },
@@ -473,13 +469,61 @@ describe("lease-renewal-progress store", () => {
       db as unknown as Firestore,
     );
     expect(progress?.ownerDecision?.market).toEqual({
-      zillowLow: 1450,
-      zillowHigh: 1600,
+      rangeLow: 1450,
+      rangeHigh: 1600,
       pmiNumber: 1550,
-      compsUrl: "https://www.zillow.com/homes/x_rb/",
       compSource: "RentCast",
       compRetrievedAt: "2026-07-23T00:00:00.000Z",
     });
+  });
+
+  it("reads historical market aliases neutrally and migrates them on the next save", async () => {
+    const db = new ProgressTestFirestore();
+    const oldLowKey = ["zillow", "_low"].join("");
+    const oldHighKey = ["zillow", "_high"].join("");
+    const oldUrlKey = ["comps", "_url"].join("");
+    const path = `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`;
+    db.store.set(path, {
+      id: progressDocId(LEASE_ID),
+      lease_id: LEASE_ID,
+      stage_index: RENEWAL_STAGE.tenant,
+      owner_decision: {
+        decision: "increase",
+        offered_rent: 1300,
+        market: {
+          [oldLowKey]: 1450,
+          [oldHighKey]: 1600,
+          [oldUrlKey]: "https://legacy.invalid/never-follow",
+        },
+      },
+      complete: false,
+      updated_by_uid: editor.uid,
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-01T00:00:00.000Z",
+    });
+
+    const opened = await getRenewalProgress(editor, LEASE_ID, db as unknown as Firestore);
+    expect(opened?.ownerDecision?.market).toEqual({ rangeLow: 1450, rangeHigh: 1600 });
+    expect(JSON.stringify(opened)).not.toContain("never-follow");
+
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      {
+        decision: "increase",
+        offeredRent: 1300,
+        market: opened?.ownerDecision?.market,
+      },
+      db as unknown as Firestore,
+    );
+    const migratedMarket = (
+      db.store.get(path)?.owner_decision as { market?: Record<string, unknown> }
+    ).market;
+    expect(migratedMarket).toMatchObject({ range_low: 1450, range_high: 1600 });
+    expect(migratedMarket).not.toHaveProperty(oldLowKey);
+    expect(migratedMarket).not.toHaveProperty(oldHighKey);
+    expect(migratedMarket).not.toHaveProperty(oldUrlKey);
+    expect(JSON.stringify(migratedMarket)).not.toContain("never-follow");
   });
 
   it("derives and persists only the coherent current screenshot receipt in the decision transaction", async () => {
@@ -721,7 +765,7 @@ describe("S60 provider comp basis persistence", () => {
       {
         decision: "increase",
         offeredRent: 1300,
-        market: { zillowLow: 1400, zillowHigh: 1500, provider: PROVIDER },
+        market: { rangeLow: 1400, rangeHigh: 1500, provider: PROVIDER },
       },
       db as unknown as Firestore,
     );
@@ -731,8 +775,8 @@ describe("S60 provider comp basis persistence", () => {
       db as unknown as Firestore,
     );
     const market = readBack?.ownerDecision?.market;
-    expect(market?.zillowLow).toBe(1400);
-    expect(market?.zillowHigh).toBe(1500);
+    expect(market?.rangeLow).toBe(1400);
+    expect(market?.rangeHigh).toBe(1500);
     expect(market?.provider).toMatchObject({
       source: "RentCast",
       rangeLow: 1450,

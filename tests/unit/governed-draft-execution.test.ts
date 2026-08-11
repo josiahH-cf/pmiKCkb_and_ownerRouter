@@ -400,13 +400,17 @@ describe("governed draft — refusals before any provider construction", () => {
     },
   );
 
+  // Repository scans are I/O-bound on the supported Windows/WSL workspace. The default five-second
+  // timeout flakes only under full-suite contention; this local ceiling leaves the assertion intact.
   it("keeps the pre-ledger execute helpers out of every product path", async () => {
     // These helpers create a draft WITHOUT the S20 claim. They are retained (the live smoke still
     // uses the renewal one for a bounded self-addressed diagnostic) but must never be reachable from
     // a route or service again, or a caller could quietly re-open the no-ledger path this slice closed.
     const { readFileSync } = await import("node:fs");
     const { globSync } = await import("node:fs");
-    const productPaths = globSync("{app/api,lib}/**/*.ts", { cwd: process.cwd() }).filter(
+    const productPaths = globSync("{app/api,lib}/**/*.ts", {
+      cwd: process.cwd(),
+    }).filter(
       (file) =>
         !file.includes("renewal-draft-request.ts") &&
         !file.includes("owner-notice-draft-request.ts"),
@@ -421,7 +425,7 @@ describe("governed draft — refusals before any provider construction", () => {
     });
 
     expect(offenders).toEqual([]);
-  });
+  }, 20_000);
 
   it("refuses a non-routable or non-authoritative recipient at preparation", async () => {
     const h = harness();

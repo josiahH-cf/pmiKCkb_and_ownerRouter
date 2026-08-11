@@ -71,8 +71,8 @@ afterEach(() => {
 describe("ManualMarketCompProvider (AC-S28-1)", () => {
   it("passes the operator's own entered numbers straight through, tagged Manual entry / Likely", async () => {
     const provider = new ManualMarketCompProvider({
-      zillowLow: 1450,
-      zillowHigh: 1600,
+      rangeLow: 1450,
+      rangeHigh: 1600,
       pmiNumber: 1550,
     });
     expect(await provider.lookup(QUERY)).toEqual({
@@ -85,7 +85,7 @@ describe("ManualMarketCompProvider (AC-S28-1)", () => {
   });
 
   it("carries only the fields the operator entered (never synthesizes the others)", async () => {
-    const provider = new ManualMarketCompProvider({ zillowLow: 1450 });
+    const provider = new ManualMarketCompProvider({ rangeLow: 1450 });
     expect(await provider.lookup(QUERY)).toEqual({
       rangeLow: 1450,
       source: MANUAL_MARKET_COMP_SOURCE,

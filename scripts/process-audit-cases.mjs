@@ -3635,7 +3635,7 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     reviewer_refs: [],
     expected: {
       user_action:
-        "Inspect whether RentVine, the Renewal Sheet, PMI Free Rental Analysis, Zillow context, fallback review, and conflict correction have explicit field-level authority.",
+        "Inspect whether RentVine, the Renewal Sheet, RentCast/manual comp evidence, fallback review, and conflict correction have explicit field-level authority.",
       preconditions_and_role: "Admin; use only the documented mixed boundary.",
       data_mode: "mixed",
       app_validation:

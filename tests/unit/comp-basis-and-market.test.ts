@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
 import {
   buildOwnerRenewalDraft,
   ownerDraftMarketFromBasis,
@@ -17,29 +16,14 @@ import {
   UNDER_MARKET_THRESHOLD_PCT,
 } from "@/lib/lease-renewal/under-market";
 
-describe("zillowSearchUrl", () => {
-  it("builds an address-seeded Zillow search URL and encodes the address", () => {
-    expect(zillowSearchUrl("104 NE Lindsay Ave")).toBe(
-      "https://www.zillow.com/homes/104%20NE%20Lindsay%20Ave_rb/",
-    );
-  });
-
-  it("returns null for a blank or missing address (no dead link, no PII)", () => {
-    expect(zillowSearchUrl("")).toBeNull();
-    expect(zillowSearchUrl("   ")).toBeNull();
-    expect(zillowSearchUrl(null)).toBeNull();
-    expect(zillowSearchUrl(undefined)).toBeNull();
-  });
-});
-
 describe("ownerDraftMarketFromBasis", () => {
   it("maps the recorded comp basis onto the owner-draft market input (present fields only)", () => {
     expect(
       ownerDraftMarketFromBasis({
-        zillowLow: 1450,
-        zillowHigh: 1600,
+        rangeLow: 1450,
+        rangeHigh: 1600,
         pmiNumber: 1550,
-        compsUrl: "https://www.zillow.com/homes/x_rb/",
+        compScreenshotRef: "drive:abc123",
       }),
     ).toEqual({
       rangeLow: 1450,
@@ -47,7 +31,7 @@ describe("ownerDraftMarketFromBasis", () => {
       // S60: typed numbers always wear the honest operator-entered label.
       rangeSource: "Operator-entered",
       specificNumber: 1550,
-      compsScreenshotRef: "https://www.zillow.com/homes/x_rb/",
+      compsScreenshotRef: "drive:abc123",
     });
   });
 
@@ -56,26 +40,22 @@ describe("ownerDraftMarketFromBasis", () => {
       specificNumber: 1550,
     });
     expect(ownerDraftMarketFromBasis({})).toEqual({});
-    // A blank comps URL is dropped, not passed through.
-    expect(ownerDraftMarketFromBasis({ compsUrl: "   " })).toEqual({});
   });
 
-  it("prefers the stored Drive screenshot ref over the pasted URL (S28a)", () => {
+  it("uses only the stored Drive screenshot ref (S28a)", () => {
     expect(
       ownerDraftMarketFromBasis({
         compScreenshotRef: "drive:abc123",
-        compsUrl: "https://www.zillow.com/homes/x_rb/",
       }),
     ).toEqual({ compsScreenshotRef: "drive:abc123" });
   });
 
-  // S60 (AC-S60-3): compSource is display metadata about a lookup the operator ran; it NEVER
-  // labels operator-typed numbers. Typed numbers wear the operator-entered label.
+  // S60 (AC-S60-3): lookup metadata NEVER labels operator-typed numbers.
   it("labels typed numbers operator-entered even when compSource names a provider", () => {
     expect(
       ownerDraftMarketFromBasis({
-        zillowLow: 1450,
-        zillowHigh: 1600,
+        rangeLow: 1450,
+        rangeHigh: 1600,
         compSource: "RentCast",
       }),
     ).toEqual({ rangeLow: 1450, rangeHigh: 1600, rangeSource: "Operator-entered" });
@@ -84,8 +64,8 @@ describe("ownerDraftMarketFromBasis", () => {
   // S60 (AC-S60-2): a provider basis supplies its own numbers, label, and retrieval date.
   it("prefers the provider basis with the provider's own label and retrieval date", () => {
     const mapped = ownerDraftMarketFromBasis({
-      zillowLow: 1400,
-      zillowHigh: 1500,
+      rangeLow: 1400,
+      rangeHigh: 1500,
       provider: {
         source: "RentCast",
         rangeLow: 1450,
@@ -153,32 +133,31 @@ describe("buildOwnerRenewalDraft market attribution + Needs Verification (AC-S28
 describe("buildCompBasisProposal", () => {
   it("proposes a formatted comp-basis value behind the append-only gate", () => {
     const proposal = buildCompBasisProposal({
-      zillowLow: 1450,
-      zillowHigh: 1600,
+      rangeLow: 1450,
+      rangeHigh: 1600,
       pmiNumber: 1550,
-      compsUrl: "https://www.zillow.com/homes/x_rb/",
     });
     expect(proposal.fieldKey).toBe(COMP_BASIS_FIELD_KEY);
     expect(proposal.fieldLabel).toBe(COMP_BASIS_FIELD_LABEL);
     expect(proposal.proposedColumnHeader).toBe("KB Proposed — Comp basis");
-    expect(proposal.proposedValue).toBe("Zillow $1,450–$1,600; PMI $1,550");
+    expect(proposal.proposedValue).toBe("Manual $1,450–$1,600; PMI $1,550");
     expect(proposal.status).toBe("Proposed");
     expect(proposal.valueReady).toBe(true);
     // Rides the same gate: suggestion only, needs approval, never auto-applied.
     expect(proposal.requiresApproval).toBe(true);
     expect(proposal.autoApplyAllowed).toBe(false);
     expect(proposal.suggestionOnly).toBe(true);
-    expect(proposal.rationale).toContain("https://www.zillow.com/homes/x_rb/");
+    expect(proposal.rationale).not.toContain("http");
   });
 
-  it("proposes just the part the operator entered (Zillow range only)", () => {
-    const proposal = buildCompBasisProposal({ zillowLow: 1450, zillowHigh: 1600 });
-    expect(proposal.proposedValue).toBe("Zillow $1,450–$1,600");
+  it("proposes just the part the operator entered (manual range only)", () => {
+    const proposal = buildCompBasisProposal({ rangeLow: 1450, rangeHigh: 1600 });
+    expect(proposal.proposedValue).toBe("Manual $1,450–$1,600");
     expect(proposal.status).toBe("Proposed");
   });
 
   it("returns a value-less Blocked proposal when no comp numbers were entered (never invents)", () => {
-    for (const market of [null, undefined, {}, { compsUrl: "https://x.example" }]) {
+    for (const market of [null, undefined, {}]) {
       const proposal = buildCompBasisProposal(market);
       expect(proposal.proposedValue).toBeNull();
       expect(proposal.status).toBe("Blocked");

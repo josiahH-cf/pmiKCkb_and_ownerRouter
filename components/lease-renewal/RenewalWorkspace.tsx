@@ -23,7 +23,6 @@ import {
 } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
-import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
@@ -56,9 +55,6 @@ export function RenewalWorkspace({
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
   const openItems = readiness.flags.length + readiness.needsInput.length;
-  // Deep link seeded from the property address so the operator can pull Zillow comps in one click
-  // (property address only — no tenant PII in the URL).
-  const zillowUrl = zillowSearchUrl(summary.addressLabel);
   // S58: expired lease data pauses composing and recording (the routes refuse server-side too);
   // looking at the workspace stays allowed.
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -137,14 +133,6 @@ export function RenewalWorkspace({
             <p className="muted">
               Record the owner’s rent decision to unlock the tenant offer.
             </p>
-            {zillowUrl ? (
-              <p className="muted">
-                Comp research:{" "}
-                <a href={zillowUrl} rel="noreferrer noopener" target="_blank">
-                  Look up this address on Zillow
-                </a>
-              </p>
-            ) : null}
             <OwnerDecisionForm
               address={summary.addressLabel}
               compAttributes={workspace.compAttributes}

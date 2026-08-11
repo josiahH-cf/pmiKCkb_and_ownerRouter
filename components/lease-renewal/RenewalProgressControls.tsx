@@ -19,10 +19,9 @@ interface RecordedDecision {
   charges?: { rbp?: number; insurance?: number };
   infoFormUrl?: string;
   market?: {
-    zillowLow?: number;
-    zillowHigh?: number;
+    rangeLow?: number;
+    rangeHigh?: number;
     pmiNumber?: number;
-    compsUrl?: string;
     compScreenshotRef?: string;
     compSource?: string;
     compRetrievedAt?: string;
@@ -188,11 +187,11 @@ export function OwnerDecisionForm({
   const [insurance, setInsurance] = useState(
     current?.charges?.insurance !== undefined ? String(current.charges.insurance) : "",
   );
-  const [zillowLow, setZillowLow] = useState(
-    current?.market?.zillowLow !== undefined ? String(current.market.zillowLow) : "",
+  const [rangeLow, setRangeLow] = useState(
+    current?.market?.rangeLow !== undefined ? String(current.market.rangeLow) : "",
   );
-  const [zillowHigh, setZillowHigh] = useState(
-    current?.market?.zillowHigh !== undefined ? String(current.market.zillowHigh) : "",
+  const [rangeHigh, setRangeHigh] = useState(
+    current?.market?.rangeHigh !== undefined ? String(current.market.rangeHigh) : "",
   );
   const [pmiNumber, setPmiNumber] = useState(
     current?.market?.pmiNumber !== undefined ? String(current.market.pmiNumber) : "",
@@ -235,8 +234,8 @@ export function OwnerDecisionForm({
     form: useId(),
     rbp: useId(),
     insurance: useId(),
-    zillowLow: useId(),
-    zillowHigh: useId(),
+    rangeLow: useId(),
+    rangeHigh: useId(),
     pmiNumber: useId(),
     screenshot: useId(),
   };
@@ -259,8 +258,8 @@ export function OwnerDecisionForm({
     setLookupPending(true);
     try {
       const manualBasis: Record<string, number> = {};
-      if (zillowLow.trim() !== "") manualBasis.zillowLow = Number(zillowLow);
-      if (zillowHigh.trim() !== "") manualBasis.zillowHigh = Number(zillowHigh);
+      if (rangeLow.trim() !== "") manualBasis.rangeLow = Number(rangeLow);
+      if (rangeHigh.trim() !== "") manualBasis.rangeHigh = Number(rangeHigh);
       if (pmiNumber.trim() !== "") manualBasis.pmiNumber = Number(pmiNumber);
       const response = await fetch("/api/lease-renewal/market-comps", {
         method: "POST",
@@ -732,8 +731,8 @@ export function OwnerDecisionForm({
     }
     if (infoFormUrl.trim() !== "") body.infoFormUrl = infoFormUrl.trim();
     const market: Record<string, unknown> = {};
-    if (zillowLow.trim() !== "") market.zillowLow = Number(zillowLow);
-    if (zillowHigh.trim() !== "") market.zillowHigh = Number(zillowHigh);
+    if (rangeLow.trim() !== "") market.rangeLow = Number(rangeLow);
+    if (rangeHigh.trim() !== "") market.rangeHigh = Number(rangeHigh);
     if (pmiNumber.trim() !== "") market.pmiNumber = Number(pmiNumber);
     // The server attaches a screenshot only from its durable successful receipt. Never trust or send
     // a client-supplied Drive reference as renewal progress.
@@ -892,24 +891,24 @@ export function OwnerDecisionForm({
         separate comp-derived suggestion needs Admin approval before it enters a draft.
       </p>
       <div className="ui-row">
-        <Field htmlFor={id.zillowLow} label="Comp low (typed, optional)">
+        <Field htmlFor={id.rangeLow} label="Comp low (typed, optional)">
           <input
-            id={id.zillowLow}
+            id={id.rangeLow}
             inputMode="decimal"
             min="0"
-            onChange={(event) => setZillowLow(event.target.value)}
+            onChange={(event) => setRangeLow(event.target.value)}
             type="number"
-            value={zillowLow}
+            value={rangeLow}
           />
         </Field>
-        <Field htmlFor={id.zillowHigh} label="Comp high (typed, optional)">
+        <Field htmlFor={id.rangeHigh} label="Comp high (typed, optional)">
           <input
-            id={id.zillowHigh}
+            id={id.rangeHigh}
             inputMode="decimal"
             min="0"
-            onChange={(event) => setZillowHigh(event.target.value)}
+            onChange={(event) => setRangeHigh(event.target.value)}
             type="number"
-            value={zillowHigh}
+            value={rangeHigh}
           />
         </Field>
         <Field htmlFor={id.pmiNumber} label="PMI rental-analysis number (optional)">

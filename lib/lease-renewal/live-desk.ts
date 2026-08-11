@@ -457,7 +457,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       ownerDraft: buildOwnerRenewalDraft({
         addressLabel: summary.addressLabel,
         currentRent: leaseCurrentRent(view) ?? 0,
-        // Feed the operator's recorded comp basis so the owner email shows the Zillow range + PMI number
+        // Feed the recorded comp basis so the owner email shows the provider/manual range + PMI number
         // source-tagged. Absent comps stay absent (visible Needs Verification markers) — never invented.
         // S29: an Admin-approved comp-derived number (server-resolved) rides in with its distinct source
         // label and takes precedence over the operator's own PMI number; an unapproved suggestion never does.

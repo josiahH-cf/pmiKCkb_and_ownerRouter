@@ -47,7 +47,7 @@ beforeEach(() => {
     owner_decision: {
       decision: "increase",
       offered_rent: 2400,
-      market: { zillow_low: 2200, zillow_high: 2500, pmi_number: 2300 },
+      market: { range_low: 2200, range_high: 2500, pmi_number: 2300 },
     },
     complete: false,
     created_at: "2026-07-01T00:00:00.000Z",

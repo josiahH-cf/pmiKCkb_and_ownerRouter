@@ -69,8 +69,9 @@ export const LEASE_FIELD_AUTHORITY_CONTRACT = Object.freeze([
   },
   {
     field: "Market value",
-    precedence: "PMI Free Rental Analysis number → Zillow supporting range",
-    fallback: "Zillow plus manual verification and approval when the PMI tool is down",
+    precedence: "RentCast retrieved basis → operator-entered supporting range",
+    fallback:
+      "Manual verification and approval when the live comp provider is unavailable",
     disposition: "Pricing approval required; never auto-accept",
   },
   {
@@ -135,9 +136,9 @@ export const LEASE_SYSTEM_OWNERSHIP_CONTRACT = Object.freeze([
     liveWrite: "Read/manual input only; no automated acceptance",
   },
   {
-    system: "Zillow",
-    ownership: "Supporting comp range and approved fallback context",
-    liveWrite: "Public context only; manual verification and approval required",
+    system: "Manual comp evidence",
+    ownership: "Operator-entered supporting range and approved fallback context",
+    liveWrite: "App-owned reference only; manual verification and approval required",
   },
   {
     system: "Dotloop",

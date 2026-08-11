@@ -29,15 +29,13 @@ const OwnerDecisionActionSchema = z
       .strict()
       .optional(),
     infoFormUrl: z.string().trim().url().optional(),
-    // Operator comp basis (all optional; the app never invents a rent figure). compsUrl is the
-    // Zillow comps-search URL (property address only — no tenant PII). S28a adds the stored screenshot
-    // Drive ref plus display-only provider attribution (source/retrievedAt), none of which is a number.
+    // Operator comp basis (all optional; the app never invents a rent figure). S28a adds the stored
+    // screenshot Drive ref plus display-only provider attribution, none of which is a rent decision.
     market: z
       .object({
-        zillowLow: chargeMoney.optional(),
-        zillowHigh: chargeMoney.optional(),
+        rangeLow: chargeMoney.optional(),
+        rangeHigh: chargeMoney.optional(),
         pmiNumber: chargeMoney.optional(),
-        compsUrl: z.string().trim().url().optional(),
         compSource: z.string().trim().min(1).max(100).optional(),
         compRetrievedAt: z.string().trim().min(1).max(40).optional(),
         // S60: the provider-retrieved basis, persisted verbatim beside (never over) the typed

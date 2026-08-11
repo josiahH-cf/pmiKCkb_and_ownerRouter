@@ -33,6 +33,7 @@ import {
   compScreenshotRecordIdentity,
   type CompScreenshotExecutionRecord,
 } from "@/lib/lease-renewal/comp-screenshot-contract";
+import { decodeLegacyManualMarketBasis } from "@/lib/lease-renewal/legacy-market-basis";
 import {
   planMarkComplete,
   planRecordOwnerDecision,
@@ -259,10 +260,9 @@ async function applyTransition(
                 info_form_url: next.ownerDecision.infoFormUrl,
                 market: next.ownerDecision.market
                   ? stripUndefined({
-                      zillow_low: next.ownerDecision.market.zillowLow,
-                      zillow_high: next.ownerDecision.market.zillowHigh,
+                      range_low: next.ownerDecision.market.rangeLow,
+                      range_high: next.ownerDecision.market.rangeHigh,
                       pmi_number: next.ownerDecision.market.pmiNumber,
-                      comps_url: next.ownerDecision.market.compsUrl,
                       comp_screenshot_ref: attachment?.ref,
                       comp_screenshot_execution_id: attachment?.executionId,
                       comp_screenshot_receipt_id: attachment?.receiptId,
@@ -514,6 +514,13 @@ function providerBasisFromRecord(
 function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress {
   const decision = record.owner_decision;
   const screenshotAttachment = progressScreenshotAttachment(record);
+  const legacyManual = decodeLegacyManualMarketBasis(decision?.market);
+  const rangeLow =
+    decision?.market?.range_low ??
+    (!legacyManual.invalid ? legacyManual.rangeLow : undefined);
+  const rangeHigh =
+    decision?.market?.range_high ??
+    (!legacyManual.invalid ? legacyManual.rangeHigh : undefined);
   return {
     leaseId: record.lease_id,
     stageIndex: record.stage_index,
@@ -526,17 +533,10 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
           ...(decision.market
             ? {
                 market: {
-                  ...(decision.market.zillow_low !== undefined
-                    ? { zillowLow: decision.market.zillow_low }
-                    : {}),
-                  ...(decision.market.zillow_high !== undefined
-                    ? { zillowHigh: decision.market.zillow_high }
-                    : {}),
+                  ...(rangeLow !== undefined ? { rangeLow } : {}),
+                  ...(rangeHigh !== undefined ? { rangeHigh } : {}),
                   ...(decision.market.pmi_number !== undefined
                     ? { pmiNumber: decision.market.pmi_number }
-                    : {}),
-                  ...(decision.market.comps_url !== undefined
-                    ? { compsUrl: decision.market.comps_url }
                     : {}),
                   ...(screenshotAttachment
                     ? { compScreenshotRef: screenshotAttachment.ref }

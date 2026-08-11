@@ -33,7 +33,7 @@ export const PRECEDENCE_TABLE: Record<string, PrecedenceRule> = {
   },
   market_value: {
     fieldType: "market_value",
-    order: ["pmi_rental_analysis", "zillow"],
+    order: ["rentcast", "manual_comp", "pmi_rental_analysis"],
     autoApply: "no",
   },
   property_attributes_operational: {
