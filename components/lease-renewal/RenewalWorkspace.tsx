@@ -17,10 +17,8 @@ import {
   Tabs,
 } from "@/components/ui";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
-import {
-  OwnerDecisionForm,
-  RenewalCompleteButton,
-} from "@/components/lease-renewal/RenewalProgressControls";
+import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
+import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
@@ -29,6 +27,7 @@ import type {
   RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
 import type { ChannelMessage } from "@/lib/lease-renewal/tenant-draft";
+import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 
 const READINESS_STATUS_LABEL: Record<ReadinessStatus, string> = {
   ok: "OK",
@@ -48,9 +47,11 @@ const RECON_PILL: Record<DeskReconItem["agreement"], { value: string; label: str
 
 export function RenewalWorkspace({
   compScreenshotExecutable = false,
+  packetSnapshot = null,
   workspace,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
+  packetSnapshot?: RenewalPacketSnapshot | null;
   workspace: RenewalLeaseWorkspace;
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
@@ -233,10 +234,15 @@ export function RenewalWorkspace({
       </Card>
 
       <Card title="Build docs readiness">
+        <PacketTruthPanel
+          initialSnapshot={packetSnapshot}
+          leaseId={summary.id}
+          transactionId={summary.id}
+        />
         <p className="muted">
           {readiness.allClear
-            ? "All checks clear."
-            : `${openItems} item${openItems === 1 ? "" : "s"} to resolve before build-out.`}
+            ? "Existing build-out checks clear. Packet truth above still governs document readiness."
+            : `${openItems} existing check item${openItems === 1 ? "" : "s"} to resolve; packet truth above still governs document readiness.`}
         </p>
         <ul className="ui-rows">
           {readiness.checks.map((check) => (
@@ -251,12 +257,17 @@ export function RenewalWorkspace({
             </li>
           ))}
         </ul>
-        {workspace.live && !dataExpired ? (
-          <RenewalCompleteButton
-            complete={workspace.live.complete}
-            leaseId={workspace.live.leaseId}
-          />
-        ) : null}
+        {workspace.live?.complete ? (
+          <p className="muted">
+            The legacy workspace completion marker is recorded. It is not authenticated
+            document execution proof and cannot unlock an owner acknowledgment.
+          </p>
+        ) : (
+          <p className="muted">
+            Document completion can be established only by authenticated S34 provider
+            readback for the exact packet hash, not by an app-local checkbox.
+          </p>
+        )}
       </Card>
     </div>
   );

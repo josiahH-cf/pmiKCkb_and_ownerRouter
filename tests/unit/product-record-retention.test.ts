@@ -37,6 +37,7 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     "scripts/demo-firestore.mjs",
   ],
   lease_renewal_progress: [
+    "lib/firestore/lease-document-packet-snapshots.ts",
     "lib/firestore/lease-renewal-progress-schema.ts",
     "lib/firestore/lease-renewal-progress.ts",
   ],
@@ -60,7 +61,10 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
  */
 const PRODUCT_RECORD_WRITER_INVENTORY = {
   approval_queue_items: ["lib/firestore/approval-queue.ts", "scripts/demo-firestore.mjs"],
-  lease_renewal_progress: ["lib/firestore/lease-renewal-progress.ts"],
+  lease_renewal_progress: [
+    "lib/firestore/lease-document-packet-snapshots.ts",
+    "lib/firestore/lease-renewal-progress.ts",
+  ],
   lease_renewal_resolutions: ["lib/firestore/lease-renewal-resolutions.ts"],
   maintenance_tickets: [
     "lib/firestore/maintenance-intake-review.ts",
