@@ -131,6 +131,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/live-review.ts:runLiveReview:buildLiveRenewalConfig",
   "lib/lease-renewal/sheet-writeback-service.ts:buildLiveWritebackDeps:buildLiveRenewalConfig",
   "lib/maintenance/live-unit-source.ts:loadLiveUnitCandidates:buildLiveRentVineConfig",
+  // S68: source verification reads the cached complete lease portfolio and creates no effect.
+  "lib/work-accountability/source-resolver.ts:readLiveRenewalLeaseVersion:buildLiveRentVineConfig",
 ].sort();
 
 const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([

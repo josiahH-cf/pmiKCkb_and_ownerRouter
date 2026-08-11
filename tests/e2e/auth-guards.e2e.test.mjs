@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createClient, locationPath } from "./helpers/client.mjs";
 
-const GUARDED_PAGES = ["/ask", "/approval-queue", "/processes", "/spaces", "/admin"];
+const GUARDED_PAGES = [
+  "/work",
+  "/admin/team-work",
+  "/ask",
+  "/approval-queue",
+  "/processes",
+  "/spaces",
+  "/admin",
+];
 
 describe("auth guards", () => {
   it("redirects signed-out visitors from guarded pages to /sign-in", async () => {
@@ -32,6 +40,14 @@ describe("auth guards", () => {
       user: { role: "Admin", uid: "local-demo-admin" },
     });
 
+    const work = await client.getHtml("/work");
+    expect(work.response.status).toBe(200);
+    expect(work.html).toContain("My work");
+
+    const teamWork = await client.getHtml("/admin/team-work");
+    expect(teamWork.response.status).toBe(200);
+    expect(teamWork.html).toContain("Team work");
+
     const ask = await client.getHtml("/ask");
     expect(ask.response.status).toBe(200);
     expect(ask.html).toContain("Console");
@@ -46,6 +62,13 @@ describe("auth guards", () => {
     await expect(client.signInDemo("Editor")).resolves.toMatchObject({
       user: { role: "Editor", uid: "local-demo-editor" },
     });
+
+    const work = await client.get("/work");
+    expect(work.status).toBe(200);
+
+    const teamWork = await client.get("/admin/team-work");
+    expect(teamWork.status).toBe(307);
+    expect(locationPath(teamWork)).toBe("/sign-in?error=forbidden");
 
     const ask = await client.get("/ask");
     expect(ask.status).toBe(200);

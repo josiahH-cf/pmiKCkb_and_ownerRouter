@@ -226,6 +226,9 @@ export default async function AdminPage() {
                 <Link href="/admin/users">Manage users and roles</Link>
               </p>
               <p>
+                <Link href="/admin/team-work">Assign and review team work</Link>
+              </p>
+              <p>
                 <Link href="/admin/vendors">
                   Manage Live Vendor accounts and assignments
                 </Link>

@@ -2231,3 +2231,246 @@ button {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+
+/* S68 explicit task/session surfaces. Text labels accompany every state; color is supplementary. */
+.work-board {
+  min-width: 0;
+}
+
+.work-section-heading,
+.work-task-heading,
+.work-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.work-section-heading h2,
+.work-task-heading h3,
+.work-current h2 {
+  margin: 0;
+}
+
+.work-actions {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.work-actions button,
+.work-inline-form button,
+.work-form-grid button {
+  background: var(--color-primary-700);
+  border: 1px solid var(--color-primary-700);
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 9px 14px;
+}
+
+.work-actions button.secondary,
+.work-section-heading button.secondary {
+  background: var(--color-bg);
+  color: var(--color-primary-700);
+}
+
+.work-actions button:disabled,
+.work-inline-form button:disabled,
+.work-form-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.work-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.work-summary-fact {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.work-summary-fact strong {
+  font-size: 1.45rem;
+}
+
+.work-summary-fact span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.work-task-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.work-task-card {
+  min-width: 0;
+  scroll-margin-top: 96px;
+}
+
+.work-task-card:focus {
+  border-color: var(--color-primary-700);
+}
+
+.work-task-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 12px 0;
+}
+
+.work-task-facts span {
+  background: var(--color-surface);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.status-pill {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 750;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.status-warning {
+  border-left: 4px solid var(--state-partial);
+  padding-left: 10px;
+}
+
+.eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0 0 5px;
+  text-transform: uppercase;
+}
+
+.work-comparison {
+  font-weight: 700;
+}
+
+.work-form-grid,
+.work-filter-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.work-form-grid label,
+.work-filter-grid label,
+.work-inline-form label {
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+  min-width: 0;
+}
+
+.work-form-grid input,
+.work-form-grid select,
+.work-form-grid textarea,
+.work-filter-grid input,
+.work-filter-grid select,
+.work-inline-form input,
+.work-inline-form select,
+.work-inline-form textarea {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  width: 100%;
+}
+
+.work-form-wide {
+  grid-column: 1 / -1;
+}
+
+.work-create-panel > summary,
+.work-inline-details > summary,
+.work-session-history > summary,
+.work-board details.panel > summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.work-inline-details,
+.work-session-history {
+  border-top: 1px solid var(--color-border);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.work-inline-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.work-session-row {
+  background: var(--color-surface);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.work-session-row p {
+  margin: 4px 0;
+}
+
+.work-idle-warning {
+  background: #fff7e6;
+  border: 2px solid var(--state-partial);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.work-session-note {
+  background: var(--color-surface);
+  padding: 10px;
+}
+
+@media (max-width: 900px) {
+  .work-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .work-task-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .work-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .work-form-grid,
+  .work-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .work-form-wide {
+    grid-column: auto;
+  }
+
+  .work-actions > button,
+  .work-inline-form > button,
+  .work-form-grid button {
+    width: 100%;
+  }
+}

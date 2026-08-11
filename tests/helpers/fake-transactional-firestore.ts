@@ -196,11 +196,21 @@ class FakeCollection {
     return new FakeDocument(this.db, `${this.path}/${id}`, id);
   }
 
-  where(field: string, operator: "==", value: unknown) {
-    if (operator !== "==") {
+  where(field: string, operator: "==" | "<=", value: unknown) {
+    if (operator !== "==" && operator !== "<=") {
       throw new Error(`Unsupported fake Firestore operator: ${operator}`);
     }
-    return new FakeQuery(this.db, this.path, [...this.filters, { field, value }]);
+    return new FakeQuery(this.db, this.path, [
+      ...this.filters,
+      { field, operator, value },
+    ]);
+  }
+
+  limit(count: number) {
+    if (!Number.isSafeInteger(count) || count < 1) {
+      throw new Error(`Unsupported fake Firestore limit: ${count}`);
+    }
+    return new FakeQuery(this.db, this.path, this.filters, count);
   }
 
   async get() {
@@ -210,6 +220,7 @@ class FakeCollection {
 
 interface EqualityFilter {
   field: string;
+  operator: "==" | "<=";
   value: unknown;
 }
 
@@ -221,14 +232,14 @@ class FakeQuery {
     readonly limitCount?: number,
   ) {}
 
-  where(field: string, operator: "==", value: unknown) {
-    if (operator !== "==") {
+  where(field: string, operator: "==" | "<=", value: unknown) {
+    if (operator !== "==" && operator !== "<=") {
       throw new Error(`Unsupported fake Firestore operator: ${operator}`);
     }
     return new FakeQuery(
       this.db,
       this.collectionPath,
-      [...this.filters, { field, value }],
+      [...this.filters, { field, operator, value }],
       this.limitCount,
     );
   }
@@ -398,7 +409,20 @@ function querySnapshot(
     .filter(
       ([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes("/"),
     )
-    .filter(([, data]) => filters.every(({ field, value }) => data[field] === value))
+    .filter(([, data]) =>
+      filters.every(({ field, operator, value }) => {
+        if (operator === "==") return data[field] === value;
+        const candidate = data[field];
+        return (
+          (typeof candidate === "string" &&
+            typeof value === "string" &&
+            candidate <= value) ||
+          (typeof candidate === "number" &&
+            typeof value === "number" &&
+            candidate <= value)
+        );
+      }),
+    )
     .map(([path]) => documentSnapshot(db, store, path, path.slice(prefix.length)));
   const docs =
     limitCount === undefined ? matchingDocs : matchingDocs.slice(0, limitCount);

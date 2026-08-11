@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { authErrorResponse } from "@/lib/auth/session";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 
-export class EditableLayerError extends Error {
-  constructor(
-    message: string,
-    public readonly status: 400 | 403 | 404 | 409,
-  ) {
-    super(message);
-    this.name = "EditableLayerError";
-  }
-}
+export { EditableLayerError };
 
 export function editableLayerErrorResponse(error: unknown) {
   if (error instanceof EditableLayerError) {

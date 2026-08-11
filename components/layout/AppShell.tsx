@@ -23,6 +23,7 @@ import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
 // FTU-8: the Console entry also reads active on the home route "/" (both render the ConsoleView).
 const navItems: readonly (PrimaryNavItem & { scope?: SpaceScope })[] = [
   { href: "/ask", label: "Console", alsoActiveOn: ["/"] },
+  { href: "/work", label: "My work" },
   { href: "/spaces", label: "Spaces" },
   { href: "/lease-renewal", label: "Lease Renewal", scope: "renewals" },
   { href: "/maintenance", label: "Maintenance", scope: "maintenance" },
