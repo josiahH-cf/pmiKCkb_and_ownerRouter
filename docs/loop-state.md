@@ -2,25 +2,25 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-07 (program complete; S60-S63 + S65 deployed, D08 window open).
+Last updated: 2026-08-10 (transcript implementation active; S28/S60 + S66 pushed, S67 next).
 
 ```yaml
-last_updated: 2026-08-07
-active_program: S57_S63_RENEWAL_PROOF
-program_suites: S57-S63 (+S65 independent; S64 specified but NOT authorized)
+last_updated: 2026-08-10
+active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
+program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
 spec_writing_allowed: true
 loop_execution_allowed: true
 loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: PROGRAM_COMPLETE_S57_S63_MACHINERY_PLUS_S65
-next_suite: NONE_PROGRAM_COMPLETE
-next_spec: none — the S57–S63 program and S65 are done; S64 stays unauthorized
-session_auth_status: FRESH_2026_08_07_preflight_adc_green_owner_ran_auth_session
-active_slice: NONE_PROGRAM_COMPLETE
-next_slice: NONE_OWNER_STEPS_REMAIN
-last_completed_slice: S65_FEEDBACK_REPORT_CLOSURE
+implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_PUSHED
+next_suite: S67_FEEDBACK_DICTATION_INTAKE
+next_spec: docs/feature-suites/feedback-dictation-intake.md
+session_auth_status: OWNER_CHECKPOINT_OPEN_INVALID_RAPT_ADC_NOT_WSL_DISCOVERABLE_FIREBASE_CLI_UNAUTHENTICATED
+active_slice: S67_FEEDBACK_DICTATION_INTAKE
+next_slice: S67_REUSE_RECORDER_AND_GOOGLE_STT_WITH_BROWSER_MEMORY_ONLY_AUDIO
+last_completed_slice: S66_LEASE_DOCUMENT_PACKET_TRUTH_9f9ec55
 runtime_action_gates_preflipped: false
 ```
 
@@ -36,46 +36,31 @@ runtime_action_gates_preflipped: false
   S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
 - Activation remains per exact Action Registry key, never by category or inference.
 
-## Hard refresh completed 2026-08-06
+## Current transcript implementation resume — 2026-08-10
 
-- RentVine field map re-derived live; zero drift vs the 2026-07-22 map (tenant `tenants[].email`,
-  owner `portfolio.owners[].email`, end `endDate`, rent `currentRent`). Sheet read green: 27 tabs,
-  26 in scope, `Lease Renewal` 520 rows.
-- Golden capture RE-RUN after S57 (`capture-2026-08-06T20-35-30-564Z`, gitignored): 305 live
-  candidates, 20 High candidate flags portfolio-wide. The earlier 25-row capture is superseded.
-- Portfolio-wide coverage now measured (S57): tenant email 302/305, owner email 305/305, 146/305
-  leases with more than one owner email. Prior 1–25 figures were unrepresentative rather than wrong.
+- Owner session authorization opens authentication-unblock work, S66–S68 implementation, the
+  affected S28/S34/S43/S60/S65 amendments, verification, push, and routine deployment under the
+  existing standing gates. It does not open S64 or any D12 push, send, unconfirmed system write,
+  personal identity, guessed provider/content value, or lowered control.
+- S28/S60 current-truth amendment is pushed at `26422ca`: current visible/behavioral legacy market
+  dependency removed; bounded legacy value read compatibility remains neutral and URL-free.
+- S66 is pushed at `9f9ec55` (`F-LEASE-DOCUMENT-PACKET-TRUTH`): deterministic packet truth,
+  immutable snapshots, S43 presentation, and exact S34 binding are built. Exact external content
+  blocker: publish the approved artifact/field/participant/signature/form-family/rule catalog through
+  S21. Boom is not a document-fact source on current evidence. Dotloop activation remains separate.
+- **Next:** S67 feedback dictation intake, preserving the typed-only flow and S65 closure. Then S68
+  explicit tasks and user-started work sessions.
+- **Authentication remains independently parked:** managed gcloud account/project are correct, but
+  CLI token refresh is RAPT-walled; Windows ADC has safe authorized-user/quota-project metadata but
+  WSL default ADC is absent; Firebase CLI reports unauthenticated during emulator startup. Owner runs
+  `npm run auth:session` in Windows PowerShell as `josiah@pmikcmetro.com`, with no `--scopes`; only
+  after confirmation may the runner create the exact WSL ADC symlink and rerun each preflight.
 
-## Test cohort (resolved 2026-08-06)
+## Prior renewal-proof evidence
 
-Sheet rows 507–510 joined to RentVine lease ids **278, 279, 280, 297**. Detail is gitignored at
-`temp/test-cohort/cohort-resolution.json`. Lease 297 ends 2026-10-10 (not 09-30) and reads a zero
-current rent in RentVine against a non-zero Sheet figure — a real day-zero discrepancy, kept as test
-finding number one. Leases 279 and 280 share one street address, so records key on lease id.
-
-## Owner values — ALL ANSWERED 2026-08-06
-
-Every value the program needs is decided; none is a judgement call. The full table is §6 of
-`docs/meta-prompts/renewal-proof-unattended-loop.md` and the exact wording is in the `Q-` rows of
-`docs/facts.md`: tolerance ±5% or $50 (larger); comparison basis = the Sheet's Market Value column;
-daily owner Bailey → Josiah; owner ordering = portfolio order, first `to`, rest `cc`; separation
-assertion built + refuses; trend inline + link; under-market 10%; max lease-data age 15 minutes;
-RentCast caching/storage/display permitted; test-window sends compose-and-review only; write-back
-backup = owner-verified pinned Drive copy; cohort data split settled. One residual, non-blocking:
-what the client's "50/50" meant (MKD has three owner records, no percentages); the S62 rule keys on
-`portfolioID` 27 and does not need it.
-
-## Resolved 2026-08-06 (do not re-ask)
-
-Fact rows: `F-RENTCAST-KEY-PLACED`, `F-RENTCAST-API-CONTRACT`, `F-MKD-PORTFOLIO-IDENTIFIED`,
-`F-OWNER-PERCENT-OWNED-ABSENT`, `F-MONITORING-CHANNEL-CREATED`. In short: key placed; use
-`/avm/rent/long-term` + `/markets` (overage bills automatically); MKD = `portfolioID` 27, no test
-lease belongs to it; `percentOwned` empty across the export; the alert channel exists.
-
-## Superseded 2026-08-06
-
-The 2026-08-05 MKD no-outreach premise is **withdrawn**: MKD owners are emailed through
-the normal reviewed process; no skip path (structural sentinel since S62).
+S57–S63 and S65 remain complete; the D08 cohort window, resolved owner values, source measurements,
+superseded MKD premise, and exact owner steps live in `docs/facts.md` and `docs/status.md`. Do not
+re-ask them or treat this shorter current pointer as superseding that evidence.
 
 ## Locked safety
 
