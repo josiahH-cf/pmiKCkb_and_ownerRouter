@@ -162,4 +162,78 @@ describe("useAudioRecorder lifecycle", () => {
     await act(() => start);
     expect(trackStop).toHaveBeenCalledTimes(1);
   });
+
+  it("cancels an active clip without processing it and stops every track", async () => {
+    const { stream, trackStop } = streamWith();
+    installRecorder(async () => stream);
+    const onRecording = vi.fn();
+    const { result } = renderHook(() => useAudioRecorder({ onRecording }));
+
+    await act(() => result.current.toggleRecording());
+    expect(result.current.phase).toBe("recording");
+    act(() => result.current.cancelRecording());
+
+    expect(result.current.phase).toBe("idle");
+    expect(result.current.isRecording).toBe(false);
+    expect(trackStop).toHaveBeenCalled();
+    expect(onRecording).not.toHaveBeenCalled();
+  });
+
+  it("keeps processing cancelled when the caller settles late", async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const { stream } = streamWith();
+    installRecorder(async () => stream);
+    const onError = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ onRecording: () => pending, onError }),
+    );
+
+    await act(() => result.current.toggleRecording());
+    act(() => {
+      void result.current.toggleRecording();
+    });
+    await waitFor(() => expect(result.current.phase).toBe("processing"));
+    act(() => result.current.cancelRecording());
+    expect(result.current.phase).toBe("idle");
+
+    await act(async () => finish());
+    expect(result.current.phase).toBe("idle");
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("auto-stops exactly once, announces the limit, and enters stopping before processing", async () => {
+    vi.useFakeTimers();
+    const phases: AudioRecorderPhase[] = [];
+    const onStatus = vi.fn();
+    const onRecording = vi.fn(async () => undefined);
+    const { stream, trackStop } = streamWith();
+    installRecorder(async () => stream);
+    const { result } = renderHook(() =>
+      useAudioRecorder({
+        onRecording,
+        onStatus,
+        onLifecycle: (phase) => phases.push(phase),
+        maxDurationMs: 25,
+      }),
+    );
+
+    await act(() => result.current.toggleRecording());
+    await act(async () => vi.advanceTimersByTimeAsync(25));
+
+    expect(onRecording).toHaveBeenCalledTimes(1);
+    expect(onStatus).toHaveBeenCalledWith(RECORDER_MESSAGES.autoStop);
+    expect(trackStop).toHaveBeenCalled();
+    expect(phases).toEqual([
+      "requesting-permission",
+      "recording",
+      "stopping",
+      "processing",
+      "idle",
+    ]);
+    await act(async () => vi.advanceTimersByTimeAsync(100));
+    expect(onRecording).toHaveBeenCalledTimes(1);
+  });
 });

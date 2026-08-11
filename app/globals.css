@@ -2163,14 +2163,52 @@ button {
 .report-issue-dialog {
   display: grid;
   gap: 12px;
+  max-height: calc(100dvh - (2 * var(--space-4)));
   max-width: 480px;
+  overflow-y: auto;
   width: 100%;
+}
+
+.report-issue-dialog textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  resize: vertical;
+  width: 100%;
+}
+
+.report-issue-dictation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.report-issue-dictation-status:empty {
+  display: none;
+}
+
+.report-issue-recording-time {
+  margin: 0;
 }
 
 .report-issue-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+@media (max-width: 400px) {
+  .ui-dialog-backdrop {
+    padding: var(--space-2);
+  }
+
+  .report-issue-dialog {
+    max-height: calc(100dvh - (2 * var(--space-2)));
+  }
+
+  .report-issue-actions > button,
+  .report-issue-dictation-controls > button {
+    flex: 1 1 100%;
+  }
 }
 
 /* Idle session-timeout warning dialog (NOTIF-6). Reuses .ui-dialog-backdrop. */

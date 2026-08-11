@@ -8,14 +8,10 @@
 // is where the network-error catch and empty-transcript hint live.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TRANSCRIBABLE_AUDIO_MIME_TYPES } from "@/lib/speech/audio-contract";
 
 /** Recording mime types we can transcribe, most-preferred first (Google STT v1 sync accepts opus). */
-export const PREFERRED_MIME_TYPES = [
-  "audio/webm;codecs=opus",
-  "audio/webm",
-  "audio/ogg;codecs=opus",
-  "audio/ogg",
-] as const;
+export const PREFERRED_MIME_TYPES = TRANSCRIBABLE_AUDIO_MIME_TYPES;
 
 export interface MimeSupport {
   /** The first transcribable type the browser supports, or null when none is. */
@@ -69,6 +65,8 @@ export interface AudioRecorderControls {
   isRecording: boolean;
   phase: AudioRecorderPhase;
   cancelPermissionRequest: () => void;
+  /** Discard the active clip/request lifecycle without calling onRecording again. */
+  cancelRecording: () => void;
   toggleRecording: () => Promise<void>;
 }
 
@@ -96,6 +94,7 @@ export function useAudioRecorder({
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const permissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const permissionRequestRef = useRef(0);
+  const recordingCycleRef = useRef(0);
   const mountedRef = useRef(true);
 
   const transition = useCallback(
@@ -126,10 +125,12 @@ export function useAudioRecorder({
     return () => {
       mountedRef.current = false;
       permissionRequestRef.current += 1;
+      recordingCycleRef.current += 1;
       clearAutoStop();
       clearPermissionTimeout();
       const recorder = recorderRef.current;
       if (recorder && recorder.state !== "inactive") {
+        recorder.ondataavailable = null;
         recorder.onstop = null;
         recorder.stop();
       }
@@ -139,13 +140,30 @@ export function useAudioRecorder({
     };
   }, [clearAutoStop, clearPermissionTimeout]);
 
+  const cancelRecording = useCallback(() => {
+    permissionRequestRef.current += 1;
+    recordingCycleRef.current += 1;
+    clearAutoStop();
+    clearPermissionTimeout();
+
+    const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state !== "inactive") recorder.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    recorderRef.current = null;
+    streamRef.current = null;
+    if (mountedRef.current) setIsRecording(false);
+    transition("idle");
+  }, [clearAutoStop, clearPermissionTimeout, transition]);
+
   const cancelPermissionRequest = useCallback(() => {
     if (phaseRef.current !== "requesting-permission") return;
-    permissionRequestRef.current += 1;
-    clearPermissionTimeout();
-    transition("idle");
+    cancelRecording();
     onStatus?.(RECORDER_MESSAGES.permissionCancelled);
-  }, [clearPermissionTimeout, onStatus, transition]);
+  }, [cancelRecording, onStatus]);
 
   const toggleRecording = useCallback(async () => {
     const active = recorderRef.current;
@@ -205,6 +223,7 @@ export function useAudioRecorder({
       }
       clearPermissionTimeout();
       streamRef.current = stream;
+      const recordingCycle = ++recordingCycleRef.current;
       const recorder = new MediaRecorder(stream, { mimeType: support.supportedType });
       const chunks: Blob[] = [];
       recorder.ondataavailable = (event) => {
@@ -216,17 +235,26 @@ export function useAudioRecorder({
         streamRef.current = null;
         if (mountedRef.current) setIsRecording(false);
         recorderRef.current = null;
+        if (recordingCycle !== recordingCycleRef.current) {
+          chunks.length = 0;
+          return;
+        }
         transition("processing");
-        const blob = new Blob(chunks, {
+        let blob: Blob | null = new Blob(chunks, {
           type: recorder.mimeType || support.supportedType!,
         });
+        chunks.length = 0;
         try {
           await onRecording(blob);
+          blob = null;
         } catch {
+          blob = null;
+          if (recordingCycle !== recordingCycleRef.current) return;
           transition("error");
           onError?.(RECORDER_MESSAGES.handleError);
           return;
         }
+        if (recordingCycle !== recordingCycleRef.current) return;
         transition("idle");
       };
       recorder.start();
@@ -236,6 +264,7 @@ export function useAudioRecorder({
       autoStopRef.current = setTimeout(() => {
         const active = recorderRef.current;
         if (active && active.state !== "inactive") {
+          transition("stopping");
           onStatus?.(RECORDER_MESSAGES.autoStop);
           active.stop();
         }
@@ -259,5 +288,11 @@ export function useAudioRecorder({
     transition,
   ]);
 
-  return { cancelPermissionRequest, isRecording, phase, toggleRecording };
+  return {
+    cancelPermissionRequest,
+    cancelRecording,
+    isRecording,
+    phase,
+    toggleRecording,
+  };
 }

@@ -1,18 +1,20 @@
 "use client";
 
-// Global "Report an issue" affordance (TIX-1/2/5/9). A persistent bottom-right button on every
-// signed-in page opens a lightweight dialog that auto-captures the page context (route + viewport +
-// the IDENTITY of the last control the user interacted with) and an OPTIONAL free-text description,
-// then POSTs an AI-ready report to /api/report-issue. Zero required fields, so one click still
-// submits a context-rich report. The transactional email send is owner-configured (TIX-6).
+// Global signed-in feedback affordance (TIX-1/2/5/9, S67). The one existing dialog accepts optional
+// typed text and optional short-clip dictation. Dictation only appends editable words; the explicit
+// Send feedback action remains the sole report-creation boundary.
 //
-// PRIVACY (TIX-8): the element hint is stable identity attributes ONLY (tag/role/type/id/data-testid).
-// aria-label and textContent are deliberately NOT captured — in this app they embed customer/staff
-// data (emails, ticket summaries, tenant names/addresses), so emitting them would leak PII. The route
-// is captured as the pathname only (no query string), for the same reason.
+// PRIVACY (TIX-8, AC-S67-7/9): context is stable element identity only. Never capture a label,
+// rendered/input text, query string, screenshot, clipboard, transcript, or audio as context. Raw
+// audio exists only in the current browser request lifecycle and is aborted/discarded on every exit.
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { RECORDER_MESSAGES, useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { Button, Field } from "@/components/ui";
+
+const MAX_DESCRIPTION_CHARACTERS = 2_000;
+const MAX_RECORDING_SECONDS = 55;
 
 type ElementHint = {
   tag: string;
@@ -21,11 +23,10 @@ type ElementHint = {
   id?: string;
   testId?: string;
 };
-// "sent" = filed to the support queue (delivered). "notice" = the request succeeded but the report
-// was not saved (delivered:false) — a soft failure the user can retry, never shown as success.
+
 type SubmitStatus = "idle" | "sending" | "sent" | "notice" | "error";
 
-// Identity ONLY — never aria-label or textContent (both carry rendered app data in this codebase).
+// Identity only. `aria-label`, values, and textContent can carry customer or staff data.
 function describeElement(node: EventTarget | null): ElementHint | undefined {
   if (!(node instanceof HTMLElement)) return undefined;
   return {
@@ -37,35 +38,236 @@ function describeElement(node: EventTarget | null): ElementHint | undefined {
   };
 }
 
+/** AC-S67-2/5: preserve all existing text and append every nonblank clip without truncation. */
+export function appendFeedbackTranscript(existing: string, transcript: string): string {
+  const words = transcript.trim();
+  if (words === "") return existing;
+  return `${existing}${existing.trim() === "" ? "" : "\n\n"}${words}`;
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]!);
+  }
+  return btoa(binary);
+}
+
+function formatRecordingTime(seconds: number): string {
+  return `0:${String(seconds).padStart(2, "0")}`;
+}
+
 export function ReportIssueButton() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [message, setMessage] = useState("");
+  const [dictationStatus, setDictationStatus] = useState("");
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const lastElementRef = useRef<ElementHint | undefined>(undefined);
   const openRef = useRef(false);
+  const mountedRef = useRef(true);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const transcriptionAbortRef = useRef<AbortController | null>(null);
+  const transcriptionGenerationRef = useRef(0);
+  const autoStoppedRef = useRef(false);
+  const priorPathnameRef = useRef(pathname);
+
+  async function transcribeAudio(blob: Blob | null) {
+    const generation = ++transcriptionGenerationRef.current;
+    const controller = new AbortController();
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = controller;
+    let audioBase64: string | null = null;
+    const mimeType = blob?.type ?? "";
+
+    setDictationStatus(
+      autoStoppedRef.current
+        ? "Recording reached the 55 second limit. Transcribing it now."
+        : "Transcribing the recording.",
+    );
+    try {
+      if (!blob) return;
+      audioBase64 = await blobToBase64(blob);
+      blob = null;
+      if (
+        controller.signal.aborted ||
+        generation !== transcriptionGenerationRef.current
+      ) {
+        return;
+      }
+
+      const response = await fetch("/api/report-issue/transcribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ audioBase64, mimeType }),
+        signal: controller.signal,
+      });
+      audioBase64 = null;
+      if (
+        controller.signal.aborted ||
+        generation !== transcriptionGenerationRef.current
+      ) {
+        return;
+      }
+
+      const payload = (await response.json().catch(() => null)) as {
+        transcript?: string;
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        setDictationStatus(
+          payload?.error ??
+            "Could not transcribe the recording. Record again or type instead.",
+        );
+        return;
+      }
+
+      const transcript = payload?.transcript?.trim() ?? "";
+      if (transcript === "") {
+        setDictationStatus("No speech was detected. Type instead or record again.");
+        return;
+      }
+
+      setDescription((current) => {
+        const next = appendFeedbackTranscript(current, transcript);
+        requestAnimationFrame(() => {
+          if (!mountedRef.current || generation !== transcriptionGenerationRef.current)
+            return;
+          textareaRef.current?.focus();
+          textareaRef.current?.setSelectionRange(next.length, next.length);
+        });
+        return next;
+      });
+      setDictationStatus("Transcript added. Review and edit it before sending feedback.");
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        generation !== transcriptionGenerationRef.current ||
+        (error instanceof DOMException && error.name === "AbortError")
+      ) {
+        return;
+      }
+      setDictationStatus(
+        "Could not reach the transcription service. Record again or type instead.",
+      );
+    } finally {
+      blob = null;
+      audioBase64 = null;
+      if (transcriptionAbortRef.current === controller) {
+        transcriptionAbortRef.current = null;
+      }
+    }
+  }
+
+  const handleRecorderError = useCallback((notice: string) => {
+    setDictationStatus(notice);
+  }, []);
+
+  const handleRecorderStatus = useCallback((notice: string) => {
+    if (notice === RECORDER_MESSAGES.autoStop) autoStoppedRef.current = true;
+    setDictationStatus(notice);
+  }, []);
+
+  const handleRecorderLifecycle = useCallback((phase: string) => {
+    if (phase === "requesting-permission") {
+      autoStoppedRef.current = false;
+      setDictationStatus("Requesting microphone permission.");
+    } else if (phase === "recording") {
+      setRecordingSeconds(0);
+      setDictationStatus("Recording. Choose Stop and transcribe when you are finished.");
+    } else if (phase === "stopping") {
+      setDictationStatus("Stopping the recording.");
+    } else if (phase === "processing") {
+      setDictationStatus(
+        autoStoppedRef.current
+          ? "Recording reached the 55 second limit. Transcribing it now."
+          : "Transcribing the recording.",
+      );
+    }
+  }, []);
+
+  const {
+    cancelPermissionRequest,
+    cancelRecording,
+    isRecording,
+    phase: recorderPhase,
+    toggleRecording,
+  } = useAudioRecorder({
+    onRecording: transcribeAudio,
+    onError: handleRecorderError,
+    onStatus: handleRecorderStatus,
+    onLifecycle: handleRecorderLifecycle,
+  });
+
+  const cancelDictation = useCallback(
+    (notice = "Dictation cancelled. Existing feedback was preserved.") => {
+      transcriptionGenerationRef.current += 1;
+      transcriptionAbortRef.current?.abort();
+      transcriptionAbortRef.current = null;
+      cancelRecording();
+      setDictationStatus(notice);
+    },
+    [cancelRecording],
+  );
+
+  const close = useCallback(() => {
+    transcriptionGenerationRef.current += 1;
+    transcriptionAbortRef.current?.abort();
+    transcriptionAbortRef.current = null;
+    cancelRecording();
+    setOpen(false);
+    setDescription("");
+    setDictationStatus("");
+    setRecordingSeconds(0);
+    triggerRef.current?.focus();
+  }, [cancelRecording]);
 
   useEffect(() => {
     openRef.current = open;
   }, [open]);
 
-  const close = useCallback(() => {
-    setOpen(false);
-    setDescription("");
-    triggerRef.current?.focus();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      transcriptionGenerationRef.current += 1;
+      transcriptionAbortRef.current?.abort();
+      transcriptionAbortRef.current = null;
+    };
   }, []);
 
-  // Remember the last control the user meaningfully interacted with, app-wide. Never tracks while the
-  // dialog is open (so a backdrop/dialog click can't make the report describe the widget itself), and
-  // ignores the trigger itself (the click that opens the dialog).
+  // A Next navigation may keep AppShell mounted. Treat the pathname change as a dialog exit and
+  // discard the current clip/request before any late transcription can append.
+  useEffect(() => {
+    if (priorPathnameRef.current === pathname) return;
+    priorPathnameRef.current = pathname;
+    if (openRef.current) close();
+  }, [close, pathname]);
+
+  useEffect(() => {
+    if (recorderPhase !== "recording") return;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setRecordingSeconds(
+        Math.min(Math.floor((Date.now() - startedAt) / 1_000), MAX_RECORDING_SECONDS),
+      );
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, [recorderPhase]);
+
+  // Remember the last meaningful control interaction outside this dialog. Never capture its label,
+  // text, or value, and ignore the Feedback trigger itself.
   useEffect(() => {
     function remember(event: Event) {
       if (openRef.current) return;
       const target = event.target;
       if (target instanceof Node && triggerRef.current?.contains(target)) return;
-      const hint = describeElement(event.target);
+      const hint = describeElement(target);
       if (hint) lastElementRef.current = hint;
     }
     document.addEventListener("pointerdown", remember, true);
@@ -76,8 +278,6 @@ export function ReportIssueButton() {
     };
   }, []);
 
-  // On open: move focus into the dialog (textarea) and let Escape close it. On send: move focus to the
-  // Close button so keyboard users are never stranded.
   useEffect(() => {
     if (!open) return;
     dialogRef.current?.querySelector<HTMLElement>("textarea, button")?.focus();
@@ -94,7 +294,6 @@ export function ReportIssueButton() {
     }
   }, [status]);
 
-  // Trap Tab within the dialog while it is open (aria-modal contract).
   function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Tab") return;
     const dialog = dialogRef.current;
@@ -103,7 +302,7 @@ export function ReportIssueButton() {
       dialog.querySelectorAll<HTMLElement>(
         'button, textarea, input, select, a[href], [tabindex]:not([tabindex="-1"])',
       ),
-    ).filter((el) => !el.hasAttribute("disabled"));
+    ).filter((element) => !element.hasAttribute("disabled"));
     if (focusables.length === 0) return;
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
@@ -116,7 +315,16 @@ export function ReportIssueButton() {
     }
   }
 
+  const dictationActive =
+    recorderPhase === "requesting-permission" ||
+    recorderPhase === "recording" ||
+    recorderPhase === "stopping" ||
+    recorderPhase === "processing";
+  const excessCharacters = Math.max(0, description.length - MAX_DESCRIPTION_CHARACTERS);
+  const overLimit = excessCharacters > 0;
+
   async function submit() {
+    if (dictationActive || overLimit || status === "sending") return;
     setStatus("sending");
     setMessage("");
     const context = {
@@ -158,6 +366,15 @@ export function ReportIssueButton() {
     }
   }
 
+  const recorderLabel =
+    recorderPhase === "requesting-permission"
+      ? "Cancel microphone request"
+      : recorderPhase === "recording"
+        ? "Stop and transcribe"
+        : recorderPhase === "stopping" || recorderPhase === "processing"
+          ? "Transcribing"
+          : "Record feedback";
+
   return (
     <>
       <button
@@ -167,6 +384,7 @@ export function ReportIssueButton() {
         onClick={() => {
           setStatus("idle");
           setMessage("");
+          setDictationStatus("");
           setOpen(true);
         }}
         type="button"
@@ -205,24 +423,89 @@ export function ReportIssueButton() {
                   the page you are on automatically, so you do not have to.
                 </p>
                 <Field
-                  hint="Optional. An idea, a question, or something that went wrong. For example: the Save button on this page does nothing when I click it."
+                  hint="Optional. Type, dictate, or combine both. Review every word before sending."
                   htmlFor="report-issue-description"
                   label="Your feedback"
                 >
                   <textarea
+                    ref={textareaRef}
+                    aria-describedby="report-issue-count report-issue-dictation-status"
+                    aria-invalid={overLimit}
                     id="report-issue-description"
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="Share an idea, a question, or what happened."
-                    rows={4}
+                    rows={6}
                     value={description}
                   />
                 </Field>
+                <p
+                  className={overLimit ? "field-error" : "field-hint"}
+                  id="report-issue-count"
+                  role={overLimit ? "alert" : undefined}
+                >
+                  {overLimit
+                    ? `${description.length.toLocaleString("en-US")} characters. Remove ${excessCharacters.toLocaleString("en-US")} to send feedback.`
+                    : `${description.length.toLocaleString("en-US")} of 2,000 characters.`}
+                </p>
+
+                <div className="report-issue-dictation-controls">
+                  <Button
+                    aria-describedby="report-issue-dictation-status"
+                    aria-pressed={isRecording}
+                    disabled={
+                      status === "sending" ||
+                      recorderPhase === "stopping" ||
+                      recorderPhase === "processing"
+                    }
+                    onClick={() => {
+                      if (recorderPhase === "requesting-permission") {
+                        cancelPermissionRequest();
+                      } else {
+                        void toggleRecording();
+                      }
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {recorderLabel}
+                  </Button>
+                  {recorderPhase === "recording" ||
+                  recorderPhase === "stopping" ||
+                  recorderPhase === "processing" ? (
+                    <Button
+                      onClick={() => cancelDictation()}
+                      type="button"
+                      variant="secondary"
+                    >
+                      Cancel dictation
+                    </Button>
+                  ) : null}
+                </div>
+
+                {recorderPhase === "recording" ? (
+                  <p
+                    aria-hidden="true"
+                    className="field-hint report-issue-recording-time"
+                  >
+                    Recording {formatRecordingTime(recordingSeconds)}.{" "}
+                    {MAX_RECORDING_SECONDS - recordingSeconds} seconds remaining.
+                  </p>
+                ) : null}
+                <p
+                  aria-live="polite"
+                  className="auth-message report-issue-dictation-status"
+                  id="report-issue-dictation-status"
+                  role="status"
+                >
+                  {dictationStatus}
+                </p>
+
                 {status === "error" || status === "notice" ? (
                   <p className="auth-message">{message}</p>
                 ) : null}
                 <div className="report-issue-actions">
                   <Button
-                    disabled={status === "sending"}
+                    disabled={status === "sending" || dictationActive || overLimit}
                     onClick={() => void submit()}
                     type="button"
                   >

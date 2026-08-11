@@ -40,6 +40,7 @@ describe("Live-read-only request policy (AC-S56-6)", () => {
       "POST /api/maintenance/match-unit",
       "POST /api/maintenance/transcribe",
       "POST /api/processes/classify",
+      "POST /api/report-issue/transcribe",
       "POST /api/vendor/auth/session",
     ]);
 

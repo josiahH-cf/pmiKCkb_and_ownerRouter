@@ -18,6 +18,7 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
     ["POST /api/maintenance/match-unit", "Read and match authoritative RentVine units."],
     ["POST /api/maintenance/transcribe", "Transcribe into an unsaved intake input."],
     ["POST /api/processes/classify", "Classify against read-only process definitions."],
+    ["POST /api/report-issue/transcribe", "Transcribe into an unsaved feedback input."],
     ["POST /api/vendor/auth/session", "Create only the Vendor session cookie."],
   ]);
 

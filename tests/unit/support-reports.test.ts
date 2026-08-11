@@ -75,6 +75,9 @@ describe("support reports store (F-SUPP-1)", () => {
       product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
       legal_hold: false,
     });
+    expect(JSON.stringify(fakeDb.store.get(`support_reports/${report.id}`))).not.toMatch(
+      /audio|voice|dictation|modality|mime/i,
+    );
   });
 
   it("omits an absent description instead of storing an empty field", async () => {

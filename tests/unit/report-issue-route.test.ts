@@ -193,4 +193,64 @@ describe("report-issue route (F-SUPP-1)", () => {
     expect(response.status).toBe(401);
     expect(createSupportReport).not.toHaveBeenCalled();
   });
+
+  it("accepts exactly 2,000 description characters and refuses 2,001 without truncating", async () => {
+    vi.mocked(createSupportReport).mockResolvedValue({
+      id: "report-limit",
+      route: "/",
+      reporter_uid: "editor-uid",
+      reporter_role: "Editor",
+      origin: "app",
+      status: "new",
+      created_at: "2026-08-10T00:00:00.000Z",
+    });
+    const acceptedText = "x".repeat(2_000);
+    const accepted = await POST(
+      jsonReq({ description: acceptedText, context: { route: "/" } }),
+    );
+    expect(accepted.status).toBe(202);
+    expect(createSupportReport).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ description: acceptedText }),
+    );
+
+    vi.mocked(createSupportReport).mockClear();
+    const refused = await POST(
+      jsonReq({ description: "x".repeat(2_001), context: { route: "/" } }),
+    );
+    expect(refused.status).toBe(400);
+    expect(createSupportReport).not.toHaveBeenCalled();
+  });
+
+  it("persists dictated words as an ordinary new report with no input-modality field", async () => {
+    vi.mocked(createSupportReport).mockResolvedValue({
+      id: "report-voice-words",
+      route: "/spaces",
+      description: "editable dictated words",
+      reporter_uid: "editor-uid",
+      reporter_role: "Editor",
+      origin: "app",
+      status: "new",
+      created_at: "2026-08-10T00:00:00.000Z",
+    });
+
+    await POST(
+      jsonReq({
+        description: "editable dictated words",
+        context: { route: "/spaces", viewport: "390x844" },
+      }),
+    );
+
+    const [, input] = vi.mocked(createSupportReport).mock.calls[0]!;
+    expect(input).toEqual({
+      route: "/spaces",
+      description: "editable dictated words",
+      origin: "app",
+      viewport: "390x844",
+      userAgent: undefined,
+      element: undefined,
+      errorDigest: undefined,
+    });
+    expect(JSON.stringify(input)).not.toMatch(/audio|voice|dictation|modality|mime/i);
+  });
 });
