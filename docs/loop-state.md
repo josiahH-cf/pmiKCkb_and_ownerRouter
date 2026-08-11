@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-10 (transcript implementation active; S28/S60 + S66 pushed, S67 next).
+Last updated: 2026-08-11 (transcript implementation active; S28/S60 + S66/S67 pushed, S68 next).
 
 ```yaml
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
 program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
 spec_writing_allowed: true
@@ -14,13 +14,13 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_PUSHED
-next_suite: S67_FEEDBACK_DICTATION_INTAKE
-next_spec: docs/feature-suites/feedback-dictation-intake.md
+implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_PUSHED
+next_suite: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY
+next_spec: docs/feature-suites/staff-work-assignment-and-accountability.md
 session_auth_status: OWNER_CHECKPOINT_OPEN_INVALID_RAPT_ADC_NOT_WSL_DISCOVERABLE_FIREBASE_CLI_UNAUTHENTICATED
-active_slice: S67_FEEDBACK_DICTATION_INTAKE
-next_slice: S67_REUSE_RECORDER_AND_GOOGLE_STT_WITH_BROWSER_MEMORY_ONLY_AUDIO
-last_completed_slice: S66_LEASE_DOCUMENT_PACKET_TRUTH_9f9ec55
+active_slice: S68_STAFF_WORK_ASSIGNMENT_AND_ACCOUNTABILITY
+next_slice: S68_EXPLICIT_TASKS_AND_USER_STARTED_WORK_SESSIONS
+last_completed_slice: S67_FEEDBACK_DICTATION_INTAKE_77c757c
 runtime_action_gates_preflipped: false
 ```
 
@@ -36,7 +36,7 @@ runtime_action_gates_preflipped: false
   S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
 - Activation remains per exact Action Registry key, never by category or inference.
 
-## Current transcript implementation resume — 2026-08-10
+## Current transcript implementation resume — 2026-08-11
 
 - Owner session authorization opens authentication-unblock work, S66–S68 implementation, the
   affected S28/S34/S43/S60/S65 amendments, verification, push, and routine deployment under the
@@ -48,8 +48,10 @@ runtime_action_gates_preflipped: false
   immutable snapshots, S43 presentation, and exact S34 binding are built. Exact external content
   blocker: publish the approved artifact/field/participant/signature/form-family/rule catalog through
   S21. Boom is not a document-fact source on current evidence. Dotloop activation remains separate.
-- **Next:** S67 feedback dictation intake, preserving the typed-only flow and S65 closure. Then S68
-  explicit tasks and user-started work sessions.
+- S67 is pushed at `77c757c` (`F-FEEDBACK-DICTATION-INTAKE`): optional feedback dictation reuses the
+  recorder and configured Google STT seam, appends editable text without truncation, aborts/discards
+  raw audio on every exit, and leaves the S65 report shape/lifecycle unchanged.
+- **Next:** S68 explicit tasks and user-started work sessions.
 - **Authentication remains independently parked:** managed gcloud account/project are correct, but
   CLI token refresh is RAPT-walled; Windows ADC has safe authorized-user/quota-project metadata but
   WSL default ADC is absent; Firebase CLI reports unauthenticated during emulator startup. Owner runs

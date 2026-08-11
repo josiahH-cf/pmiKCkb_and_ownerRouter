@@ -9337,3 +9337,26 @@ same eight stale Demo/Test-lane failures recorded in `Q-E2E-DEMO-LANE-RED`; none
 
 The slice is built and pushed, not deployed. Deployment and live auth/config readback remain parked
 behind the owner-run `npm run auth:session` checkpoint. The next independent app-plane slice is S67.
+
+# 2026-08-11 — S67 feedback dictation built and pushed
+
+S67 is pushed on `main` at `77c757c`. The existing Feedback dialog now records one short clip through
+the shared recorder, transcribes through a dedicated strict `read` route and the established Google
+STT seam, appends ordinary editable words, and leaves explicit `Send feedback` as the only filing
+action. Typed-only and empty-description reports remain unchanged.
+
+The lifecycle stops tracks and aborts or ignores late work on success, failure, permission cancel,
+dictation cancel, dialog close, Escape, backdrop, route change, and unmount. Audio stays in volatile
+request memory only. No audio, modality, transcript context, new provider, Action Registry key, send,
+report lifecycle field, or D12 path was added. Over-limit text is retained whole with an exact excess
+and disabled submit; the existing server still refuses 2,001 characters. S65 Admin visibility,
+status transitions, audit, counts, and retention remain pinned by regression tests.
+
+The privacy/shared-recorder sentinel was deliberately turned red with a temporary forbidden marker
+and restored green. The complete exact-tree gate passed 491 unit files / 4,541 tests, 24 Firestore
+files / 113 tests, format, lint with zero errors, typecheck, every repository scanner, and a 95-page
+production build. `test:e2e:core` reproduced exactly the eight stale Demo/Test-lane failures in
+`Q-E2E-DEMO-LANE-RED`; no S67 route or component failed.
+
+The slice is built and pushed, not deployed. Deployment remains parked behind the owner-run
+`npm run auth:session` checkpoint. The next independent app-plane slice is S68.
