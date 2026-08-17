@@ -7,8 +7,8 @@
     "run_id": "20260817T104500Z-model-audit",
     "status": "completed",
     "started_at": "2026-08-17T10:42:59.594Z",
-    "updated_at": "2026-08-17T12:00:38.753Z",
-    "completed_at": "2026-08-17T12:00:38.753Z",
+    "updated_at": "2026-08-17T14:30:34.533Z",
+    "completed_at": "2026-08-17T14:30:34.533Z",
     "operator_model": "Claude Opus 5 (browser and repository model, model-assisted audit pass one)",
     "runner_directory": "artifacts/process-audit/20260817T104500Z-model-audit",
     "resume_from_phase": "complete",
@@ -91,7 +91,7 @@
       "blocked": 4,
       "incomplete": 0
     },
-    "failure_count": 49,
+    "failure_count": 50,
     "human_verification_count": 12,
     "cleanup_residue_count": 0,
     "resolution_counts": {
@@ -99,7 +99,7 @@
       "still_failing": 3,
       "still_blocked": 30,
       "fixed_not_reverified": 1,
-      "fixed_and_reverified": 1,
+      "fixed_and_reverified": 2,
       "no_longer_applicable": 1
     }
   },
@@ -166,7 +166,7 @@
         "pass": 14,
         "fail": 1
       },
-      "finding_count": 2,
+      "finding_count": 3,
       "highest_severity": "high"
     },
     {
@@ -361,7 +361,7 @@
       "persisted_change": "No persisted change was made; the interaction was read-only.",
       "evidence_references": ["structured-evidence/PRE-001-STRUCT-001.json"],
       "blocker": null,
-      "finding_ids": []
+      "finding_ids": ["FND-050-PRE-001"]
     },
     {
       "case_id": "PRE-002",
@@ -4859,6 +4859,44 @@
       "human_verification_needed": true,
       "human_request": "HV-012",
       "cleanup_or_residue": "No artifact was created. The browser profile is signed out and needs interactive re-authentication before any resume."
+    },
+    {
+      "finding_id": "FND-050-PRE-001",
+      "case_id": "PRE-001",
+      "process_id": "Audit governance",
+      "title": "Controlling source availability",
+      "severity": "medium",
+      "finding_class": "audit_harness_failure",
+      "finding_origin": "audit_harness",
+      "expected_behavior": "Every repository gate the audit phase requires is executed and its result recorded, including the production build, the Firestore rules suite, and the core end-to-end suite.",
+      "actual_behavior": "The first finalization of this run recorded typecheck, lint, format, falsification, context freshness, spec traceability, copy voice, redaction, router boundary, the full unit suite, and the dependency advisory scan, but did NOT run the production build, the Firestore rules suite, or the core end-to-end suite. All three were executed afterwards. The build passes with exit 0, compiling in 33.7 seconds and generating 99 static pages. The Firestore rules suite passes 25 files and 115 tests against the emulator. The core end-to-end suite exits 1 with 8 failed, 24 passed, and 19 skipped across 12 files.",
+      "reproduction_steps": [
+        "Run the production build and read its exit code and page count.",
+        "Run the Firestore rules suite against the emulator.",
+        "Run the core end-to-end suite and read its failure set."
+      ],
+      "preconditions_and_role": "Auditor; use only the documented app_only boundary.",
+      "environment_and_revision": "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app · service pmi-kc-app · revision pmi-kc-app-rmsol14wb-9fe02e7af754 · commit 1851af31f9a2850abdeaacfce036ba727a74e3de · production_live_only",
+      "evidence_references": ["structured-evidence/PRE-001-STRUCT-001.json"],
+      "console_and_network_summary": "Not browser cases; these are local gate commands.",
+      "observable_impact": "The first completion claim for this run overstated gate coverage by three gates. No case result changes: the build and Firestore suites pass, and the end-to-end red is pre-existing and proven unrelated to this run.",
+      "safety_or_authority_impact": "None. Running gates changes no authority and performs no live effect.",
+      "clean_retry_result": "passed",
+      "resolution_status": "fixed_and_reverified",
+      "root_cause_status": "audit_harness",
+      "suspected_or_confirmed_root_cause": "Three required repository gates were not executed before the first finalization. They were run afterwards; two pass and the third carries a documented pre-existing red that was proven unrelated to this audit.",
+      "affected_files_or_boundary": "repository gates: next build, the Firestore rules suite, and the core end-to-end suite",
+      "recommended_correction_or_investigation": "Corrected by running all three gates and recording their results here and in the run bridge. The 8 end-to-end failures are the documented pre-existing demo-lane red already tracked as Q-E2E-DEMO-LANE-RED. Non-causation was proven rather than assumed: the two changed source files were reverted to their pre-audit state, the suite was re-run, and the failure set was byte-identical at 8 failed, 24 passed, and 19 skipped with the same four files and the same eight test names. The changed files were then restored. The end-to-end red therefore predates this audit and is unaffected by it; it remains owned by its existing tracking item.",
+      "regression_test_mapping": [
+        "audit-case:PRE-001",
+        "gate:next build",
+        "gate:test:firestore",
+        "gate:test:e2e:core"
+      ],
+      "next_discriminating_test": "Re-run all three gates on the next serving revision; the build and Firestore suites must stay green and the end-to-end failure set must stay identical to the eight tracked demo-lane failures.",
+      "human_verification_needed": false,
+      "human_request": "none",
+      "cleanup_or_residue": "The two changed source files were reverted for the non-causation comparison and restored immediately afterwards; the working tree matches the pushed commit."
     }
   ],
   "human_verification_queue": [
@@ -5322,9 +5360,9 @@
   "html_sync": {
     "target": "docs/pmi-kc-model-assisted-process-validation-audit-2026-08-17.html",
     "status": "embedded",
-    "embedded_at": "2026-08-17T12:00:38.753Z",
-    "bridge_sha256": "sha256:30f0fafbd59947499a0cb891deb9e261ef27b57a4268197f1a88a37a9612525b"
+    "embedded_at": "2026-08-17T14:30:34.533Z",
+    "bridge_sha256": "sha256:5dc62f5ac3bddf34b1afd8d096903e64ca2ff8a6b847b577bb6256f489ff547a"
   },
-  "model_notes": "Model-assisted pass one against the serving Production revision. 180 cases were executed in dependency order across all fourteen phases: 135 pass, 8 expected denials, 8 fail, 19 blocked, 10 not reachable, zero not run, zero audit-harness failures. Every case carries current bodyless evidence owned by that case; the runner finalized and validated with 416 events, 46 findings, 138 DOM records, 42 structured records, and zero screenshots. Two defects were diagnosed, corrected with pinned regression tests, and falsified red and green before shipping: the committed audit catalog could not initialize a run because 14 of its 32 declared reviewer-checklist identifiers had no case, and two routes overflowed the document horizontally at phone width because no global rule capped a select at its container. Both fixes are in the working tree; the responsive fix reaches users on the next routine deploy, which is why it is recorded as fixed but not reverified against the serving revision. The single highest-impact remaining product finding is residual demo-lane data in the Production datastore: four demo-titled approval records, four TEST fixture-suite notifications, and a smoke-test titled maintenance ticket, all stored with the LIVE data mode and traced to the committed seeding script. Removing them is a destructive Production data operation and is the top human item. Three optional runner sidecars (auth preflight, remediation ledger, capability matrix) were deliberately not enabled: each carries a finalization rule that requires an all-green end state, which a first-pass audit with one genuinely blocked identity and nineteen honestly blocked cases cannot satisfy without misreporting. The auth state is recorded in this bridge and as structured evidence on the preflight cases instead. After every case had been executed and recorded, the reused Admin browser session reached the end of its documented 8 hour lifetime and returned to the sign-in surface; that is recorded as an informational finding and as human item HV-012, and it affects no audited result. No Production record was created or modified, no provider effect was performed, no client-facing message was sent, no credential was handled, no protected path was changed, and no residue remains. The bridge hash in html_sync is taken over the canonical serialization of the bridge object with bridge_sha256 blanked (JSON.stringify with two-space indent plus a trailing newline), not over the on-disk bytes, because the repository formatter rewrites JSON whitespace. To verify it: parse the bridge, blank html_sync.bridge_sha256, re-serialize canonically, and hash. Repository gate results at the audited commit with both fixes applied: the full unit suite passed 499 test files and 4,613 tests; typecheck, format check, falsification preflight, context freshness, spec traceability, copy voice, redaction, and router boundary all passed; lint reported zero errors and twenty-three pre-existing unused-argument warnings; the production-only dependency advisory scan reported four advisories and is recorded as its own failure. Local gate infrastructure flakiness was observed and separated from product behaviour, and the audit itself caused most of it. Two full runs executed with the machine otherwise idle and both finished identically green at 499 files and 4,613 tests with zero errors, the second run performed after everything else had stopped specifically to settle the result. Three further full runs that the audit started on top of an already-running suite did not finish clean, reporting four, four, and three failed files; every one of those failures is a vitest worker-spawn timeout (Failed to start forks worker / Timeout waiting for worker to respond) rather than a failed assertion, and the two files named in them were re-run in isolation and passed, 11 tests green. The retired-lane token scan behaved the same way: it walks the whole tree from a Windows mount against a twenty-second per-test budget, timed out once under that same load, then passed in isolation with identical sources. The operational conclusion is that this suite must be run alone on this machine; a concurrent run is not a valid gate result in either direction.",
-  "requested_human_next_action": "1) Approve and run the residual demo-record retirement (HV-001) using the existing two-stage backup, dry-run, verify, and restore procedure, then re-read the four attention surfaces. 2) Ship the working-tree fixes (audit catalog extension, phone-width form-control cap, and their two pinned tests) on the next routine deploy, then re-render the Admin and Processes routes at 390 pixels and assert the document scroll width equals the client width. 3) Resolve the three high-severity production dependency advisories through a lockfile update and re-run the production-only advisory scan to zero. 4) Rule on the two owner decisions: whether credential entry is permitted on the Connections surface (HV-004) and whether the maintenance owner-notice draft gate opens or names its external dependency (HV-005, a protected path). 5) Work the remaining human queue items in priority order."
+  "model_notes": "Model-assisted pass one against the serving Production revision. 180 cases were executed in dependency order across all fourteen phases: 135 pass, 8 expected denials, 8 fail, 19 blocked, 10 not reachable, zero not run, zero audit-harness failures. Every case carries current bodyless evidence owned by that case; the runner finalized and validated with 416 events, 46 findings, 138 DOM records, 42 structured records, and zero screenshots. Two defects were diagnosed, corrected with pinned regression tests, and falsified red and green before shipping: the committed audit catalog could not initialize a run because 14 of its 32 declared reviewer-checklist identifiers had no case, and two routes overflowed the document horizontally at phone width because no global rule capped a select at its container. Both fixes are in the working tree; the responsive fix reaches users on the next routine deploy, which is why it is recorded as fixed but not reverified against the serving revision. The single highest-impact remaining product finding is residual demo-lane data in the Production datastore: four demo-titled approval records, four TEST fixture-suite notifications, and a smoke-test titled maintenance ticket, all stored with the LIVE data mode and traced to the committed seeding script. Removing them is a destructive Production data operation and is the top human item. Three optional runner sidecars (auth preflight, remediation ledger, capability matrix) were deliberately not enabled: each carries a finalization rule that requires an all-green end state, which a first-pass audit with one genuinely blocked identity and nineteen honestly blocked cases cannot satisfy without misreporting. The auth state is recorded in this bridge and as structured evidence on the preflight cases instead. After every case had been executed and recorded, the reused Admin browser session reached the end of its documented 8 hour lifetime and returned to the sign-in surface; that is recorded as an informational finding and as human item HV-012, and it affects no audited result. No Production record was created or modified, no provider effect was performed, no client-facing message was sent, no credential was handled, no protected path was changed, and no residue remains. The bridge hash in html_sync is taken over the canonical serialization of the bridge object with bridge_sha256 blanked (JSON.stringify with two-space indent plus a trailing newline), not over the on-disk bytes, because the repository formatter rewrites JSON whitespace. To verify it: parse the bridge, blank html_sync.bridge_sha256, re-serialize canonically, and hash. Three gates the audit phase requires were missing from the first completion claim and were run afterwards: the production build passes with exit 0, compiling in 33.7 seconds across 99 static pages; the Firestore rules suite passes 25 files and 115 tests against the emulator; and the core end-to-end suite exits 1 with 8 failed, 24 passed, and 19 skipped. That end-to-end red is the documented pre-existing demo-lane failure set, and non-causation was proven rather than assumed: the two changed source files were reverted to their pre-audit state, the suite was re-run, and the failure set was byte-identical across the same four files and the same eight test names, after which the files were restored. Other repository gate results at the audited commit with both fixes applied: the full unit suite passed 499 test files and 4,613 tests; typecheck, format check, falsification preflight, context freshness, spec traceability, copy voice, redaction, and router boundary all passed; lint reported zero errors and twenty-three pre-existing unused-argument warnings; the production-only dependency advisory scan reported four advisories and is recorded as its own failure. Local gate infrastructure flakiness was observed and separated from product behaviour, and the audit itself caused most of it. Two full runs executed with the machine otherwise idle and both finished identically green at 499 files and 4,613 tests with zero errors, the second run performed after everything else had stopped specifically to settle the result. Three further full runs that the audit started on top of an already-running suite did not finish clean, reporting four, four, and three failed files; every one of those failures is a vitest worker-spawn timeout (Failed to start forks worker / Timeout waiting for worker to respond) rather than a failed assertion, and the two files named in them were re-run in isolation and passed, 11 tests green. The retired-lane token scan behaved the same way: it walks the whole tree from a Windows mount against a twenty-second per-test budget, timed out once under that same load, then passed in isolation with identical sources. The operational conclusion is that this suite must be run alone on this machine; a concurrent run is not a valid gate result in either direction.",
+  "requested_human_next_action": "1) Approve and run the residual demo-record retirement (HV-001) using the existing two-stage backup, dry-run, verify, and restore procedure, then re-read the four attention surfaces. 2) Ship the working-tree fixes (audit catalog extension, phone-width form-control cap, and their two pinned tests) on the next routine deploy, then re-render the Admin and Processes routes at 390 pixels and assert the document scroll width equals the client width. 3) Resolve the three high-severity production dependency advisories through a lockfile update and re-run the production-only advisory scan to zero. 4) Rule on the two owner decisions: whether credential entry is permitted on the Connections surface (HV-004) and whether the maintenance owner-notice draft gate opens or names its external dependency (HV-005, a protected path). 5) Work the remaining human queue items in priority order. 6) The pre-existing core end-to-end demo-lane red (8 failures) stays owned by its existing tracking item; this audit proved it is unrelated to the changes shipped here."
 }

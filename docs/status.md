@@ -74,10 +74,16 @@ with one genuinely blocked identity cannot satisfy without misreporting, so the 
 bridge instead. That constraint is itself recorded as a finding with a narrower recommended rule.
 
 Gate results at this commit with both fixes applied: two uncontended full unit runs each passed 499
-files and 4,613 tests; typecheck, format, falsification, context freshness, spec traceability, copy
-voice, redaction, and router boundary all pass; lint reports zero errors. Three further full runs the
-audit started on top of an already-running suite failed only on vitest worker-spawn timeouts, never on
-an assertion, and the named files passed in isolation. This suite must be run alone on this machine.
+files and 4,613 tests; the production build passes with exit 0, compiling in 33.7s across 99 static
+pages; the Firestore rules suite passes 25 files and 115 tests; typecheck, format, falsification,
+context freshness, spec traceability, copy voice, redaction, and router boundary all pass; lint reports
+zero errors. The core end-to-end suite exits 1 with 8 failed, 24 passed, 19 skipped. That is the
+documented pre-existing demo-lane red, and non-causation was PROVEN rather than assumed: both changed
+source files were reverted to their pre-audit state, the suite re-run, and the failure set came back
+byte-identical across the same four files and the same eight test names, after which the files were
+restored. Three further full unit runs the audit started on top of an already-running suite failed only
+on vitest worker-spawn timeouts, never on an assertion, and the named files passed in isolation. This
+suite must be run alone on this machine.
 
 Twelve deduplicated human-only checks remain, covering destructive cleanup, live exact confirmations,
 a second identity, two owner decisions, a D12 review, microphone hardware, and missing safe fixtures.
