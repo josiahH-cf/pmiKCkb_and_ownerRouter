@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-11 (transcript implementation verified, pushed, and deployed; auth unblocked).
+Last updated: 2026-08-17 (model-assisted process audit of the serving revision finalized; two fixes landed).
 
 ```yaml
-last_updated: 2026-08-11
+last_updated: 2026-08-17
 active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
 program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
 spec_writing_allowed: true
@@ -64,15 +64,18 @@ runtime_action_gates_preflipped: false
 - S28/S60 plus S66-S68 are deployed on `pmi-kc-app-rmsol14wb-9fe02e7af754` at 100% traffic
   (`F-CURRENT-SERVING-CHECKPOINT-2026-08-11`). Exact-candidate and stable smoke passed; rollback to
   `pmi-kc-app-rmsisg7di-1f914cfeae0d` and forward restoration were executed and read back.
-- **Next:** no dependency-independent transcript-program work remains. S66 still names its exact
-  approved-artifact catalog/provider seams, and Dotloop activation remains a separate external
-  dependency; neither is silently treated as ready or active.
+- The model-assisted process audit of this revision is finalized (`F-MODEL-PROCESS-AUDIT-2026-08-17`):
+  180/180 terminal, 49 findings, 12 human-only checks, zero residue, two fixes landed. Bridge and
+  human handoff: `docs/pmi-kc-model-audit-run-2026-08-17.json` plus its sibling HTML.
+- **Next:** no dependency-independent transcript-program work remains; S66's approved-artifact catalog
+  and Dotloop activation stay named external dependencies. Top audit follow-ups: retire the residual
+  demo-lane Production records (owner-gated) and deploy the parked responsive fix.
 
 ## Prior renewal-proof evidence
 
-S57–S63 and S65 remain complete; the D08 cohort window, resolved owner values, source measurements,
-superseded MKD premise, and exact owner steps live in `docs/facts.md` and `docs/status.md`. Do not
-re-ask them or treat this shorter current pointer as superseding that evidence.
+S57–S63 and S65 remain complete. Their D08 window, resolved owner values, measurements, superseded MKD
+premise, and exact owner steps live in `docs/facts.md` and `docs/status.md`; this shorter pointer never
+supersedes that evidence, so do not re-ask it.
 
 ## Locked safety
 
@@ -121,16 +124,13 @@ under gitignored `temp/test-set/`. Parked D12 patch: `docs/temp/s63-firestore-ru
 **S65 is DONE** (`F-FEEDBACK-CLOSURE`): the Admin-only, audited feedback status transition, the
 panel control, the pinned resolved-exclusion (falsified), and the walkthrough copy fix.
 
-**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized), and
-S60–S63 + S65 remain deployed through `F-CURRENT-SERVING-CHECKPOINT-2026-08-11`, with rollback
-proven both ways.
+**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized); S60–S63 +
+S65 remain deployed through `F-CURRENT-SERVING-CHECKPOINT-2026-08-11` with rollback proven both ways.
 What remains is owner-only: (1) RentCast plan activation (`Q-RENTCAST-ACCOUNT-403`) + allowance
-readback + `smoke:rentcast-comp`; (2) the parked D12 patches under `docs/temp/`; (3) the D57 note
-send. Bailey's Admin action and later sign-in are complete under
-`F-BAILEY-ADMIN-COMPLETE-2026-08-11`.
+readback + `smoke:rentcast-comp`; (2) the parked D12 patches under `docs/temp/`; (3) the D57 note send.
+Bailey's Admin action and later sign-in are complete under `F-BAILEY-ADMIN-COMPLETE-2026-08-11`.
 
-**Correction note: DONE 2026-08-06** — the owner sent
-`docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
+**Correction note: DONE 2026-08-06** — the owner sent `docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL and keep `GOOGLE_APPLICATION_CREDENTIALS` unset. WSL

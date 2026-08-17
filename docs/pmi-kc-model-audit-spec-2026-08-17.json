@@ -1,0 +1,770 @@
+{
+  "schema_version": "pmi-kc-model-audit-spec.v1",
+  "document_type": "model_process_audit_control_plane",
+  "title": "PMI KC model-assisted comprehensive process audit",
+  "generated_on": "2026-08-17",
+  "mission": "Let a browser-and-repository model verify every process it can prove safely, diagnose and preserve every deviation, and leave a minimal evidence-backed queue containing only checks that genuinely require a human.",
+  "artifact_paths": {
+    "audit_case_catalog": "scripts/process-audit-cases.mjs",
+    "resumable_audit_runner": "scripts/process-audit-runner.mjs",
+    "runner_tests": "tests/unit/process-audit-runner.test.mjs",
+    "working_process_guide": "docs/pmi-kc-working-process-guide-what-each-action-does-2026-07-16.html",
+    "prior_human_runbook": "docs/pmi-kc-comprehensive-process-validation-audit-2026-08-11.html",
+    "run_bridge": "docs/pmi-kc-model-audit-run-2026-08-17.json",
+    "human_end_state": "docs/pmi-kc-model-assisted-process-validation-audit-2026-08-17.html",
+    "governance": ["AGENTS.md", "docs/facts.md", "docs/loop-state.md"]
+  },
+  "source_snapshot": {
+    "repository_head_observed": "1851af31f9a2850abdeaacfce036ba727a74e3de",
+    "source_case_count_observed": 149,
+    "guide_section_count_observed": 11,
+    "reviewer_checklist_count_observed": 32,
+    "fact_ledger_completed_run_case_count": 281,
+    "interpretation": "The checked-in catalog currently exports 149 cases while the fact ledger describes an extended 281-case run. A model must read or resume the actual manifest and must never shrink, renumber, or silently replace its inventory based on either count.",
+    "freshness_rules": [
+      "Re-read AGENTS.md, docs/facts.md, docs/loop-state.md, the case catalog, the runner, and the deployed revision before every run.",
+      "Treat this snapshot as generation provenance only, never as current runtime truth.",
+      "If source, fact ledger, deployed revision, or prior manifest disagree, record the contradiction and use the runner's amendment or extension contracts; do not normalize it silently.",
+      "Preserve stable case IDs and stable human verification IDs across reruns unless the underlying capability changed."
+    ]
+  },
+  "canonical_runner_contract": {
+    "npm_entry": "npm run audit:process --",
+    "initial_case_source": "PROCESS_AUDIT_CASES",
+    "run_artifacts": [
+      "manifest.json",
+      "events.jsonl",
+      "findings.jsonl",
+      "summary.json",
+      "run-report.md",
+      "auth-preflight.json",
+      "remediation-ledger.json",
+      "capability-matrix.json",
+      "dom-evidence/",
+      "structured-evidence/"
+    ],
+    "required_runner_operations": [
+      "init or resume",
+      "checkpoint-auth",
+      "bootstrap-matrix or checkpoint-matrix",
+      "intent before every mutation case",
+      "effect and reversible-effect checkpoints when applicable",
+      "dom-evidence or structured-evidence",
+      "record or amend-result",
+      "finding for every material deviation",
+      "status after every phase",
+      "finalize only when every case is terminal",
+      "validate after finalization"
+    ],
+    "invariants": [
+      "The runner manifest and append-only event log are the detailed system of record.",
+      "The run bridge JSON is a sanitized projection for the human HTML, not a replacement for runner evidence.",
+      "A mutation case cannot pass without prior intent and effect checkpoints.",
+      "A dependency cannot pass while a required upstream case is non-terminal.",
+      "An ambiguous effect is reconciled before retry; a retry is never inferred safe.",
+      "Evidence references are bodyless, unique, ordered, case-owned, and free of secrets or customer values."
+    ]
+  },
+  "outcome_taxonomy": {
+    "case_results": {
+      "pass": "Every assertion was exercised and supported by current evidence.",
+      "fail": "The case ran and one or more expected outcomes materially differed.",
+      "blocked": "A named prerequisite, identity, permission, fixture, provider, or external dependency prevented execution.",
+      "not_reachable": "The branch had no qualifying record or state and the absence was proven rather than assumed.",
+      "expected_denial": "A security or safety refusal occurred exactly as required.",
+      "audit_harness_failure": "The model, browser driver, evidence recorder, or audit runner failed independently of product behavior.",
+      "not_run": "No terminal evidence exists yet; never count this as pass.",
+      "not_applicable": "Current controlling evidence proves the capability does not apply; a reason is mandatory."
+    },
+    "process_results": {
+      "pass": "All required cases pass or are expected denials, with complete evidence and no material exception.",
+      "pass_with_exceptions": "Required cases are terminal but a non-critical blocked, not-reachable, human-required, or residual finding remains.",
+      "fail": "At least one required case failed or a critical/high finding remains unresolved.",
+      "blocked": "No required case failed, but a required dependency or human-only action blocks completion.",
+      "incomplete": "At least one required case is not terminal or lacks evidence."
+    },
+    "overall_precedence": [
+      "fail",
+      "blocked",
+      "incomplete",
+      "pass_with_exceptions",
+      "pass"
+    ],
+    "pass_prohibition": "Never infer pass from control presence, a successful page load, absence of console errors, prior-run evidence, or a model's confidence. Execute the observable contract and retain evidence."
+  },
+  "evidence_contract": {
+    "allowed": [
+      "route and final route",
+      "headings and control labels",
+      "status and error classifications",
+      "counts that do not reveal customer values",
+      "timestamps",
+      "action keys and gate states",
+      "bodyless record aliases",
+      "receipt, snapshot, preview, execution, event, and artifact hashes",
+      "console error hashes",
+      "network status and endpoint class without payloads",
+      "sanitized screenshot paths only in an explicitly screenshot-safe mode"
+    ],
+    "forbidden": [
+      "passwords, tokens, cookies, authorization headers, setup links, TOTP values, recovery codes, or QR payloads",
+      "Gmail subject lines or bodies",
+      "resident, owner, staff, or vendor email addresses outside reserved test domains",
+      "street addresses, phone numbers, rents, bank data, photos, ticket bodies, or lease/customer content",
+      "raw provider payloads",
+      "screenshots containing Production record values",
+      "private chain-of-thought"
+    ],
+    "minimum_case_evidence": [
+      "what the model did",
+      "role and preconditions",
+      "data mode",
+      "visible validation",
+      "actual visible result",
+      "persisted change or explicit no-change result",
+      "downstream handoff",
+      "receipt, audit, rollback, reconciliation, or idempotency evidence as applicable"
+    ],
+    "redaction_rule": "If safe structural evidence cannot be separated from customer or secret material, do not capture it; record a human verification item describing exactly what the human must observe."
+  },
+  "failure_contract": {
+    "purpose": "Every failure must be actionable without asking a later model to rediscover the route, state, expected behavior, or next discriminating test.",
+    "required_fields": [
+      "finding_id",
+      "case_id",
+      "process_id",
+      "title",
+      "severity",
+      "finding_class",
+      "finding_origin",
+      "expected_behavior",
+      "actual_behavior",
+      "reproduction_steps",
+      "preconditions_and_role",
+      "environment_and_revision",
+      "evidence_references",
+      "console_and_network_summary",
+      "observable_impact",
+      "safety_or_authority_impact",
+      "clean_retry_result",
+      "resolution_status",
+      "root_cause_status",
+      "suspected_or_confirmed_root_cause",
+      "affected_files_or_boundary",
+      "recommended_correction_or_investigation",
+      "regression_test_mapping",
+      "next_discriminating_test",
+      "human_verification_needed",
+      "human_request",
+      "cleanup_or_residue"
+    ],
+    "root_cause_statuses": [
+      "confirmed",
+      "suspected",
+      "not_investigated",
+      "external_dependency",
+      "documentation_mismatch",
+      "audit_harness"
+    ],
+    "resolution_statuses": [
+      "unresolved",
+      "fixed_not_reverified",
+      "fixed_and_reverified",
+      "still_failing",
+      "still_blocked",
+      "external_dependency",
+      "no_longer_applicable",
+      "audit_harness"
+    ],
+    "severity_rule": "Critical or high findings block the affected process. Medium or low findings may produce pass_with_exceptions only when the required contract still passes and the exception is explicit.",
+    "fix_rule": "When an application defect is reproducible and an in-scope safe fix is authorized, preserve the original failure, implement the smallest correct fix with tests, clean-retry, and record both pre-fix and post-fix evidence. Never erase the original failure."
+  },
+  "human_verification_contract": {
+    "queue_policy": "Create an item only when a human action or judgment is genuinely necessary or the model cannot obtain conclusive safe evidence after exhausting in-scope checks.",
+    "reason_classes": [
+      "interactive_authentication",
+      "credential_or_totp_entry",
+      "client_facing_send_confirmation",
+      "system_of_record_write_confirmation",
+      "live_effect_exact_confirmation",
+      "destructive_operation",
+      "owner_business_decision",
+      "customer_content_judgment",
+      "microphone_or_audio_hardware",
+      "long_wait_or_timeout_observation",
+      "subjective_visual_or_copy_judgment",
+      "external_vendor_dependency",
+      "missing_safe_fixture",
+      "evidence_contains_protected_data",
+      "protected_path_owner_review"
+    ],
+    "required_item_fields": [
+      "verification_id",
+      "source_case_ids",
+      "process_id",
+      "title",
+      "reason_class",
+      "why_model_cannot_finish",
+      "priority",
+      "preconditions",
+      "human_steps",
+      "expected_result",
+      "failure_symptoms",
+      "safe_evidence_to_capture",
+      "stop_rule",
+      "model_prefill",
+      "human_status",
+      "human_evidence",
+      "human_issue"
+    ],
+    "deduplication": "Merge items that ask the same person to inspect the same target under the same prerequisite. Preserve every source case ID.",
+    "human_statuses": ["not_run", "pass", "fail", "blocked", "skipped"]
+  },
+  "automation_boundary": {
+    "model_may": [
+      "Read repository sources, configuration, tests, and prior bodyless evidence.",
+      "Run deterministic local verification, lint, typecheck, build, tests, and runner validation.",
+      "Drive an already-authenticated browser and inspect DOM, console, network metadata, navigation, responsive layout, keyboard use, and read-only live surfaces.",
+      "Use isolated local test harnesses or explicitly disposable app-owned fixtures when the runner's mutation intent, effect, cleanup, and idempotency contracts are satisfied.",
+      "Diagnose reproducible defects, implement in-scope non-protected fixes, add tests, and clean-retry when the active task authorizes the repair loop.",
+      "Write bodyless audit artifacts and update the run bridge and HTML snapshot."
+    ],
+    "model_must_not": [
+      "Enter, request, expose, store, or copy a credential, secret, token, cookie, password, TOTP value, recovery code, or setup link.",
+      "Complete interactive Google or Vendor authentication for the human.",
+      "Initiate renewal or maintenance direct sends; those actions are permanently Disabled under D33.",
+      "Autonomously send any client-facing message or perform any client-facing exact confirmation.",
+      "Perform a Live system-of-record write, destructive Production operation, or lowered safety control without the required human action and full contract.",
+      "Use a personal identity, invent a provider endpoint, create Production Sample/Test data, seed a Demo cloud project, or use customer content as a fixture.",
+      "Push a D12 protected-path change or widen authority based on an audit finding.",
+      "Retry an ambiguous effect before reconciliation."
+    ],
+    "auth_handshake": [
+      "Run npm run preflight:adc before any live Google read.",
+      "If ADC is stale, record the exact blocker and ask the owner to run npm run auth:session; continue dependency-independent local checks.",
+      "Open the application sign-in page and ask the human to complete the browser authentication only when no reusable managed session exists.",
+      "After the human finishes, the model verifies domain, role, scope, route access, separation of session contexts, and sign-out behavior without reading credentials.",
+      "Keep internal Admin, restricted staff, secondary Admin, Test Vendor, and unauthenticated contexts separate when the run requires them."
+    ],
+    "cleanup_rule": "Every model-created test artifact or reversible app write must have a named cleanup target, readback, and final state. Residue forces overall blocked or fail and a human queue item."
+  },
+  "execution_phases": [
+    {
+      "id": "P00",
+      "order": 0,
+      "title": "Authentication, governance, environment, and audit harness",
+      "depends_on": [],
+      "runner_selectors": {
+        "processes": ["Audit governance", "Identity and access"],
+        "case_prefixes": ["PRE-", "AUTH-", "INTEGRITY-"]
+      },
+      "model_steps": [
+        "Read every controlling source and compare source HEAD, fact ledger, loop state, deployed revision, guide, runner, case catalog, and any resumed manifest.",
+        "Run the read-only ADC preflight before live Google reads.",
+        "Establish or request separated authenticated browser contexts without handling credentials.",
+        "Initialize or resume the append-only audit run and checkpoint auth readiness.",
+        "Prove Production Live-only and local demo + live_readonly refusal boundaries before mutations."
+      ],
+      "verifiable_outcomes": [
+        "Every required source exists or has an exact blocker.",
+        "The target URL, repository commit, deployed revision, roles, modes, and manifest inventory are explicit.",
+        "Managed identities and session contexts are separated; personal identity is absent.",
+        "Production exposes no Test/Sample product tools; local mutation/provider effects refuse.",
+        "The runner can status and validate its current checkpoint without harness errors."
+      ],
+      "human_residual_triggers": [
+        "Interactive organization authentication or consent is required.",
+        "A password, TOTP, setup link, or authenticator app is required.",
+        "An owner must resolve a source/deployment contradiction that changes scope or authority."
+      ]
+    },
+    {
+      "id": "P01",
+      "order": 1,
+      "title": "Shell, access control, roles, navigation, and session safety",
+      "depends_on": ["P00"],
+      "runner_selectors": {
+        "processes": ["Identity and access", "Administration"],
+        "routes": ["/sign-in", "/ask", "/work", "/spaces", "/connections", "/admin"]
+      },
+      "model_steps": [
+        "Verify protected-route redirect and no content flash while signed out.",
+        "Verify role and Space-scope visibility using available separated sessions.",
+        "Exercise shell navigation, notification menu, refresh, explicit sign-out, and safe session restoration.",
+        "Inspect timeout implementation and exercise warning/cutoff only when the runtime and available time make it conclusive."
+      ],
+      "verifiable_outcomes": [
+        "Unauthenticated internal routes deny access without leaking data.",
+        "Visible navigation and allowed routes match the current role and scopes.",
+        "Refresh preserves the exact session; sign-out revokes it.",
+        "Timeout never submits pending work and has a clear renew-or-expire path."
+      ],
+      "human_residual_triggers": [
+        "A missing role identity prevents scope comparison.",
+        "A full timeout wait is not practical and no deterministic test proves the user-visible timing.",
+        "Subjective copy or visual hierarchy needs owner judgment after objective checks pass."
+      ]
+    },
+    {
+      "id": "P02",
+      "order": 2,
+      "title": "Console, source-backed answers, attention, and handoffs",
+      "depends_on": ["P01"],
+      "runner_selectors": {
+        "processes": [
+          "Knowledge and attention",
+          "Process initiation",
+          "Knowledge improvement",
+          "Knowledge capture"
+        ],
+        "routes": ["/", "/ask"]
+      },
+      "model_steps": [
+        "Exercise source-backed, partial, no-source, invalid, and rate-limit answer states with safe prompts.",
+        "Verify citations, source state, handling steps, correction proposals, capture-task rules, deterministic process suggestion, and explicit AI detection.",
+        "Compare Console attention and Live source states with their owning destinations.",
+        "Use a disposable app-only fixture for a capture/run write only when intent and cleanup are proven."
+      ],
+      "verifiable_outcomes": [
+        "Supported claims trace to current sources and unsupported questions remain explicitly uncertain.",
+        "No question, suggestion, or model response triggers a send or provider effect.",
+        "Capture, correction, and process start require explicit action and preserve ownership.",
+        "Attention counts and source failures reconcile with destination surfaces."
+      ],
+      "human_residual_triggers": [
+        "Microphone and live speech recognition are required.",
+        "A content expert must judge whether a nuanced answer is substantively correct.",
+        "No safe disposable app-owned record exists for a write path."
+      ]
+    },
+    {
+      "id": "P03",
+      "order": 3,
+      "title": "My work and Admin team accountability",
+      "depends_on": ["P01"],
+      "runner_selectors": {
+        "routes": ["/work", "/admin/team-work"],
+        "case_prefixes": ["WORK-"]
+      },
+      "model_steps": [
+        "Verify factual task lists, source links, state, assignee, and explicit session treatment.",
+        "With disposable app-only records, test create, start, atomic switch, pause, resume, block, complete, cancel, and history.",
+        "Verify idle warning/cutoff by deterministic tests first and browser wait only when safe.",
+        "Verify Admin filters, assignment, expectations, corrections, privacy language, and retention preview without deletion."
+      ],
+      "verifiable_outcomes": [
+        "Only explicit task/session events are recorded; no productivity inference appears.",
+        "At most one session is active and every transition is versioned and auditable.",
+        "Outcome reasons and next actions persist across reload and surfaces.",
+        "Retention preview is non-destructive and exact confirmation remains required."
+      ],
+      "human_residual_triggers": [
+        "No disposable task exists and creating one would affect real work.",
+        "Human judgment is required to assess whether copy feels punitive or surveillance-like.",
+        "Destructive retention execution is requested."
+      ]
+    },
+    {
+      "id": "P04",
+      "order": 4,
+      "title": "Spaces, process definitions, publication, and workflow runs",
+      "depends_on": ["P01"],
+      "runner_selectors": {
+        "processes": [
+          "Process knowledge",
+          "Trusted publication",
+          "Knowledge and coordination"
+        ],
+        "routes": [
+          "/spaces",
+          "/spaces/[spaceId]",
+          "/processes",
+          "/processes/[definitionId]",
+          "/workflow-runs/[runId]",
+          "/admin/spaces/request"
+        ]
+      },
+      "model_steps": [
+        "Verify Space inventory, attention, tabs, resources, connected tools, ownership, and route handoffs.",
+        "Verify process definitions, stable steps, required flags, current/published versions, and historical-run binding.",
+        "Use a disposable app-only definition/run only if versioning, rollback, and cleanup are proven.",
+        "Verify trusted publication authority/validation and identify the real no-code builder entry or its absence."
+      ],
+      "verifiable_outcomes": [
+        "Each Space and process has one clear outcome and owner.",
+        "Historical runs retain their original definition version.",
+        "Required steps cannot be silently skipped and optional skip reasons persist.",
+        "Untrusted content cannot silently publish and retired Test Lab handoffs are absent."
+      ],
+      "human_residual_triggers": [
+        "A real process or Space change would be required solely for testing.",
+        "Publication requires a business content decision.",
+        "Page-builder usability needs subjective design judgment after objective behavior checks."
+      ]
+    },
+    {
+      "id": "P05",
+      "order": 5,
+      "title": "Lease Renewal end-to-end workflow",
+      "depends_on": ["P00", "P01"],
+      "runner_selectors": {
+        "processes": ["Lease Renewal", "Approval and execution"],
+        "routes": [
+          "/lease-renewal",
+          "/lease-renewal/live/desk",
+          "/lease-renewal/live/desk/lease/[leaseId]",
+          "/lease-renewal/live",
+          "/lease-renewal/live/notices",
+          "/lease-renewal/property/[propertyKey]"
+        ]
+      },
+      "model_steps": [
+        "Verify canonical routing, portfolio completeness, currency/refresh, cohort classification, attention order, and source backlinks.",
+        "Verify per-lease data check, timing, business-contract gates, owner decision state, owner-policy suggestion, Admin per-number approval boundary, and under-market evidence.",
+        "Verify all-tenant and all-owner recipient fan-out, MKD inclusion, deduplication, and structural channel separation without capturing addresses.",
+        "Verify exact draft preview, D33 no-direct-send exclusion, packet-truth snapshot/blockers, reconciliation, writeback separation, notices, and property history.",
+        "Run the bodyless four-lease report when current prerequisites allow; never recapture immutable baselines."
+      ],
+      "verifiable_outcomes": [
+        "The complete Live portfolio is represented and expired data blocks dependent actions.",
+        "Suggestions never become offered rent without exact Admin approval and source evidence.",
+        "Every recipient is authoritative and owner/tenant channels cannot mix.",
+        "Notice initiation ends at an unsent Gmail draft; direct notice-send controls are absent.",
+        "Packet truth blocks at the approved catalog/provider seam and never guesses legal content.",
+        "Sheet writeback approval remains distinct from its per-key gated execution."
+      ],
+      "human_residual_triggers": [
+        "RentCast plan activation, provider allowance readback, or another owner-held external dependency is missing.",
+        "A real owner decision, per-number approval, client draft confirmation, or system-of-record write is required.",
+        "The approved lease artifact/field/participant/signature/form-family catalog is unavailable.",
+        "Protected D12 gate or rules review is required."
+      ]
+    },
+    {
+      "id": "P06",
+      "order": 6,
+      "title": "Maintenance capture, ticket, intake, draft, and provider boundary",
+      "depends_on": ["P00", "P01"],
+      "runner_selectors": {
+        "processes": ["Maintenance"],
+        "routes": ["/maintenance"]
+      },
+      "model_steps": [
+        "Verify typed capture, safe validation, complete Live unit matching, photo-gate truth, proposed priority/blockers, owner wording, trade suggestion, and execution readiness.",
+        "With a disposable app-only ticket, verify create, assignment, notes, state transitions, history, deep links, and cleanup.",
+        "Verify owner-draft preview and D33 no-direct-send boundary without creating a Live draft.",
+        "Verify linked Gmail ownership and unverified public-intake quarantine, sanitization, nonce, rate, promote/dismiss, and public page discoverability.",
+        "Verify a Live app ticket never masquerades as a RentVine work order while the provider seam is closed."
+      ],
+      "verifiable_outcomes": [
+        "Draft assistance causes no ticket, assignment, email, or provider effect.",
+        "App ticket state is factual, durable, and distinct from provider state.",
+        "Unverified intake remains quarantined until one explicit staff action.",
+        "The resident-facing public entry exists and is safe, or its absence is a precise product gap.",
+        "Maintenance notice initiation ends at an unsent Gmail draft."
+      ],
+      "human_residual_triggers": [
+        "Microphone, image capture, or customer-content judgment is required.",
+        "No safe disposable ticket/intake exists.",
+        "A real owner draft or RentVine work-order write would be required.",
+        "The intended resident public link is owner-held or undocumented."
+      ]
+    },
+    {
+      "id": "P07",
+      "order": 7,
+      "title": "Approval Queue, decisions, notifications, and synchronization",
+      "depends_on": ["P01"],
+      "runner_selectors": {
+        "processes": [
+          "Attention and decisions",
+          "Approval",
+          "Approval notifications",
+          "Notifications"
+        ],
+        "routes": ["/approval-queue", "/notifications"]
+      },
+      "model_steps": [
+        "Verify Needs your decision, All, Renewals, and Writeback views, filters, counts, deep links, URL selection, detail, Activity, and refresh synchronization.",
+        "With disposable app-only fixtures, exercise bounded decision, cancel, snooze/assign/return/deny as applicable, high-risk confirmation, and bulk eligibility without bulk execute.",
+        "Verify approval never executes a provider action and every live effect remains on its owning surface.",
+        "Verify bell/read state, notification lanes, preferences, and cross-surface business-state synchronization."
+      ],
+      "verifiable_outcomes": [
+        "Counts, selected card, URL, details, filters, and owning record stay synchronized.",
+        "High-risk decisions are version-bound and cancel safely.",
+        "Approval, notification read-state, and provider execution are distinct.",
+        "Bulk client send or bulk provider execute does not exist."
+      ],
+      "human_residual_triggers": [
+        "No safe decision fixture exists for a mutation branch.",
+        "A real business approval is the only available target.",
+        "A client/provider effect would be required to prove the terminal state."
+      ]
+    },
+    {
+      "id": "P08",
+      "order": 8,
+      "title": "Workflow Communications and Gmail boundaries",
+      "depends_on": ["P00", "P01"],
+      "runner_selectors": {
+        "processes": ["Workflow Communications", "Communications governance"],
+        "routes": ["/gmail-hub", "/admin/gmail-inbox-zero"]
+      },
+      "model_steps": [
+        "Verify connection, managed mailbox class, watch health, bodyless attention, workflow-bounded entry, and Connections parity.",
+        "Verify linked-thread authorization, metadata linkage, AI understanding, hard categories, source-backed proposal, and exact reply preview.",
+        "Verify label preview/restore and ambiguous-effect reconciliation only with an isolated safe Test transport or pre-existing bodyless evidence.",
+        "Verify generic compose, blast send, direct renewal send, and direct maintenance send are absent; classify retained fallback/template tools against the retirement target."
+      ],
+      "verifiable_outcomes": [
+        "Mailbox reads and operations are bounded to an owning workflow.",
+        "Hard policy categories are deterministic and model assistance never triggers an effect.",
+        "Preview binds exact thread, recipients, body version, action key, and confirmation.",
+        "Ambiguous effects reconcile before retry and D33 exclusions remain enforced."
+      ],
+      "human_residual_triggers": [
+        "Google Workspace consent, mailbox auth, or owner-held setup is required.",
+        "A real client reply or notice draft is the only terminal proof.",
+        "Human review of actual message content is required.",
+        "A cloud watch mutation requires a managed owner action or unavailable prerequisite."
+      ]
+    },
+    {
+      "id": "P09",
+      "order": 9,
+      "title": "Connections and Admin operations",
+      "depends_on": ["P00", "P01"],
+      "runner_selectors": {
+        "processes": ["Provider readiness", "Administration", "Trusted publication"],
+        "routes": [
+          "/connections",
+          "/admin",
+          "/admin/users",
+          "/admin/team-work",
+          "/admin/vendors",
+          "/admin/migration",
+          "/admin/spaces/request"
+        ]
+      },
+      "model_steps": [
+        "Verify connector state/reason, read-only verification, role controls, and cross-surface parity without exposing credentials.",
+        "Inspect Admin connector setup masking/storage semantics and reconcile current UI with older no-credential-entry expectations.",
+        "Verify runtime action stop narrows but never widens authority.",
+        "Verify roles/scopes, notice rules, owner policy, support report closure, retention/legal hold, publication/corrections/reindex, migration dry-run, logs, config, and internal destinations using read-only or disposable app-only paths."
+      ],
+      "verifiable_outcomes": [
+        "Connector readiness is server-owned and unavailable is distinct from empty.",
+        "Secrets are masked, never read back, and never enter evidence.",
+        "Admin changes are reasoned, auditable, versioned, and require fresh session where applicable.",
+        "Runtime suspension cannot open a Registry gate.",
+        "Retention and migration preview are non-destructive; legal hold and exact confirmation remain effective.",
+        "Internal notices remain managed, metadata-only, and non-client."
+      ],
+      "human_residual_triggers": [
+        "A credential must be entered or an OAuth/vendor action completed.",
+        "A protected path or authority-bearing change needs owner review.",
+        "A destructive migration, retention execution, or lowering of safety control is requested.",
+        "A real staff role or business policy would be changed solely for testing."
+      ]
+    },
+    {
+      "id": "P10",
+      "order": 10,
+      "title": "External Vendor identity, setup, portal, and assignment boundary",
+      "depends_on": ["P00", "P01", "P09"],
+      "runner_selectors": {
+        "routes": [
+          "/admin/vendors",
+          "/vendor",
+          "/vendor/setup",
+          "/vendor/sign-in",
+          "/vendor/tickets/[ticketId]"
+        ],
+        "case_prefixes": ["VENDOR-"]
+      },
+      "model_steps": [
+        "Verify Admin Vendor lifecycle targets, previews, gates, and no-effect boundaries.",
+        "Verify setup fragment removal, expiry, one-time use, safe error states, and absence of secret leakage without reading the token.",
+        "After human-authenticated disposable Vendor session exists, verify password/TOTP result classes, Vendor-only scope, sign-out, assigned-ticket visibility, and unassigned denial.",
+        "Verify workflow/same-address Gmail boundary and disable/reassignment history using previews or existing bodyless evidence while live lifecycle gates are closed."
+      ],
+      "verifiable_outcomes": [
+        "Vendor auth is isolated from staff auth and cannot enumerate accounts.",
+        "Setup secrets never survive in the URL, history, logs, screenshots, or audit artifacts.",
+        "Portal access is limited to current assignments and minimum necessary data.",
+        "Closed lifecycle gates prevent invitation, disable, or reassignment effects while preserving app-plane truth."
+      ],
+      "human_residual_triggers": [
+        "Password, setup link, TOTP, or authenticator interaction is required.",
+        "No canonical disposable Vendor or assignment exists.",
+        "A live invite, disable, reassignment, or mailbox action is required."
+      ]
+    },
+    {
+      "id": "P11",
+      "order": 11,
+      "title": "Cross-cutting feedback, responsive, accessibility, errors, and handoffs",
+      "depends_on": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10"
+      ],
+      "runner_selectors": {
+        "processes": ["Cross-product coordination"],
+        "routes": ["all primary routes"]
+      },
+      "model_steps": [
+        "Verify global feedback open/cancel/validation and one disposable app-only report/closure path when safe.",
+        "Run desktop and 390x844 browser passes across every primary route; detect overflow, clipping, overlap, inaccessible controls, and layout shifts.",
+        "Run keyboard-only focus, dialog, tab, filter, form, and preview checks plus automated accessible-name/role checks.",
+        "Build an error-state matrix distinguishing loading, empty, unavailable, stale, blocked, denied, and failed.",
+        "Trace Console, Space, Approval/Notification, Renewal/Maintenance, Communications, and provider-source handoffs end to end.",
+        "Classify current, compatibility, historical, missing-ID, and unauthorized routes without enumerating records."
+      ],
+      "verifiable_outcomes": [
+        "Required controls are usable at desktop and phone widths with no document-level overflow.",
+        "Keyboard focus is visible, ordered, restored, and trap-free; validation/status is perceivable.",
+        "Empty never substitutes for unavailable, stale, denied, or blocked.",
+        "Each handoff preserves identity and has one owning action surface.",
+        "Feedback needs explicit submit, preserves source context, and never auto-submits dictation."
+      ],
+      "human_residual_triggers": [
+        "Microphone/audio or a real device behavior cannot be simulated faithfully.",
+        "Subjective visual polish, tone, comprehension, or business-friction judgment remains after objective checks.",
+        "A screenshot would contain protected customer data.",
+        "A missing safe fixture prevents a terminal branch."
+      ]
+    },
+    {
+      "id": "P12",
+      "order": 12,
+      "title": "Repository verification, falsification, and security regression",
+      "depends_on": ["P00"],
+      "runner_selectors": {
+        "processes": ["Audit governance", "Execution authority"],
+        "routes": ["repository"]
+      },
+      "model_steps": [
+        "Run focused tests for every behavior exercised or changed.",
+        "Run typecheck, lint, format check, context/spec/copy/redaction/falsification checks, Firestore tests when configured, core E2E, build, and the repository's full verification gate in the supported environment.",
+        "Classify pre-existing red tests separately and prove whether the current change affects them.",
+        "Inspect dependency and security output without copying secrets or customer data."
+      ],
+      "verifiable_outcomes": [
+        "Every required local gate passes or has an exact reproducible failure.",
+        "Behavior changes have regression tests and falsification evidence.",
+        "Audit harness failures are never misclassified as application failures.",
+        "No secret, customer value, or unsafe fixture entered source or evidence."
+      ],
+      "human_residual_triggers": [
+        "An emulator, credential, paid provider, or owner-controlled environment is unavailable.",
+        "A protected path change needs owner review.",
+        "A test requires a physical device or human perception not represented by deterministic evidence."
+      ]
+    },
+    {
+      "id": "P13",
+      "order": 13,
+      "title": "Diagnosis, repair, clean retry, human queue, and HTML handoff",
+      "depends_on": [
+        "P00",
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12"
+      ],
+      "runner_selectors": {
+        "processes": ["Audit governance"],
+        "case_prefixes": ["INTEGRITY-"]
+      },
+      "model_steps": [
+        "Normalize every failure under the verbose failure contract and deduplicate findings without losing source cases.",
+        "For authorized app defects, preserve the failure, implement the smallest correct fix with tests, and clean-retry; otherwise record exact remediation or owner dependency.",
+        "Generate only genuinely human-required checks, merge duplicates, and prefill them with model evidence and the next safe action.",
+        "Reconcile the run bridge with runner manifest, summary, findings, remediation ledger, capability matrix, auth checkpoint, cleanup, and residue.",
+        "Embed the sanitized bridge snapshot into the revised HTML, validate the HTML locally, and leave human statuses untouched.",
+        "Finalize and validate the runner only when every case is terminal; otherwise leave a resumable checkpoint and an incomplete overall result."
+      ],
+      "verifiable_outcomes": [
+        "Every case is terminal or the run is explicitly resumable and incomplete.",
+        "Every failure has root-cause state, evidence, fix/investigation, regression mapping, and next test.",
+        "The human queue contains no work the model could still perform safely.",
+        "Every model-created artifact is cleaned or listed as residue.",
+        "The HTML opens from file://, makes no network requests, restores local human input, and generates a complete copy-back report."
+      ],
+      "human_residual_triggers": [
+        "Any unresolved item matches a human-only reason class.",
+        "Owner review is required for protected or authority-bearing changes.",
+        "A live effect, destructive operation, customer-content judgment, or external dependency remains."
+      ]
+    }
+  ],
+  "run_bridge_projection": {
+    "purpose": "Give the human HTML one sanitized, compact, stable document while retaining the detailed runner directory as the authoritative evidence store.",
+    "required_sections_after_execution": [
+      "run metadata and source checkpoints",
+      "auth result",
+      "overall and per-process totals",
+      "one compact result per audited case or capability",
+      "verbose failures",
+      "deduplicated human verification queue",
+      "cleanup and residue",
+      "artifact references",
+      "HTML synchronization status"
+    ],
+    "consistency_rules": [
+      "Counts must reconcile to the actual runner manifest, not the generation snapshot.",
+      "Every failed bridge result maps to a runner finding and evidence reference.",
+      "Every human queue source_case_id exists in the current manifest or is labeled html_only with a stable reason.",
+      "No secret or customer content may be copied from runner evidence into the bridge.",
+      "The HTML embedded snapshot hash must equal the final bridge hash recorded by the model."
+    ]
+  },
+  "html_end_state": {
+    "required_tabs": [
+      "Overview",
+      "Audit plan",
+      "Model results",
+      "Failures",
+      "Human verification",
+      "Copy back"
+    ],
+    "required_capabilities": [
+      "Load the embedded sanitized model run on first open.",
+      "Import or paste a newer bridge JSON locally without network access.",
+      "Persist only non-secret human statuses, evidence, friction, and notes in namespaced localStorage.",
+      "Show model-pass evidence separately from the human's final decision.",
+      "Compute conservative model, human, process, and overall results.",
+      "Render verbose failures and a prioritized residual human queue.",
+      "Generate full and failures-only Markdown copy-back responses.",
+      "Mask captured notes by default, support light/dark, reset with confirmation, and print safely."
+    ],
+    "model_edit_boundary": "At the end of a run, replace only the EMBEDDED_MODEL_RUN value in the revised HTML with the sanitized completed bridge object and update generated metadata. Do not pre-answer human_status, human_evidence, or human_issue."
+  },
+  "completion_definition": [
+    "The model attempted every reachable case in dependency order.",
+    "Every case has a terminal result or the run remains explicitly incomplete with a precise resumption point.",
+    "Every material deviation has a verbose failure record and evidence.",
+    "Every safe in-scope correction attempted by the model preserves original failure evidence and has a clean retry.",
+    "Only genuinely human-required work remains in the deduplicated queue.",
+    "Cleanup and residue are explicit.",
+    "The bridge JSON reconciles with runner artifacts.",
+    "The revised HTML embeds the sanitized current bridge and passes local desktop, 390x844, persistence, clipboard-fallback, and print checks."
+  ]
+}

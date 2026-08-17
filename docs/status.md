@@ -11,6 +11,79 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## Model-assisted process audit of the serving revision: 180 cases terminal, two fixes landed (2026-08-17)
+
+A browser-and-repository model audited the live Production revision `pmi-kc-app-rmsol14wb-9fe02e7af754`
+at commit `1851af3` and finalized every case. Runner validation passes: 180/180 cases terminal, 49
+findings, 423 append-only events, 138 case-owned DOM records, 42 structured records, zero screenshots.
+Current-behaviour totals are 135 pass, 8 expected denials, 8 fail, 19 blocked, 10 not reachable, zero
+not-run, and zero audit-harness-failure results. The sanitized bridge is
+`docs/pmi-kc-model-audit-run-2026-08-17.json` and the human handoff is its sibling HTML, which embeds
+the bridge, opens from a local file with zero external requests, and leaves all 12 human fields
+unanswered.
+
+**The audit harness could not start at all.** The committed 149-case catalog declared 32
+reviewer-checklist ids but referenced only 18, so the runner's traceability guard refused every
+initialization. The 14 orphaned ids describe reviewer steps whose rehearsal-lane premise S40/S56
+retired and which were never re-expressed. Fixed by EXTENDING the inventory to 180 cases, never by
+pruning ids: the 14 steps are re-expressed against the current Live-only product and 17 further cases
+cover routes added after the catalog (work accountability, the canonical renewal desk, notices,
+processes, Vendor portal entry, and the cross-cutting passes). No id was removed or renumbered and all
+three prior run directories are byte-for-byte untouched.
+`tests/unit/process-audit-catalog-traceability.test.mjs` pins it, falsified red against the pre-fix
+catalog.
+
+**Two routes overflowed the document at phone width.** A `select` sizes itself to its widest option, and
+the Admin runtime action-stop picker carries full action keys in its options, so `/admin` rendered a
+783px document against a 375px viewport through 17 descendant elements; `/processes` rendered 390px.
+Two surfaces already carried per-surface overrides for exactly this and the newer surfaces never got
+them. Fixed globally in `app/globals.css` by capping every form control and shared field wrapper at its
+container without forcing a width. The diagnosis was falsified in the live page before any source edit:
+injecting the rule took `/admin` 783 to 375 and `/processes` 390 to 375, and removing it restored both.
+`tests/unit/form-control-overflow.test.mjs` pins it. It reaches users on the next routine deploy.
+
+**Residual demo-lane data is live in Production.** Four demo-titled approval records labelled
+`Demo/Test`, four `TEST` fixture-suite notifications, and a smoke-test titled maintenance ticket render
+on Console, Approval Queue, Notifications, and Maintenance while stored with the LIVE data mode, so no
+runtime filter can distinguish them. The exact strings trace to committed `scripts/demo-firestore.mjs`.
+This contradicts the Live-only guarantee and inflates the operator decision queue. Removing them is a
+destructive Production data operation and is the top human item; the model did not touch it.
+
+Other unresolved findings: four production dependency advisories, three of them high severity; the
+Approval Queue view selection is component-local, so it writes no URL parameter and resets to the
+default view on reload; neither the Lease Renewals nor the Maintenance Space links to its dedicated
+desk, so the documented Space-to-desk handoff is missing on both; the shell exposes no main landmark
+and no skip link; and `gmail.maintenance_owner_notice.draft_create` is labelled Approved for Execution
+while its production gate stays closed with no named external dependency, unlike its open renewal
+sibling. That last one is a D12 path and was prepared and surfaced, never pushed.
+
+Verified intact and worth keeping: all 41 registry keys match what the interface exposes, 5 open and 36
+closed; all three D33 direct notice-send keys are closed and labelled not exposed; zero of the 135
+buttons on the notices surface carries a send label; 21 internal routes deny an isolated
+unauthenticated context with zero protected markers leaked; bulk Execute is structurally refused in the
+shared queue model; the High-severity renewal confirmation was reached and cancelled with a full
+request log proving zero mutating calls; and a blank maintenance capture listed both blockers, kept its
+create control disabled, and created nothing across a reload.
+
+Boundaries held throughout. No Production record was created or modified, no provider effect was
+performed, no client-facing message was sent, no credential was handled, no protected path was changed,
+and cleanup shows zero residue. One notification preference was muted and restored on the auditor's own
+account, proven by an identical before-and-after state hash. Three optional runner sidecars were left
+disabled on purpose: each requires an all-green end state at finalization, which a first-pass audit
+with one genuinely blocked identity cannot satisfy without misreporting, so the auth state lives in the
+bridge instead. That constraint is itself recorded as a finding with a narrower recommended rule.
+
+Gate results at this commit with both fixes applied: two uncontended full unit runs each passed 499
+files and 4,613 tests; typecheck, format, falsification, context freshness, spec traceability, copy
+voice, redaction, and router boundary all pass; lint reports zero errors. Three further full runs the
+audit started on top of an already-running suite failed only on vitest worker-spawn timeouts, never on
+an assertion, and the named files passed in isolation. This suite must be run alone on this machine.
+
+Twelve deduplicated human-only checks remain, covering destructive cleanup, live exact confirmations,
+a second identity, two owner decisions, a D12 review, microphone hardware, and missing safe fixtures.
+The browser session that expired at the end of the run was re-authenticated afterwards and verified
+Admin on the Console and on an Admin-only route, so that blocker is cleared.
+
 ## Two verification footguns closed: deploy write-back coupling and evidence-path CI parity (2026-08-07)
 
 Both issues surfaced by the training-day work are fixed, tested, and falsified.

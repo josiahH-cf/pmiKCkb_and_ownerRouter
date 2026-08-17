@@ -23,6 +23,27 @@ textarea {
   font: inherit;
 }
 
+/* A <select> sizes itself to its widest option, so a long action-key label (for example
+   "Enroll resident in Boom (boom.resident.enroll)") widened the whole document at phone widths:
+   /admin measured a 783px scrollWidth against a 375px viewport and /processes measured 390px.
+   Cap every form control and its field wrapper to the container instead of repeating the
+   per-surface .gmail-hub / .work-form-grid overrides on each new surface. This sets no width, so
+   controls that are intentionally auto-sized keep their intrinsic size. */
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.field,
+.field-label,
+fieldset {
+  max-width: 100%;
+  min-width: 0;
+}
+
 button {
   cursor: pointer;
 }

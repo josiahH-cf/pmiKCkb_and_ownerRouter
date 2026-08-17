@@ -4458,4 +4458,955 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
         "A bodyless count scan and regression test prove zero remaining duplicate-reference arrays.",
     },
   },
+  // ---------------------------------------------------------------------------
+  // 2026-08-17 traceability-completing extension.
+  //
+  // The 149-case catalog left 14 declared reviewer-checklist IDs unmapped, which made
+  // validateTraceabilityCompleteness reject every attempt to initialize a run. Those IDs
+  // describe reviewer steps whose rehearsal-lane premise was retired by S40/S56; they are
+  // re-expressed here against the current Live-only product, together with coverage for the
+  // routes introduced after the original catalog (work accountability, the canonical renewal
+  // desk, notices, processes, Vendor portal entry, and the cross-cutting passes).
+  // ---------------------------------------------------------------------------
+  {
+    id: "RETIRE-CONSOLE-001",
+    title: "Console process start is Live-only with no rehearsal-lane labeling",
+    surface: "Console",
+    route: "/ask",
+    process: "Process initiation",
+    workflow_stage: "process start",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#ask-start.Select-process", "goal#retired-rehearsal-lane"],
+    reviewer_refs: ["reviewer-pass#Console-2"],
+    expected: {
+      user_action:
+        "Choose a process on Console and inspect the start control and its declared mode.",
+      preconditions_and_role:
+        "Admin on the deployed Production application; no rehearsal lane exists.",
+      app_validation:
+        "The process selector and start control expose only Live workflow initiation.",
+      visible_result:
+        "No rehearsal-mode label, seeder, or simulated-run control is reachable.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Starting a run hands off to the owning workflow surface.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "RETIRE-LEASE-001",
+    title: "No invented-lease rehearsal surface remains on the renewal entry route",
+    surface: "Lease Renewal",
+    route: "/lease-renewal",
+    process: "Lease Renewal",
+    workflow_stage: "mode isolation",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#retired-rehearsal-lane"],
+    reviewer_refs: ["reviewer-pass#Lease-1"],
+    expected: {
+      user_action:
+        "Open the renewal entry route and enumerate every reachable lease-opening control.",
+      preconditions_and_role: "Admin on Production, which holds Live records only.",
+      app_validation:
+        "Every reachable lease is a Live record; no invented-record viewer is offered.",
+      visible_result:
+        "No rehearsal lease, seeded example, or simulated value surface is present.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "The entry route hands off to the canonical Live renewal desk.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "LEASE-NOTICE-001",
+    title: "Owner and tenant notice preparation stays draft-only",
+    surface: "Lease Renewal notices",
+    route: "/lease-renewal/live/notices",
+    process: "Lease Renewal",
+    workflow_stage: "notice initiation",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-actions", "goal#D33-draft-only"],
+    reviewer_refs: ["reviewer-pass#Lease-2"],
+    expected: {
+      user_action:
+        "Open the notices surface and inspect owner and tenant notice preparation controls.",
+      preconditions_and_role:
+        "Admin on Production; notice initiation is draft-only under D33.",
+      app_validation:
+        "Preparation ends at an unsent Gmail draft and exposes no direct-send control.",
+      visible_result:
+        "Both owner and tenant notice paths present preview and draft language only.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "The human completes the send from Gmail, outside the application.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "RETIRE-LEASE-002",
+    title: "No persistent rehearsal renewal creation control remains on the desk",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Lease Renewal",
+    workflow_stage: "mode isolation",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-actions", "goal#retired-rehearsal-lane"],
+    reviewer_refs: ["reviewer-pass#Lease-6"],
+    expected: {
+      user_action: "Enumerate desk controls that could create a renewal record.",
+      preconditions_and_role:
+        "Admin on Production; rehearsal record creation was retired.",
+      app_validation:
+        "No control creates an invented renewal; lifecycle state follows Live records.",
+      visible_result:
+        "Only Live lease rows and their per-lease workspaces are reachable.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each row hands off to its own per-lease workspace.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "RETIRE-LEASE-003",
+    title: "Renewal execution stays per-action gated with no bulk rehearsal panel",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Approval and execution",
+    workflow_stage: "execution boundary",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-actions", "goal#per-key-activation"],
+    reviewer_refs: ["reviewer-pass#Lease-7"],
+    expected: {
+      user_action:
+        "Inspect every execution-shaped control for a bulk or all-actions runner.",
+      preconditions_and_role:
+        "Admin on Production; activation is per Action Registry key only.",
+      app_validation: "No control executes a set of provider actions in one gesture.",
+      visible_result:
+        "Execution-shaped controls are individually gated and separately confirmed.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each action keeps its own owning surface and receipt.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "LEASE-RUNS-001",
+    title: "Renewal run history is traceable against the documented lifecycle",
+    surface: "Lease Renewal runs",
+    route: "/lease-renewal/runs",
+    process: "Lease Renewal",
+    workflow_stage: "lifecycle traceability",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#lifecycle-traceability"],
+    reviewer_refs: ["reviewer-pass#Lease-8"],
+    expected: {
+      user_action:
+        "Open renewal run history and compare visible stages with the documented lifecycle.",
+      preconditions_and_role: "Admin on Production with Live renewal records.",
+      app_validation:
+        "Each run exposes its stage, owner, and next action, or names the unconnected step.",
+      visible_result:
+        "Owner decision, tenant response, documents, and closeout are traceable or explicitly absent.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each run links to the surface that owns its next step.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "RETIRE-MAINT-001",
+    title: "No rehearsal ticket creation control remains on Maintenance",
+    surface: "Maintenance",
+    route: "/maintenance",
+    process: "Maintenance",
+    workflow_stage: "mode isolation",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#maintenance", "goal#retired-rehearsal-lane"],
+    reviewer_refs: ["reviewer-pass#Maintenance-2"],
+    expected: {
+      user_action:
+        "Enumerate Maintenance creation controls and their declared data mode.",
+      preconditions_and_role: "Admin on Production, which holds Live records only.",
+      app_validation:
+        "Capture explicitly creates a Live app record and offers no rehearsal alternative.",
+      visible_result:
+        "No simulated ticket creation or staff-action rehearsal panel is present.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Capture hands off to the owning Live ticket.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "MAINT-LIFECYCLE-001",
+    title: "Ticket lifecycle transitions are exercised on the owning Live record",
+    surface: "Maintenance",
+    route: "/maintenance",
+    process: "Maintenance",
+    workflow_stage: "state transition",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#maintenance", "goal#state-transition-truth"],
+    reviewer_refs: ["reviewer-pass#Maintenance-3"],
+    expected: {
+      user_action:
+        "Open a Live ticket and inspect assignee, note, state, and closure controls with their validation.",
+      preconditions_and_role:
+        "Admin on Production; no Live ticket is mutated during read-only inspection.",
+      app_validation:
+        "Each transition names its required reason and target state before acting.",
+      visible_result:
+        "History and filters describe the current Live state without inference.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "The ticket remains the owning record for its next action.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "VENDOR-ADMIN-006",
+    title: "Vendor assignment boundary without an available Vendor identity",
+    surface: "Admin vendors",
+    route: "/admin/vendors",
+    process: "Administration",
+    workflow_stage: "assignment boundary",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#maintenance", "goal#vendor-identity-separation"],
+    reviewer_refs: ["reviewer-pass#Maintenance-5"],
+    expected: {
+      user_action:
+        "Inspect the Vendor roster and the assignment path from a Live maintenance ticket.",
+      preconditions_and_role:
+        "Admin on Production; no separate authenticated Vendor session exists.",
+      app_validation:
+        "Assignment targets are explicit and a Vendor sees only assigned work.",
+      visible_result:
+        "The boundary is visible without provisioning or authenticating a Vendor.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "The assigned ticket remains the owning record for the Vendor portal.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "APPROVAL-013",
+    title: "Approval controls declare app-state versus external effect before acting",
+    surface: "Approval Queue",
+    route: "/approval-queue",
+    process: "Approval",
+    workflow_stage: "authorization boundary",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#decisions", "goal#authorization-versus-execution"],
+    reviewer_refs: ["reviewer-pass#Governance-1"],
+    expected: {
+      user_action:
+        "For each approval control, classify its declared effect before any click.",
+      preconditions_and_role:
+        "Admin on Production; no decision is committed during classification.",
+      app_validation:
+        "Each control's label and confirmation copy state whether it changes app state, calls a provider, or both.",
+      visible_result:
+        "The visible classification matches the surface that owns the effect.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Provider execution remains on its own owning surface.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "ADMIN-016",
+    title: "Role and scope change ceremony requires a reason and an audit record",
+    surface: "Admin people",
+    route: "/admin/users",
+    process: "Administration",
+    workflow_stage: "privilege ceremony",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Admin", "goal#privilege-ceremony"],
+    reviewer_refs: ["reviewer-pass#Governance-5"],
+    expected: {
+      user_action:
+        "Inspect the role and scope change ceremony, its required reason, and its domain boundary.",
+      preconditions_and_role:
+        "Admin on Production; no real teammate role is changed for the audit.",
+      app_validation:
+        "The ceremony requires a plain-English reason and enforces the managed domain boundary.",
+      visible_result:
+        "The control discloses its audit trail and last-Admin protection before acting.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "An applied change is visible in the append-only role-change audit.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "VENDOR-ADMIN-007",
+    title: "Vendor provisioning, reset, and disable controls stay fail-closed",
+    surface: "Admin vendors",
+    route: "/admin/vendors",
+    process: "Administration",
+    workflow_stage: "lifecycle boundary",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Admin", "goal#vendor-identity-separation"],
+    reviewer_refs: ["reviewer-pass#Governance-6"],
+    expected: {
+      user_action:
+        "Inspect Vendor invite, reset, and disable controls and their preview and gate states.",
+      preconditions_and_role:
+        "Admin on Production; no Vendor lifecycle effect is performed.",
+      app_validation:
+        "Each control previews its exact target and refuses without an open gate.",
+      visible_result:
+        "Setup-secret material never appears in the route, page, or evidence.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "A completed lifecycle action would appear in the Vendor record history.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "LEASE-BIZ-009",
+    title: "Owner and tenant decisions branch the renewal at the documented moment",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Lease Renewal",
+    workflow_stage: "decision branching",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#decision-branching"],
+    reviewer_refs: ["reviewer-pass#Questions-5"],
+    expected: {
+      user_action:
+        "Trace where an owner decision and a tenant response change the renewal path.",
+      preconditions_and_role: "Admin on Production with Live renewal records.",
+      app_validation:
+        "Each branch point is an explicit recorded decision rather than an inferred state.",
+      visible_result:
+        "The branch is visible on the owning lease workspace with its next action.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "The next action names its owning surface and actor.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "LEASE-BIZ-010",
+    title: "Conditional documents, charges, services, and closeout evidence completeness",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Lease Renewal",
+    workflow_stage: "packet truth",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#packet-truth"],
+    reviewer_refs: ["reviewer-pass#Questions-6"],
+    expected: {
+      user_action:
+        "Inspect the renewal packet surface for required conditional items and closeout evidence.",
+      preconditions_and_role:
+        "Admin on Production; the approved artifact catalog is an external dependency.",
+      app_validation:
+        "Missing catalog content blocks at the documented seam instead of being invented.",
+      visible_result:
+        "Required and conditional items are named, or their blocker is stated exactly.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "The blocker names the publication surface that would supply the catalog.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "WORK-001",
+    title: "My work lists factual tasks with source links and explicit state",
+    surface: "My work",
+    route: "/work",
+    process: "Cross-product coordination",
+    workflow_stage: "task inventory",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#cross-tab", "goal#work-accountability"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open My work and inspect the task list, source links, state, and assignee.",
+      preconditions_and_role: "Admin on Production; tasks are application-owned records.",
+      app_validation:
+        "Every listed item states its source, state, and owner without inference.",
+      visible_result:
+        "No productivity score, ranking, or content-derived judgement appears.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each task links to the record that owns its next action.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "WORK-002",
+    title: "Work sessions are explicitly user-started and at most one is active",
+    surface: "My work",
+    route: "/work",
+    process: "Cross-product coordination",
+    workflow_stage: "session truth",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#cross-tab", "goal#work-accountability"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Inspect start, pause, resume, block, complete, and cancel controls and the active-session indicator.",
+      preconditions_and_role:
+        "Admin on Production; no session is started during read-only inspection.",
+      app_validation:
+        "Session controls require an explicit user action and disclose the single active session rule.",
+      visible_result: "Transitions are described as versioned, auditable events.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "The owning task retains the session history.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "WORK-003",
+    title: "Admin team work stays factual, non-punitive, and non-destructive",
+    surface: "Admin team work",
+    route: "/admin/team-work",
+    process: "Administration",
+    workflow_stage: "accountability",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Admin", "goal#work-accountability"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Inspect Admin team work filters, expectations, corrections, privacy language, and retention preview.",
+      preconditions_and_role: "Admin on Production; no retention execution is requested.",
+      app_validation:
+        "Retention preview is explicitly non-destructive and keeps exact confirmation required.",
+      visible_result: "Copy describes recorded events rather than inferred productivity.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "Corrections remain attached to the owning task or session record.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "DESK-001",
+    title: "Canonical renewal desk routing, portfolio completeness, and currency",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Lease Renewal",
+    workflow_stage: "portfolio completeness",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#portfolio-complete-reads"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the canonical desk and inspect its lease inventory, cohort grouping, and data-currency disclosure.",
+      preconditions_and_role: "Admin on Production reading the Live provider portfolio.",
+      app_validation:
+        "The desk states its source, count, and read age rather than implying completeness.",
+      visible_result:
+        "Expired or unavailable source data blocks dependent actions with an explicit reason.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each lease row hands off to its own workspace.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "DESK-002",
+    title: "Per-lease workspace exposes source backlinks and exact blockers",
+    surface: "Lease Renewal desk",
+    route: "/lease-renewal/live/desk",
+    process: "Lease Renewal",
+    workflow_stage: "per-lease workspace",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#lease-process", "goal#evidence-backlinks"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open one Live lease workspace and inspect its fields, source backlinks, and blocking conditions.",
+      preconditions_and_role: "Admin on Production; no lease value is altered.",
+      app_validation: "Each displayed fact names its owning source system.",
+      visible_result:
+        "A missing fact is shown as missing with its expected source, never filled by a guess.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Blockers name the surface or person that resolves them.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "PROCESSES-001",
+    title: "Process definition index exposes current and published versions",
+    surface: "Processes",
+    route: "/processes",
+    process: "Process knowledge",
+    workflow_stage: "definition inventory",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Spaces", "goal#process-versioning"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the process index and inspect each definition, its steps, and its version state.",
+      preconditions_and_role:
+        "Admin on Production; definitions are application-owned records.",
+      app_validation:
+        "Current and published versions are distinguished rather than merged.",
+      visible_result: "Required steps are marked and cannot be silently skipped.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each definition links to its owning Space and runs.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "VENDOR-PORTAL-020",
+    title: "Vendor portal entry is isolated from the internal staff shell",
+    surface: "Vendor portal",
+    route: "/vendor",
+    process: "Identity and access",
+    workflow_stage: "identity separation",
+    role: "Unauthenticated",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs", "goal#vendor-identity-separation"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the Vendor portal entry route without an internal staff session.",
+      preconditions_and_role:
+        "Unauthenticated context; the internal Admin session is not reused.",
+      app_validation:
+        "The Vendor entry refuses internal navigation and exposes no staff surface.",
+      visible_result: "No internal record, roster, or Space content is visible.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "The route hands off only to the Vendor authentication surface.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "VENDOR-PORTAL-021",
+    title: "Vendor sign-in is separate and does not enumerate accounts",
+    surface: "Vendor portal",
+    route: "/vendor/sign-in",
+    process: "Identity and access",
+    workflow_stage: "authentication boundary",
+    role: "Unauthenticated",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs", "goal#vendor-identity-separation"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the Vendor sign-in route and inspect its error and refusal classes.",
+      preconditions_and_role:
+        "Unauthenticated context; no credential is entered by the model.",
+      app_validation:
+        "Refusals are uniform and do not distinguish a known from an unknown principal.",
+      visible_result: "The surface is visibly distinct from the internal staff sign-in.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "A completed Vendor authentication would reach only assigned work.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "ADMIN-017",
+    title: "Migration preview is non-destructive and exact confirmation remains required",
+    surface: "Admin migration",
+    route: "/admin/migration",
+    process: "Administration",
+    workflow_stage: "migration preview",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Admin", "goal#non-destructive-preview"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the migration surface and inspect its dry-run and confirmation contract.",
+      preconditions_and_role: "Admin on Production; no migration is executed.",
+      app_validation:
+        "The preview states that no data changes and names the exact confirmation required.",
+      visible_result:
+        "Destructive execution is separated from preview by an explicit gate.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Execution evidence would remain on the migration record.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "ADMIN-018",
+    title: "Space request path is internal, reasoned, and non-provisioning",
+    surface: "Admin spaces",
+    route: "/admin/spaces/request",
+    process: "Administration",
+    workflow_stage: "request intake",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Spaces", "goal#space-provisioning-boundary"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the Space request surface and inspect its inputs, validation, and outcome copy.",
+      preconditions_and_role: "Admin on Production; no request is submitted.",
+      app_validation:
+        "Submission is described as an internal request rather than immediate provisioning.",
+      visible_result: "Required fields and their validation are visible before submit.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "A submitted request becomes owned internal work.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "ADMIN-019",
+    title: "Admin mailbox triage stays workflow-bounded and bodyless",
+    surface: "Admin communications",
+    route: "/admin/gmail-inbox-zero",
+    process: "Communications governance",
+    workflow_stage: "mailbox boundary",
+    role: "Admin",
+    data_mode: "live_read",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs.Communications", "goal#workflow-bounded-mailbox"],
+    reviewer_refs: [],
+    expected: {
+      user_action: "Open the Admin mailbox triage surface and inspect what it discloses.",
+      preconditions_and_role:
+        "Admin on Production; message content is not captured as evidence.",
+      app_validation:
+        "The surface is bounded to workflow-linked threads and exposes no general inbox.",
+      visible_result:
+        "Attention is expressed as counts and links rather than message bodies.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each item links to its owning workflow record.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "live_read",
+    },
+  },
+  {
+    id: "FEEDBACK-001",
+    title: "Global feedback requires explicit submission and preserves source context",
+    surface: "Global shell",
+    route: "all audited surfaces",
+    process: "Cross-product coordination",
+    workflow_stage: "feedback intake",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#cross-tab", "goal#feedback-intake"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Open the global feedback control, inspect validation, then cancel without submitting.",
+      preconditions_and_role: "Admin on Production; no report is created.",
+      app_validation:
+        "Submission requires explicit action and validates an empty report.",
+      visible_result:
+        "The captured source route is preserved and dictation never auto-submits.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "A submitted report would become an Admin-visible record with a closure control.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "A11Y-001",
+    title: "Keyboard-only operation across the primary routes",
+    surface: "Global shell",
+    route: "all audited routes",
+    process: "Cross-product coordination",
+    workflow_stage: "accessibility",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#cross-tab", "goal#accessible-operation"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Traverse each primary route by keyboard and inspect focus order, visibility, and accessible names.",
+      preconditions_and_role:
+        "Admin on Production; no control is activated destructively.",
+      app_validation: "Interactive controls expose an accessible name and role.",
+      visible_result: "Focus is visible, ordered, and free of traps.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Focus returns to the invoking control after a dialog closes.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "RESPONSIVE-001",
+    title: "Primary routes remain usable at a phone width",
+    surface: "Global shell",
+    route: "all audited routes",
+    process: "Cross-product coordination",
+    workflow_stage: "responsive layout",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#cross-tab", "goal#responsive-layout"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Render each primary route at a phone viewport and measure document-level overflow.",
+      preconditions_and_role: "Admin on Production; layout only is inspected.",
+      app_validation: "Required controls remain reachable at the narrow width.",
+      visible_result: "No route scrolls the document horizontally.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff:
+        "Navigation between routes remains available at the narrow width.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "ERRSTATE-001",
+    title: "Error and absence states are distinguished from one another",
+    surface: "Global shell",
+    route: "all audited routes",
+    process: "Cross-product coordination",
+    workflow_stage: "error taxonomy",
+    role: "Admin",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#system-journey.Information-is-missing", "goal#error-taxonomy"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Request a missing identifier, a compatibility route, and an unknown route, and classify each response.",
+      preconditions_and_role: "Admin on Production; no record is enumerated.",
+      app_validation:
+        "Each response states its own class rather than a generic empty view.",
+      visible_result:
+        "Empty never substitutes for unavailable, stale, denied, or blocked.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "Each state names the next surface or person.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "SECURITY-001",
+    title: "Every current internal route denies an unauthenticated context",
+    surface: "Global shell",
+    route: "all audited routes",
+    process: "Identity and access",
+    workflow_stage: "route guard",
+    role: "Unauthenticated",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#tabs", "goal#route-guard"],
+    reviewer_refs: [],
+    expected: {
+      user_action: "Request each current internal route from an unauthenticated context.",
+      preconditions_and_role:
+        "Unauthenticated context isolated from the internal Admin session.",
+      app_validation:
+        "Each protected route denies access and redirects to authentication.",
+      visible_result:
+        "No protected content, record, or roster is rendered before the redirect.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "The redirect target is the managed authentication surface.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
+  {
+    id: "GATE-001",
+    title: "Action Registry gate state matches what the interface claims",
+    surface: "Repository and application",
+    route: "repository",
+    process: "Execution authority",
+    workflow_stage: "gate integrity",
+    role: "Auditor",
+    data_mode: "app_only",
+    mutation_kind: "read",
+    safe_alias: null,
+    depends_on: [],
+    screenshot_safe: false,
+    guide_refs: ["guide#decisions", "goal#per-key-activation"],
+    reviewer_refs: [],
+    expected: {
+      user_action:
+        "Compare each committed Action Registry key and gate with the controls the application exposes.",
+      preconditions_and_role:
+        "Auditor reading committed configuration and the deployed interface.",
+      app_validation: "A closed gate is never presented as an available action.",
+      visible_result: "Permanently excluded notice-send keys remain Registry-closed.",
+      persisted_change: "No persisted change is expected.",
+      downstream_handoff: "An open gate names the surface that owns its confirmation.",
+      receipt_audit_or_idempotency_evidence:
+        "Read-only inspection records no receipt beyond bodyless audit evidence.",
+      data_mode: "app_only",
+    },
+  },
 ]);
