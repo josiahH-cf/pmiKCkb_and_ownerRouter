@@ -1,0 +1,158 @@
+{
+  "schema_version": "pmi-kc-model-audit-human-response.v1",
+  "generated_at": "2026-08-23T10:55:05Z",
+  "source_run_id": "20260817T104500Z-model-audit",
+  "overall_result": "incomplete",
+  "human_results": [
+    {
+      "verification_id": "HV-001",
+      "source_case_ids": ["CONSOLE-001", "APPROVAL-001", "ATTENTION-X-001"],
+      "process_id": "Knowledge and attention",
+      "status": "pass",
+      "evidence": "Managed organization cloud/ADC and dedicated-browser Admin state were reverified against the exact Production + Live deployment. The owner exact-confirmed a 78-record bodyless manifest at sha256:d508ece8e389366f41df1c33c55dc7449e4da604fb5fcfe43215156b4cbb3786. A named deletion-protected PITR clone matched 78/78 full-field hashes; a create-only restore drill matched and the exact drill database was then proven absent. Seventy-eight update-time-CAS deletes each read back absent; an independent process found 0/78 exact records and zero governed markers. Reloaded Console, Approval Queue, and Notifications agreed on one remaining genuine decision; Maintenance showed zero ticket cards; the four surfaces reported zero governed markers, alert states, or failed same-origin resources.",
+      "issue": "",
+      "friction": "The clone operation reported done before the data plane accepted a read, so the same clone required bounded readiness polling. The first restore-drill delete returned a conflict while exact readback showed the same UID present with no deleteTime and no accepted operation; it was reconciled as no-effect before a bounded retry. The long validation also outlived the app session even though CLI and ADC remained current, requiring managed reauthentication and a full pre-effect drift recheck.",
+      "nextAction": "Retain the deletion-protected backup s56-test-retirement-20260819-hv001-1210 through the audit rollback window. Delete it only after audit closure through a separate exact confirmation and UID/absence readback. Permanent tooling requirements are specified in S56 AC-S56-9 through AC-S56-13 and S69."
+    },
+    {
+      "verification_id": "HV-002",
+      "source_case_ids": [
+        "LEASE-LIVE-005",
+        "LEASE-LIVE-010",
+        "LEASE-LIVE-011",
+        "LEASE-LIVE-012",
+        "LEASE-LIVE-013",
+        "LEASE-LIVE-014",
+        "LEASE-LIVE-015",
+        "LEASE-LIVE-016"
+      ],
+      "process_id": "Lease Renewal",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "The user reported browser authentication complete on 2026-08-20, but after the 2026-08-22 restart both managed CLI and ADC tokens were stale with invalid_rapt while local managed-account and Production-project selections remained valid. The user completed the Google flow; independent checks proved fresh CLI and ADC, and the temporary auth shell was closed. The user then reported being logged in and seeing the app, while the bodyless browser pathname showed /lease-renewal/live/desk instead of the requested /lease-renewal/live review. Source inspection confirms sign-in drops the protected return target (FB-HVSESSION-011). After an authenticated route retry, the user replied pass, but the bodyless pathname and a user-supplied current-page image both showed the Desk and its Renewals heading. The candidate Pass was reconciled as a failed setup action, not an HV-002 result. On the 2026-08-23 restart, both managed CLI and ADC were stale again while local selections remained valid; normal Codex control again failed initialization and reset/retry. No custom browser fallback was used. Process readback proved the first prepared shell was idle, so it was closed and the unchanged authenticator was relaunched as the new visible shell's startup command. Fresh independent checks later proved both managed CLI and ADC current. At the user's explicit request, the exact Production route and local audit HTML were launched in the normal Windows browser, but normal Codex control remained unavailable after reset/retry, so no route, DOM, authentication, or saved-state claim was inferred from the browser process. The user later replied pass while contemporaneous in-app browser readback showed Production pathname / rather than /lease-renewal/live. That candidate Pass was also reconciled as a failed setup action. The normal exact-route open request queued, and Computer Use remained unavailable before initialization. The user's corrected Pass was then corroborated by exact /lease-renewal/live in-app browser readback. This closed route acquisition only; supported page-state inspection remained unavailable. The user then affirmatively judged the first visible conflict to be genuine normal-course work already intended for resolution; no resolution or write-back action occurred. The next candidate Pass reported that the site updated based on dropdowns or toggles but omitted the exact selected Resolution label and left extra-control changes ambiguous. An ephemeral user-supplied current-page image then corroborated only the allowlisted form state: Enter a corrected value and A source is out of date were selected, both text fields were empty, Resolve was available, and no dialog was open. The image and all customer values in it were not retained or cited. The reason-code selection exceeded the one-action checkpoint but issued no request or effect; the user confirmed the displayed state looked right. A later Reason-entry candidate Pass was rejected because contemporaneous in-app browser readback showed Production /sign-in; the unsaved form state is treated as lost and no request or effect is inferred.",
+      "nextAction": "On Production /sign-in, click Sign in with Google once and stop when the Google popup or account chooser appears. Do not select an account, enter credentials, dismiss a warning, or touch a workflow control in this action."
+    },
+    {
+      "verification_id": "HV-003",
+      "source_case_ids": ["CONNECTION-006", "ADMIN-009"],
+      "process_id": "Identity and access",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-004",
+      "source_case_ids": ["CONNECTION-005"],
+      "process_id": "Provider readiness",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-005",
+      "source_case_ids": ["GATE-001", "MAINT-LIVE-004"],
+      "process_id": "Execution authority",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-006",
+      "source_case_ids": ["CONSOLE-014", "MAINT-LIVE-007"],
+      "process_id": "Cross-product coordination",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-007",
+      "source_case_ids": [
+        "CONSOLE-011",
+        "CONSOLE-012",
+        "SPACE-010",
+        "MAINT-LIFECYCLE-001",
+        "INTAKE-004",
+        "NOTIFY-004"
+      ],
+      "process_id": "Cross-product coordination",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-008",
+      "source_case_ids": [
+        "COMM-006",
+        "COMM-007",
+        "COMM-008",
+        "COMM-009",
+        "COMM-010",
+        "COMM-012",
+        "MAINT-GMAIL-002",
+        "MAINT-GMAIL-003",
+        "MAINT-GMAIL-004",
+        "MAINT-GMAIL-005",
+        "MAINT-GMAIL-006"
+      ],
+      "process_id": "Workflow Communications",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-009",
+      "source_case_ids": ["COMM-015"],
+      "process_id": "Workflow Communications",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-010",
+      "source_case_ids": ["LEASE-X-011"],
+      "process_id": "Lease Renewal",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-011",
+      "source_case_ids": ["PRE-004"],
+      "process_id": "Audit governance",
+      "status": "not_run",
+      "evidence": "",
+      "issue": "",
+      "friction": "",
+      "nextAction": ""
+    },
+    {
+      "verification_id": "HV-012",
+      "source_case_ids": ["PRE-005"],
+      "process_id": "Identity and access",
+      "status": "pass",
+      "evidence": "The dedicated audit profile was bound to one exact browser root and loopback port, separate from the ordinary Chrome root. A managed-domain Admin session showed the Admin role and Sign out state. Console, Admin, Connections, Approval Queue, Notifications, and Maintenance loaded with 200/no redirect. The serving service, 100%-traffic revision, Production + Live descriptor, allowed managed domain, and Demo-auth-disabled state were independently read back.",
+      "issue": "",
+      "friction": "Chrome window switches caused human/facilitator confusion about which profile was authenticated. The prior app tab/window later closed, and the app session expired independently of the still-current CLI/ADC identity during the long HV-001 validation.",
+      "nextAction": "On every new visit, use the Codex app's normal browser/computer control to acquire and verify the exact current app target; do not require a custom profile, process, port, CDP, or Playwright controller. If CLI/ADC is stale and the user can interact with the visible flow, run npm run auth:session and ask for exactly one managed sign-in action. Reverify CLI/ADC, app role, domain, routes, deployment, environment, and controlled-window separation before workflow work or any Live effect."
+    }
+  ],
+  "additional_context": "This sanitized durable partial response preserves 2 Pass and 10 not_run results. A candidate Reason-entry Pass is rejected because contemporaneous in-app browser readback shows Production /sign-in instead of /lease-renewal/live. The unsaved form state is treated as lost, and no resolution request or effect is inferred. Fresh non-printing preflights prove the managed account selection, Production project, CLI token, and ADC token current; only the browser-app session requires sign-in. Normal Computer Use remains unavailable before initialization and no custom controller is attached.",
+  "requested_next_action": "Click Sign in with Google once and stop at the Google popup or account chooser. The human must control every account/credential step; after sign-in the facilitator must reacquire exact /lease-renewal/live and rebuild the unsaved form state before any Resolve action."
+}

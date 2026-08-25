@@ -8,6 +8,14 @@
 > production instance. That's the whole point." The Demo project is deferred
 > (`F-DEMO-DEFERRED-LOCAL-FIRST`), so those records have no destination and are DELETED rather than
 > moved. Explicitly scoped as a large change, not a hotfix.
+>
+> **Human-audit amendment 2026-08-19.** HV-001 of run
+> `20260817T104500Z-model-audit` found a second residue class that the original S56 catalog could
+> not see: 78 records whose values came from committed demo/fixture/smoke sources but whose stored
+> mode was Live or unclassified. The owner separately confirmed the exact bodyless manifest and
+> exact-confirmed its deletion after a fresh backup and restore proof. This amendment does not make
+> names or marker strings deletion authority; it specifies the review, backup-readiness,
+> conflict-reconciliation, journal, rollback, and cleanup behavior the permanent S56 tooling lacked.
 
 **Goal.** A record in Production is client data. There is no second lane, no rehearsal records
 sitting beside real ones, and no way for an operator or an Admin to create a pretend record in the
@@ -52,6 +60,44 @@ Buildable now (app-plane): every stage above. Owner dependency: none. Deleting P
 an owner-authorized destructive operation already covered by this decision, executed only behind the
 dry-run's backup and rollback proof.
 
+**2026-08-19 residual-cleanup continuation.** The permanent S56 script family must keep the original
+explicit-`data_mode:"test"` catalog path intact and add a separate, owner-reviewed residual path. It
+may reuse the existing pinned Firestore REST, clone, create-only restore, CAS, secure-manifest, and
+managed-identity primitives, but it must never silently broaden the automatic Test classifier.
+
+- **Current behavior versus required behavior.** `scripts/retire-production-test-records.ts` safely
+  refuses unclassified records. That is correct for automatic retirement, but it left committed
+  demo-seed records and fixture/smoke-linked records stamped Live outside the measured set. The
+  required path lets deterministic source contracts and marker/link queries nominate a private
+  review set; only an owner-confirmed count plus digest turns that set into a deletion manifest.
+- **Bodyless review manifest.** The public plan and chat contain collection/category counts and two
+  SHA-256 digests only. Exact document names, update times, and full-field hashes remain in a
+  mode-`0600` private manifest under the secure temporary root. The operational digest binds ordered
+  document name, update time, and full-field hash. A candidate added, removed, or changed after
+  confirmation stops the operation before the next effect.
+- **Forward path.** Discover → owner review → current managed-identity/deployment/session readback →
+  named PITR clone → clone identity and data-plane readiness → N/N hash verification → create-only
+  restore rehearsal → exact drill cleanup → final drift/auth check → exact human confirmation →
+  one-record update-time-CAS deletes with an atomic journal entry and immediate absence readback →
+  independent zero query → four-surface reload. Loading, unavailable, stale, denied, timeout, or
+  partial evidence is a blocking state, never an empty or passing state.
+- **Return path.** The retained clone is the rollback source. Restore is create-only and writes only
+  manifest destinations proven missing; an occupied or changed destination stops without overwrite.
+  Every restored field hash must match before rollback can pass. The backup remains deletion-protected
+  through the stated rollback window and is removed only by a separately exact-confirmed cleanup with
+  database-UID and absence readback.
+- **Clone readiness and retry.** A completed clone LRO proves only control-plane completion. The same
+  persisted clone operation and destination are polled until the database identity is exact and every
+  manifest document is readable and hash-equal. A transient data-plane 400/404/409 never starts a
+  second clone. Timeout names one blocker and leaves Production unchanged.
+- **Conflict reconciliation.** A database-delete conflict is not evidence that the database is
+  absent or deleting. Read back exact database name, UID, ETag, `deleteTime`, and any operation. Only
+  exact absence is success; exact same-UID presence without `deleteTime` is no-effect and permits a
+  bounded retry; different identity or incomplete readback is ambiguous and stops.
+- **No product/runtime broadening.** This is operator tooling and evidence. It creates no Production
+  seeder, Test route, browser fixture control, provider effect, or new Action Registry key. The
+  already-shipped emulator-only fence in `scripts/demo-firestore-target.mjs` remains load-bearing.
+
 **Open questions & assumptions.**
 
 - _RESOLVED by owner 2026-08-01:_ retain `data_mode` and retire only the Test lane. Removing the
@@ -67,6 +113,12 @@ dry-run's backup and rollback proof.
   surface, so the records to rehearse against are the real ones read read-only. Do not build a
   fixture seeder for local; that would recreate the invented-record lane this suite exists to
   retire.
+- _RESOLVED by owner 2026-08-19 through HV-001:_ the exact 78-record manifest at owner digest
+  `sha256:d508ece8e389366f41df1c33c55dc7449e4da604fb5fcfe43215156b4cbb3786`
+  was synthetic residue, despite Live/unclassified stored modes. This decision applies only to that
+  confirmed manifest; it is not a reusable marker-based deletion grant.
+- _Answered 2026-08-19:_ the rollback clone is retained through audit closure. Its later deletion is
+  cleanup of an exact audit-created resource, not implicit permission to delete another database.
 
 **Cross-product impacts.** `app/api/approval-queue/test-fixtures/route.ts`;
 `lib/firestore/approval-test-fixtures.ts`; `lib/firestore/approval-queue.ts`;
@@ -74,6 +126,12 @@ dry-run's backup and rollback proof.
 `lib/external-execution/orchestrator.ts`; `lib/publication/service.ts`;
 `lib/publication/test-fixture.ts`; `lib/data-mode.ts`; `lib/operations/migration-dry-run.ts`;
 `components/layout/EnvironmentBadge.tsx`. Around 85 source files reference `data_mode` in total.
+The residual continuation additionally affects the S56 operator script family,
+`scripts/demo-firestore.mjs`, `scripts/demo-firestore-target.mjs`,
+`tests/unit/retire-production-test-records-script.test.ts`,
+`tests/unit/production-test-retirement.test.ts`, and
+`tests/unit/demo-firestore-target.test.mjs`. It interacts with S69 for the fresh browser-session
+proof required immediately before an exact-confirmed Production effect.
 
 **Adversarial acceptance checks.**
 
@@ -97,6 +155,44 @@ dry-run's backup and rollback proof.
   the provider-boundary sentinel is extended to cover it.
 - **AC-S56-8** — retiring the fixture machinery deletes no automated test coverage: the suite's own
   tests continue to exercise the same behaviours through non-fixture paths.
+- **AC-S56-9** — the residual path cannot delete from a marker query alone. A deterministic
+  nomination produces a private manifest containing exact document names, update times, and
+  full-field hashes plus public category counts and owner/operational digests. Mutation refuses until
+  the owner exact-confirms the count and owner digest, and it refuses if any current record is
+  missing, added, update-time-drifted, or hash-drifted. A unit falsification that changes one field,
+  substitutes one path, or supplies the right count with the wrong digest fails before a commit
+  client is constructed. _Verify:_ `npm test -- tests/unit/retire-production-test-records-script.test.ts`;
+  keep `tests/unit/production-test-retirement.test.ts` green.
+- **AC-S56-10** — clone LRO completion is followed by exact source/destination database identity
+  readback and bounded data-plane polling until all manifest documents are readable and N/N hashes
+  match. A fake transport where the LRO is `done:true` but the first document read returns 400 must
+  reuse the same clone and later pass; it must record the readiness retry and issue zero second clone
+  requests. Timeout blocks with Production writes/deletes at zero. _Verify:_
+  `npm test -- tests/unit/retire-production-test-records-script.test.ts`.
+- **AC-S56-11** — restore-drill and backup cleanup classify each delete response by exact resource
+  readback. A 409 with same-UID presence and no `deleteTime` records no-effect and permits only the
+  bounded exact-UID retry; absence passes; `deleteTime` waits on the recorded operation; a changed
+  UID, missing ETag, or contradictory state blocks. No message or helper may translate every 409 to
+  "already absent or deleting." _Verify:_
+  `npm test -- tests/unit/retire-production-test-records-script.test.ts` with accepted, absent,
+  deleting, no-effect-conflict, different-UID, and unavailable readback cases.
+- **AC-S56-12** — immediately before deletion, the tool re-verifies managed identity, the exact
+  serving Production+Live target, a fresh S69 Admin browser proof, the owner and operational digests,
+  N/N source and backup hashes, restore-drill absence, and the exact confirmation phrase. Each
+  deletion uses the bound `updateTime`, persists pending intent before the commit, records the commit
+  or reconciled effect, and reads the one target absent before advancing. A transport failure is
+  reconciled as exact effect or exact no-effect before any retry; mixed or changed state blocks.
+  Independent post-delete reads must report 0/N exact records and zero governed residual markers,
+  while Console, Approval Queue, and Notifications agree on the remaining genuine decision count and
+  Maintenance contains no retired smoke ticket. _Verify:_ focused operator-script unit tests plus an
+  authenticated Production bodyless readback; keep `npm run verify:redaction` green.
+- **AC-S56-13** — rollback reads only the retained, deletion-protected, exact-UID clone and performs
+  create-only writes for missing manifest destinations. Any occupied destination or hash mismatch
+  stops without overwrite. After the rollback window closes, backup cleanup requires its own exact
+  confirmation, exact UID/ETag, bounded conflict reconciliation per AC-S56-11, and final absence
+  readback; until then the response names the retained backup as authorized recovery state rather
+  than claiming residue-free cleanup. _Verify:_
+  `npm test -- tests/unit/retire-production-test-records-script.test.ts`.
 
 **Forbidden actions / hard gates.**
 
@@ -106,6 +202,12 @@ dry-run's backup and rollback proof.
   not advisory here: under delete semantics a misclassification destroys client data.
 - Never infer that a record is Test because a name, label, or fixture key looks like a test. Only the
   explicit `data_mode` value classifies, and anything else refuses the plan.
+- A name/label/source heuristic may nominate a residual for owner review, but it never classifies or
+  authorizes deletion. Only the exact owner-confirmed manifest described by AC-S56-9 crosses that
+  boundary. Do not weaken the original automatic classifier to make the residual path convenient.
+- Never treat control-plane completion as clone data readiness, treat a conflict as deletion, retry
+  an ambiguous effect, overwrite a rollback destination, or delete the retained backup as incidental
+  cleanup.
 - Never remove the Live-effect fence, the Demo/Production separation, or any provider gate as part of
   "simplifying" the lane away.
 - Never delete automated tests, security paths, or rollback code alongside the fixture machinery.
@@ -125,6 +227,22 @@ dry-run's backup and rollback proof.
    coverage.
 8. _Document:_ record counts and bodyless proof only; no record content.
 
+Residual follow-on sequence:
+
+9. _Discovery:_ re-read the HV-001 feedback index, current S56 code/tests, the committed demo source,
+   and the sealed bodyless audit evidence; keep the automatic Test classifier unchanged.
+10. _Build:_ add the separate secure residual-review manifest and deterministic nomination adapters,
+    with owner count+digest confirmation and drift refusals.
+11. _Build:_ add clone data-plane readiness polling and exact conflict reconciliation shared by
+    backup, restore-drill, and final-cleanup paths.
+12. _Build:_ add resumable one-record CAS deletion and create-only rollback journals, including
+    ambiguous-effect reconciliation and crash recovery.
+13. _Verify:_ falsify field/path/digest drift, LRO-before-data readiness, every cleanup conflict
+    class, a lost commit response, a stale browser proof, an occupied rollback destination, and a
+    post-delete marker/count mismatch; run the focused tests and full documentation gates.
+14. _Context update:_ record only implementation facts after the permanent tooling passes; do not
+    rewrite the historical 2026-08-19 deletion as though the new tooling performed it.
+
 **Implementation evidence (2026-08-03).** All eight acceptance checks are complete locally and the
 destructive Production steps are verified. **AC-S56-1** was deployed to both reachable services
 before the count, and the final route/module sentinel now proves the mutators are absent.
@@ -141,6 +259,17 @@ isolated workspace while retaining legacy decoders only to refuse restored non-L
 ordinary Live paths and negative absence/refusal sentinels, with focused verification and deliberate
 falsification observed. The final full-gate and deployed revision are recorded in `docs/status.md`.
 
+**Human-run evidence (2026-08-19; specification provenance, not implementation completion).** HV-001
+owner-confirmed 78 records at the digest in the resolved decision above. A named PITR clone matched
+78/78 full-field hashes and was deletion-protected; one create-only restore matched and its drill was
+removed. The clone LRO/data-plane gap and a cleanup 409/no-effect gap were safely reconciled. After a
+fresh managed/Admin/Production+Live recheck, 78 one-record update-time CAS deletes each read back
+absent; an independent read found 0/78 and zero governed markers. Reloaded Console, Approval Queue,
+and Notifications each showed one remaining genuine decision, and Maintenance showed zero tickets,
+with zero governed markers, alert states, or failed same-origin resources on the four pages. The
+protected backup remains intentionally retained through the rollback window. This evidence motivates
+AC-S56-9 through AC-S56-13; those criteria remain **specified, not yet built into permanent tooling**.
+
 **Deletion/merge recommendation.** KEEP as the declaration site for **AC-S56-1** through
-**AC-S56-8**. A later documentation-only consolidation may merge the durable Live-only outcome into
+**AC-S56-13**. A later documentation-only consolidation may merge the durable Live-only outcome into
 S40 only after moving every AC declaration without breaking traceability.
