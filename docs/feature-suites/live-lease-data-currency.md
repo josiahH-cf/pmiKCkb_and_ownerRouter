@@ -7,6 +7,14 @@
 > refresh continually enough to remain operationally current." Depends on S57, which changes the
 > shape and cost of the underlying read from 25 rows to the full portfolio.
 
+> **Amended 2026-08-24 - Cherry Bridge note N6, via S73.** `/lease-renewal/live` - the surface that
+> holds the reconciliation conflicts an operator resolves - **bypasses this suite's currency cache
+> entirely**. It renders no read-age indicator, offers no refresh, and never refuses an expired read.
+> That is how a rent figure read fourteen minutes ago can be presented as current. Closing the hole is
+> specified in `docs/feature-suites/current-rent-truth-and-badge-integrity.md` (`AC-S73-4`,
+> `AC-S73-5`); this suite remains the single currency contract those checks are written against, and no
+> second currency model is introduced.
+
 **Goal.** An operator can always tell how old the lease data in front of them is, can force it to
 refresh, and is stopped rather than misled when it is too old to act on. Today there is a silent
 60-second memo with no indicator, no manual refresh, and no upper bound. After this suite, staleness
@@ -123,6 +131,11 @@ read. Owner dependency (the one flip): none.
 
 Keep green: `tests/unit/lease-renewal-progress.test.ts`, `tests/unit/renewal-progress-route.test.ts`,
 `feature-suite-spec-shape.test.mjs`, `npm run verify:context-freshness`.
+
+- **AC-S58-11** - every live lease surface, including `/lease-renewal/live`, resolves its data through
+  this suite's currency contract. A test enumerates the live lease routes and asserts none reads a live
+  provider directly, so a new surface cannot silently opt out of the age indicator, refresh, and
+  expired-read refusal.
 
 **Forbidden actions / hard gates.** No autonomous client-facing send; generic non-workflow
 `gmail.message.send` stays Registry-closed; no personal account in any auth path; no secret, token,

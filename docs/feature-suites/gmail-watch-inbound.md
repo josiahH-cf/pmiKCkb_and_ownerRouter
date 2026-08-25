@@ -9,6 +9,19 @@
 > The matching roadmap, README, and fact-ledger pointers are reconciled in the 2026-07-29 governance
 > package; no active pointer may restore the former owner-dependency wording.
 
+> **Amended 2026-08-24 - Cherry Bridge note N11, via S75.** This suite is specified in full and
+> **verified absent from disk**, with no owner dependency - it is unblocked build work. It is also
+> currently unbuildable in a useful sense, because its selector has nothing to select: the follow-up
+> cadence is computed from `renewalLetterSentIso` and `tenantResponded`, and all three production
+> callers hardcode those to `null` and `false`, making `awaiting_response` and `follow_up_due`
+> unreachable dead code. `docs/feature-suites/renewal-follow-up-state.md` persists those two inputs;
+> the two suites land together or neither works. Note also that two follow-up clocks disagree - the
+> notice rule's `followUpIntervalDays` (10 days, unverified) and this suite's `followUpAfterDays`
+> (3 business days, assumed) - and must be reconciled to one before either renders a due date
+> (`Q-S75-FOLLOWUP-CLOCK`). The client's auto-send ask is answered **no** under D33 and the blanket
+> no-autonomous-send invariant; the permitted equivalent is an internal nudge plus a pre-composed
+> unsent draft.
+
 **Goal.** Today the app already notices when an owner or tenant replies on a linked renewal or maintenance thread and raises it as attention, but the underlying Gmail watch is not continuously active: a Gmail watch expires roughly every seven days and only a manual, human-confirmed renewal re-arms it, so inbound pickup lapses with no visible failure; and there is no surface that tells an operator "we emailed this owner and have heard nothing back in N days." After S31 a Cloud Scheduler job keeps the read-only watch armed automatically so replies keep flowing into the existing attention surface without anyone remembering to renew; an expiring or expired watch raises itself as a visible operator signal instead of dying quietly; and the Renewal and Maintenance desk shows which linked threads have gone quiet and lets an operator open a threaded follow-up draft that a human reviews and sends. Nothing is ever sent automatically: the scheduler only renews a read-only watch and raises attention, and every client-facing follow-up stays operator-initiated and exact-confirmed by a person.
 
 **What it is / how it functions.** The inbound half is already built and stays untouched in behavior; S31 adds continuous renewal at the provider seam, lapse visibility, and an operator-facing quiet-thread and follow-up surface in the app plane. The existing mechanism this suite builds on:
@@ -88,6 +101,14 @@ reconciles the roadmap, README, and fact-ledger pointers.
 - **AC-S31-10** The renew path never guesses a mailbox: with no persisted `GmailMailboxState` for the configured mailbox the endpoint returns a refusal (409 or 503) and calls no Gmail provider method; with state present the DWD subject and attempt-key actor are exactly the persisted `mailbox_email` and `user_uid`; a state record whose `mailbox_email` is outside the allowed `pmikcmetro.com` domain is refused, so no personal account can ever become the watch subject. _Verify:_ `npm test -- gmail-watch-renew`; keep `tests/unit/gmail-hub-capabilities.test.ts` and `tests/unit/gmail-hub-action-gate.test.ts` green.
 
 Full-suite gate for every slice: `npm test`, `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:context-freshness`, `npm run verify:spec-traceability`, then `bash scripts/verify.sh`.
+
+- **AC-S31-11** - the quiet-thread selector reads persisted letter-sent and tenant-response state rather
+  than a hardcoded literal. A fixture asserts no production caller passes a constant `null`
+  `renewalLetterSentIso` or a constant `false` `tenantResponded`, so the selector can reach a non-empty
+  result.
+- **AC-S31-12** - the detection path issues no client-facing send under any fixture, flag, or elapsed
+  time. Advancing the clock arbitrarily produces internal nudges and unsent drafts only, and any send
+  attempt is refused citing D33 by name.
 
 **Forbidden actions / hard gates.** A violation of any of these is itself a falsification (roadmap §7):
 

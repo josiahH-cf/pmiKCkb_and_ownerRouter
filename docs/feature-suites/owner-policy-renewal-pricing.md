@@ -1,4 +1,5 @@
 <!-- spec-shape: overhaul-v1 -->
+<!-- cherry-bridge-notes: N4 -->
 
 # S62 — Owner-policy renewal pricing rules
 
@@ -6,6 +7,24 @@
 > it's owned by what we call MKD... they just want to go 3.5% every renewal until told otherwise."
 > Owner direction (Q4): produce an **Admin-approvable suggestion** labeled as an owner-policy rule,
 > keyed on the **RentVine portfolio id**, and never set the offered rent without approval.
+
+> **Amended 2026-08-24 - Cherry Bridge note N4, split verdict.** The client's note reads "Owner is MKD
+>
+> - we don't reach out to them, +3.5% each renewal". The two halves get opposite answers.
+>
+> The **+3.5% half needs no build.** This suite already ships it: `owner_policy_rules` keyed on
+> RentVine `portfolioID`, kind `flat_percent_increase`, Admin-managed. MKD is `portfolioID` 27
+> (`F-MKD-PORTFOLIO-IDENTIFIED`, 39 leases, 3 owner records). What is missing is only the **rule
+> record itself** - no seed, no fixture, and no script creates it. That is one Admin data entry at
+> `/admin`, not a code change.
+>
+> The **"we don't reach out" half contradicts a recorded owner ruling** and is not implemented. The
+> owner withdrew exactly this premise on 2026-08-06 (`A-MKD-NO-OWNER-OUTREACH-2026-08-05`, Supersede
+> Log), and the repository then built a structural guard so it could not return by accident:
+> `AC-S62-9` plus `tests/unit/mkd-outreach-skip-sentinel.test.ts` ban the draft-composition path from
+> importing the rule store or carrying any skip concept. Implementing the note as written turns a green
+> sentinel red. Owner decision Q6 = **A**: record the contradiction, route it back to the client as a
+> confirm-with-default, and change no code. `AC-S62-9` is **not** weakened, narrowed, or amended.
 
 **Goal.** A standing pricing agreement with an owner stops living in one person's head and starts
 being something the app applies consistently and visibly. When a lease belongs to a portfolio with a
@@ -142,6 +161,14 @@ else is built and tested against fixtures; a rule cannot be created without a re
 
 Keep green: `tests/unit/rent-suggestion.test.ts`, `tests/unit/rent-suggestion-approval-route.test.ts`,
 `tests/unit/action-registry-schema.test.ts`, `feature-suite-spec-shape.test.mjs`.
+
+- **AC-S62-12** - the MKD `flat_percent_increase` rule for `portfolioID` 27 is a data record created
+  through the Admin surface, not code. A fixture asserts no seed script, migration, or committed fixture
+  creates an owner-policy rule for any portfolio; the rule store is empty until an Admin enters one.
+- **AC-S62-13** - the recorded contradiction between Cherry Bridge note N4's outreach-skip request and
+  `A-MKD-NO-OWNER-OUTREACH-2026-08-05` is readable in this suite, names the withdrawal date, and does
+  not alter `AC-S62-9`. A change that weakens or deletes `AC-S62-9`, or that makes
+  `tests/unit/mkd-outreach-skip-sentinel.test.ts` fail, fails this check.
 
 **Forbidden actions / hard gates.** No autonomous client-facing send; every send stays
 human-initiated and exact-confirmed; generic non-workflow `gmail.message.send` stays Registry-closed;

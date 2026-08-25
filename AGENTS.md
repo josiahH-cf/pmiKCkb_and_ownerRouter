@@ -320,113 +320,128 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                                    | Read                                                                                                                   |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Solidified facts vs assumptions         | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                                           |
-| Feature-suite specs (backlog)           | `docs/feature-suites/`                                                                                                 |
-| New/overhaul spec template + gates      | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
-| Approval Queue mobile redesign (S14)    | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
-| Gmail hub — drafts/templates (S15)      | `docs/feature-suites/gmail-hub.md`                                                                                     |
-| Live Gmail per user (S19)               | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
-| V1 gap implementation program           | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
-| Full-suite build program (S28–S39)      | `docs/roadmap-unblock-2026-07-23.md` (scope, waves, owner deps; read after facts + loop-state)                         |
-| UI/UX implementation program (S40–S50)  | `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` (controlling target + order)                           |
-| Unattended fresh-context UI/UX loop     | `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` (canonical launcher; auth/blockers first)                   |
-| UI/UX execution end-state contract      | `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`                                                          |
-| Market comp provider + screenshot (S28) | `docs/feature-suites/market-comp-data.md`                                                                              |
-| Comp-informed rent suggestion (S29)     | `docs/feature-suites/rent-suggestion-admin-gated.md`                                                                   |
-| RentVine write activation (S30)         | `docs/feature-suites/rentvine-write-activation.md`                                                                     |
-| Gmail reply-watch + follow-up (S31)     | `docs/feature-suites/gmail-watch-inbound.md`                                                                           |
-| KB corrections learning loop (S32)      | `docs/feature-suites/kb-corrections-learning.md`                                                                       |
-| Ask to action orchestration (S33)       | `docs/feature-suites/ask-to-action.md`                                                                                 |
-| Dotloop e-sign activation (S34)         | `docs/feature-suites/dotloop-esign-activation.md`                                                                      |
-| LeadSimple connector activation (S35)   | `docs/feature-suites/leadsimple-activation.md`                                                                         |
-| Space self-service provisioning (S36)   | `docs/feature-suites/space-self-provisioning.md`                                                                       |
-| No-code page/layout builder (S37)       | `docs/feature-suites/nocode-page-builder.md`                                                                           |
-| Maintenance notice activation (S38)     | `docs/feature-suites/maintenance-notice-activation.md`                                                                 |
-| Internal notifications + center (S39)   | `docs/feature-suites/internal-notifications.md`                                                                        |
-| Demo/Production separation (S40)        | `docs/feature-suites/environment-deployment-separation.md`                                                             |
-| Shell/navigation/vocabulary (S41)       | `docs/feature-suites/shell-navigation-vocabulary.md`                                                                   |
-| Attention + Spaces flow (S42)           | `docs/feature-suites/attention-and-spaces-flow.md`                                                                     |
-| Canonical Renewal workspace (S43)       | `docs/feature-suites/lease-renewal-canonical-workspace.md`                                                             |
-| Evidence/provider backlinks (S44)       | `docs/feature-suites/evidence-provider-backlinks.md`                                                                   |
-| Approval one-card flow (S45)            | `docs/feature-suites/approval-queue-consolidation.md`                                                                  |
-| Maintenance operator workspace (S46)    | `docs/feature-suites/maintenance-operator-workspace.md`                                                                |
-| Resident Maintenance intake (S47)       | `docs/feature-suites/resident-maintenance-intake.md`                                                                   |
-| Admin/Connections/tool retirement (S48) | `docs/feature-suites/admin-connections-tool-retirement.md`                                                             |
-| Compatibility/code/QA retirement (S49)  | `docs/feature-suites/compatibility-code-qa-retirement.md`                                                              |
-| S37 builder recalibration (S50)         | `docs/feature-suites/nocode-builder-recalibration.md`                                                                  |
-| **Unattended production-phase loop**    | `docs/meta-prompts/production-phase-unattended-loop.md` (canonical fresh-context launcher, runner-neutral)             |
-| Production operational readiness (S51)  | `docs/feature-suites/production-operational-readiness.md`                                                              |
-| Production cost governance (S52)        | `docs/feature-suites/production-cost-governance.md`                                                                    |
-| Green-light activation + gates (S53)    | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`                                                      |
-| Verification and CI parity (S54)        | `docs/feature-suites/verification-and-ci-parity.md`                                                                    |
-| **Unattended renewal proof loop**       | `docs/meta-prompts/renewal-proof-unattended-loop.md` (canonical fresh-context launcher for S57–S63)                    |
-| **Renewal proof program (S57–S63)**     | `docs/feature-suites/README.md` S57–S63 rows; authorization above; the proof artifact is S63                           |
-| Portfolio-complete lease reads (S57)    | `docs/feature-suites/portfolio-complete-lease-reads.md`                                                                |
-| Live lease data currency (S58)          | `docs/feature-suites/live-lease-data-currency.md`                                                                      |
-| RentCast live activation (S59)          | `docs/feature-suites/rentcast-live-activation.md`                                                                      |
-| Comp persistence + under-market (S60)   | `docs/feature-suites/comp-persistence-and-under-market-signal.md`                                                      |
-| Recipient fan-out + separation (S61)    | `docs/feature-suites/renewal-recipient-fanout-and-separation.md`                                                       |
-| Owner-policy renewal pricing (S62)      | `docs/feature-suites/owner-policy-renewal-pricing.md`                                                                  |
-| Four-lease renewal test set (S63)       | `docs/feature-suites/four-lease-renewal-test-set.md`                                                                   |
-| Per-person approval authority (S64)     | `docs/feature-suites/per-person-approval-authority.md` (specified; NOT authorized)                                     |
-| Feedback report closure (S65)           | `docs/feature-suites/feedback-report-closure.md` (authorized separately; outside the four scope items)                 |
-| RentCast operator setup procedure       | `docs/rentcast-setup-runbook.md`                                                                                       |
-| Renewal-proof owner decision record     | `docs/renewal-proof-owner-decisions-2026-08-06.md`                                                                     |
-| Production decision record              | `docs/production-phase-decision-record-2026-07-29.md`                                                                  |
-| Client/vendor asks for this phase       | `docs/client-asks-2026-07-29.md`                                                                                       |
-| V1 execution authority (S20)            | `docs/feature-suites/execution-authority.md`                                                                           |
-| Immediate trusted publication (S21)     | `docs/feature-suites/trusted-publication.md`                                                                           |
-| External Vendor + Gmail OAuth (S22)     | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
-| Console live/test boundary (S23)        | `docs/feature-suites/console-live-data.md`                                                                             |
-| Communications policy (S24)             | `docs/feature-suites/communications-policy.md`                                                                         |
-| Lease external execution (S25)          | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
-| Maintenance external execution (S26)    | `docs/feature-suites/maintenance-execution.md`                                                                         |
-| V1 working-app acceptance (S27)         | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
-| Role-scoped sub-users / scopes (S16)    | `docs/feature-suites/rbac-subusers.md`                                                                                 |
-| Unified Console + notifications (S17)   | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
-| Process auto-initiation (S18)           | `docs/feature-suites/process-auto-initiation.md`                                                                       |
-| Governance meta-prompts                 | `docs/meta-prompts/`                                                                                                   |
-| Audience profile and copy voice         | `docs/voice-and-audience.md`                                                                                           |
-| North star and product direction        | `docs/north-star.md`                                                                                                   |
-| Product lane routing                    | `docs/products/README.md`, then the relevant product doc                                                               |
-| Continue feature development            | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
-| What to do next (open decisions)        | `docs/whats-next.md` (findings + context + recommendations; read after `docs/facts.md` + `docs/loop-state.md`)         |
-| Hand-test the built app (manual QA)     | `docs/manual-qa-walkthrough-2026-07-21.md` (click-by-click walkthrough of every macro feature)                         |
-| Browser QA audit-and-fix meta-prompt    | `docs/meta-prompts/qa-audit-and-fix.md` (hand to a browser+repo agent to test, fix, and annotate the walkthrough)      |
-| Renewal / move-in / move-out flow       | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
-| Renewal sheet connector + conflicts     | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
-| V1 process Q&A and owner decisions      | `docs/products/v1-process-qa.md`                                                                                       |
-| Renewal discovery validation (team)     | `docs/products/lease-renewal-discovery-packet.md`                                                                      |
-| Demo lane retirement                    | `docs/demo-lane-retirement.md`                                                                                         |
-| Phase plan and acceptance gates         | `docs/plan.md`                                                                                                         |
-| Integration and cutover                 | `docs/integration-cutover-plan.md`                                                                                     |
-| Verified integration architecture       | `docs/integration-architecture.md`                                                                                     |
-| Integration capability research         | `docs/research/integration-capability-2026-06.md`                                                                      |
-| Environment and key handoff             | `docs/environment-handoff.md`                                                                                          |
-| Product definition gaps                 | `docs/product-definition-gap-plan.md`                                                                                  |
-| How to work next                        | `docs/implement.md`                                                                                                    |
-| Autonomous feature-cycle runner         | `docs/autonomous-agent-runner.md`                                                                                      |
-| Plan, run, or continue the loop         | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
-| Fresh-context final-V1 continuation     | `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`                                                            |
-| Cost ceiling and budget policy          | `docs/budget-and-cost-policy.md`                                                                                       |
-| Vacation / away-mode overlay            | `docs/away-mode.md`                                                                                                    |
-| Local-dev stop/cutover gate             | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
-| Current status and blockers             | `docs/status.md`                                                                                                       |
-| Loop resume state and next slice        | `docs/loop-state.md`                                                                                                   |
-| Current app functionality walkthrough   | `docs/pmi-kc-current-app-walkthrough.html`; dated V1/demo guides remain historical evidence                            |
-| Client asks                             | `docs/client-checklist.md`                                                                                             |
-| Client unblock and parallel work        | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
-| Engineering checklist                   | `docs/engineering-checklist.md`                                                                                        |
-| AI execution workflow                   | `docs/ai-execution-workflow.md`                                                                                        |
-| Research backlog                        | `docs/research-backlog.md`                                                                                             |
-| Security and conventions                | `docs/engineering.md`                                                                                                  |
-| Original preserved specs                | `docs/specs/`                                                                                                          |
-| KB technical spec                       | `docs/spec.md`                                                                                                         |
-| Legacy Owner Router split               | `docs/legacy/owner-router-separate-repo.md`                                                                            |
-| Owner Router artifact source            | `docs/legacy/owner-router-artifact-source.md`                                                                          |
-| Google setup details                    | `docs/google-setup.md`, `SETUP.md`                                                                                     |
+| Need                                      | Read                                                                                                                   |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Solidified facts vs assumptions           | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                                           |
+| Feature-suite specs (backlog)             | `docs/feature-suites/`                                                                                                 |
+| New/overhaul spec template + gates        | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
+| Approval Queue mobile redesign (S14)      | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
+| Gmail hub — drafts/templates (S15)        | `docs/feature-suites/gmail-hub.md`                                                                                     |
+| Live Gmail per user (S19)                 | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
+| V1 gap implementation program             | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
+| Full-suite build program (S28–S39)        | `docs/roadmap-unblock-2026-07-23.md` (scope, waves, owner deps; read after facts + loop-state)                         |
+| UI/UX implementation program (S40–S50)    | `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` (controlling target + order)                           |
+| Unattended fresh-context UI/UX loop       | `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` (canonical launcher; auth/blockers first)                   |
+| UI/UX execution end-state contract        | `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`                                                          |
+| Market comp provider + screenshot (S28)   | `docs/feature-suites/market-comp-data.md`                                                                              |
+| Comp-informed rent suggestion (S29)       | `docs/feature-suites/rent-suggestion-admin-gated.md`                                                                   |
+| RentVine write activation (S30)           | `docs/feature-suites/rentvine-write-activation.md`                                                                     |
+| Gmail reply-watch + follow-up (S31)       | `docs/feature-suites/gmail-watch-inbound.md`                                                                           |
+| KB corrections learning loop (S32)        | `docs/feature-suites/kb-corrections-learning.md`                                                                       |
+| Ask to action orchestration (S33)         | `docs/feature-suites/ask-to-action.md`                                                                                 |
+| Dotloop e-sign activation (S34)           | `docs/feature-suites/dotloop-esign-activation.md`                                                                      |
+| LeadSimple connector activation (S35)     | `docs/feature-suites/leadsimple-activation.md`                                                                         |
+| Space self-service provisioning (S36)     | `docs/feature-suites/space-self-provisioning.md`                                                                       |
+| No-code page/layout builder (S37)         | `docs/feature-suites/nocode-page-builder.md`                                                                           |
+| Maintenance notice activation (S38)       | `docs/feature-suites/maintenance-notice-activation.md`                                                                 |
+| Internal notifications + center (S39)     | `docs/feature-suites/internal-notifications.md`                                                                        |
+| Demo/Production separation (S40)          | `docs/feature-suites/environment-deployment-separation.md`                                                             |
+| Shell/navigation/vocabulary (S41)         | `docs/feature-suites/shell-navigation-vocabulary.md`                                                                   |
+| Attention + Spaces flow (S42)             | `docs/feature-suites/attention-and-spaces-flow.md`                                                                     |
+| Canonical Renewal workspace (S43)         | `docs/feature-suites/lease-renewal-canonical-workspace.md`                                                             |
+| Evidence/provider backlinks (S44)         | `docs/feature-suites/evidence-provider-backlinks.md`                                                                   |
+| Approval one-card flow (S45)              | `docs/feature-suites/approval-queue-consolidation.md`                                                                  |
+| Maintenance operator workspace (S46)      | `docs/feature-suites/maintenance-operator-workspace.md`                                                                |
+| Resident Maintenance intake (S47)         | `docs/feature-suites/resident-maintenance-intake.md`                                                                   |
+| Admin/Connections/tool retirement (S48)   | `docs/feature-suites/admin-connections-tool-retirement.md`                                                             |
+| Compatibility/code/QA retirement (S49)    | `docs/feature-suites/compatibility-code-qa-retirement.md`                                                              |
+| S37 builder recalibration (S50)           | `docs/feature-suites/nocode-builder-recalibration.md`                                                                  |
+| **Unattended production-phase loop**      | `docs/meta-prompts/production-phase-unattended-loop.md` (canonical fresh-context launcher, runner-neutral)             |
+| Production operational readiness (S51)    | `docs/feature-suites/production-operational-readiness.md`                                                              |
+| Production cost governance (S52)          | `docs/feature-suites/production-cost-governance.md`                                                                    |
+| Green-light activation + gates (S53)      | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`                                                      |
+| Verification and CI parity (S54)          | `docs/feature-suites/verification-and-ci-parity.md`                                                                    |
+| **Unattended renewal proof loop**         | `docs/meta-prompts/renewal-proof-unattended-loop.md` (canonical fresh-context launcher for S57–S63)                    |
+| **Renewal proof program (S57–S63)**       | `docs/feature-suites/README.md` S57–S63 rows; authorization above; the proof artifact is S63                           |
+| Portfolio-complete lease reads (S57)      | `docs/feature-suites/portfolio-complete-lease-reads.md`                                                                |
+| Live lease data currency (S58)            | `docs/feature-suites/live-lease-data-currency.md`                                                                      |
+| RentCast live activation (S59)            | `docs/feature-suites/rentcast-live-activation.md`                                                                      |
+| Comp persistence + under-market (S60)     | `docs/feature-suites/comp-persistence-and-under-market-signal.md`                                                      |
+| Recipient fan-out + separation (S61)      | `docs/feature-suites/renewal-recipient-fanout-and-separation.md`                                                       |
+| Owner-policy renewal pricing (S62)        | `docs/feature-suites/owner-policy-renewal-pricing.md`                                                                  |
+| Four-lease renewal test set (S63)         | `docs/feature-suites/four-lease-renewal-test-set.md`                                                                   |
+| Per-person approval authority (S64)       | `docs/feature-suites/per-person-approval-authority.md` (specified; NOT authorized)                                     |
+| Feedback report closure (S65)             | `docs/feature-suites/feedback-report-closure.md` (authorized separately; outside the four scope items)                 |
+| Service rename + id cleanup (S55)         | `docs/feature-suites/production-service-rename-and-identifier-cleanup.md`                                              |
+| Live-only / Test-lane retirement (S56)    | `docs/feature-suites/production-live-only-test-lane-retirement.md`                                                     |
+| Lease packet truth + prefill (S66)        | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`                                                       |
+| Feedback dictation intake (S67)           | `docs/feature-suites/feedback-dictation-intake.md`                                                                     |
+| Staff work + accountability (S68)         | `docs/feature-suites/staff-work-assignment-and-accountability.md`                                                      |
+| Human-verification reliability (S69)      | `docs/feature-suites/human-verification-session-and-evidence-reliability.md` (specified from audit feedback)           |
+| Renewal queue integrity (S70)             | `docs/feature-suites/renewal-queue-integrity.md`                                                                       |
+| Lease identity / address truth (S71)      | `docs/feature-suites/lease-identity-and-address-truth.md`                                                              |
+| Renewal six-step model (S72)              | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`                                                     |
+| Current-rent truth + badges (S73)         | `docs/feature-suites/current-rent-truth-and-badge-integrity.md`                                                        |
+| Tenant copy / channel truth (S74)         | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`                                                           |
+| Renewal follow-up state (S75)             | `docs/feature-suites/renewal-follow-up-state.md`                                                                       |
+| Cherry Bridge note map (N1-N11)           | `docs/cherry-bridge-renewal-note-map-2026-08-24.md` (eleven client notes to S70-S75 + amendments)                      |
+| **Unattended audit + note-spec launcher** | `docs/meta-prompts/cherry-bridge-and-unattended-audit-implementation.md`                                               |
+| **Resume current human audit**            | `docs/meta-prompts/pmi-kc-human-verification-resume.md` (short-session, audit-only fresh-context launcher)             |
+| RentCast operator setup procedure         | `docs/rentcast-setup-runbook.md`                                                                                       |
+| Renewal-proof owner decision record       | `docs/renewal-proof-owner-decisions-2026-08-06.md`                                                                     |
+| Production decision record                | `docs/production-phase-decision-record-2026-07-29.md`                                                                  |
+| Client/vendor asks for this phase         | `docs/client-asks-2026-07-29.md`                                                                                       |
+| V1 execution authority (S20)              | `docs/feature-suites/execution-authority.md`                                                                           |
+| Immediate trusted publication (S21)       | `docs/feature-suites/trusted-publication.md`                                                                           |
+| External Vendor + Gmail OAuth (S22)       | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
+| Console live/test boundary (S23)          | `docs/feature-suites/console-live-data.md`                                                                             |
+| Communications policy (S24)               | `docs/feature-suites/communications-policy.md`                                                                         |
+| Lease external execution (S25)            | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
+| Maintenance external execution (S26)      | `docs/feature-suites/maintenance-execution.md`                                                                         |
+| V1 working-app acceptance (S27)           | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
+| Role-scoped sub-users / scopes (S16)      | `docs/feature-suites/rbac-subusers.md`                                                                                 |
+| Unified Console + notifications (S17)     | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
+| Process auto-initiation (S18)             | `docs/feature-suites/process-auto-initiation.md`                                                                       |
+| Governance meta-prompts                   | `docs/meta-prompts/`                                                                                                   |
+| Audience profile and copy voice           | `docs/voice-and-audience.md`                                                                                           |
+| North star and product direction          | `docs/north-star.md`                                                                                                   |
+| Product lane routing                      | `docs/products/README.md`, then the relevant product doc                                                               |
+| Continue feature development              | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
+| What to do next (open decisions)          | `docs/whats-next.md` (findings + context + recommendations; read after `docs/facts.md` + `docs/loop-state.md`)         |
+| Hand-test the built app (manual QA)       | `docs/manual-qa-walkthrough-2026-07-21.md` (click-by-click walkthrough of every macro feature)                         |
+| Browser QA audit-and-fix meta-prompt      | `docs/meta-prompts/qa-audit-and-fix.md` (hand to a browser+repo agent to test, fix, and annotate the walkthrough)      |
+| Renewal / move-in / move-out flow         | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
+| Renewal sheet connector + conflicts       | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
+| V1 process Q&A and owner decisions        | `docs/products/v1-process-qa.md`                                                                                       |
+| Renewal discovery validation (team)       | `docs/products/lease-renewal-discovery-packet.md`                                                                      |
+| Demo lane retirement                      | `docs/demo-lane-retirement.md`                                                                                         |
+| Phase plan and acceptance gates           | `docs/plan.md`                                                                                                         |
+| Integration and cutover                   | `docs/integration-cutover-plan.md`                                                                                     |
+| Verified integration architecture         | `docs/integration-architecture.md`                                                                                     |
+| Integration capability research           | `docs/research/integration-capability-2026-06.md`                                                                      |
+| Environment and key handoff               | `docs/environment-handoff.md`                                                                                          |
+| Product definition gaps                   | `docs/product-definition-gap-plan.md`                                                                                  |
+| How to work next                          | `docs/implement.md`                                                                                                    |
+| Autonomous feature-cycle runner           | `docs/autonomous-agent-runner.md`                                                                                      |
+| Plan, run, or continue the loop           | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
+| Fresh-context final-V1 continuation       | `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`                                                            |
+| Cost ceiling and budget policy            | `docs/budget-and-cost-policy.md`                                                                                       |
+| Vacation / away-mode overlay              | `docs/away-mode.md`                                                                                                    |
+| Local-dev stop/cutover gate               | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
+| Current status and blockers               | `docs/status.md`                                                                                                       |
+| Loop resume state and next slice          | `docs/loop-state.md`                                                                                                   |
+| Current app functionality walkthrough     | `docs/pmi-kc-current-app-walkthrough.html`; dated V1/demo guides remain historical evidence                            |
+| Client asks                               | `docs/client-checklist.md`                                                                                             |
+| Client unblock and parallel work          | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
+| Engineering checklist                     | `docs/engineering-checklist.md`                                                                                        |
+| AI execution workflow                     | `docs/ai-execution-workflow.md`                                                                                        |
+| Research backlog                          | `docs/research-backlog.md`                                                                                             |
+| Security and conventions                  | `docs/engineering.md`                                                                                                  |
+| Original preserved specs                  | `docs/specs/`                                                                                                          |
+| KB technical spec                         | `docs/spec.md`                                                                                                         |
+| Legacy Owner Router split                 | `docs/legacy/owner-router-separate-repo.md`                                                                            |
+| Owner Router artifact source              | `docs/legacy/owner-router-artifact-source.md`                                                                          |
+| Google setup details                      | `docs/google-setup.md`, `SETUP.md`                                                                                     |
 
 ## Project Map
 
@@ -444,7 +459,14 @@ route new work through the three-product docs.
   policy, Lease actions, Maintenance actions, and release acceptance) through
   `docs/v1-gap-implementation-program-2026-07-14.md`. S40–S50 execute the 2026-07-28 environment,
   IA, workflow, retirement, and page-builder recalibration through
-  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. All overhaul specs are
+  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. S69 is the specification-only
+  human-audit browser/progress/freshness contract produced by the 2026-08-19 verification audit; it
+  adds no standing authority. S70-S75 are the specification-only Cherry Bridge
+  renewal-note suites from 2026-08-24 (queue integrity, lease identity/address truth, the six-step
+  model, current-rent badge integrity, tenant copy/channel truth, and follow-up state); note N4
+  lands as an S62 amendment rather than a suite, and amendments also touch S24, S31, S43, and S58.
+  They add no standing authority and build none of the eleven fixes; the note map is
+  `docs/cherry-bridge-renewal-note-map-2026-08-24.md`. All overhaul specs are
   sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
   meta-prompt.

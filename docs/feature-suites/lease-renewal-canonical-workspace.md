@@ -10,6 +10,17 @@
 > handoff contracts below. This amendment authorizes specification changes only; it does not
 > authorize implementation, deployment, provider activation, a send, or a system-of-record write.
 
+> **Amended 2026-08-24 - Cherry Bridge note N10, via S72.** The workspace currently renders a four-dot
+> stepper over a five-card page whose fourth card - the actual Gmail owner-email composer - belongs to
+> no step at all. That structural mismatch is the most likely direct cause of the client's "all over
+> the place" report. The operator-facing step model moves to the client's own six steps, keyed on
+> **stable string ids** with a migration, because `stage_index` is a bare integer today and any
+> re-indexing would silently relabel every live lease in flight. The existing 8-stage
+> `LEASE_RENEWAL_STAGES` vocabulary is reconciled rather than joined by a third. This suite keeps the
+> surface contract; the step model itself is specified in
+> `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`. `AC-S43-13`'s required channel
+> wording is unchanged and is asserted from that suite as `AC-S72-11`.
+
 **Goal.** Renewal staff use one desk and one self-contained per-unit workspace in both environments.
 Production opens Live work; Demo opens the same experience with Demo data. A unit moves visibly
 through Data check, Owner decision, Tenant offer, and Build documents, with Compare sources, exact
@@ -188,6 +199,10 @@ redirected and then retired.
   and excluded artifacts, reasons, sources, participant visibility, and local blockers. Missing one
   artifact blocks only its dependent output; no document preview can be represented as ready from a
   partial, stale, or conflicting snapshot. _Verify:_ S66 consumer contract and blocker-locality tests.
+
+- **AC-S43-15** - every card rendered in the workspace belongs to exactly one named step, and the number
+  of step indicators equals the number of step-owning cards. A fixture containing a card with no
+  owning step fails, closing today's unnamed owner-email card gap.
 
 **Forbidden actions / hard gates.** Never invent an address, template, rent, owner/tenant fact,
 charge, animal classification, provider URL, or missing source. Never make a generic provider front

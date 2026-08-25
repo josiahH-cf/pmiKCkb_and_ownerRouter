@@ -11,6 +11,20 @@ eligibility rechecks, dual-null held records, and the crash-resumable bodyless l
 Native TTL, extra indexes, Scheduler automation, and any legacy held-record migration are optional
 operations work. Each additional recipient/provider action activates independently through S25/S26.
 
+> **Amended 2026-08-24 - Cherry Bridge note N9, via S74.** Two gaps in this policy's enforcement were
+> found while grounding the client's tenant-copy request.
+>
+> First, `AC-S24-3`'s "modified artifacts fail closed" is **not actually enforced against an in-repo
+> edit**. Editing `TENANT_RENEWAL_V1_BASE_COPY` silently changes the governed artifact's `contentHash`
+> while the artifact keeps claiming its 2026-07-14 v1.0 approval. S74 `AC-S74-5` closes this by minting
+> a new version on edit and failing closed on a modified artifact still carrying an old approval.
+>
+> Second, `AC-S24-4` permits a past-tense channel-success claim only against real receipts. The receipt
+> mechanism exists (`channelReceipts` to `bothChannelSuccess`) but **no production caller populates
+> it**, and the portal-chat and SMS send keys are `production_allowed:false`. `AC-S24-4` is **not**
+> amended to let the client's requested sentence render unconditionally; S74 gates the clause on
+> recorded evidence instead. See `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`.
+
 **Goal.** Workflow Communications has explicit deletion/hold behavior, three reviewable versioned V1
 base artifacts, and a source-visible AI reply policy that can improve a draft without inventing facts or
 commitments. Every outbound message remains a human-reviewed exact payload and every retained record is
@@ -123,6 +137,14 @@ gmail-hub-service vendor-gmail-send`; `npm run verify:redaction`.
 test:firestore`.
 - **AC-S24-8** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
 test`, `npm run test:e2e:core`, `npm run verify:spec-traceability`, `npm run build`.
+
+- **AC-S24-9** - a governed artifact whose current content hash differs from the hash its approval was
+  granted against fails closed at composition time, naming the artifact and both hashes. A fixture that
+  edits approved copy in place while retaining the old approval cannot compose a draft. This makes
+  `AC-S24-3` enforceable against an in-repo edit rather than only against a runtime substitution.
+- **AC-S24-10** - a confidence or verification badge attached to a fact in a client-facing artifact is
+  derived from that fact's reconciliation and currency state, never asserted as a constant. A fixture
+  whose fact is under an open conflict cannot render a verified badge. See S73.
 
 **Forbidden actions / hard gates.** No autonomous/event/scheduled/bulk send; no persist-AI-by-default;
 no browser-authoritative recipient; no invented fact/commitment/channel receipt; no legal-hold bypass;

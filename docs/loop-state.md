@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-17 (model-assisted process audit of the serving revision finalized; two fixes landed).
+Last updated: 2026-08-24 (audit unattended lane authorized; Cherry Bridge note specs S70-S75 written).
 
 ```yaml
-last_updated: 2026-08-17
+last_updated: 2026-08-23
 active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
 program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
 spec_writing_allowed: true
@@ -22,7 +22,36 @@ active_slice: NONE_PROGRAM_COMPLETE
 next_slice: NONE
 last_completed_slice: PRODUCTION_DEPLOY_PMI_KC_APP_RMSOL14WB_9FE02E7AF754
 runtime_action_gates_preflipped: false
+human_audit_status: IN_PROGRESS_2_PASS_10_NOT_RUN
+human_audit_next_item: HV-002_MANAGED_GOOGLE_SIGN_IN_OPEN_WAITING
+human_audit_auth_status: BROWSER_APP_SIGN_IN_REQUIRED_MANAGED_CLI_ADC_GREEN
+human_audit_effect_in_flight: false
+human_audit_launcher: docs/meta-prompts/pmi-kc-human-verification-resume.md
 ```
+
+## Active human-verification continuation — 2026-08-23
+
+- Resume artifacts: `docs/pmi-kc-human-verification-resume-state.md`,
+  `docs/pmi-kc-human-audit-response-20260817T104500Z-model-audit.json`, and
+  `docs/meta-prompts/pmi-kc-human-verification-resume.md`.
+- Progress: 2/12 Pass (`HV-001`, `HV-012`); 10 `not_run`; no Fail, Blocked, or Skipped result.
+- Exact next item: HV-002 target selection. The 2026-08-23 restart preserves 2 Pass / 10 `not_run`.
+  Fresh non-printing readback proves managed CLI and ADC are current, and the exact serving revision,
+  Production + Live descriptor, managed domain, runtime identity class, and Demo-auth-off state are
+  unchanged. No conflict judgment, resolution request, provider write, or product effect occurred.
+- HV-002 session: a candidate Reason-entry Pass is rejected because contemporaneous readback shows
+  Production `/sign-in`; unsaved form state is treated as lost. Managed CLI/ADC and Production
+  project remain green. The next action is one `Sign in with Google` click, stopping at the Google
+  popup; workflow controls remain untouched.
+- Cleanup: the HV-001 deletion-protected backup remains authorized rollback state through audit
+  closure. No external operation is in flight.
+- Scope: this continuation writes audit/specification documentation only. It does not implement,
+  commit, deploy, send, authorize a provider write, or change a protected path.
+- Cadence: one atomic human action per brief visit; persist response/resume/spec state before yielding,
+  then end cleanly. No terminal, browser-control attachment, browser process, or local server is kept
+  alive merely to bridge the user's absence. Each prompt uses the detailed S69 action card: numbered
+  prepared state, exact control/location and safe input guidance, expected/stop/cleanup states, then
+  copy-ready `PASS` or `FAIL — reason` responses.
 
 ## Authority
 
@@ -94,43 +123,14 @@ supersedes that evidence, so do not re-ask it.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**S57–S61 are DONE** (`F-PORTFOLIO-COMPLETE-READS` `fb57e0b`; `F-LEASE-DATA-CURRENCY` `79b820d`;
-`F-RENTCAST-ACTIVATION-HARDENED` `0283773`, DEPLOYED, revision `pmi-kc-app-rmsi5llfz-8332ff9656c8`,
-checkpoint `F-CURRENT-SERVING-CHECKPOINT-2026-08-06`; `F-COMP-PERSISTENCE-TRUTH` `e83f876`;
-`F-RECIPIENT-FANOUT-SEPARATION` `b8e26f3`): complete paged reads (owner email 305/305, 146/305
-multi-owner), the three-age currency contract with refusals on expired, the RentCast comp basis
-with cache/quota-stop/health-probe and rollback proven, provider-basis persistence + the internal
-10% signal, and owner-channel fan-out with structural channel separation. Known-red carried:
-`test:e2e:core` fails 8 PRE-EXISTING demo-mode tests on main (`Q-E2E-DEMO-LANE-RED`). **OWNER STEP
-OPEN (`Q-RENTCAST-ACCOUNT-403`)**: activate the RentCast API plan, read back the allowance
-(AC-S59-14), re-run `npm run smoke:rentcast-comp`; the parked D12 flip patch
-(`docs/temp/rentcast-gate-flip-d12-patch.md`) waits on that smoke evidence.
+**2026-08-24 (spec-only):** `FB-HVSESSION-012` supersedes `FB-HVSESSION-003`; the audit runs
+unattended (S69 `AC-S69-24`-`31`). S70-S75 spec the Cherry Bridge notes; N4/N11 need owner calls.
 
-**S62 is DONE** (`F-OWNER-POLICY-PRICING`, `a1fc024`): owner-policy pricing rules keyed on
-`portfolioID` (MKD = 27), Admin-only with reason + append-only audit, the policy number through
-the UNCHANGED S29 approval plane with the comp median rendered beside it, stale on rule change,
-sentinels forbidding any offered-rent write or outreach skip (falsified red/green). Parked D12
-patch: `docs/temp/s62-firestore-rules-explicit-deny-d12-patch.md` (legibility-only; never push).
-
-**S63 MACHINERY is DONE** (`F-TESTSET-MACHINERY`): create-only frozen baselines with a sha256
-tamper witness (immutability sentinel completed to its AC-S63-3 full form and falsified),
-append-only evidence records with blind-vs-informed ordering, the activity trail's first reader,
-verdict logic with `not_evaluated` first-class at the decided max(±5%, $50) tolerance, the
-records-generated report (writes only under gitignored `temp/test-set/`), and the corrected +
-pinned transactional-send prose. **The D08 window is OPEN** (`F-TESTSET-WINDOW-OPENED`, 2026-08-07):
-four sha256 baselines captured, immutability falsified by a refused re-capture, report generated
-under gitignored `temp/test-set/`. Parked D12 patch: `docs/temp/s63-firestore-rules-d12-patch.md`.
-
-**S65 is DONE** (`F-FEEDBACK-CLOSURE`): the Admin-only, audited feedback status transition, the
-panel control, the pinned resolved-exclusion (falsified), and the walkthrough copy fix.
-
-**THE PROGRAM IS COMPLETE** at the machinery level (S57–S63 + S65; S64 stays unauthorized); S60–S63 +
-S65 remain deployed through `F-CURRENT-SERVING-CHECKPOINT-2026-08-11` with rollback proven both ways.
-What remains is owner-only: (1) RentCast plan activation (`Q-RENTCAST-ACCOUNT-403`) + allowance
-readback + `smoke:rentcast-comp`; (2) the parked D12 patches under `docs/temp/`; (3) the D57 note send.
-Bailey's Admin action and later sign-in are complete under `F-BAILEY-ADMIN-COMPLETE-2026-08-11`.
-
-**Correction note: DONE 2026-08-06** — the owner sent `docs/temp/client-correction-note-2026-08-06.md`. Do not re-send it.
+**Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
+unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E
+red live in `docs/facts.md` and `docs/status.md`. Owner-only work remains the RentCast plan activation
+and allowance readback plus `smoke:rentcast-comp`, the named parked D12 patches, and the D57 note send.
+Bailey's Admin action is complete. The 2026-08-06 correction note was sent; do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
 fail in the Windows shell. Run them through WSL and keep `GOOGLE_APPLICATION_CREDENTIALS` unset. WSL
