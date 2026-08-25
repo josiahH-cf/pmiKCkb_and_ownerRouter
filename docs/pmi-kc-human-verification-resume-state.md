@@ -7,18 +7,28 @@ human response or interruption. It is a recovery pointer, not implementation aut
 ```yaml
 schema_version: pmi-kc-human-verification-resume.v1
 checkpointed_at: 2026-08-23T10:55:05Z
-audit_status: IN_PROGRESS
+audit_status: COMPLETE_12_OF_12_TERMINAL
 human_total: 12
-human_pass: 2
-human_fail: 0
-human_blocked: 0
+human_pass: 5
+human_fail: 1
+human_blocked: 6
 human_skipped: 0
-human_not_run: 10
-terminal_ids:
+human_not_run: 0
+terminal_ids: ALL_TWELVE
   - HV-001
+  - HV-002
+  - HV-003
+  - HV-004
+  - HV-005
+  - HV-006
+  - HV-007
+  - HV-008
+  - HV-009
+  - HV-010
+  - HV-011
   - HV-012
-next_id: HV-002
-next_state: OWNER_BATCH_PACKET_AWAITING_ANSWERS
+next_id: NONE_AUDIT_CLOSED
+next_state: OWNER_ANSWERED_ALL_SEVEN_2026-08-25_REMAINING_WORK_IS_BUILD
 effect_in_flight: false
 authentication_state: BROWSER_APP_SIGNED_IN_2026-08-24_SESSION_EXPIRES_UNATTENDED
 browser_control_mode: REPOSITORY_DRIVEN_CHROME_POPUP_ALLOWING_FB-HVSESSION-012
@@ -34,10 +44,10 @@ human_prompt_format: ACTION_CARD_V2_EXACT_NUMBERED_COPYABLE
 human_response_grammar: PASS_OR_REASONED_FAIL
 application_changes_allowed_in_audit: false
 audit_lane_tooling_allowed: true
-prepared_verification_id: HV-002
-prepared_route: /sign-in
-prepared_action: CLICK_SIGN_IN_WITH_GOOGLE_AND_STOP_AT_GOOGLE_POPUP
-prepared_effect: AUTH_POPUP_OPEN_ONLY_NO_PRODUCT_EFFECT
+prepared_verification_id: NONE
+prepared_route: NONE
+prepared_action: NONE_AUDIT_CLOSED
+prepared_effect: NONE_NO_EFFECT_IN_FLIGHT
 prepared_runtime_revision: pmi-kc-app-rmsol14wb-9fe02e7af754
 ```
 
