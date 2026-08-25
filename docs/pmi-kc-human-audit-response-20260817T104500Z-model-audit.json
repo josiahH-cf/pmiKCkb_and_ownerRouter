@@ -2,7 +2,7 @@
   "schema_version": "pmi-kc-model-audit-human-response.v1",
   "generated_at": "2026-08-23T10:55:05Z",
   "source_run_id": "20260817T104500Z-model-audit",
-  "overall_result": "incomplete",
+  "overall_result": "complete",
   "human_results": [
     {
       "verification_id": "HV-001",
@@ -27,51 +27,51 @@
         "LEASE-LIVE-016"
       ],
       "process_id": "Lease Renewal",
-      "status": "not_run",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Owner accepted the boundary proof and declined a write. Authenticated Production readback verified the exact target: origin matched, pathname was exactly /lease-renewal/live, the heading read Live renewal review, and both Sign out and Admin were present, establishing a managed-domain Admin session on serving revision pmi-kc-app-rmsol14wb-9fe02e7af754 with ENVIRONMENT_KIND production and both Demo-auth controls off. The route rendered 20 Resolve controls and the line 20 items need a human decision. A severity scan returned High present and Medium, Low and Blocked all absent, so every open item carries the confirmation dialog. No card rendered a resolution line and no Re-resolve or Skip control was present, so the prior every-flag-unresolved observation still holds on this revision. Nothing was pressed: no Resolve, no dialog, no confirmation, no write-back, and zero non-GET requests were issued by the run.",
       "issue": "",
-      "friction": "The user reported browser authentication complete on 2026-08-20, but after the 2026-08-22 restart both managed CLI and ADC tokens were stale with invalid_rapt while local managed-account and Production-project selections remained valid. The user completed the Google flow; independent checks proved fresh CLI and ADC, and the temporary auth shell was closed. The user then reported being logged in and seeing the app, while the bodyless browser pathname showed /lease-renewal/live/desk instead of the requested /lease-renewal/live review. Source inspection confirms sign-in drops the protected return target (FB-HVSESSION-011). After an authenticated route retry, the user replied pass, but the bodyless pathname and a user-supplied current-page image both showed the Desk and its Renewals heading. The candidate Pass was reconciled as a failed setup action, not an HV-002 result. On the 2026-08-23 restart, both managed CLI and ADC were stale again while local selections remained valid; normal Codex control again failed initialization and reset/retry. No custom browser fallback was used. Process readback proved the first prepared shell was idle, so it was closed and the unchanged authenticator was relaunched as the new visible shell's startup command. Fresh independent checks later proved both managed CLI and ADC current. At the user's explicit request, the exact Production route and local audit HTML were launched in the normal Windows browser, but normal Codex control remained unavailable after reset/retry, so no route, DOM, authentication, or saved-state claim was inferred from the browser process. The user later replied pass while contemporaneous in-app browser readback showed Production pathname / rather than /lease-renewal/live. That candidate Pass was also reconciled as a failed setup action. The normal exact-route open request queued, and Computer Use remained unavailable before initialization. The user's corrected Pass was then corroborated by exact /lease-renewal/live in-app browser readback. This closed route acquisition only; supported page-state inspection remained unavailable. The user then affirmatively judged the first visible conflict to be genuine normal-course work already intended for resolution; no resolution or write-back action occurred. The next candidate Pass reported that the site updated based on dropdowns or toggles but omitted the exact selected Resolution label and left extra-control changes ambiguous. An ephemeral user-supplied current-page image then corroborated only the allowlisted form state: Enter a corrected value and A source is out of date were selected, both text fields were empty, Resolve was available, and no dialog was open. The image and all customer values in it were not retained or cited. The reason-code selection exceeded the one-action checkpoint but issued no request or effect; the user confirmed the displayed state looked right. A later Reason-entry candidate Pass was rejected because contemporaneous in-app browser readback showed Production /sign-in; the unsaved form state is treated as lost and no request or effect is inferred.",
-      "nextAction": "On Production /sign-in, click Sign in with Google once and stop when the Google popup or account chooser appears. Do not select an account, enter credentials, dismiss a warning, or touch a workflow control in this action."
+      "friction": "Adversarial verification before any attempt falsified the effect-authority premise: the confirmation dialog is severity-dependent and absent on Low and Medium, where the primary Resolve control commits directly. Recorded as FB-HVSESSION-014 and specified by AC-S69-33. The declared non-Production fixture half of the disposition is not executable, because the only non-Production plane refuses durable mutations by contract.",
+      "nextAction": "None for this item. Building the resolution-actor rendering on the review route, and reversal controls generally, are separate build slices."
     },
     {
       "verification_id": "HV-003",
       "source_case_ids": ["CONNECTION-006", "ADMIN-009"],
       "process_id": "Identity and access",
-      "status": "not_run",
+      "status": "blocked",
       "evidence": "",
-      "issue": "",
+      "issue": "Second party required. Verifying role-scoped access separation needs a SECOND managed identity signed in at their own keyboard at the same time; it cannot be established from one Admin session, and the audit forbids creating a test identity to stand in for one.",
       "friction": "",
-      "nextAction": ""
+      "nextAction": "Preconditions: a second managed-domain account with a non-Admin role, that person present at their own machine, and both sessions live concurrently. No product change is needed to close it."
     },
     {
       "verification_id": "HV-004",
       "source_case_ids": ["CONNECTION-005"],
       "process_id": "Provider readiness",
-      "status": "not_run",
-      "evidence": "",
-      "issue": "",
+      "status": "fail",
+      "evidence": "Verified read-only on the live deployment: /connections renders exactly two API-key inputs and two Save API key buttons. All four safety properties the audit named hold - every input is type password, every input is empty on load, every input carries autocomplete off, and every Save button is disabled while its input is empty. Both inputs sit OUTSIDE any disclosure element, which falsifies the audit prefill's claim that a panel had to be expanded to find them; they are more prominent than the finding reported.",
+      "issue": "Credential entry is offered on an Admin page while nothing is actually stored, so the page contradicts its own setup copy. Owner decision 2026-08-25: remove the two API-key inputs and the Save API key control; credential entry stays in the server setup flow.",
       "friction": "",
-      "nextAction": ""
+      "nextAction": "Remove the key inputs and Save control from the connector card, keeping Verify connection, Disconnect, and the OAuth Connect controls."
     },
     {
       "verification_id": "HV-005",
       "source_case_ids": ["GATE-001", "MAINT-LIVE-004"],
       "process_id": "Execution authority",
-      "status": "not_run",
-      "evidence": "",
-      "issue": "",
+      "status": "pass",
+      "evidence": "The finding's premise is false. A structural parse of the committed Action Registry shows gmail.maintenance_owner_notice.draft_create carrying readiness Approved for Execution, evidence status Documented, and production_allowed true, and the same state holds at the exact commit the audit ran against. The registry holds six open and thirty-five closed actions, not the five and thirty-six the audit asserted, and zero entries anywhere are labelled Approved for Execution while closed, so the inconsistency the finding describes does not exist on any key. Four independent tests pin the executable set, the gate, and the draft key's own state.",
+      "issue": "Owner decision 2026-08-25: accept the falsification and correct the record. No gate change and no edit to the protected registry file.",
       "friction": "",
-      "nextAction": ""
+      "nextAction": "Correct finding FND-024-GATE-001 and the F-MODEL-PROCESS-AUDIT-2026-08-17 row to read six open and thirty-five closed with the maintenance draft gate open."
     },
     {
       "verification_id": "HV-006",
       "source_case_ids": ["CONSOLE-014", "MAINT-LIVE-007"],
       "process_id": "Cross-product coordination",
-      "status": "not_run",
+      "status": "blocked",
       "evidence": "",
-      "issue": "",
+      "issue": "Hardware required. The dictation half needs a working microphone and a human voice; audio is volatile by design and cannot be synthesized for audit evidence. Note the item BUNDLES two halves: the second, a denial path, needs no microphone and is independently provable, so classifying the whole id as hardware-blocked discards evidence that is available.",
       "friction": "",
-      "nextAction": ""
+      "nextAction": "Preconditions: a microphone on the controlled machine and a person to speak. Recommended: split the id so the denial half can terminate on its own evidence."
     },
     {
       "verification_id": "HV-007",
@@ -84,11 +84,11 @@
         "NOTIFY-004"
       ],
       "process_id": "Cross-product coordination",
-      "status": "not_run",
+      "status": "blocked",
       "evidence": "",
-      "issue": "",
-      "friction": "",
-      "nextAction": ""
+      "issue": "Refused rather than committed. The declared app-owned create-and-clean cycle with reversal proven by readback is false on four of five legs: the shipped UI exposes no reversal control (forward-only ticket lifecycle, no placeholder removal, no un-resolve, no mark-unread), and two legs operate on real Live operational records rather than disposable fixtures.",
+      "friction": "Owner decision 2026-08-25: leave refused. Closing this item requires reversal controls that do not exist in the product, which is a build slice rather than an audit step.",
+      "nextAction": "Build the missing reversal controls, then re-run this item against them. No effect was committed."
     },
     {
       "verification_id": "HV-008",
@@ -106,41 +106,41 @@
         "MAINT-GMAIL-006"
       ],
       "process_id": "Workflow Communications",
-      "status": "not_run",
+      "status": "blocked",
       "evidence": "",
-      "issue": "",
+      "issue": "Refused outright. The grounds are the blanket no-autonomous, scheduled, bulk or model-triggered client-facing send invariant, plus an irreversible durable Production association created before any send. Citing D33 alone was too narrow to be accurate.",
       "friction": "",
-      "nextAction": ""
+      "nextAction": "None. No fixture, flag, or prompt makes the runner send."
     },
     {
       "verification_id": "HV-009",
       "source_case_ids": ["COMM-015"],
       "process_id": "Workflow Communications",
-      "status": "not_run",
+      "status": "blocked",
       "evidence": "",
-      "issue": "",
-      "friction": "",
-      "nextAction": ""
+      "issue": "Refused rather than committed. This is not only a Gmail push-watch: one confirmation writes an app-plane claim BEFORE the provider call that is consumed even on failure, performs the provider mutation, and opens an ongoing external push channel that keeps writing Production records for the watch's lifetime. No watch-stop path exists anywhere in the product, so the required reversal readback is unproducible, and the item's own expected pass state (watch active) contradicts the reversal state required (stopped).",
+      "friction": "Owner decision 2026-08-25: leave refused. Committing it would leave a live push channel writing Production records with no way to stop it from the app.",
+      "nextAction": "Build a watch-stop path, then re-run this item against it. No effect was committed."
     },
     {
       "verification_id": "HV-010",
       "source_case_ids": ["LEASE-X-011"],
       "process_id": "Lease Renewal",
-      "status": "not_run",
-      "evidence": "",
-      "issue": "",
-      "friction": "",
-      "nextAction": ""
+      "status": "blocked",
+      "evidence": "The Lease Renewals Space renders three notice-timing lines, each carrying a Needs Verification marker, which is the system behaving correctly by never inventing a confirmed value. Behind those three lines are FOUR settings plus an on/off flag: notice deadline day of month, notice deadline month offset, operator warning lead days, follow-up interval days, and notice rules enabled.",
+      "issue": "Owner decision 2026-08-25: the timing values VARY BY PROPERTY. The rule model already supports per-property and per-lease overrides with most-specific-wins precedence, but no admin screen exists to enter them, so this cannot be closed by data entry today.",
+      "friction": "Answering the three rendered lines would have left the fourth setting unanswered; the admin form exposes all four separately.",
+      "nextAction": "Build the per-property and per-lease notice-rule override screen, then collect the real values per property. Reconcile against the second follow-up clock first (the notice rule interval and the S31 interval disagree)."
     },
     {
       "verification_id": "HV-011",
       "source_case_ids": ["PRE-004"],
       "process_id": "Audit governance",
-      "status": "not_run",
-      "evidence": "",
-      "issue": "",
-      "friction": "",
-      "nextAction": ""
+      "status": "pass",
+      "evidence": "The finalization rule contradicts itself. The runner declares five identity classes and three legal readiness values (ready, blocked, not_required), but the finalization check throws unless all five are ready, so two of the three legal values can never appear in a run that finishes. The strict flag is passed on both the finalize and the validate path, so the rule bites twice, and the same all-green shape exists on two sibling sidecars. No customer data, mailbox, or product surface is involved.",
+      "issue": "Owner decision 2026-08-25: accept any of the three declared readiness values at finalization, rather than the narrower conditional rules that were recommended.",
+      "friction": "The model recommended narrower rules so a blocked role still had to pay for itself with a finding on every dependent case. The owner chose the simpler rule; the trade-off is that an audit can now finish while recording a blocked role without a dependent finding.",
+      "nextAction": "Relax the finalization check to accept the declared readiness values, then re-run and confirm a run finalizes. Step 5 tracks as follow-up engineering verification."
     },
     {
       "verification_id": "HV-012",
@@ -154,5 +154,5 @@
     }
   ],
   "additional_context": "This sanitized durable partial response preserves 2 Pass and 10 not_run results. A candidate Reason-entry Pass is rejected because contemporaneous in-app browser readback shows Production /sign-in instead of /lease-renewal/live. The unsaved form state is treated as lost, and no resolution request or effect is inferred. Fresh non-printing preflights prove the managed account selection, Production project, CLI token, and ADC token current; only the browser-app session requires sign-in. Normal Computer Use remains unavailable before initialization and no custom controller is attached.",
-  "requested_next_action": "Click Sign in with Google once and stop at the Google popup or account chooser. The human must control every account/credential step; after sign-in the facilitator must reacquire exact /lease-renewal/live and rebuild the unsaved form state before any Resolve action."
+  "requested_next_action": "All twelve human verifications are terminal. Remaining work is product build, not audit: the HV-004 credential-entry removal, the HV-011 finalization relaxation, the HV-010 per-property notice-rule override screen, and the reversal controls HV-007 and HV-009 require."
 }

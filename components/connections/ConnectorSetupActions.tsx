@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button, Field } from "@/components/ui";
+import { Button } from "@/components/ui";
 import type { ConnectMethod } from "@/lib/connections/connector-catalog";
 
 // Admin-only connect affordance for one connector. Honest by construction: with no secure storage and
@@ -46,83 +45,37 @@ export function ConnectorSetupActions({
   );
 }
 
+/**
+ * HV-004 (owner decision, 2026-08-25): this card no longer accepts a credential.
+ *
+ * It used to render a masked API-key input and a Save API key button. The safety properties were all
+ * genuinely present (masked, empty on load, autocomplete off, Save disabled while empty) and the
+ * request path was write-only, but nothing was ever actually stored: the server answered
+ * "Secure storage is not configured yet", so the page invited an operator to hand over a real
+ * credential and then quietly discarded it while its own setup copy said otherwise.
+ *
+ * Removing the field removes no working function. Credential entry belongs in the server setup we
+ * run ourselves. If secure storage is wired up later, re-adding an entry control is its own reviewed
+ * change with tests, decided against a real capability rather than an empty seam.
+ */
 function ConnectorApiKeySetup({
   connectorId,
   connectorName,
   connected,
 }: Readonly<{ connectorId: string; connectorName: string; connected: boolean }>) {
-  const router = useRouter();
-  const [apiKey, setApiKey] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const inputId = `connector-${connectorId}-api-key`;
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Write-only: capture the key for this one request, then clear it immediately so it is never
-    // held in state or shown again.
-    const secret = apiKey;
-    setApiKey("");
-    if (secret.length === 0) {
-      return;
-    }
-    setBusy(true);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/connections/${connectorId}/api-key`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: secret }),
-      });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setMessage(body?.error ?? "That did not go through. Please try again.");
-        return;
-      }
-      const body = (await response.json()) as { stored: boolean };
-      if (body.stored) {
-        setMessage("Connected.");
-        router.refresh();
-      } else {
-        setMessage(
-          "Setup received. Secure storage is not configured yet, so nothing was stored.",
-        );
-      }
-    } catch {
-      setMessage("That did not go through. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="ui-stack-tight">
-      <form className="ui-stack-tight" onSubmit={submit}>
-        <Field htmlFor={inputId} label={`Add your ${connectorName} API key`}>
-          <input
-            autoComplete="off"
-            className="ui-input"
-            disabled={busy}
-            id={inputId}
-            name="api_key"
-            onChange={(event) => setApiKey(event.target.value)}
-            type="password"
-            value={apiKey}
-          />
-        </Field>
-        <Button disabled={busy || apiKey.length === 0} type="submit" variant="secondary">
-          {busy ? "Saving…" : "Save API key"}
-        </Button>
-      </form>
+      <p className="muted">
+        {connectorName} connects with a key that is set up on the server, not entered
+        here. Ask an administrator to run the setup, then use Verify connection to confirm
+        it works.
+      </p>
       {connected ? (
         <ConnectorDisconnectButton
           connectorId={connectorId}
           connectorName={connectorName}
         />
       ) : null}
-      {message ? <p className="muted">{message}</p> : null}
     </div>
   );
 }

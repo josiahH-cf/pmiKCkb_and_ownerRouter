@@ -557,14 +557,34 @@ function validateAuthPreflightArtifact(
   if (artifact.identities.length !== AUDIT_IDENTITY_CLASSES.length) {
     throw new Error("auth preflight contains unsupported identity classes.");
   }
-  if (
-    requireTerminal &&
-    (!artifact.separation_verified ||
-      artifact.identities.some((identity) => identity.readiness !== "ready"))
-  ) {
-    throw new Error(
-      "Auth preflight must have separated, ready sessions before finalization.",
+  // HV-011 (owner decision, 2026-08-25): finalization accepts any of the three DECLARED readiness
+  // values, not "ready" alone.
+  //
+  // The rule used to contradict itself. AUTH_READINESS_RESULTS declares ready, blocked and
+  // not_required, but this check threw unless every identity was "ready" — so two of the three legal
+  // values could never appear in a run that actually finished, and a first pass that could not
+  // provision all five identities could never finalize at all. The audit then had no way to record
+  // honestly what it had and had not been able to authenticate.
+  //
+  // An unrecognised value still fails: the point is to record a real readiness state, not to accept
+  // anything. Separation must still be verified.
+  //
+  // Trade-off the owner accepted over the narrower alternative: a run may now finalize with a blocked
+  // identity WITHOUT that block having to pay for itself with a finding on every dependent case.
+  if (requireTerminal) {
+    if (!artifact.separation_verified) {
+      throw new Error("Auth preflight must have separated sessions before finalization.");
+    }
+    const undeclared = artifact.identities.filter(
+      (identity) => !AUTH_READINESS_RESULTS.includes(identity.readiness),
     );
+    if (undeclared.length > 0) {
+      throw new Error(
+        `Auth preflight readiness must be one of ${AUTH_READINESS_RESULTS.join(", ")}; found ${undeclared
+          .map((identity) => `${identity.identity_class}=${identity.readiness}`)
+          .join(", ")}.`,
+      );
+    }
   }
   assertValueSafe(artifact, "auth-preflight.json");
   return { entryCount: artifact.identities.length };

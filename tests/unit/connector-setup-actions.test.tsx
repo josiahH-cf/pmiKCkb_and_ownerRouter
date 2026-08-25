@@ -62,8 +62,11 @@ describe("ConnectorSetupActions", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("offers a write-only API key form and reports the not-configured truth", async () => {
-    const user = userEvent.setup();
+  // HV-004 (owner decision, 2026-08-25): the API-key card no longer accepts a credential. It used to
+  // render a masked, write-only input whose safety properties were all genuinely present -- but
+  // nothing was ever stored, so the page invited an operator to hand over a real credential and then
+  // discarded it while its own setup copy said otherwise. These assertions pin the removal.
+  it("offers no credential entry on the API key card and points at server setup", () => {
     render(
       <ConnectorSetupActions
         connected={false}
@@ -73,29 +76,32 @@ describe("ConnectorSetupActions", () => {
       />,
     );
 
-    const input = screen.getByLabelText("Add your RentVine API key") as HTMLInputElement;
-    expect(input).toHaveAttribute("type", "password");
-    expect(input).toHaveAttribute("autocomplete", "off");
-    expect(input.value).toBe("");
+    // No input of any kind, and specifically no password field or save control.
+    expect(screen.queryByLabelText("Add your RentVine API key")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save API key" })).toBeNull();
+    expect(document.querySelector("input")).toBeNull();
+    expect(document.querySelector('input[type="password"]')).toBeNull();
 
-    const secret = "sekret-value-123";
-    await user.type(input, secret);
-    await user.click(screen.getByRole("button", { name: "Save API key" }));
+    // It says where the key actually goes instead of silently offering a dead field.
+    expect(
+      screen.getByText(/set up on the server, not entered here/i),
+    ).toBeInTheDocument();
 
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          "Setup received. Secure storage is not configured yet, so nothing was stored.",
-        ),
-      ).toBeInTheDocument(),
-    );
-
-    // Nothing was stored, so no refresh, and the field is cleared write-only.
-    expect(refresh).not.toHaveBeenCalled();
-    expect(input.value).toBe("");
-    // Never leak the typed secret or an env var name into the rendered surface.
-    expect(document.body.textContent).not.toContain(secret);
+    // Still never names an env var.
     expect(document.body.textContent).not.toContain("RENTVINE_API_KEY");
+  });
+
+  it("still offers Disconnect on a connected API key connector", () => {
+    render(
+      <ConnectorSetupActions
+        connected
+        connectorId="rentvine"
+        connectorName="RentVine"
+        method="api_key"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Disconnect" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save API key" })).toBeNull();
   });
 
   it("offers an OAuth connect button and reports missing connection details", async () => {

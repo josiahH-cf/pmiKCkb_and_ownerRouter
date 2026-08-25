@@ -9563,3 +9563,41 @@ matching, and the `docs/loop-state.md` line cap, which is at 140 exactly and enf
 
 **Status.** S72 through S75 remain Assumption-free specifications, not built. The two owner decisions
 in the Cherry Bridge set (N4 MKD outreach, N11 auto-send) remain Open pending the batch packet.
+
+## 2026-08-25 — human audit closed; two owner decisions built
+
+The owner answered all seven batch-packet decisions in console. All twelve human verifications are
+now terminal and the run's overall result is complete.
+
+**Answers recorded.** HV-002 closed on the boundary proof with no write. HV-004 fail, with the
+credential-entry removal authorized. HV-005 pass by falsification. HV-007 and HV-009 refused and left
+refused, because neither has a producible reversal. HV-010 blocked: the timing values vary by
+property, which cannot be entered today. HV-011 pass, with the simpler relaxation chosen over the
+narrower conditional rules the model recommended. HV-003 and HV-006 terminate blocked with their
+exact preconditions stated, since they need a second person and a microphone respectively.
+
+**HV-005 correction.** Finding FND-024-GATE-001 is falsified and the record now says so. The
+maintenance owner-notice draft key carries production_allowed true at the audited commit, the
+registry holds six open and thirty-five closed actions rather than five and thirty-six, and zero
+entries anywhere are Approved for Execution while closed. Four tests pin it. No gate change and no
+registry edit.
+
+**HV-004 built.** The Connections card no longer accepts a credential. The removed field's safety
+properties were all genuinely present, but nothing was ever stored, so the page invited an operator
+to hand over a real key and then discarded it while its own setup copy said otherwise. Verify
+connection, Disconnect, and the OAuth controls are unchanged.
+
+**HV-011 built.** Finalization accepts any of the three declared readiness values instead of ready
+alone. The old rule declared three and could only ever accept one, so a first pass that could not
+provision all five identities could never finalize. Separation is still required and an undeclared
+value still fails. Recorded trade-off: a run may now finalize with a blocked identity without that
+block leaving a finding on every dependent case.
+
+**HV-010 specified, not built.** The rule model already resolves three scopes most-specific-wins, but
+the admin panel edits only the global scope and records property and lease overrides as a separable
+follow-on. AC-S75-10 through AC-S75-12 specify the override screen, including that it must expose all
+four settings rather than the three lines the Space renders.
+
+**Verification.** Build green, all six verify gates green, and the full suite green at reduced
+concurrency: 505 files, 4881 tests, exit 0. Default vitest concurrency is not trustworthy on this
+WSL and Windows mount, so the reduced-concurrency run is the signal.

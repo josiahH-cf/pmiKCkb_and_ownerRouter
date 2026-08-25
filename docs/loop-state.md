@@ -2,7 +2,7 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-25 (S71 address truth and S70 queue ordering built; specs S70-S75 landed).
+Last updated: 2026-08-25 (human audit CLOSED 12/12 terminal; S70/S71 built; HV-004/HV-011 built).
 
 ```yaml
 last_updated: 2026-08-23
@@ -123,8 +123,8 @@ supersedes that evidence, so do not re-ask it.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**2026-08-25:** S71 (one address composer, house numbers) and S70 (one queue ordering, date beside
-the conflict pill) are BUILT. S72-S75 remain spec-only; N4/N11 need owner calls in the batch packet.
+**2026-08-25:** Human audit CLOSED, 12/12 terminal. S70/S71 built; HV-004 credential entry removed;
+HV-011 finalization relaxed. Open builds: HV-010 property overrides, HV-007/HV-009 reversal controls.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E

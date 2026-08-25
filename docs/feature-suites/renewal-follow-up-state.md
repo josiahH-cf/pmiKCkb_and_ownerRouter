@@ -8,6 +8,16 @@
 > equivalent and record the auto-send ask as answered-not-possible under D33. Specification only — this
 > suite changes no product code until an implementation session picks it up.
 
+> **Amended 2026-08-25 for HV-010 (owner decision).** Asked for the real notice-timing numbers, the
+> owner answered that they **vary by property**. That answer cannot be entered today. The rule model
+> already supports three scopes resolved most-specific-wins (lease > property > global) in
+> `lib/lease-renewal/notice-rules.ts`, but `components/admin/NoticeRulesAdminPanel.tsx` edits only the
+> global scope, and its own comment records property and lease overrides as "a separable follow-on".
+> So the engine exists and the screen does not, exactly as this suite's follow-up statuses exist and
+> are never fed. `AC-S75-10`-`AC-S75-12` specify the override screen. Note also that the three
+> rendered timing lines sit over FOUR settings plus an on/off flag, so answering the lines leaves one
+> setting unanswered.
+
 **Goal.** An operator can see at a glance who a renewal is waiting on and when it was last followed up,
 and the app raises an internal nudge when a thread goes quiet — with a pre-composed, addressed, **unsent**
 draft a person sends. The follow-up engine for all of this is already written, tested, and starved of
@@ -91,6 +101,18 @@ the unsent draft. D33 and the blanket no-autonomous-send invariant bound the who
   cites D33 / the blanket invariant by name.
 - **AC-S75-9** — the manual waiting-on override persists, is attributed, and is reversible, and it never
   writes to RentVine or the Sheet.
+
+- **AC-S75-10** — an Admin can record notice-timing values at the property scope, and a lease under
+  that property resolves to them while a lease under an unconfigured property resolves to the global
+  defaults. A fixture with one property override asserts both outcomes from the same rule set, so
+  most-specific-wins is observable rather than merely implemented.
+- **AC-S75-11** — the override screen exposes all FOUR timing settings plus the enabled flag, not the
+  three lines the Space currently renders. A fixture asserting only three editable settings fails,
+  closing the gap where confirming the rendered lines leaves the notice-deadline month offset
+  unanswered.
+- **AC-S75-12** — a scope whose values an Admin has not confirmed still renders its Needs Verification
+  marker, and confirming at the property scope clears the marker for leases under that property only.
+  A fixture asserts that confirming one property does not mark another property's values verified.
 
 **Forbidden actions / hard gates.** No autonomous, scheduled, bulk, or model-triggered client-facing
 send — this is the invariant the client's third ask runs into, and it is not negotiable at the suite
