@@ -59,6 +59,7 @@ import {
 import {
   RENEWAL_STEPS,
   STAGE_NEXT_ACTION,
+  compareLeaseEndDate,
   humanizeCohortReason,
   type DeskLeaseSummary,
   type DeskReconCandidate,
@@ -356,6 +357,10 @@ export async function loadLiveRenewalDesk(
       }
       return toLiveSummary(view, classification);
     });
+    // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
+    // and inherited RentVine export row order, which is what the client saw as "dates need to be in
+    // chronological order". Same comparator as the attention fold above it.
+    summaries.sort(compareLeaseEndDate);
 
     return {
       status: "ok",

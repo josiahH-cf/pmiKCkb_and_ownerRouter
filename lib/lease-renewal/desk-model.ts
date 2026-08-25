@@ -75,6 +75,27 @@ export interface DeskLeaseSummary {
 }
 
 /**
+ * The ONE renewal ordering (S70, AC-S70-1 / AC-S70-2). Soonest lease end date first; a lease with no
+ * end date sorts last; ties break on the stable lease id so the order does not shuffle between
+ * reloads. ISO dates sort lexicographically, so no parsing is needed.
+ *
+ * Before S70 the queue had no sort at all and inherited RentVine export row order, while the
+ * "Needs your attention" fold directly above it DID sort by soonest end date — two lists on one page
+ * in two different orders. Both now call this function, so they cannot drift apart again.
+ */
+export function compareLeaseEndDate(
+  a: { endDateIso: string | null; id?: string },
+  b: { endDateIso: string | null; id?: string },
+): number {
+  if (a.endDateIso !== b.endDateIso) {
+    if (a.endDateIso === null) return 1;
+    if (b.endDateIso === null) return -1;
+    return a.endDateIso < b.endDateIso ? -1 : 1;
+  }
+  return (a.id ?? "").localeCompare(b.id ?? "");
+}
+
+/**
  * S58: the age/refresh facts of the snapshot a surface rendered. Exactly one of four UI states
  * derives from these (in precedence order): expired → too-old-to-act; refreshing → refreshing;
  * lastError → last-updated-and-could-not-refresh; otherwise → updated-with-age. The age comes from

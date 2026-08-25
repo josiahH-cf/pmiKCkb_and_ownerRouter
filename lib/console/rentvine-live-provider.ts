@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { composeRentVineAddress } from "@/lib/integrations/rentvine/address";
 import type { RentVineClient } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import type {
@@ -173,16 +174,12 @@ function firstTenant(lease: Record<string, unknown>) {
   return combined || null;
 }
 
+// S71: delegates to the single shared RentVine composer. The 160-character cap used to be applied
+// per-part inside `firstString`; it now applies to the composed string, which is the same bound on
+// what reaches the UI.
 function unitAddress(unit: Record<string, unknown>) {
-  const street = [
-    firstString(unit, ["streetNumber"]),
-    firstString(unit, ["streetName"]),
-    firstString(unit, ["address2"]),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return street || firstString(unit, ["address", "address1", "addressLine1"]);
+  const composed = composeRentVineAddress(unit);
+  return composed ? composed.slice(0, 160) : null;
 }
 
 function firstString(value: Record<string, unknown>, keys: readonly string[]) {

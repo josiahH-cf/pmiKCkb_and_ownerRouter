@@ -13,6 +13,7 @@
 // (only a structured unit id present verbatim in the location does — a fuzzy address match caps at
 // "Likely", mirroring how the renewal join caps names). Pure + deterministic: no I/O, no Date.now().
 
+import { composeRentVineAddress } from "@/lib/integrations/rentvine/address";
 import {
   JOIN_AMBIGUOUS_THRESHOLD,
   JOIN_MATCH_THRESHOLD,
@@ -140,21 +141,13 @@ function pickMatch(
 export const UNIT_ID_KEYS = ["unitID", "unitId", "id"] as const;
 export const PROPERTY_ID_KEYS = ["propertyID", "propertyId"] as const;
 
-/** Compose the matchable street label from the RentVine unit append (streetNumber + streetName + address2). */
+/**
+ * Compose the matchable street label from the RentVine unit append. S71 moved the body of this
+ * function into the single shared composer verbatim, so behaviour here is unchanged and the exact
+ * output strings this module's tests pin are the proof of that.
+ */
 function composeUnitAddress(unit: Record<string, unknown>): string | null {
-  const streetLine = [
-    firstPresentString(unit, ["streetNumber"]),
-    firstPresentString(unit, ["streetName"]),
-  ]
-    .filter((part): part is string => Boolean(part))
-    .join(" ");
-  const designator = firstPresentString(unit, ["address2"]);
-  const composed = [streetLine, designator]
-    .filter((part) => Boolean(part))
-    .join(" ")
-    .trim();
-  if (composed) return composed;
-  return firstPresentString(unit, ["address", "address1", "addressLine1"]);
+  return composeRentVineAddress(unit);
 }
 
 function firstPresentString(

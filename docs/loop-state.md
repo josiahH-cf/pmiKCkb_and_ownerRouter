@@ -2,7 +2,7 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-24 (audit unattended lane authorized; Cherry Bridge note specs S70-S75 written).
+Last updated: 2026-08-25 (S71 address truth and S70 queue ordering built; specs S70-S75 landed).
 
 ```yaml
 last_updated: 2026-08-23
@@ -123,8 +123,8 @@ supersedes that evidence, so do not re-ask it.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**2026-08-24 (spec-only):** `FB-HVSESSION-012` supersedes `FB-HVSESSION-003`; the audit runs
-unattended (S69 `AC-S69-24`-`31`). S70-S75 spec the Cherry Bridge notes; N4/N11 need owner calls.
+**2026-08-25:** S71 (one address composer, house numbers) and S70 (one queue ordering, date beside
+the conflict pill) are BUILT. S72-S75 remain spec-only; N4/N11 need owner calls in the batch packet.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E

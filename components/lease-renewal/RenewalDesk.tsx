@@ -221,13 +221,23 @@ function ActionableLeaseCard({
       <div className="ui-stack">
         <div className="ui-spread">
           <h3 className="ui-card-title">{lease.addressLabel}</h3>
-          {lease.openConflicts > 0 ? (
-            <StatusPill value="Action Required">
-              {lease.openConflicts} source conflict{lease.openConflicts === 1 ? "" : "s"}
-            </StatusPill>
-          ) : lease.endDateIso ? (
-            <span className="muted">Ends {lease.endDateIso}</span>
-          ) : null}
+          {/*
+            S70 AC-S70-3: the conflict pill and the end date both render. They used to share this
+            slot, so a card with an open conflict showed no date at all — which meant the cards an
+            operator most needs to check were exactly the ones that read as out of order, even once
+            the queue was sorted.
+          */}
+          <div className="ui-row">
+            {lease.openConflicts > 0 ? (
+              <StatusPill value="Action Required">
+                {lease.openConflicts} source conflict
+                {lease.openConflicts === 1 ? "" : "s"}
+              </StatusPill>
+            ) : null}
+            {lease.endDateIso ? (
+              <span className="muted">Ends {lease.endDateIso}</span>
+            ) : null}
+          </div>
         </div>
         <Stepper currentIndex={lease.stageIndex} steps={RENEWAL_STEPS} />
         <div className="ui-spread">

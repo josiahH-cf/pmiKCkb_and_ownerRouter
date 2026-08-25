@@ -9530,3 +9530,36 @@ The transcript-derived implementation loop is complete: S28/S60 and S66-S68 are 
 pushed, and deployed. No provider action or Action Registry key was activated, and no send or
 system-of-record write ran. S66's exact approved-artifact catalog and provider seams remain named
 external dependencies; Dotloop activation stays separate.
+
+## 2026-08-25 — S71 address truth and S70 queue ordering built
+
+The first two Cherry Bridge slices are built, tested, and pushed. Both were specified 2026-08-24 as
+S71 and S70; this entry records the implementation.
+
+**S71 — one address composer.** `leaseAddressLabel` and the owner-draft `addressOf` each walked
+`["streetName", "address", "addressLine1", "propertyAddress"]` first-hit-wins. RentVine's
+`streetName` is the street NAME only and is present on every record, so it always won and the house
+number was never rendered anywhere. Verified: a pure key-ORDER defect, not truncation or redaction.
+Three implementations of the same composition now delegate to one leaf module,
+`lib/integrations/rentvine/address.ts`, and a comment-stripping source scan asserts it is the only
+one under `lib/`. `propertyAddress` stays a renewal-only fallback in the caller, deliberately NOT
+folded into the shared composer, so maintenance unit matching and the address persisted on live
+tickets are unchanged.
+
+Falsification evidence: replaying the old key walk against the new fixtures returns the street name
+alone, and two leases on one street produced identical labels. That is the most likely explanation of
+the client's wrong-resident report, since the card and heading identify a lease by that label.
+
+**S70 — one queue ordering.** The queue had no sort at all and inherited RentVine export row order,
+while the attention fold directly above it already sorted by soonest end date. Both now call one
+exported comparator: soonest end date, no-end-date last, stable id tie-break. A card with an open
+conflict now renders its end date alongside the conflict pill rather than the pill taking the slot,
+so the cards an operator most needs to check no longer read as out of order.
+
+**Checked before shipping.** `action_executions` holds zero renewal owner-channel rows, so changing
+the draft address value strands no prepared draft. The adversarial review that surfaced that risk also
+caught two others: a proposed widening of the shared composer that would have changed maintenance
+matching, and the `docs/loop-state.md` line cap, which is at 140 exactly and enforced by a unit test.
+
+**Status.** S72 through S75 remain Assumption-free specifications, not built. The two owner decisions
+in the Cherry Bridge set (N4 MKD outreach, N11 auto-send) remain Open pending the batch packet.

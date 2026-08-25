@@ -11,6 +11,10 @@
 
 import type { NonSheetCandidate, NonSheetFieldValue } from "@/lib/lease-renewal/pipeline";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
+import {
+  composeRentVineAddress,
+  firstPresentString,
+} from "@/lib/integrations/rentvine/address";
 
 /** Candidate source key names for each reconcilable target; first present (non-empty) wins. */
 export interface RentVineLeaseFieldMap {
@@ -160,21 +164,32 @@ export function leasePortfolioId(lease: RawLease): string | undefined {
 }
 
 /**
- * Best-effort property address label for a live lease view (export-shaped). Reads the owner-bearing
- * `property` sibling first, then the lease itself, over the same key set the draft service uses. In
- * boundary only (never written to git); returns undefined when no address is on the record so callers
- * can fall back to a non-PII label. Pure and deterministic.
+ * Property address label for a live lease view (export-shaped). Composes `streetNumber` +
+ * `streetName` (+ `address2`) via the single shared RentVine composer, reading the owner-bearing
+ * `property` sibling first and then the lease itself.
+ *
+ * S71: this used to walk a street-name-first key list and take the first hit.
+ * `streetName` is street-NAME-only and present on every record, so it always won and the house number
+ * was never rendered — on the desk card, the workspace heading, the owner email, the comp lookup, and
+ * the Ask live-target candidates alike, since all five read this one function.
+ *
+ * `propertyAddress` stays a renewal-only fallback HERE rather than in the shared composer, so
+ * consolidating does not change maintenance unit matching. In boundary only (never written to git);
+ * returns undefined when no address is on the record so callers can fall back to a non-PII label.
+ * Pure and deterministic.
  */
 export function leaseAddressLabel(lease: RawLease): string | undefined {
   const property =
-    lease.property && typeof lease.property === "object"
+    lease.property && typeof lease.property === "object" && !Array.isArray(lease.property)
       ? (lease.property as Record<string, unknown>)
       : {};
   for (const source of [property, lease] as const) {
-    for (const key of ["streetName", "address", "addressLine1", "propertyAddress"]) {
-      const value = source[key];
-      if (typeof value === "string" && value.trim() !== "") return value.trim();
-    }
+    const composed = composeRentVineAddress(source);
+    if (composed) return composed;
+    const renewalFallback = firstPresentString(source as Record<string, unknown>, [
+      "propertyAddress",
+    ]);
+    if (renewalFallback) return renewalFallback;
   }
   return undefined;
 }

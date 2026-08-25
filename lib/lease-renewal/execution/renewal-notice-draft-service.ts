@@ -23,6 +23,7 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import {
+  leaseAddressLabel,
   leaseCurrentRent,
   leaseEndDateIso,
   leaseTenantName,
@@ -241,7 +242,7 @@ function leaseRenewalFacts(lease: RawLease): LeaseRenewalFacts {
     tenantNameLabel: sanitizeText(leaseTenantName(lease)),
     leaseEndDateIso: leaseEndDateIso(lease),
     currentRent: leaseCurrentRent(lease),
-    addressLabel: sanitizeText(addressOf(lease)),
+    addressLabel: sanitizeText(leaseAddressLabel(lease)),
   };
 }
 
@@ -305,16 +306,7 @@ function buildOwnerDecision(
   };
 }
 
-function addressOf(lease: RawLease): string | undefined {
-  const property =
-    lease.property && typeof lease.property === "object"
-      ? (lease.property as Record<string, unknown>)
-      : {};
-  for (const source of [property, lease] as const) {
-    for (const key of ["streetName", "address", "addressLine1", "propertyAddress"]) {
-      const value = source[key];
-      if (typeof value === "string" && value.trim()) return value.trim();
-    }
-  }
-  return undefined;
-}
+// S71: `addressOf` used to duplicate the lease-mapper's first-hit-wins key walk here, so the gated
+// owner email carried the same street-only label as the desk — a street name with no house number.
+// The single composer now serves both, which is what makes AC-S71-2 (one address string across the
+// desk card, the workspace heading, and the owner draft) enforceable rather than aspirational.

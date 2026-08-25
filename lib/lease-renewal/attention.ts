@@ -5,7 +5,10 @@
 // reads only fields already on DeskLeaseSummary; no new data, no I/O.
 
 import type { AttentionLane, AttentionSeverity } from "@/lib/attention/lanes";
-import type { DeskLeaseSummary } from "@/lib/lease-renewal/desk-model";
+import {
+  compareLeaseEndDate,
+  type DeskLeaseSummary,
+} from "@/lib/lease-renewal/desk-model";
 
 export type AttentionUrgency = "high" | "medium";
 
@@ -88,13 +91,9 @@ function itemFor(
   };
 }
 
-// ISO dates sort lexicographically; a lease with no end date sorts last.
-function compareEndDate(a: string | null, b: string | null): number {
-  if (a === b) return 0;
-  if (a === null) return 1;
-  if (b === null) return -1;
-  return a < b ? -1 : 1;
-}
+// S70: the end-date ordering now lives in ONE place (compareLeaseEndDate in desk-model) so the fold
+// and the queue below it cannot drift into two different orders. The urgency band still sorts first
+// here — that is deliberate and is what makes the fold a triage list rather than a second queue.
 
 /**
  * Fold the actionable leases into the needs-attention list (pure). Includes ONLY leases with an open
@@ -112,7 +111,7 @@ export function buildRenewalAttention(
     .sort(
       (a, b) =>
         URGENCY_RANK[a.item.urgency] - URGENCY_RANK[b.item.urgency] ||
-        compareEndDate(a.lease.endDateIso, b.lease.endDateIso) ||
+        compareLeaseEndDate(a.lease, b.lease) ||
         a.item.addressLabel.localeCompare(b.item.addressLabel),
     )
     .map((entry) => entry.item);
