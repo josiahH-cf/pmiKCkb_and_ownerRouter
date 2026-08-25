@@ -56,10 +56,15 @@ anything.
 
 **Open questions & assumptions.**
 
-- **Open — `Q-S75-FOLLOWUP-CLOCK`.** Two follow-up clocks exist and disagree: the notice rule's
-  `followUpIntervalDays` is 10 days (unverified), and S31's `followUpAfterDays` is 3 business days
-  (assumed). One of them has to win, or the operator sees two different "due" answers for one lease.
-  Reconcile before either renders.
+- **RESOLVED 2026-08-25 — `Q-S75-FOLLOWUP-CLOCK`.** There is only ONE follow-up clock in the code.
+  A repository search finds `followUpIntervalDays` (seeded 10 days) in `lib/lease-renewal/notice-rules.ts`
+  and its Firestore schema, and finds `followUpAfterDays` NOWHERE outside S31's prose — S31 is
+  specified and absent from disk, so its 3-business-day figure is a spec assumption that has never
+  been implemented. The two clocks therefore never disagreed at runtime; they could not, because only
+  one exists. The shipped clock is the notice rule's `followUpIntervalDays`, resolved through the
+  same three scopes as every other notice-timing value, and S31 must adopt it rather than introduce a
+  second. The 10-day seed itself remains an unconfirmed default, which is HV-010's question, not this
+  one. Nothing blocks rendering a follow-up due date on the shipped clock.
 - **Open — `Q-S75-WAITING-ON-GRANULARITY`.** Is "waiting on tenant" one state, or does the team
   distinguish waiting-on-signature from waiting-on-reply? The client wrote one phrase; the workflow may
   need two.
@@ -125,7 +130,8 @@ showing none. Waiting-on state is app-owned; it never writes to RentVine or the 
 
 **Ordered prompt sequence.**
 
-1. Reconcile `Q-S75-FOLLOWUP-CLOCK` to one interval.
+1. ~~Reconcile `Q-S75-FOLLOWUP-CLOCK` to one interval.~~ Done 2026-08-25: only the notice rule's
+   `followUpIntervalDays` exists in code; S31 adopts it rather than adding a second clock.
 2. Persist waiting-on and last-followed-up as app-owned fields, derived from workflow events.
 3. Stop hardcoding `renewalLetterSentIso` and `tenantResponded` in all three production callers.
 4. Prove `awaiting_response` and `follow_up_due` are reachable and the "Follow-up due" line renders.

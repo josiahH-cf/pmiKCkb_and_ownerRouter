@@ -9601,3 +9601,44 @@ four settings rather than the three lines the Space renders.
 **Verification.** Build green, all six verify gates green, and the full suite green at reduced
 concurrency: 505 files, 4881 tests, exit 0. Default vitest concurrency is not trustworthy on this
 WSL and Windows mount, so the reduced-concurrency run is the signal.
+
+## 2026-08-25 — blocker batch two: config gaps, CI parity, and stale-flag cleanup
+
+**RentCast is live.** The owner activated the free API Developer plan. Both endpoints the shipped
+adapter calls now answer 200 on a controlled smoke: the AVM endpoint returned a comp range with 15
+comps and top correlations to 0.9913, and the markets endpoint returned 24 months of history.
+Per-endpoint entitlement is confirmed rather than assumed, which mattered because the registry's
+recorded evidence still names a different endpoint than the code calls. Measured allowance is 50 per
+31-day period. The overage price is not displayed for the free plan and stays unread, so the hard stop
+is sized on the allowance alone.
+
+**Two silent config gaps closed.** Production served ONE knowledge Space where the dev file declared
+eleven, because the deploy ships the production env file as a replacing map and every documented
+incantation passes on a one-Space file. All eleven restored and pinned by a new parity gate. Three
+runtime names had no delivery path to the service at all, so the RentCast allowance bound to a
+hardcoded default regardless of the dashboard and the Dotloop configuration could never report
+configured. Each now forwards when the reviewed source env sets it.
+
+**Verification lanes had drifted in both directions.** `scripts/verify.sh` ran copy-voice but not the
+budget guard; `ci.yml` ran the budget guard but not copy-voice. Each was missing exactly what the other
+had, so a regression in either gate could reach main through whichever lane omitted it. Both now run
+the full set, and `tests/unit/verification-lane-parity.test.mjs` fails if they drift again.
+
+**Work-order reads added against a VERIFIED path.** A read-only probe found `work-orders`,
+`workorders`, `work_orders` and both export variants all answer 404 while `maintenance/work-orders`
+answers 200. The client method cites that evidence rather than guessing, which is the same discipline
+the write half is blocked on.
+
+**Stale flags cleared.** Eight fact rows flagged Open were already answered in their own text and are
+now Verified; four that say resolved AND still-open were deliberately left Open. Genuinely open
+questions fall from seventeen to nine.
+
+**Recorded honestly as NOT done.** The budget kill switch still runs on Node 20 in production, ACTIVE
+and last deployed in June 2026, losing runtime support at the end of October 2026. The provisioning constant is bumped so future
+deploys are correct, but the live function was not redeployed: its source is a storage zip that was not
+verified to match the local tree, and redeploying from local source would silently ship any difference
+into the emergency spend stop. That verification is its own deliberate task.
+
+**Also.** HV-006 split into a hardware-blocked capture half and a denial half that needs no microphone
+and can terminate on evidence available today. `Q-S75-FOLLOWUP-CLOCK` resolved: only one follow-up
+clock exists in code, so the two never disagreed at runtime and S31 adopts the shipped one.

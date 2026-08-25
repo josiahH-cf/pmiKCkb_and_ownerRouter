@@ -42,6 +42,7 @@ export type RawLease = Record<string, unknown>;
 export type RawProperty = Record<string, unknown>;
 export type RawPortfolio = Record<string, unknown>;
 export type RawContact = Record<string, unknown>;
+export type RawWorkOrder = Record<string, unknown>;
 
 export class RentVineError extends Error {
   readonly status: number;
@@ -156,6 +157,18 @@ export function unwrapLeases(body: unknown): RawLease[] {
     if (obj.lease && typeof obj.lease === "object") return [obj.lease as RawLease];
   }
   throw new RentVineError("Unexpected Rentvine lease-list response shape.", 0);
+}
+
+/** Unwrap a work-order list response. Tolerates a bare array or a named envelope. */
+export function unwrapWorkOrders(body: unknown): RawWorkOrder[] {
+  if (Array.isArray(body)) return body as RawWorkOrder[];
+  if (body && typeof body === "object") {
+    const obj = body as Record<string, unknown>;
+    for (const key of ["workOrders", "work_orders", "data", "results"]) {
+      if (Array.isArray(obj[key])) return obj[key] as RawWorkOrder[];
+    }
+  }
+  throw new RentVineError("Unexpected Rentvine work-order list response shape.", 0);
 }
 
 /** Buffer one read so json() and text() can both be called without double-consuming the body. */
@@ -330,6 +343,27 @@ export class RentVineClient {
     const response = await this.rawGet(path);
     this.ensureOk(response, path);
     return unwrapRecord(await response.json(), "portfolio");
+  }
+
+  /**
+   * List maintenance work orders (READ-ONLY).
+   *
+   * The collection path is `maintenance/work-orders`, VERIFIED live 2026-08-25 by a read-only probe:
+   * `work-orders`, `workorders`, `work_orders`, and both `/export` variants all answer 404, while
+   * `maintenance/work-orders` answers 200 with an array. The path is recorded here rather than
+   * guessed, because guessing a RentVine path is exactly what the write half of this integration is
+   * blocked on.
+   *
+   * Read-only by construction, like every other method on this client: `rawGet` issues GET and
+   * nothing here mutates. Work-order WRITES stay closed pending a documented endpoint.
+   */
+  async listWorkOrders(
+    params?: Record<string, string | number>,
+  ): Promise<RawWorkOrder[]> {
+    const path = "maintenance/work-orders";
+    const response = await this.rawGet(path, params);
+    this.ensureOk(response, path);
+    return unwrapWorkOrders(await response.json());
   }
 
   /** Read a single contact by id (read-only). Unwraps the `{ contact }` envelope. */

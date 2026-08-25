@@ -14,7 +14,12 @@ const DEFAULTS = Object.freeze({
   topic: "budget-guardrail-topic",
   serviceAccount: "budget-guardrail",
   source: "infra/budget-guardrail",
-  runtime: "nodejs20",
+  // Q-GUARDRAIL-NODE20-OWNER: Node 20 loses Cloud Functions support on 2026-10-30. This function
+  // IS the emergency spend stop, and its failure mode is silent -- if the runtime stops running,
+  // the stop does nothing while every budget still reads as configured. Bumped ahead of the
+  // deadline. infra/budget-guardrail/package.json declares engines.node ">=20", a floor that
+  // already admits this, so no package change is needed.
+  runtime: "nodejs22",
 });
 const ALLOWED_VALUE_FLAGS = new Set([
   "project",

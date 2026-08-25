@@ -69,9 +69,9 @@
       "process_id": "Cross-product coordination",
       "status": "blocked",
       "evidence": "",
-      "issue": "Hardware required. The dictation half needs a working microphone and a human voice; audio is volatile by design and cannot be synthesized for audit evidence. Note the item BUNDLES two halves: the second, a denial path, needs no microphone and is independently provable, so classifying the whole id as hardware-blocked discards evidence that is available.",
+      "issue": "SPLIT 2026-08-25. This id bundles two halves with different blockers, and classifying the whole thing hardware-blocked discarded evidence that was available. HV-006a (capture): needs a working microphone and a human voice; audio is volatile by design and cannot be synthesized for audit evidence. Remains blocked on hardware. HV-006b (denial path): needs NO microphone. It asserts that a denied or absent microphone permission produces a named refusal rather than a silent failure, which is provable from the permission-denied branch alone.",
       "friction": "",
-      "nextAction": "Preconditions: a microphone on the controlled machine and a person to speak. Recommended: split the id so the denial half can terminate on its own evidence."
+      "nextAction": "HV-006a preconditions: a microphone on the controlled machine and a person to speak. HV-006b: terminate on its own evidence by exercising the permission-denied branch; no hardware and no second party required. Track the two halves separately so the second is not held hostage by the first."
     },
     {
       "verification_id": "HV-007",

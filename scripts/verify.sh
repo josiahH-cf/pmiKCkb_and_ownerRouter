@@ -44,4 +44,8 @@ fi
 "$NPM_CMD" run verify:spec-traceability
 "$NPM_CMD" run verify:copy-voice
 "$NPM_CMD" run verify:redaction
+# S54 parity: ci.yml runs this too. Locally the dev .env.local declares all eleven KB Spaces, so
+# the documented multi-Space override is required; CI has no such file and runs the stricter bare
+# form. Both must run it, or a budget regression reaches main through whichever lane omits it.
+"$NPM_CMD" run check:budget-guard -- --allow-multiple-spaces
 "$NPM_CMD" run build

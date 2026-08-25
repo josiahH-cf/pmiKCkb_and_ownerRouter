@@ -2,7 +2,7 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-25 (human audit CLOSED 12/12 terminal; S70/S71 built; HV-004/HV-011 built).
+Last updated: 2026-08-25 (RentCast live; 11 Spaces restored; CI parity closed; 9 questions open).
 
 ```yaml
 last_updated: 2026-08-23
@@ -123,8 +123,8 @@ supersedes that evidence, so do not re-ask it.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**2026-08-25:** Human audit CLOSED, 12/12 terminal. S70/S71 built; HV-004 credential entry removed;
-HV-011 finalization relaxed. Open builds: HV-010 property overrides, HV-007/HV-009 reversal controls.
+**2026-08-25:** Audit CLOSED 12/12. Built: S70/S71, HV-004, HV-011, 11-Space restore, credential
+forwarding, CI parity, redirect sign-in. Open: S72-S75 builds, live guardrail runtime, monitoring.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E
