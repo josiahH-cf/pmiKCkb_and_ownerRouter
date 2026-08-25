@@ -52,6 +52,31 @@ describe("composeRentVineAddress", () => {
     }
   });
 
+  // Measured live 2026-08-25 over the complete 306-row export: streetNumber is present on 303/306,
+  // while the whole-address key is present on 306/306 and EVERY one begins with a house number.
+  // Composing the parts unconditionally would return a street-ONLY line for the three records with no
+  // streetNumber -- the exact defect this module exists to fix, on the leases least likely to be
+  // noticed.
+  it("prefers the whole address when the house number is missing from the parts", () => {
+    expect(
+      composeRentVineAddress({ streetName: "Sample St", address: "77 Sample St" }),
+    ).toBe("77 Sample St");
+  });
+
+  it("still composes from parts when the house number IS present", () => {
+    expect(
+      composeRentVineAddress({
+        streetNumber: "77",
+        streetName: "Sample St",
+        address: "77 Sample St, Somewhere",
+      }),
+    ).toBe("77 Sample St");
+  });
+
+  it("falls back to a bare street name only when nothing carries a number", () => {
+    expect(composeRentVineAddress({ streetName: "Sample St" })).toBe("Sample St");
+  });
+
   it("does not silently widen to renewal-only keys", () => {
     // `propertyAddress` is a renewal-path fallback and must NOT live in the shared composer, or the
     // consolidation would change maintenance unit matching and a value persisted on live tickets.

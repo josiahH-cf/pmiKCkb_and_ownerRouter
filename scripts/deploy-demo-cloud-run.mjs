@@ -480,9 +480,31 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     // explicit "rentcast" survives this wrapper's replacing --set-env-vars map so the deployed
     // revision reads it back (AC-S59-2). The key itself travels only via readRuntimeSecrets.
     MARKET_COMP_PROVIDER: withDefault("MARKET_COMP_PROVIDER", "manual"),
+    // S59 AC-S59-14: the REAL account allowance, read back from the RentCast dashboard, sizes the
+    // hard quota stop. Without this forward the deployed service falls back to the hardcoded default
+    // of 50 no matter what the dashboard says — and RentCast does not fail closed at the plan
+    // allowance, it bills overage automatically per additional request. So a missing forward here is
+    // a silent cost exposure, not a silent feature gap. Same failure class as F-RENTCAST-UNREACHABLE,
+    // which was fixed for MARKET_COMP_PROVIDER and RENTCAST_API_KEY and missed on this third name.
+    // Absent from the source env, this stays empty and the runtime default applies unchanged.
+    ...optionalString("RENTCAST_MONTHLY_ALLOWANCE"),
+    // S34 / S35: connector configuration the connector catalog declares as requiredConfig and reads
+    // from process.env at runtime. Neither had ANY delivery path to the running service, so an owner
+    // who completed the Dotloop OAuth registration or placed the LeadSimple key would still have seen
+    // `configured: false` with no error naming this wrapper as the cause. These are non-secret
+    // identifiers and a redirect URI; the LeadSimple API key and Dotloop client secret travel through
+    // readRuntimeSecrets when their secret ids are configured.
+    ...optionalString("DOTLOOP_OAUTH_CLIENT_ID"),
+    ...optionalString("DOTLOOP_OAUTH_REDIRECT_URI"),
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
   };
+
+  /** Forward a name only when the reviewed source env actually sets it, so an absent value clears. */
+  function optionalString(name) {
+    const value = readString(env[name]);
+    return value ? { [name]: value } : {};
+  }
 }
 
 // Runtime credentials reach Cloud Run via one complete --set-secrets map, never through plaintext

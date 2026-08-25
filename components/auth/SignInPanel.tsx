@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
@@ -85,6 +87,16 @@ export function SignInPanel({
     let isMounted = true;
     const auth = getFirebaseClientAuth();
 
+    // FB-HVSESSION-013: after the redirect fallback returns, onAuthStateChanged below completes the
+    // sign-in on its own. This call exists for the FAILURE case — a rejected hosted domain or a
+    // cancelled redirect resolves here and nowhere else, so without it the person lands back on a
+    // silent sign-in page with no reason given.
+    void getRedirectResult(auth).catch((error: unknown) => {
+      if (!isMounted) return;
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Google sign-in failed.");
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!isMounted) {
         return;
@@ -136,6 +148,31 @@ export function SignInPanel({
         setStatus("idle");
         setMessage(null);
         return;
+      }
+
+      // FB-HVSESSION-013: a popup-blocking browser could never sign in at all. The popup is the only
+      // path this panel offered, so an embedded or controlled browser hit a terminal
+      // "auth/popup-blocked" on the one control the page has, with no way forward. Fall back to a
+      // full-page redirect, which needs no popup. The credential step stays entirely with the person
+      // either way; this changes how the page is reached, never who authenticates.
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment"
+      ) {
+        try {
+          setStatus("redirecting");
+          setMessage("Opening Google sign-in in this tab.");
+          await signInWithRedirect(getFirebaseClientAuth(), provider);
+          return;
+        } catch (redirectError) {
+          setStatus("error");
+          setMessage(
+            redirectError instanceof Error
+              ? redirectError.message
+              : "Google sign-in could not open in this browser.",
+          );
+          return;
+        }
       }
 
       setStatus("error");

@@ -43,10 +43,25 @@ export function composeRentVineAddress(record: unknown): string | null {
   if (!record || typeof record !== "object" || Array.isArray(record)) return null;
   const source = record as Record<string, unknown>;
 
-  const streetLine = [
-    firstPresentString(source, ["streetNumber"]),
-    firstPresentString(source, ["streetName"]),
-  ]
+  const houseNumber = firstPresentString(source, ["streetNumber"]);
+  const streetName = firstPresentString(source, ["streetName"]);
+  const wholeAddress = firstPresentString(source, [
+    "address",
+    "address1",
+    "addressLine1",
+  ]);
+
+  // Measured live 2026-08-25 over the complete 306-row export: `streetNumber` is present on 303 of
+  // 306, `streetName` on 306 (and name-only — only 7 begin with a digit), and the whole-address key
+  // on 306 of 306 with EVERY one beginning with a house number.
+  //
+  // So when the house number is missing from the parts, the whole-address key still carries it.
+  // Composing the parts unconditionally would return a non-empty street-ONLY line for those records
+  // and never reach the fallback — reintroducing the exact defect this module exists to fix, on the
+  // three leases least likely to be noticed. Prefer the whole address in that case.
+  if (!houseNumber && wholeAddress) return wholeAddress;
+
+  const streetLine = [houseNumber, streetName]
     .filter((part): part is string => Boolean(part))
     .join(" ");
   const designator = firstPresentString(source, ["address2"]);
@@ -55,5 +70,5 @@ export function composeRentVineAddress(record: unknown): string | null {
     .join(" ")
     .trim();
   if (composed) return composed;
-  return firstPresentString(source, ["address", "address1", "addressLine1"]);
+  return wholeAddress;
 }
