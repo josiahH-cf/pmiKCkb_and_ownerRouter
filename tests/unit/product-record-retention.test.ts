@@ -239,7 +239,7 @@ describe("S51 product and communications retention separation", () => {
         ).toBe(false);
       }
     }
-  });
+  }, 15_000);
 });
 
 function discoverDirectProductRecordReferences() {

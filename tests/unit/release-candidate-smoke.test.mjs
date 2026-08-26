@@ -47,8 +47,23 @@ describe("read-only release candidate smoke", () => {
           root: { status: 307, location: "/sign-in" },
           signIn: { status: 200, location: null },
           protectedRoute: { status: 307, location: "/sign-in" },
+          version: {
+            status: 200,
+            location: null,
+            body: {
+              commit: "a".repeat(40),
+              revision: "pmi-kc-app-r123",
+              service: "pmi-kc-app",
+              environment: "production",
+            },
+          },
         },
         "https://candidate.example.com",
+        {
+          expectedCommit: "a".repeat(40),
+          expectedRevision: "pmi-kc-app-r123",
+          expectedService: "pmi-kc-app",
+        },
       ),
     ).not.toThrow();
     expect(() =>
@@ -57,8 +72,14 @@ describe("read-only release candidate smoke", () => {
           root: { status: 200, location: null },
           signIn: { status: 200, location: null },
           protectedRoute: { status: 307, location: "/sign-in" },
+          version: { status: 200, location: null, body: {} },
         },
         "https://candidate.example.com",
+        {
+          expectedCommit: "a".repeat(40),
+          expectedRevision: "pmi-kc-app-r123",
+          expectedService: "pmi-kc-app",
+        },
       ),
     ).toThrow(/auth redirect/);
     expect(() =>
@@ -67,30 +88,45 @@ describe("read-only release candidate smoke", () => {
           root: { status: 307, location: "https://evil.example/sign-in" },
           signIn: { status: 200, location: null },
           protectedRoute: { status: 307, location: "/sign-in" },
+          version: { status: 200, location: null, body: {} },
         },
         "https://candidate.example.com",
+        {
+          expectedCommit: "a".repeat(40),
+          expectedRevision: "pmi-kc-app-r123",
+          expectedService: "pmi-kc-app",
+        },
       ),
     ).toThrow(/same candidate origin/i);
   });
 
-  it("issues GET-only, manual-redirect probes and reads no response bodies", async () => {
+  it("issues GET-only, manual-redirect probes and reads only the bodyless version response", async () => {
     const fetchFn = vi.fn(async (url) => ({
       headers: new Headers({ location: url.endsWith("/sign-in") ? "" : "/sign-in" }),
-      status: url.endsWith("/sign-in") ? 200 : 307,
+      status: url.endsWith("/sign-in") || url.endsWith("/api/version") ? 200 : 307,
+      json: async () => ({
+        commit: "a".repeat(40),
+        revision: "pmi-kc-app-r123",
+        service: "pmi-kc-app",
+        environment: "production",
+      }),
     }));
 
     await expect(
       smokeReleaseCandidate("https://cand-r123---pmi-kc-app-hash-uc.a.run.app", {
         expectedService: "pmi-kc-app",
         expectedTag: "cand-r123",
+        expectedCommit: "a".repeat(40),
+        expectedRevision: "pmi-kc-app-r123",
         fetchFn,
       }),
     ).resolves.toMatchObject({
       root: { status: 307 },
       signIn: { status: 200 },
       protectedRoute: { status: 307 },
+      version: { status: 200 },
     });
-    expect(fetchFn).toHaveBeenCalledTimes(3);
+    expect(fetchFn).toHaveBeenCalledTimes(4);
     for (const [, init] of fetchFn.mock.calls) {
       expect(init).toMatchObject({ method: "GET", redirect: "manual" });
     }

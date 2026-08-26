@@ -1085,12 +1085,13 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Query comparable long-term rental listings near a property address and aggregate them into a DISPLAY-only comparable-rent range (median point estimate). Read-only reference; never fills or moves the offered rent.",
     product_lane: "PMI KC KB",
-    readiness: "Planned",
-    evidence_status: "Undocumented",
+    readiness: "Approved for Execution",
+    evidence_status: "Documented",
     documented_evidence:
-      "Owner-confirmed 2026-07-23: RentCast /listings/rental/long-term is the comp source (no usable rent-estimate endpoint), and the app aggregates the returned comps deterministically (median = point estimate, min/max = range, fail-closed below a minimum comp count). The exact RentCast tier + rate limits ride with owner-dependency #2 (Q-RENTCAST-ENDPOINT); the API key (RENTCAST_API_KEY) lives in Secret Manager, never git. The adapter is built and unit-proven against the documented listings response over a stubbed transport, but stays inert until this gate is flipped.",
+      "Exact-key activation approved by the owner for the 2026-08-26 meeting-readiness run. The production provider is RentCast, RENTCAST_API_KEY is Secret-Manager-backed under the managed runtime identity, the account plan and monthly allowance were read back, and controlled 2026-08-25 live probes returned HTTP 200 for the built provider paths. The adapter is unit-proven, bounded by cache + usage counter + hard allowance stop, sends only the property address/unit filters, returns reference comps, and never sets offeredRent or writes any system of record. Rollback is this exact key back to false (or MARKET_COMP_PROVIDER=manual); no provider mutation needs reversal.",
     required_permissions: [
-      "RentCast rental-listings-search API key in Secret Manager (RENTCAST_API_KEY)",
+      "RENTCAST_API_KEY in Secret Manager, accessible only to the managed runtime identity (verified)",
+      "Reviewed RentCast plan allowance configured for the hard usage stop (verified)",
     ],
     event_ingestion_mode: "None",
     preview_schema_note:
@@ -1114,7 +1115,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "None required: the listings search is a read with no mutation to reverse. A stale or low-confidence result renders a Needs Verification marker rather than a fabricated number.",
     connection_health_check_ref: "health.rentcast.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "internal.transactional_notice.send",

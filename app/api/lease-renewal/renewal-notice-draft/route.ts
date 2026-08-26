@@ -10,9 +10,13 @@ import {
   leaseCurrentRent,
   leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
-import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
+import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
+import {
+  buildLiveRenewalConfig,
+  buildLiveRentVineConfig,
+} from "@/lib/lease-renewal/live-config";
 import {
   LeaseDataExpiredError,
   requireCurrentLeaseViews,
@@ -22,6 +26,7 @@ import {
   type RenewalNoticeDraftInput,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
 import {
   ActionNotExecutableError,
   ActionRuntimeSuspendedError,
@@ -172,6 +177,26 @@ export async function POST(request: Request) {
           // full owner array and addresses every owner of record.
           const views = await requireCurrentLeaseViews(rentvineClient, nowMs);
           return views.find((candidate) => leaseIdOf(candidate) === leaseId) ?? null;
+        },
+        async loadOwnerCurrentRentDecision(leaseId) {
+          // Owner copy may call the rent Verified only after the same fresh RentVine-versus-Sheet
+          // reconciliation shown on the Live desk. Missing Sheet config, stale/conflicting data,
+          // or an unavailable decision store all fail closed; no raw provider value is promoted.
+          const renewalConfig = buildLiveRenewalConfig();
+          if (!renewalConfig.ok) return null;
+          let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
+          try {
+            resolutions = await listResolutionsForRun(user, "live-review");
+          } catch {
+            resolutions = [];
+          }
+          const result = await loadLiveOwnerCurrentRentDecision(
+            leaseId,
+            new Date(nowMs).toISOString(),
+            renewalConfig,
+            resolutions,
+          );
+          return result.status === "ok" ? result.decision : null;
         },
         // Descriptor-bound: Demo and Live-read-only refuse here, so no provider is constructed.
         createGmailClient: (subject) =>

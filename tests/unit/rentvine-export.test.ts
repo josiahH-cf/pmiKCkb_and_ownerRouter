@@ -76,6 +76,26 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect(result.resolvedKeys.currentRent).toBe("currentRent");
   });
 
+  it("uses unit.rent consistently when an export also carries a different lease-level rent", () => {
+    const [view] = leaseViewsFromExport([
+      {
+        lease: {
+          leaseID: 8,
+          endDate: "2026-08-31",
+          rent: "999.00",
+          currentRent: "998.00",
+          tenants: [{ name: "Synthetic Household" }],
+        },
+        unit: { rent: "1250.00" },
+      },
+    ]);
+    expect(view.currentRent).toBe("1250.00");
+    expect(leaseCurrentRent(view)).toBe(1250);
+    const mapped = mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS });
+    expect(mapped.candidates[0].fields.current_rent.value).toBe(1250);
+    expect(mapped.resolvedKeys.currentRent).toBe("currentRent");
+  });
+
   it("preserves property/portfolio siblings so the owner channel resolves from an export row", () => {
     const rowWithOwner = {
       lease: {

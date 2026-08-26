@@ -62,8 +62,9 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
   const visibleSpaces = launchSpaces.filter(
     (space) =>
-      user.scopes === undefined ||
-      (space.scope !== undefined && hasSpaceAccess(user, space.scope)),
+      space.showInDirectory !== false &&
+      (user.scopes === undefined ||
+        (space.scope !== undefined && hasSpaceAccess(user, space.scope))),
   );
   const visibleDefinitionIds = new Set(
     visibleSpaces.flatMap((space) =>

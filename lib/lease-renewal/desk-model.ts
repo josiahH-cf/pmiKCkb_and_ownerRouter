@@ -56,6 +56,8 @@ export interface DeskReconCandidate {
 export interface DeskReconItem {
   fieldKey: string;
   fieldLabel: string;
+  /** Bodyless identity of this exact record+field decision, when it raised a queue item. */
+  sourceTriggerKey?: string;
   agreement: "agree" | "conflict" | "single_source" | "missing";
   candidates: DeskReconCandidate[];
 }

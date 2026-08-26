@@ -54,6 +54,27 @@ describe("My work and Team work surfaces", () => {
     ).toHaveAttribute("href", "/lease-renewal/live/desk/lease/lease-1");
   });
 
+  it("shows job location and materials context on the task card", async () => {
+    const snapshot = snapshotWithCurrentSession();
+    snapshot.tasks[0] = taskRecord({
+      work_location: "100 Synthetic Avenue, Unit A",
+      materials_needed: "Two replacement filters",
+      materials_purchased: "One fixture already on hand",
+    });
+    vi.stubGlobal("fetch", snapshotFetch(snapshot));
+    render(
+      <WorkAccountabilityBoard
+        mode="mine"
+        mutationAllowed={false}
+        spaces={[{ id: "lease-renewals", name: "Lease Renewals" }]}
+      />,
+    );
+
+    expect(await screen.findByText(/100 Synthetic Avenue/)).toBeInTheDocument();
+    expect(screen.getByText(/Two replacement filters/)).toBeInTheDocument();
+    expect(screen.getByText(/One fixture already on hand/)).toBeInTheDocument();
+  });
+
   it("shows the exact own and team empty states", async () => {
     vi.stubGlobal("fetch", snapshotFetch(emptySnapshot()));
     const { rerender } = render(

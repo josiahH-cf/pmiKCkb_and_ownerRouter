@@ -537,6 +537,9 @@ function CreateTaskForm({
     const sourceId = String(data.get("source_id") ?? "").trim();
     const dueValue = String(data.get("due_at") ?? "").trim();
     const assignee = String(data.get("assignee_uid") ?? "").trim();
+    const workLocation = String(data.get("work_location") ?? "").trim();
+    const materialsNeeded = String(data.get("materials_needed") ?? "").trim();
+    const materialsPurchased = String(data.get("materials_purchased") ?? "").trim();
     const saved = await onCreate({
       action: "create_task",
       space_id: String(data.get("space_id")),
@@ -548,6 +551,9 @@ function CreateTaskForm({
       title: String(data.get("title")),
       ...(assignee ? { assignee_uid: assignee } : {}),
       next_action: String(data.get("next_action")),
+      ...(workLocation ? { work_location: workLocation } : {}),
+      ...(materialsNeeded ? { materials_needed: materialsNeeded } : {}),
+      ...(materialsPurchased ? { materials_purchased: materialsPurchased } : {}),
       ...(dueValue ? { due_at: new Date(dueValue).toISOString() } : {}),
       idempotency_key: crypto.randomUUID(),
     });
@@ -585,6 +591,18 @@ function CreateTaskForm({
         <label className="work-form-wide">
           Next action
           <input name="next_action" required maxLength={240} />
+        </label>
+        <label className="work-form-wide">
+          Job location or address <span className="muted">(optional)</span>
+          <input name="work_location" maxLength={240} />
+        </label>
+        <label className="work-form-wide">
+          Materials needed <span className="muted">(optional)</span>
+          <textarea name="materials_needed" maxLength={1000} rows={2} />
+        </label>
+        <label className="work-form-wide">
+          Materials bought or on hand <span className="muted">(optional)</span>
+          <textarea name="materials_purchased" maxLength={1000} rows={2} />
         </label>
         <label>
           Source
@@ -716,6 +734,21 @@ function WorkTaskCard({
       <p>
         <strong>Next action:</strong> {task.next_action}
       </p>
+      {task.work_location ? (
+        <p>
+          <strong>Job location:</strong> {task.work_location}
+        </p>
+      ) : null}
+      {task.materials_needed ? (
+        <p>
+          <strong>Materials needed:</strong> {task.materials_needed}
+        </p>
+      ) : null}
+      {task.materials_purchased ? (
+        <p>
+          <strong>Materials bought or on hand:</strong> {task.materials_purchased}
+        </p>
+      ) : null}
       <div className="work-task-facts">
         <span>{task.due_at ? `Due ${formatDateTime(task.due_at)}` : "No due time"}</span>
         {overdue ? <span className="status-warning">Overdue</span> : null}

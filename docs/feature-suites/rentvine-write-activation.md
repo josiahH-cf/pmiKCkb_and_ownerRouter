@@ -4,6 +4,17 @@
 
 > New 2026-07-23 (operator note). Wave-2 seam suite from `docs/roadmap-unblock-2026-07-23.md` (feature #4, section 3 `D-RENTVINE-ENDPOINT`, section 4 Wave-2, section 5 owner-dependency #1). The disposable decision-complete packet is `docs/temp/rentvine-write-activation-plan.md` (local-only); this is the tracked spec the loop executes. It builds the write half of `F-RENTVINE-WRITE-APPROVED` (the open D16 endpoint) under the build-to-seam rule of `F-ROADMAP-BUILD-AUTHORIZED`.
 
+> **Contract update — 2026-08-26.** The vendor-route question is no longer open. RentVine’s official
+> Manager API documents `POST /api/manager/leases/{leaseID}` for lease updates and
+> `POST /api/manager/leases/{leaseID}/recurring-charges/{chargeID}` for updating one existing recurring
+> charge. The owner attests that the credential role now carries write capability. The meeting slice
+> adds a separate, allowlisted write client and a non-executing two-step preview/rollback artifact,
+> proven against fixtures only. It does not wire a production executor and it does not open
+> `rentvine.lease.renewal_writeback`: live permission, exact test-record mapping, readback, receipt, and
+> rollback remain unproven. No RentVine write was attempted. Where the historical implementation plan
+> below says the endpoint is unknown or must not be a literal, this dated contract update supersedes
+> that baseline; the closed gate and all effect controls remain active.
+
 **Goal.** Today the renewal write-back to RentVine looks finished but is not connected to anything real. The executor, the S25 preview/confirm/receipt/rollback contract, the High-risk approval-queue path, and the one-attempt/idempotent orchestrator all exist and are unit-proven, but the only provider ever wired behind them is an in-memory fake in the Test path (`lib/release/synthetic-execution.ts:524`), and RentVine itself is GET-only (a live read on 2026-07-22 confirmed no write endpoint). After this suite there is a real RentVine HTTP write client behind the same least-privilege `RenewalMutationProvider` seam, constructed by a live executor map (the production path has none today), exercised end to end in the Test lane against a RentVine-shaped fixture, and staged so that activation is a single reviewed change the moment the owner provides the documented RentVine renewal-write endpoint. Nothing writes to RentVine in this cycle: the action stays `production_allowed:false`, the live provider fails closed until the documented endpoint is configured, no endpoint path is ever guessed, and every eventual write is one human-confirmed approval-queue action. The owner holds exactly one step, and flipping the gate after it is a one-line change.
 
 **What it is / how it functions.** One seam, one live client, one staged flip. The write travels the already-built contract; this suite only replaces the fake provider with a real one and prepares the gate, stopping at the single named owner dependency.

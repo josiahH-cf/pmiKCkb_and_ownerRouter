@@ -47,6 +47,7 @@ import type { ReconCandidate } from "@/lib/lease-renewal/reconciliation";
 import {
   buildOwnerRenewalDraft,
   ownerDraftMarketFromBasis,
+  type OwnerDraftInput,
 } from "@/lib/lease-renewal/owner-draft";
 import { evaluateRenewalReadiness } from "@/lib/lease-renewal/renewal-readiness";
 import {
@@ -74,12 +75,15 @@ import {
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
 import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
+import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
+import { parseCurrencyInput } from "@/lib/currency-input";
 
 // Parity with the live review: the single "Lease Renewal" tab, name join, no cohort pre-filter inside
 // the pipeline (the desk classifies the cohort itself). The run id is inert here (the desk never uses
 // source_trigger_keys); it only labels the read.
 const LIVE_DESK_TABS = ["Lease Renewal"];
-const LIVE_DESK_RUN_ID = "live-desk";
+// Must match the resolution surface so one record-specific decision reaches this workspace.
+const LIVE_DESK_RUN_ID = "live-review";
 const RENT_FIELD_KEY = "current_rent";
 
 /** The desk degrades to one of these typed statuses instead of throwing (mirrors live-notices). */
@@ -91,6 +95,15 @@ export type LiveRenewalDeskResult =
 
 export type LiveRenewalLeaseWorkspaceResult =
   | { status: "ok"; workspace: RenewalLeaseWorkspace }
+  | { status: LiveDeskStatus | "not_found" };
+
+export interface LiveOwnerCurrentRentDecision {
+  currentRent: number;
+  currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
+}
+
+export type LiveOwnerCurrentRentDecisionResult =
+  | { status: "ok"; decision: LiveOwnerCurrentRentDecision }
   | { status: LiveDeskStatus | "not_found" };
 
 /** Coerce a RentVine numeric field (number or numeric string) to a finite number, else undefined. */
@@ -107,6 +120,85 @@ function coerceZip(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const match = value.trim().match(/^\d{5}/);
   return match ? match[0] : undefined;
+}
+
+/**
+ * Resolve the one current-rent decision shared by the workspace preview and the governed owner
+ * draft. A raw provider value is deliberately not enough to earn Verified: only a fresh agreement
+ * or an exact record-specific human resolution does that in `deriveCurrentRentFact`.
+ */
+function resolveOwnerCurrentRentDecision(
+  view: RawLease,
+  dataCheck: readonly DeskReconItem[],
+  currency: LiveLeaseCurrency,
+  resolutions: readonly LeaseRenewalResolutionRecord[],
+): LiveOwnerCurrentRentDecision {
+  const rentCheck = dataCheck.find((item) => item.fieldKey === RENT_FIELD_KEY);
+  const rentResolution = rentCheck?.sourceTriggerKey
+    ? resolutions.find(
+        (record) =>
+          record.source_trigger_key === rentCheck.sourceTriggerKey &&
+          record.status === "Resolved",
+      )
+    : undefined;
+  const resolvedRentRaw =
+    rentResolution?.proposed_writeback?.value ?? rentResolution?.corrected_value;
+  const parsedResolvedRent = resolvedRentRaw
+    ? parseCurrencyInput(resolvedRentRaw)
+    : undefined;
+  const resolvedRent = parsedResolvedRent?.ok ? parsedResolvedRent.value : undefined;
+
+  return {
+    currentRent: resolvedRent ?? leaseCurrentRent(view) ?? 0,
+    currentRentEvidence: {
+      agreement:
+        resolvedRent !== undefined ? "resolved" : (rentCheck?.agreement ?? "missing"),
+      currencyState: currency.state,
+      readAtIso: new Date(currency.readAtMs).toISOString(),
+      ...(resolvedRent !== undefined
+        ? {
+            resolvedSource:
+              rentResolution?.proposed_writeback?.source_of_value ??
+              rentResolution?.chosen_source ??
+              "Human-resolved current rent",
+          }
+        : {}),
+    },
+  };
+}
+
+/**
+ * Read one lease's reconciled current-rent decision for a governed owner-draft action. This is a
+ * read-only seam: it performs the same complete RentVine snapshot + operating-Sheet comparison as
+ * the Live workspace and returns only the decision/evidence needed by the draft service.
+ */
+export async function loadLiveOwnerCurrentRentDecision(
+  leaseId: string,
+  readTimestamp: string,
+  config: LiveRenewalConfig,
+  resolutions: readonly LeaseRenewalResolutionRecord[] = [],
+): Promise<LiveOwnerCurrentRentDecisionResult> {
+  if (!config.ok) return { status: config.reason };
+  try {
+    const { snapshot, currency } = await getLiveLeaseSnapshot(
+      config.rentvineClient,
+      Date.parse(readTimestamp),
+    );
+    const view = snapshot.views.find((candidate) => leaseIdOf(candidate) === leaseId);
+    if (!view) return { status: snapshot.complete ? "not_found" : "read_error" };
+    const { tables } = await readRenewalSheetGrids({
+      reader: config.sheetsReader,
+      spreadsheetId: config.spreadsheetId,
+      tabTitles: LIVE_DESK_TABS,
+    });
+    const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+    return {
+      status: "ok",
+      decision: resolveOwnerCurrentRentDecision(view, dataCheck, currency, resolutions),
+    };
+  } catch {
+    return { status: "read_error" };
+  }
 }
 
 /**
@@ -204,6 +296,9 @@ function outcomeToDeskItem(
   return {
     fieldKey: outcome.fieldKey,
     fieldLabel,
+    ...(outcome.queueMapping?.queueItem.source_trigger_key
+      ? { sourceTriggerKey: outcome.queueMapping.queueItem.source_trigger_key }
+      : {}),
     agreement,
     candidates: recon.candidates.map(toDeskCandidate),
   };
@@ -402,6 +497,7 @@ export async function loadLiveRenewalLeaseWorkspace(
     value: number;
     comps: { rent: number; source: string; label?: string }[];
   } | null = null,
+  resolutions: readonly LeaseRenewalResolutionRecord[] = [],
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -428,6 +524,13 @@ export async function loadLiveRenewalLeaseWorkspace(
       tabTitles: LIVE_DESK_TABS,
     });
     const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+    const currentRentDecision = resolveOwnerCurrentRentDecision(
+      view,
+      dataCheck,
+      currency,
+      resolutions,
+    );
+    const currentRent = currentRentDecision.currentRent;
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
     const summary = toLiveSummary(view, classification, dataCheck, progress);
@@ -461,7 +564,8 @@ export async function loadLiveRenewalLeaseWorkspace(
       // rent as "Needs input" and the gated composer blocks an owner notice without a rent.
       ownerDraft: buildOwnerRenewalDraft({
         addressLabel: summary.addressLabel,
-        currentRent: leaseCurrentRent(view) ?? 0,
+        currentRent,
+        currentRentEvidence: currentRentDecision.currentRentEvidence,
         // Feed the recorded comp basis so the owner email shows the provider/manual range + PMI number
         // source-tagged. Absent comps stay absent (visible Needs Verification markers) — never invented.
         // S29: an Admin-approved comp-derived number (server-resolved) rides in with its distinct source
@@ -501,9 +605,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       dataCurrency: toDeskCurrency(currency),
       ...(compAttributes ? { compAttributes } : {}),
       // S60: the authoritative rent for the internal under-market signal (never a draft input).
-      ...(leaseCurrentRent(view) !== undefined
-        ? { currentRent: leaseCurrentRent(view) }
-        : {}),
+      ...(currentRent > 0 ? { currentRent } : {}),
     };
     return { status: "ok", workspace };
   } catch {

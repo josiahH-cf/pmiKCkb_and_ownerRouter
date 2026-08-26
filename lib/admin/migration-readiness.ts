@@ -170,6 +170,8 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.thread.reply",
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",
+  // S59 activation (2026-08-26): read-only reference comps; no offered-rent or system-of-record write.
+  "rentcast.rental_listings.search",
   "gmail.maintenance_owner_notice.draft_create",
   // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE). Internal-only
   // auto-send, metadata-only, internal-domain-locked; every client-facing send stays human-confirmed.

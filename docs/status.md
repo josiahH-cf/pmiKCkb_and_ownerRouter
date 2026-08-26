@@ -11,6 +11,44 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## 2026-08-26 — meeting-readiness implementation built; release verification in progress
+
+The dependency-independent meeting scope is implemented. S73 no longer hardcodes Verified on current
+rent: fresh agreement or an exact lease-specific human resolution earns it; conflict, missing
+evidence, or stale/expired data produces Needs Verification and carries the read date. The resolution
+key now includes a bodyless record hash, closing the prior same-field collision across leases. Both
+rent extractors use `unit.rent`, then `lease.currentRent`, then `lease.rent`. A read-only complete
+306-row export diagnostic recorded 14 agreements, 20 conflicts, 140 one-source outcomes, 216
+missing/unmatched outcomes, and 20 High flags without a single client value.
+
+S76 adds a separate renewal-Sheet rehearsal binding and Admin links. Equal operating/copy ids refuse;
+the copy-only proof is dry by default and requires an exact confirmed blank-cell compare-and-set,
+readback, exact clear, and final blank readback. The client still needs to make/share the verbatim copy,
+so no Sheet write proof ran. The operating Sheet remains untouched and its write-back gate stays shut.
+
+The documented RentVine Manager API routes are represented by a separate write client exposing only
+lease update and existing recurring-charge update POSTs. The fixture-only preview produces both steps
+plus rollback values and cannot execute. The owner attests that the role can write, but the production
+renewal-write key remains closed pending a dedicated test record and live preview/confirm/readback/
+rollback proof. No RentVine write ran.
+
+Other shipped slices: normal money formats at renewal forms; Work task job location/materials fields;
+the unbacked Communications compatibility tile hidden from directories; a bodyless `/api/version`
+contract plus exact candidate commit/revision smoke; and bounded E2E probe/run/warmup/teardown. The
+owner-approved read-only `rentcast.rental_listings.search` key is opened with both allowlists and pins;
+it never sets offered rent or writes a system of record. The two final meeting HTML files are linked
+from `docs/pmi-meeting-reconciliation-2026-08-26.md`.
+
+Adversarial verification is green. The focused regression set passed 14 files and 214 tests. The full
+unit/architecture run passed 512 files and 4,948 tests; Firestore passed 25 files and 115 tests; core
+browser verification passed 31 tests with 18 intentional Firestore-dependent skips and zero failures.
+Format, typecheck, lint (zero errors), router boundary, falsification, context freshness, specification
+traceability, client-copy, redaction, the 99-page production build, and `git diff --check` also passed.
+The browser run additionally exposed and closed stale assumptions about the retired Production Test
+lane, hidden Spaces, historical run redirects, and Live-read-only mutation refusal. The canonical
+`scripts/verify.sh`, commit/push, and exact-revision blue/green deployment remain the active release
+slice at this status checkpoint.
+
 ## The emergency spend stop runs a supported runtime and has proof of life (2026-08-25)
 
 The budget kill switch — the only layer that can actually stop spend, because a GCP budget alert only

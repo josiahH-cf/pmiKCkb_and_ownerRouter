@@ -341,8 +341,8 @@ export function buildReleasePlan({
     {
       name: "smoke-candidate",
       description:
-        "Run the bounded read-only smoke against the candidate tag URL before any traffic moves.",
-      command: `npm run smoke:release-candidate -- --base-url=<candidate tag url for ${candidate.candidateTag}> --expected-tag=${candidate.candidateTag} --expected-service=${target.service}`,
+        "Run the bounded read-only smoke against the candidate tag URL and prove its exact commit/revision before any traffic moves.",
+      command: `npm run smoke:release-candidate -- --base-url=<candidate tag url for ${candidate.candidateTag}> --expected-tag=${candidate.candidateTag} --expected-service=${target.service} --expected-revision=${revisionName} --expected-commit=<git rev-parse HEAD>`,
     },
     {
       name: "promote-exact-revision",

@@ -10,13 +10,20 @@ describe("spaces (launch content)", () => {
     await client.signInDemo();
   });
 
-  it("lists every launch space", async () => {
+  it("lists every directory space and hides compatibility-only records", async () => {
     const { response, html } = await client.getHtml("/spaces");
 
     expect(response.status).toBe(200);
 
-    for (const space of launchSpaces) {
+    for (const space of launchSpaces.filter(
+      (candidate) => candidate.showInDirectory !== false,
+    )) {
       expect(html, `missing space ${space.id}`).toContain(space.name);
+    }
+    for (const space of launchSpaces.filter(
+      (candidate) => candidate.showInDirectory === false,
+    )) {
+      expect(html, `compatibility space leaked: ${space.id}`).not.toContain(space.name);
     }
   });
 

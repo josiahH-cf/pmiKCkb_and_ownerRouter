@@ -225,6 +225,20 @@ describe("S68 task creation, derivation, and expectations", () => {
     });
     expect(task.assignee_uid).toBeUndefined();
   });
+
+  it("persists the job location and separate needed/purchased materials on manual work", async () => {
+    const task = await store.createTask(editor, {
+      ...taskInput("materials-context"),
+      work_location: "100 Synthetic Avenue, Unit A",
+      materials_needed: "Two replacement filters",
+      materials_purchased: "One fixture already on hand",
+    });
+    expect(task).toMatchObject({
+      work_location: "100 Synthetic Avenue, Unit A",
+      materials_needed: "Two replacement filters",
+      materials_purchased: "One fixture already on hand",
+    });
+  });
 });
 
 describe("S68 one-active-session and transition contract", () => {

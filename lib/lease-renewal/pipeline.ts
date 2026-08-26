@@ -35,6 +35,7 @@ import {
 } from "@/lib/lease-renewal/reconciliation";
 import type { FieldContext, Severity } from "@/lib/lease-renewal/severity";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
+import { createHash } from "node:crypto";
 
 /** One field value carried by a non-sheet source (Rentvine / building level / Google Form). */
 export interface NonSheetFieldValue {
@@ -216,6 +217,18 @@ function reconciliationEvidenceLink(runId: string, fieldKey: string): string {
   return `/lease-renewal/runs/${runId}/reconciliation/${fieldKey}`;
 }
 
+/** PII-free stable token for one sheet record. Exact provider id wins; row coordinate is fallback. */
+function decisionRecordKey(recordId: string | undefined, recordRef: RecordRef): string {
+  return createHash("sha256")
+    .update(
+      recordId
+        ? `join:${recordId}`
+        : `row:${recordRef.tabNumber ?? "x"}:${recordRef.sourceRowIndex}`,
+    )
+    .digest("hex")
+    .slice(0, 16);
+}
+
 /**
  * Run the Phase-1 read → reconcile → flag pipeline over a flattened sheet export plus synthetic
  * non-sheet reads. Deterministic and side-effect-free.
@@ -326,17 +339,19 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         }
       }
 
+      const recordRef = {
+        tab: record.tab,
+        tabNumber: record.tabNumber,
+        sourceRowIndex: record.sourceRowIndex,
+      };
       const queueMapping = mapReconciliationToQueueItem(reconciliation, {
         runId,
         fieldLabel,
+        recordKey: decisionRecordKey(recordId, recordRef),
       });
 
       outcomes.push({
-        recordRef: {
-          tab: record.tab,
-          tabNumber: record.tabNumber,
-          sourceRowIndex: record.sourceRowIndex,
-        },
+        recordRef,
         fieldKey: spec.fieldKey,
         fieldLabel,
         reconciliation,

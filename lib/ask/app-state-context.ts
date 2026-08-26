@@ -89,7 +89,9 @@ export function resolveConnectionsState(
   if (user?.scopes !== undefined) {
     const visibleConnectorIds = new Set(
       launchSpaces
-        .filter((space) => canAccessLaunchSpace(user, space))
+        .filter(
+          (space) => space.showInDirectory !== false && canAccessLaunchSpace(user, space),
+        )
         .flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
     );
     gaps = gaps.filter((item) => visibleConnectorIds.has(item.def.id));
@@ -133,7 +135,9 @@ export async function resolveCoverageState(
   const presence = readConnectorPresence();
 
   const gaps = launchSpaces
-    .filter((space) => canAccessLaunchSpace(user, space))
+    .filter(
+      (space) => space.showInDirectory !== false && canAccessLaunchSpace(user, space),
+    )
     .filter((space) => !space.readOnly)
     .map((space) => ({
       space,

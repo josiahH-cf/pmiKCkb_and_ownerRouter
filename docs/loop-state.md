@@ -2,26 +2,26 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-25 (guardrail on nodejs22 + proved alive; RentCast live; 11 Spaces; 8 open).
+Last updated: 2026-08-26 (meeting-readiness implementation and adversarial lanes green; canonical gate and release in progress).
 
 ```yaml
-last_updated: 2026-08-25
-active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
-program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
+last_updated: 2026-08-26
+active_program: PMI_KC_MEETING_READINESS_2026_08_26
+program_suites: S59 + S68 amendment + S73 + S76 (S64 remains unauthorized)
 spec_writing_allowed: true
 loop_execution_allowed: true
 loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
-implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_S68_DEPLOYED
+implementation_status: BUILT_ADVERSARIAL_LANES_GREEN_CANONICAL_GATE_AND_RELEASE_PENDING
 next_suite: S72_S75_CHERRY_BRIDGE_REMAINDER
 next_spec: NONE
 session_auth_status: GREEN_MANAGED_WINDOWS_CLI_ADC_WSL_ADC_FIREBASE_RUNTIME_END_USER_CONFIG_BUILD
-active_slice: NONE_PROGRAM_COMPLETE
-next_slice: S73_RENT_BADGE_THEN_HV010_OVERRIDES
-last_completed_slice: PRODUCTION_DEPLOY_PMI_KC_APP_RMT99LTIA_9119A24BF706
-runtime_action_gates_preflipped: false
+active_slice: FULL_GATE_COMMIT_PUSH_EXACT_REVISION_RELEASE
+next_slice: CLIENT_PROCESS_INPUTS_AND_REHEARSAL_COPY_PROOF
+last_completed_slice: MEETING_READINESS_IMPLEMENTATION_BODYLESS_DIAGNOSTIC_AND_ADVERSARIAL_VERIFICATION
+runtime_action_gates_preflipped: rentcast.rental_listings.search
 human_audit_status: COMPLETE_12_OF_12_TERMINAL_2026-08-25
 human_audit_next_item: NONE_ALL_TWELVE_TERMINAL
 human_audit_auth_status: NOT_BLOCKING_AUDIT_CLOSED_MANAGED_CLI_ADC_GREEN
@@ -34,9 +34,7 @@ human_audit_launcher: docs/meta-prompts/pmi-kc-human-verification-resume.md
 - Record: `docs/pmi-kc-human-verification-resume-state.md`,
   `docs/pmi-kc-human-audit-response-20260817T104500Z-model-audit.json`, and
   `docs/meta-prompts/pmi-kc-human-verification-resume.md`.
-- Final result: 12/12 terminal — 5 Pass, 1 Fail, 6 Blocked, `overall_result: complete`. The 2/12-Pass
-  progress line this section used to carry described a run that has since finished; it is replaced
-  rather than kept beside the result, so nothing here reads as still in flight.
+- Final result: 12/12 terminal — 5 Pass, 1 Fail, 6 Blocked, `overall_result: complete`.
 - The one Fail and the six Blocked are recorded outcomes, not unfinished work. Three proposed effects
   (HV-002, HV-007, HV-009) were REFUSED after adversarial verification falsified their premises: the
   Gmail push-watch has no stop path, four of five HV-007 legs have no reversal, and HV-002's dialog is
@@ -115,21 +113,22 @@ supersedes that evidence, so do not re-ask it.
 - No personal account in an auth path; managed organization or service identities only.
 - No secret, token, PII, Gmail body, customer content, or photo in git or evidence.
 - The RentCast key lives in Secret Manager only; never a file, command line, log, or fixture.
-- D12 protected changes (the RentCast `production_allowed` flip, new `firestore.rules` declarations,
-  any `lib/auth/**` edit) are prepared and surfaced, never pushed.
+- The owner authorized only the exact RentCast `production_allowed` flip on 2026-08-26; no other D12 path is opened.
 
 ## Resume
 
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**2026-08-25:** Audit CLOSED 12/12. Built: S70/S71, HV-004, HV-011, 11-Space restore, CI parity,
-guardrail nodejs22 + proved alive. READ Q-RENTCAST-GATE-DEAD-CONTROL: comps control is dead in prod.
+**2026-08-26:** Meeting-readiness code and both HTML handoffs are built. Full unit/architecture
+(4,948), Firestore (115), core browser (31 passed, 18 intentional skips), static-policy, and production
+build lanes are green; the canonical gate and release remain. No source write occurred.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E
-red live in `docs/facts.md` and `docs/status.md`. RentCast activation is DONE: plan Active, both
-endpoints 200, allowance measured at 50/month. Owner-only: the parked D12 patches and the D57 note send.
+red live in `docs/facts.md` and `docs/status.md`. RentCast provider proof is DONE: plan Active, both
+endpoints 200, allowance measured at 50/month; its exact read key is now owner-approved and opened.
+Owner-only dependencies are the remaining unrelated parked D12 patches and the D57 note send.
 Bailey's Admin action is complete. The 2026-08-06 correction note was sent; do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts

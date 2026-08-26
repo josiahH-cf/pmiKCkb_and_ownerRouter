@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC — 2:00 PM Meeting Agenda — August 26, 2026</title>
+    <style>
+      :root {
+        --ink: #172033;
+        --muted: #596478;
+        --navy: #153b65;
+        --blue: #1f68ae;
+        --line: #dbe2ec;
+        --wash: #f4f7fb;
+        --green: #0f6c54;
+        --amber: #8b5a00;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--wash);
+        font:
+          14px/1.38 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--blue);
+      }
+      .page {
+        width: min(1040px, calc(100% - 28px));
+        margin: 20px auto;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 16px 40px rgba(25, 48, 78, 0.12);
+        overflow: hidden;
+      }
+      header {
+        padding: 24px 30px 20px;
+        color: white;
+        background: linear-gradient(130deg, #112f50, #2168ad);
+      }
+      .eyebrow {
+        margin: 0 0 5px;
+        font-size: 0.75rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 4vw, 2.55rem);
+        line-height: 1.08;
+      }
+      header p {
+        margin: 8px 0 0;
+      }
+      .body {
+        padding: 20px 30px 24px;
+      }
+      .safety {
+        padding: 11px 14px;
+        color: #084b3b;
+        background: #e6f5ef;
+        border-left: 5px solid var(--green);
+        border-radius: 8px;
+        font-weight: 700;
+      }
+      .timeline {
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 18px;
+      }
+      .timeline li {
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      time {
+        color: var(--navy);
+        font-weight: 850;
+      }
+      h2 {
+        margin: 0 0 4px;
+        color: var(--navy);
+        font-size: 1rem;
+      }
+      p {
+        margin: 3px 0;
+      }
+      .say {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .decision-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .box {
+        padding: 13px 15px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fbfcfe;
+      }
+      .box h2 {
+        margin-bottom: 7px;
+      }
+      ul {
+        margin: 5px 0 0;
+        padding-left: 19px;
+      }
+      li {
+        margin: 3px 0;
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .links a {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 750;
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 14px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      @media (max-width: 760px) {
+        .timeline,
+        .decision-grid {
+          grid-template-columns: 1fr;
+        }
+        .body,
+        header {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+      }
+      @page {
+        size: letter;
+        margin: 0.35in;
+      }
+      @media print {
+        body {
+          background: white;
+          font-size: 9pt;
+        }
+        .page {
+          width: 100%;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        header {
+          padding: 14px 18px 12px;
+        }
+        h1 {
+          font-size: 20pt;
+        }
+        .body {
+          padding: 12px 18px;
+        }
+        .timeline {
+          grid-template-columns: 1fr 1fr;
+          gap: 4px 14px;
+          margin-top: 8px;
+        }
+        .timeline li {
+          grid-template-columns: 62px 1fr;
+          padding: 5px 0;
+          break-inside: avoid;
+        }
+        .decision-grid {
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .box {
+          padding: 8px 10px;
+        }
+        .links {
+          margin-top: 8px;
+        }
+        footer {
+          margin-top: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <p class="eyebrow">Presenter follow-along · one-page agenda</p>
+        <h1>PMI KC product reconciliation</h1>
+        <p>Wednesday, August 26, 2026 · 2:00 p.m. Central · target length: 50 minutes</p>
+      </header>
+      <div class="body">
+        <p class="safety">
+          Open with this: “We used live data only for reads. We changed no RentVine record
+          and no operating spreadsheet cell while preparing today.”
+        </p>
+
+        <ol class="timeline">
+          <li>
+            <time>2:00–2:04</time>
+            <div>
+              <h2>Outcome first</h2>
+              <p>What is live, what is safer, and the four decisions we need today.</p>
+              <p class="say">
+                Say: “The app is stricter about what it calls verified, and the remaining
+                work is now attached to named inputs.”
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:04–2:10</time>
+            <div>
+              <h2>What changed while they were out</h2>
+              <p>
+                Show sorted Renewal Desk, complete addresses, fresh-read
+                timestamp/refresh, Work location and materials fields, and hidden unbacked
+                Communications tile.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:10–2:18</time>
+            <div>
+              <h2>Current-rent truth</h2>
+              <p>
+                Open one conflict. Explain: 20 High review items; conflict or stale data
+                cannot wear a Verified badge; one lease-specific resolution changes its
+                draft only.
+              </p>
+              <p class="say">
+                Do not say 20 RentVine errors. Ask whether “current rent” means base rent
+                or total charge.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:18–2:25</time>
+            <div>
+              <h2>Safe spreadsheet rehearsal</h2>
+              <p>
+                Show Admin’s operating/view-only and rehearsal-copy sections. Ask for a
+                verbatim copy. Walk through blank → marker → read → exact clear → blank.
+              </p>
+              <p class="say">
+                Stop if the two links are the same or the target cell is not blank.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:25–2:31</time>
+            <div>
+              <h2>RentVine write readiness</h2>
+              <p>
+                Show the preview concept: selected lease dates plus one existing recurring
+                charge, with rollback values. State that the live action remains closed.
+              </p>
+              <p class="say">
+                No delete, create, status change, bulk update, or write today.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:31–2:36</time>
+            <div>
+              <h2>Comparable rents</h2>
+              <p>
+                Show the reference-only lookup and remaining-call protection. Confirm
+                radius/comparable defaults. Remind them it never sets the offered rent.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:36–2:42</time>
+            <div>
+              <h2>Submitted reports</h2>
+              <p>
+                Show job location/materials in Team Work. Then acknowledge the move-out
+                disposition report and schedule the offered process walkthrough; do not
+                mark it resolved.
+              </p>
+            </div>
+          </li>
+          <li>
+            <time>2:42–2:50</time>
+            <div>
+              <h2>Decisions and owners</h2>
+              <p>
+                Capture six renewal steps, rent definition, rehearsal-copy owner,
+                dedicated test lease/owner, exact wrong-resident lease, September
+                scope/date, and move-out process expert.
+              </p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="decision-grid">
+          <section class="box">
+            <h2>Four decisions that unblock the most</h2>
+            <ul>
+              <li>The six renewal steps, owner and completion proof for each.</li>
+              <li>Whether current rent means base rent or total monthly charge.</li>
+              <li>Who makes/shares the verbatim rehearsal Sheet copy.</li>
+              <li>
+                Which unmistakable test lease/owner may be used for a future confirmed
+                RentVine proof.
+              </li>
+            </ul>
+          </section>
+          <section class="box">
+            <h2>Close with explicit owners</h2>
+            <ul>
+              <li>PMI KC: client inputs, copy, test record, process walkthrough.</li>
+              <li>
+                Product team: configure copy, run reversible proof, implement confirmed
+                process facts.
+              </li>
+              <li>Joint: classify examples before correcting either source.</li>
+              <li>
+                Default: unresolved means Needs Verification and no external change.
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <nav class="links" aria-label="Meeting links">
+          <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal/live/desk"
+            >Renewal Desk</a
+          >
+          <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin">Admin + reports</a>
+          <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin/team-work"
+            >Team Work</a
+          >
+          <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version"
+            >Exact deployed version</a
+          >
+          <a href="pmi-kc-client-action-center-2026-08-26.html">Client action center</a>
+        </nav>
+
+        <footer>
+          <span>Meeting time is organizer-supplied, not Calendar-verified.</span>
+          <span>Prepared August 26, 2026 · PMI KC</span>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>

@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 
 import { Button, Card, Field } from "@/components/ui";
+import { parseCurrencyInput } from "@/lib/currency-input";
 
 // Compose an UNSENT renewal-notice Gmail draft for one lease, in two steps: Preview, then Create.
 // The recipient and lease facts come from the LIVE RentVine record (server-side, never from this form);
@@ -60,24 +61,35 @@ export function RenewalNoticeDraftComposer({
     comps: useId(),
   };
 
-  const tenantReady = offeredRent.trim() !== "" && Number(offeredRent) > 0;
+  const offeredRentParsed = parseCurrencyInput(offeredRent);
+  const specificNumberParsed = parseCurrencyInput(specificNumber);
+  const rangeLowParsed = parseCurrencyInput(rangeLow);
+  const rangeHighParsed = parseCurrencyInput(rangeHigh);
+  const tenantReady = offeredRentParsed.ok && offeredRentParsed.value > 0;
   const ownerReady =
-    specificNumber.trim() !== "" &&
-    rangeLow.trim() !== "" &&
-    rangeHigh.trim() !== "" &&
+    specificNumberParsed.ok &&
+    specificNumberParsed.value > 0 &&
+    rangeLowParsed.ok &&
+    rangeLowParsed.value > 0 &&
+    rangeHighParsed.ok &&
+    rangeHighParsed.value > 0 &&
     compsRef.trim() !== "";
   const formReady = channel === "tenant" ? tenantReady : ownerReady;
 
   function buildOffer() {
     if (channel === "tenant") {
-      return { channel, ownerDecision, offeredRent: Number(offeredRent) };
+      return {
+        channel,
+        ownerDecision,
+        offeredRent: offeredRentParsed.ok ? offeredRentParsed.value : 0,
+      };
     }
     return {
       channel,
       market: {
-        specificNumber: Number(specificNumber),
-        rangeLow: Number(rangeLow),
-        rangeHigh: Number(rangeHigh),
+        specificNumber: specificNumberParsed.ok ? specificNumberParsed.value : 0,
+        rangeLow: rangeLowParsed.ok ? rangeLowParsed.value : 0,
+        rangeHigh: rangeHighParsed.ok ? rangeHighParsed.value : 0,
         compsScreenshotRef: compsRef.trim(),
       },
     };
@@ -173,9 +185,9 @@ export function RenewalNoticeDraftComposer({
               <input
                 id={id.rent}
                 inputMode="decimal"
-                min="0"
                 onChange={(event) => setOfferedRent(event.target.value)}
-                type="number"
+                placeholder="$1,500"
+                type="text"
                 value={offeredRent}
               />
             </Field>
@@ -191,9 +203,9 @@ export function RenewalNoticeDraftComposer({
               <input
                 id={id.spec}
                 inputMode="decimal"
-                min="0"
                 onChange={(event) => setSpecificNumber(event.target.value)}
-                type="number"
+                placeholder="$1,500"
+                type="text"
                 value={specificNumber}
               />
             </Field>
@@ -202,9 +214,9 @@ export function RenewalNoticeDraftComposer({
                 <input
                   id={id.low}
                   inputMode="decimal"
-                  min="0"
                   onChange={(event) => setRangeLow(event.target.value)}
-                  type="number"
+                  placeholder="$1,400"
+                  type="text"
                   value={rangeLow}
                 />
               </Field>
@@ -212,9 +224,9 @@ export function RenewalNoticeDraftComposer({
                 <input
                   id={id.high}
                   inputMode="decimal"
-                  min="0"
                   onChange={(event) => setRangeHigh(event.target.value)}
-                  type="number"
+                  placeholder="$1,600"
+                  type="text"
                   value={rangeHigh}
                 />
               </Field>

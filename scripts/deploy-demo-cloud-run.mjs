@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -123,7 +123,19 @@ export function buildDemoDeployCommand({
   });
   errors.push(...liveCostResult.errors);
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
-  const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
+  const sourceCommit = resolveSourceCommit(env);
+  if (!sourceCommit) {
+    errors.push(
+      "The exact 40-character source commit could not be resolved for APP_COMMIT_SHA.",
+    );
+  }
+  const runtimeEnv = readRuntimeEnv(
+    mergedEnv,
+    project,
+    region,
+    searchLocation,
+    sourceCommit ?? "unknown",
+  );
   const runtimeSecrets = readRuntimeSecrets(mergedEnv, errors);
   errors.push(...validateSheetWritebackGateCoupling(runtimeEnv));
   const serviceAccount =
@@ -402,11 +414,12 @@ function readRequiredBuildEnv(env, errors) {
   return values;
 }
 
-function readRuntimeEnv(env, project, region, searchLocation) {
+function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
   const withDefault = (name, value) => readString(env[name]) ?? value;
 
   return {
     ALLOWED_HD: withDefault("ALLOWED_HD", "pmikcmetro.com"),
+    APP_COMMIT_SHA: sourceCommit,
     APP_BASE_URL: withDefault("APP_BASE_URL", ""),
     ASK_DEMO_MODE: "false",
     AUTH_SESSION_COOKIE: withDefault("AUTH_SESSION_COOKIE", "__session"),
@@ -467,6 +480,9 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     // review degrades to a clear "not connected" panel instead of throwing.
     RENTVINE_API_BASE_URL: withDefault("RENTVINE_API_BASE_URL", ""),
     RENEWAL_SHEET_ID: withDefault("RENEWAL_SHEET_ID", ""),
+    // Optional COPY-only rehearsal target. It is never substituted for the operating Sheet and the
+    // proof refuses when both ids are equal. Empty means the Admin panel shows setup still needed.
+    RENEWAL_REHEARSAL_SHEET_ID: withDefault("RENEWAL_REHEARSAL_SHEET_ID", ""),
     SHEETS_IMPERSONATE_SA: withDefault("SHEETS_IMPERSONATE_SA", ""),
     SHEETS_DWD_SUBJECT: withDefault("SHEETS_DWD_SUBJECT", ""),
     // Phase C: the live append-only Sheet write-back stays OFF unless this is explicitly "true" (and the
@@ -504,6 +520,22 @@ function readRuntimeEnv(env, project, region, searchLocation) {
   function optionalString(name) {
     const value = readString(env[name]);
     return value ? { [name]: value } : {};
+  }
+}
+
+/** Resolve the exact source identity shipped into the bodyless /api/version endpoint. */
+export function resolveSourceCommit(env = process.env) {
+  const explicit = readString(env.APP_COMMIT_SHA);
+  if (explicit && /^[a-f0-9]{40}$/i.test(explicit)) return explicit.toLowerCase();
+  try {
+    const value = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return /^[a-f0-9]{40}$/i.test(value) ? value.toLowerCase() : null;
+  } catch {
+    return null;
   }
 }
 

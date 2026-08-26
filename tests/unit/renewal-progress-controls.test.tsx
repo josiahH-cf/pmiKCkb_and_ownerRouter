@@ -14,6 +14,43 @@ afterEach(() => {
 });
 
 describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
+  it("normalizes formatted money before recording and refuses malformed grouping", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      void init;
+      return {
+        ok: true,
+        json: async () =>
+          String(url).includes("comp-screenshot") ? { status: "not_found" } : {},
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    const rentInput = screen.getByLabelText(/Offered rent/i);
+    fireEvent.change(rentInput, { target: { value: "$1,500.25" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record owner decision" }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes("/api/lease-renewal/renewal-progress"),
+        ),
+      ).toBe(true),
+    );
+    const writeCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/lease-renewal/renewal-progress"),
+    );
+    expect(JSON.parse(String(writeCall?.[1]?.body))).toMatchObject({
+      leaseId: "L1",
+      offeredRent: 1500.25,
+    });
+
+    fireEvent.change(rentInput, { target: { value: "1,50" } });
+    expect(screen.getByRole("button", { name: "Record owner decision" })).toBeDisabled();
+  });
+
   it("shows the looked-up range read-only with the caption and never binds offeredRent", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,

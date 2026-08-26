@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createClient } from "./helpers/client.mjs";
 
-describe("integrated final-V1 fake-provider acceptance", () => {
+describe("retired Production Test acceptance route", () => {
   let client;
 
   beforeAll(async () => {
@@ -9,37 +9,17 @@ describe("integrated final-V1 fake-provider acceptance", () => {
     await client.signInDemo();
   });
 
-  it("completes Vendor boundary plus every S25/S26 fake action with one receipt", async () => {
-    const response = await client.request("/api/admin/v1/fake-acceptance", {
+  it("has no readable route and refuses any attempted legacy execution", async () => {
+    const read = await client.get("/api/admin/v1/fake-acceptance");
+    expect(read.status).toBe(404);
+
+    const execute = await client.request("/api/admin/v1/fake-acceptance", {
       method: "POST",
     });
-    const json = await response.json();
-    expect(response.status).toBe(200);
-    expect(json.mode).toBe("production-test-workspace");
-    expect(json.dataMode).toBe("test");
-    expect(json.liveEvidenceEligible).toBe(false);
-    expect(json.liveProviderCallCount).toBe(0);
-    expect(json.vendorBoundary).toEqual({
-      verifiedEmailTotp: true,
-      assignedTicketOnly: true,
-      liveProviderCalls: 0,
-      typedProviderBoundary: true,
-      invited: true,
-      oauthExactScopes: true,
-      sameMailbox: true,
-      wrongMailboxBlocked: true,
-      exactReplyOneAttempt: true,
-      disabled: true,
-      sessionRevoked: true,
-      tokenRevocationQueued: true,
+    expect(execute.status).toBe(409);
+    await expect(execute.json()).resolves.toMatchObject({
+      error: expect.stringMatching(/read only/i),
+      error_type: "LiveReadOnlyMutationRefused",
     });
-    expect(json.lease.receiptCount).toBe(json.lease.actionCount);
-    expect(json.lease.attemptCount).toBe(json.lease.actionCount);
-    expect(json.maintenance.receiptCount).toBe(json.maintenance.actionCount);
-    expect(json.maintenance.attemptCount).toBe(json.maintenance.actionCount);
-    expect(json.lease.typedAdapterCount).toBe(json.lease.actionCount);
-    expect(json.maintenance.typedAdapterCount).toBe(json.maintenance.actionCount);
-    expect(json.lease.providerCallCount).toBeGreaterThan(0);
-    expect(json.maintenance.providerCallCount).toBeGreaterThan(0);
   });
 });

@@ -51,12 +51,14 @@ const SCOPED_ROUTE_SCOPE = {
 //     and can only continue into the bound Vendor identity's Firebase setup.
 //   - maintenance/intake/public is the HMAC-token-gated public ingress (A5); it writes only to the
 //     unverified quarantine collection via the no-actor writer.
+//   - version is a bodyless, no-store deployment-provenance read used by release smoke verification.
 const ALLOW_UNAUTHENTICATED = new Set([
   "auth/session/route.ts",
   "auth/demo/route.ts",
   "vendor/auth/session/route.ts",
   "vendor/setup/route.ts",
   "maintenance/intake/public/route.ts",
+  "version/route.ts",
 ]);
 
 describe("API route auth-boundary invariant", () => {

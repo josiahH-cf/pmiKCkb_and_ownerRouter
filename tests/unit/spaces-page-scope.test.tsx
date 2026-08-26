@@ -62,9 +62,14 @@ describe("Spaces directory scope filter", () => {
 
     render(await SpacesPage());
 
-    expect(screen.getAllByRole("link")).toHaveLength(launchSpaces.length);
+    expect(screen.getAllByRole("link")).toHaveLength(
+      launchSpaces.filter((space) => space.showInDirectory !== false).length,
+    );
     expect(screen.getByRole("heading", { name: "Lease Renewals" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Move-In" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Workflow Communications" }),
+    ).not.toBeInTheDocument();
     expect(gatherNeedsDecisionInbox).toHaveBeenCalledTimes(1);
   });
 });

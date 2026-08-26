@@ -384,6 +384,7 @@ route new work through the three-product docs.
 | Current-rent truth + badges (S73)         | `docs/feature-suites/current-rent-truth-and-badge-integrity.md`                                                        |
 | Tenant copy / channel truth (S74)         | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`                                                           |
 | Renewal follow-up state (S75)             | `docs/feature-suites/renewal-follow-up-state.md`                                                                       |
+| Renewal Sheet rehearsal copy (S76)        | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`                                                                  |
 | Cherry Bridge note map (N1-N11)           | `docs/cherry-bridge-renewal-note-map-2026-08-24.md` (eleven client notes to S70-S75 + amendments)                      |
 | **Unattended audit + note-spec launcher** | `docs/meta-prompts/cherry-bridge-and-unattended-audit-implementation.md`                                               |
 | **Resume current human audit**            | `docs/meta-prompts/pmi-kc-human-verification-resume.md` (short-session, audit-only fresh-context launcher)             |
@@ -461,11 +462,14 @@ route new work through the three-product docs.
   IA, workflow, retirement, and page-builder recalibration through
   `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. S69 is the specification-only
   human-audit browser/progress/freshness contract produced by the 2026-08-19 verification audit; it
-  adds no standing authority. S70-S75 are the specification-only Cherry Bridge
-  renewal-note suites from 2026-08-24 (queue integrity, lease identity/address truth, the six-step
-  model, current-rent badge integrity, tenant copy/channel truth, and follow-up state); note N4
+  adds no standing authority. S70-S75 are the Cherry Bridge renewal-note suites from 2026-08-24
+  (queue integrity, lease identity/address truth, the six-step model, current-rent badge integrity,
+  tenant copy/channel truth, and follow-up state); S70/S71 are deployed and S73 is implemented in
+  the 2026-08-26 meeting-readiness slice, while S72/S74/S75 remain specifications. S76
+  (`renewal-sheet-rehearsal-copy`) is the separate copy-only spreadsheet proof seam added by that
+  meeting-readiness slice; it never authorizes an operating-Sheet write. Note N4
   lands as an S62 amendment rather than a suite, and amendments also touch S24, S31, S43, and S58.
-  They add no standing authority and build none of the eleven fixes; the note map is
+  They add no standing authority; the note map is
   `docs/cherry-bridge-renewal-note-map-2026-08-24.md`. All overhaul specs are
   sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup

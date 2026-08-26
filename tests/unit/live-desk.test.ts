@@ -243,6 +243,67 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(rent?.agreement).toBe("agree");
   });
 
+  it("applies only the exact record-specific resolved rent to the owner draft", async () => {
+    const unresolved = await loadLiveRenewalLeaseWorkspace(
+      "5001",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+    );
+    if (unresolved.status !== "ok") throw new Error(unresolved.status);
+    const triggerKey = unresolved.workspace.dataCheck.find(
+      (item) => item.fieldKey === "current_rent",
+    )?.sourceTriggerKey;
+    expect(triggerKey).toMatch(/^lease_renewal:reconcile:live-review:[a-f0-9]{16}:/);
+
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "5001",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      null,
+      null,
+      [
+        {
+          id: "wrong-record",
+          source_trigger_key:
+            "lease_renewal:reconcile:live-review:0000000000000000:current_rent",
+          run_id: "live-review",
+          field_key: "current_rent",
+          field_label: "Current rent",
+          severity: "High",
+          status: "Resolved",
+          corrected_value: "$9,999",
+          created_at: READ_TS,
+          updated_at: READ_TS,
+        },
+        {
+          id: "exact-record",
+          source_trigger_key: triggerKey!,
+          run_id: "live-review",
+          field_key: "current_rent",
+          field_label: "Current rent",
+          severity: "High",
+          status: "Resolved",
+          resolution_kind: "corrected_value",
+          corrected_value: "$1,300.00",
+          resolved_by_uid: "admin-fixture",
+          created_at: READ_TS,
+          updated_at: READ_TS,
+        },
+      ],
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    expect(result.workspace.ownerDraft.facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "current_rent",
+          value: "$1,300",
+          confidence: "Verified",
+        }),
+      ]),
+    );
+    expect(result.workspace.ownerDraft.body).not.toContain("$9,999");
+  });
+
   it("marks a field it cannot reconcile as 'Needs input', never a fabricated pass", async () => {
     const result = await loadLiveRenewalLeaseWorkspace(
       "6002",

@@ -141,6 +141,8 @@ describe("Action Registry seed catalog", () => {
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
+      // S59 (2026-08-26): exact-key owner-approved read-only RentCast activation.
+      "rentcast.rental_listings.search",
       // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
       // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays non-executable below.
       "gmail.maintenance_owner_notice.draft_create",
@@ -172,7 +174,7 @@ describe("Action Registry seed catalog", () => {
     expect(ACTION_REGISTRY_SEED).toHaveLength(41);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
-        // S28a gated-OFF entries (production_allowed:false, absent from the executable allowlist).
+        // S28 entries; screenshot storage stays closed while the read-only RentCast key is live.
         "google_drive.renewal_comp_screenshot.store",
         "rentcast.rental_listings.search",
         // S39.2-built internal transactional send, FLIPPED on by S39.3 (dedicated key; generic gmail.message.send unchanged).

@@ -54,7 +54,7 @@ type WorkflowRunSummary = {
 };
 
 const writableSpaceOptions = launchSpaces
-  .filter((space) => !space.readOnly)
+  .filter((space) => space.showInDirectory !== false && !space.readOnly)
   .map((space) => ({ label: space.name, value: space.id }));
 const capturableStates = new Set([
   "Partial Source",

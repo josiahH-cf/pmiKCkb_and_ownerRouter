@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC — Client Action Center — August 26, 2026</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #5d6678;
+        --line: #dce2ec;
+        --paper: #ffffff;
+        --wash: #f4f7fb;
+        --navy: #163a63;
+        --blue: #2167ae;
+        --green: #13715b;
+        --amber: #946000;
+        --red: #a23535;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--wash);
+        font:
+          16px/1.55 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--blue);
+      }
+      a:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid #f0b429;
+        outline-offset: 3px;
+      }
+      .shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 28px auto 64px;
+      }
+      .hero {
+        padding: clamp(28px, 5vw, 56px);
+        color: white;
+        background: linear-gradient(135deg, #102f51, #2167ae);
+        border-radius: 22px;
+        box-shadow: 0 18px 48px rgba(24, 51, 85, 0.18);
+      }
+      .eyebrow {
+        margin: 0 0 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+      }
+      h1 {
+        margin: 0;
+        max-width: 820px;
+        font-size: clamp(2rem, 5vw, 3.7rem);
+        line-height: 1.05;
+      }
+      .hero p {
+        max-width: 790px;
+        margin: 18px 0 0;
+        font-size: 1.08rem;
+      }
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 750;
+        font-size: 0.88rem;
+      }
+      .hero .chip {
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+      .notice {
+        margin: 20px 0;
+        padding: 18px 20px;
+        border-left: 5px solid var(--green);
+        background: #eaf7f2;
+        border-radius: 10px;
+      }
+      .notice strong {
+        color: #0b5b48;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 22px 0;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 10px 15px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        font-weight: 750;
+        text-decoration: none;
+      }
+      .button.primary {
+        color: white;
+        background: var(--navy);
+        border-color: var(--navy);
+      }
+      section {
+        margin-top: 28px;
+      }
+      h2 {
+        margin: 0 0 14px;
+        color: var(--navy);
+        font-size: 1.55rem;
+      }
+      h3 {
+        margin: 0 0 8px;
+        font-size: 1.08rem;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .grid.three {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid.two {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .card {
+        padding: 20px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: 0 5px 16px rgba(32, 54, 85, 0.05);
+      }
+      .status {
+        display: inline-flex;
+        margin-bottom: 10px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+      }
+      .done {
+        color: #075443;
+        background: #d9f3e9;
+      }
+      .ready {
+        color: #694500;
+        background: #fff0c7;
+      }
+      .waiting {
+        color: #7d2929;
+        background: #fbe1e1;
+      }
+      ol.actions {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: action;
+        display: grid;
+        gap: 14px;
+      }
+      ol.actions > li {
+        counter-increment: action;
+        position: relative;
+        padding: 20px 20px 20px 68px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+      ol.actions > li::before {
+        content: counter(action);
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        color: white;
+        background: var(--blue);
+        border-radius: 50%;
+        font-weight: 850;
+      }
+      .owner {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--paper);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        color: var(--navy);
+        background: #eaf0f7;
+        font-size: 0.86rem;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      details {
+        margin-top: 12px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      summary {
+        cursor: pointer;
+        padding: 15px 18px;
+        color: var(--navy);
+        font-weight: 800;
+      }
+      details > div {
+        padding: 0 18px 18px;
+      }
+      .steps {
+        margin: 8px 0 0;
+        padding-left: 22px;
+      }
+      .steps li {
+        margin: 7px 0;
+      }
+      .footer {
+        margin-top: 32px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      code {
+        padding: 2px 5px;
+        background: #edf1f6;
+        border-radius: 5px;
+      }
+      @media (max-width: 820px) {
+        .grid.three,
+        .grid.two {
+          grid-template-columns: 1fr;
+        }
+        .shell {
+          width: min(100% - 20px, 1120px);
+        }
+        th {
+          display: none;
+        }
+        tr,
+        td {
+          display: block;
+        }
+        td {
+          border-bottom: 0;
+          padding-bottom: 4px;
+        }
+        tr {
+          display: block;
+          padding: 10px;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+      @media print {
+        body {
+          background: white;
+          font-size: 11pt;
+        }
+        .shell {
+          width: 100%;
+          margin: 0;
+        }
+        .hero {
+          box-shadow: none;
+          border-radius: 0;
+        }
+        .card,
+        details,
+        ol.actions > li {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        nav {
+          display: none;
+        }
+        a {
+          color: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">PMI KC · Client follow-up</p>
+        <h1>What is ready, what we need from you, and how we will test it safely</h1>
+        <p>
+          This page turns today’s open items into plain-language decisions and test steps.
+          It is designed for the Wednesday, August 26 meeting at 2:00 p.m. Central; the
+          meeting time was supplied by the organizer.
+        </p>
+        <div class="hero-meta">
+          <span class="chip">Prepared August 26, 2026</span>
+          <span class="chip">Live data: read-only during preparation</span>
+          <span class="chip">No automatic client messages</span>
+        </div>
+      </header>
+
+      <div class="notice" role="note">
+        <strong>Safety result:</strong> no RentVine record and no operating Google Sheet
+        cell was changed while preparing this work. Any difference described below is a
+        review item, not an automatic correction.
+      </div>
+
+      <nav aria-label="Useful application links">
+        <a
+          class="button primary"
+          href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal/live/desk"
+          >Open Renewal Desk</a
+        >
+        <a class="button" href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin"
+          >Open Admin</a
+        >
+        <a class="button" href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/work"
+          >Open My Work</a
+        >
+        <a
+          class="button"
+          href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin/team-work"
+          >Open Team Work</a
+        >
+        <a class="button" href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version"
+          >Verify deployed build</a
+        >
+      </nav>
+
+      <section aria-labelledby="status-title">
+        <h2 id="status-title">At a glance</h2>
+        <div class="grid three">
+          <article class="card">
+            <span class="status done">READY TO SHOW</span>
+            <h3>Safer current-rent display</h3>
+            <p>
+              A rent with an open conflict or an old read no longer receives a “Verified”
+              label. The screen shows when the live data was read and offers a refresh.
+            </p>
+          </article>
+          <article class="card">
+            <span class="status ready">READY AFTER SETUP</span>
+            <h3>Spreadsheet rehearsal</h3>
+            <p>
+              Admin now separates the operating Sheet from a rehearsal copy. We still need
+              a verbatim copy before running the reversible copy-only test.
+            </p>
+          </article>
+          <article class="card">
+            <span class="status waiting">WAITING FOR WALKTHROUGH</span>
+            <h3>Move-out disposition process</h3>
+            <p>
+              The submitted feedback says the page does not match the real process. We
+              need the team’s actual steps before changing the workflow.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="actions-title">
+        <h2 id="actions-title">Actions for the client team</h2>
+        <ol class="actions">
+          <li>
+            <h3>Tell us the six renewal steps—in order</h3>
+            <p>
+              Use the exact words the team uses. For each step, tell us who owns it, what
+              proves it is done, and what should happen next.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC renewal team · <strong>Use:</strong> aligns
+              the Renewal Desk with the real process.
+            </p>
+          </li>
+          <li>
+            <h3>Make a verbatim copy of the renewal spreadsheet</h3>
+            <p>
+              In Google Sheets, use <strong>File → Make a copy</strong>. Keep the same
+              tabs, columns, formatting, and formulas. Name it clearly as a rehearsal copy
+              and share it with the same managed account used for the operating Sheet.
+            </p>
+            <p>
+              Send the copy link to the application owner. Admin will then show two
+              separate links: <strong>Operating Sheet—view only</strong> and
+              <strong>Rehearsal copy</strong>.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC · <strong>Stop condition:</strong> if Admin
+              says both links point to the same Sheet, testing is refused.
+            </p>
+          </li>
+          <li>
+            <h3>Define “current rent” for the team</h3>
+            <p>
+              Is it base rent only, or the total monthly charge including items such as
+              the resident benefit package or insurance? This one definition may explain
+              some of the Sheet-versus-RentVine differences.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC · <strong>Use:</strong> separates real data
+              errors from intentional differences.
+            </p>
+          </li>
+          <li>
+            <h3>Choose one dedicated RentVine test lease and owner</h3>
+            <p>
+              Choose a record that is unmistakably a test and safe to restore. We will
+              prepare the exact proposed lease-date and existing recurring-charge changes,
+              show the before/after values, and stop at preview unless the team separately
+              confirms a live test.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC · <strong>Today’s default:</strong> preview
+              only; no RentVine change.
+            </p>
+          </li>
+          <li>
+            <h3>Walk us through move-out deposit disposition</h3>
+            <p>
+              Show the real process from start to finish: inputs, decisions, documents,
+              owner, timing, and completion proof. The existing report remains
+              acknowledged and waiting for this walkthrough—it is not marked resolved.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> process expert named by PMI KC ·
+              <strong>Use:</strong> replaces assumptions with the actual workflow.
+            </p>
+          </li>
+          <li>
+            <h3>Confirm the lease that showed the wrong resident</h3>
+            <p>
+              Open the exact lease that prompted the report. House numbers and
+              lease-specific decision keys are now fixed; this live check will tell us
+              whether the resident issue had the same cause or needs a separate
+              correction.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> report author · <strong>Use:</strong> closes or
+              narrows the remaining identity issue.
+            </p>
+          </li>
+          <li>
+            <h3>Confirm the market-comparable defaults and delivery date</h3>
+            <p>
+              Confirm whether the current search radius and comparable count fit PMI KC’s
+              submarkets, and restate what “end of September” includes. Comparable data is
+              reference-only and never sets the offered rent.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC leadership · <strong>Use:</strong> settles
+              two policy choices the software should not invent.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="test-title">
+        <h2 id="test-title">How the spreadsheet rehearsal works</h2>
+        <div class="card">
+          <ol class="steps">
+            <li>
+              Admin verifies that the operating Sheet and rehearsal copy have different
+              file ids.
+            </li>
+            <li>
+              The operator selects one exact blank cell in the copy. A nonblank cell
+              causes an immediate stop.
+            </li>
+            <li>The tool writes one clearly synthetic marker to that copy cell.</li>
+            <li>It reads the cell back and requires an exact match.</li>
+            <li>It removes only that exact marker and reads the cell back blank.</li>
+            <li>
+              The operator separately opens both links and confirms that the operating
+              Sheet did not change.
+            </li>
+          </ol>
+          <p>
+            <strong>A passing test requires the copy to be restored.</strong> A write
+            without its readback and cleanup is a failed test.
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="differences-title">
+        <h2 id="differences-title">How we will discuss data differences</h2>
+        <p class="muted">
+          The read-only audit found 20 High current-rent conflicts. That count is a review
+          queue—not proof that 20 RentVine records are wrong.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Plain meaning</th>
+              <th>What happens next</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sources agree</td>
+              <td>RentVine and the Sheet describe the same fact.</td>
+              <td>No correction.</td>
+            </tr>
+            <tr>
+              <td>Sources conflict</td>
+              <td>Both have a value, but the values differ.</td>
+              <td>A person chooses the correct source or enters a correction.</td>
+            </tr>
+            <tr>
+              <td>RentVine only</td>
+              <td>RentVine has the fact; the Sheet does not.</td>
+              <td>Decide whether the Sheet should track it.</td>
+            </tr>
+            <tr>
+              <td>Sheet only</td>
+              <td>The Sheet has the fact; RentVine does not.</td>
+              <td>Confirm whether it is work-in-progress or missing source data.</td>
+            </tr>
+            <tr>
+              <td>Missing</td>
+              <td>Neither source has a usable fact.</td>
+              <td>Request the information; do not guess.</td>
+            </tr>
+            <tr>
+              <td>Intentional difference</td>
+              <td>
+                The sources measure different things—for example base rent versus total
+                charge.
+              </td>
+              <td>Document the definition and stop treating it as an error.</td>
+            </tr>
+            <tr>
+              <td>Stale snapshot</td>
+              <td>One source may simply be older.</td>
+              <td>Refresh and compare again before deciding.</td>
+            </tr>
+            <tr>
+              <td>Identity unclear</td>
+              <td>The app cannot prove both rows refer to the same lease.</td>
+              <td>Match the record manually; never merge by guess.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="rentvine-title">
+        <h2 id="rentvine-title">
+          What a future RentVine renewal update would—and would not—do
+        </h2>
+        <div class="grid two">
+          <article class="card">
+            <span class="status ready">DOCUMENTED PREVIEW</span>
+            <h3>Allowlisted proposal</h3>
+            <p>
+              The preview may show updates to the selected lease dates and to one
+              <em>existing</em> recurring rent charge. It also shows the prior values
+              needed to reverse the change.
+            </p>
+          </article>
+          <article class="card">
+            <span class="status waiting">NOT ALLOWED</span>
+            <h3>No broad write access</h3>
+            <p>
+              No delete, no new charge creation, no status change, no bulk update, no
+              guessed route, and no automatic correction. The live renewal-write action
+              remains closed.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="reports-title">
+        <h2 id="reports-title">Follow-up on submitted reports</h2>
+        <div class="grid two">
+          <article class="card">
+            <span class="status done">ADDRESSED IN THIS RELEASE</span>
+            <h3>Work assignment details</h3>
+            <p>
+              New work can include the job location, materials still needed, and materials
+              already bought or on hand. Those facts remain visible on the task card.
+            </p>
+            <p>
+              <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin/team-work"
+                >Review Team Work</a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <span class="status waiting">ACKNOWLEDGED · WAITING</span>
+            <h3>Move-out deposit disposition</h3>
+            <p>
+              The page-clarity report remains open pending the offered process
+              walkthrough. We will not call it fixed until the team verifies the revised
+              workflow.
+            </p>
+            <p>
+              <a href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin"
+                >Review support reports in Admin</a
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <details>
+        <summary>What was verified before this page was shared</summary>
+        <div>
+          <ul>
+            <li>
+              The complete RentVine export returned 306 rows in a read-only diagnostic.
+            </li>
+            <li>
+              The current-rent comparison produced 14 agreements, 20 conflicts, 140
+              one-source outcomes, and 216 missing/unmatched outcomes; no source values
+              appear in this document.
+            </li>
+            <li>
+              Money fields accept formats such as <code>$1,500.25</code> and reject
+              malformed or negative entries.
+            </li>
+            <li>
+              The unbacked Workflow Communications compatibility tile is hidden from
+              normal product directories.
+            </li>
+            <li>
+              The deployed build can be checked through the linked version endpoint using
+              exact commit and revision identifiers.
+            </li>
+          </ul>
+        </div>
+      </details>
+
+      <footer class="footer">
+        <p>
+          <strong>Decision rule:</strong> if the team cannot prove which source, record,
+          or definition is correct, the app shows Needs Verification and makes no external
+          change.
+        </p>
+        <p>Prepared for PMI KC by the product delivery team · August 26, 2026.</p>
+      </footer>
+    </main>
+  </body>
+</html>

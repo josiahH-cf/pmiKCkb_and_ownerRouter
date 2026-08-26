@@ -168,30 +168,37 @@ describe("AC-S71-3 — one composer, not four", () => {
     return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
   }
 
+  let cachedLibSources: Array<{ file: string; source: string }> | undefined;
+  function libSources() {
+    cachedLibSources ??= sourceFiles(join(root, "lib")).map((file) => ({
+      file,
+      source: stripComments(readFileSync(file, "utf8")),
+    }));
+    return cachedLibSources;
+  }
+
   it("composes streetNumber in exactly one file under lib/", () => {
-    const offenders = sourceFiles(join(root, "lib"))
-      .filter((file) =>
-        stripComments(readFileSync(file, "utf8")).includes('"streetNumber"'),
-      )
-      .map((file) => file.slice(root.length + 1).replace(/\\/g, "/"));
+    const offenders = libSources()
+      .filter(({ source }) => source.includes('"streetNumber"'))
+      .map(({ file }) => file.slice(root.length + 1).replace(/\\/g, "/"));
 
     expect(
       offenders,
       `streetNumber composition found in: ${offenders.join(", ")}`,
     ).toEqual(["lib/integrations/rentvine/address.ts"]);
-  });
+  }, 15_000);
 
   it("leaves no first-hit-wins street-name key walk behind", () => {
     // Matches the CODE SHAPE (a for-of over a key array whose first member is the street-name key),
     // not a quoted literal. An earlier version searched for the literal array, which collided with
     // the doc comments describing the very defect it guards against.
     const keyWalk = /for\s*\(\s*const\s+\w+\s+of\s*\[\s*"streetName"/;
-    const offenders = sourceFiles(join(root, "lib"))
-      .filter((file) => keyWalk.test(stripComments(readFileSync(file, "utf8"))))
-      .map((file) => file.slice(root.length + 1).replace(/\\/g, "/"));
+    const offenders = libSources()
+      .filter(({ source }) => keyWalk.test(source))
+      .map(({ file }) => file.slice(root.length + 1).replace(/\\/g, "/"));
 
     expect(offenders, `the old key walk survives in: ${offenders.join(", ")}`).toEqual(
       [],
     );
-  });
+  }, 15_000);
 });

@@ -43,8 +43,9 @@ export default async function ProcessesPage() {
       <section className="content">
         <h1 className="section-title">Processes</h1>
         <ProcessDefinitionListClient
-          availableSpaces={launchSpaces.filter((space) =>
-            canAccessLaunchSpace(user, space),
+          availableSpaces={launchSpaces.filter(
+            (space) =>
+              space.showInDirectory !== false && canAccessLaunchSpace(user, space),
           )}
           canEdit={can(user.role, "edit")}
           currentUserUid={user.uid}

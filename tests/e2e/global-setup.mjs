@@ -69,6 +69,11 @@ function startDevServer() {
       detached: shouldDetachDevServer(),
       env: {
         ...process.env,
+        // Match the current local-rehearsal contract. `dataContext:demo` is the retired product
+        // fixture lane and makes the Console refuse; deterministic test-only Ask fixtures remain
+        // permitted inside this automated harness.
+        DATA_CONTEXT: "live_readonly",
+        ENVIRONMENT_KIND: "demo",
         ASK_DEMO_MODE: "true",
         LOCAL_DEMO_AUTH: "true",
         NEXT_E2E_ISOLATED_BUILD: "true",
@@ -115,7 +120,10 @@ async function waitForReady(child, logTail) {
     assertDevServerRunning(child, logTail);
 
     try {
-      const response = await fetch(`${baseUrl}/sign-in`, { redirect: "manual" });
+      const response = await fetch(`${baseUrl}/sign-in`, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(5_000),
+      });
 
       if (response.status === 200) {
         return;
@@ -160,14 +168,20 @@ function appendHarnessLog(logStream, logTail, message) {
 async function warmUp() {
   for (const path of WARMUP_PATHS) {
     try {
-      await fetch(`${baseUrl}${path}`, { redirect: "manual" });
+      await fetch(`${baseUrl}${path}`, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(15_000),
+      });
     } catch {
       // Warmup is best-effort.
     }
   }
 
   try {
-    await fetch(`${baseUrl}/api/auth/demo`, { method: "POST" });
+    await fetch(`${baseUrl}/api/auth/demo`, {
+      method: "POST",
+      signal: AbortSignal.timeout(15_000),
+    });
   } catch {
     // Warmup is best-effort.
   }

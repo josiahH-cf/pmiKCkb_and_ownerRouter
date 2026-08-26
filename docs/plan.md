@@ -367,6 +367,29 @@ Acceptance:
   criteria, with nothing sent to any owner or resident, and a criterion whose inputs are missing
   reads as not-evaluated rather than as a pass (S63).
 
+### P12 - August 26 Meeting Readiness
+
+Status: in progress — implementation plus focused, full-unit, Firestore, browser, static-policy, and
+production-build verification are green; the canonical release gate, commit/push, and exact-revision
+release evidence remain.
+
+Scope:
+
+- S73 current-rent confidence, record-specific resolution flow, shared extraction precedence, and
+  bodyless live diagnostic.
+- S76 distinct Sheet-copy Admin binding and reversible copy-only proof seam.
+- Narrow official-route RentVine dry preview with the live renewal-write key kept closed.
+- Read-only RentCast exact-key activation; Work job/material details; compatibility-Space hiding;
+  formatted currency; exact build identity; bounded E2E; client action center and meeting agenda.
+
+Acceptance:
+
+- No RentVine record or operating Sheet cell changes during implementation or verification.
+- Full local gate and deterministic E2E termination pass before commit/push.
+- Candidate receives zero stable traffic until `/api/version` matches exact commit and revision.
+- Exact candidate promotion, stable smoke/readback, and a captured rollback command close the phase.
+- Client-owned process facts and the distinct rehearsal copy remain named follow-ups, never guessed.
+
 ## Per-Action Provider Activation
 
 Use these states without changing the application label:

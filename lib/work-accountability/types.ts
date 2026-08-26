@@ -68,6 +68,12 @@ export interface WorkTaskRecord {
   creator_uid: string;
   state: WorkTaskState;
   next_action: string;
+  /** Plain-language job/property location supplied by the task creator. */
+  work_location?: string;
+  /** Materials still needed before the task can proceed. */
+  materials_needed?: string;
+  /** Materials already purchased or otherwise on hand. */
+  materials_purchased?: string;
   due_at?: string;
   blocker_reason?: string;
   cancel_reason?: string;

@@ -108,7 +108,7 @@ describe("Action Registry stays non-executable for the live read paths", () => {
     }
   });
 
-  it("keeps every seed entry non-executable except the allow-listed Gmail actions", () => {
+  it("keeps every seed entry non-executable except the exact reviewed allowlist", () => {
     expect(
       ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
         (entry) => entry.key,
@@ -119,6 +119,8 @@ describe("Action Registry stays non-executable for the live read paths", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      // S59: read-only market-comparable lookup, explicitly activated on 2026-08-26.
+      "rentcast.rental_listings.search",
       // S39.3: internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
       "internal.transactional_notice.send",
     ]);

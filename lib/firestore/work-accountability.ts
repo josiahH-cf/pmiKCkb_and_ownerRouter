@@ -78,6 +78,9 @@ export interface CreateWorkTaskInput {
   title: string;
   assignee_uid?: string;
   next_action: string;
+  work_location?: string;
+  materials_needed?: string;
+  materials_purchased?: string;
   due_at?: string;
   expectation_key?: string;
   idempotency_key: string;
@@ -324,6 +327,13 @@ export class WorkAccountabilityStore {
         creator_uid: actor.uid,
         state,
         next_action: normalized.next_action,
+        ...(normalized.work_location ? { work_location: normalized.work_location } : {}),
+        ...(normalized.materials_needed
+          ? { materials_needed: normalized.materials_needed }
+          : {}),
+        ...(normalized.materials_purchased
+          ? { materials_purchased: normalized.materials_purchased }
+          : {}),
         ...(normalized.due_at ? { due_at: normalized.due_at } : {}),
         ...(!sourceVerified
           ? { blocker_reason: "Linked source could not be verified." }
@@ -1960,6 +1970,29 @@ function normalizeTaskInput(input: CreateWorkTaskInput): CreateWorkTaskInput {
       ? { assignee_uid: normalizeOpaqueId(input.assignee_uid, "Assignee id") }
       : {}),
     next_action: normalizeShortText(input.next_action, "Next action", 240),
+    ...(input.work_location
+      ? {
+          work_location: normalizeShortText(input.work_location, "Work location", 240),
+        }
+      : {}),
+    ...(input.materials_needed
+      ? {
+          materials_needed: normalizeShortText(
+            input.materials_needed,
+            "Materials needed",
+            1000,
+          ),
+        }
+      : {}),
+    ...(input.materials_purchased
+      ? {
+          materials_purchased: normalizeShortText(
+            input.materials_purchased,
+            "Materials purchased",
+            1000,
+          ),
+        }
+      : {}),
     ...(dueAt ? { due_at: dueAt } : {}),
     ...(input.expectation_key
       ? {

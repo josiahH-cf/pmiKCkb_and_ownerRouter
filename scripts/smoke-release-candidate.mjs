@@ -35,10 +35,16 @@ export function validateCandidateBaseUrl(value, expectedTag, expectedService) {
 }
 
 export function assertCandidateReadOnlyBoundary(
-  { root, signIn, protectedRoute },
+  { root, signIn, protectedRoute, version },
   candidateOrigin,
+  expectedIdentity,
 ) {
-  for (const [name, result] of Object.entries({ root, signIn, protectedRoute })) {
+  for (const [name, result] of Object.entries({
+    root,
+    signIn,
+    protectedRoute,
+    version,
+  })) {
     if (!result || typeof result.status !== "number") {
       throw new Error(`Candidate ${name} probe did not return an HTTP status.`);
     }
@@ -62,6 +68,19 @@ export function assertCandidateReadOnlyBoundary(
   if (signIn.status !== 200) {
     throw new Error(`Candidate sign-in probe expected 200, got ${signIn.status}.`);
   }
+  if (version.status !== 200) {
+    throw new Error(`Candidate version probe expected 200, got ${version.status}.`);
+  }
+  if (
+    version.body?.commit !== expectedIdentity.expectedCommit ||
+    version.body?.revision !== expectedIdentity.expectedRevision ||
+    version.body?.service !== expectedIdentity.expectedService ||
+    version.body?.environment !== "production"
+  ) {
+    throw new Error(
+      "Candidate version identity does not match the exact expected commit/revision/service.",
+    );
+  }
 }
 
 export async function smokeReleaseCandidate(
@@ -69,25 +88,42 @@ export async function smokeReleaseCandidate(
   {
     expectedService,
     expectedTag,
+    expectedCommit,
+    expectedRevision,
     fetchFn = fetch,
     timeoutMs = CANDIDATE_SMOKE_TIMEOUT_MS,
   } = {},
 ) {
   const origin = validateCandidateBaseUrl(baseUrl, expectedTag, expectedService);
-  const probe = async (path) => {
+  if (!/^[a-f0-9]{40}$/i.test(expectedCommit ?? "")) {
+    throw new Error("Candidate smoke requires the exact 40-character expected commit.");
+  }
+  if (!/^[a-z][a-z0-9-]{0,62}$/.test(expectedRevision ?? "")) {
+    throw new Error("Candidate smoke requires the exact expected revision.");
+  }
+  const probe = async (path, readBody = false) => {
     const response = await fetchFn(`${origin}${path}`, {
       method: "GET",
       redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return { status: response.status, location: response.headers.get("location") };
+    return {
+      status: response.status,
+      location: response.headers.get("location"),
+      ...(readBody ? { body: await response.json() } : {}),
+    };
   };
   const results = {
     root: await probe("/"),
     signIn: await probe("/sign-in"),
     protectedRoute: await probe("/ask"),
+    version: await probe("/api/version", true),
   };
-  assertCandidateReadOnlyBoundary(results, origin);
+  assertCandidateReadOnlyBoundary(results, origin, {
+    expectedCommit: expectedCommit.toLowerCase(),
+    expectedRevision,
+    expectedService,
+  });
   return results;
 }
 
@@ -101,16 +137,29 @@ if (invokedDirectly) {
   const baseUrl = readArg("--base-url");
   const expectedTag = readArg("--expected-tag");
   const expectedService = readArg("--expected-service");
-  if (!baseUrl || !expectedTag || !expectedService) {
+  const expectedCommit = readArg("--expected-commit");
+  const expectedRevision = readArg("--expected-revision");
+  if (
+    !baseUrl ||
+    !expectedTag ||
+    !expectedService ||
+    !expectedCommit ||
+    !expectedRevision
+  ) {
     console.error(
-      "Candidate smoke requires --base-url=<exact candidate origin>, --expected-tag=<exact candidate tag>, and --expected-service=<exact Cloud Run service>.",
+      "Candidate smoke requires --base-url, --expected-tag, --expected-service, --expected-commit, and --expected-revision with exact values.",
     );
     process.exitCode = 1;
   } else {
-    smokeReleaseCandidate(baseUrl, { expectedService, expectedTag })
+    smokeReleaseCandidate(baseUrl, {
+      expectedService,
+      expectedTag,
+      expectedCommit,
+      expectedRevision,
+    })
       .then((results) => {
         console.log(
-          `Candidate read-only smoke passed: root=${results.root.status} sign-in=${results.signIn.status} protected=${results.protectedRoute.status}.`,
+          `Candidate read-only smoke passed: root=${results.root.status} sign-in=${results.signIn.status} protected=${results.protectedRoute.status} version=${results.version.status}.`,
         );
       })
       .catch((error) => {

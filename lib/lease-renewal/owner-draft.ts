@@ -89,6 +89,17 @@ export interface OwnerDraftInput {
   /** Current base rent, from RentVine (read-authoritative). */
   currentRent: number;
   currentRentSource?: string;
+  /**
+   * Evidence that earns (or refuses) the current-rent confidence label. Missing evidence is
+   * intentionally Needs Verification: a number never becomes Verified merely because it came from
+   * a live-shaped object.
+   */
+  currentRentEvidence?: {
+    agreement: "agree" | "resolved" | "conflict" | "single_source" | "missing";
+    currencyState: "fresh" | "stale" | "expired";
+    readAtIso: string;
+    resolvedSource?: string;
+  };
   market?: OwnerDraftMarketInput;
 }
 
@@ -195,13 +206,11 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     source: "Rentvine (read-authoritative)",
     confidence: "Verified",
   });
-  facts.push({
-    key: "current_rent",
-    label: "Current rent",
-    value: formatUsd(input.currentRent),
-    source: input.currentRentSource ?? "Rentvine (read-authoritative)",
-    confidence: "Verified",
-  });
+  const currentRentFact = deriveCurrentRentFact(input);
+  facts.push(currentRentFact);
+  if (currentRentFact.confidence === NEEDS_VERIFICATION) {
+    missingInputs.push("current rent confirmation");
+  }
 
   const market = input.market ?? {};
   // S60: the comparable-range fact wears the label of where its numbers GENUINELY came from — the
@@ -310,6 +319,33 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     missingInputs,
     production_allowed: false,
     send_allowed: false,
+  };
+}
+
+/** Derive the current-rent fact from reconciliation and currency; never assert confidence by origin. */
+export function deriveCurrentRentFact(
+  input: Pick<
+    OwnerDraftInput,
+    "currentRent" | "currentRentSource" | "currentRentEvidence"
+  >,
+): DraftFact {
+  const evidence = input.currentRentEvidence;
+  const earned =
+    evidence?.currencyState === "fresh" &&
+    (evidence.agreement === "agree" || evidence.agreement === "resolved");
+  const baseSource =
+    evidence?.resolvedSource ??
+    input.currentRentSource ??
+    "Rentvine (read-authoritative)";
+  const source = evidence?.readAtIso
+    ? `${baseSource} (read ${evidence.readAtIso.slice(0, 10)})`
+    : baseSource;
+  return {
+    key: "current_rent",
+    label: "Current rent",
+    value: formatUsd(input.currentRent),
+    source,
+    confidence: earned ? "Verified" : NEEDS_VERIFICATION,
   };
 }
 

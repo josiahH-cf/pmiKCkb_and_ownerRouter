@@ -8,6 +8,12 @@
 > effect, or an HR decision. Because this feature processes employee activity, every omission in the
 > permitted-data contract is a prohibition, not room for expansive telemetry.
 
+> **Implementation amendment — 2026-08-26.** In response to the `/work` support report, a task may
+> additionally carry three optional, bounded operator-entered facts: job location, materials needed,
+> and materials bought/on hand. Create validation, app-owned storage, and the task card use the same
+> fields. They do not expand session telemetry, copy a customer record body, affect task timing, or
+> perform a provider/system-of-record write.
+
 **Goal.** Staff and managers can answer, from explicit application records, what work is assigned,
 what is active, what is blocked or complete, the manager-set expected time range, and how much
 explicit session time was recorded. A staff member sees and corrects their own task/session history;

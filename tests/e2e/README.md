@@ -1,8 +1,9 @@
 # E2E Flow Tests (mocked auth, no browser)
 
 HTTP-level end-to-end tests that drive a real `next dev` server through `fetch`, using
-the local demo auth mode (`LOCAL_DEMO_AUTH=true`) and demo Ask data
-(`ASK_DEMO_MODE=true`). The app's critical flows are server-rendered pages plus JSON API
+the current explicit local-rehearsal descriptor (`ENVIRONMENT_KIND=demo`,
+`DATA_CONTEXT=live_readonly`), local demo auth (`LOCAL_DEMO_AUTH=true`), and deterministic
+test-only Ask data (`ASK_DEMO_MODE=true`). The app's critical flows are server-rendered pages plus JSON API
 routes, so fetch-level assertions cover sign-in guards, Ask source states and citations,
 capture-to-placeholder, the Approval Queue, the process-definition lifecycle, Admin role
 gating, and spaces — without a browser binary. Browser/pixel coverage remains optional

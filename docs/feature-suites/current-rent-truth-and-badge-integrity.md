@@ -10,34 +10,40 @@
 > verified** while its own reconciliation is flagging it as a conflict. Specification only — this suite
 > changes no product code until an implementation session picks it up.
 
+> **Implementation update — 2026-08-26.** The safety and projection work is built: confidence is
+> derived from fresh agreement or an exact record-specific resolution; open conflicts and stale reads
+> render Needs Verification; the read date reaches the draft; both extractors use `unit.rent`, then
+> `lease.currentRent`, then `lease.rent`; `/lease-renewal/live` shows the direct-read timestamp and a
+> refresh link; and the bodyless diagnostic is committed. The client-owned base-rent-versus-total-charge
+> meaning remains open, so the twenty conflicts are callouts rather than automatic corrections. No
+> RentVine or Sheet value was changed.
+
 **Goal.** A rent figure the system is arguing with itself about never appears beside the word
 "Verified" in an email a landlord reads. When the app is confident, it says so and can show why; when it
 is not, it says that instead — and resolving a conflict actually changes what the owner sees.
 
 **What it is / how it functions.**
 
-_Current state, verified in-repo._ In `lib/lease-renewal/owner-draft.ts`, the `current_rent` fact is
+_Historical defect, verified before implementation._ In `lib/lease-renewal/owner-draft.ts`, the `current_rent` fact was
 pushed with `confidence: "Verified"` as a **hardcoded string literal**. It is not computed, not tied to
 reconciliation state, and not lowered when the same lease has an open High `Current rent` conflict. The
 consequence is directly observable: the same workspace page can show the data-check card flagging the
 rent as a conflict and, a dozen lines below, show that same number badged as verified.
 
-Three further gaps compound it. First, **no draft path reads human resolutions** — resolving all twenty
-conflicts would not change one character of the owner email. Second, **no draft path carries a read
-timestamp**, so "Verified" can describe a number read fourteen minutes ago. Third,
-`/lease-renewal/live` — the surface that holds the conflicts — **bypasses the S58 currency cache
-entirely**: no age banner, no refresh control, and no expired-read refusal.
+The 2026-08-26 implementation deletes that contradiction. Human resolutions are keyed by a bodyless
+hash of the exact lease/row identity plus field, so one `current_rent` decision cannot spill across
+other leases. A matching resolution changes the draft value and source. Every current-rent fact carries
+its read date. The live-review route performs a direct provider read for every render and now exposes
+that timestamp plus a refresh control rather than silently presenting an undated snapshot.
 
-_The conflicts are real and reproducible._ The committed live capture yields exactly twenty
+_The conflicts are real and reproducible._ The 2026-08-26 bodyless live diagnostic yields exactly twenty
 `current_rent` / High flags. Sheet-minus-RentVine gaps include values in the hundreds and thousands —
 and one gap of exactly fifty, which is the magnitude of the client's complaint.
 
-_Four live explanations remain open and none is disproven from the repository._ (a) Base-versus-total
-semantics: the RentVine rent figure may exclude a resident-benefits package and insurance. (b) A
-lease-level `rent` key shadowing the documented `unit.rent` — and the two extractors in this repository
-resolve those in **opposite** precedence, which is itself a defect. (c) A stale `unit.rent`. (d) Up to
-fifteen minutes of cache staleness. Deciding between them requires a live read, not a code change, so
-this suite specifies the diagnostic before the fix.
+The read narrowed the explanations: all 306 complete-export rows carried `unit.rent`, none carried a
+lease-level rent key, so shadowing did not occur in that capture. Base-versus-total semantics, source
+staleness, and identity/join quality still require client interpretation. The application therefore
+does not choose a winner or write a correction automatically.
 
 _Intended end state._ Confidence is **derived**, never asserted. A fact whose value is under an open
 conflict cannot render as verified anywhere — desk, workspace, or outgoing draft. Human resolutions
@@ -49,9 +55,10 @@ the same currency contract as every other live surface.
 - **Open — `Q-S73-RENT-SEMANTICS`.** Does the client's "current rent" mean base rent or total charged
   including the resident-benefits package and insurance? This determines whether the twenty conflicts
   are data errors or a definition mismatch. Answered by one read-only live comparison, not by code.
-- **Open — `Q-S73-KEY-PRECEDENCE`.** Which is authoritative when both a lease-level `rent` and
-  `unit.rent` are present? The two in-repo extractors disagree today; one of them is wrong and the
-  repository cannot tell which.
+- **Answered for application precedence 2026-08-26 — `Q-S73-KEY-PRECEDENCE`.** Both extractors now
+  use `unit.rent`, then `lease.currentRent`, then `lease.rent`. The complete live read observed only
+  `unit.rent`, so the differing-shapes fixture is a regression contract rather than a claim about a
+  currently observed dual-key row.
 - **Assumption — `A-S73-CONFLICT-BLOCKS-VERIFIED`.** An open conflict on a field is sufficient, on its
   own, to prevent that field rendering as verified. This is the conservative reading and the one the
   client's complaint implies.

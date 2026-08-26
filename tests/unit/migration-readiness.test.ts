@@ -206,6 +206,7 @@ describe("buildMigrationReadinessReport", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
     ]);
     expect(report.rollup.blockers.join(" ")).not.toMatch(/governance violation/);
@@ -489,6 +490,7 @@ describe("buildMigrationReadinessReport", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
     ]);
     expect(report.rollup.ok).toBe(false);

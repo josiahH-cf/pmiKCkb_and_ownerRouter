@@ -41,8 +41,8 @@ export const DEFAULT_RENTVINE_LEASE_FIELD_MAP: RentVineLeaseFieldMap = {
     "moveOutDate",
   ],
   currentRent: [
-    "rent",
     "currentRent",
+    "rent",
     "rentAmount",
     "totalRent",
     "amount",
@@ -78,7 +78,11 @@ export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
       record.unit && typeof record.unit === "object" ? record.unit : {}
     ) as Record<string, unknown>;
     const view: Record<string, unknown> = { ...lease };
-    if (view.currentRent === undefined && unit.rent !== undefined && unit.rent !== null) {
+    // Export contract: unit.rent is the documented contractual rent. Canonicalize it even when a
+    // lease-level rent-shaped field is also present so every consumer uses the same unit-first
+    // precedence as the Console. The original lease keys remain available for the bodyless
+    // discrepancy diagnostic; they simply cannot shadow the canonical currentRent.
+    if (unit.rent !== undefined && unit.rent !== null) {
       view.currentRent = unit.rent;
     }
     // Preserve owner-bearing siblings so resolveRenewalRecipient's owner channel can reach them

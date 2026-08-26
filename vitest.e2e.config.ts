@@ -10,6 +10,7 @@ export default defineConfig({
     globalSetup: ["tests/e2e/global-setup.mjs"],
     globals: true,
     hookTimeout: 240_000,
+    teardownTimeout: 30_000,
     include: ["tests/e2e/**/*.e2e.test.mjs"],
     testTimeout: 60_000,
   },

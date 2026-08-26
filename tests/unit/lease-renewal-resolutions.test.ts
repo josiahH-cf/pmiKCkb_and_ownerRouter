@@ -97,8 +97,16 @@ const admin: AuthenticatedUser = {
   role: "Admin",
 };
 
-const MEDIUM_KEY = "lease_renewal:reconcile:sim-renewal-001:inspections_cadence";
-const HIGH_KEY = "lease_renewal:reconcile:sim-renewal-001:renewal_date";
+function simulationKey(fieldKey: string): string {
+  const run = getSimulationRun(SIMULATION_RUN_ID);
+  const key = run?.flags.find((flag) => flag.fieldKey === fieldKey)?.queueMapping
+    ?.queueItem.source_trigger_key;
+  if (!key) throw new Error(`Missing simulation key for ${fieldKey}.`);
+  return key;
+}
+
+const MEDIUM_KEY = simulationKey("inspections_cadence");
+const HIGH_KEY = simulationKey("renewal_date");
 
 describe("resolveLeaseRenewalFlag reason audit", () => {
   it("refuses an omitted Live resolver instead of falling back to fixture data", async () => {

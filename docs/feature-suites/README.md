@@ -129,7 +129,7 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S56 Production Live-only, Test lane retired | `docs/feature-suites/production-live-only-test-lane-retirement.md`           | Complete — Production Live-only; local rehearsal         |
 | S57 Portfolio-complete lease reads          | `docs/feature-suites/portfolio-complete-lease-reads.md`                      | Spec — first slice; desk reads 25 of 305 today           |
 | S58 Live lease data currency + refresh      | `docs/feature-suites/live-lease-data-currency.md`                            | Spec — staleness contract; depends on S57                |
-| S59 RentCast live activation                | `docs/feature-suites/rentcast-live-activation.md`                            | Spec — activates S28; owner dep is the key               |
+| S59 RentCast live activation                | `docs/feature-suites/rentcast-live-activation.md`                            | Activated in code 2026-08-26 — release proof pending     |
 | S60 Comp persistence + under-market signal  | `docs/feature-suites/comp-persistence-and-under-market-signal.md`            | Spec — owner-draft truth; depends on S59                 |
 | S61 Recipient fan-out + channel separation  | `docs/feature-suites/renewal-recipient-fanout-and-separation.md`             | Spec — all owners; amends S24                            |
 | S62 Owner-policy renewal pricing            | `docs/feature-suites/owner-policy-renewal-pricing.md`                        | Spec — MKD rule; owner dep is the portfolio id           |
@@ -143,9 +143,10 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S70 Renewal queue integrity                 | `docs/feature-suites/renewal-queue-integrity.md`                             | Deployed 2026-08-25 - Cherry Bridge N1/N2                |
 | S71 Lease identity + address truth          | `docs/feature-suites/lease-identity-and-address-truth.md`                    | Deployed 2026-08-25 - Cherry Bridge N3/N8                |
 | S72 Renewal step model + defaults           | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`           | Spec - Cherry Bridge N5/N7/N10; not built here           |
-| S73 Current-rent truth + badges             | `docs/feature-suites/current-rent-truth-and-badge-integrity.md`              | Spec - Cherry Bridge N6; not built here                  |
+| S73 Current-rent truth + badges             | `docs/feature-suites/current-rent-truth-and-badge-integrity.md`              | Implemented — client rent-definition question remains    |
 | S74 Tenant offer copy + channel truth       | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`                 | Spec - Cherry Bridge N9; not built here                  |
 | S75 Renewal follow-up state                 | `docs/feature-suites/renewal-follow-up-state.md`                             | Spec - Cherry Bridge N11; not built here                 |
+| S76 Renewal Sheet rehearsal copy            | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`                        | Built seam — awaiting distinct client copy + proof       |
 
 S57–S63 are the authorized 2026-08-06 program. S64 is specified but NOT authorized. S65 is authorized separately and narrowly, outside the four scope items. Ordered dependency: S57 first (nothing else is
 reachable until the desk reads the whole portfolio), then S58, then S59, then S60, then S61,

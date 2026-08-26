@@ -17,6 +17,7 @@ import {
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
+import { leaseCurrentRent } from "@/lib/integrations/rentvine/lease-mapper";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
   prepareRenewalNoticeDraft,
@@ -73,6 +74,19 @@ function deps(lease: RawLease | null) {
   const db = new FakeFirestore();
   const d: RenewalNoticeDraftDeps = {
     loadLease: async () => lease,
+    loadOwnerCurrentRentDecision: async () => {
+      const currentRent = lease ? leaseCurrentRent(lease) : undefined;
+      return currentRent !== undefined
+        ? {
+            currentRent,
+            currentRentEvidence: {
+              agreement: "agree",
+              currencyState: "fresh",
+              readAtIso: "2026-08-26T13:00:00.000Z",
+            },
+          }
+        : null;
+    },
     createGmailClient: (subject): RenewalDraftGmailClient => ({ subject, createDraft }),
     actor,
     seams: s20Seams(db),
@@ -158,6 +172,18 @@ describe("prepareRenewalNoticeDraft", () => {
     if (outcome.status !== "preview") return;
     expect(outcome.recipient.to).toBe("owner42@cedar-holdings.com");
     expect(outcome.body.startsWith(`${DRAFT_BANNER}\n\n`)).toBe(true);
+  });
+
+  it("fails closed when no canonical current-rent reconciliation is supplied", async () => {
+    const { d, createDraft } = deps(ownerLease);
+    delete d.loadOwnerCurrentRentDecision;
+
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput());
+
+    expect(outcome.status).toBe("blocked");
+    if (outcome.status !== "blocked") return;
+    expect(outcome.reasons.join(" ")).toMatch(/current rent confirmation/i);
+    expect(createDraft).not.toHaveBeenCalled();
   });
 
   it("throws 404 when the lease is not in the live read", async () => {

@@ -13,6 +13,9 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   buildLiveRentVineConfig: vi.fn(),
+  buildLiveRenewalConfig: vi.fn(),
+  loadLiveOwnerCurrentRentDecision: vi.fn(),
+  listResolutionsForRun: vi.fn(),
   getApprovedRentSuggestion: vi.fn(),
   firestore: undefined as unknown,
 }));
@@ -24,6 +27,10 @@ vi.mock("@/lib/auth/session", async (importActual) => {
 
 vi.mock("@/lib/firestore/lease-renewal-rent-suggestion-approvals", () => ({
   getApprovedRentSuggestion: mocks.getApprovedRentSuggestion,
+}));
+
+vi.mock("@/lib/firestore/lease-renewal-resolutions", () => ({
+  listResolutionsForRun: mocks.listResolutionsForRun,
 }));
 
 // The route now drives the REAL S20 ledger, so give it an in-memory Firestore and an explicit
@@ -47,7 +54,19 @@ vi.mock("@/lib/environment/descriptor", async (importActual) => {
 
 vi.mock("@/lib/lease-renewal/live-config", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/lease-renewal/live-config")>();
-  return { ...actual, buildLiveRentVineConfig: mocks.buildLiveRentVineConfig };
+  return {
+    ...actual,
+    buildLiveRenewalConfig: mocks.buildLiveRenewalConfig,
+    buildLiveRentVineConfig: mocks.buildLiveRentVineConfig,
+  };
+});
+
+vi.mock("@/lib/lease-renewal/live-desk", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/lease-renewal/live-desk")>();
+  return {
+    ...actual,
+    loadLiveOwnerCurrentRentDecision: mocks.loadLiveOwnerCurrentRentDecision,
+  };
 });
 
 const { createDraftMock } = vi.hoisted(() => ({
@@ -138,6 +157,12 @@ function fakeClient(overrides: ClientOverrides = {}) {
 
 function useClient(client: unknown) {
   mocks.buildLiveRentVineConfig.mockReturnValue({ ok: true, rentvineClient: client });
+  mocks.buildLiveRenewalConfig.mockReturnValue({
+    ok: true,
+    rentvineClient: client,
+    sheetsReader: {},
+    spreadsheetId: "fixture-operating-sheet",
+  });
 }
 
 function req(body: unknown) {
@@ -180,6 +205,18 @@ beforeEach(() => {
   });
   // Default: no Admin-approved suggestion for this lease (the operator's own numbers are used).
   mocks.getApprovedRentSuggestion.mockResolvedValue(null);
+  mocks.listResolutionsForRun.mockResolvedValue([]);
+  mocks.loadLiveOwnerCurrentRentDecision.mockResolvedValue({
+    status: "ok",
+    decision: {
+      currentRent: 1400,
+      currentRentEvidence: {
+        agreement: "agree",
+        currencyState: "fresh",
+        readAtIso: "2026-08-26T13:00:00.000Z",
+      },
+    },
+  });
 });
 
 afterEach(() => {
@@ -248,6 +285,20 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(getPortfolio).not.toHaveBeenCalled();
     expect(getContact).not.toHaveBeenCalled();
     expect(GmailRuntimeClient).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks owner drafting when the reconciled current-rent read is unavailable", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    mocks.loadLiveOwnerCurrentRentDecision.mockResolvedValue({ status: "read_error" });
+
+    const response = await POST(req(ownerBody()));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("blocked");
+    expect(payload.reasons.join(" ")).toMatch(/current rent confirmation/i);
     expect(createDraftMock).not.toHaveBeenCalled();
   });
 

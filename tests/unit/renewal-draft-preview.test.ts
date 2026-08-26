@@ -39,6 +39,11 @@ const tenantDecision = {
 const ownerDecision = {
   addressLabel: "200 Cedar Ct",
   currentRent: 1400,
+  currentRentEvidence: {
+    agreement: "agree" as const,
+    currencyState: "fresh" as const,
+    readAtIso: "2026-08-26T13:00:00.000Z",
+  },
   market: {
     rangeLow: 1450,
     rangeHigh: 1650,

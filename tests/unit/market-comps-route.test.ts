@@ -18,15 +18,15 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
   readRuntimeActionSuspension: vi.fn(async () => harness.runtimeSuspension.current),
 }));
 
-// The committed seed keeps rentcast.rental_listings.search closed. gateOpen=false exercises the
-// REAL closed-action refusal (AC-S59-9/13); gateOpen=true simulates the post-flip state.
+// The committed seed now opens rentcast.rental_listings.search. gateOpen=false injects the
+// closed-action exception to preserve the route's fail-closed regression proof.
 vi.mock("@/lib/integrations/action-gate", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/integrations/action-gate")>();
   return {
     ...actual,
     assertActionExecutable: vi.fn((key: string) => {
-      if (!harness.gateOpen.current) return actual.assertActionExecutable(key);
-      return undefined;
+      if (!harness.gateOpen.current) throw new actual.ActionNotExecutableError(key);
+      return actual.assertActionExecutable(key);
     }),
     isActionExecutable: vi.fn(() => harness.gateOpen.current),
   };

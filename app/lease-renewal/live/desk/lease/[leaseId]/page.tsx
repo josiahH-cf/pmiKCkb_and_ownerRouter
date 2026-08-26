@@ -6,6 +6,7 @@ import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-g
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { getCurrentPacketSnapshot } from "@/lib/firestore/lease-document-packet-snapshots";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
+import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-screenshot-action";
 import {
   findLeaseViewById,
@@ -85,12 +86,20 @@ export default async function LiveRenewalLeaseWorkspacePage({
     authoritativePortfolioId,
   );
   const compScreenshotAction = await getRenewalCompScreenshotActionView();
+  let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
+  try {
+    resolutions = await listResolutionsForRun(user, "live-review");
+  } catch {
+    // A missing decision store must never make a source value look resolved.
+    resolutions = [];
+  }
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     readTimestamp,
     liveConfig,
     progress,
     approvedSuggestion,
+    resolutions,
   );
 
   return (

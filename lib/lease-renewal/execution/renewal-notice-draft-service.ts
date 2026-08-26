@@ -78,6 +78,14 @@ export type RenewalNoticeDraftInput =
 export interface RenewalNoticeDraftDeps {
   /** Load the live RentVine lease VIEW (export-shaped: tenants[], property, lifted rent) by id. */
   loadLease(leaseId: string): Promise<RawLease | null>;
+  /**
+   * Resolve the current rent through the canonical fresh RentVine-versus-Sheet reconciliation.
+   * Optional only so a missing seam fails closed as Needs Verification; Production supplies it.
+   */
+  loadOwnerCurrentRentDecision?(leaseId: string): Promise<{
+    currentRent: number;
+    currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
+  } | null>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
   /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
@@ -161,7 +169,9 @@ export async function prepareRenewalNoticeDraft(
     return finalize(preview, input, deps);
   }
 
-  const decision = buildOwnerDecision(facts, input.offer);
+  const currentRentDecision =
+    (await deps.loadOwnerCurrentRentDecision?.(input.leaseId)) ?? null;
+  const decision = buildOwnerDecision(facts, input.offer, currentRentDecision);
   if (!decision.ok) {
     return { status: "blocked", channel: "owner", reasons: decision.reasons };
   }
@@ -287,12 +297,21 @@ function buildTenantDecision(
 function buildOwnerDecision(
   facts: LeaseRenewalFacts,
   offer: OwnerRenewalOffer,
+  currentRentDecision: {
+    currentRent: number;
+    currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
+  } | null,
 ): DecisionResult<OwnerDraftInput> {
   const reasons: string[] = [];
   if (!facts.addressLabel) {
     reasons.push("Property address was not found in the live RentVine lease.");
   }
-  if (typeof facts.currentRent !== "number") {
+  const currentRent = currentRentDecision?.currentRent ?? facts.currentRent;
+  if (
+    typeof currentRent !== "number" ||
+    !Number.isFinite(currentRent) ||
+    currentRent <= 0
+  ) {
     reasons.push("Current rent was not found in the live RentVine lease.");
   }
   if (reasons.length > 0) return { ok: false, reasons };
@@ -300,7 +319,10 @@ function buildOwnerDecision(
     ok: true,
     decision: {
       addressLabel: facts.addressLabel!,
-      currentRent: facts.currentRent!,
+      currentRent: currentRent!,
+      ...(currentRentDecision
+        ? { currentRentEvidence: currentRentDecision.currentRentEvidence }
+        : {}),
       market: offer.market,
     },
   };

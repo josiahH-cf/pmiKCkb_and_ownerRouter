@@ -9,8 +9,8 @@ import {
 } from "@/lib/lease-renewal/comp-screenshot-action";
 import { RENTCAST_LISTINGS_ACTION_KEY } from "@/lib/lease-renewal/providers/rentcast-market-comp-provider";
 
-// AC-S28-5: both new actions are seeded production_allowed:false and absent from the executable allowlist,
-// so they are non-executable and their routes refuse with the closed-action response until a gate flip.
+// The Drive screenshot action remains closed. S59's read-only RentCast action was separately reviewed
+// and activated for Production on 2026-08-26; activation does not widen the screenshot effect.
 
 const mocks = vi.hoisted(() => ({ requireCapabilityInSpace: vi.fn() }));
 vi.mock("@/lib/auth/session", async (importActual) => {
@@ -18,10 +18,10 @@ vi.mock("@/lib/auth/session", async (importActual) => {
   return { ...actual, requireCapabilityInSpace: mocks.requireCapabilityInSpace };
 });
 
-describe("renewal comp-screenshot + rentcast gates (committed seed, gated OFF)", () => {
-  it("both new action keys are non-executable in the committed seed", () => {
+describe("renewal comp-screenshot + rentcast gates (independent committed keys)", () => {
+  it("keeps screenshot storage closed while the reviewed RentCast read is executable", () => {
     expect(isActionExecutable(RENEWAL_COMP_SCREENSHOT_ACTION_KEY)).toBe(false);
-    expect(isActionExecutable(RENTCAST_LISTINGS_ACTION_KEY)).toBe(false);
+    expect(isActionExecutable(RENTCAST_LISTINGS_ACTION_KEY)).toBe(true);
   });
 
   it("the comp-screenshot action view reports closed with a continue-without message", async () => {

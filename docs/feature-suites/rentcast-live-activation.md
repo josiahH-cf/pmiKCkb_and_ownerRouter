@@ -8,6 +8,14 @@
 > counter; a per-user credential subsystem is explicitly **not** built now. This suite ACTIVATES and
 > HARDENS the adapter specified by **S28**; it does not re-specify the adapter itself.
 
+> **Activation update — 2026-08-26.** Both former owner dependencies are closed: the managed runtime
+> secret binding, account plan/allowance, and controlled provider probes were already verified, and
+> the owner explicitly approved executing the exact protected-path change in this meeting-readiness
+> run. `rentcast.rental_listings.search` is now Approved for Execution with Documented evidence and
+> `production_allowed:true`, appears in both executable allowlists, and is pinned in the schema tests.
+> The action remains read-only/reference-only: it cannot set offered rent or write a system of record.
+> Descriptions below of a closed/parked gate are the pre-activation baseline retained for the AC history.
+
 **Goal.** A person on the renewal desk clicks for comparables and gets a real, current market range
 from RentCast, or a clear refusal that names why. It works the same way on the tenth click as on the
 first, it cannot quietly exhaust a 50-call monthly allowance, and when RentCast is slow, broken, or
@@ -127,13 +135,13 @@ failure legibility, and the smoke script. Build to the seam (live provider): the
 binding, the config wiring, and the health probe behind `health.rentcast.api_key`, whose contract
 already declares a `rentcast.rate_limit` step with no implementation.
 
-**Owner dependencies — there are TWO, not one.**
+**Owner dependencies — both closed on 2026-08-26.**
 
 1. `RENTCAST_API_KEY` present in Secret Manager on `pmi-kc-kb-prod` and readable by the runtime
    service account. Owner-run; the procedure is `docs/rentcast-setup-runbook.md`.
-2. The reviewed **D12 protected-path patch** that opens `rentcast.rental_listings.search`. This suite
-   prepares it and surfaces it; it does not push it. Until it lands the route correctly refuses, so
-   the comps path is not live no matter what else is done.
+2. The reviewed **D12 protected-path patch** that opens `rentcast.rental_listings.search`. The owner
+   explicitly authorized this run to execute the finalized plan; the seed, both allowlists, and pinned
+   tests now move together. Reverting the exact key to false remains the rollback.
 
 The third item that was previously open here is **resolved** (`Q-RENTCAST-PLAN-TERMS`). RentCast's
 published API Terms of Use grant a limited right to "use and/or store the API Data", expressly
@@ -261,9 +269,9 @@ Keep green: `tests/unit/market-comp-provider.test.ts`,
 PII, or guessed endpoint in git; the S52 production cost ceiling stands; every live effect stays
 one-attempt, idempotent, receipted, and reversible. The RentCast key is **never** written to a file,
 a command line, a log, a test fixture, or this repository; it lives in Secret Manager and reaches the
-runtime only through the deploy wrapper's secret binding. This suite must **not** push the
-`production_allowed` change: `lib/integrations/action-registry-seed.ts` is a D12 protected path, so
-the patch is prepared, isolated, and surfaced for owner review while the rest of the suite continues.
+runtime only through the deploy wrapper's secret binding. The 2026-08-26 owner direction authorizes
+the exact `rentcast.rental_listings.search` `production_allowed` change and its two allowlist/test
+twins; it authorizes no other protected path or action-key widening.
 It must not build a per-user credential store. It must not fabricate a comp number, and a refusal
 must never be rendered as a range. Overage spend beyond the free allowance requires an explicit owner
 decision before the hard stop is raised.

@@ -51,6 +51,8 @@ describe("Action Registry repository", () => {
       "gmail.thread.reply",
       // S39.3: internal-staff transactional notice flipped live (sorts after the gmail.* keys).
       "internal.transactional_notice.send",
+      // S59: read-only RentCast lookup, explicitly activated for the meeting-readiness slice.
+      "rentcast.rental_listings.search",
     ]);
   });
 

@@ -87,6 +87,7 @@ const EXPECTED_BOUNDARIES = [
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
   "scripts/ensure-maintenance-drive-folder.ts:main:new GoogleDriveClient",
   "scripts/import-agent-search-documents.mjs:ensureDataStore:dataStoreClient.createDataStore",
+  "scripts/prove-rehearsal-sheet-write.ts:main:new GoogleSheetsApiWriter",
   "scripts/smoke-gmail-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-gmail-draft-live.ts:runGmailDraftSmoke:dependencies.createGmailClient",
   "scripts/smoke-renewal-draft-live.ts:createDiagnosticProvider:new LiveRenewalGmailDraftProvider",
@@ -114,6 +115,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
   "app/api/lease-renewal/refresh/route.ts:POST:buildLiveRentVineConfig",
   "app/api/lease-renewal/renewal-notice-draft/route.ts:POST:buildLiveRentVineConfig",
+  // S73: owner draft verification performs the canonical RentVine-versus-Sheet read.
+  "app/api/lease-renewal/renewal-notice-draft/route.ts:loadOwnerCurrentRentDecision:buildLiveRenewalConfig",
   // S58: the currency assertion before recording progress (read-only; refuses expired data).
   "app/api/lease-renewal/renewal-progress/route.ts:defaultAssertLeaseDataCurrent:buildLiveRentVineConfig",
   // S62: the Admin rule surface verifies a portfolio id against the live read (read-only).
@@ -133,11 +136,14 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/maintenance/live-unit-source.ts:loadLiveUnitCandidates:buildLiveRentVineConfig",
   // S68: source verification reads the cached complete lease portfolio and creates no effect.
   "lib/work-accountability/source-resolver.ts:readLiveRenewalLeaseVersion:buildLiveRentVineConfig",
+  // 2026-08-26: bodyless, read-only operator discrepancy diagnostic.
+  "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
 ].sort();
 
 const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
+  "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
 ]);
 
 const PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS = new Set(
@@ -193,6 +199,12 @@ const LAZY_SCRIPT_PROVIDER_FACTORIES = new Set([
   "scripts/smoke-renewal-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-renewal-draft-live.ts:createRentVineClient:new RentVineClient",
   "scripts/smoke-sheet-write.ts:createWriter:new GoogleSheetsApiWriter",
+]);
+
+const EXACT_CONFIRMED_SCRIPT_PROVIDER_FACTORIES = new Set([
+  // Copy-only proof: dry by default; operating/copy alias check and exact confirmation precede
+  // construction; the proof writes one blank cell and exact-clears the synthetic marker.
+  "scripts/prove-rehearsal-sheet-write.ts:main:new GoogleSheetsApiWriter",
 ]);
 
 const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
@@ -739,11 +751,7 @@ function isTypedProviderFactoryParameter(call) {
 function importedConstructorName(expression, imports) {
   if (ts.isIdentifier(expression)) {
     const binding = imports.named.get(expression.text);
-    if (
-      binding &&
-      (binding.reviewed ||
-        (imports.isScript && PROVIDER_TYPE_PATTERN.test(binding.exportedName)))
-    ) {
+    if (binding && PROVIDER_TYPE_PATTERN.test(binding.exportedName)) {
       return binding.exportedName;
     }
     return null;
@@ -753,11 +761,7 @@ function importedConstructorName(expression, imports) {
     ts.isIdentifier(expression.expression)
   ) {
     const namespace = imports.namespaces.get(expression.expression.text);
-    if (
-      namespace &&
-      (namespace.reviewed ||
-        (imports.isScript && PROVIDER_TYPE_PATTERN.test(expression.name.text)))
-    ) {
+    if (namespace && PROVIDER_TYPE_PATTERN.test(expression.name.text)) {
       return expression.name.text;
     }
   }
@@ -1000,11 +1004,11 @@ describe("runtime suspension provider-construction boundary", () => {
     ];
     expect(new Set(classified).size).toBe(classified.length);
     expect(classified.sort()).toEqual(EXPECTED_LIVE_CONFIG_CALLS);
-    expect(
-      [...OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS].every((boundary) =>
-        boundary.startsWith("lib/connections/verification.ts:"),
-      ),
-    ).toBe(true);
+    expect([...OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS].sort()).toEqual([
+      "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
+      "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
+      "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+    ]);
     expect(PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS.size).toBeGreaterThan(0);
   }, 20_000);
 
@@ -1018,6 +1022,7 @@ describe("runtime suspension provider-construction boundary", () => {
       ...DESCRIPTOR_BOUND_DEPENDENCY_FACTORIES,
       ...PRODUCT_READ_ONLY_PROVIDER_FACTORIES,
       ...LAZY_SCRIPT_PROVIDER_FACTORIES,
+      ...EXACT_CONFIRMED_SCRIPT_PROVIDER_FACTORIES,
       ...READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES,
       ...OWNER_PROVISIONING_SCRIPT_BOUNDARIES,
       ...GATED_PROVIDER_ADAPTERS,

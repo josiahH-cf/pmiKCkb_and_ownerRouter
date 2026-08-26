@@ -36,6 +36,8 @@ export interface QueueMappingContext {
   runId: string;
   /** Human-facing field label; falls back to the field key. */
   fieldLabel?: string;
+  /** Bodyless stable identity for one source record; prevents same-field lease collisions. */
+  recordKey?: string;
 }
 
 /**
@@ -91,7 +93,7 @@ export function mapReconciliationToQueueItem(
 
   const queueItem: ApprovalQueueItemDraft = {
     item_type: "SourceFactConflict",
-    source_trigger_key: `lease_renewal:reconcile:${runId}:${reconciliation.field_key}`,
+    source_trigger_key: `lease_renewal:reconcile:${runId}:${context.recordKey ? `${context.recordKey}:` : ""}${reconciliation.field_key}`,
     status: reconciliation.severity === "Blocked" ? "Blocked" : "Ready for Approval",
     risk: reconciliation.severity,
     audience_group: audienceFor(reconciliation.severity),

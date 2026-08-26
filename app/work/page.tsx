@@ -13,7 +13,12 @@ export default async function MyWorkPage() {
   const descriptor = resolveEnvironmentDescriptor();
   const mutationAllowed = descriptor.ok && allowsMutation(descriptor.descriptor);
   const spaces = launchSpaces
-    .filter((space) => canAccessLaunchSpace(user, space) && !space.readOnly)
+    .filter(
+      (space) =>
+        space.showInDirectory !== false &&
+        canAccessLaunchSpace(user, space) &&
+        !space.readOnly,
+    )
     .map(({ id, name }) => ({ id, name }));
 
   return (

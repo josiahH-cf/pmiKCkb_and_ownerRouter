@@ -9,6 +9,7 @@ import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel"
 import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { ReindexPanel } from "@/components/admin/ReindexPanel";
+import { RenewalRehearsalSheetPanel } from "@/components/admin/RenewalRehearsalSheetPanel";
 import { RuntimeSuspensionAdminPanel } from "@/components/admin/RuntimeSuspensionAdminPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
@@ -367,6 +368,7 @@ export default async function AdminPage() {
             classifyModel={config.geminiClassifyModel}
             provider={config.modelProvider}
           />
+          <RenewalRehearsalSheetPanel />
           <div className="grid three">
             <article className="panel">
               <h2>Approval Label</h2>
@@ -405,7 +407,9 @@ export default async function AdminPage() {
             <h2>Re-index Sources</h2>
             <ReindexPanel
               initialRequests={reindexRequests}
-              spaces={launchSpaces.map((space) => ({ id: space.id, name: space.name }))}
+              spaces={launchSpaces
+                .filter((space) => space.showInDirectory !== false)
+                .map((space) => ({ id: space.id, name: space.name }))}
             />
           </article>
           <TransactionalDestinationPanel
@@ -436,7 +440,9 @@ export default async function AdminPage() {
           <CommunicationsRetentionAdminPanel />
           <PublicationPolicyAdminPanel
             initialPolicies={publicationPolicies}
-            spaces={launchSpaces.filter((space) => !space.readOnly)}
+            spaces={launchSpaces.filter(
+              (space) => space.showInDirectory !== false && !space.readOnly,
+            )}
             unavailableNote={publicationPolicyNote}
           />
         </section>

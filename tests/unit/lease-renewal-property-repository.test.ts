@@ -201,9 +201,9 @@ describe("property-repository (per-property lease-renewal decision repository)",
     expect(JSON.stringify(elmgrove!.entries)).not.toContain("chose the building read");
   });
 
-  it("B: two properties raising the SAME field share one run+field key and attribute to NEITHER", () => {
-    // Both properties raise lawn_care -> both flags carry source_trigger_key
-    // `lease_renewal:reconcile:prop-run:lawn_care` but DIFFERENT propertyKeys: a collision.
+  it("B: two properties raising the SAME field receive distinct record-scoped keys", () => {
+    // The record token in source_trigger_key prevents one property's decision from colliding with
+    // another property that happens to raise the same field in the same run.
     const run = buildRun([
       {
         source: "rentvine_building",
@@ -223,33 +223,48 @@ describe("property-repository (per-property lease-renewal decision repository)",
 
     const lawnFlags = run.flags.filter((outcome) => outcome.fieldKey === "lawn_care");
     expect(lawnFlags).toHaveLength(2);
-    const sharedKey = lawnFlags[0].queueMapping!.queueItem.source_trigger_key;
-    // Same run+field key, but the two flags belong to two different properties.
-    expect(lawnFlags[1].queueMapping!.queueItem.source_trigger_key).toBe(sharedKey);
-    expect(lawnFlags[0].propertyKey).not.toBe(lawnFlags[1].propertyKey);
+    const birchwoodKey = keyForField(run, "lawn_care", BIRCHWOOD_KEY);
+    const elmgroveKey = keyForField(run, "lawn_care", ELMGROVE_KEY);
+    expect(birchwoodKey).not.toBe(elmgroveKey);
 
-    // The index marks the collided key ambiguous (null) so its Activity is attributed to no one.
+    // Each exact decision key now maps 1:1 to its canonical property.
     const index = buildRunPropertyKeyIndex(run);
-    expect(index.get(sharedKey)).toBeNull();
-    expect(listRunPropertyKeys(run)).toEqual([]);
-    expect(
-      buildRenewalRunView(run, [], "Ambiguous run").groups.flatMap((group) =>
+    expect(index.get(birchwoodKey)).toBe(BIRCHWOOD_KEY);
+    expect(index.get(elmgroveKey)).toBe(ELMGROVE_KEY);
+    expect(listRunPropertyKeys(run).sort()).toEqual([BIRCHWOOD_KEY, ELMGROVE_KEY].sort());
+    const viewKeys = buildRenewalRunView(run, [], "Record-scoped run").groups.flatMap(
+      (group) =>
         group.flags.flatMap((flag) => (flag.propertyKey ? [flag.propertyKey] : [])),
-      ),
-    ).toEqual([]);
+    );
+    expect(viewKeys).toContain(BIRCHWOOD_KEY);
+    expect(viewKeys).toContain(ELMGROVE_KEY);
 
     const runs: PropertyRunActivity[] = [
       {
         run,
-        resolutionActivity: [resolutionActivity(sharedKey, { actor_uid: "operator-C" })],
-        approvalActivity: [approvalActivity(sharedKey, { actor_uid: "operator-D" })],
+        resolutionActivity: [
+          resolutionActivity(birchwoodKey, { actor_uid: "operator-C" }),
+        ],
+        approvalActivity: [approvalActivity(elmgroveKey, { actor_uid: "operator-D" })],
       },
     ];
 
-    // Attributed to NEITHER property: no bucket is produced, and each property lookup is null.
-    expect(buildPropertyActivity(runs)).toEqual([]);
-    expect(getPropertyActivity(runs, BIRCHWOOD_KEY)).toBeNull();
-    expect(getPropertyActivity(runs, ELMGROVE_KEY)).toBeNull();
+    const activity = buildPropertyActivity(runs);
+    expect(activity).toHaveLength(2);
+    expect(getPropertyActivity(runs, BIRCHWOOD_KEY)).toMatchObject({
+      resolutionCount: 1,
+      approvalCount: 0,
+    });
+    expect(getPropertyActivity(runs, ELMGROVE_KEY)).toMatchObject({
+      resolutionCount: 0,
+      approvalCount: 1,
+    });
+    expect(JSON.stringify(getPropertyActivity(runs, BIRCHWOOD_KEY))).toContain(
+      "operator-C",
+    );
+    expect(JSON.stringify(getPropertyActivity(runs, BIRCHWOOD_KEY))).not.toContain(
+      "operator-D",
+    );
   });
 
   it("C: each surfaced entry is value-free — exactly {action, actorUid, reason, timestamp}, no leak", () => {

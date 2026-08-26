@@ -19,8 +19,9 @@ export default async function SpacesPage() {
   const user = await requirePageCapability("read");
   const visibleSpaces = launchSpaces.filter(
     (space) =>
-      user.scopes === undefined ||
-      (space.scope !== undefined && hasSpaceAccess(user, space.scope)),
+      space.showInDirectory !== false &&
+      (user.scopes === undefined ||
+        (space.scope !== undefined && hasSpaceAccess(user, space.scope))),
   );
 
   // Real card state (A-IA-V2): reflect whether each Space has its process and connections. Both reads

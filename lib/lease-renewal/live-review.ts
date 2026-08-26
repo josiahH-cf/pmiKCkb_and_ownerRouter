@@ -38,6 +38,9 @@ export interface LiveReviewMeta {
   liveRentvineCandidates: number;
   skippedLeases: number;
   productionAllowed: boolean;
+  /** This route performs direct provider reads, so a successful render is fresh at this instant. */
+  currencyState: "fresh";
+  readAtIso: string;
 }
 
 export type LiveReviewStatus =
@@ -135,6 +138,8 @@ export async function loadLiveRenewalReview(
       liveRentvineCandidates: result.liveRentvineCandidates,
       skippedLeases: result.skippedLeases,
       productionAllowed: result.run.production_allowed,
+      currencyState: "fresh",
+      readAtIso: readTimestamp,
     },
   };
 }

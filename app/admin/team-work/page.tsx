@@ -14,7 +14,7 @@ export default async function TeamWorkPage() {
   const descriptor = resolveEnvironmentDescriptor();
   const mutationAllowed = descriptor.ok && allowsMutation(descriptor.descriptor);
   const spaces = launchSpaces
-    .filter((space) => !space.readOnly)
+    .filter((space) => space.showInDirectory !== false && !space.readOnly)
     .map(({ id, name }) => ({ id, name }));
 
   return (

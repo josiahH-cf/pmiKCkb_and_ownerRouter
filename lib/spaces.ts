@@ -10,6 +10,8 @@ export interface LaunchSpace {
    */
   scope?: SpaceScope;
   readOnly?: boolean;
+  /** False keeps a compatibility record addressable without advertising it as a product Space. */
+  showInDirectory?: boolean;
   /**
    * The process-definition id this Space carries (Spaces ⊇ Processes). Set only for Spaces whose
    * process is seeded (the fixed process-definition seeder ids). Surfaced beside the Space via the
@@ -75,8 +77,14 @@ export const launchSpaces: readonly LaunchSpace[] = [
     name: "Workflow Communications",
     processCategory: "Communications",
     readOnly: true,
+    showInDirectory: false,
   },
 ] as const;
+
+/** Product Spaces that may appear in user-facing pickers/directories. */
+export const directorySpaces = launchSpaces.filter(
+  (space) => space.showInDirectory !== false,
+);
 
 /** Where a launch space opens. Lease Renewals and Maintenance Work Order Intake have built operator
  *  desks; every other space opens its space detail. Centralized so the home launcher and the Spaces

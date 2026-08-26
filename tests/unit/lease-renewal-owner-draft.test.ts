@@ -18,6 +18,11 @@ describe("buildOwnerRenewalDraft", () => {
     const draft = buildOwnerRenewalDraft({
       addressLabel: "104 NE Lindsay Ave",
       currentRent: 1100,
+      currentRentEvidence: {
+        agreement: "agree",
+        currencyState: "fresh",
+        readAtIso: "2026-08-26T12:00:00.000Z",
+      },
       market: {
         rangeLow: 895,
         rangeHigh: 1450,
@@ -38,8 +43,46 @@ describe("buildOwnerRenewalDraft", () => {
     const rent = draft.facts.find((f) => f.key === "current_rent");
     expect(rent).toMatchObject({
       confidence: "Verified",
-      source: "Rentvine (read-authoritative)",
+      source: "Rentvine (read-authoritative) (read 2026-08-26)",
     });
+  });
+
+  it("refuses Verified when current rent conflicts or the read is stale", () => {
+    const base = {
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 1100,
+      market: {
+        rangeLow: 1000,
+        rangeHigh: 1200,
+        specificNumber: 1100,
+        compsScreenshotRef: "drive:fixture",
+      },
+    } as const;
+    const conflict = buildOwnerRenewalDraft({
+      ...base,
+      currentRentEvidence: {
+        agreement: "conflict",
+        currencyState: "fresh",
+        readAtIso: "2026-08-26T12:00:00.000Z",
+      },
+    });
+    const stale = buildOwnerRenewalDraft({
+      ...base,
+      currentRentEvidence: {
+        agreement: "agree",
+        currencyState: "stale",
+        readAtIso: "2026-08-26T11:00:00.000Z",
+      },
+    });
+
+    expect(conflict.facts.find((fact) => fact.key === "current_rent")?.confidence).toBe(
+      "Needs Verification",
+    );
+    expect(stale.facts.find((fact) => fact.key === "current_rent")?.confidence).toBe(
+      "Needs Verification",
+    );
+    expect(conflict.missingInputs).toContain("current rent confirmation");
+    expect(stale.missingInputs).toContain("current rent confirmation");
   });
 
   it("renders Needs Verification markers and lists every missing market input", () => {
@@ -50,6 +93,7 @@ describe("buildOwnerRenewalDraft", () => {
 
     expect(draft.body).toContain("Needs Verification");
     expect(draft.missingInputs).toEqual([
+      "current rent confirmation",
       "market comp range",
       "specific market number (PMI rental-analysis tool)",
       "comps screenshot",
@@ -68,6 +112,7 @@ describe("buildOwnerRenewalDraft", () => {
       market: { rangeLow: 900, rangeHigh: 1200 },
     });
     expect(draft.missingInputs).toEqual([
+      "current rent confirmation",
       "specific market number (PMI rental-analysis tool)",
       "comps screenshot",
     ]);

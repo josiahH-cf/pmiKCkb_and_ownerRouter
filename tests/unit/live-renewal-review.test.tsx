@@ -84,6 +84,8 @@ const SAMPLE_META: LiveReviewMeta = {
   liveRentvineCandidates: 25,
   skippedLeases: 0,
   productionAllowed: false,
+  currencyState: "fresh",
+  readAtIso: "2026-08-26T13:30:00.000Z",
 };
 
 describe("LiveRenewalReview", () => {

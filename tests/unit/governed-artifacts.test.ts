@@ -50,6 +50,11 @@ describe("governed v1.0 communication artifacts", () => {
       values: {
         addressLabel: "100 Synthetic St",
         currentRent: 1000,
+        currentRentEvidence: {
+          agreement: "agree",
+          currencyState: "fresh",
+          readAtIso: "2026-08-26T13:00:00.000Z",
+        },
         market: {
           rangeLow: 1100,
           rangeHigh: 1200,

@@ -73,6 +73,12 @@ export function LiveRenewalReview({
         the fix at the source.
       </p>
 
+      <p className="muted">
+        Data status: <strong>{meta.currencyState}</strong> from a direct read at{" "}
+        <time dateTime={meta.readAtIso}>{meta.readAtIso}</time>.{" "}
+        <Link href="/lease-renewal/live">Refresh now</Link>
+      </p>
+
       {resolutionsError ? (
         <p className="workflow-blocker">
           Saved decisions could not be loaded (Firestore unavailable). Items below are
@@ -129,6 +135,7 @@ export function LiveRenewalReview({
           <Metric label="Live RentVine leases" value={meta.liveRentvineCandidates} />
           <Metric label="Records reconciled" value={view.manifest.totalRecords} />
           <Metric label="Open items" value={view.totalFlags} />
+          <Metric label="Data currency" value={meta.currencyState} />
         </div>
       </Disclosure>
     </div>

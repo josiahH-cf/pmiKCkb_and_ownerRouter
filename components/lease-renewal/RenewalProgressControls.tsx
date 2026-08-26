@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
+import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-input";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
 // Phase-A LIVE workspace controls that make the renewal flow move. They persist the operator's own
@@ -241,7 +242,7 @@ export function OwnerDecisionForm({
   };
 
   // Reference-only market-comp lookup: runs the configured provider (the manual adapter echoes the
-  // operator's own numbers; RentCast is refused until its gate flips) and DISPLAYS the range. It never
+  // operator's own numbers; the RentCast path is separately gate-controlled) and DISPLAYS the range. It never
   // sets the offered rent — the comp-derived SUGGESTED number is the separate Admin-gated S29.
   // S59: a lease with no address refuses LOCALLY and makes no request at all — the literal string
   // "Unknown" is never sent (AC-S59-6) — and the known unit attributes ride along (AC-S59-7).
@@ -258,9 +259,20 @@ export function OwnerDecisionForm({
     setLookupPending(true);
     try {
       const manualBasis: Record<string, number> = {};
-      if (rangeLow.trim() !== "") manualBasis.rangeLow = Number(rangeLow);
-      if (rangeHigh.trim() !== "") manualBasis.rangeHigh = Number(rangeHigh);
-      if (pmiNumber.trim() !== "") manualBasis.pmiNumber = Number(pmiNumber);
+      const low = parseOptionalCurrencyInput(rangeLow);
+      const high = parseOptionalCurrencyInput(rangeHigh);
+      const pmi = parseOptionalCurrencyInput(pmiNumber);
+      if (!low.ok || !high.ok || !pmi.ok) {
+        setCompLookup({
+          source: "Manual entry",
+          confidence: "Needs Verification",
+          reason: "invalid_currency_format",
+        });
+        return;
+      }
+      if (low.value !== undefined) manualBasis.rangeLow = low.value;
+      if (high.value !== undefined) manualBasis.rangeHigh = high.value;
+      if (pmi.value !== undefined) manualBasis.pmiNumber = pmi.value;
       const response = await fetch("/api/lease-renewal/market-comps", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -711,29 +723,56 @@ export function OwnerDecisionForm({
     }
   }
 
-  const ready = offeredRent.trim() !== "" && Number(offeredRent) > 0;
+  const offeredRentParsed = parseCurrencyInput(offeredRent);
+  const rbpParsed = parseOptionalCurrencyInput(rbp);
+  const insuranceParsed = parseOptionalCurrencyInput(insurance);
+  const rangeLowParsed = parseOptionalCurrencyInput(rangeLow);
+  const rangeHighParsed = parseOptionalCurrencyInput(rangeHigh);
+  const pmiNumberParsed = parseOptionalCurrencyInput(pmiNumber);
+  const ready =
+    offeredRentParsed.ok &&
+    offeredRentParsed.value > 0 &&
+    rbpParsed.ok &&
+    insuranceParsed.ok &&
+    rangeLowParsed.ok &&
+    rangeHighParsed.ok &&
+    pmiNumberParsed.ok;
 
   async function submit() {
+    if (!ready || !offeredRentParsed.ok) {
+      setError(
+        "Enter money as 1500 or $1,500.00; negative or partial values are not accepted.",
+      );
+      return;
+    }
     setPending(true);
     setError("");
     setSaved(false);
     const charges: { rbp?: number; insurance?: number } = {};
-    if (rbp.trim() !== "") charges.rbp = Number(rbp);
-    if (insurance.trim() !== "") charges.insurance = Number(insurance);
+    if (rbpParsed.ok && rbpParsed.value !== undefined) charges.rbp = rbpParsed.value;
+    if (insuranceParsed.ok && insuranceParsed.value !== undefined) {
+      charges.insurance = insuranceParsed.value;
+    }
     const body: Record<string, unknown> = {
       action: "owner_decision",
       leaseId,
       decision,
-      offeredRent: Number(offeredRent),
+      offeredRent: offeredRentParsed.value,
     };
     if (charges.rbp !== undefined || charges.insurance !== undefined) {
       body.charges = charges;
     }
     if (infoFormUrl.trim() !== "") body.infoFormUrl = infoFormUrl.trim();
     const market: Record<string, unknown> = {};
-    if (rangeLow.trim() !== "") market.rangeLow = Number(rangeLow);
-    if (rangeHigh.trim() !== "") market.rangeHigh = Number(rangeHigh);
-    if (pmiNumber.trim() !== "") market.pmiNumber = Number(pmiNumber);
+    if (rangeLowParsed.ok && rangeLowParsed.value !== undefined) {
+      market.rangeLow = rangeLowParsed.value;
+    }
+    if (rangeHighParsed.ok && rangeHighParsed.value !== undefined) {
+      market.rangeHigh = rangeHighParsed.value;
+    }
+    if (pmiNumberParsed.ok && pmiNumberParsed.value !== undefined) {
+      market.pmiNumber = pmiNumberParsed.value;
+    }
     // The server attaches a screenshot only from its durable successful receipt. Never trust or send
     // a client-supplied Drive reference as renewal progress.
     if (compLookup?.source) market.compSource = compLookup.source;
@@ -850,9 +889,9 @@ export function OwnerDecisionForm({
         <input
           id={id.rent}
           inputMode="decimal"
-          min="0"
           onChange={(event) => setOfferedRent(event.target.value)}
-          type="number"
+          placeholder="$1,500"
+          type="text"
           value={offeredRent}
         />
       </Field>
@@ -861,9 +900,9 @@ export function OwnerDecisionForm({
           <input
             id={id.rbp}
             inputMode="decimal"
-            min="0"
             onChange={(event) => setRbp(event.target.value)}
-            type="number"
+            placeholder="$25"
+            type="text"
             value={rbp}
           />
         </Field>
@@ -871,9 +910,9 @@ export function OwnerDecisionForm({
           <input
             id={id.insurance}
             inputMode="decimal"
-            min="0"
             onChange={(event) => setInsurance(event.target.value)}
-            type="number"
+            placeholder="$15"
+            type="text"
             value={insurance}
           />
         </Field>
@@ -895,9 +934,9 @@ export function OwnerDecisionForm({
           <input
             id={id.rangeLow}
             inputMode="decimal"
-            min="0"
             onChange={(event) => setRangeLow(event.target.value)}
-            type="number"
+            placeholder="$1,400"
+            type="text"
             value={rangeLow}
           />
         </Field>
@@ -905,9 +944,9 @@ export function OwnerDecisionForm({
           <input
             id={id.rangeHigh}
             inputMode="decimal"
-            min="0"
             onChange={(event) => setRangeHigh(event.target.value)}
-            type="number"
+            placeholder="$1,600"
+            type="text"
             value={rangeHigh}
           />
         </Field>
@@ -915,9 +954,9 @@ export function OwnerDecisionForm({
           <input
             id={id.pmiNumber}
             inputMode="decimal"
-            min="0"
             onChange={(event) => setPmiNumber(event.target.value)}
-            type="number"
+            placeholder="$1,525"
+            type="text"
             value={pmiNumber}
           />
         </Field>
