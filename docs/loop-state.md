@@ -123,8 +123,8 @@ supersedes that evidence, so do not re-ask it.
 **Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
 to a new session to run this program unattended.
 
-**2026-08-25:** Audit CLOSED 12/12. Built: S70/S71, HV-004, HV-011, 11-Space restore, credential
-forwarding, CI parity, redirect sign-in, guardrail nodejs22. Open: S72-S75, monitoring alerts.
+**2026-08-25:** Audit CLOSED 12/12. Built: S70/S71, HV-004, HV-011, 11-Space restore, CI parity,
+guardrail nodejs22 + proved alive. READ Q-RENTCAST-GATE-DEAD-CONTROL: comps control is dead in prod.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E

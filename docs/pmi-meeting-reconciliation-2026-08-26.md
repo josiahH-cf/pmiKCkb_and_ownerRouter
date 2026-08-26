@@ -118,7 +118,7 @@ This is not an oversight in the bad sense. That flip is on the protected-path li
 prepared and then nobody made the call. The gate's own recorded reason for being shut — unconfirmed
 tier and limits — has since been satisfied and measured.
 
-**Decision D14** in the blocker doc. If it is opened before Wednesday, comps become the strongest
+**Decision D16** in the blocker doc. If it is opened before Wednesday, comps become the strongest
 thing in the demo. If not, describe the capability and show the evidence rather than clicking it.
 
 ### 3.5 Blocked outside our control
@@ -170,7 +170,7 @@ This directly answers the 5 August assurance and it is the strongest trust state
 | By 12:30 | Sign in to the live app as admin and load `/lease-renewal/live/desk`. Confirm leases render and the data-currency banner is not in its expired state. If it is, reload once — the point is to know before the room does |
 | By 12:45 | Open a lease and walk the comparables step once. This is the newest capability and the one most worth not improvising                                                                                                   |
 | By 13:00 | Open `docs/pmi-kc-blocker-decisions-2026-08-26.html`, fill in the run details, and keep it open in a second window to record decisions live                                                                             |
-| By 13:15 | Decide your position on the end-of-September commitment (D09) before they ask. Do not discover it in the room                                                                                                           |
+| By 13:15 | Decide your position on the end-of-September commitment (D02) before they ask. Do not discover it in the room                                                                                                           |
 
 **The meeting — 45 minutes**
 
@@ -195,7 +195,7 @@ This directly answers the 5 August assurance and it is the strongest trust state
 | 3   | Same screen                   | Point at an address                                                          | "You told us house numbers were missing. Here they are. There were three copies of that logic and two were wrong — there is one now."                                                             | None; this is the safest visible win                                                                                                    |
 | 4   | Same screen                   | Point at the data age banner                                                 | "It tells you how old this data is, and past fifteen minutes it stops letting you act on it rather than pretending it is current."                                                                | If it _is_ expired, that is a better demo, not a worse one — it is the feature                                                          |
 | 5   | Open one lease                | Walk the current steps                                                       | "This is where the six-step question comes in — these are our steps, not yours yet."                                                                                                              | Leads naturally into decision D01                                                                                                       |
-| 6   | Comparables step              | **Do not click it unless decision D14 was taken first.** Describe it instead | "Comps are wired to a real provider and we have run them against your addresses. The last switch is a reviewed change I have not made yet, so I will show you the evidence rather than click it." | If the gate is still shut, clicking returns a refusal. If D14 was taken before Wednesday, this becomes the strongest moment in the demo |
+| 6   | Comparables step              | **Do not click it unless decision D16 was taken first.** Describe it instead | "Comps are wired to a real provider and we have run them against your addresses. The last switch is a reviewed change I have not made yet, so I will show you the evidence rather than click it." | If the gate is still shut, clicking returns a refusal. If D16 was taken before Wednesday, this becomes the strongest moment in the demo |
 | 7   | Draft step                    | Preview, do **not** create                                                   | "It composes. It does not send. You open it in Gmail and press send."                                                                                                                             | Do not press create unless you intend a real draft                                                                                      |
 | 8   | `/work` or `/admin/team-work` | Show assignments and sessions                                                | "You said your biggest time sink is verifying the remote team actually did the work."                                                                                                             | Will look sparse if nobody has used it — say so rather than letting it read as broken                                                   |
 | 9   | Feedback button               | Open it, show dictation                                                      | "Anything you find, report it here. It attaches the page for us and you can talk instead of type."                                                                                                | Dictation outside Chrome is not announced up front — known gap                                                                          |
@@ -216,20 +216,24 @@ completely differently from thin-because-broken, and only one of those is true.
 
 ## 7. Gaps, owners, and the next decision
 
-Full walkthrough with capture: `docs/pmi-kc-blocker-decisions-2026-08-26.html` — 22 decisions in four
-groups. Summary:
+Full walkthrough with capture: `docs/pmi-kc-blocker-decisions-2026-08-26.html` — 30 decisions in four
+groups, each group ordered most severe first. Summary:
 
-| Group                        | Count | Next decision                                                                                                                                        |
-| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Needs the client in the room | 10    | The six steps (D01), the MKD outreach reversal (D02), which fields vary by property (D03), the N8 re-check (D08), the September commitment (D09)     |
-| Waiting on a vendor          | 3     | Escalate RentVine to a call rather than more email (D11)                                                                                             |
-| Ours to decide               | 7     | **Open the comps gate (D14)** — do this before Wednesday if you want to demo it; monitoring authority (D15), because zero alert policies exist today |
-| Carried deliberately         | 3     | Whether to relax the spreadsheet write contract to append-only (D21)                                                                                 |
+| Group                        | Count | Leads with                                                                                                                                 |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Needs the client in the room | 12    | The six steps (D01), the September commitment (D02), the four-lease tandem test that has never run (D03)                                   |
+| Waiting on a vendor          | 3     | Escalate RentVine to a call rather than more email (D13)                                                                                   |
+| Ours to decide               | 12    | **The comps control is a dead button (D16)** — clear this before Wednesday; then monitoring (D21), because zero alert policies exist today |
+| Carried deliberately         | 3     | Whether to relax the spreadsheet write contract to append-only (D28)                                                                       |
 
-Three are **critical**. The comps gate (D14) is the only one you can clear tonight, and clearing it
-changes the demo. The RentVine write endpoint (D11) gates the app's whole value proposition and is
-not ours. The September commitment (D09) is the only date on the record and nobody has restated it in
-either direction.
+**Four are critical.** D16 is the only one you can clear tonight, and clearing it changes the demo.
+D01 costs the client four minutes and unblocks the largest remaining slice. D02 is the only date on
+the record and nobody has restated it in either direction. D03 is the agreed evidence base for
+restoring write access and has never been run — four lease baselines exist in production and exactly
+one lease carries any recorded progress.
+
+**Cheap wins worth clearing before 2:00 PM**, all verified and all small: hide the one knowledge tile
+that answers nothing (D17), and remove the four tag URLs that still serve older builds (D19).
 
 ---
 
@@ -289,4 +293,4 @@ carried a closed audit as still in progress. Both corrected.
 
 Underneath these sits a structural problem worth naming: 45 entries marked as replaced are still
 present as active rows, 11 are claimed by more than one successor, and the open-questions digest names
-four of nine. That is decision D22.
+four of nine. That is decision D30.

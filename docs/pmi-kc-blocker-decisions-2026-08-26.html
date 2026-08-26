@@ -1163,6 +1163,48 @@
         {
           id: "D02",
           g: "A",
+          sev: "critical",
+          req: true,
+          title: "The end-of-September commitment",
+          blocked:
+            "On 5 August the commitment was a fully functional app the whole team can use by the end of September, with the remaining leases imported. That is the only date on the record. Four of the eleven client fixes are unbuilt, the four-lease tandem test has not visibly run, and the write-back that would make it replace manual work is blocked on a vendor.",
+          why: "Nobody has restated that date since, in either direction. Letting it pass unmentioned is the worst option: either it still holds and we plan against it, or it does not and they should hear that from us first.",
+          q: "Does end of September still stand, and if so, what is in scope for it?",
+          opts: [
+            "Hold the date, narrowed explicitly to renewals with the four-lease test complete and the client fixes shipped.",
+            "Hold the date as originally stated, covering the full team and all leases.",
+            "Move it, and agree the new date and what changed.",
+          ],
+          rec: 0,
+          recWhy:
+            "A narrowed scope on the original date is honest and achievable. The full original scope depends on a vendor answer we do not control, so promising it again would be promising someone else's work.",
+          owner: "Josiah to propose, PMI principal to accept",
+          ev: "Aug 5 meeting, REQ-AUG5-52; four of eleven client fixes unbuilt (S72-S75); RentVine write endpoint outstanding",
+        },
+        {
+          id: "D03",
+          g: "A",
+          sev: "critical",
+          req: true,
+          title: "The four-lease tandem test has never run",
+          blocked:
+            "On 5 August the agreed plan was to pick three to five active renewals, run them through the app alongside the manual process all the way up to approve without approving, include one already-negotiated lease as a ground-truth check, and expand only once the data matched every time. Four lease baselines exist in production, so the set was chosen and frozen. One lease carries any recorded progress. The tandem pass has not happened.",
+          why: "This is the agreed evidence base for turning write access back on. Without it there is no measured answer to whether the app's numbers match yours, which means that decision can only ever be someone's judgement.",
+          q: "Can we confirm the four leases, name who runs the daily pass, and set a start date this week?",
+          opts: [
+            "Confirm and start this week, with the renewals lead running it.",
+            "Start after the current fix list lands.",
+            "Reduce it to one lease run properly rather than four run partially.",
+          ],
+          rec: 0,
+          recWhy:
+            "It gates everything downstream and costs minutes per lease rather than hours. One caveat worth saying out loud: the set was deliberately chosen from the easier owners, so a clean result proves the mechanics work, not that the hard cases will.",
+          owner: "PMI renewals lead to run; Josiah to instrument",
+          ev: "Verified 2026-08-25 in production: four lease baselines exist and exactly one lease carries recorded progress; Aug 5 requests covering the tandem run and the already-negotiated ground-truth lease",
+        },
+        {
+          id: "D04",
+          g: "A",
           sev: "high",
           req: true,
           title: "Do the multi-property owner's renewals get an owner email or not?",
@@ -1182,7 +1224,7 @@
           ev: "docs/cherry-bridge-renewal-note-map-2026-08-24.md line 95; facts.md Supersede Log row A-MKD-NO-OWNER-OUTREACH-2026-08-05",
         },
         {
-          id: "D03",
+          id: "D05",
           g: "A",
           sev: "high",
           req: true,
@@ -1203,92 +1245,7 @@
           ev: "Human audit item HV-010, resolved 'it varies by property'; docs/loop-state.md",
         },
         {
-          id: "D04",
-          g: "A",
-          sev: "medium",
-          req: true,
-          title: "Are two miles and fifteen comparables the right defaults?",
-          blocked:
-            "Every comp lookup uses a two-mile radius and asks for fifteen comparables, and a controlled check returned fifteen with very high correlation. Those numbers were chosen by us, not by anyone who knows this market. Note this only becomes a live question once the gate above is open.",
-          why: "Nothing is wrong with the numbers. The question is whether they are defensible to an owner who challenges a figure, which is the only context where they matter.",
-          q: "For your submarkets, is a two-mile radius sensible, or does it need to vary?",
-          opts: [
-            "Two miles and fifteen comps stand as the default.",
-            "Radius varies by submarket; the team gives us the bands.",
-            "Make radius an per-lookup control the operator can widen when comps come back thin.",
-          ],
-          rec: 2,
-          recWhy:
-            "Dense and rural submarkets will not share one number, and an operator-adjustable radius answers the challenge in the moment instead of in a config file.",
-          owner: "PMI renewals lead",
-          ev: "facts.md Q-RENTCAST-ENDPOINT; DEFAULT_MAX_RADIUS_MILES = 2, DEFAULT_COMP_COUNT = 15 in lib/lease-renewal/providers/rentcast-market-comp-provider.ts",
-        },
-        {
-          id: "D05",
-          g: "A",
-          sev: "medium",
-          req: true,
-          title: "What is the product actually called?",
-          blocked:
-            "The app still carries its placeholder working name. A real name was asked for on 5 August and has not come back.",
-          why: "It appears in the interface, in the documentation, and in every email the app drafts. Renaming later is cheap but touches a lot of surfaces, and it is odd to train a team on a product with a placeholder name.",
-          q: "What should it be called?",
-          opts: [
-            "PMI decides the name in this meeting.",
-            "PMI sends a name by the end of the week.",
-            "We keep the placeholder through the pilot and rename at general release.",
-          ],
-          rec: 0,
-          recWhy:
-            "It costs one minute now and gets more expensive with every document we write.",
-          owner: "PMI principal",
-          ev: "facts.md Q-PRODUCT-RENAME-SCOPE",
-        },
-        {
           id: "D06",
-          g: "A",
-          sev: "medium",
-          req: true,
-          title: "Getting the owner-contact routing out of one person's head",
-          blocked:
-            "Which owner to contact about what, and on which channel, is knowledge held by one person. It has been wanted as structured data for a long time and is still not written down anywhere. Some owners are also easier to reach by text than email.",
-          why: "It is the single largest source of manual routing in the renewal process, and it is a person-shaped dependency.",
-          q: "Can we book a working session to capture the routing rules as data, and who attends?",
-          opts: [
-            "Book a session this week with the principal and the renewals lead; we build the field afterwards.",
-            "We ship the empty structure now and the team fills it in as renewals come up.",
-            "Keep it manual for the pilot and revisit after the first larger batch.",
-          ],
-          rec: 1,
-          recWhy:
-            "A one-off capture session tends to produce rules nobody remembers the exceptions to. Filling it in as real renewals come through captures the exceptions with the case that proves them.",
-          owner: "PMI principal, with Josiah",
-          ev: "facts.md Q-CONTACT-BY-TOPIC-DIRECTORY",
-        },
-        {
-          id: "D07",
-          g: "A",
-          sev: "medium",
-          req: false,
-          title: "Do you still want a separate demo environment?",
-          blocked:
-            "A written quote for a separate demo or test environment was promised on 5 August and has not been sent. The current position is a single production environment for everyone.",
-          why: "It changes cost and it changes how we demo. Right now a demo means clicking around live client data, which was explicitly called out as something to avoid.",
-          q: "Do you want a costed second environment, or do we stay on one?",
-          opts: [
-            "Stay on one environment; demo against real data with care.",
-            "Quote a second environment and decide on price.",
-            "Build a demo-data mode inside the same environment instead of a second stack.",
-          ],
-          rec: 2,
-          recWhy:
-            "It gets the safe-demo benefit without a second deployment to keep in step. The one caution is that the last demo lane was retired for good reasons, so this would be built narrowly for demonstration only.",
-          owner: "PMI principal and Josiah",
-          ev: "Aug 5 meeting commitment; facts.md Q-E2E-DEMO-LANE-RED for why the previous demo lane was retired",
-        },
-
-        {
-          id: "D08",
           g: "A",
           sev: "high",
           req: true,
@@ -1309,28 +1266,112 @@
           ev: "docs/feature-suites/lease-identity-and-address-truth.md — open question Q-S71-N8-ROOT-CAUSE, and step 8 of that spec asks for exactly this re-check; lib/integrations/rentvine/address.ts",
         },
         {
-          id: "D09",
+          id: "D07",
           g: "A",
-          sev: "critical",
+          sev: "high",
           req: true,
-          title: "The end-of-September commitment",
+          title: "What number counts as the data matching?",
           blocked:
-            "On 5 August the commitment was a fully functional app the whole team can use by the end of September, with the remaining leases imported. That is the only date on the record. Four of the eleven client fixes are unbuilt, the four-lease tandem test has not visibly run, and the write-back that would make it replace manual work is blocked on a vendor.",
-          why: "Nobody has restated that date since, in either direction. Letting it pass unmentioned is the worst option: either it still holds and we plan against it, or it does not and they should hear that from us first.",
-          q: "Does end of September still stand, and if so, what is in scope for it?",
+            "The stated condition for restoring write access is that the data matches every time. Nobody has said which fields count, or what discrepancy rate is acceptable.",
+          why: "As written it cannot be measured, so the gate can only be opened on a feeling. Setting the bar after seeing the results is how a soft pass gets through.",
+          q: "Which fields must agree, and what failure rate is acceptable, across the four-lease window?",
           opts: [
-            "Hold the date, narrowed explicitly to renewals with the four-lease test complete and the client fixes shipped.",
-            "Hold the date as originally stated, covering the full team and all leases.",
-            "Move it, and agree the new date and what changed.",
+            "Zero unresolved conflicts on a short named field set, with current rent treated as an automatic fail.",
+            "A percentage agreement rate across all compared fields.",
+            "Decide once the window produces data.",
           ],
           rec: 0,
           recWhy:
-            "A narrowed scope on the original date is honest and achievable. The full original scope depends on a vendor answer we do not control, so promising it again would be promising someone else's work.",
-          owner: "Josiah to propose, PMI principal to accept",
-          ev: "Aug 5 meeting, REQ-AUG5-52; four of eleven client fixes unbuilt (S72-S75); RentVine write endpoint outstanding",
+            "A named field set with a zero bar is easy to check and hard to argue about afterwards. Current rent deserves the automatic-fail treatment because it is the field the client already reported as wrong.",
+          owner: "PMI principal",
+          ev: "Aug 5 request to restore write access once the data matches every time; the current-rent complaint is note N6, specified and not built",
+        },
+        {
+          id: "D08",
+          g: "A",
+          sev: "medium",
+          req: true,
+          title: "Are two miles and fifteen comparables the right defaults?",
+          blocked:
+            "Every comp lookup uses a two-mile radius and asks for fifteen comparables, and a controlled check returned fifteen with very high correlation. Those numbers were chosen by us, not by anyone who knows this market. Note this only becomes a live question once the gate above is open.",
+          why: "Nothing is wrong with the numbers. The question is whether they are defensible to an owner who challenges a figure, which is the only context where they matter.",
+          q: "For your submarkets, is a two-mile radius sensible, or does it need to vary?",
+          opts: [
+            "Two miles and fifteen comps stand as the default.",
+            "Radius varies by submarket; the team gives us the bands.",
+            "Make radius an per-lookup control the operator can widen when comps come back thin.",
+          ],
+          rec: 2,
+          recWhy:
+            "Dense and rural submarkets will not share one number, and an operator-adjustable radius answers the challenge in the moment instead of in a config file.",
+          owner: "PMI renewals lead",
+          ev: "facts.md Q-RENTCAST-ENDPOINT; DEFAULT_MAX_RADIUS_MILES = 2, DEFAULT_COMP_COUNT = 15 in lib/lease-renewal/providers/rentcast-market-comp-provider.ts",
+        },
+        {
+          id: "D09",
+          g: "A",
+          sev: "medium",
+          req: true,
+          title: "What is the product actually called?",
+          blocked:
+            "The app still carries its placeholder working name. A real name was asked for on 5 August and has not come back.",
+          why: "It appears in the interface, in the documentation, and in every email the app drafts. Renaming later is cheap but touches a lot of surfaces, and it is odd to train a team on a product with a placeholder name.",
+          q: "What should it be called?",
+          opts: [
+            "PMI decides the name in this meeting.",
+            "PMI sends a name by the end of the week.",
+            "We keep the placeholder through the pilot and rename at general release.",
+          ],
+          rec: 0,
+          recWhy:
+            "It costs one minute now and gets more expensive with every document we write.",
+          owner: "PMI principal",
+          ev: "facts.md Q-PRODUCT-RENAME-SCOPE",
         },
         {
           id: "D10",
+          g: "A",
+          sev: "medium",
+          req: true,
+          title: "Getting the owner-contact routing out of one person's head",
+          blocked:
+            "Which owner to contact about what, and on which channel, is knowledge held by one person. It has been wanted as structured data for a long time and is still not written down anywhere. Some owners are also easier to reach by text than email.",
+          why: "It is the single largest source of manual routing in the renewal process, and it is a person-shaped dependency.",
+          q: "Can we book a working session to capture the routing rules as data, and who attends?",
+          opts: [
+            "Book a session this week with the principal and the renewals lead; we build the field afterwards.",
+            "We ship the empty structure now and the team fills it in as renewals come up.",
+            "Keep it manual for the pilot and revisit after the first larger batch.",
+          ],
+          rec: 1,
+          recWhy:
+            "A one-off capture session tends to produce rules nobody remembers the exceptions to. Filling it in as real renewals come through captures the exceptions with the case that proves them.",
+          owner: "PMI principal, with Josiah",
+          ev: "facts.md Q-CONTACT-BY-TOPIC-DIRECTORY",
+        },
+        {
+          id: "D11",
+          g: "A",
+          sev: "medium",
+          req: false,
+          title: "Do you still want a separate demo environment?",
+          blocked:
+            "A written quote for a separate demo or test environment was promised on 5 August and has not been sent. The current position is a single production environment for everyone.",
+          why: "It changes cost and it changes how we demo. Right now a demo means clicking around live client data, which was explicitly called out as something to avoid.",
+          q: "Do you want a costed second environment, or do we stay on one?",
+          opts: [
+            "Stay on one environment; demo against real data with care.",
+            "Quote a second environment and decide on price.",
+            "Build a demo-data mode inside the same environment instead of a second stack.",
+          ],
+          rec: 2,
+          recWhy:
+            "It gets the safe-demo benefit without a second deployment to keep in step. The one caution is that the last demo lane was retired for good reasons, so this would be built narrowly for demonstration only.",
+          owner: "PMI principal and Josiah",
+          ev: "Aug 5 meeting commitment; facts.md Q-E2E-DEMO-LANE-RED for why the previous demo lane was retired",
+        },
+        {
+          id: "D12",
           g: "A",
           sev: "medium",
           req: false,
@@ -1350,10 +1391,9 @@
           owner: "PMI renewals lead",
           ev: "Jul 23 meeting request REQ-JUL23-13; no handover recorded in the repository",
         },
-
         /* ---------------- B: outside parties ---------------- */
         {
-          id: "D11",
+          id: "D13",
           g: "B",
           sev: "critical",
           req: true,
@@ -1375,7 +1415,7 @@
           ev: "facts.md F-RENTVINE-WRITE-APPROVED; Aug 5 requests on API key scope",
         },
         {
-          id: "D12",
+          id: "D14",
           g: "B",
           sev: "medium",
           req: false,
@@ -1395,7 +1435,7 @@
           ev: "facts.md Q-RENTCAST-ACCOUNT-403; RENTCAST_MONTHLY_ALLOWANCE = 50 on the serving revision",
         },
         {
-          id: "D13",
+          id: "D15",
           g: "B",
           sev: "medium",
           req: false,
@@ -1415,31 +1455,114 @@
           owner: "PMI principal for the vendor relationship",
           ev: "facts.md F-OWNER-DEPS-2026-07-23; docs/loop-state.md names Dotloop activation as an external dependency",
         },
-
         /* ---------------- C: ours ---------------- */
         {
-          id: "D14",
+          id: "D16",
           g: "C",
           sev: "critical",
           req: true,
           title: "Comparable rents work everywhere except inside the app",
           blocked:
-            "This one was caught by challenging our own claim, and it is worth stating plainly because it was about to be demonstrated. Everything around comps is real: the vendor plan is active, the key is in place, both endpoints answered 200 on a controlled check, the adapter is built and unit-proven, the monthly counter and cache and hard stop all exist, and the serving revision is configured to use the provider. But the action key the in-app route checks is still switched off, marked Planned and Undocumented. So an operator clicking for comparables on production today gets a refusal, not a number.",
+            "This one was caught by challenging our own claim, and it is worth stating plainly because it was about to be demonstrated. Everything around comps is real: the vendor plan is active, the key is in place, both endpoints answered 200 on a controlled check, the adapter is built and unit-proven, the monthly counter and cache and hard stop all exist, and the serving revision is configured to use the provider. But the action key the in-app route checks is still switched off, marked Planned and Undocumented. So an operator clicking for comparables on production today gets a refusal, not a number. It is worse than a missing feature: the route asserts the gate before anything else, and the manual path that would let an operator type their own comp numbers sits behind a branch that only runs when the provider is NOT set to this vendor. Production sets it to this vendor. So the control is a dead button with no fallback.",
           why: "That switch sits on the protected list, which means it is deliberately never flipped by automation and only ever by an explicit decision. It was prepared and surfaced, exactly as the rules require, and then nobody made the call.",
           q: "Do we open the comps action gate for production?",
           opts: [
             "Open it. The evidence the gate was waiting for now exists: an active plan, live 200s on both endpoints, a measured allowance, and a hard stop in front of it.",
             "Open it behind an admin-only flag first, so one person can exercise it before the team sees it.",
-            "Leave it shut and demo comps from the command-line check instead.",
+            "Set the provider back to manual today so the control at least accepts typed numbers, then open the gate as a separate reviewed change.",
           ],
           rec: 0,
           recWhy:
-            "The gate's own recorded reason for being shut was that the tier and limits were unconfirmed. They are now confirmed and measured, so the condition it was waiting on has been met. It is a reviewed change to a protected file, not a quiet toggle, and it should ship as one.",
+            "The gate's own recorded reason for being shut was that the tier and limits were unconfirmed. They are now confirmed and measured, so the condition it was waiting on has been met. It is a reviewed change to a protected file, not a quiet toggle, and it should ship as one. If there is any hesitation about opening it right before a client meeting, take option three first: a control that accepts typed numbers is strictly better than one that refuses, and it ships in minutes.",
           owner: "Josiah, as a reviewed protected-path change",
-          ev: "lib/integrations/action-registry-seed.ts line 1082 — rentcast.rental_listings.search is production_allowed:false, readiness Planned; app/api/lease-renewal/market-comps/route.ts line 96 calls assertProductionRuntimeActionExecutable on that key; docs/loop-state.md names this flip as prepared and never pushed",
+          ev: "lib/integrations/action-registry-seed.ts line 1082 — rentcast.rental_listings.search is production_allowed:false, readiness Planned; app/api/lease-renewal/market-comps/route.ts line 96 calls assertProductionRuntimeActionExecutable on that key before the manual branch at line 124 can ever be reached; docs/loop-state.md names this flip as prepared and never pushed",
         },
         {
-          id: "D15",
+          id: "D17",
+          g: "C",
+          sev: "high",
+          req: true,
+          title: "One knowledge tile answers nothing",
+          blocked:
+            "The Spaces screen renders twelve tiles. The configuration holds eleven. The extra one is Owner email: it exists as a Space record but has no document folder and no search index behind it, so opening it returns nothing.",
+          why: "This is on the exact screen meant to prove the knowledge base works, and it will be clicked. A tile that answers nothing costs more credibility than a tile that is not there.",
+          q: "Do we configure it, hide it, or leave it and explain?",
+          opts: [
+            "Hide the unbacked tile before the meeting.",
+            "Configure a folder and a search index for it.",
+            "Leave it, and say up front that one Space is not populated yet.",
+          ],
+          rec: 0,
+          recWhy:
+            "Hiding it is small and reversible. Configuring it properly means creating a folder, an index, and ingesting content, which is not a same-day job and not worth rushing the day before a demo.",
+          owner: "Josiah",
+          ev: "Verified 2026-08-25: production holds 12 Space records; both environment Space maps hold 11 identical keys; the one present as a record and absent from both maps is owner-email",
+        },
+        {
+          id: "D18",
+          g: "C",
+          sev: "high",
+          req: true,
+          title: "The rent field rejects a dollar sign and says nothing",
+          blocked:
+            "Typing a currency symbol into the offered-rent field makes the submit control go quiet. The readiness check converts the text to a number and requires it above zero; a dollar sign makes that conversion fail, the check returns false, and nothing on screen says why.",
+          why: "This was reported on 7 August and is still there. It is the most-used field in the main workflow, and a silent disable is the worst failure shape available, because the operator cannot tell a rejected value from a broken app.",
+          q: "Do we fix it in the next batch?",
+          opts: [
+            "Accept currency symbols and separators, and show a real message when a value is genuinely unusable.",
+            "Show a message only, and keep rejecting the symbol.",
+            "Leave it.",
+          ],
+          rec: 0,
+          recWhy:
+            "People type dollar signs into rent fields. Accepting one is a smaller change than explaining why it is not accepted, and it removes the complaint instead of documenting it.",
+          owner: "Josiah",
+          ev: "components/lease-renewal/RenewalProgressControls.tsx line 714 makes readiness depend on Number(offeredRent) > 0, which is false for any value carrying a currency symbol, with no error surfaced",
+        },
+        {
+          id: "D19",
+          g: "C",
+          sev: "high",
+          req: true,
+          title: "Old builds are still reachable by URL",
+          blocked:
+            "Four superseded revisions carry named tags and stay addressable at their own URLs. They take no default traffic, and sign-in is still enforced on them, so nothing is exposed to a stranger. What they do allow is anyone holding one of those URLs to run an older build against live data.",
+          why: "Rollback does not need a public URL. These are leftovers from candidate smoke tests, and each one serves code that has since been superseded, including builds predating this month's fixes.",
+          q: "Do we remove the tags?",
+          opts: [
+            "Remove all four. Rollback still works by shifting traffic to a revision.",
+            "Keep them and restrict ingress.",
+            "Leave them.",
+          ],
+          rec: 0,
+          recWhy:
+            "Nothing depends on them, and traffic-based rollback is the documented path, which does not use tags at all.",
+          owner: "Josiah",
+          ev: "Verified 2026-08-25: four candidate tags on the service at 0% traffic with ingress open; the tagged URLs return 307 to the sign-in page, so app auth holds but the older build is live",
+        },
+        {
+          id: "D20",
+          g: "C",
+          sev: "high",
+          req: true,
+          title: "The spend stop takes the whole app down, quietly",
+          blocked:
+            "The emergency stop works by detaching the billing account. That does stop spend, and it also stops the application, the database, and everything else in the project. Nothing notifies anyone when it fires, and no written procedure exists for turning it back on.",
+          why: "This exact shape was flagged once before as a self-inflicted outage with no operator notification. The ceiling was raised and kept armed, which was right, but the notification half never arrived. With no alert policies configured at all, the first sign would be the app being down.",
+          q: "Do we add notification and a re-enable procedure, or change the shape of the stop?",
+          opts: [
+            "Keep the hard stop, notify when it fires, and write the re-enable runbook.",
+            "Replace the hard stop with an alert-only threshold.",
+            "Leave it.",
+          ],
+          rec: 0,
+          recWhy:
+            "The hard stop is the only thing that actually prevents an unbounded bill, so keep it. What makes it dangerous is the silence, not the severity. It depends on the alerting decision, which is why the two should be taken together.",
+          owner: "Josiah",
+          ev: "infra/budget-guardrail/handler.mjs clears the billing account association; zero alert policies exist in the project; the governance record names this outage shape as the reason the previous flat cap was retired",
+        },
+        {
+          id: "D21",
           g: "C",
           sev: "high",
           req: true,
@@ -1460,28 +1583,7 @@
           ev: "AGENTS.md — monitoring channels and policies remain owner-run; facts.md Q-MONITORING-OPERATOR-ADDRESS; verified 2026-08-25 that / and /lease-renewal/live return 307 to /sign-in and /sign-in returns 200 unauthenticated",
         },
         {
-          id: "D16",
-          g: "C",
-          sev: "medium",
-          req: true,
-          title: "Where do alerts actually go?",
-          blocked:
-            "Related to the above but separately decidable: the alert channel needs one destination address, and the preference was for an alias with no new user and no new cost.",
-          why: "An alias needs an admin-console action and may be restricted by domain policy. There are two fallbacks that work immediately.",
-          q: "Alias, plus-address on the existing account, or a one-member group?",
-          opts: [
-            "Plus-addressed variant of the existing address &mdash; works now, no admin action.",
-            "Workspace user alias &mdash; closest to what was asked, needs an admin console step.",
-            "Single-member group &mdash; free, but creates a new object to maintain.",
-          ],
-          rec: 0,
-          recWhy:
-            "It needs nothing from anyone and can be changed to an alias later without touching the policies.",
-          owner: "Josiah",
-          ev: "facts.md Q-MONITORING-OPERATOR-ADDRESS",
-        },
-        {
-          id: "D17",
+          id: "D22",
           g: "C",
           sev: "high",
           req: true,
@@ -1502,7 +1604,49 @@
           ev: "docs/feature-suites/ S72, S73, S74, S75; docs/cherry-bridge-renewal-note-map-2026-08-24.md",
         },
         {
-          id: "D18",
+          id: "D23",
+          g: "C",
+          sev: "medium",
+          req: true,
+          title: "Nothing on the running app says which commit it is",
+          blocked:
+            "The serving revision carries no commit, tag, or version anywhere in its configuration. Tying the running app to a commit today means comparing the commit time to the revision time and confirming nothing landed in between.",
+          why: "Every claim about what is live rests on that link. It held cleanly this time because the gap was four minutes. It will not always be four minutes.",
+          q: "Do we stamp the commit into the deploy?",
+          opts: [
+            "Stamp the commit into the revision and expose it on a version endpoint.",
+            "Stamp it into the revision only.",
+            "Keep relying on timestamps.",
+          ],
+          rec: 0,
+          recWhy:
+            "A version endpoint also gives monitoring something to check, so it pairs with the alerting decision rather than duplicating it.",
+          owner: "Josiah",
+          ev: "Verified 2026-08-25: the serving revision carries 44 environment names and none is a build identity; its labels hold only platform and location keys",
+        },
+        {
+          id: "D24",
+          g: "C",
+          sev: "medium",
+          req: true,
+          title: "Where do alerts actually go?",
+          blocked:
+            "Related to the above but separately decidable: the alert channel needs one destination address, and the preference was for an alias with no new user and no new cost.",
+          why: "An alias needs an admin-console action and may be restricted by domain policy. There are two fallbacks that work immediately.",
+          q: "Alias, plus-address on the existing account, or a one-member group?",
+          opts: [
+            "Plus-addressed variant of the existing address &mdash; works now, no admin action.",
+            "Workspace user alias &mdash; closest to what was asked, needs an admin console step.",
+            "Single-member group &mdash; free, but creates a new object to maintain.",
+          ],
+          rec: 0,
+          recWhy:
+            "It needs nothing from anyone and can be changed to an alias later without touching the policies.",
+          owner: "Josiah",
+          ev: "facts.md Q-MONITORING-OPERATOR-ADDRESS",
+        },
+        {
+          id: "D25",
           g: "C",
           sev: "medium",
           req: true,
@@ -1523,7 +1667,7 @@
           ev: "Aug 5 request on scheduled refresh; facts.md Q-LEASE-DATA-MAX-AGE answered at 15 minutes as policy; the four-state contract is in components/lease-renewal/RenewalDesk.tsx (S58)",
         },
         {
-          id: "D19",
+          id: "D26",
           g: "C",
           sev: "medium",
           req: true,
@@ -1544,7 +1688,7 @@
           ev: "facts.md Q-E2E-DEMO-LANE-RED; lib/console/environment.ts",
         },
         {
-          id: "D20",
+          id: "D27",
           g: "C",
           sev: "low",
           req: false,
@@ -1560,14 +1704,13 @@
           ],
           rec: 0,
           recWhy:
-            "It is small, and it converts a silent failure into a loud one. It does depend on D15, since a canary with nothing to alert into is just another log line.",
+            "It is small, and it converts a silent failure into a loud one. It does depend on D21, since a canary with nothing to alert into is just another log line.",
           owner: "Josiah",
           ev: "facts.md Q-GUARDRAIL-NODE20-OWNER, closed 2026-08-25; infra/budget-guardrail/",
         },
-
         /* ---------------- D: carried deliberately ---------------- */
         {
-          id: "D21",
+          id: "D28",
           g: "D",
           sev: "high",
           req: true,
@@ -1588,7 +1731,7 @@
           ev: "lib/lease-renewal/sheet-writeback-policy.ts; action key google_sheets.renewal_checklist.writeback is production_allowed:false with evidence_status 'Undocumented'; serving revision has LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false",
         },
         {
-          id: "D22",
+          id: "D29",
           g: "D",
           sev: "medium",
           req: true,
@@ -1609,7 +1752,7 @@
           ev: "Verified 2026-08-25 against production Firestore: 34 root collections; approval_queue_items, maintenance_tickets and notification_logs absent; lease_renewal_progress=1, work_tasks=6, spaces=12, process_definitions=6, renewal_test_set_baselines=4",
         },
         {
-          id: "D23",
+          id: "D30",
           g: "D",
           sev: "medium",
           req: false,
