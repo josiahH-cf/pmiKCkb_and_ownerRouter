@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { gitIgnoredPaths } from "./check-context-freshness.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -90,13 +91,29 @@ export function extractActiveDocPaths(text) {
   return [...paths];
 }
 
+export function missingRepositoryPaths(paths, root = ROOT) {
+  const unique = [...new Set(paths)].filter(Boolean);
+  const ignored = gitIgnoredPaths(unique, root);
+  return unique.filter(
+    (target) => !existsSync(join(root, target)) && !ignored.has(target),
+  );
+}
+
 export function evaluateActiveDocPaths(root = ROOT) {
   const problems = [];
   const files = activeDocumentFiles(root);
+  const documents = files.map((file) => ({
+    file,
+    text: readFileSync(join(root, file), "utf8"),
+  }));
+  const missing = new Set(
+    missingRepositoryPaths(
+      documents.flatMap(({ text }) => extractActiveDocPaths(text)),
+      root,
+    ),
+  );
 
-  for (const file of files) {
-    const text = readFileSync(join(root, file), "utf8");
-
+  for (const { file, text } of documents) {
     for (const removed of REMOVED_CONTEXT_REFERENCES) {
       if (text.includes(removed)) {
         problems.push(`${file} references removed active context: ${removed}`);
@@ -104,7 +121,7 @@ export function evaluateActiveDocPaths(root = ROOT) {
     }
 
     for (const target of extractActiveDocPaths(text)) {
-      if (!existsSync(join(root, target))) {
+      if (missing.has(target)) {
         problems.push(`${file} references a missing repository path: ${target}`);
       }
     }

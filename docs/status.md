@@ -63,7 +63,7 @@ The deployed code tree passed:
 
 The current present-truth tree passed:
 
-- 513 unit/eval files / 4,640 outcomes in one complete run: 4,636 passing and four intentional skips,
+- 513 unit/eval files / 4,641 outcomes in one complete run: 4,637 passing and four intentional skips,
   with no worker-start or assertion failure;
 - 25 Firestore files / 115 assertions;
 - format, lint (0 errors), typecheck, router boundary, falsification, context freshness,

@@ -8,6 +8,7 @@ import {
   evaluateContextFreshness,
   gitIgnoredPaths,
 } from "../../scripts/check-context-freshness.mjs";
+import { missingRepositoryPaths } from "../../scripts/check-active-doc-paths.mjs";
 
 // Structural guard for the solidified-context spine. Mirrors plan-status-sync.test.mjs: it asserts
 // the real docs/facts.md + docs/loop-state.md pass the gate, and that the gate actually fails on a
@@ -97,5 +98,18 @@ describe("context-freshness gate", () => {
         rmSync(fresh, { force: true });
       }
     });
+  });
+
+  it("does not report an intentionally ignored source directory missing in clean CI", () => {
+    expect(
+      missingRepositoryPaths(
+        [
+          "docs/client_docs/definitely-not-present/",
+          "docs/context_and_calls/definitely-not-present/",
+          "docs/definitely-not-present/",
+        ],
+        root,
+      ),
+    ).toEqual(["docs/definitely-not-present/"]);
   });
 });
