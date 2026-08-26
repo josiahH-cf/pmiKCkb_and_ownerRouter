@@ -36,8 +36,9 @@ The dependency-independent meeting work is built. The product now:
 10. hard-bounds the E2E probe, run, HTTP warmups, and teardown so a gate cannot hang indefinitely.
 
 The safe stop is equally important: the renewal write action in RentVine remains closed, the operating
-Sheet write-back action remains closed, the move-out deposit-disposition report remains acknowledged
-and waiting for the offered client walkthrough, and no discrepancy is automatically “fixed.”
+Sheet write-back action remains closed, the move-out deposit-disposition report remains `new` and
+waiting for internal acknowledgement plus the offered client walkthrough, and no discrepancy is
+automatically “fixed.”
 
 ## 2. External-effect boundary
 
@@ -118,14 +119,18 @@ unchanged.
 
 ## 5. Support-report reconciliation
 
-Three fresh reports were read. Two were attributed by the support queue to the same managed teammate:
+The meeting build read three reports. A read-only recheck at 5:21 p.m. Central found that all three
+remain `new` with zero status transitions. The two August reports share one reporter identity, but
+the managed Auth record did not verify the literal name Chastity. The current queue is:
 
-- **Work page:** asked for what materials are needed/bought and address/job detail. This is addressed
-  in the current slice. Task create, storage, validation, and card rendering now carry job location,
-  materials needed, and materials bought/on hand.
-- **Move-out deposit disposition:** says the page is unclear and offers an actual-process
-  walkthrough. This remains acknowledged and waiting. It is not marked resolved, because changing a
-  workflow before hearing the actual process would encode a guess.
+- **Connections, July 21:** a short report mentions API-key testing, Dotloop, and LeadSimple. It was
+  omitted from the prior meeting summary and still needs an internal owner and current disposition.
+- **Work page, August 20:** asked for what materials are needed/bought and address/job detail. The code
+  is addressed, but the report is not resolved. A human must verify the deployed behavior and then
+  close it with an audit note.
+- **Move-out deposit disposition, August 20:** says the page is unclear and offers an actual-process
+  walkthrough. The report is not yet acknowledged in the live queue. It must stay open until an
+  internal owner records the pending walkthrough and the client supplies the actual process.
 
 The meeting should identify the process expert and capture the real steps, inputs, decisions,
 documents, timing, owner, and completion proof.

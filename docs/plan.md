@@ -82,6 +82,19 @@ Acceptance:
 - Agenda and client action center complete.
 - No RentVine or operating-Sheet mutation.
 
+### P5A - Original-request operational closure
+
+Status: in progress — the adversarial audit is complete; dependency-independent internal closure and
+human acceptance remain open.
+
+Acceptance:
+
+- All three support reports have a truthful owner, status, note, and verification record.
+- RentVine registry metadata matches the implemented restricted write seam while its gate stays closed.
+- The Admin rehearsal-Sheet configuration decision is explicit and implemented if required.
+- All eight human-verification rows have dated PASS/FAIL verdicts.
+- Source discrepancies are corrected only through an approved source-specific transaction contract.
+
 ### P6 - Client process validation
 
 Status: blocked — waits on the named client inputs in `docs/client-checklist.md`.
@@ -93,6 +106,8 @@ Acceptance:
 - Move-out disposition workflow captured.
 - Exact wrong-resident lease retested.
 - RentCast operator policy confirmed.
+- Tenant wording, channel-evidence, follow-up, timing, and override policies confirmed.
+- Exact end-of-September scope recorded without inference.
 
 ### P7 - Controlled write proofs and remaining provider seams
 
@@ -107,10 +122,28 @@ Acceptance:
   complete.
 - S64 remains unimplemented until explicitly authorized.
 
+### P8 - Authorized product closure
+
+Status: in progress — code boundaries exist, but the remaining authorized product work is not
+equivalent to an external-input-only queue.
+
+Acceptance:
+
+- Four-lease operational proof completes after its process/data prerequisites.
+- Gmail watch has a proven stop/reversal path and S75 follow-up integration.
+- S36 has one selected provisioning contract or is explicitly removed from authorized scope.
+- S37 reaches its acceptance contract or is explicitly removed by an owner decision.
+- Each provider action is implemented and proven only after its exact external seam arrives.
+- Cloud Run rollback is rehearsed in a controlled release window.
+- Production dependency advisories are upgraded away or have documented reachability, compensating
+  controls, and review dates.
+
 ## Order
 
-1. Capture client process answers without changing source systems.
-2. Run the rehearsal-copy proof only after a distinct copy exists.
-3. Prepare (but do not infer) the one-record RentVine proof.
-4. Implement S72, S74, and S75 from confirmed process decisions.
-5. Advance one provider seam at a time.
+1. Close dependency-independent internal truth gaps and complete human acceptance.
+2. Capture client process answers without changing source systems.
+3. Run the rehearsal-copy proof only after a distinct copy exists.
+4. Prepare (but do not infer) the one-record RentVine proof.
+5. Implement S72, S74, and S75 from confirmed process decisions.
+6. Correct approved source data and complete the four-lease proof.
+7. Advance one authorized product or provider seam at a time.

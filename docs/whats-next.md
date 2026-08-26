@@ -2,7 +2,21 @@
 
 Updated: 2026-08-26.
 
-## Client meeting actions
+## Internal actions that do not need more client information
+
+1. Triage all three live support reports; verify deployed work details before resolving that report,
+   acknowledge the pending move-out walkthrough, and assign the Connections report.
+2. Reconcile RentVine Action Registry readiness text with the implemented restricted POST seam while
+   leaving `production_allowed` false.
+3. Decide whether deployment-managed rehearsal-Sheet setup satisfies the product requirement or
+   whether Admin needs a validated paste/save control.
+4. Complete and date all eight human-verification verdicts.
+5. Finish Gmail-watch reversal/follow-up integration and make an explicit S36/S37 disposition.
+6. Rehearse the captured Cloud Run rollback in a controlled release window.
+7. Trace and disposition the four transitive production dependency advisories with the smallest safe
+   upgrade and a full canonical recheck.
+
+## Client, owner, and provider actions
 
 1. Confirm the six renewal steps, their order, owner, and completion evidence.
 2. Define current rent in RentVine and the Sheet: base rent or total recurring monthly charge.
@@ -12,9 +26,15 @@ Updated: 2026-08-26.
 5. Name the move-out deposit-disposition process expert and walkthrough date.
 6. Identify the exact lease behind the wrong-resident report.
 7. Confirm RentCast search radius and comparable-count policy.
-8. Clarify the exact end-of-September commitment.
+8. Approve tenant wording, required fields, and channel-evidence rules.
+9. Approve waiting-on, follow-up, timing, and override-authority rules.
+10. Clarify the exact end-of-September commitment.
+11. Approve the S66 lease packet/provider catalog and Dotloop mapping.
+12. Supply the selected LeadSimple action/contract and official RentVine resident-channel contract.
+13. Decide whether S64 per-person approval authority is authorized.
 
-Use `docs/pmi-kc-client-action-center-2026-08-26.html` during the discussion.
+Use `docs/pmi-kc-completion-blocker-audit-2026-08-26.html` as the controlling report and
+`docs/pmi-kc-client-action-center-2026-08-26.html` to capture meeting inputs.
 
 ## Engineering after client answers
 
@@ -23,6 +43,9 @@ Use `docs/pmi-kc-client-action-center-2026-08-26.html` during the discussion.
 - Implement S75 follow-up fields and per-property timing overrides.
 - Run S76's copy-only blank-cell proof.
 - Prepare S30's exact one-record RentVine preview/confirm/readback/rollback packet.
+- Correct source discrepancies only after the current-rent rule and a safe source-specific write
+  contract are approved.
+- Complete the four-lease operational proof.
 - Keep S64 closed unless the owner explicitly authorizes per-person approval authority.
 
 ## Provider seams

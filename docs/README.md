@@ -69,6 +69,8 @@ tests, current facts, and Git history are their evidence.
 
 ## Current meeting package
 
+- `docs/pmi-kc-completion-blocker-audit-2026-08-26.html` — adversarial closure audit with separate
+  client/external and internal blockers plus the next-action sequence.
 - `docs/pmi-kc-client-action-center-2026-08-26.html`
 - `docs/pmi-kc-meeting-agenda-2026-08-26.html`
 - `docs/pmi-meeting-reconciliation-2026-08-26.md`

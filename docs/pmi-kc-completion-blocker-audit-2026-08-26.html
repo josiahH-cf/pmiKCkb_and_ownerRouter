@@ -1,0 +1,1907 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="PMI KC completion audit, remaining client inputs, internal blockers, and next actions as of August 26, 2026."
+    />
+    <title>PMI KC Completion and Blocker Audit | August 26, 2026</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #14233a;
+        --muted: #546275;
+        --line: #d9e0e8;
+        --surface: #ffffff;
+        --wash: #f4f7fa;
+        --navy: #0d3158;
+        --blue: #2468a2;
+        --green: #1e6b4f;
+        --green-wash: #e8f5ee;
+        --amber: #8a5700;
+        --amber-wash: #fff4d8;
+        --red: #8f2f28;
+        --red-wash: #fcebea;
+        --slate-wash: #edf1f5;
+        --shadow: 0 10px 34px rgba(13, 49, 88, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      a:hover,
+      a:focus-visible {
+        color: var(--navy);
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 30px auto 56px;
+      }
+
+      .hero {
+        overflow: hidden;
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 85% 12%, rgba(255, 255, 255, 0.2), transparent 27%),
+          linear-gradient(135deg, #0b294b 0%, #155087 68%, #2871a6 100%);
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-inner {
+        padding: 42px clamp(24px, 6vw, 72px) 34px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #c8e2f8;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin-top: 0;
+        line-height: 1.18;
+      }
+
+      h1 {
+        max-width: 920px;
+        margin-bottom: 16px;
+        font-size: clamp(2rem, 5vw, 3.65rem);
+        letter-spacing: -0.045em;
+      }
+
+      .hero .lede {
+        max-width: 860px;
+        margin: 0;
+        color: #e8f3fc;
+        font-size: clamp(1rem, 2vw, 1.22rem);
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 24px;
+      }
+
+      .hero-meta span {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 7px 12px;
+        font-size: 0.85rem;
+        font-weight: 650;
+      }
+
+      .jump-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(3, 24, 46, 0.24);
+        padding: 15px clamp(24px, 6vw, 72px);
+      }
+
+      .jump-nav a {
+        border-radius: 999px;
+        color: white;
+        padding: 6px 11px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .jump-nav a:hover,
+      .jump-nav a:focus-visible {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      main {
+        display: grid;
+        gap: 24px;
+        margin-top: 24px;
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--surface);
+        padding: clamp(24px, 4vw, 42px);
+        box-shadow: 0 5px 20px rgba(20, 35, 58, 0.055);
+      }
+
+      .section > header {
+        max-width: 900px;
+        margin-bottom: 24px;
+      }
+
+      .section h2 {
+        margin-bottom: 9px;
+        color: var(--navy);
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+      }
+
+      .section-intro {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.03rem;
+      }
+
+      .verdict {
+        border: 2px solid #e4a9a3;
+        border-radius: 16px;
+        background: var(--red-wash);
+        padding: 22px;
+      }
+
+      .verdict strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--red);
+        font-size: 1.28rem;
+      }
+
+      .verdict p {
+        margin: 0;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--wash);
+        padding: 17px;
+      }
+
+      .metric .value {
+        display: block;
+        color: var(--navy);
+        font-size: 1.45rem;
+        font-weight: 850;
+        letter-spacing: -0.025em;
+      }
+
+      .metric .label {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .answer-list {
+        display: grid;
+        gap: 10px;
+        margin: 22px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .answer-list li {
+        position: relative;
+        padding-left: 28px;
+      }
+
+      .answer-list li::before {
+        position: absolute;
+        left: 0;
+        color: var(--green);
+        content: "✓";
+        font-weight: 900;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 13px 14px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--slate-wash);
+        color: var(--navy);
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 0.75rem;
+        font-weight: 850;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .complete {
+        background: var(--green-wash);
+        color: var(--green);
+      }
+
+      .partial,
+      .blocked {
+        background: var(--amber-wash);
+        color: var(--amber);
+      }
+
+      .open {
+        background: var(--red-wash);
+        color: var(--red);
+      }
+
+      .informational {
+        background: var(--slate-wash);
+        color: var(--ink);
+      }
+
+      .blocker-grid {
+        display: grid;
+        gap: 15px;
+      }
+
+      .blocker {
+        border: 1px solid var(--line);
+        border-left: 6px solid var(--amber);
+        border-radius: 14px;
+        background: #fffefa;
+        padding: 19px 21px;
+      }
+
+      .blocker.internal {
+        border-left-color: var(--red);
+        background: #fffdfd;
+      }
+
+      .blocker.roadmap {
+        border-left-color: var(--blue);
+        background: #fbfdff;
+      }
+
+      .blocker-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      .blocker h3 {
+        margin: 0;
+        color: var(--navy);
+        font-size: 1.13rem;
+      }
+
+      .blocker-id {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 0.73rem;
+        font-weight: 850;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: 155px 1fr;
+        gap: 8px 14px;
+        margin: 0;
+      }
+
+      dt {
+        color: var(--navy);
+        font-weight: 800;
+      }
+
+      dd {
+        margin: 0;
+        color: var(--ink);
+      }
+
+      .safe-state {
+        color: var(--muted);
+      }
+
+      .queue-list {
+        display: grid;
+        gap: 8px;
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+
+      .sequence {
+        counter-reset: step;
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .sequence li {
+        counter-increment: step;
+        position: relative;
+        min-height: 46px;
+        padding-left: 58px;
+      }
+
+      .sequence li::before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--navy);
+        color: white;
+        content: counter(step);
+        font-weight: 850;
+      }
+
+      .sequence strong {
+        color: var(--navy);
+      }
+
+      .warning {
+        border-radius: 14px;
+        background: var(--amber-wash);
+        padding: 18px 20px;
+      }
+
+      .warning h3 {
+        margin-bottom: 8px;
+        color: var(--amber);
+      }
+
+      .warning ul {
+        margin-bottom: 0;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #a9c6dd;
+        border-radius: 10px;
+        background: #f1f7fc;
+        color: var(--navy);
+        padding: 9px 13px;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: var(--blue);
+        background: #e4f0fa;
+      }
+
+      footer {
+        padding: 26px 10px 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+        text-align: center;
+      }
+
+      code {
+        border-radius: 4px;
+        background: #edf1f5;
+        padding: 1px 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.9em;
+      }
+
+      @media (max-width: 850px) {
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        dl {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+
+        dd + dt {
+          margin-top: 8px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          width: min(100% - 18px, 1180px);
+          margin-top: 9px;
+        }
+
+        .hero,
+        .section {
+          border-radius: 14px;
+        }
+
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .blocker-heading {
+          display: block;
+        }
+
+        .blocker-heading .pill {
+          margin-top: 8px;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          font-size: 10.5pt;
+        }
+
+        .page {
+          width: 100%;
+          margin: 0;
+        }
+
+        .hero,
+        .section {
+          box-shadow: none;
+        }
+
+        .hero {
+          border-radius: 0;
+          print-color-adjust: exact;
+        }
+
+        .jump-nav {
+          display: none;
+        }
+
+        .section {
+          break-inside: auto;
+          border-radius: 0;
+          border-right: 0;
+          border-left: 0;
+        }
+
+        .blocker,
+        .metric,
+        tr {
+          break-inside: avoid;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .button {
+          border: 0;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-inner">
+          <p class="eyebrow">PMI KC · Adversarial completion audit</p>
+          <h1>What is actually complete, what is still blocked, and who moves it next</h1>
+          <p class="lede">
+            This report checks the original meeting-readiness promises against current
+            code, tests, live read-only state, support records, production configuration,
+            and the active product backlog. It separates client and provider inputs from
+            work still owned internally.
+          </p>
+          <div class="hero-meta" aria-label="Audit metadata">
+            <span>Audited August 26, 2026 at 5:24 p.m. Central</span>
+            <span>Production read-only checks only</span>
+            <span>No RentVine or Sheet write</span>
+            <span>Main commit 5ef4d6e</span>
+          </div>
+        </div>
+        <nav class="jump-nav" aria-label="Report sections">
+          <a href="#verdict">Verdict</a>
+          <a href="#completion">Original scope</a>
+          <a href="#client-blockers">Client and external</a>
+          <a href="#internal-blockers">Internal</a>
+          <a href="#sequence">Next sequence</a>
+          <a href="#evidence">Evidence</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="section" id="verdict">
+          <header>
+            <h2>Direct answer</h2>
+            <p class="section-intro">
+              The dependency-independent release is complete. The full operational outcome
+              is not.
+            </p>
+          </header>
+
+          <div class="verdict">
+            <strong>No: not everything originally requested is closed.</strong>
+            <p>
+              The product release, safety controls, read paths, discrepancy handling,
+              original client action page, presenter agenda, deployment, and automated
+              verification are complete. The rehearsal Sheet round trip, RentVine write
+              proof, source-data cleanup, support-report closure, client process
+              decisions, and human acceptance are still open. Some are waiting on client
+              or provider information; several are internal follow-up.
+            </p>
+          </div>
+
+          <div class="metrics" aria-label="Audit summary">
+            <div class="metric">
+              <span class="value">100%</span>
+              <span class="label"
+                >Production traffic on the verified meeting release</span
+              >
+            </div>
+            <div class="metric">
+              <span class="value">306</span>
+              <span class="label">RentVine leases read completely at 5:21 p.m.</span>
+            </div>
+            <div class="metric">
+              <span class="value">3 new</span>
+              <span class="label"
+                >Live support reports; none has a status transition</span
+              >
+            </div>
+            <div class="metric">
+              <span class="value">131 / 131</span>
+              <span class="label"
+                >Focused meeting, data, support, and safety tests passed</span
+              >
+            </div>
+          </div>
+
+          <ul class="answer-list">
+            <li>
+              The production app still serves exact release commit
+              <code>13569183da57c419ac0da279dde5a6d6a0b0da14</code> on the expected
+              revision.
+            </li>
+            <li>
+              The operating renewal Sheet is configured for reads; the rehearsal Sheet is
+              not configured and operating write-back is off.
+            </li>
+            <li>
+              RentVine and RentCast secrets are bound through Secret Manager; current
+              RentVine reads still return the complete 306-lease set.
+            </li>
+            <li>
+              No production record, operating Sheet cell, support status, action key, or
+              client message was changed during this audit.
+            </li>
+          </ul>
+        </section>
+
+        <section class="section" id="completion">
+          <header>
+            <h2>Original commitment closure</h2>
+            <p class="section-intro">
+              “Built” and “operationally proven” are treated as different outcomes.
+              Partial means a safe component exists but the requested real-world proof or
+              closure does not.
+            </p>
+          </header>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Original outcome</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Present truth</th>
+                  <th scope="col">What remains</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ship the meeting-readiness feature set</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>The feature release is deployed and exact-version verified.</td>
+                  <td>No served-code action remains for this release.</td>
+                </tr>
+                <tr>
+                  <td>Unblock RentVine and prove safe write capability</td>
+                  <td><span class="pill partial">Partial</span></td>
+                  <td>
+                    Read works; restricted documented POST client and dry preview exist.
+                  </td>
+                  <td>
+                    A client-designated test record and one reversible proof are still
+                    required.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Use the operating spreadsheet as a linked read source</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>
+                    Production reads the configured Sheet and Admin links to it as
+                    view-only.
+                  </td>
+                  <td>
+                    The operating Sheet remains intentionally unavailable for write
+                    testing.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Create and use a verbatim rehearsal spreadsheet copy</td>
+                  <td><span class="pill blocked">Blocked</span></td>
+                  <td>Alias refusal and write/read/clear proof tooling are built.</td>
+                  <td>No copy id, managed sharing, blank cell, or live proof exists.</td>
+                </tr>
+                <tr>
+                  <td>Explain every global discrepancy case clearly</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>Eight plain-language cases and safe next actions are shown.</td>
+                  <td>Client semantics are still needed to disposition real cases.</td>
+                </tr>
+                <tr>
+                  <td>Clean up the underlying data discrepancies</td>
+                  <td><span class="pill open">Not complete</span></td>
+                  <td>The app fails closed and records exact lease-level resolutions.</td>
+                  <td>
+                    No source record was corrected because source meaning is not
+                    confirmed.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Follow up on Chastity's submitted tickets</td>
+                  <td><span class="pill open">Not complete</span></td>
+                  <td>Three live reports were read; two share one reporter identity.</td>
+                  <td>
+                    All three remain <code>new</code>; the literal Chastity attribution is
+                    not verified.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Create a client action and walkthrough HTML</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>
+                    The action center exists and all five live links respond correctly.
+                  </td>
+                  <td>Use this new audit as the corrected closure supplement.</td>
+                </tr>
+                <tr>
+                  <td>Create the one-page presenter agenda</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>The agenda exists and its live and local links are valid.</td>
+                  <td>Record meeting outcomes after the walkthrough.</td>
+                </tr>
+                <tr>
+                  <td>Record human acceptance</td>
+                  <td><span class="pill open">Not complete</span></td>
+                  <td>All eight model-verification rows are populated.</td>
+                  <td>Every human verdict is still blank.</td>
+                </tr>
+                <tr>
+                  <td>Make governance and documentation current</td>
+                  <td><span class="pill partial">Partial</span></td>
+                  <td>The active tree was substantially reset and machine-checked.</td>
+                  <td>
+                    Registry metadata and the prior support-status narrative still need
+                    alignment.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Reduce the full unit lane below ten minutes</td>
+                  <td><span class="pill complete">Complete</span></td>
+                  <td>
+                    Local cold and warm runs are below two minutes; live CI is green.
+                  </td>
+                  <td>
+                    Keep the complete 513-file inventory and per-file isolation pinned.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="client-blockers">
+          <header>
+            <h2>Client, owner, and provider inputs</h2>
+            <p class="section-intro">
+              These cannot be responsibly invented by engineering. Each item names the
+              exact input, what it blocks, the safe state now, and the next right action.
+            </p>
+          </header>
+
+          <div class="blocker-grid">
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C01 · Client process</span>
+                  <h3>Confirm the actual six-step renewal process</h3>
+                </div>
+                <span class="pill blocked">Blocks S72</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client renewal process expert</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Six step names, order, owner, prerequisite, completion evidence, and
+                  where the reusable form link and comparable-rent review belong.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The current steps are a generic product model, not a client-confirmed
+                  operating procedure.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Hold one process-mapping session and approve one versioned six-row
+                  table.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The approved table is implemented, deployed, and walked lease by lease
+                  without a guessed step.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Keep generic labels visible as unconfirmed; do not auto-complete work.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C02 · Client data meaning</span>
+                  <h3>Define “current rent” in RentVine and the renewal Sheet</h3>
+                </div>
+                <span class="pill blocked">Blocks data cleanup</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client renewal and accounting owner</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Whether each source means base rent or total recurring monthly charges,
+                  the effective date, and how ancillary charges or concessions are
+                  treated.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The latest read found 20 conflicts, 140 one-source cases, 216 missing or
+                  unjoined cases, and 20 High flags. Those counts do not prove which
+                  source is wrong.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Approve a one-paragraph definition, then classify representative High
+                  cases inside the authenticated tool.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Every reviewed case has an exact lease-level reason and a named source
+                  correction, if any.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Show Needs Verification and write neither source.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C03 · Client Google admin</span>
+                  <h3>Create and share the verbatim rehearsal Sheet copy</h3>
+                </div>
+                <span class="pill blocked">Blocks S76 proof</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client Google Sheet owner, with the internal operator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  A true copy of the operating workbook, edit access for the managed
+                  Sheets identity, its Sheet id, and one intentionally blank sacrificial
+                  cell.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  Production confirms the operating Sheet is configured and the rehearsal
+                  Sheet is not.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Use File → Make a copy, share it, then hand the copy link to the
+                  internal operator for configuration.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The exact proof records blank → synthetic marker → readback → clear →
+                  final blank, with the operating Sheet unchanged.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Refuse the proof; never substitute the operating Sheet.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C04 · Client RentVine admin</span>
+                  <h3>Designate one unmistakable RentVine test lease and owner</h3>
+                </div>
+                <span class="pill blocked">Blocks S30 proof</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client RentVine administrator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  The exact test lease, existing recurring charge when applicable, the one
+                  permitted field change, expected result, and rollback state. Review
+                  values live; do not place them in this report or Git.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The credential's broader role is owner-attested, but no live write has
+                  proved it. The production action remains closed.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Name the test record; internal engineering then prepares the exact
+                  preview and rollback packet before any gate review.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  One confirmed update is written, read back, receipted, rolled back, and
+                  read back again.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Dry preview only; no real lease or owner record is used as a test.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C05 · Client process</span>
+                  <h3>Provide the move-out deposit-disposition walkthrough</h3>
+                </div>
+                <span class="pill blocked">Open report</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client move-out process expert</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Actual steps, inputs, decisions, required documents, timing, owner at
+                  each step, exception paths, and completion proof.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The submitted report says the page is unclear and offers a real-process
+                  walkthrough. The live report is still <code>new</code>, not
+                  acknowledged.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Name the expert and schedule the walkthrough; internal Admin then
+                  records the report as acknowledged.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The corrected workflow passes a client walkthrough and the report closes
+                  with an audit note.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Keep the report open and encode no guessed process.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C06 · Client verification</span>
+                  <h3>Identify the exact lease behind the wrong-resident report</h3>
+                </div>
+                <span class="pill blocked">Blocks retest</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>The original reporter or renewal operator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  The exact lease selected inside the live tool. Keep the identifier out
+                  of this shareable report.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The address and identity repair is deployed, but no one can prove it
+                  fixed the reported case without the source lease.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Open the reported lease and retest the displayed resident and address
+                  against RentVine.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The exact case passes, or a new bodyless field-shape defect is captured
+                  for engineering.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">Treat the report as unresolved.</dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C07 · Client operating policy</span>
+                  <h3>Approve the RentCast comparable-search policy</h3>
+                </div>
+                <span class="pill blocked">Blocks consistent comps</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client renewal administrator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Search radius, minimum and maximum comparable count, acceptable age,
+                  property-type rules, outlier handling, and fallback when the market is
+                  thin.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  RentCast is live and allowance-bounded, but engineering cannot invent a
+                  defensible Kansas City submarket policy.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>Approve one default policy plus any named property exception.</dd>
+                <dt>Done when</dt>
+                <dd>
+                  The versioned policy drives the operator preview and the four-lease
+                  proof.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Display comps as reference only; never set the offered rent
+                  automatically.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C08 · Client wording</span>
+                  <h3>Approve tenant offer wording and channel truth rules</h3>
+                </div>
+                <span class="pill blocked">Blocks S74</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client renewal and compliance owner</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Default tenant wording, required fields, editable sections, and the
+                  evidence that permits “drafted,” “sent,” “posted,” or “contacted”
+                  status.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The current client checklist omitted this active input even though S74
+                  remains open.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>Approve one versioned template and a small channel-status table.</dd>
+                <dt>Done when</dt>
+                <dd>
+                  Rendered copy is traceable to the approved version and statuses come
+                  only from provider evidence.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  No invented legal wording and no false contacted/sent claim.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C09 · Client timing policy</span>
+                  <h3>Approve waiting-on, follow-up, and property timing rules</h3>
+                </div>
+                <span class="pill blocked">Blocks S75</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client renewal administrator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Global timing defaults, property and lease overrides, waiting-party
+                  choices, last-contact source rules, and who may edit each level.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  Basic follow-up exists, but the final Admin policy surface cannot be
+                  correct without the operating rules.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>Approve one default calendar and one example property override.</dd>
+                <dt>Done when</dt>
+                <dd>
+                  The most-specific rule wins visibly, changes are audited, and due work
+                  never sends automatically.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Do not infer contact or schedule client messages.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C10 · Client and provider catalog</span>
+                  <h3>Approve the lease packet and Dotloop mapping</h3>
+                </div>
+                <span class="pill blocked">Blocks S66 and S34</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Client lease-document owner and Dotloop account administrator</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Approved artifacts, fields, participants, signature rules, form
+                  families, template/profile mapping, OAuth, and provider
+                  readback/correction rules.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The deterministic packet snapshot machinery exists, but legal content
+                  and provider mappings cannot be guessed.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Publish the approved catalog first, then map one packet to one Dotloop
+                  template/profile.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  One exact packet is previewed, confirmed, created, read back, and
+                  correctable.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Packet readiness remains blocked and Dotloop execution stays
+                  unavailable.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C11 · Provider account</span>
+                  <h3>Select the LeadSimple action and supply its account contract</h3>
+                </div>
+                <span class="pill blocked">Blocks S35</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>LeadSimple account owner and internal product owner</dd>
+                <dt>Needed</dt>
+                <dd>
+                  One named read or update, official endpoint/plan, credential,
+                  process/stage/assignee mappings, concurrency behavior, and correction
+                  method.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The typed boundary cannot safely become a real connector without an
+                  exact account contract.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Select one high-value action and provide the official account details
+                  for that action only.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The selected action passes preview, confirmation, readback, and
+                  correction proof.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  No guessed stage, broad sync, or credential in Git.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C12 · RentVine provider contract</span>
+                  <h3>Document the preferred resident invitation and reply channel</h3>
+                </div>
+                <span class="pill blocked">Blocks S47 provider channel</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>RentVine/vendor contact and client resident-operations owner</dd>
+                <dt>Needed</dt>
+                <dd>
+                  Invitation, reply or webhook, consent, identity, account mapping, retry,
+                  and correction semantics.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The tokenized app intake works, but the preferred RentVine interactive
+                  channel has no documented contract.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Ask RentVine for the official channel documentation and select one
+                  reviewed use case.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  One resident-channel proof is authenticated, linked to the correct
+                  property, and correctable.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">
+                  Keep app intake usable; leave the provider channel unavailable.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C13 · Scope decision</span>
+                  <h3>Define the exact end-of-September commitment</h3>
+                </div>
+                <span class="pill blocked">Blocks honest planning</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Owner and client sponsor</dd>
+                <dt>Needed</dt>
+                <dd>
+                  A short list of included outcomes, excluded outcomes, acceptance
+                  evidence, named owner, and target decision date.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  The only dated expectation cannot be turned into a commitment from
+                  context clues.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Write and approve one scope paragraph after reviewing this blocker list.
+                </dd>
+                <dt>Done when</dt>
+                <dd>The plan and client follow-up use the same bounded commitment.</dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">Record no inferred delivery promise.</dd>
+              </dl>
+            </article>
+
+            <article class="blocker">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">C14 · Owner authority</span>
+                  <h3>Decide whether per-person approval authority is in scope</h3>
+                </div>
+                <span class="pill blocked">S64 unauthorized</span>
+              </div>
+              <dl>
+                <dt>Owner</dt>
+                <dd>Product owner</dd>
+                <dt>Needed</dt>
+                <dd>
+                  An explicit decision to authorize or reject person-specific approval
+                  powers and the intended role boundaries.
+                </dd>
+                <dt>Why blocked</dt>
+                <dd>
+                  Expanding who may approve lowers a safety control and cannot be inferred
+                  from general go-live authority.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Choose “keep current role rules” or authorize a separately reviewed S64
+                  implementation.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The decision is recorded and the product either remains unchanged or
+                  passes the new authorization tests.
+                </dd>
+                <dt>Safe state</dt>
+                <dd class="safe-state">Keep current Admin and role rules.</dd>
+              </dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="internal-blockers">
+          <header>
+            <h2>Internal closure and product work</h2>
+            <p class="section-intro">
+              These are not solved merely by waiting for the client. Some can start now;
+              others are the engineering step immediately after a named external input
+              arrives.
+            </p>
+          </header>
+
+          <div class="blocker-grid">
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I01 · Initial closure</span>
+                  <h3>Triage and close the live support queue honestly</h3>
+                </div>
+                <span class="pill open">Internal now</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  Live read-only audit found three reports, all <code>new</code>, with
+                  zero status transitions:
+                  <ul class="queue-list">
+                    <li>
+                      <code>/connections</code> from July 21: short report mentioning
+                      API-key testing, Dotloop, and LeadSimple.
+                    </li>
+                    <li>
+                      <code>/work</code> from August 20: work details/materials request;
+                      implementation exists.
+                    </li>
+                    <li>
+                      <code>/spaces/move-out-deposit-disposition</code> from August 20:
+                      needs the client walkthrough.
+                    </li>
+                  </ul>
+                </dd>
+                <dt>Additional gap</dt>
+                <dd>
+                  The queue stores reporter uid, but Admin renders only the reporter role.
+                  A literal “Chastity” attribution was not verified from the managed Auth
+                  identity.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Admin reviews all three: resolve the work report only after a human
+                  check, acknowledge the move-out report with its pending owner, and
+                  assign the Connections report. Add safe managed-user attribution if
+                  reporter follow-up by name is required.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Each report has an audited status and note matching reality; no item is
+                  marked resolved merely because code changed.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I02 · Initial closure</span>
+                  <h3>
+                    Reconcile the RentVine Action Registry record with present truth
+                  </h3>
+                </div>
+                <span class="pill open">Internal now</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  The registry still says RentVine is GET-only and lacks a documented
+                  write endpoint. Current code and facts show a separate restricted client
+                  for the two documented POST routes.
+                </dd>
+                <dt>What is correct</dt>
+                <dd>
+                  The action key is still closed. That safety result must not change
+                  during metadata cleanup.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Update readiness, evidence, required permissions, preview, and rollback
+                  text to describe the current restricted seam and designated-test-record
+                  dependency. Add a regression assertion; leave
+                  <code>production_allowed:false</code>.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Admin, code, facts, and the action registry tell the same story without
+                  opening the action.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I03 · Initial closure</span>
+                  <h3>Resolve the Admin rehearsal-link setup mismatch</h3>
+                </div>
+                <span class="pill open">Internal decision</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  Admin displays operating and rehearsal links after environment
+                  configuration, but it does not let an Admin paste or save a Sheet link
+                  in the app. The original request can reasonably be read as expecting
+                  that setup control.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Decide whether managed deployment configuration is the intended
+                  permanent contract. If not, build an Admin-only validated URL/id setup
+                  flow with audit, managed-access verification, alias refusal, and no
+                  browser write-test control.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The accepted configuration method is explicit, safe, and usable by the
+                  intended operator.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I04 · Initial closure</span>
+                  <h3>Run and record the eight human-verification rows</h3>
+                </div>
+                <span class="pill open">Internal + client</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  Every model verdict is populated; every human verdict is blank.
+                  Automated green does not equal human acceptance.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Walk through RentVine preview, Sheet separation, discrepancy language,
+                  rent confidence, currency entry, work details, navigation/version, and
+                  both HTML artifacts in one batch session.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Each row has a dated human PASS or FAIL with a short observation and any
+                  failure becomes a named work item.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I05 · Initial closure</span>
+                  <h3>Turn the discrepancy queue into governed corrections</h3>
+                </div>
+                <span class="pill blocked">After C02</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  The app now diagnoses and fails closed, but no underlying RentVine or
+                  Sheet value was cleaned up. The operating Sheet write action is closed
+                  and Google Sheets does not supply the app's required stable-row
+                  transaction contract.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  After current-rent semantics are approved, review the High queue, name
+                  the authoritative source per lease, and choose an exact manual or
+                  governed correction path. Re-run the bodyless diagnostic after
+                  corrections.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Every targeted discrepancy has source-specific evidence, a correction
+                  receipt where applicable, and a fresh diagnostic disposition.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I06 · Initial closure</span>
+                  <h3>Complete the four-lease operational proof</h3>
+                </div>
+                <span class="pill blocked">After C01, C02, C07</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  S63 machinery is built, but the client/process/number proof is still an
+                  unperformed operating exercise.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Freeze fresh read-only baselines for the four designated leases, run
+                  process and number criteria separately, then review the factual results
+                  with the client.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  All four cases have lease-id-bound evidence and an explicit
+                  evaluated/not-evaluated disposition without a source write or message.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker roadmap">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I07 · Active product work</span>
+                  <h3>Finish Gmail watch reversal and follow-up-state integration</h3>
+                </div>
+                <span class="pill partial">S31 + S75</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  Watch/read infrastructure exists, but an authenticated stop/readback
+                  path and final bodyless waiting/last-contact integration are incomplete.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Read the current watch/Scheduler state, decide whether continuous watch
+                  remains desired, prove stop/reversal if retained, then integrate
+                  source-backed follow-up state.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Watch lifecycle is reversible and duplicate/out-of-order events cannot
+                  create duplicate follow-up work.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker roadmap">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I08 · Active product work</span>
+                  <h3>
+                    Build or explicitly remove the remaining owner-authorized product
+                    backlog
+                  </h3>
+                </div>
+                <span class="pill partial">S36 + S37</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  The full governed no-code page/layout builder is not complete.
+                  Self-service Space provisioning is also closed pending one selected
+                  resource, cost, identity, IAM, and rollback shape.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Select one bounded page type for S37 and one concrete Space/resource
+                  plan for S36, or obtain an explicit owner decision to remove either from
+                  scope.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Each feature is deployed with preview, approval, readback, and rollback,
+                  or is explicitly removed from the roadmap.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker roadmap">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I09 · Active product work</span>
+                  <h3>
+                    Implement each real provider action after its exact input arrives
+                  </h3>
+                </div>
+                <span class="pill blocked">After C10 to C12</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  Dotloop, LeadSimple, and the preferred RentVine resident channel have
+                  app boundaries but no completed live provider proof.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Take one provider at a time through exact mapping, preview,
+                  confirmation, idempotency, readback, correction, receipt, and per-key
+                  review.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Only the exact proven action key opens; unrelated provider actions
+                  remain closed.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker roadmap">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I10 · Operational assurance</span>
+                  <h3>Rehearse the captured Cloud Run rollback</h3>
+                </div>
+                <span class="pill informational">Non-meeting window</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  The predecessor revision and exact command were captured, but traffic
+                  was not switched back during the time-boxed release.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  During a planned low-risk window, switch traffic to the captured
+                  predecessor, smoke it, and restore the current revision with readback.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  Both rollback and restoration have exact revision, traffic, and smoke
+                  evidence.
+                </dd>
+              </dl>
+            </article>
+
+            <article class="blocker internal">
+              <div class="blocker-heading">
+                <div>
+                  <span class="blocker-id">I11 · Dependency assurance</span>
+                  <h3>Disposition the current production dependency advisories</h3>
+                </div>
+                <span class="pill open">Actionable now</span>
+              </div>
+              <dl>
+                <dt>Finding</dt>
+                <dd>
+                  A clean <code>npm audit --omit=dev</code> reports four transitive
+                  production dependency advisories: one moderate and three high, with no
+                  critical finding. Fixes are available. This is an upgrade signal, not
+                  proof that any affected behavior is reachable or exploitable in PMI KC.
+                </dd>
+                <dt>Next right action</dt>
+                <dd>
+                  Trace the <code>@google/genai</code> and Next.js dependency paths,
+                  prepare the smallest lockfile/package upgrade, review changelogs for
+                  breaking behavior, and rerun the full canonical gate plus provider
+                  boundary tests.
+                </dd>
+                <dt>Done when</dt>
+                <dd>
+                  The production-only audit is clear or each remaining advisory has a
+                  documented reachability decision, compensating control, and review date.
+                </dd>
+              </dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="sequence">
+          <header>
+            <h2>Recommended next-action sequence</h2>
+            <p class="section-intro">
+              This order clears internal truth defects first, then collects the few client
+              answers that unlock the most implementation and proof work.
+            </p>
+          </header>
+
+          <ol class="sequence">
+            <li>
+              <strong>Close the internal truth gap now.</strong> Triage all three support
+              reports, reconcile RentVine registry metadata, and decide whether Sheet
+              setup stays deployment-managed or becomes an Admin control. Prepare the
+              bounded dependency update separately from client work.
+            </li>
+            <li>
+              <strong>Run one client decision workshop.</strong> Capture C01, C02, C05,
+              C06, C07, C08, C09, and C13 in one structured session with named owners.
+            </li>
+            <li>
+              <strong>Finish human acceptance.</strong> Complete all eight human litmus
+              rows during or immediately after that workshop.
+            </li>
+            <li>
+              <strong>Prove the rehearsal copy.</strong> After C03, configure only the
+              copy, review the dry plan, and run the exact blank-cell proof once.
+            </li>
+            <li>
+              <strong>Prepare the RentVine one-record packet.</strong> After C04, read the
+              exact test state and review the proposed change and rollback before
+              considering the protected key.
+            </li>
+            <li>
+              <strong>Disposition discrepancies and run the four leases.</strong> Use the
+              approved rent definition and comp policy to turn the current review queue
+              into evidence-backed decisions, then complete S63.
+            </li>
+            <li>
+              <strong>Finish policy-dependent app work.</strong> Implement S72, S74, and
+              S75 from approved client versions, then connect S31 follow-up truth.
+            </li>
+            <li>
+              <strong>Advance provider and product backlog one action at a time.</strong>
+              Complete S66/S34, S35, S47, S36, and S37 only through their exact contracts
+              and safety proofs.
+            </li>
+          </ol>
+        </section>
+
+        <section class="section" id="evidence">
+          <header>
+            <h2>Evidence checked in this audit</h2>
+            <p class="section-intro">
+              No completion claim in this report relies only on a filename or prior
+              summary.
+            </p>
+          </header>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Check</th>
+                  <th scope="col">Observed result</th>
+                  <th scope="col">Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Production service readback</td>
+                  <td>
+                    Expected service, managed identity, Production + Live, exact revision
+                    at 100%
+                  </td>
+                  <td>The meeting release is still serving.</td>
+                </tr>
+                <tr>
+                  <td>Public version endpoint</td>
+                  <td>Exact release commit, revision, service, and environment</td>
+                  <td>Deployment identity is bodyless and verifiable.</td>
+                </tr>
+                <tr>
+                  <td>Production bindings</td>
+                  <td>
+                    Operating Sheet set; rehearsal unset; write-back false; provider
+                    secrets bound
+                  </td>
+                  <td>The intended safe configuration remains in force.</td>
+                </tr>
+                <tr>
+                  <td>RentVine + Sheet diagnostic</td>
+                  <td>
+                    306 complete rows; 14 agree, 20 conflict, 140 one source, 216
+                    missing/unjoined, 20 High
+                  </td>
+                  <td>Reads work; source cleanup is not complete.</td>
+                </tr>
+                <tr>
+                  <td>Live support queue</td>
+                  <td>
+                    Three reports; all new; zero transitions; two share one reporter
+                    identity
+                  </td>
+                  <td>
+                    Prior “acknowledged” and ticket-closure language was too strong.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Focused deterministic tests</td>
+                  <td>12 files, 131 tests, all passed</td>
+                  <td>
+                    Meeting, rent, support, work, registry, and write boundaries remain
+                    green.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Full verification and CI</td>
+                  <td>
+                    513 files / 4,641 outcomes; 25 Firestore files / 115 tests; 99-page
+                    production build; parallel CI aggregate green
+                  </td>
+                  <td>
+                    The accelerated full lane preserves inventory and isolation; the
+                    canonical local gate is green.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Production dependency audit</td>
+                  <td>
+                    Four transitive advisories: one moderate, three high, zero critical;
+                    fixes available
+                  </td>
+                  <td>
+                    Internal upgrade/reachability work remains; this is not a client input
+                    or evidence of an exploit.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Original HTML links</td>
+                  <td>
+                    All five links in each artifact resolve locally or return expected
+                    200/307
+                  </td>
+                  <td>The existing client page and agenda remain usable.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning" style="margin-top: 20px">
+            <h3>Do not claim or do these things yet</h3>
+            <ul>
+              <li>Do not say every initial outcome is complete.</li>
+              <li>
+                Do not call the support queue acknowledged or resolved until its statuses
+                move.
+              </li>
+              <li>
+                Do not claim the reports were verified as Chastity's without a managed
+                identity mapping.
+              </li>
+              <li>
+                Do not write the operating Sheet or use it as a rehearsal substitute.
+              </li>
+              <li>Do not test RentVine write permission on a real operational lease.</li>
+              <li>Do not describe the 20 conflicts as 20 RentVine errors.</li>
+              <li>
+                Do not mark human acceptance complete while the human verdicts are blank.
+              </li>
+            </ul>
+          </div>
+
+          <div class="links" aria-label="Useful links">
+            <a class="button" href="pmi-kc-client-action-center-2026-08-26.html"
+              >Client action center</a
+            >
+            <a class="button" href="pmi-kc-meeting-agenda-2026-08-26.html"
+              >Presenter agenda</a
+            >
+            <a class="button" href="pmi-kc-meeting-readiness-human-litmus-2026-08-26.md"
+              >Human litmus</a
+            >
+            <a class="button" href="client-checklist.md">Current client checklist</a>
+            <a
+              class="button"
+              href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal/live/desk"
+              >Live Renewal Desk</a
+            >
+            <a class="button" href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin"
+              >Live Admin</a
+            >
+            <a
+              class="button"
+              href="https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version"
+              >Version evidence</a
+            >
+            <a
+              class="button"
+              href="https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33018758869"
+              >Green CI run</a
+            >
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        Prepared from current repository evidence and read-only production checks. This
+        file contains no record values, names, addresses, emails, lease ids, credentials,
+        or secret material.
+      </footer>
+    </div>
+  </body>
+</html>

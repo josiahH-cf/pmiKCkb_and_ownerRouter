@@ -1,8 +1,8 @@
-# Client actions
+# Client, owner, and provider actions
 
 Updated: 2026-08-26.
 
-This is the complete current client-input list. Missing input blocks only the named capability.
+This is the complete current external-input list. Missing input blocks only the named capability.
 Do not use old V1, Demo, audit, or roadmap documents as a client checklist.
 
 | Priority | Client input                                                       | What it unlocks                                    | Safe state now                                       |
@@ -14,8 +14,22 @@ Do not use old V1, Demo, audit, or roadmap documents as a client checklist.
 |        5 | Move-out deposit-disposition process expert and walkthrough date   | Correct move-out workflow                          | Support report stays open                            |
 |        6 | Exact lease behind the wrong-resident report                       | Client verification of the address/identity repair | Treat as unresolved                                  |
 |        7 | RentCast radius and comparable-count policy                        | Consistent operator comp searches                  | Results are reference-only                           |
-|        8 | Exact end-of-September scope                                       | Honest delivery commitment                         | Infer nothing                                        |
-|        9 | Approved lease packet artifact/field/participant/signature catalog | S66 packet readiness and Dotloop mapping           | Fail closed; invent no legal content                 |
+|        8 | Approved tenant wording and channel-evidence rules                 | S74 accurate editable offers and honest status     | Invent no legal copy or contacted/sent status        |
+|        9 | Waiting-on, follow-up, and property/lease timing policy            | S75 source-backed follow-up and override surface   | Infer no contact or timer                            |
+|       10 | Exact end-of-September scope                                       | Honest delivery commitment                         | Infer nothing                                        |
+|       11 | Approved lease packet artifact/field/participant/signature catalog | S66 packet readiness and Dotloop mapping           | Fail closed; invent no legal content                 |
+|       12 | Dotloop OAuth plus exact profile/template/provider mapping         | S34 one-packet provider proof                      | Dotloop execution unavailable                        |
+|       13 | One selected LeadSimple action, account contract, and credential   | S35 bounded connector proof                        | No guessed endpoint, stage, or broad sync            |
+|       14 | Documented RentVine resident invitation/reply/webhook contract     | S47 preferred provider channel                     | App intake remains usable; provider channel closed   |
+|       15 | Explicit per-person approval-authority decision                    | S64 implementation or durable rejection            | Current Admin/role rules remain                      |
+
+## Live support follow-up
+
+A read-only 2026-08-26 recheck found three support reports and zero status transitions. All three are
+still `new`: the work-details report, the move-out deposit-disposition report, and an older
+Connections report mentioning API-key testing, Dotloop, and LeadSimple. The two August reports share
+one reporter identity, but the live managed identity did not verify the literal name Chastity. Admin
+must triage all three before any is called acknowledged or resolved.
 
 ## What the client can do now
 

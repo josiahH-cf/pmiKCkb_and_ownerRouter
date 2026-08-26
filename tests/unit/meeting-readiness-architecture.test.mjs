@@ -41,10 +41,17 @@ describe("2026-08-26 meeting-readiness architecture outcome", () => {
     for (const path of [
       "docs/pmi-kc-client-action-center-2026-08-26.html",
       "docs/pmi-kc-meeting-agenda-2026-08-26.html",
+      "docs/pmi-kc-completion-blocker-audit-2026-08-26.html",
       "app/api/version/route.ts",
     ]) {
       expect(existsSync(resolve(root, path)), path).toBe(true);
     }
+
+    const audit = read("docs/pmi-kc-completion-blocker-audit-2026-08-26.html");
+    expect(audit).toContain('id="client-blockers"');
+    expect(audit).toContain('id="internal-blockers"');
+    expect(audit).toContain("No: not everything originally requested is closed.");
+    expect(audit).toContain("I11 · Dependency assurance");
   });
 
   it("opens only the approved RentCast read key and keeps RentVine writeback closed", () => {

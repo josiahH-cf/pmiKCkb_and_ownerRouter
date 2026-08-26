@@ -36,7 +36,8 @@ exact rollback command. A rollback traffic switch was not run during the time-bo
   seam, and work accountability.
 - Work tasks carry job location, materials needed, and materials bought/on hand.
 - Exact public build identity at `/api/version`.
-- One operating-Sheet Admin link and a separate, guarded rehearsal-copy configuration.
+- One view-only operating-Sheet Admin link and a separate, deployment-managed rehearsal-copy
+  configuration; Admin cannot currently paste or save the rehearsal link in the app.
 - RentVine renewal dry preview with exact proposed and rollback payloads but no executable caller.
 
 ## Closed safety state
@@ -83,6 +84,21 @@ Measured end-to-end wall time is 94.93 seconds with an empty dependency cache an
 CI now runs quality, unit, Firestore, and policy/build jobs in parallel behind one aggregate `verify`
 result.
 
+## Adversarial completion verdict
+
+The dependency-independent meeting release is complete. The full original operational outcome is
+not. The 2026-08-26 closure audit found both external dependencies and internal work:
+
+- the rehearsal Sheet is not configured and its reversible write/read/clear proof has not run;
+- no designated RentVine test record has been supplied, so no write proof was attempted;
+- the source discrepancies are visible and fail closed, but have not been corrected at either source;
+- all eight model litmus rows pass, while every human verdict remains blank; and
+- all three live support reports remain `new` with zero transitions. Reporter records did not verify
+  the literal attribution to Chastity.
+
+Use `docs/pmi-kc-completion-blocker-audit-2026-08-26.html` as the controlling completion and blocker
+report.
+
 ## Current external dependencies
 
 1. Client-confirmed six-step renewal process.
@@ -92,15 +108,32 @@ result.
 5. Move-out deposit-disposition walkthrough.
 6. Exact lease for the wrong-resident report.
 7. RentCast search-radius/comparable policy.
-8. Approved S66 lease packet/provider catalog.
-9. Provider-specific credentials/contracts for Dotloop, LeadSimple, and selected resident/Vendor
-   actions.
+8. Approved tenant wording and channel-evidence rules.
+9. Waiting-on, follow-up, and property/lease timing policy.
+10. Exact end-of-September scope.
+11. Approved S66 lease packet/provider catalog.
+12. Provider-specific credentials/contracts for Dotloop, LeadSimple, and the preferred RentVine
+    resident channel.
+13. Explicit owner decision on S64 per-person approval authority.
 
 These block only their named capability.
+
+## Current internal obligations
+
+1. Triage all three live support reports and record truthful transitions.
+2. Reconcile the stale RentVine Action Registry readiness description without opening its gate.
+3. Decide and implement, or explicitly reject, in-app Admin rehearsal-Sheet configuration.
+4. Complete the eight human-verification verdicts.
+5. Convert the discrepancy queue into governed source corrections after the client defines current
+   rent and a safe transaction contract exists.
+6. Complete the four-lease proof, Gmail-watch reversal/follow-up integration, S36/S37 disposition,
+   unlocked provider work, and a controlled rollback rehearsal.
+7. Disposition the four transitive production dependency advisories reported by
+   `npm audit --omit=dev` through a bounded upgrade or a documented reachability decision.
 
 ## Documentation state
 
 Active context was reset and verified on 2026-08-26. Old Demo/V1 packets, completed program prompts,
 closed audits, historical HTML reports, duplicate roadmaps, and completed suite narratives were
-removed from the tracked tree. Current routing is `docs/README.md`; the active-path gate checks 74
+removed from the tracked tree. Current routing is `docs/README.md`; the active-path gate checks 75
 present-context files. Ignored `docs/temp/` remains local scratch and is not evidence.
