@@ -1,4 +1,7 @@
+import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
+
+const maxWorkers = Math.min(8, Math.max(1, availableParallelism() - 1));
 
 export default defineConfig({
   test: {
@@ -12,9 +15,10 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.test.mjs"],
-    // Vitest's CPU-count default can spawn 31 forks on developer hosts. Four keeps
-    // fork startup reliable on Windows-mounted workspaces without relaxing timeouts.
-    maxWorkers: 4,
+    // Threads retain Vitest's per-file isolation while avoiding hundreds of process starts. The
+    // WSL runner also moves reads off /mnt/c; native and CI runs use this same bounded pool.
+    pool: "threads",
+    maxWorkers,
   },
   resolve: {
     alias: {

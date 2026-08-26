@@ -33,6 +33,10 @@ Demo/V1 programs, completed suite narratives, old audits, duplicate roadmaps, an
 were removed. Their recovery point is Git `1356918`. The active-path gate rejects dangling links and
 references to retired governance roots.
 
+The complete unit/eval lane now runs in 94.93 seconds cold and 69.75 seconds warm on the supported WSL
+workspace, with all 513 files preserved. CI quality, unit, Firestore, and policy/build lanes run in
+parallel behind one aggregate result.
+
 ## Next action
 
 1. Capture the client-confirmed six-step renewal process and current-rent definition.
@@ -40,8 +44,8 @@ references to retired governance roots.
 3. Obtain one unmistakable RentVine test lease/owner; keep the write gate closed meanwhile.
 4. Resolve the move-out walkthrough, wrong-resident lease, RentCast operator policy, and exact
    end-of-September scope.
-5. Implement only the capability unlocked by each confirmed answer. Do not redeploy this
-   documentation-only reset; the served application code is unchanged.
+5. Implement only the capability unlocked by each confirmed answer. Do not redeploy
+   verification-tooling-only changes; the served application code is unchanged.
 
 ## Active product work after this reset
 

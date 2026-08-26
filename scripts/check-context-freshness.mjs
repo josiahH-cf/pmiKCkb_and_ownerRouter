@@ -184,7 +184,10 @@ export function gitIgnoredPaths(paths, root = ROOT) {
   // error. Exit 128 (not a repo) leaves stdout empty and yields the fail-open empty set.
   let stdout = "";
   try {
-    stdout = execSync("git check-ignore --stdin", {
+    // --no-index checks the ignore rule itself even when the candidate does not exist in this
+    // checkout. That keeps the gate hermetic in clean CI/native-shadow worktrees instead of making
+    // its verdict depend on one developer's ignored scratch file being present.
+    stdout = execSync("git check-ignore --no-index --stdin", {
       cwd: root,
       encoding: "utf8",
       input: unique.join("\n"),

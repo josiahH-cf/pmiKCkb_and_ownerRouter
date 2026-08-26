@@ -6,7 +6,31 @@ on:
     branches: [main]
 
 jobs:
-  verify:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  firestore:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -23,11 +47,17 @@ jobs:
           path: ~/.cache/firebase/emulators
           key: ${{ runner.os }}-firebase-emulators-${{ hashFiles('package-lock.json') }}
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
       - run: npm run test:firestore
+
+  policy-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
       - run: npm run verify:router-boundary
       - run: npm run verify:falsification
       - run: npm run verify:context-freshness
@@ -37,3 +67,20 @@ jobs:
       - run: npm run verify:redaction
       - run: npm run check:budget-guard
       - run: npm run build
+
+  verify:
+    if: ${{ always() }}
+    needs: [quality, unit, firestore, policy-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every parallel verification lane
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          UNIT_RESULT: ${{ needs.unit.result }}
+          FIRESTORE_RESULT: ${{ needs.firestore.result }}
+          POLICY_BUILD_RESULT: ${{ needs['policy-build'].result }}
+        run: |
+          test "$QUALITY_RESULT" = "success"
+          test "$UNIT_RESULT" = "success"
+          test "$FIRESTORE_RESULT" = "success"
+          test "$POLICY_BUILD_RESULT" = "success"

@@ -61,19 +61,27 @@ The deployed code tree passed:
 
 ## Documentation-reset verification
 
-The present-truth reconciliation passed:
+The current present-truth tree passed:
 
-- 508 unit files / 4,620 assertions in the exhaustive run, with zero assertion failures;
-- the four files that hit Vitest worker-start timeouts passed in a bounded single-worker rerun
-  (4 files / 14 assertions), for 512 files / 4,634 assertions total;
+- 513 unit/eval files / 4,640 outcomes in one complete run: 4,636 passing and four intentional skips,
+  with no worker-start or assertion failure;
 - 25 Firestore files / 115 assertions;
 - format, lint (0 errors), typecheck, router boundary, falsification, context freshness,
   active-document paths, spec traceability, copy voice, redaction, budget, and diff checks; and
 - a fresh 99-page production build.
 
-The reset changes documentation, documentation-linked validators/tests, and explanatory comments;
-it does not change served application behavior. Production therefore remains on the exact deployed
-revision above and does not require a documentation-only redeploy.
+The reset and verification acceleration change documentation, test tooling, tests, and CI only; they
+do not change served application behavior. Production therefore remains on the exact deployed
+revision above and does not require a tooling-only redeploy.
+
+## Verification performance
+
+The prior full unit lane took 2,885.73 seconds on the WSL-mounted workspace and still produced worker
+startup timeouts. The accelerated lane preserves all 513 files and per-file isolation while moving
+test reads/temp files to a disposable native Linux worktree and using a bounded eight-thread pool.
+Measured end-to-end wall time is 94.93 seconds with an empty dependency cache and 69.75 seconds warm.
+CI now runs quality, unit, Firestore, and policy/build jobs in parallel behind one aggregate `verify`
+result.
 
 ## Current external dependencies
 

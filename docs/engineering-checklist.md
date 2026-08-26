@@ -18,6 +18,7 @@
 ## Before commit
 
 - [ ] Focused tests pass.
+- [ ] `npm test` uses all registered unit/eval files and meets the ten-minute lane budget.
 - [ ] `bash scripts/verify.sh` passes for a ship candidate.
 - [ ] `npm run test:e2e:core` terminates green or reports a specific deterministic defect.
 - [ ] Diff and staged files contain no unrelated/user-owned material.

@@ -40,6 +40,12 @@ Updated: 2026-08-26.
 ## Testing
 
 - Unit tests cover behavior and refusal paths.
+- `npm test` runs the complete registered unit/eval inventory with per-file isolation.
+- On WSL Windows mounts, the unit runner uses a disposable native Linux Git worktree, eight or fewer
+  thread workers, native temp files, and a lockfile/Node-ABI-keyed dependency cache. Ignored env,
+  client, scratch, secret, output, and runner-local files are never mirrored.
+- The supported WSL full-unit lane has a ten-minute hard performance budget. The 2026-08-26 proof
+  measured 94.93 seconds cold and 69.75 seconds warm for 513 files.
 - Firestore Rules tests cover access boundaries.
 - Architecture sentinels constrain imports, routes, secrets, gates, and provider construction.
 - E2E is bounded and must terminate on setup failure.

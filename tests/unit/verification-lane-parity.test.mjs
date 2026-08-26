@@ -43,6 +43,7 @@ const REQUIRED_IN_BOTH = [
   "verify:router-boundary",
   "verify:falsification",
   "verify:context-freshness",
+  "verify:active-doc-paths",
   "verify:spec-traceability",
   "verify:copy-voice",
   "verify:redaction",
