@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
 
-Last updated: 2026-08-25 (RentCast live; 11 Spaces restored; CI parity closed; 9 questions open).
+Last updated: 2026-08-25 (guardrail on nodejs22 + proved alive; RentCast live; 11 Spaces; 8 open).
 
 ```yaml
-last_updated: 2026-08-23
+last_updated: 2026-08-25
 active_program: S66_S68_TRANSCRIPT_IMPLEMENTATION
 program_suites: S66-S68 (+amendments to S28, S34, S43, S60, S65; S64 remains unauthorized)
 spec_writing_allowed: true
@@ -15,43 +15,43 @@ loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: COMPLETE
 implementation_status: S28_S60_CURRENT_TRUTH_AND_S66_S67_S68_DEPLOYED
-next_suite: NONE_TRANSCRIPT_PROGRAM_COMPLETE
+next_suite: S72_S75_CHERRY_BRIDGE_REMAINDER
 next_spec: NONE
 session_auth_status: GREEN_MANAGED_WINDOWS_CLI_ADC_WSL_ADC_FIREBASE_RUNTIME_END_USER_CONFIG_BUILD
 active_slice: NONE_PROGRAM_COMPLETE
 next_slice: S73_RENT_BADGE_THEN_HV010_OVERRIDES
-last_completed_slice: PRODUCTION_DEPLOY_PMI_KC_APP_RMSOL14WB_9FE02E7AF754
+last_completed_slice: PRODUCTION_DEPLOY_PMI_KC_APP_RMT99LTIA_9119A24BF706
 runtime_action_gates_preflipped: false
 human_audit_status: COMPLETE_12_OF_12_TERMINAL_2026-08-25
-human_audit_next_item: HV-002_MANAGED_GOOGLE_SIGN_IN_OPEN_WAITING
-human_audit_auth_status: BROWSER_APP_SIGN_IN_REQUIRED_MANAGED_CLI_ADC_GREEN
+human_audit_next_item: NONE_ALL_TWELVE_TERMINAL
+human_audit_auth_status: NOT_BLOCKING_AUDIT_CLOSED_MANAGED_CLI_ADC_GREEN
 human_audit_effect_in_flight: false
 human_audit_launcher: docs/meta-prompts/pmi-kc-human-verification-resume.md
 ```
 
-## Active human-verification continuation — 2026-08-23
+## Human verification: closed 12/12 — 2026-08-25
 
-- Resume artifacts: `docs/pmi-kc-human-verification-resume-state.md`,
+- Record: `docs/pmi-kc-human-verification-resume-state.md`,
   `docs/pmi-kc-human-audit-response-20260817T104500Z-model-audit.json`, and
   `docs/meta-prompts/pmi-kc-human-verification-resume.md`.
-- Progress: 2/12 Pass (`HV-001`, `HV-012`); 10 `not_run`; no Fail, Blocked, or Skipped result.
-- Exact next item: HV-002 target selection. The 2026-08-23 restart preserves 2 Pass / 10 `not_run`.
-  Fresh non-printing readback proves managed CLI and ADC are current, and the exact serving revision,
-  Production + Live descriptor, managed domain, runtime identity class, and Demo-auth-off state are
-  unchanged. No conflict judgment, resolution request, provider write, or product effect occurred.
-- HV-002 session: a candidate Reason-entry Pass is rejected because contemporaneous readback shows
-  Production `/sign-in`; unsaved form state is treated as lost. Managed CLI/ADC and Production
-  project remain green. The next action is one `Sign in with Google` click, stopping at the Google
-  popup; workflow controls remain untouched.
-- Cleanup: the HV-001 deletion-protected backup remains authorized rollback state through audit
-  closure. No external operation is in flight.
-- Scope: this continuation writes audit/specification documentation only. It does not implement,
-  commit, deploy, send, authorize a provider write, or change a protected path.
-- Cadence: one atomic human action per brief visit; persist response/resume/spec state before yielding,
-  then end cleanly. No terminal, browser-control attachment, browser process, or local server is kept
-  alive merely to bridge the user's absence. Each prompt uses the detailed S69 action card: numbered
-  prepared state, exact control/location and safe input guidance, expected/stop/cleanup states, then
-  copy-ready `PASS` or `FAIL — reason` responses.
+- Final result: 12/12 terminal — 5 Pass, 1 Fail, 6 Blocked, `overall_result: complete`. The 2/12-Pass
+  progress line this section used to carry described a run that has since finished; it is replaced
+  rather than kept beside the result, so nothing here reads as still in flight.
+- The one Fail and the six Blocked are recorded outcomes, not unfinished work. Three proposed effects
+  (HV-002, HV-007, HV-009) were REFUSED after adversarial verification falsified their premises: the
+  Gmail push-watch has no stop path, four of five HV-007 legs have no reversal, and HV-002's dialog is
+  severity-dependent so Resolve IS the commit at Low and Medium. Refusing was the correct outcome.
+- Two owner decisions from the audit are built and deployed: HV-004 (the Connections card no longer
+  accepts a credential) and HV-011 (finalization accepts all three declared readiness values).
+- HV-010 resolved to "it varies by property", which implies a per-property override surface that is
+  named and NOT built. HV-006 was split so its denial half can close without a microphone.
+- Cleanup: the HV-001 deletion-protected backup remains authorized rollback state. Nothing is in
+  flight; no external operation, browser attachment, or local server is held open.
+- Scope note for any resumed session: this record is documentation. Reading it implements, commits,
+  deploys, sends, or authorizes nothing on its own.
+- Cadence if a further human item is added: one atomic action per visit, persist response and resume
+  state before yielding, then end cleanly using the S69 action card — numbered prepared state, exact
+  control and location, expected/stop/cleanup states, then a copy-ready `PASS` or `FAIL — reason`.
 
 ## Authority
 
@@ -124,12 +124,12 @@ supersedes that evidence, so do not re-ask it.
 to a new session to run this program unattended.
 
 **2026-08-25:** Audit CLOSED 12/12. Built: S70/S71, HV-004, HV-011, 11-Space restore, credential
-forwarding, CI parity, redirect sign-in. Open: S72-S75 builds, live guardrail runtime, monitoring.
+forwarding, CI parity, redirect sign-in, guardrail nodejs22. Open: S72-S75, monitoring alerts.
 
 **Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
 unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E
-red live in `docs/facts.md` and `docs/status.md`. Owner-only work remains the RentCast plan activation
-and allowance readback plus `smoke:rentcast-comp`, the named parked D12 patches, and the D57 note send.
+red live in `docs/facts.md` and `docs/status.md`. RentCast activation is DONE: plan Active, both
+endpoints 200, allowance measured at 50/month. Owner-only: the parked D12 patches and the D57 note send.
 Bailey's Admin action is complete. The 2026-08-06 correction note was sent; do not re-send it.
 
 **Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts

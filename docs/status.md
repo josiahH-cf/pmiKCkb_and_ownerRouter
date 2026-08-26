@@ -11,6 +11,38 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## The emergency spend stop runs a supported runtime and has proof of life (2026-08-25)
+
+The budget kill switch — the only layer that can actually stop spend, because a GCP budget alert only
+notifies — had been ACTIVE on `nodejs20` since 2026-06-22. Node 20 loses Cloud Functions support at the
+end of October 2026, and this function's failure mode is silent: nothing pages when it stops running,
+while every budget still reads as configured.
+
+The redeploy had been deliberately deferred once, for a real reason: the deployed artifact is a storage
+zip, and redeploying from local source would have shipped any difference between them straight into the
+spend stop without anyone seeing it. That is now settled by measurement rather than assumption. The exact
+deployed object (`gs://gcf-v2-sources-558870356522-us-central1/budget-guardrail/function-source.zip`,
+generation `1782148192826644`) was downloaded and compared to `infra/budget-guardrail/`: all five files
+are byte-identical by sha256, with no extra file on either side. The redeploy could therefore change
+nothing but the runtime, and a before/after field-level config diff confirms it did not — build id,
+source generation, revision name, updateTime, and runtime moved; the Pub/Sub topic, the Eventarc trigger,
+both service accounts, `RETRY_POLICY_DO_NOT_RETRY`, `KILL_SWITCH_CAP_USD=100`, memory, timeout, max
+instances, and the entry point did not.
+
+**A successful deploy is not proof the thing runs.** The runbook's own safe wiring test was published to
+the live topic with `costAmount:1, budgetAmount:100` — below the cap on every branch, since 1 is under
+both the configured cap (100) and the code default (10), and `handleBudgetEvent` returns before it ever
+constructs a billing client when the decision is `disable:false`. The function logged
+`[budget-guardrail] costAmount 1 USD < cap 100; no action.` This is the first end-to-end evidence that
+topic to trigger to container to decision is intact, and it also proves the cap env reached the
+container: the log names 100, not the code default.
+
+Two things remain true and are recorded rather than closed. The live function still does not carry
+`KILL_SWITCH_ALERT_USD`, which the runbook template names; the alert threshold lives on the Cloud Billing
+budget and the function's own decision needs only the cap, so this is a template/deployment divergence
+rather than a gap in the stop. And the heartbeat above was a one-time manual test — no scheduled canary
+exists, so a future silent death would still go unnoticed.
+
 ## Model-assisted process audit of the serving revision: 180 cases terminal, two fixes landed (2026-08-17)
 
 A browser-and-repository model audited the live Production revision `pmi-kc-app-rmsol14wb-9fe02e7af754`

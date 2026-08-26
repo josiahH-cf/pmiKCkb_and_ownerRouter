@@ -140,8 +140,8 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S67 Feedback dictation intake               | `docs/feature-suites/feedback-dictation-intake.md`                           | Deployed — volatile audio, editable transcript           |
 | S68 Staff work assignment + accountability  | `docs/feature-suites/staff-work-assignment-and-accountability.md`            | Deployed — app-owned tasks and explicit sessions         |
 | S69 Human-verification session reliability  | `docs/feature-suites/human-verification-session-and-evidence-reliability.md` | Spec — 2026-08-19 audit feedback; not built here         |
-| S70 Renewal queue integrity                 | `docs/feature-suites/renewal-queue-integrity.md`                             | Spec - Cherry Bridge N1/N2; not built here               |
-| S71 Lease identity + address truth          | `docs/feature-suites/lease-identity-and-address-truth.md`                    | Spec - Cherry Bridge N3/N8; not built here               |
+| S70 Renewal queue integrity                 | `docs/feature-suites/renewal-queue-integrity.md`                             | Deployed 2026-08-25 - Cherry Bridge N1/N2                |
+| S71 Lease identity + address truth          | `docs/feature-suites/lease-identity-and-address-truth.md`                    | Deployed 2026-08-25 - Cherry Bridge N3/N8                |
 | S72 Renewal step model + defaults           | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`           | Spec - Cherry Bridge N5/N7/N10; not built here           |
 | S73 Current-rent truth + badges             | `docs/feature-suites/current-rent-truth-and-badge-integrity.md`              | Spec - Cherry Bridge N6; not built here                  |
 | S74 Tenant offer copy + channel truth       | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`                 | Spec - Cherry Bridge N9; not built here                  |
@@ -163,8 +163,9 @@ unconfirmed system writes, monitoring, or an employee-policy change.
 > Admin data entry and its outreach-skip half contradicts a recorded owner ruling, both recorded as
 > an S62 amendment. Amendments also land on S24, S31, S43, and S58. The note-to-spec map is
 > `docs/cherry-bridge-renewal-note-map-2026-08-24.md`, gated by
-> `tests/unit/cherry-bridge-note-coverage.test.mjs`. These are **specifications only** - none of the
-> eleven fixes is built by that work.
+> `tests/unit/cherry-bridge-note-coverage.test.mjs`. The 2026-08-24 work produced specifications
+> only. Build state has since moved and this table's status column is the authority: S70 and S71
+> are deployed as of 2026-08-25; S72-S75 remain specification only.
 
 ## Deferred, with owner direction to keep it visible (2026-08-06)
 
