@@ -1,11 +1,9 @@
 import { pathToFileURL } from "node:url";
 import { readLocalEnv } from "./check-live-cost.mjs";
 
-// Read-only readiness check for connecting to RentVine (the property-management system of record).
-// It NEVER calls RentVine and NEVER prints secret values — it only reports which pieces are present
-// so the owner can see what is left to wire. RentVine's API is the owner's own account, not a Google
-// service, so reading from it does not spend against the $10 GCP budget. This script makes no
-// network call at all; it only inspects local configuration.
+// Local RentVine configuration-presence check. It NEVER calls RentVine and NEVER prints secret
+// values. Production reads use Secret Manager bindings and are verified separately; this utility
+// reports only whether a direct-env local process has all three names available.
 
 export const RENTVINE_ENV_VARS = {
   baseUrl: "RENTVINE_API_BASE_URL",
@@ -13,15 +11,9 @@ export const RENTVINE_ENV_VARS = {
   apiSecret: "RENTVINE_API_SECRET",
 };
 
-// Pieces that cannot be environment variables — they come from RentVine's API documentation and
-// must be confirmed before a real client can be written. Tracked here so the readiness report is
-// honest about what code alone cannot resolve. See docs/products/rentvine-connection-setup.md.
-export const RENTVINE_DOC_UNKNOWNS = [
-  "Auth scheme: exactly how the key + secret are presented on a request (header name and format).",
-  "Lease-read endpoint: the path and query params for listing renewal candidates.",
-  "Lease response shape: the JSON fields a lease record returns, so we can map renewal date, current rent, tenant, and property/unit.",
-  "Rate limits / polling cadence guidance.",
-];
+// Compatibility export retained for callers of the old preflight shape. Existing read auth,
+// endpoints, pagination, and lease mapping are implemented; there are no remaining read-doc gaps.
+export const RENTVINE_DOC_UNKNOWNS = [];
 
 // Returns presence booleans only — never the secret values themselves.
 export function readRentVineConfig(env = process.env, localEnv = readLocalEnv()) {
@@ -53,9 +45,10 @@ export function summarizeRentVineReadiness(config) {
     env_configured: config.env_configured,
     missing_env: config.missing,
     doc_unknowns: RENTVINE_DOC_UNKNOWNS,
-    // Even with all three env vars set, a real read still needs the doc unknowns resolved before a
-    // client can be written, so this stays false until that build lands.
-    connection_ready: false,
+    local_config_ready: config.env_configured,
+    connection_verified: false,
+    production_read_status: "verified-separately",
+    write_authorized: false,
   };
 }
 
@@ -68,19 +61,15 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   }
 
   console.log(
-    "RentVine connection readiness (read-only; never calls RentVine, never prints secrets)",
+    "RentVine local config presence (never calls RentVine; never prints secrets)",
   );
   console.log(
     readiness.env_configured
-      ? "Credentials/base URL: all three environment variables are set."
-      : `Credentials/base URL: still missing ${readiness.missing_env.join(", ")}. The saved API key and secret live in secrets/rentvine-api-credentials.local.md; move them into env vars (or Secret Manager) and add the base URL.`,
+      ? "Local direct-env config: all three names are set."
+      : `Local direct-env config: missing ${readiness.missing_env.join(", ")}. Production Secret Manager bindings are not inspected by this command.`,
   );
-  console.log("Still needed from RentVine's API docs before a real read can be built:");
-  for (const item of readiness.doc_unknowns) {
-    console.log(`  - ${item}`);
-  }
   console.log(
-    "See docs/products/rentvine-connection-setup.md for the full checklist and what gets built once these arrive.",
+    "Production read integration is implemented and verified separately. Renewal write authority remains closed; see docs/products/rentvine-connection-setup.md.",
   );
 
   return readiness;

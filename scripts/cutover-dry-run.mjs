@@ -6,8 +6,8 @@ import { buildCutoverReport, DEFAULT_CUTOVER_SERVICE } from "./build-cutover-rep
 // fixtures. It runs the SAME `buildCutoverReport` the real `npm run cutover:report` runs — only
 // the inputs are fake — so a green run proves the cutover gates compute the expected verdicts
 // before any client GCP project or approved source exists. Pure computation: no gcloud, no
-// network, no Application Default Credentials, no spend against the $10 cap. See
-// docs/client-production-cutover.md ("Dry-run readiness rehearsal").
+// network, no Application Default Credentials, and no provider effect. The tool-linked contract is
+// docs/client-production-cutover.md; current execution truth is docs/environment-handoff.md.
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 

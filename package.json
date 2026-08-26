@@ -2,7 +2,7 @@
   "name": "pmi-kc-kb",
   "version": "0.1.0",
   "private": true,
-  "description": "PMI KC KB internal source-backed knowledge base scaffold.",
+  "description": "PMI KC production operations, lease-renewal, and workflow communications app.",
   "engines": {
     "node": ">=20.19.0",
     "npm": ">=10.0.0"
@@ -25,6 +25,7 @@
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
     "verify:falsification": "node scripts/check-falsification-preflight.mjs",
     "verify:context-freshness": "node scripts/check-context-freshness.mjs",
+    "verify:active-doc-paths": "node scripts/check-active-doc-paths.mjs",
     "verify:spec-traceability": "node scripts/check-spec-traceability.mjs",
     "verify:copy-voice": "node scripts/check-copy-voice.mjs",
     "verify:redaction": "node scripts/check-redaction.mjs",

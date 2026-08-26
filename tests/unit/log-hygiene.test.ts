@@ -15,11 +15,6 @@ import { buildMonitoringPlan, renderMonitoringPlan, resolveMonitoringConfig } fr
 import { REDACTED_TREES, evaluateRedaction } from "../../scripts/check-redaction.mjs";
 
 const OPERATOR_EMAIL = ["log-hygiene-fixture", "pmikcmetro.com"].join("@");
-const OWNER_PACKET = readFileSync(
-  join(process.cwd(), "docs", "s51-production-operations-owner-packet-2026-07-30.md"),
-  "utf8",
-);
-const NORMALIZED_OWNER_PACKET = OWNER_PACKET.replace(/\s+/g, " ");
 const REDACTION_SOURCE = readFileSync(
   join(process.cwd(), "scripts", "check-redaction.mjs"),
   "utf8",
@@ -108,31 +103,6 @@ describe("S51 production log hygiene", () => {
     for (const primitiveRole of ["roles/owner", "roles/editor", "roles/viewer"]) {
       expect(serialized).not.toContain(`--role=${primitiveRole}`);
     }
-  });
-
-  it("keeps the owner packet unapplied, value-free, and honest about inherited access", () => {
-    expect(OWNER_PACKET).toContain("Status: NOT RUN");
-    expect(OWNER_PACKET).toContain("S52 has a reviewed, non-null");
-    expect(OWNER_PACKET).toContain("S40 has settled the exact Production");
-    expect(OWNER_PACKET).toContain("npm run preflight:adc");
-    expect(OWNER_PACKET).toContain("npm run monitoring:plan");
-    expect(OWNER_PACKET).toContain("npm run monitoring:verify");
-    expect(OWNER_PACKET).toContain("LOG_BUCKET_RETENTION_DAYS_BEFORE");
-    expect(OWNER_PACKET).toContain("LOG_VIEWER_BINDING_BEFORE");
-    expect(OWNER_PACKET).toContain("-bindings.condition:*");
-    expect(NORMALIZED_OWNER_PACKET).toContain(
-      "A conditional viewer binding does not count as a pre-existing unconditional grant",
-    );
-    expect(NORMALIZED_OWNER_PACKET).toContain(
-      "Adding the direct viewer binding does not remove an inherited",
-    );
-    expect(NORMALIZED_OWNER_PACKET).toContain(
-      "Fresh setup refuses when any S51 managed channel or policy, or the fixed A2 metric, already exists.",
-    );
-    expect(OWNER_PACKET).toContain("LOG_VIEWER_BINDING_ADDED_BY_THIS_RUN");
-    expect(OWNER_PACKET).toContain("MONITORING_METRIC_CREATED_BY_THIS_RUN");
-    expect(NORMALIZED_OWNER_PACKET).toContain("do not guess ownership");
-    expect(OWNER_PACKET).not.toMatch(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
   });
 
   it("renders checked failure state and run-owned rollback without an empty-value delete shortcut", () => {

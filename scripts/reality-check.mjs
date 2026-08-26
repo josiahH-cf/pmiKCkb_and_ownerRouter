@@ -10,7 +10,7 @@ import { readProductionPreflightEnv } from "./preflight-production-cutover.mjs";
 // "Are we still in sync with reality?" — a FREE, read-only reconcile between what the repo/docs
 // assume and what the live Google project actually shows. Every live call here is a metadata
 // describe/list/get (enabled APIs, the Firestore database, the Firebase project); none run
-// inference, search, import, or any billed operation, so this never spends against the $10 cap. It
+// inference, search, import, or another provider effect. It
 // needs the owner's Application Default Credentials to read live state; without them it reports
 // "unverified" and exits 0 — a stale map is not a failure, just unconfirmed. It never writes.
 
@@ -18,12 +18,12 @@ import { readProductionPreflightEnv } from "./preflight-production-cutover.mjs";
 // coverage than it has. Each is a free metadata read a later pass can add (or the owner can
 // eyeball) — no silent gaps.
 export const NOT_COVERED = [
-  "Cloud Run service status — is the demo still deployed at the recorded URL?",
-  "Billing spend vs the $10 cap, and whether the budget kill switch is still wired.",
-  "Agent Search datastore — how many documents are actually indexed.",
+  "Cloud Run exact service, serving revision, traffic, and runtime configuration.",
+  "Live budget amounts, notification channels, guardrail state/runtime, and effective cap.",
+  "Search datastore inventory and approved-source document counts.",
   "Firebase Auth — the user roster and the allowed-domain (pmikcmetro.com) enforcement.",
   "Drive — the source-folder contents and sharing.",
-  "Gmail — labels, filters, and send authority.",
+  "Gmail — mailbox/watch health, labels, filters, and per-key action authority.",
 ];
 
 function dimension(name, expected, observed, state, extra = {}) {

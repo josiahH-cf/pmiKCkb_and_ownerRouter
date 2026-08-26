@@ -1,223 +1,62 @@
-# Integration Architecture
+# Integration architecture
 
-Verified tool-role architecture, event model, build order, and Action Registry model for PMI KC.
+Updated: 2026-08-26.
 
-- Evidence: `docs/research/integration-capability-2026-06.md`.
-- Client/vendor gaps: `docs/research-backlog.md`, `docs/client-checklist.md`, and the exact
-  recommendation-first `docs/v1-client-unblock-checklist-2026-07-14.md`.
-- Safety: `AGENTS.md` and `docs/north-star.md`.
+## Effect model
 
-## Safety posture
+Every provider capability is one exact Action Registry key. Execution requires:
 
-This document organizes and gates integrations; it does not grant execution. No autonomous send and
-no system-of-record write to Rentvine, LeadSimple, Dotloop, QuickBooks, Boom, operating Sheets,
-banks/ledgers, or client Drive without an approved action spec, preview, confirmation, audit,
-correction/rollback, and tests. The Action Registry is a catalog, not an executor.
+1. committed key is production-allowed;
+2. runtime dependency is configured;
+3. actor is authenticated and authorized;
+4. exact target/source versions are current;
+5. preview and confirmation match;
+6. idempotency is available;
+7. result is receipted and read back;
+8. rollback/correction exists.
 
-Production accepts Live data only. Local rehearsal declares `environmentKind:"demo"`,
-`dataContext:"live_readonly"`, and `source:"explicit"`; it cannot construct or execute a Live
-effect. Deterministic invented records and fake transports remain confined to automated tests. A
-hosted Demo project and fixture seeder are deferred. This environment boundary does not replace
-per-action Registry authorization.
+A category, credential, UI button, or runtime flag cannot imply action authority.
 
-## Tool-role map
+## Current open keys
 
-| Tool          | Architectural role                      | Authoritative for                                         | Not authoritative for                                |
-| ------------- | --------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
-| Rentvine      | Operational system of record            | Leases, properties, contacts, work orders, inspections    | Workflow orchestration; accounting ledger            |
-| LeadSimple    | Workflow orchestration                  | Task sequencing, stages, reminders, notifications         | Core lease truth; creating owners/properties         |
-| Dotloop       | Document-package layer                  | Renewal/signing document packages                         | Lease state; maintenance execution                   |
-| QuickBooks    | Downstream accounting/ledger            | Bills, invoices, payments, financial audit trail          | Property/lease/work-order objects                    |
-| Boom          | Auxiliary resident financial services   | Rent reporting/screening in its supported products        | Lease-state authority; maintenance                   |
-| Google Sheets | Exception/control plane                 | Exception lists, mappings/rates, dashboards               | Canonical lease/work-order/accounting truth          |
-| Gmail         | Workflow communication system of record | Native messages, threads, labels, unsent drafts           | Workflow status, tasks, decisions, operational truth |
-| PMI KC KB     | Workflow-control/record owner           | Workflow run, linkage, proposals, approvals, app activity | Replacing external systems of record                 |
+- `gmail.mailbox.read`
+- `gmail.thread.reply`
+- `gmail.label.apply`
+- `gmail.renewal_notice.draft_create`
+- `gmail.maintenance_owner_notice.draft_create`
+- `rentcast.rental_listings.search`
+- `internal.transactional_notice.send`
 
-Rentvine remains authoritative for the operational records it holds. Gmail remains authoritative for
-message state. PMI KC stores bodyless Gmail linkage and only human-reviewed operational meaning.
+All other keys are closed.
 
-## Event model
+## Providers
 
-| System        | Mode                          | Boundary                                                      |
-| ------------- | ----------------------------- | ------------------------------------------------------------- |
-| Dotloop       | webhook                       | Loop/contact/profile/participant events plus replay           |
-| QuickBooks    | webhook                       | Documented webhooks                                           |
-| Boom          | webhook (vendor packet)       | Advertised; endpoint contract not confirmed                   |
-| Rentvine      | polling or LeadSimple sync    | No public webhooks found                                      |
-| LeadSimple    | LeadSimple sync               | Direct Rentvine sync tier-dependent                           |
-| Google Sheets | Apps Script                   | Simple/installable triggers; exception plane only             |
-| Gmail         | authenticated Pub/Sub webhook | Change signal only; match IDs against existing workflow links |
+| Provider                 | Current role                                                                    | Write/effect state                                         |
+| ------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| RentVine                 | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Renewal dry-preview only; write key closed                 |
+| Google Sheets            | Operating renewal read source                                                   | Operating write off; distinct rehearsal-copy proof pending |
+| RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50         | Exact read key open; never sets offered rent               |
+| Gmail                    | Workflow reads, replies, labels, unsent renewal/maintenance drafts              | Direct/generic notice sends closed                         |
+| Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                           |
+| Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                         |
+| Dotloop                  | Typed packet/binding seam                                                       | OAuth/mapping/provider activation pending                  |
+| LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                        |
+| Resident/Vendor channels | App-plane intake/work seams                                                     | Exact provider/identity activation pending                 |
 
-Gmail push processing may advance cursor/dedupe state and create value-free linked attention. It may
-not fetch unrelated content, invoke AI, create a task, change workflow state, or send.
+## RentVine write boundary
 
-## Build order and process chains
+The write client exposes only documented lease update and existing recurring-charge update POSTs.
+It has no generic request, delete, new-charge, status-change, or production factory. S30 controls any
+future one-record proof.
 
-1. Maintenance Work Order Intake is a working in-app workflow. Its former persistent Production
-   Test journey is retained as historical contract evidence and deterministic automated tests, not
-   as a product lane. Activate each Live Rentvine/LeadSimple/QuickBooks action independently as its
-   exact contract/mapping becomes ready.
-2. Renewal read/gather/reconcile/review is Live-capable and the complete action graph has verified
-   deterministic automated evidence; S43 exposes it through one desk/unit shape in Production.
-   Rentvine renewal mutation remains unavailable until its actual supported contract is known.
-3. Workflow Communications supplies evidence and reviewed communication steps inside those products;
-   it is not a standalone inbox lane and creates no external-system authority.
+## Sheet boundary
 
-Lease renewal:
+`RENEWAL_SHEET_ID` is the operating read source.
+`RENEWAL_REHEARSAL_SHEET_ID` is an optional distinct copy. Equality refuses. The copy proof is
+blank-cell compare-and-set, readback, exact clear, and final blank verification.
 
-`candidate detection -> owner communication/decision -> multichannel tenant outreach ->
-document package -> signature/confirmation -> gated SoR update -> verification -> closeout`
+## Messaging boundary
 
-Maintenance:
-
-`intake -> KB ticket/review -> owner/vendor communication as approved -> gated Rentvine work order ->
-LeadSimple orchestration -> status verification -> downstream accounting/exception coordination`
-
-Email activity alone does not complete renewal outreach/consent, choose a maintenance vendor,
-approve cost, transition a ticket, or write a system of record.
-
-## Action Registry model
-
-One record exists per external action type. Records live in server-write-only `action_registry` and
-are seeded via `npm run seed:action-registry`. Each record contains:
-
-| Field                                                 | Meaning                                              |
-| ----------------------------------------------------- | ---------------------------------------------------- |
-| `key`                                                 | Stable action slug                                   |
-| `label`, `expected_action`, `product_lane`            | Human purpose and owning product                     |
-| `target_system`                                       | External target                                      |
-| `readiness`, `evidence_status`, `documented_evidence` | Readiness/evidence gate                              |
-| `required_permissions`, `required_plan`               | Target permissions/tier                              |
-| `event_ingestion_mode`                                | Resulting-state event mechanism                      |
-| `preview_schema_note`, `preview_payload_schema`       | Exact governed preview fields                        |
-| `test_notes`, `rollback_note`                         | Falsification and correction/rollback                |
-| `connection_health_check_ref`                         | Deterministic health contract                        |
-| `production_allowed`                                  | Explicit production execution gate; false by default |
-
-`validatePreviewPayload` requires exactly the declared fields, required values, and matching types;
-undeclared fields fail. `production_allowed:true` requires `Approved for Execution` plus `Documented`
-evidence. Runtime routes must also enforce identity, entity authorization, roles, governed artifacts,
-confirmation, and audit. A true transport entry alone never authorizes arbitrary end-user behavior.
-
-The catalog has 38 entries. Activation is per action and does not define whether the application is
-V1. S22/S25/S26 include account/OAuth/Vendor-mail/renewal-send/portal/SMS/assignment and
-maintenance-owner actions with independent states.
-Current internal Gmail transport subset (new closed S25/S26 and external Vendor Gmail keys are listed
-in their suite matrices):
-
-| Key                                           | State            | Product boundary                                                                                                                                                                                                               |
-| --------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gmail.mailbox.read`                          | Approved / true  | Profile/history/watch and a deliberately linked thread in the signed-in mailbox; no arbitrary inbox query/list                                                                                                                 |
-| `gmail.thread.reply`                          | Approved / true  | Linked reply transport only; internal Editor/Admin exact-confirms enabled Medium work; approved template required                                                                                                              |
-| `gmail.draft.create`                          | Test / false     | Linked unsent reply-draft transport; Live stays closed until exact confirmation, idempotency/one-attempt, UI review, and receipt are implemented                                                                               |
-| `gmail.label.apply`                           | Approved / true  | One approved label plus fixed governed rule and human reason on a linked thread                                                                                                                                                |
-| `gmail.message.send`                          | Disabled / false | Generic new-message compose/send is not exposed                                                                                                                                                                                |
-| `gmail.renewal_notice.draft_create`           | Approved / true  | Authorized for production (2026-07-19, F-SEND-AUTHORIZED): draft-into-Gmail, human sends. The sample desk stays preview-only at the route (data safety), not the gate; a real draft needs a real run + authoritative recipient |
-| `gmail.maintenance_owner_notice.draft_create` | Planned / false  | Needs verified owner contact, trigger, and approved template                                                                                                                                                                   |
-
-The four approved Gmail scopes are unchanged. `gmail.compose` is send-capable, so the no-send and
-workflow-only boundaries come from route/action/role/template/exact-confirmation code and tests.
-
-### Product and provider contract
-
-R01–R09 settle product scope. S20 gives internal Editors enabled Low/Medium execution, routes
-consequential High work to Admin, permits Admin self-approval, and preserves technical Blocked gates.
-S25 requires app-executed Lease Gmail, Sheet, Rentvine, Dotloop, portal-chat, SMS, and conditional Boom.
-S26 requires Vendor account/mailbox, Drive photo, Rentvine create/assign/update/close, owner/vendor mail,
-LeadSimple, and QuickBooks draft-bill execution. S22 adds an assigned-ticket-only external Vendor using
-verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. Invented Vendor identities and
-no-provider mailbox/action journeys are now deterministic automated-test fixtures only. Within those
-tests, the retired Test reset/re-enable contract still exercises UID rotation, stale-session denial,
-and partial-reset refusal; it is not the Live setup contract. Product routes operate on real,
-assigned Live Vendors only.
-
-The product is ready when these workflows work in their environment-correct paths. A Live provider
-action is enabled only with documented evidence, exact permission/identity/mapping, target/effect
-preview, human confirmation, idempotency, audit, reconciliation/rollback, tests, and monitoring. An
-undocumented action remains unavailable without relabeling the application.
-
-The retired Production Test workspace historically exercised all 11 S25 and 19 S26 action adapters
-plus the complete S22 Vendor identity/mail journey against invented aliases. Deterministic automated
-tests retain the exact Registry preview schemas, immutable S20 risk/authority, same-workflow
-dependency receipts, one-attempt execution, readback, and reconciliation. Production now rejects
-fixture aliases and non-Live adapters and contains zero `data_mode:"test"` records across the 28
-governed collections. Local rehearsal is explicitly Live-read-only and cannot execute an app or
-provider mutation. This evidence proves application behavior, not an account-specific provider
-contract or Live action.
-
-Promote one action only after its row in `docs/v1-client-unblock-checklist-2026-07-14.md` has the named
-official/account evidence, authoritative mapping, credential-owner/location label, separately permitted
-bounded proof, bodyless receipt/readback, monitor, correction path, code review, and exact authority.
-Automated-test receipts can satisfy deterministic product-contract acceptance and can never satisfy
-Live-provider proof.
-
-## Environment and data-context boundary
-
-- Production resolves only its explicit Live context; missing, unknown, Demo, or Test classification
-  is rejected at product intake.
-- Reserved invented unit/Vendor/email aliases cannot be assigned to Production Live records.
-- Browser state cannot select an environment, provider adapter, or execution context.
-- Local rehearsal resolves `environmentKind:"demo"` plus `dataContext:"live_readonly"` with
-  `source:"explicit"` and refuses every mutation. A hosted Demo environment is not provisioned.
-- External action identity, idempotency key, context hash, record, receipt, and audit bind the
-  environment and data context.
-- Invented Maintenance/Vendor state and fake adapters exist only in deterministic automated-test
-  helpers; no product route seeds or persists them.
-- The Live Vendor invite seam uses a deterministic Firebase identity, exact Gmail
-  Message-ID/recipient readback, a one-time fragment-to-body setup challenge, and generation-bound
-  reissue/recovery. Disable verifies the exact access cutoff and revocation boundary. Invite,
-  assignment-change, and disable remain Production-closed until their named-key activation review.
-
-## Provider destination boundary
-
-S44 gives every supported provider a reviewed outbound destination independently of action
-activation. Prefer a verified exact record/source URL; otherwise use the provider’s allowlisted
-HTTPS front door labeled `Exact record link unavailable`. A generic destination is navigation only,
-never evidence, provider readiness, or permission, and no record path may be guessed.
-
-## Gmail-to-workflow source and write model
-
-`WorkflowCommunicationContext` names lane, entity, purpose, action, source references, and optional
-template version. It is an untrusted browser reference until the server loads the entity and verifies
-space capability. A `WorkflowCommunicationLink` stores only actor/mailbox keys, workflow reference,
-Gmail IDs, artifact references, hashes, status, timestamps, and expiry.
-
-AI-assisted thread understanding is explicit and on-demand. Unknown/excluded categories are rejected
-before Gmail/model construction; detected excluded intent is rejected before the model call. Results
-are transient `Needs Review` proposals with Gmail provenance. There is currently no reviewed commit
-model for derived facts/tasks/status, so output is not persisted or applied.
-
-No Gmail result directly writes Rentvine, LeadSimple, Dotloop, QuickBooks, Boom, Sheets, Drive, banks,
-or client records. S25/S26 executors consume separately approved workflow facts through their own
-registry key, preview, risk, approval, idempotency, and reconciliation; email/model output alone cannot
-trigger them.
-
-## Connection health and retention
-
-Each registry entry points to a deterministic health-check contract in
-`lib/integrations/health-checks.ts`. Gmail watch renewal is manual and observable. S24 encodes
-confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync audit
-90 days, workflow link 365 days from last authorized update, bodyless send/write/workflow audit 7
-years, and no persisted V1 AI/extracted Gmail facts. Admin legal hold and a later written policy
-override deletion. The V1 safe default is bounded on-demand cleanup plus health reporting. Firestore
-TTL (canonical Date/Timestamp `expires_at`), extra indexes, and Scheduler automation are optional
-volume-driven optimizations. A bodyless run ledger makes deletion counts crash-resumable; no mutable
-environment value can widen policy.
-
-## Vendor-confirmation matrix
-
-| Capability                          | Status                                 | Action                                                                                                                                                                  |
-| ----------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rentvine maintenance writes         | Documented capability; execution gated | First external-write candidate after approved action gate                                                                                                               |
-| Rentvine lease-renewal writeback    | Undocumented                           | Keep non-executable; request vendor docs                                                                                                                                |
-| Rentvine webhooks                   | None found                             | Polling / LeadSimple sync                                                                                                                                               |
-| LeadSimple endpoint coverage        | Vendor confirmation required           | Confirm endpoints and Operations plan                                                                                                                                   |
-| Dotloop signing lifecycle           | Vendor confirmation required           | Confirm signature-state semantics                                                                                                                                       |
-| Boom endpoint contract              | Vendor confirmation required           | Request API/vendor packet                                                                                                                                               |
-| Gmail outbound Vendor communication | Live per Vendor; action keys closed    | Historical synthetic mailbox behavior remains automated-test evidence only; activate one real Vendor's same-address OAuth/vault/consent and exact named keys separately |
-
-## Source normalization
-
-Client workbooks mix legacy and current terminology. Before a connector touches a live system, freeze
-canonical stages, systems, IDs, and approval points. Missing/conflicting authoritative sources must be
-visible and block external drafting/writing where required; they are not filled by email or a model.
+Renewal and maintenance notices are drafts. A human sends them from Gmail. The narrow internal
+transactional notice key may send only its allowlisted metadata-only internal notification; it does
+not widen any client communication path.

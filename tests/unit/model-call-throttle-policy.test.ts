@@ -18,6 +18,7 @@ interface DocumentedThrottle {
 
 const POLICY_PATH = join(process.cwd(), "docs/budget-and-cost-policy.md");
 const policy = readFileSync(POLICY_PATH, "utf8");
+const normalizedPolicy = policy.replace(/\s+/g, " ");
 
 function readDocumentedThrottle(route: string): DocumentedThrottle {
   const row = policy
@@ -91,11 +92,15 @@ describe("S52-J paid-model throttle policy", () => {
 
   it("keeps the third layer distinct from posture checks and global enforcement", () => {
     expect(policy).toContain("## Three-layer cost-control model");
-    expect(policy).toContain(
+    expect(normalizedPolicy).toContain(
       "It does not read spend and is not a dollar-enforcement point.",
     );
-    expect(policy).toContain("It bounds total project spend, not one user's call rate.");
-    expect(policy).toContain("best-effort, in-memory, per-instance burst controls");
-    expect(policy).toContain("they do not make a billed model call eligible");
+    expect(normalizedPolicy).toContain(
+      "It bounds total project spend, not one user's call rate.",
+    );
+    expect(normalizedPolicy).toContain(
+      "best-effort, in-memory, per-instance burst controls",
+    );
+    expect(normalizedPolicy).toContain("they do not make a billed model call eligible");
   });
 });

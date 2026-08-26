@@ -17,11 +17,11 @@ const NORMALIZED_ADMIN_PANEL = ADMIN_PANEL.replace(/\s+/g, " ");
 
 describe("S51 production incident contract", () => {
   it("pins both severities, both acknowledgement windows, and the same-day Dan rule", () => {
-    expect(RUNBOOK).toContain("Sev-1: client-visible or containment-required");
-    expect(RUNBOOK).toContain("30 minutes during business hours");
-    expect(RUNBOOK).toContain("Sev-2: degraded but contained");
-    expect(RUNBOOK).toContain("one business day");
-    expect(RUNBOOK).toContain(
+    expect(NORMALIZED_RUNBOOK).toContain("Sev-1: client-visible or containment-required");
+    expect(NORMALIZED_RUNBOOK).toContain("30 minutes during business hours");
+    expect(NORMALIZED_RUNBOOK).toContain("Sev-2: degraded but contained");
+    expect(NORMALIZED_RUNBOOK).toContain("one business day");
+    expect(NORMALIZED_RUNBOOK).toContain(
       "Report any wrong client-facing output to Dan on the same day it is discovered.",
     );
   });

@@ -25,7 +25,7 @@ const cheapLive = {
 };
 
 describe("budget guard", () => {
-  it("pins the documented $10 cap", () => {
+  it("pins the conservative local planning fallback", () => {
     expect(BUDGET_CAP_USD).toBe(10);
   });
 

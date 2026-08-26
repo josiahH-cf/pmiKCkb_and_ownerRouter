@@ -1,6 +1,6 @@
 # Work accountability permitted-data contract
 
-**Status:** implementation boundary for S68, approved 2026-08-10 and recorded 2026-08-11.
+**Status:** current implementation boundary, reconciled 2026-08-26.
 
 S68 records explicit internal assignments and user-started work sessions. It is not presence,
 surveillance, payroll, performance management, or a replacement for the linked product workflow.

@@ -1,9 +1,20 @@
-# Budget Guardrail — hard-cap kill switch
+# Budget guardrail
 
-A Cloud Function (2nd gen) that **disables the project's billing** when a Cloud Billing budget
-reports cumulative cost has reached the cap. This is the only layer that can truly stop spend — a
-GCP budget alert by itself only _notifies_. See `docs/budget-killswitch.md` for the full design and
-`docs/budget-and-cost-policy.md` for how it fits the $10 policy.
+This second-generation Cloud Function can disable project billing when a Cloud Billing notification
+reaches the effective hard ceiling. Disabling billing also takes the application down, so the
+project's lower alert-only budget is an essential early-warning control.
+
+Live readback on 2026-08-26 verified:
+
+- function `budget-guardrail` is ACTIVE on Node.js 22;
+- `KILL_SWITCH_CAP_USD=100`;
+- the project hard-stop budget is $100;
+- the project alert-only budget is $25; and
+- the account alert backstop is $100.
+
+The repository's legacy local planning guard may still use a stricter fallback. It is not the live
+Cloud Billing ceiling. Never redeploy this function without explicitly preserving the verified live
+cap and reading the function plus budgets back.
 
 ## How it works
 
@@ -15,8 +26,8 @@ Cloud Billing budget (on the billing account, scoped to the project)
             clear the project's billingAccountName  ==> billing disabled, spend stops
 ```
 
-The kill switch's ceiling is its own `KILL_SWITCH_CAP_USD` (default 10), and it uses the **smaller**
-of that and the budget's own amount — so a mis-set budget can never silently raise the real cap.
+The function uses the **smaller** of `KILL_SWITCH_CAP_USD` and the budget notification's amount.
+This prevents either configuration from silently raising the effective ceiling.
 
 ## Files
 
@@ -35,16 +46,17 @@ against the exact JSON Cloud Billing publishes, with an injected mock billing cl
 disable call fires with `billingAccountName: ""` over the cap, no-ops below it, and no-ops when
 billing is already disabled — with zero live calls.
 
-## Provisioning (owner-side, gated)
+## Change procedure
 
-Creating the budget, deploying the function, and granting it billing IAM (Project Billing Manager,
-project-scoped — least privilege) are billing-console + cost-bearing actions (a governance Hard
-Stop). Generate the exact, ready-to-run commands with:
+Generate a print-only plan with:
 
 ```
 npm run killswitch:plan          # prints the runbook with this project's identifiers
 ```
 
-Then run them while authenticated as `josiah@pmikcmetro.com`. **Never test the disable path against
-the production project** (it would take the live app down) — use the safe no-op wiring test the
-runbook prints, or trip a throwaway project. See `docs/budget-killswitch.md`.
+Apply changes only under the cloud authority and protected-path rules in `AGENTS.md`, using a managed
+identity. Read back budgets, channels, function runtime/state, service identity, and environment.
+
+**Never test the disable path against the production project.** Use the print-only/no-op wiring proof
+or an isolated throwaway project. Current policy and incident response live in
+`docs/budget-and-cost-policy.md` and `docs/production-incident-runbook.md`.

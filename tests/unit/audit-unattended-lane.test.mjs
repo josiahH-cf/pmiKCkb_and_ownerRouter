@@ -452,27 +452,3 @@ describe("AC-S69-31 — interruption recovery and clean exit", () => {
     expect(held.problems).toHaveLength(2);
   });
 });
-
-describe("S69 spec and resume state carry the superseding authority", () => {
-  it("names FB-HVSESSION-012 and the new acceptance ids in the spec", async () => {
-    const { readFileSync } = await import("node:fs");
-    const spec = readFileSync(
-      "docs/feature-suites/human-verification-session-and-evidence-reliability.md",
-      "utf8",
-    );
-    expect(spec).toContain("FB-HVSESSION-012");
-    for (let n = 24; n <= 31; n += 1) {
-      expect(spec).toContain(`**AC-S69-${n}**`);
-    }
-    // The superseded sentence must be GONE, not merely annotated.
-    expect(spec).not.toContain("controller as a fallback unless a later explicit user");
-  });
-
-  it("records the controller authorization in the resume state", async () => {
-    const { readFileSync } = await import("node:fs");
-    const state = readFileSync("docs/pmi-kc-human-verification-resume-state.md", "utf8");
-    expect(state).toContain("custom_browser_controller_allowed: true");
-    expect(state).toContain("unattended_run_mode:");
-    expect(state).not.toContain("custom_browser_controller_allowed: false");
-  });
-});

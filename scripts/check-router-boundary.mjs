@@ -7,23 +7,26 @@ const requiredFiles = [
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
+  "SETUP.md",
+  "docs/README.md",
   "docs/spec.md",
-  "docs/specs/spec-1-technical-spec.md",
-  "docs/specs/spec-2-technical-spec.md",
-  "docs/specs/spec-3-operating-north-star-spec.md",
-  "docs/specs/spec-4-implementation-meta-implementation-spec.md",
   "docs/autonomous-agent-runner.md",
-  "docs/autonomous-feature-cycle-packet-template.md",
   "docs/facts.md",
+  "docs/status.md",
   "docs/loop-state.md",
+  "docs/plan.md",
   "docs/temp/README.md",
-  "docs/legacy/owner-router-artifact-source.md",
   "docs/north-star.md",
+  "docs/engineering.md",
+  "docs/environment-handoff.md",
+  "docs/integration-architecture.md",
+  "docs/feature-suites/README.md",
+  "docs/products/README.md",
   "docs/products/pmi-kc-kb.md",
   "docs/products/lease-renewal-agent.md",
   "docs/products/gmail-inbox-zero.md",
-  "docs/router-repo.md",
-  "docs/legacy/owner-router-separate-repo.md",
+  "docs/client-production-cutover.md",
+  "docs/away-mode.md",
 ];
 
 for (const file of requiredFiles) {
@@ -57,25 +60,17 @@ for (const expected of [
   }
 }
 
-assertIncludes("docs/router-repo.md", [
-  "Superseded",
-  "Workflow Communications",
-  "docs/products/gmail-inbox-zero.md",
-  "docs/legacy/owner-router-separate-repo.md",
-]);
-
 assertIncludes("docs/products/gmail-inbox-zero.md", [
-  "Workflow Communications Product Lane",
+  "Workflow Communications product lane",
   "workflow communication adapter",
-  "No autonomous send",
-  "docs/feature-suites/gmail-live-per-user.md",
-  "gmail.readonly",
-  "exact-confirmed",
-  "docs/legacy/owner-router-artifact-source.md",
+  "No autonomous client-facing send",
+  "unsent draft",
+  "A human sends from Gmail",
 ]);
 
 const productReadme = assertIncludes("docs/products/README.md", [
   "Workflow-linked Gmail adapter",
+  "not separate Demo products",
 ]);
 
 if (productReadme.includes("Dan-email-first Gmail workflow")) {
@@ -85,97 +80,127 @@ if (productReadme.includes("Dan-email-first Gmail workflow")) {
 }
 
 const agentsDoc = assertIncludes("AGENTS.md", [
-  "docs/autonomous-agent-runner.md",
+  "Truth precedence",
+  "Present production truth",
+  "Permanent safety boundaries",
+  "Action authority",
+  "Protected paths",
+  "Documentation hygiene",
   "docs/environment-handoff.md",
   "docs/facts.md",
-  "docs/legacy/owner-router-artifact-source.md",
+  "docs/README.md",
   "docs/temp/",
   "CLAUDE.md",
 ]);
 
-if (
-  agentsDoc.includes(
-    "Autonomous feature-cycle runner  | `docs/ai-execution-workflow.md`, `docs/agent-runner/`",
-  )
-) {
-  throw new Error("AGENTS.md still routes autonomous cycles to the prompt pack.");
+for (const stalePath of [
+  "docs/ai-execution-workflow.md",
+  "docs/agent-runner/",
+  "docs/legacy/",
+  "docs/specs/",
+]) {
+  if (agentsDoc.includes(stalePath)) {
+    throw new Error(`AGENTS.md still routes to removed context: ${stalePath}`);
+  }
 }
 
 assertIncludes(
   "CLAUDE.md",
-  ["AGENTS.md", "docs/autonomous-agent-runner.md"],
+  ["AGENTS.md", "docs/facts.md", "docs/loop-state.md", "no independent authority"],
   "CLAUDE.md compatibility pointer",
 );
 
 // Runner-neutral routing: AGENTS.md is the single source. Claude keeps a compatibility
-// pointer, and Codex reads the shared router directly with no tracked harness config.
+// pointer, and Codex reads the shared router directly with no tracked harness configuration.
 // Adding a new runner means documenting its pointer here, not moving rules into a
 // runner-specific file.
 assertIncludes(
   "AGENTS.md",
   [
-    "Per-Runner Pointers",
+    "Per-runner pointers",
     "runner-neutral",
     "CLAUDE.md",
-    "no repo-tracked harness config",
+    "no repo-tracked harness configuration",
   ],
   "AGENTS.md per-runner routing",
 );
 
 assertIncludes("README.md", [
-  "docs/autonomous-agent-runner.md",
+  "docs/README.md",
+  "docs/facts.md",
+  "docs/loop-state.md",
   "docs/environment-handoff.md",
-  "docs/autonomous-feature-cycle-packet-template.md",
-  "docs/legacy/owner-router-artifact-source.md",
-  "docs/temp/",
+  "Git at `1356918`",
+  "Production is explicit Live-only",
 ]);
 
-assertIncludes("docs/ai-execution-workflow.md", [
-  "docs/autonomous-agent-runner.md",
-  "docs/temp/",
-  "docs/autonomous-feature-cycle-packet-template.md",
+assertIncludes("SETUP.md", [
+  "Demo + Live-read-only",
+  "refuse every durable write and provider effect",
+  "Do not run a live RentVine or Sheet write",
 ]);
 
-assertIncludes("docs/implement.md", ["docs/autonomous-agent-runner.md", "docs/temp/"]);
+assertIncludes("docs/README.md", [
+  "Read order",
+  "Tool-linked compatibility contracts",
+  "Git commit `1356918`",
+  "as current context",
+]);
 
 assertIncludes("docs/environment-handoff.md", [
-  "Do not put secrets",
-  "Non-Secret Source Artifact Registry",
-  "C:\\Users\\josia\\Documents\\github-windows\\pmi-kc-owner-router",
-  "Environment Registry",
-  "Key And Secret Ownership",
-  "Manual Setup And Web-App Testing",
-  "Handoff Checklist",
+  "Production + Live",
+  "pmi-kc-app-rmtafuqbg-4e2e4ffe0f48",
+  "Sheet write-back",
+  "Current rollback",
+  "captured this command but did not execute",
 ]);
 
 assertIncludes("docs/autonomous-agent-runner.md", [
-  "let's plan the next feature run cycle",
+  "## Intake",
+  "## Plan",
+  "## Build",
+  "## Verify",
+  "## Ship",
+  "## Record",
+  "## Stop",
   "docs/temp/",
-  "docs/environment-handoff.md",
-  "docs/legacy/owner-router-artifact-source.md",
-  "End-State First Planning",
-  "Approval And Execution Gates",
-  "Secrets And Environments",
-  "Unattended Implementation Loop",
-  // Renamed from "Commit Queue" on 2026-07-29: owner decisions D04/D05 replaced the
-  // prepare-a-queue-and-ask rule with a standing commit/push/deploy grant. The section must
-  // still exist and still document how the runner ships — only its identity changed.
-  "Commit, Push, And Deploy Authority",
-  "Stale Context Retirement",
-  "Final Handoff",
+  "zero-traffic candidate",
+  "Documentation-only changes",
 ]);
 
-assertIncludes("docs/legacy/owner-router-artifact-source.md", [
-  "C:\\Users\\josia\\Documents\\github-windows\\pmi-kc-owner-router",
-  "source material, not active governance",
-  "The active product lane is Gmail Inbox 0",
-  "Do not revive the separate Owner Router product direction",
+assertIncludes("docs/integration-architecture.md", [
+  "Every provider capability is one exact Action Registry key",
+  "All other keys are closed",
+  "RentVine write boundary",
+  "Sheet boundary",
+  "A human sends them from Gmail",
 ]);
 
 assertIncludes("docs/temp/README.md", [
   "Do not store secrets",
-  "Promote durable decisions",
-  "docs/autonomous-agent-runner.md",
+  "not part of the active documentation set",
+  "loaded as default context",
+  "potentially stale",
+]);
+
+assertIncludes("docs/feature-suites/README.md", [
+  "only current operating contracts",
+  "S64",
+  "NOT authorized",
+  "authoritative for planning",
+]);
+
+assertIncludes("docs/client-production-cutover.md", [
+  "Production cutover compatibility contract",
+  "docs/environment-handoff.md",
+  "Production smoke checklist:",
+  "not authorize a deployment",
+]);
+
+assertIncludes("docs/away-mode.md", [
+  "AWAY_MODE_STATUS: INACTIVE",
+  "grants no authority",
+  "Current authority and safety live",
 ]);
 
 const runtimeRoots = ["app", "components", "lib"];

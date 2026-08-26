@@ -1,76 +1,45 @@
-# Audience Profile & Copy Voice
+# Voice and audience
 
-The foundation every client-facing string inherits. Pair this with `docs/feature-suites/voice-copy.md`
-(the copy inventory and the keep/rewrite/delete verdicts).
-
-## North Star
-
-One operations product where PMI KC's team runs recurring work from validated sources. The app
-proposes; the permitted human decides and exact-confirms effects; nothing touches a system of record
-without its action contract. Front-facing simplicity is backed by deterministic workflows.
+Updated: 2026-08-26.
 
 ## Audience
 
-- **Primary — PMI KC operators / property managers (e.g. Dan, Josiah, team).** Operationally expert,
-  not engineers. Time-poor, working a queue. They want fewer clicks, trustworthy status, and to never
-  wonder "is this real or a placeholder?" They do **not** want internal vocabulary ("source of truth,"
-  "production_allowed," "Phase-2a").
-- **Secondary — the owner/admin.** Manages connections, governance, and approvals. Tolerates a little
-  more detail, but still wants plain language and a real kill switch over alerts.
-- **External Vendor.** A separately authenticated assigned-ticket user. Copy must make scope, next
-  action, and communication boundaries obvious without exposing internal tools.
-- **Resident intake user.** Uses one short-lived Maintenance link without another login. Copy is
-  mobile-first, calm, task-specific, and never implies diagnosis, legal admission, or automatic
-  charge.
-- **Recipients — tenants / owners / vendors.** External draft/send copy must read like a top-tier
-  property manager wrote it and retain the human-review boundary.
+- PMI KC operators and property managers are operational experts, not engineers. They need a clear
+  next action, trustworthy status, and no ambiguity about whether a control is real.
+- Admins manage connections, policy, approvals, and rollback. Show useful technical detail only when
+  it supports a decision.
+- Vendors see only their assigned work and need plain scope/status language.
+- Residents use a short, calm, mobile-first intake flow that never implies diagnosis, liability, or
+  an automatic charge.
+- Owner, resident, and Vendor communication must read like a careful property manager wrote it and
+  preserve human review.
 
-## Voice rules
+## Copy rules
 
-- Plain, confident, present-tense, specific. Write what is true now.
-- No internal jargon in user-facing copy. Translate system terms to operator language.
-- No future-promises in the UI ("available in the next release"). If a feature isn't available, don't
-  render a dead control that advertises it.
-- No status that over-claims (e.g. "PMI will verify and connect" before verification exists).
-- Errors and empty states are plain and actionable, never raw or technical.
-- Drafts that may be sent externally keep the human-review boundary (`Draft — Review before sending`).
+- Use plain, confident, present-tense sentences that say what is true now.
+- In body copy, call the product “the app.” Reserve product names for navigation/header context.
+- Say what a control reads, checks, drafts, or changes. Avoid abstract value language.
+- Remove unavailable/dead controls instead of promising a future release.
+- Make uncertainty explicit and actionable: use Needs Verification and name the missing input.
+- Never imply that a credential, connection, or button grants write/send authority.
+- Renewal and maintenance notices say `Draft — Review before sending` and never imply they were sent.
+- Use no em dash in operator/client copy except the required draft banner. An en dash is acceptable
+  for numeric ranges.
+- Errors and empty states describe the safe next step without raw stack/provider jargon.
+- Use the provider spelling `RentVine`.
 
-### Voice rules v2 (S13, 2026-07-02 — `F-VOICE-2`)
+## Operator-language map
 
-These three durable rules were added after the pre-customer copy pass and are enforced by
-`npm run verify:copy-voice` (`scripts/check-copy-voice.mjs`), so the fixes cannot silently regress:
+| Internal term                            | Operator wording                               |
+| ---------------------------------------- | ---------------------------------------------- |
+| source of truth                          | leases, tenants, rent, or the named source     |
+| `production_allowed` / Registry eligible | Available / Review connection                  |
+| raw reconciliation                       | Compare sources                                |
+| bodyless receipt                         | Activity record                                |
+| system-of-record write                   | the exact provider change                      |
+| Demo/Test mode                           | Local rehearsal                                |
+| synthetic fixture                        | automated-test data (never show in Production) |
+| control plane                            | say what the page reads, checks, or changes    |
 
-- **No em dashes in user-facing copy.** Use a period, comma, or parentheses instead. The only
-  allowed em dash is the verbatim `DRAFT_BANNER` ("Draft — Review before sending"); numeric ranges
-  use an en dash ("$1,500–$1,700"), which is fine.
-- **The app calls itself "the app."** In body copy the product refers to itself as "the app"; the
-  product name appears only in the header lockup. Never say a person or vendor does the work for the
-  user ("PMI handles the setup for you") when the app does it.
-- **Every description says what the thing does, in one concrete present-tense sentence.** No abstract
-  value-prop phrases ("the exception and control plane"). Say what it reads, writes, or checks.
-
-## Do / don't lexicon
-
-| Don't say (internal)                                | Say (operator)                                          |
-| --------------------------------------------------- | ------------------------------------------------------- |
-| read-authoritative source of truth                  | leases, tenants, and rent                               |
-| Available in the next release.                      | (remove the control; show nothing)                      |
-| All details provided — PMI will verify and connect. | Ready to connect                                        |
-| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_       |
-| KB-owned process space                              | Process space                                           |
-| Read-only source space                              | Source space                                            |
-| Sample / persistent Test / simulation-only          | (remove from product; keep fixtures in automated tests) |
-| production_allowed / Registry eligible              | Available / Review connection                           |
-| raw reconciliation                                  | Compare sources                                         |
-| bodyless receipt                                    | Activity record                                         |
-| Final-V1 external execution                         | Provider action                                         |
-| Test environment (operator copy)                    | Local rehearsal                                         |
-| live/test mode selector in Production               | (remove; Production is Live-only)                       |
-| the exception and control plane                     | (say what it reads/writes/checks)                       |
-| PMI handles the setup for you                       | the app stores the credentials and checks it            |
-| Rentvine (read-authoritative)                       | RentVine _(display seam; internal id unchanged)_        |
-
-The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).
-
-Technical values remain available in Connections/Admin Advanced diagnostics; this lexicon governs
-daily operator, Vendor, and resident surfaces. `Test` is reserved for engineering verification.
+Technical values may appear in Admin diagnostics when they are necessary to investigate a problem.
+They do not belong in the daily operator, Vendor, resident, or client-facing surface.

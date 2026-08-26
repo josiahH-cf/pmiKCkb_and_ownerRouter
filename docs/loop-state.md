@@ -1,138 +1,60 @@
-# Loop State
+# Loop state
 
-Read `docs/facts.md` first. This is the short resume pointer; history is `docs/status.md`.
+Read `AGENTS.md` and `docs/facts.md` first.
 
-Last updated: 2026-08-26 (meeting-readiness implementation and adversarial lanes green; canonical gate and release in progress).
+Last updated: 2026-08-26
 
 ```yaml
-last_updated: 2026-08-26
-active_program: PMI_KC_MEETING_READINESS_2026_08_26
-program_suites: S59 + S68 amendment + S73 + S76 (S64 remains unauthorized)
-spec_writing_allowed: true
-loop_execution_allowed: true
-loop_commit_push_allowed: true
-loop_deploy_allowed: true
-provider_interleave_allowed: true
-spec_package_status: COMPLETE
-implementation_status: BUILT_ADVERSARIAL_LANES_GREEN_CANONICAL_GATE_AND_RELEASE_PENDING
-next_suite: S72_S75_CHERRY_BRIDGE_REMAINDER
-next_spec: NONE
-session_auth_status: GREEN_MANAGED_WINDOWS_CLI_ADC_WSL_ADC_FIREBASE_RUNTIME_END_USER_CONFIG_BUILD
-active_slice: FULL_GATE_COMMIT_PUSH_EXACT_REVISION_RELEASE
-next_slice: CLIENT_PROCESS_INPUTS_AND_REHEARSAL_COPY_PROOF
-last_completed_slice: MEETING_READINESS_IMPLEMENTATION_BODYLESS_DIAGNOSTIC_AND_ADVERSARIAL_VERIFICATION
-runtime_action_gates_preflipped: rentcast.rental_listings.search
-human_audit_status: COMPLETE_12_OF_12_TERMINAL_2026-08-25
-human_audit_next_item: NONE_ALL_TWELVE_TERMINAL
-human_audit_auth_status: NOT_BLOCKING_AUDIT_CLOSED_MANAGED_CLI_ADC_GREEN
-human_audit_effect_in_flight: false
-human_audit_launcher: docs/meta-prompts/pmi-kc-human-verification-resume.md
+active_program: CLIENT_PROCESS_VALIDATION
+implementation_status: CODE_DEPLOYED
+documentation_status: CURRENT_AND_VERIFIED
+production_service: pmi-kc-app
+production_revision: pmi-kc-app-rmtafuqbg-4e2e4ffe0f48
+production_commit: 13569183da57c419ac0da279dde5a6d6a0b0da14
+production_traffic_percent: 100
+environment: production_live
+next_slice: CAPTURE_CLIENT_PROCESS_ANSWERS
+provider_write_in_flight: false
+rentvine_write_allowed: false
+operating_sheet_write_allowed: false
+rehearsal_sheet_configured: false
+s64_authorized: false
 ```
 
-## Human verification: closed 12/12 — 2026-08-25
+## Current outcome
 
-- Record: `docs/pmi-kc-human-verification-resume-state.md`,
-  `docs/pmi-kc-human-audit-response-20260817T104500Z-model-audit.json`, and
-  `docs/meta-prompts/pmi-kc-human-verification-resume.md`.
-- Final result: 12/12 terminal — 5 Pass, 1 Fail, 6 Blocked, `overall_result: complete`.
-- The one Fail and the six Blocked are recorded outcomes, not unfinished work. Three proposed effects
-  (HV-002, HV-007, HV-009) were REFUSED after adversarial verification falsified their premises: the
-  Gmail push-watch has no stop path, four of five HV-007 legs have no reversal, and HV-002's dialog is
-  severity-dependent so Resolve IS the commit at Low and Medium. Refusing was the correct outcome.
-- Two owner decisions from the audit are built and deployed: HV-004 (the Connections card no longer
-  accepts a credential) and HV-011 (finalization accepts all three declared readiness values).
-- HV-010 resolved to "it varies by property", which implies a per-property override surface that is
-  named and NOT built. HV-006 was split so its denial half can close without a microphone.
-- Cleanup: the HV-001 deletion-protected backup remains authorized rollback state. Nothing is in
-  flight; no external operation, browser attachment, or local server is held open.
-- Scope note for any resumed session: this record is documentation. Reading it implements, commits,
-  deploys, sends, or authorizes nothing on its own.
-- Cadence if a further human item is added: one atomic action per visit, persist response and resume
-  state before yielding, then end cleanly using the S69 action card — numbered prepared state, exact
-  control and location, expected/stop/cleanup states, then a copy-ready `PASS` or `FAIL — reason`.
+Meeting-readiness code is built, fully tested, pushed, and deployed. Production exact-version smoke
+is green. RentCast reference reads are live. Current-rent truth, discrepancy language, work details,
+rehearsal-copy boundaries, RentVine dry preview, version evidence, agenda, and client action center
+are shipped.
 
-## Authority
+The documentation tree has been collapsed to present truth and adversarially verified. Historical
+Demo/V1 programs, completed suite narratives, old audits, duplicate roadmaps, and stale launchers
+were removed. Their recovery point is Git `1356918`. The active-path gate rejects dangling links and
+references to retired governance roots.
 
-- The Renewal Proof Program Authorization in `AGENTS.md` (owner, 2026-08-06) opens S57–S63, scoped to
-  the four-lease test set, RentCast, recipient handling, and owner-policy rules.
-- S64 is specified and **not authorized**: it falls outside all four scope items and needs an
-  explicit grant extension naming it. The owner DID settle its design question (per person), recorded
-  as `F-APPROVAL-RELAXATION-AXIS` independently of the spec.
-- S65 is authorized narrowly by the owner's direct instruction to add feedback closure.
-- All prior grants stand unchanged: D05 deploy, D12 protected paths, the Cloud Automation Grant, the
-  S52 ceiling (alert `$25`, hard stop `$100`), D33 draft-only notice initiation.
-- Activation remains per exact Action Registry key, never by category or inference.
+## Next action
 
-## Current transcript implementation resume — 2026-08-11
+1. Capture the client-confirmed six-step renewal process and current-rent definition.
+2. Obtain the distinct rehearsal Sheet id and managed sharing; never substitute the operating Sheet.
+3. Obtain one unmistakable RentVine test lease/owner; keep the write gate closed meanwhile.
+4. Resolve the move-out walkthrough, wrong-resident lease, RentCast operator policy, and exact
+   end-of-September scope.
+5. Implement only the capability unlocked by each confirmed answer. Do not redeploy this
+   documentation-only reset; the served application code is unchanged.
 
-- Owner session authorization opens authentication-unblock work, S66–S68 implementation, the
-  affected S28/S34/S43/S60/S65 amendments, verification, push, and routine deployment under the
-  existing standing gates. It does not open S64 or any D12 push, send, unconfirmed system write,
-  personal identity, guessed provider/content value, or lowered control.
-- S28/S60 current-truth amendment is pushed at `26422ca`: current visible/behavioral legacy market
-  dependency removed; bounded legacy value read compatibility remains neutral and URL-free.
-- S66 is pushed at `9f9ec55` (`F-LEASE-DOCUMENT-PACKET-TRUTH`): deterministic packet truth,
-  immutable snapshots, S43 presentation, and exact S34 binding are built. Exact external content
-  blocker: publish the approved artifact/field/participant/signature/form-family/rule catalog through
-  S21. Boom is not a document-fact source on current evidence. Dotloop activation remains separate.
-- S67 is pushed at `77c757c` (`F-FEEDBACK-DICTATION-INTAKE`): optional feedback dictation reuses the
-  recorder and configured Google STT seam, appends editable text without truncation, aborts/discards
-  raw audio on every exit, and leaves the S65 report shape/lifecycle unchanged.
-- S68 is pushed at `b883763` (`F-WORK-ACCOUNTABILITY`): app-owned tasks, explicit user-started work
-  sessions, factual My work/Admin Team work surfaces, idle/correction/expectation/concurrency truth,
-  and the 12-month retention contract are built without provider actions, content surveillance, or
-  HR inference.
-- Authentication is unblocked (`F-AUTH-UNBLOCKED-2026-08-11`): managed Windows gcloud CLI and ADC
-  tokens are fresh; WSL discovers the exact Windows ADC through a non-copying symlink with
-  `GOOGLE_APPLICATION_CREDENTIALS` unset; the managed Windows gcloud/Firebase stores are usable from
-  WSL through their explicit config roots; provider/domain/runtime/build identity readbacks passed.
-- Bailey's authorized Admin action is complete (`F-BAILEY-ADMIN-COMPLETE-2026-08-11`): one exact
-  managed roster match has the Admin claim, an audited Admin-surface transition, and a later sign-in.
-- S28/S60 plus S66-S68 are deployed on `pmi-kc-app-rmsol14wb-9fe02e7af754` at 100% traffic
-  (`F-CURRENT-SERVING-CHECKPOINT-2026-08-11`). Exact-candidate and stable smoke passed; rollback to
-  `pmi-kc-app-rmsisg7di-1f914cfeae0d` and forward restoration were executed and read back.
-- The model-assisted process audit of this revision is finalized (`F-MODEL-PROCESS-AUDIT-2026-08-17`):
-  180/180 terminal, 49 findings, 12 human-only checks, zero residue, two fixes landed. Bridge and
-  human handoff: `docs/pmi-kc-model-audit-run-2026-08-17.json` plus its sibling HTML.
-- **Next:** no dependency-independent transcript-program work remains; S66's approved-artifact catalog
-  and Dotloop activation stay named external dependencies. Top audit follow-ups: retire the residual
-  demo-lane Production records (owner-gated) and deploy the parked responsive fix.
+## Active product work after this reset
 
-## Prior renewal-proof evidence
-
-S57–S63 and S65 remain complete. Their D08 window, resolved owner values, measurements, superseded MKD
-premise, and exact owner steps live in `docs/facts.md` and `docs/status.md`; this shorter pointer never
-supersedes that evidence, so do not re-ask it.
+- S72: client-confirmed six-step renewal model.
+- S74: tenant offer copy and channel truth.
+- S75: follow-up state and per-property timing overrides.
+- S76: distinct rehearsal Sheet setup and reversible proof.
+- S30: one designated RentVine test-record proof before any gate review.
+- S66: approved lease packet/provider catalog.
+- S64 remains specified but unauthorized.
 
 ## Locked safety
 
-- No autonomous, scheduled, bulk, or model-triggered client-facing send.
-- Renewal and maintenance notice initiation stays draft-only under D33.
-- Nothing in this program sends to an owner or a resident.
-- No guessed endpoint, record URL, identity, or customer value.
-- No personal account in an auth path; managed organization or service identities only.
-- No secret, token, PII, Gmail body, customer content, or photo in git or evidence.
-- The RentCast key lives in Secret Manager only; never a file, command line, log, or fixture.
-- The owner authorized only the exact RentCast `production_allowed` flip on 2026-08-26; no other D12 path is opened.
-
-## Resume
-
-**Fresh-context launcher:** `docs/meta-prompts/renewal-proof-unattended-loop.md`. Hand that whole file
-to a new session to run this program unattended.
-
-**2026-08-26:** Meeting-readiness code and both HTML handoffs are built. Full unit/architecture
-(4,948), Firestore (115), core browser (31 passed, 18 intentional skips), static-policy, and production
-build lanes are green; the canonical gate and release remain. No source write occurred.
-
-**Renewal-proof status:** S57–S63 and S65 are complete at the machinery level; S64 remains
-unauthorized. Verified evidence, commits, deployment/rollback proof, D08 state, and the known core-E2E
-red live in `docs/facts.md` and `docs/status.md`. RentCast provider proof is DONE: plan Active, both
-endpoints 200, allowance measured at 50/month; its exact read key is now owner-approved and opened.
-Owner-only dependencies are the remaining unrelated parked D12 patches and the D57 note send.
-Bailey's Admin action is complete. The 2026-08-06 correction note was sent; do not re-send it.
-
-**Environment note:** `node_modules` in the primary tree is installed for linux-x64, so `tsx` scripts
-fail in the Windows shell. Run them through WSL and keep `GOOGLE_APPLICATION_CREDENTIALS` unset. WSL
-ADC uses the verified exact symlink; gcloud CLI and Firebase CLI use the explicit managed Windows
-config roots documented in `docs/auth-identity-and-access-strategy.md`. Do not run `npm ci` on
-Windows.
+No autonomous client send. No unconfirmed system-of-record write. No operating-Sheet proof. No
+guessed endpoint, identity, recipient, mapping, policy, or client value. Secrets and customer data
+never enter Git.

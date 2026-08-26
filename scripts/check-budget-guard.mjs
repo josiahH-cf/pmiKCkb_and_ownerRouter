@@ -9,13 +9,12 @@ import {
   readLocalEnv,
 } from "./check-live-cost.mjs";
 
-// Single source of truth for the cloud budget ceiling. The communicated cap is $10 total
-// (see docs/budget-and-cost-policy.md). Keep this constant in sync with that doc.
+// Conservative fallback for this legacy local planning guard. This is NOT the live Cloud Billing
+// ceiling; live amounts and guardrail state come from readback and docs/budget-and-cost-policy.md.
 export const BUDGET_CAP_USD = 10;
 
-// The reversible away-mode overlay lives in this doc. When its machine-readable marker is
-// ACTIVE, the guard keeps expensive or externally visible overrides blocked while still
-// allowing bounded migration/setup work under the $10 cap. See docs/away-mode.md.
+// Compatibility marker for the retired overlay. It is INACTIVE and grants no authority; keeping the
+// parser preserves fail-closed behavior if an explicit future authority change reactivates it.
 export const AWAY_MODE_DOC = "docs/away-mode.md";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));

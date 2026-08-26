@@ -30,17 +30,18 @@ export const REQUIRED_LEDGER_COLUMNS = [
   "review-by",
 ];
 
-// The active governance set the orphan-marker check greps. Deliberately excludes docs/status.md
-// (append-only history) and docs/legacy/ + docs/specs/ (preserved archives) — a marker may live
-// there as history without being "active guidance".
+// The canonical present-truth set checked for orphaned supersede markers. Historical documents live
+// only in Git history; docs/status.md is a current snapshot rather than an append-only log.
 export const ACTIVE_GOVERNANCE = [
   "AGENTS.md",
+  "docs/README.md",
   "docs/north-star.md",
   "docs/plan.md",
   "docs/implement.md",
   "docs/autonomous-agent-runner.md",
-  "docs/ai-execution-workflow.md",
   "docs/products/README.md",
+  "docs/integration-architecture.md",
+  "docs/client-checklist.md",
 ];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -215,6 +216,12 @@ export function evaluateContextFreshness(root = ROOT) {
   }
 
   const { problems, warnings, ledger } = checkFactsText(factsText);
+
+  for (const activePath of ACTIVE_GOVERNANCE) {
+    if (read(activePath) === null) {
+      problems.push(`Missing active governance file: ${activePath}`);
+    }
+  }
 
   // Evidence path tokens must exist (no doc points at a deleted path) AND must be committable.
   // The gitignored case is the one this gate used to MISS: a row citing docs/temp/* or temp/*

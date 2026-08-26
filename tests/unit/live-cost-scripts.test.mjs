@@ -774,7 +774,7 @@ describe("cheap live setup scripts", () => {
         data_store_id: "kb-lease-renewals-txt",
         gcs_uri: "gs://bucket/lease-renewals/source-a.txt",
         sensitivity: "Low",
-        source_path: "docs/demo-source-templates/lease-renewals-sanitized-call-notes.md",
+        source_path: "tests/fixtures/source-corpus/lease-renewals-notes.md",
         space_id: "lease-renewals",
       },
       {
@@ -782,7 +782,7 @@ describe("cheap live setup scripts", () => {
         data_store_id: "kb-lease-renewals-txt",
         gcs_uri: "gs://bucket/lease-renewals/source-b.txt",
         sensitivity: "Low",
-        source_path: "docs/demo-source-templates/lease-renewals-demo-sop-source.md",
+        source_path: "tests/fixtures/source-corpus/lease-renewals-sop.md",
         space_id: "lease-renewals",
       },
     ]);

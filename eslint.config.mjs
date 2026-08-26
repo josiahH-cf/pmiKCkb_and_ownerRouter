@@ -9,7 +9,6 @@ const eslintConfig = [
       "coverage/**",
       "node_modules/**",
       "docs/spec.md",
-      "docs/specs/**",
     ],
   },
   ...nextVitals,

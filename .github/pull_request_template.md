@@ -1,5 +1,4 @@
-<!-- Standard PR checklist. If this is a rule-tuning PR (the learning loop), also complete the
-     "Rule-tuning PR" section below. -->
+<!-- Standard PMI KC change checklist. Link the active suite or fact when one applies. -->
 
 ## What changed
 
@@ -9,16 +8,19 @@
 
 - [ ] Tests added or updated for behavior changes.
 - [ ] `npm run lint`, `npm run typecheck`, and `npm test` pass locally.
-- [ ] Gates pass: `verify:falsification`, `verify:copy-voice`, `verify:redaction`.
-- [ ] No autonomous send, no system-of-record write, no Cloud Scheduler; every Action Registry entry stays `production_allowed:false`.
+- [ ] Canonical verification passes (`bash scripts/verify.sh`); bounded E2E runs when behavior changed.
+- [ ] No autonomous client-facing send, sample-to-live effect, secret, or customer value enters the change.
+- [ ] Every provider effect uses its exact Action Registry key; this change does not infer category authority.
+- [ ] Any live system-of-record write has exact human preview/confirmation, receipt, readback, and rollback.
 - [ ] Identity stays `pmikcmetro.com`; no personal account in any auth path.
+- [ ] D12 protected paths are isolated and have explicit owner direction before push.
+- [ ] Present-truth docs are rewritten or stale docs are deleted; Git history is the archive.
 
-## Rule-tuning PR (learning loop) — complete only if this PR tunes reconciliation rules/thresholds
+## Rule/threshold change — complete only when applicable
 
-The learning loop (S13 H) is deterministic V1: rules + golden-set tuning, **not** model retraining.
-Only rules, thresholds, and **synthetic** scenarios may reach GitHub.
+Only rules, thresholds, and deterministic **synthetic** scenarios may reach GitHub.
 
 - [ ] This PR changes only rules/thresholds and/or **synthetic** (fabricated-value) golden scenarios.
 - [ ] No client value reaches GitHub: no real decision, no spreadsheet row, no audio, no captured golden set, nothing under `golden-data/` or `docs/client_docs/` is staged. (`verify:redaction` enforces this.)
-- [ ] The golden harness is green in CI (a rejected false-positive scenario fails `npm test` until the math stops raising it).
-- [ ] Dan has reviewed the intended behavior change **in-app**; Josiah merges rule-tuning PRs.
+- [ ] The relevant golden/refusal harness is green.
+- [ ] The intended behavior and failure mode are reviewed in-app before activation.

@@ -2,8 +2,9 @@
 //
 // Cloud Billing publishes a budget notification to a Pub/Sub topic when a threshold is crossed.
 // This module decodes that notification and decides whether to disable the project's billing. The
-// kill switch's ceiling is our own `capUsd` (the durable $10), independent of the budget's display
-// name/threshold, so a mis-configured budget can never silently raise the real cap.
+// function's ceiling is its own `capUsd`, independent of the budget's display name/threshold, so a
+// misconfigured budget cannot silently raise the effective cap. Production explicitly supplies the
+// verified live value; the source default is only a stricter fallback.
 
 export const DEFAULT_CAP_USD = 10;
 

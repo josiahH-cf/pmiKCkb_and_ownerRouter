@@ -1,4 +1,5 @@
-# Public Assets
+# Public assets
 
-Static assets for the KB UI belong here. Do not store source documents, screenshots
-containing PII, credentials, or exported Workspace content in this folder.
+Static browser-safe assets for the PMI KC application belong here. Do not store source documents,
+screenshots containing customer data, credentials, tokens, or exported Workspace content in this
+folder.

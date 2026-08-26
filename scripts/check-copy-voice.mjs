@@ -1,6 +1,5 @@
-// Copy-voice gate (S13 A8, F-VOICE-2). Scans user-facing source for the jargon the operator flagged
-// and for em dashes, so the pre-customer copy pass cannot silently regress (S2 fixed four strings; the
-// surfaces shipped since re-introduced the pattern — this stops that treadmill).
+// Present copy-voice gate. Scans user-facing source for rejected internal jargon and em dashes so
+// operator/client copy cannot silently drift from docs/voice-and-audience.md.
 //
 // Both jargon and em dashes hard-fail. Jargon phrases fail EVERYWHERE (app, components, and every lib/
 // file, since user-facing copy is often composed in lib and rendered by a component). Em dashes fail in
@@ -131,9 +130,7 @@ function main() {
   const { errors, warnings } = collectViolations();
 
   if (warnings.length > 0) {
-    console.warn(
-      `Copy-voice: ${warnings.length} em-dash warning(s) in operator UI (not blocking; see F-VOICE-2):`,
-    );
+    console.warn(`Copy-voice: ${warnings.length} em-dash warning(s) in operator UI:`);
     for (const w of warnings.slice(0, 20)) console.warn(`  ${w}`);
     if (warnings.length > 20) console.warn(`  …and ${warnings.length - 20} more.`);
   }
@@ -142,7 +139,7 @@ function main() {
     console.error(`Copy-voice gate FAILED with ${errors.length} violation(s):`);
     for (const e of errors) console.error(`  ${e}`);
     console.error(
-      "\nFix per docs/voice-and-audience.md (Voice rules v2): no jargon, no em dashes in client copy.",
+      "\nFix per docs/voice-and-audience.md: no internal jargon and no em dashes in client copy.",
     );
     process.exit(1);
   }

@@ -1,9 +1,10 @@
 # PMI KC meeting reconciliation — Wednesday, August 26, 2026 at 2:00 p.m. Central
 
-Prepared on 2026-08-26 for the organizer-supplied meeting time. This replaces the pre-implementation
-August 25 assessment. The exact serving commit and Cloud Run revision must be read from the public,
-bodyless [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version) response after the
-release is promoted; a timestamp-only deployment inference is no longer accepted.
+Prepared and released on 2026-08-26 for the organizer-supplied meeting time. This replaces the
+pre-implementation August 25 assessment. The public, bodyless
+[`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version) response was verified after
+promotion against commit `13569183da57c419ac0da279dde5a6d6a0b0da14` and Cloud Run revision
+`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`; timestamp-only deployment inference is not accepted.
 
 Client handoffs:
 
@@ -154,8 +155,8 @@ documents, timing, owner, and completion proof.
    the two materials fields on a task without creating client data for the demo.
 5. Show the RentVine dry preview using deterministic fixture data only; explicitly point out
    `executionAllowed:false` and the rollback payload.
-6. Open [version evidence](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version): confirm exact
-   commit, revision, service `pmi-kc-app`, and environment `production` after promotion.
+6. Open [version evidence](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version): confirm the
+   deployed exact commit, revision, service `pmi-kc-app`, and environment `production`.
 
 Do not enter invented production records simply to make a screen look populated. Use existing live
 records only inside the authenticated product, or deterministic automated-test fixtures outside it.
@@ -180,12 +181,14 @@ requires:
 The human verdict columns remain blank for the 2:00 p.m. walkthrough. Model verification is evidence,
 not a substitute for the client’s process decisions.
 
-## 9. Release evidence rule
+## 9. Release evidence
 
-The source commit cannot truthfully contain its own SHA. Therefore this document does not pin a
-guessed or timestamp-inferred release. The release procedure injects `APP_COMMIT_SHA` from Git into the
-candidate revision; `/api/version` is then checked for exact commit + exact Cloud Run revision before
-promotion. The final run handoff records the verified values and rollback target after deployment.
+Commit `13569183da57c419ac0da279dde5a6d6a0b0da14` deployed first as zero-traffic candidate
+`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`. Candidate smoke passed root 307, sign-in 200, protected route
+307, and version 200 with exact commit/revision/service/environment identity. Only then was the exact
+revision promoted to 100%. Stable readback and the same four checks passed. The captured predecessor
+is `pmi-kc-app-rmt99ltia-9119a24bf706`; the exact rollback command was recorded but the traffic switch
+was not executed during the time-boxed meeting release.
 
 ## 10. Safety statement
 

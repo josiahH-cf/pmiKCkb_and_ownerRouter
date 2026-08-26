@@ -54,11 +54,15 @@ describe("readRentVineConfig", () => {
 });
 
 describe("summarizeRentVineReadiness", () => {
-  it("stays not-ready until the API-doc unknowns are resolved, even with all env vars set", () => {
+  it("reports local config presence without claiming a network probe or write authority", () => {
     const readiness = summarizeRentVineReadiness(config(FULL_ENV));
 
     expect(readiness.env_configured).toBe(true);
-    expect(readiness.connection_ready).toBe(false);
+    expect(readiness.local_config_ready).toBe(true);
+    expect(readiness.connection_verified).toBe(false);
+    expect(readiness.production_read_status).toBe("verified-separately");
+    expect(readiness.write_authorized).toBe(false);
     expect(readiness.doc_unknowns).toEqual(RENTVINE_DOC_UNKNOWNS);
+    expect(readiness.doc_unknowns).toEqual([]);
   });
 });

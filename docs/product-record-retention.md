@@ -1,38 +1,21 @@
 # Product record retention
 
-The D15 Production decision retains live resident, renewal, maintenance, approval, workflow, and
-support product records indefinitely. Admin legal holds are authoritative. A deletion request is
-handled manually by Josiah with Dan. This policy adds no deletion scheduler or automatic deletion
-path.
+Updated: 2026-08-26.
 
-The app-owned product collection catalog and record fields are defined in
-`lib/operations/product-record-retention.ts` as `product-record-retention:v1.0`. A classified product
-record has:
+## Principles
 
-- `product_retention_policy: product-record-retention:v1.0`;
-- `product_retention_class: indefinite`; and
-- an explicit `legal_hold` value.
+- Retain the minimum app-owned metadata needed for workflow truth, audit, reconciliation, and rollback.
+- Never persist raw secrets, credential bodies, setup links, TOTP material, Gmail bodies in audit,
+  dictated audio, or unnecessary customer content.
+- Legal hold prevents deletion.
+- Retention cleanup is previewed, exact-hash confirmed, transactionally rechecked, dependency ordered,
+  receipted, and reversible where the record type permits it.
+- A cleanup never mutates the linked client source of truth.
 
-A legal hold blocks deletion. A record without a legal hold still requires manual review and never
-becomes automatically eligible for deletion.
+## Current records
 
-## Communications boundary
+Workflow state, approvals, action receipts, support reports, renewal snapshots/resolutions, and work
+tasks/sessions use their owning store contracts. Work-accountability records use the 12-month
+contract in `docs/work-accountability-data-contract.md`.
 
-This declaration does not change `communications-retention:v1.0`.
-`COMMUNICATIONS_RETENTION_TARGETS` continues to apply class-derived expiry to Gmail confirmation,
-dedupe, synchronization audit, workflow-link, and bodyless audit records. A communications legal
-hold suppresses deletion without extending normal message usability.
-
-No communications collection may appear in the product collection catalog. No product collection
-may enter the communications cleanup plan. When one record represents a workflow-linked
-communication, the communications policy governs that record and its expiry. Indefinite product
-retention never extends a Gmail-derived row or message body.
-
-## Writer inventory guard
-
-`tests/unit/product-record-retention.test.ts` pins the reviewed writer inventory, including writers
-that use an imported collection alias, and scans runtime source for new direct literal references to
-the six cataloged collections. It also refuses obvious literal-chain or local-reference writes in a
-file classified as read-only. The scan is intentionally a conservative repository sentinel rather
-than a claim of complete TypeScript data-flow or AST analysis. A new alias-based writer still
-requires normal code review and an explicit inventory entry.
+Native TTL or scheduled cleanup is optional unless a specific record contract says otherwise.

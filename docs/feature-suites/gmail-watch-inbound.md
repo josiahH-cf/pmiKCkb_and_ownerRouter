@@ -1,157 +1,41 @@
 <!-- spec-shape: overhaul-v1 -->
 
-# S31 - Gmail reply-watch continuous activation + operator follow-up
+# S31 — Gmail watch continuity and follow-up
 
-> New 2026-07-23 (operator note): authored from `docs/roadmap-unblock-2026-07-23.md` feature #5 (Wave 2, §3 `D-AUTOMATION-LINE`); governed by `Q-GMAIL-WATCH-OWNER` (amended 2026-07-23) and `F-ROADMAP-BUILD-AUTHORIZED` in `docs/facts.md`.
->
-> Status (2026-07-29) — RECLASSIFIED LOOP-ONLY by owner decision **D37** ("Reclassify as loop-only and authorize the build plus the Scheduler job"). The recorded owner dependency for this suite is SATISFIED and is deleted from the active text below rather than annotated: the Pub/Sub topic `gmail-inbox0-events`, the `gmail-api-push@system` publisher, and the push subscription `gmail-inbox0-push` all exist, and the Cloud Scheduler API is enabled — the owner completed this on 2026-07-23 (`F-OWNER-DEPS-2026-07-23` item (a); `docs/evidence/gmail-production-activation-2026-07-13.md`). The loop is authorized to create the Cloud Scheduler job itself. S31 is otherwise UNBUILT, verified on disk 2026-07-29: `lib/gmail-hub/follow-up.ts` does not exist, `app/api/gmail-hub/watch/` contains only `route.ts`, `lib/gmail-hub/pubsub.ts` has no `readGmailWatchSchedulerConfig`, and `docs/facts.md` cites no `AC-S31-*` id. What remains is the auto-renew endpoint, the quiet-thread follow-up surface, and the Scheduler job.
->
-> The matching roadmap, README, and fact-ledger pointers are reconciled in the 2026-07-29 governance
-> package; no active pointer may restore the former owner-dependency wording.
+> Status: Workflow watch/read infrastructure exists; a safe watch-stop/reversal path and final follow-up-state integration remain incomplete.
 
-> **Amended 2026-08-24 - Cherry Bridge note N11, via S75.** This suite is specified in full and
-> **verified absent from disk**, with no owner dependency - it is unblocked build work. It is also
-> currently unbuildable in a useful sense, because its selector has nothing to select: the follow-up
-> cadence is computed from `renewalLetterSentIso` and `tenantResponded`, and all three production
-> callers hardcode those to `null` and `false`, making `awaiting_response` and `follow_up_due`
-> unreachable dead code. `docs/feature-suites/renewal-follow-up-state.md` persists those two inputs;
-> the two suites land together or neither works. Note also that two follow-up clocks disagree - the
-> notice rule's `followUpIntervalDays` (10 days, unverified) and this suite's `followUpAfterDays`
-> (3 business days, assumed) - and must be reconciled to one before either renders a due date
-> (`Q-S75-FOLLOWUP-CLOCK`). The client's auto-send ask is answered **no** under D33 and the blanket
-> no-autonomous-send invariant; the permitted equivalent is an internal nudge plus a pre-composed
-> unsent draft.
+**Goal.**
 
-**Goal.** Today the app already notices when an owner or tenant replies on a linked renewal or maintenance thread and raises it as attention, but the underlying Gmail watch is not continuously active: a Gmail watch expires roughly every seven days and only a manual, human-confirmed renewal re-arms it, so inbound pickup lapses with no visible failure; and there is no surface that tells an operator "we emailed this owner and have heard nothing back in N days." After S31 a Cloud Scheduler job keeps the read-only watch armed automatically so replies keep flowing into the existing attention surface without anyone remembering to renew; an expiring or expired watch raises itself as a visible operator signal instead of dying quietly; and the Renewal and Maintenance desk shows which linked threads have gone quiet and lets an operator open a threaded follow-up draft that a human reviews and sends. Nothing is ever sent automatically: the scheduler only renews a read-only watch and raises attention, and every client-facing follow-up stays operator-initiated and exact-confirmed by a person.
+Make inbound reply attention current and reversible without sending client mail.
 
-**What it is / how it functions.** The inbound half is already built and stays untouched in behavior; S31 adds continuous renewal at the provider seam, lapse visibility, and an operator-facing quiet-thread and follow-up surface in the app plane. The existing mechanism this suite builds on:
+**What it is / how it functions.**
 
-- **Inbound push, already built (`app/api/gmail-hub/pubsub/route.ts` and `processGmailPushNotification` in `lib/gmail-hub/service.ts`).** Pub/Sub delivers a Gmail history notification; the handler authenticates the Pub/Sub service identity first (`verifyPubSubPushRequest`, `lib/gmail-hub/pubsub.ts`), requires the `gmail.mailbox.read` gate, walks bounded history, matches new messages to LINKED workflow threads, and calls `markCommunicationAttention`, which flips the bodyless `WorkflowCommunicationLink` to `attention_required` and appends a `reply_attention_created` audit. It never replies or sends.
-- **Watch mutation, already built (`app/api/gmail-hub/watch/route.ts` and `watchMailbox` in `lib/gmail-hub/service.ts`).** A human `edit`-capable operator previews (`GET`, `watchPreview`) then confirms (`POST`, `confirmed:true`, must match the exact server preview so `mailboxEmail === user.email` and `topicName === config.topicName`, else 409); the service claims a one-attempt key hashed over `${actor.uid}:${mailboxEmail}:${attemptKey}`, calls `client.watchMailbox(topicName)` (`lib/gmail-runtime/client.ts`), requires a safe-integer expiration strictly in the future on read-back, completes or marks the attempt ambiguous, and re-reads the bodyless checkpoint before returning. It is read-only and, per its own preview copy, "does not send a message or grant cross-mailbox access."
-- **Watch state, already persisted (`GmailMailboxState` in `lib/gmail-hub/state-store.ts`).** The bodyless mailbox record carries `mailbox_email`, `user_uid`, `history_id`, `watch_expiration_ms`, `watch_attempt` (`claimed | completed | ambiguous`), `last_successful_sync_ms`, and `health`. `connection()` in `lib/gmail-hub/service.ts` already derives `pushDegraded` from `watch_expiration_ms <= now` (or a sync older than 24 hours) and returns `sync.health` plus `watchExpirationMs`. S31 needs no new persisted field.
-- **Attention surfacing, already built (`lib/gmail-hub/notifications.ts`).** `listGmailWorkflowNotifications` projects `attention_required` links into the unified notifications hub (renewal and maintenance families, decision lane), space-scoped and retention-filtered.
-- **Reply threading, already built (`buildOutgoingPayload` in `lib/gmail-hub/service.ts`).** Any workflow reply sets `inReplyTo = parent.messageId` and `references = dedupe(parent.references, parent.messageId)` capped at 20, so a follow-up stays in the same Gmail thread; a generic `kind:"new"` compose is refused with 409.
+Use authenticated Gmail watch/history reads and workflow linkage to surface reply state. Follow-up fields belong to S75; watch lifecycle must have start, renewal, expiry, and stop truth.
 
-The gap is narrow and now entirely ours to close: nothing renews the watch on a schedule (it expires silently), a lapse is visible only as one sentence buried inside `/gmail-hub` (`LiveGmailWorkspace.tsx` renders "push watch needs operator review" when `sync.health !== "watching"`) and never reaches the `/notifications` hub — `loadNotificationHub` builds its `connection`-lane standing signals from `resolveConnectionsState(process.env, user)` (`lib/ask/app-state-context.ts`), a pure env-PRESENCE read that cannot see a runtime expiration — and a link that reached `status:"sent"` and never received a reply is invisible (no quiet-for-N-days surface, no follow-up entry point).
+**Open questions & assumptions.**
 
-- **Buildable now (app-plane).**
-  - **No-reply selector (new `lib/gmail-hub/follow-up.ts`).** A pure read over the existing bodyless `listCommunicationLinks` projection: a linked outbound thread is awaiting-reply when `status === "sent"`, no inbound attention has landed (`attention_at_ms` is unset and status is not `attention_required`), and `now - updated_at_ms >= followUpAfterDays`. It reads only fields already persisted on `WorkflowCommunicationLink` (`status`, `attention_at_ms`, `updated_at_ms`, `gmail_thread_id`), touches no message body, and adds no new external scope. When a reply lands the push path flips the same link to `attention_required`, so it leaves the awaiting-reply set automatically.
-  - **Quiet-thread surface (extend `lib/gmail-hub/notifications.ts` and `components/gmail-hub/WorkflowCommunicationPanel.tsx`).** Surface the awaiting-reply links as a distinct "No reply in N days" operator prompt beside the existing `attention_required` items, space-scoped and read-markable the same way, so an operator sees quiet threads without opening Gmail.
-  - **Lapse visibility (new `lib/gmail-hub/watch-health.ts`, wired into `lib/notifications/hub.ts`).** A pure builder turns the already-persisted `GmailMailboxState` into value-free `connection`-lane standing items (`lib/attention/standing-signals.ts` `StandingItem` shape: label, PII-free detail, href `/gmail-hub`) when the watch is expired, inside the renewal lead window with no completed attempt, or `ambiguous`. `loadNotificationHub` gathers it inside its existing `full`-gated `Promise.all` and concatenates it onto the connections list already passed to `buildStandingSignals`, so the lapse appears on `/notifications` in the lane whose label is already "Connections to set up". The signal carries no mailbox address, thread id, subject, or body — it keeps the six-key `AttentionSignal` shape S17/S39 pin.
-  - **Operator-triggered follow-up entry point (extend `components/gmail-hub/WorkflowCommunicationPanel.tsx`).** On a quiet thread the operator clicks "Draft follow-up"; the panel opens the existing prepare, confirm, and send reply flow pre-scoped to that `gmail_thread_id` and workflow purpose, so the follow-up reuses `buildOutgoingPayload` threading and the existing exact-confirm human send. S31 mints no new send or draft action key: it reuses the already-governed draft and reply keys, and a human initiates, edits, and exact-confirms every send. There is no scheduled or autonomous creation of a client-facing draft.
-- **Build to the seam (live provider).** The provider infrastructure is already provisioned, so this half runs to completion inside the loop.
-  - **Scheduler-invoked read-only auto-renew endpoint (new `app/api/gmail-hub/watch/renew/route.ts` plus a service method that reuses `watchMailbox`).** A server-to-server POST that authenticates the Cloud Scheduler service identity by OIDC exactly as `verifyPubSubPushRequest` authenticates the Pub/Sub push identity (bearer OIDC token, verified email, `email_verified` true, an allowed `@pmi-kc-kb-prod.iam.gserviceaccount.com` service account, expected audience equal to this endpoint's HTTPS URL). It does not use the interactive `confirmed:true` preview-match, which is the human UI contract; instead the renewal is gated by the same `gmail.mailbox.read` action gate, a renew-only-when-near-expiry guard (renew only when `watch_expiration_ms` is inside a lead window, otherwise a reported no-op), and the same one-attempt idempotent `watchMailbox` claim with Gmail expiration read-back. It calls the identical read-only watch mutation, so it performs no send and grants no new scope.
-  - **System actor resolved from persisted state, never guessed.** `createGmailHubService(actor)` builds the Gmail client with `actor.email` as the DWD subject and the `GmailHubService` constructor throws 403 unless `client.subject === actor.email`, and `watchMailbox` hashes `actor.uid` into its attempt key — so the scheduler path has to supply a real mailbox identity. It resolves `mailbox_email` and `user_uid` ONLY from the persisted `GmailMailboxState` for the configured mailbox (the same record the human watch path wrote), mirroring the `SCHEDULED_ACTOR_UID` system-actor precedent in `lib/firestore/approval-queue-scheduled-notifications.ts`. With no persisted mailbox state the endpoint refuses and performs no provider call; it never falls back to a literal or configured address.
-  - **Config and inertness (extend `lib/gmail-hub/pubsub.ts` with a sibling `readGmailWatchSchedulerConfig`).** The endpoint reads the scheduler service account and audience from env; when that config is absent it returns 503 "not configured" (mirroring `readGmailPushConfig`, including its `projects/pmi-kc-kb-prod/...` and `@pmi-kc-kb-prod.iam.gserviceaccount.com` shape assertions and HTTPS-audience check), so the built endpoint is inert until the env is set. Two deployment gotchas the slice MUST handle together: `readRuntimeEnv` in `scripts/deploy-demo-cloud-run.mjs` ships an explicit ALLOWLIST of names, so a new variable absent from that list silently deploys empty; and `tests/unit/connection-status.test.ts` pins the `gmail_inbox` connector's `requiredConfig` to exactly `GMAIL_DWD_SA`, `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUBSUB_AUDIENCE`, `GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT`, so adding the new name to that connector is a deliberate, same-slice pin update or it is kept out of `requiredConfig` entirely.
-  - **Route auth-boundary sentinel.** `tests/unit/route-auth-boundary.test.ts` fails any `app/api/**/route.ts` whose source does not match `AUTH_GUARD` (today `requireCapability|requireCapabilityInSpace|requireWorkflowCommunicationContext|requireVendorSession|requireUser|requireRole|verifyPubSubPushRequest`). The renew route is authenticated by the new scheduler verifier, so that regex gains the verifier's exact name in the same slice — never by adding the route to `ALLOW_UNAUTHENTICATED`.
-  - **Cloud Scheduler job, created by the loop (new `scripts/setup-gmail-watch-scheduler.mjs`).** Per D37 the loop provisions the job itself (a few cents per month, inside the production cost ceiling defined by S52). The script is modeled on `scripts/setup-budget-killswitch.mjs` but executes rather than only printing: it plans a `gcloud scheduler jobs create http` / `update http` against `pmi-kc-kb-prod`, targeting exactly the deployed `/api/gmail-hub/watch/renew` URL with an OIDC service identity and an `--oidc-token-audience` byte-identical to the configured audience, on a daily cadence well inside the roughly seven-day Gmail watch lifetime. It is create-or-update (idempotent, never a second job), it refuses a cadence more frequent than a configured floor and refuses any target other than the renew endpoint, it prints a `gcloud scheduler jobs describe` read-back as the receipt, and it documents the one-line reversal (`gcloud scheduler jobs pause` / `delete`). Its argument-and-refusal builder is a pure exported function so unit tests exercise it with a fake command runner and no gcloud runs in CI. Execution needs a fresh ADC session (`npm run preflight:adc`; `npm run auth:session` is the standing per-session owner step, roadmap §5 item 10) — a stale login is a session handoff, not a feature dependency.
-  - **Bodyless renewal audit and the full one-attempt, idempotent, receipted, reversible contract.** Each auto-renew records a bodyless audit (mailbox key, topic hash, prior and next expiration, attempt outcome) reusing the existing watch-attempt store; an ambiguous outcome consumes the attempt key and does not retry, matching the human path. Reversibility: pausing or deleting the Scheduler job stops future renewal, removing the configured watch stops delivery, and a later renewal replaces the expiration.
-- **Owner dependency (the one flip).** NONE. There is no remaining owner dependency for this suite.
-  The Pub/Sub topic, publisher, and push subscription exist, the Cloud Scheduler API is enabled
-  (`F-OWNER-DEPS-2026-07-23` item (a)), and D37 authorizes the loop to create the Scheduler job.
-  Every remaining step — the auto-renew endpoint, the follow-up surface, the lapse signal, the
-  scheduler env, and the job — is loop work inside this suite, none of it held "pending".
-  Interactive `npm run auth:session` remains owner-run; a routine deploy
-  follows D05 after auth, S52, full-gate, prior-revision, smoke, and rollback preconditions pass.
-  Neither is a feature-specific governance blocker for S31, and neither touches a client-facing
-  send gate.
+Confirm whether continuous watch remains operationally desired and what explicit stop/reversal evidence is acceptable.
 
-**Open questions & assumptions.** This spec records the `Q-`/`A-` rows below; the build slice that picks S31 up adds them to `docs/facts.md` "## Open Questions" (this file does not edit `docs/facts.md`).
+**Cross-product impacts.**
 
-- _Answered 2026-07-29 (D37):_ S31 is loop-only. The Scheduler job is created by the loop, not handed back, and the infrastructure it targets was delivered 2026-07-23. The former owner-dependency sentence is deleted from this spec, not annotated beside a replacement.
-- _Answered 2026-07-23 (`Q-GMAIL-WATCH-OWNER`, amended):_ a Cloud Scheduler that auto-renews the READ-ONLY Gmail watch is authorized; it performs no send and raises attention only. No scheduler drives any send. Manual renewal (`app/api/gmail-hub/watch/route.ts`) remains the fallback until the job is armed and stays available after.
-- _Assumption:_ the follow-up window default `followUpAfterDays` is 3 business days, offered as confirm-with-default to the owner; it is an operator setting, not a client or vendor decision. If the owner prefers another interval the selector reads it from config with no behavior change.
-- _Assumption:_ the renewal lead window is 48 hours before `watch_expiration_ms` and the Scheduler cadence is daily, so a single missed run cannot lapse the watch; both are config, and the provisioner refuses any cadence longer than the lead window or more frequent than the floor.
-- _Recorded boundary:_ `gmail.mailbox.read` is the one existing named key used by the live push and
-  auto-renew path. S31 registers no distinct auto-renew key. If the committed target lane does not
-  make `gmail.mailbox.read` executable, auto-renew remains inert pending an explicit named-key owner
-  decision; the runner does not infer a replacement key or flip.
-- _Assumption:_ the follow-up reuses the existing draft and reply action keys and their gates; S31 introduces no new client-facing send or draft key and changes no `production_allowed` flag for a client-facing send.
-- _Answered by D02/D37:_ scheduler auto-renew reuses `gmail.mailbox.read`; S31 introduces no new
-  named key. If later code evidence proves the semantics require a distinct key, that key stays
-  closed until a new explicit owner decision adds it to S53 Table A and its protected activation
-  package is reviewed.
-- _Assumption:_ single configured operator mailbox (single-Workspace build per roadmap §7); the scheduler renews the configured mailbox resolved from persisted state, not a per-tenant watch.
-- _Client-owned:_ none. There is no irreducible client, vendor, or legal decision, so no `docs/client-checklist.md` row is required.
+Workflow Communications, notifications, S75 waiting-on state, Scheduler/Pub/Sub, and incident operations.
 
-**Cross-product impacts.** Real code paths this suite touches: `app/api/gmail-hub/pubsub/route.ts`, `app/api/gmail-hub/watch/route.ts`, `app/api/gmail-hub/connection/route.ts`, `lib/gmail-hub/service.ts` (`watchPreview`, `watchMailbox`, `connection`, `processGmailPushNotification`, `buildOutgoingPayload`, the send-commit that writes `saveCommunicationLink({ status:"sent" })`), `lib/gmail-hub/pubsub.ts` (`readGmailPushConfig` and the OIDC verifier), `lib/gmail-hub/state-store.ts` (`getMailboxState`, `markCommunicationAttention`, the watch-attempt claim/complete/ambiguous methods, `saveCommunicationLink`), `lib/gmail-hub/dependencies.ts` (`createGmailHubService`), `lib/gmail-hub/notifications.ts`, `lib/gmail-hub/workflow-context.ts` (`WorkflowCommunicationLink`), `lib/notifications/hub.ts` (`loadNotificationHub` standing gather), `lib/attention/standing-signals.ts` (`StandingItem` consumer, unchanged shape), and `components/gmail-hub/WorkflowCommunicationPanel.tsx`. New files: `lib/gmail-hub/follow-up.ts`, `lib/gmail-hub/watch-health.ts`, `app/api/gmail-hub/watch/renew/route.ts`, `scripts/setup-gmail-watch-scheduler.mjs`, and their tests. Deliberate same-slice test updates: `tests/unit/route-auth-boundary.test.ts` (`AUTH_GUARD` gains the scheduler verifier name) and, only if the new env joins the `gmail_inbox` connector, `tests/unit/connection-status.test.ts`. Deploy passthrough: `scripts/deploy-demo-cloud-run.mjs` `readRuntimeEnv`.
+**Adversarial acceptance checks.**
 
-It implements roadmap feature #5, Wave 2, and is governed by `D-AUTOMATION-LINE`,
-`Q-GMAIL-WATCH-OWNER` (amended 2026-07-23), `F-ROADMAP-BUILD-AUTHORIZED`, and owner decision
-**D37** (2026-07-29). It interacts with S24 communications policy for retention of the bodyless link
-and audits (`Q-GMAIL-RETENTION`), S17 unified notifications and S39 for the value-free standing-signal
-contract it must not weaken, S25 and S26 for the renewal and maintenance workflows whose threads are
-watched, S15 and S19 for the Gmail hub and per-user live transport, and S52 for the production cost
-ceiling the Scheduler cadence must stay inside. Delete-on-supersede performed by this amendment: the
-sentence assigning Pub/Sub topic and Cloud Scheduler job creation to the owner, and the "activates
-only when the owner provisions the topic and job" framing, are deleted. The same governance package
-reconciles the roadmap, README, and fact-ledger pointers.
+- **AC-S31-1** — A watch cannot be called reversible until an authenticated stop path and readback exist.
+- **AC-S31-2** — Duplicate/out-of-order Pub/Sub delivery is idempotent and cannot duplicate follow-up work.
+- **AC-S31-3** — No inbound processing path sends, replies, drafts, labels, or changes a client system without its separate exact key.
 
-**Adversarial acceptance checks.** Each is an observable, falsifiable state, not "implemented X."
+**Forbidden actions / hard gates.**
 
-- **AC-S31-1** No-reply selector is precise and bodyless: given the bodyless links, one with `status:"sent"`, no `attention_at_ms`, and `updated_at_ms` older than the window returns awaiting-reply; the same link with `attention_at_ms` set (a reply arrived) or with `updated_at_ms` inside the window does not; the selector reads no message body. _Verify:_ `npm test -- gmail-hub-follow-up` (new); keep `tests/unit/gmail-workflow-notifications.test.ts` green.
-- **AC-S31-2** Push still raises attention only: a Pub/Sub push matching a linked thread flips the link to `attention_required` and appends `reply_attention_created`, and the handler invokes zero send, reply, or draft provider calls. _Verify:_ `npm test -- gmail-hub-pubsub`; keep `tests/unit/gmail-hub-pubsub.test.ts` green.
-- **AC-S31-3** Auto-renew endpoint fails closed on identity: an unauthenticated or wrong-identity caller is rejected with 401 or 403 before any watch mutation (mirroring `verifyPubSubPushRequest`), and the endpoint returns 503 when the scheduler config env is absent. _Verify:_ `npm test -- gmail-watch-renew` (new); `npm run typecheck`; keep `tests/unit/route-auth-boundary.test.ts` green with the renew route authed by the named scheduler verifier and NOT added to `ALLOW_UNAUTHENTICATED`.
-- **AC-S31-4** Auto-renew is read-only and idempotent: an authenticated renew near expiry calls `watchMailbox` once (one-attempt key, expiration read-back), a repeated delivery of the same attempt key is a no-op reported as already-completed, and no `gmail.message.send`, `gmail.thread.reply`, or `gmail.draft.create` is invoked. _Verify:_ `npm test -- gmail-watch-renew`; keep `tests/unit/gmail-hub-service.test.ts` green.
-- **AC-S31-5** Renew-only-when-near-expiry: an authenticated call while the current watch expiration is outside the lead window performs no provider mutation (observable no-op) and reports skipped. _Verify:_ `npm test -- gmail-watch-renew`.
-- **AC-S31-6** Follow-up stays threaded and human-sent: the operator follow-up entry point produces an outgoing payload whose `inReplyTo` and `references` point at the quiet thread parent within the same `gmail_thread_id`, it flows through the existing exact-confirm path with no autonomous send, and a generic `kind:"new"` compose still returns 409. _Verify:_ `npm test -- gmail-hub-service`; keep the spec gates green: `npm test -- feature-suite-spec-shape` and `npm run verify:spec-traceability`.
-- **AC-S31-7** The watch cannot silently lapse: for a persisted mailbox state whose `watch_expiration_ms` is in the past, or inside the lead window with no `completed` watch attempt since, or whose `watch_attempt.state` is `ambiguous`, (a) `GET /api/gmail-hub/connection` returns `sync.health:"degraded"` with the expiration echoed, and (b) `GET /api/notifications?full=true` contains a `connection`-lane standing signal for the watch whose serialized keys are exactly the pinned six-key `AttentionSignal` set and which contains no mailbox address, thread id, subject, or message body; with an expiration beyond the lead window and a `completed` attempt, neither the degraded health nor the signal appears. _Verify:_ `npm test -- gmail-watch-health` (new), `npm run test -- tests/unit/notification-hub.test.ts`; keep `tests/unit/notification-feed.test.ts` and `tests/unit/gmail-hub-service.test.ts` green.
-- **AC-S31-8** Scheduler job provisioning is idempotent, targeted, and receipted: running `scripts/setup-gmail-watch-scheduler.mjs` twice yields exactly one job (the second run reports an in-place update or already-current, never a duplicate); the planned command's target URI is byte-identical to the deployed `/api/gmail-hub/watch/renew` URL and to the configured OIDC audience; the run prints a `gcloud scheduler jobs describe` read-back as its receipt and the documented one-line reversal (`pause` / `delete`). _Verify:_ `npm test -- gmail-watch-scheduler-provision` (new; the pure plan/refusal builder driven by a fake command runner, no gcloud in CI); `npm run lint`.
-- **AC-S31-9** The job cannot become a polling loop or point anywhere else: the provisioner REFUSES with a named error when asked for a cadence more frequent than the configured floor, when asked for a cadence longer than the renewal lead window, or when handed any target other than the renew endpoint; the shipped default is one HTTPS call per day, inside the production cost ceiling defined by S52. _Verify:_ `npm test -- gmail-watch-scheduler-provision`.
-- **AC-S31-10** The renew path never guesses a mailbox: with no persisted `GmailMailboxState` for the configured mailbox the endpoint returns a refusal (409 or 503) and calls no Gmail provider method; with state present the DWD subject and attempt-key actor are exactly the persisted `mailbox_email` and `user_uid`; a state record whose `mailbox_email` is outside the allowed `pmikcmetro.com` domain is refused, so no personal account can ever become the watch subject. _Verify:_ `npm test -- gmail-watch-renew`; keep `tests/unit/gmail-hub-capabilities.test.ts` and `tests/unit/gmail-hub-action-gate.test.ts` green.
-
-Full-suite gate for every slice: `npm test`, `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:context-freshness`, `npm run verify:spec-traceability`, then `bash scripts/verify.sh`.
-
-- **AC-S31-11** - the quiet-thread selector reads persisted letter-sent and tenant-response state rather
-  than a hardcoded literal. A fixture asserts no production caller passes a constant `null`
-  `renewalLetterSentIso` or a constant `false` `tenantResponded`, so the selector can reach a non-empty
-  result.
-- **AC-S31-12** - the detection path issues no client-facing send under any fixture, flag, or elapsed
-  time. Advancing the clock arbitrarily produces internal nudges and unsent drafts only, and any send
-  attempt is refused citing D33 by name.
-
-**Forbidden actions / hard gates.** A violation of any of these is itself a falsification (roadmap §7):
-
-- Pushes raise attention only. The push handler never auto-replies or auto-sends; its render-attention path has no send call, and that must remain true (AC-S31-2).
-- No autonomous CLIENT-facing send, ever. Follow-ups are operator-triggered: there is no scheduled or autonomous creation or delivery of a client-facing draft, and a human initiates and exact-confirms every client-facing send. Internal-staff notification auto-send is permitted per `D-AUTOMATION-LINE`; that permission does not extend to any owner, tenant, or vendor recipient.
-- The watch renewal is read-only and no scheduler ever drives a send. The renew path calls only `watchMailbox` (no send, no cross-mailbox scope), and the Scheduler job's only permitted target is `/api/gmail-hub/watch/renew` (AC-S31-9). Manual renewal stays available as the fallback.
-- Generic non-workflow `gmail.message.send` stays Registry-closed, and a generic `kind:"new"` compose stays refused.
-- The personal `josiah.abernathy@gmail.com` account never enters the watch, renewal, or auth path; the mailbox identity is resolved from persisted state inside the `pmikcmetro.com` domain and the service identities are `@pmi-kc-kb-prod` service accounts (AC-S31-10).
-- No secrets, customer PII, or guessed provider endpoints enter git or evidence; the topic, service account, and audience come from env or Secret Manager, and the lapse signal stays value-free (no mailbox address, thread id, subject, or body).
-- The production cost ceiling defined by S52 (`docs/feature-suites/production-cost-governance.md`, `F-COST-CEILING-S52`) holds. The Scheduler cadence stays inside the Gmail watch lifetime and above the configured frequency floor so there is no runaway polling, and the provisioner refuses anything outside that band.
-- Every live effect is one-attempt, idempotent, receipted, and reversible: the renew reuses the existing one-attempt claim and ambiguous-on-failure contract, and the Scheduler job is create-or-update with a `describe` receipt and a one-line pause/delete reversal.
-- S31 sets no client-facing send `production_allowed:true` and registers no distinct auto-renew
-  action key. The renew route is never added to `ALLOW_UNAUTHENTICATED` in
-  `tests/unit/route-auth-boundary.test.ts`.
-- Cost-bearing `gcloud` runs only with a fresh ADC session. If `npm run preflight:adc` or
-  `gcloud auth list` shows a stale login, the exact remediation is owner-run
-  `npm run auth:session`; park only provisioning/deploy, never work around the reauth wall, and
-  continue independent local work.
+No autonomous reply/send, mailbox-wide content capture, or claim that an un-stoppable watch is reversible.
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ Re-read the built inbound path (`processGmailPushNotification`, `markCommunicationAttention`) and the human watch path (`watchPreview`, `watchMailbox`, `readGmailPushConfig`, `verifyPubSubPushRequest`) to confirm nothing in behavior is changed by this suite; confirm on disk that `lib/gmail-hub/follow-up.ts`, `app/api/gmail-hub/watch/renew/route.ts`, and `readGmailWatchSchedulerConfig` still do not exist.
-2. _Understanding:_ Confirm the bodyless `WorkflowCommunicationLink` fields the no-reply selector keys on (`status`, `attention_at_ms`, `updated_at_ms`, `gmail_thread_id`), that the send commit writes `status:"sent"`, and that `GmailMailboxState` already carries `mailbox_email`, `user_uid`, `watch_expiration_ms`, and `watch_attempt` — S31 adds no persisted field.
-3. _Build:_ Add `lib/gmail-hub/follow-up.ts` with the awaiting-reply selector and its unit tests (AC-S31-1). No external scope.
-4. _Build:_ Surface awaiting-reply links as a distinct "No reply in N days" prompt in `lib/gmail-hub/notifications.ts` and `components/gmail-hub/WorkflowCommunicationPanel.tsx` (AC-S31-1 surface).
-5. _Build:_ Add `lib/gmail-hub/watch-health.ts` and gather it in `loadNotificationHub` so an expired, near-expiry-unrenewed, or ambiguous watch raises a value-free `connection`-lane signal on `/notifications` (AC-S31-7).
-6. _Build:_ Add the operator "Draft follow-up" entry point in the panel, reusing `buildOutgoingPayload` threading and the existing exact-confirm send, minting no new action key (AC-S31-6).
-7. _Build:_ Add `app/api/gmail-hub/watch/renew/route.ts` plus its service method reusing `watchMailbox`, the OIDC scheduler-identity verify, `readGmailWatchSchedulerConfig`, and the persisted-state actor resolution — inert with 503 until configured (AC-S31-3, AC-S31-4, AC-S31-5, AC-S31-10). Extend the `AUTH_GUARD` regex in `tests/unit/route-auth-boundary.test.ts` with the verifier's exact name in this same slice.
-8. _Gate:_ Reuse only the existing `gmail.mailbox.read` key for renewal; register no distinct
-   auto-renew or client-facing send key. Wire config-absent inertness and add the new env name to
-   `readRuntimeEnv` in `scripts/deploy-demo-cloud-run.mjs` (an unlisted name deploys empty).
-9. _Build:_ Add `scripts/setup-gmail-watch-scheduler.mjs` with a pure, unit-tested plan/refusal builder (cadence floor, lead-window ceiling, single permitted target) and a create-or-update execution path that prints the `describe` read-back receipt and the pause/delete reversal (AC-S31-8, AC-S31-9).
-10. _Verify:_ Run the named tests plus `npm run typecheck`, `npm run lint`, `npm test -- feature-suite-spec-shape`, and `npm run verify:spec-traceability`.
-11. _Activation boundary:_ Nothing feature-specific to hand back — the Pub/Sub topic, publisher,
-    subscription, and Scheduler API are already provisioned and D37 authorizes the loop to create the
-    job. The owner runs interactive `npm run auth:session`; after auth, S52, full-gate,
-    prior-revision, smoke, and rollback preconditions are green, the routine deploy follows D05. If
-    ADC is stale, park only the provisioning/deploy operation, hand back the exact auth command, and
-    continue independent local work.
-12. _Verify (live):_ After deploy and provisioning, confirm the job exists once with the expected target, audience, and cadence; confirm a run advances `watch_expiration_ms` with a bodyless receipt and no send; and confirm the `connection`-lane lapse signal clears.
-13. _Context update:_ Promote the shipped work to a `docs/facts.md`
-    `F-GMAIL-WATCH-CONTINUOUS` row citing AC-S31-1 through AC-S31-10, record the
-    follow-up-window `Q-`/`A-` row and the D02/D37 no-new-key decision, and update
-    `docs/loop-state.md` to point at the next suite.
+1. Read current watch/Scheduler state and provider contract.
+2. Build explicit lifecycle/stop evidence if retained.
+3. Integrate only bodyless reply state with S75 and verify idempotency.
 
-**Deletion/merge recommendation.** KEEP. This is a standalone suite with its own acceptance ids; it does not merge into S15, S19, or S24. Its former Wave-2 "one owner step" character is gone as of D37 — it is now pure loop work — but the suite itself stays a separate spec because it owns the watch-continuity and quiet-thread surfaces end to end. No working packet exists on disk today (`docs/temp/gmail-watch-inbound-plan.md` is absent, verified 2026-07-29); if the build slice creates one at that path for the slice-by-slice notes, it is disposable and is deleted once this suite is promoted to its `docs/facts.md` `F-*` row.
+**Deletion/merge recommendation.**
+
+Keep until watch lifecycle and S75 integration are complete or the feature is explicitly retired.
