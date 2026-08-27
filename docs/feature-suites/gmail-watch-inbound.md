@@ -2,7 +2,7 @@
 
 # S31 — Gmail watch continuity and follow-up
 
-> Status: Workflow watch/read infrastructure exists; a safe watch-stop/reversal path and final follow-up-state integration remain incomplete.
+> Status: Continuous watch is retired; manual refresh and source-backed follow-up state are complete in the current ship candidate.
 
 **Goal.**
 
@@ -10,11 +10,14 @@ Make inbound reply attention current and reversible without sending client mail.
 
 **What it is / how it functions.**
 
-Use authenticated Gmail watch/history reads and workflow linkage to surface reply state. Follow-up fields belong to S75; watch lifecycle must have start, renewal, expiry, and stop truth.
+Use an explicit read-only manual refresh to fetch targeted linked threads and surface provider-backed
+waiting-on and last-contact state. The expired watch is not renewed; its sole Pub/Sub subscription
+and topic were deleted and read back absent on 2026-08-27.
 
 **Open questions & assumptions.**
 
-Confirm whether continuous watch remains operationally desired and what explicit stop/reversal evidence is acceptable.
+Client timing and override-policy values belong to S75. Reintroducing continuous watch would require
+a new explicit owner decision plus a complete start/renew/stop/readback contract.
 
 **Cross-product impacts.**
 
@@ -32,10 +35,10 @@ No autonomous reply/send, mailbox-wide content capture, or claim that an un-stop
 
 **Ordered prompt sequence.**
 
-1. Read current watch/Scheduler state and provider contract.
-2. Build explicit lifecycle/stop evidence if retained.
-3. Integrate only bodyless reply state with S75 and verify idempotency.
+1. Use manual refresh for current workflow-linked thread state.
+2. Keep duplicate/out-of-order cursor handling idempotent.
+3. Treat a future watch as a newly reviewed activation, not an assumed continuation.
 
 **Deletion/merge recommendation.**
 
-Keep until watch lifecycle and S75 integration are complete or the feature is explicitly retired.
+Merge into the Workflow Communications operating contract after this ship candidate is deployed.

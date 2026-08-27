@@ -4,12 +4,15 @@ import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
+import {
+  SPACE_PROVISION_CONFIRMATION,
+  SPACE_RETIRE_CONFIRMATION,
+} from "@/lib/admin/space-provisioning-contract";
 import type { SpaceProvisioningPlan } from "@/lib/admin/space-request-commands";
 import type { SpaceRequest } from "@/lib/firestore/space-requests";
 
-// Admin "request a new Space" form (Slice 7, D12). Records the request through the manageAdmin-guarded
-// route and shows the auto-generated owner provisioning commands + .env.local lines. It provisions
-// nothing: the app records the request and prints the commands; the owner runs them.
+// S36 request + exact fixed-plan preview. No generic cloud command or caller-selected resource id is
+// exposed; execution stays closed until one owner-approved pilot packet is supplied.
 export function SpaceRequestPanel({
   initialRequests,
 }: Readonly<{ initialRequests: SpaceRequest[] }>) {
@@ -19,7 +22,11 @@ export function SpaceRequestPanel({
   const [sources, setSources] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [plan, setPlan] = useState<SpaceProvisioningPlan | null>(null);
+  const [plan, setPlan] = useState<{
+    value: SpaceProvisioningPlan;
+    requestId: string;
+    executionEnabled: boolean;
+  } | null>(null);
 
   const id = { name: useId(), scope: useId(), sources: useId() };
   const ready = name.trim().length >= 2 && scope.trim().length >= 3;
@@ -39,8 +46,16 @@ export function SpaceRequestPanel({
         body: JSON.stringify({ name: name.trim(), scope: scope.trim(), intendedSources }),
       });
       if (response.ok) {
-        const payload = (await response.json()) as { plan: SpaceProvisioningPlan };
-        setPlan(payload.plan);
+        const payload = (await response.json()) as {
+          plan: SpaceProvisioningPlan;
+          request: { id: string };
+          executionEnabled: boolean;
+        };
+        setPlan({
+          value: payload.plan,
+          requestId: payload.request.id,
+          executionEnabled: payload.executionEnabled,
+        });
         router.refresh();
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
@@ -81,11 +96,17 @@ export function SpaceRequestPanel({
       </Field>
       <div className="ui-row">
         <Button disabled={!ready || pending} onClick={() => void submit()} type="button">
-          {pending ? "Saving…" : "Request Space and generate commands"}
+          {pending ? "Saving…" : "Request Space and review fixed plan"}
         </Button>
       </div>
       {error ? <p className="muted">{error}</p> : null}
-      {plan ? <ProvisioningPlanView plan={plan} /> : null}
+      {plan ? (
+        <ProvisioningPlanView
+          executionEnabled={plan.executionEnabled}
+          plan={plan.value}
+          requestId={plan.requestId}
+        />
+      ) : null}
 
       {initialRequests.length > 0 ? (
         <div className="ui-stack">
@@ -107,26 +128,221 @@ export function SpaceRequestPanel({
   );
 }
 
-function ProvisioningPlanView({ plan }: Readonly<{ plan: SpaceProvisioningPlan }>) {
+function ProvisioningPlanView({
+  executionEnabled,
+  plan,
+  requestId,
+}: Readonly<{
+  executionEnabled: boolean;
+  plan: SpaceProvisioningPlan;
+  requestId: string;
+}>) {
+  const [sourceObjectUri, setSourceObjectUri] = useState("");
+  const [approvalEvidenceRef, setApprovalEvidenceRef] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [operation, setOperation] = useState<"provision" | "retire">("provision");
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState("");
+  const fieldId = {
+    source: useId(),
+    approval: useId(),
+    confirmation: useId(),
+  };
+
+  async function executePilot() {
+    setPending(true);
+    setResult("");
+    try {
+      const response = await fetch("/api/admin/spaces/provision", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation,
+          pilotPacket: {
+            requestId,
+            confirmedSpaceId: plan.spaceId,
+            sourceObjectUri: sourceObjectUri.trim(),
+            approvalEvidenceRef: approvalEvidenceRef.trim(),
+          },
+          attemptKey: crypto.randomUUID(),
+          confirmation,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        receipt?: { id: string; providerOperationRef: string };
+      };
+      if (!response.ok || !payload.receipt) {
+        setResult(payload.error ?? "The exact pilot operation was refused.");
+        return;
+      }
+      setResult(
+        `Receipted ${operation}: ${payload.receipt.id} (${payload.receipt.providerOperationRef})`,
+      );
+    } catch {
+      setResult("Could not reach the exact Space pilot service.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const expectedConfirmation =
+    operation === "provision" ? SPACE_PROVISION_CONFIRMATION : SPACE_RETIRE_CONFIRMATION;
+  const executionReady =
+    executionEnabled &&
+    plan.readyForAuthorization &&
+    sourceObjectUri.trim().length > 0 &&
+    approvalEvidenceRef.trim().length >= 3 &&
+    confirmation === expectedConfirmation;
+
   return (
     <div className="ui-stack">
-      <h2 className="section-title">Provisioning steps for {plan.spaceId}</h2>
+      <h2 className="section-title">Exact resource preview for {plan.spaceId}</h2>
       {plan.alreadyExists ? (
         <p className="muted">
           Heads up: a Space keyed {plan.spaceId} already exists in the config. Pick a
           different name or update that Space instead of creating a duplicate.
         </p>
       ) : null}
-      <h3>Owner console commands (run these yourself)</h3>
-      <pre className="draft-box">{plan.commands.join("\n")}</pre>
-      <h3>.env.local lines to set</h3>
+      <dl className="review-grid">
+        <div>
+          <dt>Fixed shape</dt>
+          <dd>{plan.shape}</dd>
+        </div>
+        <div>
+          <dt>Project / location</dt>
+          <dd>
+            {plan.projectId} / {plan.location}
+          </dd>
+        </div>
+        <div>
+          <dt>Data store</dt>
+          <dd>{plan.dataStoreId}</dd>
+        </div>
+        <div>
+          <dt>Isolated source prefix</dt>
+          <dd>{plan.sourcePrefix ?? "Readback unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Runtime identity</dt>
+          <dd>{plan.runtimeServiceAccount}</dd>
+        </div>
+        <div>
+          <dt>Exact preview hash</dt>
+          <dd>{plan.previewHash}</dd>
+        </div>
+      </dl>
+      {plan.blockers.length ? (
+        <div className="notice notice-warning">
+          <strong>Provisioning remains closed</strong>
+          <ul className="compact-list">
+            {plan.blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <h3>Resources</h3>
+      <ul className="compact-list">
+        {plan.resourceDisclosure.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <h3>Identity and IAM</h3>
+      <ul className="compact-list">
+        {plan.iamDisclosure.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <h3>Cost boundary</h3>
+      <ul className="compact-list">
+        {plan.costDisclosure.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <h3>Isolated retirement</h3>
+      <ul className="compact-list">
+        {plan.retirementDisclosure.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <h3>Post-provision deployment mappings</h3>
       <pre className="draft-box">{plan.envLocalLines.join("\n")}</pre>
+      <p className="muted">
+        <strong>Exact external input still required:</strong> {plan.externalInputRequired}
+      </p>
       <h3>Notes</h3>
       <ul className="ui-rows">
         {plan.notes.map((note) => (
           <li key={note}>{note}</li>
         ))}
       </ul>
+      <div className="notice notice-warning ui-stack-tight">
+        <strong>Separate exact-confirmed pilot operation</strong>
+        <p>
+          This control is inert until the owner enables the reviewed runtime flag and
+          supplies the exact approved packet. It cannot target another project, bucket,
+          data store, or identity.
+        </p>
+      </div>
+      <div className="ui-row">
+        <Button
+          onClick={() => {
+            setOperation("provision");
+            setConfirmation("");
+          }}
+          type="button"
+          variant={operation === "provision" ? "primary" : "secondary"}
+        >
+          Provision one pilot
+        </Button>
+        <Button
+          onClick={() => {
+            setOperation("retire");
+            setConfirmation("");
+          }}
+          type="button"
+          variant={operation === "retire" ? "primary" : "secondary"}
+        >
+          Retire only this pilot
+        </Button>
+      </div>
+      <Field htmlFor={fieldId.source} label="Approved first JSONL source object">
+        <input
+          id={fieldId.source}
+          onChange={(event) => setSourceObjectUri(event.target.value)}
+          placeholder={`${plan.sourcePrefix ?? "gs://…/"}first-source.jsonl`}
+          value={sourceObjectUri}
+        />
+      </Field>
+      <Field htmlFor={fieldId.approval} label="Owner approval evidence reference">
+        <input
+          id={fieldId.approval}
+          onChange={(event) => setApprovalEvidenceRef(event.target.value)}
+          value={approvalEvidenceRef}
+        />
+      </Field>
+      <Field htmlFor={fieldId.confirmation} label="Exact confirmation">
+        <input
+          id={fieldId.confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          placeholder={expectedConfirmation}
+          value={confirmation}
+        />
+      </Field>
+      <Button
+        disabled={!executionReady || pending}
+        onClick={() => void executePilot()}
+        type="button"
+      >
+        {pending ? "Running exact readback…" : `Confirm and ${operation}`}
+      </Button>
+      {!executionEnabled ? (
+        <p className="muted">
+          Runtime execution is closed. Preview and packet preparation remain available.
+        </p>
+      ) : null}
+      {result ? <p className="muted">{result}</p> : null}
     </div>
   );
 }

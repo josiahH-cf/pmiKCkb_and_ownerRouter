@@ -59,10 +59,12 @@ describe("current provider and environment documentation", () => {
   });
 
   it("routes only genuine provider/client inputs to the current checklist", () => {
-    expect(checklist).toContain("RentCast radius and comparable-count policy");
-    expect(checklist).toContain("Verbatim renewal Sheet copy");
+    expect(checklist).toContain(
+      "RentCast radius, comp count, freshness/selection policy",
+    );
+    expect(checklist).toContain("Distinct verbatim Sheet copy");
     expect(checklist).toContain("One unmistakable RentVine test lease/owner");
-    expect(checklist).toContain("the exact per-key review remains required");
+    expect(checklist).toContain("protected gate separately");
     expect(checklist).not.toContain("active API plan");
     expect(checklist).not.toContain("Q-RENTCAST-ACCOUNT-403");
   });

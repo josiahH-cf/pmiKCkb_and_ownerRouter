@@ -6,6 +6,7 @@ import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
 import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
+import { OperationalPageBuilderPanel } from "@/components/admin/OperationalPageBuilderPanel";
 import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { ReindexPanel } from "@/components/admin/ReindexPanel";
@@ -15,6 +16,7 @@ import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { type AdminActivityEntry, readAdminActivityLog } from "@/lib/admin/activity-log";
+import { listAppUsers } from "@/lib/admin/users";
 import {
   type AdminObservability,
   adminObservabilityUnavailableMessage,
@@ -32,6 +34,10 @@ import {
   defaultOwnerTransactionalDestination,
   readOwnerTransactionalDestination,
 } from "@/lib/firestore/owner-transactional-destination";
+import {
+  readRenewalRehearsalSheetAdminConfig,
+  type RenewalRehearsalSheetAdminConfig,
+} from "@/lib/firestore/renewal-rehearsal-sheet-config";
 import {
   type NoticeRuleSetRecord,
   readNoticeRuleConfigRecord,
@@ -58,6 +64,7 @@ import type {
 } from "@/lib/firestore/types";
 import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
+import { resolveRenewalSheetBindings } from "@/lib/lease-renewal/rehearsal-sheet";
 import { launchSpaces } from "@/lib/spaces";
 
 // Admin is re-sectioned (console overhaul Slice D) into three clearly-labeled areas so the operator
@@ -80,8 +87,18 @@ export default async function AdminPage() {
   let publicationPolicyNote: string | undefined;
   let transactionalDestination = defaultOwnerTransactionalDestination();
   let transactionalDestinationNote: string | undefined;
+  const environmentSheetBindings = resolveRenewalSheetBindings();
+  let rehearsalSheetConfig: RenewalRehearsalSheetAdminConfig = {
+    operating: environmentSheetBindings.operating,
+    rehearsal:
+      environmentSheetBindings.rehearsal.status === "ready"
+        ? { ...environmentSheetBindings.rehearsal, source: "environment" }
+        : { status: "not_configured", configured: false },
+  };
+  let rehearsalSheetNote: string | undefined;
   let supportReports: SupportReportRecord[] = [];
   let supportReportsNote: string | undefined;
+  let supportReporterDirectory: Record<string, string> = {};
   // S39: the badge counts come from the SAME gatherSupportAttention the /notifications hub reads, so the
   // panel and the hub can never show different numbers (never a separate ad-hoc count over the list).
   let supportAttention = { newCount: 0, followUpDueCount: 0 };
@@ -148,6 +165,23 @@ export default async function AdminPage() {
       .catch(() => {
         transactionalDestinationNote =
           "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
+      }),
+    readRenewalRehearsalSheetAdminConfig(user)
+      .then((savedConfig) => {
+        rehearsalSheetConfig = savedConfig;
+      })
+      .catch(() => {
+        rehearsalSheetNote =
+          "Saved rehearsal-copy configuration is unavailable. No Sheet proof can run from this panel.";
+      }),
+    listAppUsers()
+      .then((users) => {
+        supportReporterDirectory = Object.fromEntries(
+          users.map((managedUser) => [managedUser.uid, managedUser.email]),
+        );
+      })
+      .catch(() => {
+        supportReporterDirectory = {};
       }),
     listSupportReports(user)
       .then((reports) => {
@@ -347,6 +381,7 @@ export default async function AdminPage() {
             unavailableNote={supportReportsNote}
             newCount={supportAttention.newCount}
             followUpDueCount={supportAttention.followUpDueCount}
+            reporterDirectory={supportReporterDirectory}
           />
           <AdminActivityLogPanel
             entries={activityEntries}
@@ -368,7 +403,10 @@ export default async function AdminPage() {
             classifyModel={config.geminiClassifyModel}
             provider={config.modelProvider}
           />
-          <RenewalRehearsalSheetPanel />
+          <RenewalRehearsalSheetPanel
+            initialConfig={rehearsalSheetConfig}
+            unavailableNote={rehearsalSheetNote}
+          />
           <div className="grid three">
             <article className="panel">
               <h2>Approval Label</h2>
@@ -398,7 +436,8 @@ export default async function AdminPage() {
               <h2>Spaces</h2>
               <p className="muted">
                 Request a new Space. The app records it and prints the exact commands to
-                provision the Vertex data store and Drive folder; you run them.
+                review one fixed GCS + Discovery Engine resource plan. Generic cloud
+                commands and caller-selected IAM are not exposed.
               </p>
               <Link href="/admin/spaces/request">Request a new Space</Link>
             </article>
@@ -424,6 +463,11 @@ export default async function AdminPage() {
               <p className="muted">{noticeRulesNote}</p>
             </article>
           )}
+          <OperationalPageBuilderPanel
+            spaces={launchSpaces
+              .filter((space) => space.showInDirectory !== false && !space.readOnly)
+              .map((space) => ({ id: space.id, name: space.name }))}
+          />
           <article className="panel">
             <h2>Owner Pricing Rules</h2>
             <OwnerPolicyRulesAdminPanel initialRules={ownerPolicyRules} />

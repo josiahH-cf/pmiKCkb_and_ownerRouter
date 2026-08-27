@@ -2,7 +2,7 @@
 
 # S63 — Four-lease renewal operational proof
 
-> Status: Machinery is built; the client/process/number proof remains an operational exercise.
+> Status: Dependency-independent machinery is proven and the ready-to-run sequence is documented; client process/rent/comp-policy decisions block the outcome.
 
 **Goal.**
 
@@ -32,9 +32,9 @@ No invented client answer, source overwrite, autonomous outreach, or broad cohor
 
 **Ordered prompt sequence.**
 
-1. Confirm client process/policy inputs.
-2. Capture fresh read-only baseline and run the four cases.
-3. Review criteria with the client and record the factual disposition.
+1. Record the three client decisions named in `docs/evidence/four-lease-proof-readiness-2026-08-27.md`.
+2. Capture the immutable read-only lease-id/row/source-hash baselines and append observed evidence.
+3. Generate the gitignored report, review process and number criteria separately, and record factual dispositions.
 
 **Deletion/merge recommendation.**
 

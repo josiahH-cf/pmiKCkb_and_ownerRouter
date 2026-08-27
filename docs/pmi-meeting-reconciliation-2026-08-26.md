@@ -1,202 +1,140 @@
-# PMI KC meeting reconciliation — Wednesday, August 26, 2026 at 2:00 p.m. Central
+# PMI KC meeting reconciliation — present truth as of 2026-08-27
 
-Prepared and released on 2026-08-26 for the organizer-supplied meeting time. This replaces the
-pre-implementation August 25 assessment. The public, bodyless
-[`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version) response was verified after
-promotion against commit `13569183da57c419ac0da279dde5a6d6a0b0da14` and Cloud Run revision
-`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`; timestamp-only deployment inference is not accepted.
+This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
+original meeting time was organizer-supplied. Exact Production identity is available at
+[`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version); the final commit and revision
+for this ship candidate will be recorded here only after candidate smoke, promotion, and readback.
 
 Client handoffs:
 
-- [`pmi-kc-client-action-center-2026-08-26.html`](pmi-kc-client-action-center-2026-08-26.html) — the
-  plain-language client action, testing, blocker, and ownership page.
-- [`pmi-kc-meeting-agenda-2026-08-26.html`](pmi-kc-meeting-agenda-2026-08-26.html) — the presenter’s
-  one-page, time-boxed agenda.
+- [`pmi-kc-client-action-center-2026-08-26.html`](pmi-kc-client-action-center-2026-08-26.html) —
+  plain-language current use, client inputs, ownership, and safe testing.
+- [`pmi-kc-meeting-agenda-2026-08-26.html`](pmi-kc-meeting-agenda-2026-08-26.html) — one-page presenter
+  walkthrough.
+- [`pmi-kc-completion-blocker-audit-2026-08-26.html`](pmi-kc-completion-blocker-audit-2026-08-26.html)
+  — detailed internal-closure and external-input report.
 - [`pmi-kc-meeting-readiness-human-litmus-2026-08-26.md`](pmi-kc-meeting-readiness-human-litmus-2026-08-26.md)
-  — the frozen model/human acceptance checklist.
+  — eight checks whose human verdicts must be supplied by the owner.
 
-## 1. Outcome
+## Direct outcome
 
-The dependency-independent meeting work is built. The product now:
+All dependency-independent product work in I01–I11 is implemented to its allowed boundary. The
+remaining work before final closure is release evidence and eight real owner verdicts. External
+activations still wait on named client, owner, source-data, credential, or official-provider inputs;
+none is disguised as internal engineering work.
 
-1. refuses to call conflicted or stale current rent “Verified”;
-2. applies a recorded rent resolution only to the exact lease/row that produced it;
-3. uses one current-rent extraction precedence and records the live field-shape diagnostic without
-   client values;
-4. accepts normal human money formats such as `$1,500.25` at the operator forms and rejects ambiguous,
-   negative, or partial values;
-5. exposes the operating renewal Sheet as view-only in Admin and a separately configured rehearsal
-   copy as the only allowed write-test target;
-6. gives work assignments optional job location, materials needed, and materials already bought/on
-   hand, addressing the actionable work-screen support request;
-7. hides the unbacked Workflow Communications compatibility Space from normal product directories;
-8. activates only the approved, read-only RentCast reference-comp action;
-9. exposes exact commit/revision/service/environment identity at `/api/version` and requires the
-   candidate smoke to match it before traffic promotion; and
-10. hard-bounds the E2E probe, run, HTTP warmups, and teardown so a gate cannot hang indefinitely.
+The ship candidate now includes:
 
-The safe stop is equally important: the renewal write action in RentVine remains closed, the operating
-Sheet write-back action remains closed, the move-out deposit-disposition report remains `new` and
-waiting for internal acknowledgement plus the offered client walkthrough, and no discrepancy is
-automatically “fixed.”
+1. verified managed-user reporter identity in Admin and truthful audited support status;
+2. accurate RentVine renewal-write metadata while its production action remains closed;
+3. Admin-managed rehearsal-Sheet configuration, distinct-source refusal, and a separate reversible
+   copy-only proof;
+4. append-only discrepancy dispositions and source-specific correction contracts;
+5. a create-only, value-free four-lease proof packet with explicit `not evaluated` outcomes;
+6. manual targeted Gmail refresh, source-backed waiting-on/last-contact state, and unset-safe
+   global/property/lease follow-up policy;
+7. a fixed one-Space provisioning lifecycle and a bounded read-only operational-page builder;
+8. fail-closed Dotloop, LeadSimple, and RentVine resident-channel lifecycle seams; and
+9. production dependency overrides with zero known production advisories.
 
-## 2. External-effect boundary
+## Safety and external-effect boundary
 
-No live RentVine `POST`, `PUT`, `PATCH`, or `DELETE` was made in this run. No operating Google Sheet
-cell was written or cleared. The live diagnostic used reads only.
+No RentVine operating record, operating renewal-Sheet cell, or client-facing message was changed or
+sent during this work. No RentVine or operating-Sheet action key was opened. The only authorized live
+application-record mutations were append-only audited transitions of the three submitted support
+reports.
 
-### RentVine
+The product remains Production + Live. Gmail continuous watch was retired: Scheduler is empty and
+the expired watch's single Pub/Sub subscription and topic were deleted and read back absent. Manual
+refresh reads only workflow-linked threads and cannot send.
 
-RentVine’s published Manager API now documents two relevant updates:
+## Support-report truth
 
-- update the selected lease with `POST /api/manager/leases/{leaseID}`; and
-- update one existing recurring charge with
-  `POST /api/manager/leases/{leaseID}/recurring-charges/{chargeID}`.
+All three live reports were reread and transitioned through the existing Admin-only audited path:
 
-The current credential’s broader write role is owner-attested, not live-proven. A new write client is
-kept separate from the GET-only read client and exposes only those two documented POST operations. It
-accepts only allowlisted lease-date or existing-charge fields, uses the managed account host, emits no
-secret-bearing errors, and has no delete, create-charge, status-change, arbitrary-route, or generic
-request surface. A dry-run provider produces the two-step proposed change and rollback payload and
-throws if asked to execute. `rentvine.lease.renewal_writeback` therefore stays
-`production_allowed:false` until a dedicated test record, exact preview/confirm, live readback,
-receipt, and rollback proof are reviewed.
+| Report               | Present status | Truthful disposition                                                                     |
+| -------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| Work                 | `resolved`     | Location and materials fields persist and render; verified before resolution.            |
+| Connections          | `acknowledged` | Current API/integration seams were triaged; exact external provider inputs remain named. |
+| Move-out disposition | `acknowledged` | Assigned and intentionally unresolved until the client process walkthrough.              |
+
+No report remains `new`. Admin resolves the reporter through the managed-user directory and never
+guesses a personal name.
+
+## Source reconciliation and correction policy
+
+The value-free August 26 diagnostic read the complete 306-row RentVine export and the operating
+renewal Sheet without printing client values:
+
+| Current-rent outcome       | Count |
+| -------------------------- | ----: |
+| Sources agree              |    14 |
+| Sources conflict           |    20 |
+| Only one source present    |   140 |
+| Both missing or not joined |   216 |
+| High current-rent flags    |    20 |
+
+These are review outcomes, not a claim that 20 RentVine records are wrong. Unknown meaning—especially
+base rent versus total monthly charge—is waiting on the client. Conflict, missing, stale, expired, or
+ambiguous evidence remains fail-closed. A disposition records authoritative source, proposed
+correction, reason, owner, status, and evidence for one exact lease/row. It cannot perform a source
+write without a separate approved source-specific transaction contract.
+
+## Safe rehearsal and provider posture
 
 ### Renewal Sheet
 
-`RENEWAL_SHEET_ID` continues to identify the operating read source.
-`RENEWAL_REHEARSAL_SHEET_ID` is a different, optional configuration value for a verbatim copy. Equal
-ids are a hard refusal. The operator proof is dry by default and, in live mode, requires an exact
-confirmation bound to the copy and cell. It proves:
+An authorized Admin can save a canonical Google Sheet URL/id for a future rehearsal copy. The server
+rejects invalid ids and any id equal to the operating Sheet. Saving does not call Google Sheets. The
+separate proof remains dry by default and requires a distinct shared copy, one exact blank cell,
+exact confirmation, compare-and-set write, readback, exact clear, and final-blank proof.
 
-`blank → synthetic compare-and-set write → exact readback → exact clear → blank readback`.
+### RentVine renewal write
 
-The proof cannot run until the client creates and shares the distinct copy. A missing copy is a named
-setup dependency, never permission to target the operating file.
+The restricted seam models only the two documented renewal POST shapes and allowlisted lease-date or
+existing recurring-charge fields. It produces exact preview and rollback payloads. The production
+key remains `production_allowed:false`; no executable live caller or test record is configured.
 
-## 3. Current-rent findings and correction policy
+### Other provider seams
 
-The bodyless diagnostic at
-[`evidence/current-rent-bodyless-diagnostic-2026-08-26.md`](evidence/current-rent-bodyless-diagnostic-2026-08-26.md)
-read the complete 306-row RentVine export and the renewal Sheet without printing record values.
+Dotloop, LeadSimple, and the preferred RentVine resident channel now have fail-closed schema,
+preview, exact confirmation, idempotency, receipt, readback, correction, and rollback contracts to
+their official seams. No endpoint, mapping, credential, template, stage, catalog, or client value is
+guessed. Per-person approval authority remains unimplemented and unauthorized.
 
-| Current-rent outcome               | Count |
-| ---------------------------------- | ----: |
-| Sources agree                      |    14 |
-| Sources conflict                   |    20 |
-| Only one source is present         |   140 |
-| Both sources missing or not joined |   216 |
-| High current-rent flags            |    20 |
+## What the team can use now
 
-The export-shape result was unambiguous for this capture: all 306 rows carried `unit.rent`; zero
-carried a lease-level rent key. Both code paths now resolve `unit.rent`, then `lease.currentRent`, then
-`lease.rent`, and a differing-values fixture prevents them from silently diverging again.
+1. Renewal Desk and live review for sorted lease work, source timestamps, refresh, confidence, and
+   exact lease-specific discrepancy disposition.
+2. Admin for support reports, rehearsal-copy setup, follow-up policy, one-Space packet preparation,
+   and governed operational-process pages.
+3. Team Work for assignment location and materials needed/already available.
+4. Workflow Communications for manual refresh of linked Gmail threads and honest waiting-on/contact
+   state; every client message remains an unsent draft or a human Gmail action.
+5. The four-lease proof packet after the client supplies its process, rent-definition, and comp-policy
+   decisions.
 
-The 20 conflicts are examples to review in the authenticated tool, not a claim that RentVine has 20
-bad values. Each must be classified as one of:
+## Named external inputs only
 
-- actual source conflict;
-- RentVine only or Sheet only;
-- both missing;
-- intentional semantic difference (especially base rent versus total monthly charge);
-- stale snapshot; or
-- ambiguous lease identity/join.
+| Owner                 | Exact input                                                                                                                          | Completed seam waiting on it                                                                   | Next action                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| PMI KC renewal owner  | Six steps, current-rent meaning, and comp radius/count/freshness/selection policy                                                    | Versioned workflow, discrepancy dispositions, immutable four-case runner, reference-only comps | Record decisions and run the four-case packet.                                |
+| PMI KC Admin          | Distinct shared rehearsal Sheet copy and one blank cell                                                                              | Saved Admin config and reversible copy-only proof                                              | Save the real link, preview, confirm, and run one-cell proof.                 |
+| PMI KC owner          | One unmistakable RentVine test lease/owner and allowed field                                                                         | Restricted preview/readback/rollback seam with closed key                                      | Review a dry preview; treat live proof as a separate protected gate decision. |
+| PMI KC process expert | Move-out walkthrough/date and exact lease behind the resident-identity report                                                        | Acknowledged support record and fail-closed lease identity                                     | Walk through and verify before resolving.                                     |
+| PMI KC policy owner   | Waiting-on timing, overrides, offer wording, channel evidence, and delivery scope                                                    | Versioned global/property/lease policy and human-controlled drafts                             | Enter only confirmed values.                                                  |
+| Owner                 | S36 saved request id, first verified JSONL object in its exact prefix, approval evidence ref                                         | Fixed official one-Space lifecycle with 11-Space protection and isolated rollback              | Review one bounded pilot packet.                                              |
+| Client/provider       | S66 catalog + Dotloop OAuth/mappings; one LeadSimple account action/credential/mappings; official RentVine resident-channel contract | Closed exact-lifecycle adapters                                                                | Configure and prove one official action at a time.                            |
 
-Until a fresh agreement or exact record-specific resolution exists, the draft shows Needs
-Verification. A resolution changes the proposed draft only; it does not write RentVine or the Sheet.
+## Verification and release contract
 
-## 4. RentCast activation
+Focused adversarial suites for every new seam are green. The final handoff still requires the full
+canonical local gate, clean diff/security review, commit and push, aggregate CI, zero-traffic
+candidate smoke, exact-revision promotion, 100% traffic readback, version-aware rollback and restore,
+and eight real dated owner verdicts. Until those steps are recorded, this document calls the build a
+ship candidate rather than a deployed release.
 
-The exact key `rentcast.rental_listings.search` is now `readiness:"Approved for Execution"`,
-`evidence_status:"Documented"`, and `production_allowed:true`, and is included in both executable
-allowlists. This is the owner-approved D12 change for the read-only reference-comps path only.
-
-The activation is grounded in the existing evidence: managed Secret Manager binding, active account
-plan and measured allowance, controlled HTTP 200 provider probes, bounded cache, persisted usage
-counter, and hard allowance stop. The request carries address/unit filters only and never fills
-`offeredRent` or writes a system of record. All other newly considered external write keys remain
-unchanged.
-
-## 5. Support-report reconciliation
-
-The meeting build read three reports. A read-only recheck at 5:21 p.m. Central found that all three
-remain `new` with zero status transitions. The two August reports share one reporter identity, but
-the managed Auth record did not verify the literal name Chastity. The current queue is:
-
-- **Connections, July 21:** a short report mentions API-key testing, Dotloop, and LeadSimple. It was
-  omitted from the prior meeting summary and still needs an internal owner and current disposition.
-- **Work page, August 20:** asked for what materials are needed/bought and address/job detail. The code
-  is addressed, but the report is not resolved. A human must verify the deployed behavior and then
-  close it with an audit note.
-- **Move-out deposit disposition, August 20:** says the page is unclear and offers an actual-process
-  walkthrough. The report is not yet acknowledged in the live queue. It must stay open until an
-  internal owner records the pending walkthrough and the client supplies the actual process.
-
-The meeting should identify the process expert and capture the real steps, inputs, decisions,
-documents, timing, owner, and completion proof.
-
-## 6. Highest-leverage client inputs
-
-| Priority | Input                                                            | Why it matters                                                     | Safe default until answered                                                      |
-| -------: | ---------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-|        1 | The six renewal steps, in order, with owner and completion proof | Aligns the workspace to the actual operating process               | Keep the current generic model; do not claim it is the client’s six-step process |
-|        2 | Definition of “current rent”                                     | Separates real errors from base-versus-total semantic differences  | Needs Verification; no source write                                              |
-|        3 | A verbatim rehearsal Sheet copy and its managed sharing          | Opens reversible write/read/undo proof without touching operations | Refuse the proof                                                                 |
-|        4 | One unmistakable RentVine test lease/owner                       | Opens a controlled future live proof                               | Dry preview only; action key closed                                              |
-|        5 | Move-out disposition walkthrough owner/date                      | Makes the reported page correct rather than merely clearer         | Keep report open                                                                 |
-|        6 | Exact lease behind the wrong-resident report                     | Determines whether the address/identity repair closed it           | Treat as unresolved                                                              |
-|        7 | RentCast search-radius/comparable-count policy                   | Makes the reference range defensible in local submarkets           | Show as reference only                                                           |
-|        8 | End-of-September scope and commitment                            | Reconciles the only dated delivery expectation                     | Record no invented commitment                                                    |
-
-## 7. Demonstration path
-
-1. Open [Renewal Desk](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal/live/desk): show
-   chronological cards, complete address labels, and a conflicted current-rent item.
-2. Open [Live renewal review](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal/live): show the
-   direct-read time, refresh, and lease-specific resolution key behavior.
-3. Open [Admin](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin): show operating/view-only Sheet,
-   rehearsal-copy setup/refusal, discrepancy guide, and support reports.
-4. Open [Team Work](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/admin/team-work): show job location and
-   the two materials fields on a task without creating client data for the demo.
-5. Show the RentVine dry preview using deterministic fixture data only; explicitly point out
-   `executionAllowed:false` and the rollback payload.
-6. Open [version evidence](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version): confirm the
-   deployed exact commit, revision, service `pmi-kc-app`, and environment `production`.
-
-Do not enter invented production records simply to make a screen look populated. Use existing live
-records only inside the authenticated product, or deterministic automated-test fixtures outside it.
-
-## 8. Adversarial verification contract
-
-The implementation began with two intentionally failing architecture/behavior suites and an eight-row
-human litmus. The initial failures named the missing RentVine seam, rehearsal Sheet boundary, exact
-version proof, RentCast activation, compatibility tile removal, and HTML deliverables. A passing handoff
-requires:
-
-- the focused implementation regression set;
-- all unit tests;
-- typecheck, lint, formatting, copy/voice, router boundary, spec traceability, context freshness,
-  falsification, and production build;
-- bounded core E2E completion (or an explicit deterministic failure, never a hang);
-- action-registry dry-run with only the exact approved executable set;
-- secret/PII scan and diff review;
-- release plan, candidate deploy with zero stable traffic, exact version smoke, exact-revision
-  promotion, stable smoke, traffic readback, and a captured rollback command.
-
-The human verdict columns remain blank for the 2:00 p.m. walkthrough. Model verification is evidence,
-not a substitute for the client’s process decisions.
-
-## 9. Release evidence
-
-Commit `13569183da57c419ac0da279dde5a6d6a0b0da14` deployed first as zero-traffic candidate
-`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`. Candidate smoke passed root 307, sign-in 200, protected route
-307, and version 200 with exact commit/revision/service/environment identity. Only then was the exact
-revision promoted to 100%. Stable readback and the same four checks passed. The captured predecessor
-is `pmi-kc-app-rmt99ltia-9119a24bf706`; the exact rollback command was recorded but the traffic switch
-was not executed during the time-boxed meeting release.
-
-## 10. Safety statement
-
-No RentVine record was changed during this run.
-
-No operating Google Sheet cell was changed during this run.
+The unit runner preserves the full 524-file inventory while using a bounded eight-worker thread pool
+in a native Linux shadow. The 2026-08-27 proof completed Vitest in 49.80 seconds and the full cached
+`npm test` command in 65.30 seconds; a native dependency-cache rebuild added 28 seconds. The retired
+roughly 40–48-minute behavior is not the current performance claim.

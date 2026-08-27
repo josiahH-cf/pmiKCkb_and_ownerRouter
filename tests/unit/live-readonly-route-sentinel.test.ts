@@ -43,10 +43,13 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   "app/api/gmail-hub/threads/[threadId]/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:linkMatchesContext",
-  "app/api/gmail-hub/watch/route.ts:GET:createGmailHubService",
   // S66 GET composes only an authenticated app-owned Firestore read handler. Its POST is separately
   // denied by the Live-read-only request policy and the handler's edit + renewals guard.
   "app/api/lease-renewal/packet-truth/route.ts:GET:createPacketTruthGetHandler",
+  // Hashing the bodyless source snapshot is a local, deterministic value transformation. It makes
+  // no provider call and is supplied only as the disposition record's stale-source fence.
+  "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createHash",
+  'app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createHash("sha256") .update',
   "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:end.setUTCDate",
   "app/lease-renewal/live/notices/page.tsx:LiveRenewalNoticesPage:end.setUTCDate",
 ]);

@@ -161,12 +161,17 @@ describe("Action Registry seed catalog", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("gates the Rentvine lease-renewal writeback as undocumented", () => {
+  it("documents the restricted RentVine seam while keeping writeback closed", () => {
     const writeback = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.renewal_writeback",
     );
 
-    expect(writeback?.evidence_status).toBe("Undocumented");
+    expect(writeback?.evidence_status).toBe("Documented");
+    expect(writeback?.readiness).toBe("Needs Permission");
+    expect(writeback?.documented_evidence).toContain(
+      "POST /leases/{leaseId}/recurring-charges/{chargeId}",
+    );
+    expect(writeback?.preview_schema_note).toContain("Dry preview only");
     expect(writeback?.production_allowed).toBe(false);
   });
 

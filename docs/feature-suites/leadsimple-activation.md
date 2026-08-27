@@ -2,7 +2,7 @@
 
 # S35 — LeadSimple connector activation
 
-> Status: Typed integration boundary remains closed pending an account contract, credential, and exact mappings.
+> Status: Typed CAS/readback/idempotency/receipt/reconciliation/rollback boundary is complete; official account contract, credential, and exact mappings are missing.
 
 **Goal.**
 
@@ -14,7 +14,9 @@ The connector must use official account endpoints and explicit process/stage/ass
 
 **Open questions & assumptions.**
 
-Provider/account owner must supply endpoint/plan, credential, mappings, concurrency behavior, and rollback/correction semantics.
+Provider/account owner must supply one selected account action, official endpoint/plan and
+credential, exact process/stage/assignee/task mappings, concurrency behavior, and the adapter for the
+documented rollback/correction operation. The app does not infer any of them.
 
 **Cross-product impacts.**
 

@@ -970,19 +970,19 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Execute a lease renewal or update renewal charges in Rentvine (system-of-record update).",
     product_lane: "Lease Renewal Agent",
-    readiness: "Planned",
-    evidence_status: "Undocumented",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
     documented_evidence:
-      "RentVine is GET-only today: a live read on 2026-07-22 (Slice 1) confirmed no write endpoint is exposed, only lease export/list/view. The full renewal-write executor + S25 contract are BUILT and unit-proven (RentvineRenewalExecutor: read-drift-check, compare-and-set with idempotency, readback, reconcile) over the least-privilege RenewalMutationProvider seam, and the owner APPROVED RentVine write in principle (2026-07-22, F-RENTVINE-WRITE-APPROVED) behind the app confirm/approval gates. It stays production_allowed:false pending a DOCUMENTED write endpoint + provider semantics (the unresolved D16 write half); flipping is then a one-line reviewed change. Never perform an unproven live write.",
+      "RentVine documents POST /leases/{leaseId} and POST /leases/{leaseId}/recurring-charges/{chargeId}. The separate write client exposes only those two routes and allowlists lease start/end dates plus an existing recurring charge amount/start date. The product can build an exact dry preview and rollback payload, while the production key remains closed and no executable caller or provider write is reachable. A live proof still requires one unmistakable client-designated test lease/owner, fresh provider state, exact confirmation, readback, receipt, and rollback.",
     required_permissions: [
-      "Documented RentVine write endpoint + provider semantics (D16)",
-      "Vendor-confirmed Rentvine lease-write capability",
+      "Client-designated unmistakable test lease/owner and exact field/charge permission",
+      "Reviewed protected gate change for the one-record proof",
     ],
     event_ingestion_mode: "None",
     preview_schema_note:
-      "Not executable: requires a confirmed endpoint and an approved per-action spec before a preview can be defined.",
+      "Show the exact lease id, fresh current values, proposed allowlisted fields, existing recurring-charge id, rollback payload, actor, and one-record scope. Dry preview only while the key remains closed.",
     rollback_note:
-      "Correct via the documented provider correction contract once the endpoint is confirmed; until then renewal writeback stays non-executable (production_allowed:false).",
+      "POST the exact captured prior allowlisted values back to the same lease and existing recurring charge, then read back both. No rollback is attempted until the designated one-record proof is separately approved.",
     connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },

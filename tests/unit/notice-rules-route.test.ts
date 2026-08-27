@@ -66,6 +66,7 @@ describe("admin notice-rules route (F-TMPL-5)", () => {
     const record = {
       id: "active",
       ...validBody,
+      version: 2,
       created_at: "c",
       updated_at: "u",
       seeded_by_uid: "s",

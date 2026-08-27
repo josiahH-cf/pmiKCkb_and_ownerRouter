@@ -213,8 +213,11 @@ describe("buildMigrationReadinessReport", () => {
     expect(
       report.action_registry.gated.find(
         (entry) => entry.key === "rentvine.lease.renewal_writeback",
-      )?.reason,
-    ).toMatch(/Undocumented/);
+      ),
+    ).toBeUndefined();
+    expect(report.action_registry.production_allowed_keys).not.toContain(
+      "rentvine.lease.renewal_writeback",
+    );
   });
 
   it("counts records by readiness and evidence", async () => {

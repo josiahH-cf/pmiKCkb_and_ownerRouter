@@ -22,6 +22,7 @@ import {
   linkMatchesContext,
   type WorkflowCommunicationContext,
   type WorkflowCommunicationLink,
+  type WorkflowCommunicationWaitingOn,
 } from "@/lib/gmail-hub/workflow-context";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
 import {
@@ -305,7 +306,7 @@ export interface GmailStateStore {
     mailboxEmail: string;
     historyId: string;
     addedCount: number;
-    mode: "history" | "bounded_resync";
+    mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
     nowMs: number;
   }): Promise<void>;
@@ -325,6 +326,10 @@ export interface GmailStateStore {
     linkId: string;
     messageId: string;
     nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
   }): Promise<"updated" | "duplicate" | "missing">;
   markCommunicationRead(input: {
     linkId: string;
@@ -861,7 +866,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     mailboxEmail: string;
     historyId: string;
     addedCount: number;
-    mode: "history" | "bounded_resync";
+    mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
     nowMs: number;
   }): Promise<void> {
@@ -877,16 +882,19 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         ? (existing.data() as GmailMailboxState)
         : undefined;
       const historyId = maxHistoryId(current?.history_id, input.historyId);
+      const manual = input.mode.startsWith("manual_");
       transaction.set(mailboxRef, {
         mailbox_email: input.mailboxEmail,
         user_uid: current?.user_uid ?? "unknown",
         history_id: historyId,
-        ...(current?.watch_expiration_ms
+        ...(!manual && current?.watch_expiration_ms
           ? { watch_expiration_ms: current.watch_expiration_ms }
           : {}),
-        ...(current?.watch_attempt ? { watch_attempt: current.watch_attempt } : {}),
+        ...(!manual && current?.watch_attempt
+          ? { watch_attempt: current.watch_attempt }
+          : {}),
         last_successful_sync_ms: input.nowMs,
-        health: "watching",
+        health: manual ? "connected" : "watching",
         updated_at_ms: input.nowMs,
       });
       transaction.set(dedupeRef, {
@@ -983,6 +991,10 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     linkId: string;
     messageId: string;
     nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
   }): Promise<"updated" | "duplicate" | "missing"> {
     const ref = this.db
       .collection(GMAIL_STATE_COLLECTIONS.workflowLinks)
@@ -998,6 +1010,14 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         last_message_id: input.messageId,
         attention_at_ms: input.nowMs,
         read_at_ms: undefined,
+        ...(input.waitingOn ? { waiting_on: input.waitingOn } : {}),
+        ...(input.lastContactAtMs ? { last_contact_at_ms: input.lastContactAtMs } : {}),
+        ...(input.lastContactMessageId
+          ? { last_contact_message_id: input.lastContactMessageId }
+          : {}),
+        ...(input.lastContactSource
+          ? { last_contact_source: input.lastContactSource }
+          : {}),
         updated_at_ms: input.nowMs,
         ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
       };
@@ -1357,22 +1377,25 @@ export class MemoryGmailStateStore implements GmailStateStore {
     mailboxEmail: string;
     historyId: string;
     addedCount: number;
-    mode: "history" | "bounded_resync";
+    mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
     nowMs: number;
   }) {
     this.pushStates.set(input.messageId, { state: "completed", updatedAt: input.nowMs });
     const current = this.mailboxStates.get(input.mailboxEmail);
+    const manual = input.mode.startsWith("manual_");
     this.mailboxStates.set(input.mailboxEmail, {
       mailbox_email: input.mailboxEmail,
       user_uid: current?.user_uid ?? "unknown",
       history_id: maxHistoryId(current?.history_id, input.historyId),
-      ...(current?.watch_expiration_ms
+      ...(!manual && current?.watch_expiration_ms
         ? { watch_expiration_ms: current.watch_expiration_ms }
         : {}),
-      ...(current?.watch_attempt ? { watch_attempt: current.watch_attempt } : {}),
+      ...(!manual && current?.watch_attempt
+        ? { watch_attempt: current.watch_attempt }
+        : {}),
       last_successful_sync_ms: input.nowMs,
-      health: "watching",
+      health: manual ? "connected" : "watching",
       updated_at_ms: input.nowMs,
     });
     this.audit.push({
@@ -1435,6 +1458,10 @@ export class MemoryGmailStateStore implements GmailStateStore {
     linkId: string;
     messageId: string;
     nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
   }): Promise<"updated" | "duplicate" | "missing"> {
     const link = this.communicationLinks.get(input.linkId);
     if (!link) return "missing";
@@ -1442,6 +1469,11 @@ export class MemoryGmailStateStore implements GmailStateStore {
     link.status = "attention_required";
     link.last_message_id = input.messageId;
     link.attention_at_ms = input.nowMs;
+    if (input.waitingOn) link.waiting_on = input.waitingOn;
+    if (input.lastContactAtMs) link.last_contact_at_ms = input.lastContactAtMs;
+    if (input.lastContactMessageId)
+      link.last_contact_message_id = input.lastContactMessageId;
+    if (input.lastContactSource) link.last_contact_source = input.lastContactSource;
     delete link.read_at_ms;
     link.updated_at_ms = input.nowMs;
     Object.assign(

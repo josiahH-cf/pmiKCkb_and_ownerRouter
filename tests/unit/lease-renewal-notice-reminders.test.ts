@@ -1,13 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import {
+  DEFAULT_NOTICE_RULE_SET,
+  DEFAULT_NOTICE_RULE_VALUES,
+} from "@/lib/lease-renewal/notice-rules";
 import {
   planCallTasks,
   planNoticeReminders,
   type NoticeReminderLeaseFacts,
 } from "@/lib/lease-renewal/notice-reminders";
 
-const RULE_SET = DEFAULT_NOTICE_RULE_SET; // deadline: 15th of the month before lease end
+const RULE_SET = {
+  rules: [
+    {
+      scope: "global" as const,
+      values: { ...DEFAULT_NOTICE_RULE_VALUES },
+      verified: true,
+    },
+  ],
+}; // client-confirmed test policy: deadline 15th of the month before lease end
 
 const leases: NoticeReminderLeaseFacts[] = [
   // ends Aug 31 -> notice due 2026-07-15
@@ -99,6 +110,20 @@ describe("planNoticeReminders", () => {
       referenceDateIso: "2026-07-14",
     });
     expect(plan.reminders).toHaveLength(0);
+  });
+
+  it("emits no attention when client timing policy is unconfirmed", () => {
+    const plan = planNoticeReminders({
+      leases,
+      ruleSet: DEFAULT_NOTICE_RULE_SET,
+      referenceDateIso: "2026-07-14",
+    });
+    expect(plan.reminders).toEqual([]);
+    expect(plan.summary).toEqual({
+      notice_due_soon: 0,
+      notice_overdue: 0,
+      follow_up_due: 0,
+    });
   });
 });
 

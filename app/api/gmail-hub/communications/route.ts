@@ -20,6 +20,11 @@ export async function GET(request: Request) {
         href: workflowEntityHref(link),
         createdAtMs: link.created_at_ms,
         ...(link.attention_at_ms ? { attentionAtMs: link.attention_at_ms } : {}),
+        ...(link.waiting_on ? { waitingOn: link.waiting_on } : {}),
+        ...(link.last_contact_at_ms ? { lastContactAtMs: link.last_contact_at_ms } : {}),
+        ...(link.last_contact_source
+          ? { lastContactSource: link.last_contact_source }
+          : {}),
       })),
     });
   } catch (error) {

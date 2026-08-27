@@ -251,6 +251,7 @@ export interface LeaseNoticeFacts {
 }
 
 export type NoticeStatusCode =
+  | "policy_unset"
   | "disabled"
   | "no_lease_end"
   | "notice_scheduled"
@@ -281,6 +282,11 @@ export function detectNoticeStatus(
   facts: LeaseNoticeFacts,
   referenceDateIso: string,
 ): NoticeStatus {
+  // Unconfirmed starter values are display-only. They must never manufacture a due date, attention
+  // item, or follow-up task before the client has confirmed every effective field.
+  if (!resolved.fullyVerified) {
+    return { code: "policy_unset", schedule: null, followUpDueByIso: null };
+  }
   if (!resolved.enabled.value) {
     return { code: "disabled", schedule: null, followUpDueByIso: null };
   }
@@ -352,6 +358,7 @@ export interface NoticeStatusLabels {
 }
 
 const STATUS_LABELS: Record<NoticeStatusCode, string> = {
+  policy_unset: "Timing policy not confirmed",
   disabled: "Notice tracking off",
   no_lease_end: "No lease end on file",
   notice_scheduled: "Notice scheduled",
@@ -402,6 +409,20 @@ export function buildEffectiveRuleView(
   resolved: ResolvedNoticeRule,
   status: NoticeStatus,
 ): EffectiveRuleView {
+  if (status.code === "policy_unset") {
+    return {
+      statusLabel: STATUS_LABELS.policy_unset,
+      lines: [
+        {
+          label: "Client timing policy",
+          value: "Not confirmed",
+          provenance: "client decision required",
+          needsVerification: true,
+        },
+      ],
+      hasUnverified: true,
+    };
+  }
   const lines: EffectiveRuleLine[] = [];
 
   if (status.schedule) {
@@ -485,6 +506,20 @@ function describeMonthOffset(offset: number): string {
  * flag so an unconfirmed default reads as unconfirmed.
  */
 export function buildNoticeRuleSummary(resolved: ResolvedNoticeRule): EffectiveRuleView {
+  if (!resolved.fullyVerified) {
+    return {
+      statusLabel: STATUS_LABELS.policy_unset,
+      lines: [
+        {
+          label: "Client timing policy",
+          value: "Not confirmed",
+          provenance: "client decision required",
+          needsVerification: true,
+        },
+      ],
+      hasUnverified: true,
+    };
+  }
   const deadline = deadlineProvenance(resolved);
   const lines: EffectiveRuleLine[] = [
     {

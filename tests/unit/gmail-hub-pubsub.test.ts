@@ -6,7 +6,7 @@ import {
   verifyPubSubPushRequest,
   type GmailPushConfig,
 } from "@/lib/gmail-hub/pubsub";
-import { processGmailPushNotification } from "@/lib/gmail-hub/service";
+import { GmailHubService, processGmailPushNotification } from "@/lib/gmail-hub/service";
 import { gmailMailboxKey, MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
 import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
@@ -82,9 +82,31 @@ class HistoryClient extends GmailRuntimeClient {
     };
   }
 
-  override async getThread(): Promise<never> {
+  override async getThread(threadId = "thread-1") {
     this.threadCalls += 1;
-    throw new Error("Push processing must not fetch Gmail thread content.");
+    return {
+      id: threadId,
+      messages: [
+        {
+          id: "message-1",
+          threadId,
+          labelIds: ["INBOX"],
+          internalDate: "1700000000000",
+          from: "resident@example.com",
+          to: [mailbox],
+          cc: [],
+          bcc: [],
+          subject: "Provider-backed test thread",
+          date: "Tue, 14 Nov 2023 22:13:20 +0000",
+          messageId: "<provider-backed@example.com>",
+          references: [],
+          bodyText: "Not persisted by the workflow state store.",
+          bodyTruncated: false,
+          attachments: [],
+        },
+      ],
+      truncated: false,
+    };
   }
 }
 
@@ -325,9 +347,58 @@ describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
     expect(store.communicationLinks.get("communication-1")).toMatchObject({
       status: "attention_required",
       last_message_id: "message-1",
+      waiting_on: "team",
+      last_contact_at_ms: 1700000000000,
+      last_contact_source: "gmail_thread",
     });
-    expect(client.threadCalls).toBe(0);
+    expect(client.threadCalls).toBe(2);
     expect(JSON.stringify(store.audit)).not.toContain("Synthetic");
+  });
+
+  it("runs an idempotent manual refresh and clears retired watch state", async () => {
+    const store = new MemoryGmailStateStore();
+    const client = new HistoryClient();
+    await store.saveMailboxState({
+      mailbox_email: mailbox,
+      user_uid: "user-josiah",
+      history_id: "100",
+      watch_expiration_ms: 10,
+      health: "watching",
+      updated_at_ms: 1,
+    });
+    const hub = new GmailHubService(
+      {
+        uid: "user-josiah",
+        email: mailbox,
+        hd: "pmikcmetro.com",
+        role: "Approver",
+      },
+      {
+        createClient: () => client,
+        store,
+        assertEffectEnvironment: () => undefined,
+        assertRuntimeActionExecutable: async () => undefined,
+        now: () => 20,
+      },
+    );
+    const attemptKey = "018f5ca1-7b7c-7c3d-8b6f-5f83a36a5f51";
+
+    await expect(hub.refreshMailbox({ attemptKey })).resolves.toMatchObject({
+      status: "processed",
+      historyId: "150",
+    });
+    await expect(hub.refreshMailbox({ attemptKey })).resolves.toMatchObject({
+      status: "duplicate",
+    });
+    expect(client.historyCalls).toBe(1);
+    expect(await store.getMailboxState(mailbox)).toMatchObject({
+      health: "connected",
+      history_id: "150",
+    });
+    expect((await store.getMailboxState(mailbox))?.watch_expiration_ms).toBeUndefined();
+    expect(store.audit).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: "manual_history" })]),
+    );
   });
 
   it("rejects missing bearer authentication", async () => {

@@ -1,11 +1,15 @@
+import { createHash } from "node:crypto";
+
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
+import { DiscrepancyDispositionPanel } from "@/components/lease-renewal/DiscrepancyDispositionPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { getCurrentPacketSnapshot } from "@/lib/firestore/lease-document-packet-snapshots";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
+import { listRenewalDiscrepancyDispositions } from "@/lib/firestore/renewal-discrepancy-dispositions";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-screenshot-action";
 import {
@@ -14,6 +18,7 @@ import {
   leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import { canonicalJson } from "@/lib/execution/preview-hash";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import {
   loadLiveRenewalLeaseWorkspace,
@@ -101,6 +106,9 @@ export default async function LiveRenewalLeaseWorkspacePage({
     approvedSuggestion,
     resolutions,
   );
+  const dispositions = await listRenewalDiscrepancyDispositions(user, leaseId).catch(
+    () => [],
+  );
 
   return (
     <AppShell user={user}>
@@ -109,11 +117,27 @@ export default async function LiveRenewalLeaseWorkspacePage({
           ← Live renewal desk
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalWorkspace
-            compScreenshotExecutable={compScreenshotAction.executable}
-            packetSnapshot={packetSnapshot}
-            workspace={outcome.workspace}
-          />
+          <>
+            <RenewalWorkspace
+              compScreenshotExecutable={compScreenshotAction.executable}
+              packetSnapshot={packetSnapshot}
+              workspace={outcome.workspace}
+            />
+            <DiscrepancyDispositionPanel
+              initialDispositions={dispositions}
+              leaseId={leaseId}
+              ownerUid={user.uid}
+              sourceHash={createHash("sha256")
+                .update(
+                  canonicalJson({
+                    lease_id: leaseId,
+                    read_at: outcome.workspace.dataCurrency?.readAtIso ?? readTimestamp,
+                    data_check: outcome.workspace.dataCheck,
+                  }),
+                )
+                .digest("hex")}
+            />
+          </>
         ) : outcome.status === "not_found" ? (
           <article className="panel">
             <p className="muted">This live renewal is unavailable.</p>

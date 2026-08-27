@@ -171,4 +171,35 @@ describe("LeadSimple maintenance executor", () => {
       reconciled: true,
     });
   });
+
+  it("rolls back only the exact stage or task and verifies the result", async () => {
+    const stageHarness = harness();
+    stageHarness.provider.rollbackStage = vi.fn(async (input) => {
+      await stageHarness.provider.updateStage({
+        ...input,
+        idempotencyKey: input.idempotencyKey,
+      });
+      return { processRef: input.processRef, applied: true };
+    });
+    const stageExecutor = new LeadSimpleMaintenanceExecutor(stageHarness.provider);
+    const stageReceipt = await stageExecutor.execute(stageInput);
+    await expect(
+      stageExecutor.correct!(stageInput, stageReceipt),
+    ).resolves.toBeUndefined();
+    await expect(stageHarness.provider.readProcess("process-synthetic")).resolves.toEqual(
+      {
+        processRef: "process-synthetic",
+        stageRef: "stage-open-synthetic",
+      },
+    );
+
+    const taskHarness = harness();
+    taskHarness.provider.rollbackTask = vi.fn(async (input) => {
+      taskHarness.provider.readTask = vi.fn().mockResolvedValue(null);
+      return { taskRef: input.taskRef, applied: true };
+    });
+    const taskExecutor = new LeadSimpleMaintenanceExecutor(taskHarness.provider);
+    const taskReceipt = await taskExecutor.execute(taskInput);
+    await expect(taskExecutor.correct!(taskInput, taskReceipt)).resolves.toBeUndefined();
+  });
 });

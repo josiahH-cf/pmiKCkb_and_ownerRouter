@@ -40,30 +40,18 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
                 status: "attention_required",
                 href: "/maintenance?ticket_id=ticket-1",
                 createdAtMs: 1,
+                waitingOn: "team",
+                lastContactAtMs: 1700000000000,
               },
             ],
           });
         }
-        if (url.endsWith("/watch")) {
-          if (init?.method === "POST") {
-            return Response.json({
-              outcome: "completed",
-              historyId: "12345",
-              expiration: "1784012400000",
-              readback: { state: "completed" },
-            });
-          }
+        if (url.endsWith("/refresh")) {
           return Response.json({
-            mailboxEmail: "josiah@pmikcmetro.com",
-            topicName: "projects/pmi-kc-kb-prod/topics/gmail-replies",
-            currentWatchExpirationMs: null,
-            effect:
-              "Start or renew the targeted Gmail push watch for this signed-in mailbox and topic.",
-            proposedExpiration:
-              "Gmail assigns the new expiration; the exact timestamp is read back after one provider attempt.",
-            risk: "Live Gmail watch mutation. It does not send a message or grant cross-mailbox access.",
-            reversibility:
-              "A later confirmed renewal replaces the expiration; removing the configured watch stops future push delivery.",
+            status: "processed",
+            historyId: "12345",
+            addedCount: 1,
+            matchedCount: 1,
           });
         }
         throw new Error(`Unexpected request: ${url}`);
@@ -81,38 +69,16 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
     expect(screen.queryByText("Recent inbox threads")).not.toBeInTheDocument();
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Send this exact message/ })).toBeNull();
+    expect(await screen.findByText(/Waiting on team/)).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Review targeted reply watch renewal" }),
-    );
-    expect(await screen.findByText("Exact Live watch preview")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh linked Gmail now" }));
     expect(
-      screen.getByText("projects/pmi-kc-kb-prod/topics/gmail-replies"),
-    ).toBeInTheDocument();
-    expect(
-      calls.filter((call) => call.url.endsWith("/watch") && call.method === "POST"),
-    ).toHaveLength(0);
-    const execute = screen.getByRole("button", {
-      name: "Confirm and execute one watch attempt",
-    });
-    expect(execute).toBeDisabled();
-    fireEvent.click(
-      screen.getByRole("checkbox", {
-        name: /I confirm this exact mailbox, topic, and single Live provider attempt/,
-      }),
-    );
-    fireEvent.click(execute);
-    expect(
-      await screen.findByText(/Targeted reply watch readback confirmed until/),
+      await screen.findByText(/Read-only workflow refresh completed at/),
     ).toBeInTheDocument();
     const post = calls.find(
-      (call) => call.url.endsWith("/watch") && call.method === "POST",
+      (call) => call.url.endsWith("/refresh") && call.method === "POST",
     );
-    expect(JSON.parse(post?.body ?? "{}")).toMatchObject({
-      mailboxEmail: "josiah@pmikcmetro.com",
-      topicName: "projects/pmi-kc-kb-prod/topics/gmail-replies",
-      observedWatchExpirationMs: null,
-      confirmed: true,
-    });
+    expect(JSON.parse(post?.body ?? "{}").attemptKey).toMatch(/^[a-f0-9-]{36}$/i);
+    expect(calls.some((call) => call.url.endsWith("/watch"))).toBe(false);
   });
 });

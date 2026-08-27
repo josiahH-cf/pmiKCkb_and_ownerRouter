@@ -2,7 +2,7 @@
 
 # S37 — Governed no-code page and layout builder
 
-> Status: Product backlog; current process/template editing is not a full governed page/layout builder.
+> Status: Bounded read-only operational-process builder is complete in the current ship candidate.
 
 **Goal.**
 
@@ -10,11 +10,14 @@ Let authorized Admins compose approved operational layouts without executable co
 
 **What it is / how it functions.**
 
-Use a strict component/schema catalog, versioned drafts, preview, approval, publication, rollback, and references to approved data sources/actions.
+Admin can compose only heading, text, callout, checklist, and approved internal-link components for
+an existing Space. Drafts, approvals, publications, receipts, and rollback history are immutable and
+exact-hash bound; rendering uses React strings only.
 
 **Open questions & assumptions.**
 
-Choose the first supported page type and final component/property catalog.
+No product decision is required for this bounded type. Any additional page type or component is a
+separate future scope decision and receives no authority from S37.
 
 **Cross-product impacts.**
 
@@ -32,10 +35,11 @@ No arbitrary HTML/JS/CSS, code execution, secret fields, unreviewed external emb
 
 **Ordered prompt sequence.**
 
-1. Select one bounded page type.
-2. Define schema/catalog and render-only preview.
-3. Add approval/publication/rollback and adversarial escape tests.
+1. Create and preview one read-only operational process page.
+2. Approve and publish the exact immutable version.
+3. Use version history to roll back only that page when needed.
 
 **Deletion/merge recommendation.**
 
-Keep until the full governed builder is deployed or the owner explicitly removes it from scope.
+Merge the bounded page type into the Admin/Spaces product contract after deployment; retain any
+future broader no-code request as a new suite rather than widening this one.

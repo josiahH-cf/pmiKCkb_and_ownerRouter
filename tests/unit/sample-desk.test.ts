@@ -75,13 +75,16 @@ describe("getRenewalLeaseWorkspace", () => {
     expect(getRenewalLeaseWorkspace("does-not-exist")).toBeNull();
   });
 
-  it("surfaces a read-only notice view with a due date flagged Needs Verification (F2)", () => {
-    // Cedar ends 2026-09-30 → notice due by the 15th of the month before → Aug 15, 2026 (default rule).
+  it("surfaces an unconfirmed client timing policy without inventing a due date", () => {
     const ws = getRenewalLeaseWorkspace("lease-318-cedar-7", "2026-06-01");
     expect(ws?.notice).not.toBeNull();
-    const due = ws?.notice?.lines.find((line) => line.label === "Notice due by");
-    expect(due?.value).toBe("Aug 15, 2026");
-    expect(due?.provenance).toBe("default");
-    expect(due?.needsVerification).toBe(true);
+    expect(ws?.notice?.statusLabel).toBe("Timing policy not confirmed");
+    expect(ws?.notice?.lines).toEqual([
+      expect.objectContaining({
+        label: "Client timing policy",
+        value: "Not confirmed",
+      }),
+    ]);
+    expect(ws?.notice?.lines.some((line) => line.label === "Notice due by")).toBe(false);
   });
 });

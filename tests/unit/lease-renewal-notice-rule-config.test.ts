@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   NOTICE_RULE_CONFIG_DOC_ID,
+  NOTICE_RULE_ACTIVITY_COLLECTION,
   buildNoticeRuleConfigRecord,
   readNoticeRuleConfigRecord,
   readNoticeRuleSet,
@@ -45,6 +46,7 @@ describe("buildNoticeRuleConfigRecord", () => {
     expect(record.rules[0].scope).toBe("global");
     expect(record.rules[0].verified).toBe(false);
     expect(record.rules[0].values.noticeDeadlineDayOfMonth).toBe(15);
+    expect(record.version).toBe(1);
     expect("created_at" in record).toBe(false);
     expect("updated_at" in record).toBe(false);
   });
@@ -133,7 +135,8 @@ describe("notice rule admin edit surface (F-TMPL-5)", () => {
   });
 
   it("persists an Admin confirmation, stamps updated_by_uid, and preserves created_at", async () => {
-    const db = new FakeFirestore() as unknown as Firestore;
+    const fakeDb = new FakeFirestore();
+    const db = fakeDb as unknown as Firestore;
 
     const first = await updateNoticeRuleConfig(
       admin,
@@ -147,6 +150,13 @@ describe("notice rule admin edit surface (F-TMPL-5)", () => {
       updated_at: "2026-07-10T00:00:00.000Z",
     });
     expect(first.rules[0].verified).toBe(true);
+    expect(first.version).toBe(1);
+    expect(
+      [...fakeDb.store.entries()].some(
+        ([path, value]) =>
+          path.startsWith(`${NOTICE_RULE_ACTIVITY_COLLECTION}/`) && value.version === 1,
+      ),
+    ).toBe(true);
 
     const second = await updateNoticeRuleConfig(
       admin,
@@ -158,6 +168,35 @@ describe("notice rule admin edit surface (F-TMPL-5)", () => {
     expect(second.created_at).toBe("2026-07-10T00:00:00.000Z");
     expect(second.updated_at).toBe("2026-07-11T00:00:00.000Z");
     expect(second.rules[0].verified).toBe(false);
+    expect(second.version).toBe(2);
+  });
+
+  it("rejects duplicate scope keys before writing a new version", async () => {
+    const db = new FakeFirestore() as unknown as Firestore;
+    await expect(
+      updateNoticeRuleConfig(
+        admin,
+        {
+          rules: [
+            confirmedGlobal,
+            {
+              scope: "lease",
+              key: "lease-1",
+              values: { followUpIntervalDays: 5 },
+              verified: true,
+            },
+            {
+              scope: "lease",
+              key: "lease-1",
+              values: { followUpIntervalDays: 6 },
+              verified: true,
+            },
+          ],
+        },
+        db,
+      ),
+    ).rejects.toThrow(/unique/i);
+    expect((db as unknown as FakeFirestore).store.size).toBe(0);
   });
 
   it("makes the engine resolve a confirmed global rule (clears Needs Verification)", async () => {

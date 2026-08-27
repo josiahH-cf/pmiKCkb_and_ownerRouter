@@ -466,6 +466,14 @@ export function WorkflowCommunicationPanel({
                 Open {link.purpose.replaceAll("_", " ")} ·{" "}
                 {link.status.replaceAll("_", " ")}
               </button>
+              <span className="muted">
+                {link.waiting_on
+                  ? ` Waiting on ${link.waiting_on}.`
+                  : " Waiting-on evidence is not yet available."}
+                {link.last_contact_at_ms
+                  ? ` Last Gmail contact: ${new Date(link.last_contact_at_ms).toLocaleString()}.`
+                  : " Last-contact evidence is not yet available."}
+              </span>
             </li>
           ))}
         </ul>

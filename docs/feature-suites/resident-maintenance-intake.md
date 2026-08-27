@@ -2,7 +2,7 @@
 
 # S47 — Resident Maintenance intake and RentVine channel
 
-> Status: Tokenized app intake exists; the preferred RentVine invitation/reply/webhook channel lacks a documented provider contract.
+> Status: Tokenized app intake is usable and the preferred RentVine channel lifecycle is complete to an inert official-provider seam; the exact contract is missing.
 
 **Goal.**
 
@@ -10,7 +10,10 @@ Accept a resident issue safely and hand it to Maintenance without guessing resid
 
 **What it is / how it functions.**
 
-The app intake uses bounded tokens, strict media/text limits, unit matching, staff review, and no implicit work-order creation. A RentVine channel is a separate provider activation.
+The app intake uses bounded tokens, strict media/text limits, unit matching, staff review, and no
+implicit work-order creation. The separate RentVine channel binds only staff-verified ticket,
+resident, and property references and implements exact preview, confirmation, idempotency, readback,
+receipt, correction, and rollback. It has no route or action authority without the official contract.
 
 **Open questions & assumptions.**
 

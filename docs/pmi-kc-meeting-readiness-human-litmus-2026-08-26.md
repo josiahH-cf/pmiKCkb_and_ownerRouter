@@ -1,18 +1,18 @@
 # PMI KC meeting-readiness human litmus — 2026-08-26
 
-This is the consolidated human-verification checklist frozen before implementation. Model verdicts
-are populated after deterministic verification. Human verdicts intentionally remain blank for the
-2:00 p.m. walkthrough. The meeting time is user-supplied and was not Calendar-verified.
+This is the consolidated human-verification checklist, reconciled to the 2026-08-27 ship candidate.
+Model verdicts are evidence only. Human verdicts intentionally remain blank until the owner performs
+the checks; each must include a real date and short observation. Never infer a human PASS.
 
 ### Safe RentVine renewal preview
 
 **If this was built correctly:** An Admin can inspect the exact lease and existing recurring-charge
 updates the app would propose, while the screen clearly says that the preview cannot change RentVine.
 
-- Model verdict: PASS - The allowlisted client constructs only the two documented POST routes. The
+- Model verdict: PASS - The allowlisted client constructs only the two restricted POST routes. The
   preview contains exact request and rollback payloads, carries `executionAllowed:false`, and its
   provider throws on every execute attempt. The production RentVine write key remains closed.
-- Human verdict: PASS | FAIL - why:
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Rehearsal spreadsheet connection
 
@@ -20,10 +20,11 @@ updates the app would propose, while the screen clearly says that the preview ca
 rehearsal copy, refuses to treat the operating Sheet as the copy, and a confirmed copy-only probe
 writes a synthetic marker, reads it back, removes it, and confirms the cell is restored.
 
-- Model verdict: PASS - Deterministic tests refuse an operating-Sheet alias and prove blank-cell
-  compare-and-set, readback, exact clear, and final blank restoration against a fake copy. No actual
-  copy id is configured yet, so the operational copy round-trip correctly remains a meeting follow-up.
-- Human verdict: PASS | FAIL - why:
+- Model verdict: PASS - Admin canonicalizes and saves a distinct rehearsal URL/id without running a
+  proof. Deterministic tests refuse an operating-Sheet alias and prove blank-cell compare-and-set,
+  readback, exact clear, and final blank restoration against a fake copy. No actual copy id is
+  configured, so the operational round-trip correctly remains unavailable.
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Dual-source discrepancy language
 
@@ -32,8 +33,9 @@ agree, disagree, contain only one side, are both missing, use intentionally diff
 stale, or cannot be matched to one lease—and the examples reveal no client values.
 
 - Model verdict: PASS - All eight states are represented by one shared classifier and rendered with
-  synthetic, value-free examples plus a plain-language next step.
-- Human verdict: PASS | FAIL - why:
+  value-free examples plus a plain-language next step. An append-only disposition records source,
+  reason, evidence, owner, and status without changing either source.
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Honest current-rent confidence
 
@@ -43,7 +45,7 @@ Verified badge in the renewal workspace or owner draft; a fresh agreement does, 
 - Model verdict: PASS - The owner-draft path now loads fresh canonical RentVine-versus-Sheet evidence
   and an exact record-specific resolution. Agreement or a current resolution can verify; conflict,
   missing, stale, expired, or unavailable evidence fails closed to Needs Verification.
-- Human verdict: PASS | FAIL - why:
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Human-friendly currency entry
 
@@ -52,7 +54,7 @@ formatting rejected, and the recorded amount is the same numeric value they ente
 
 - Model verdict: PASS - Shared parsing accepts `$1,500.25` and `1500` as the same intended numeric
   value and rejects malformed grouping, text, and negative amounts before submission.
-- Human verdict: PASS | FAIL - why:
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Work details and materials
 
@@ -61,7 +63,7 @@ materials still needed, and materials already bought, then see those details on 
 
 - Model verdict: PASS - Job location, materials needed, and materials bought persist through the
   work-accountability store and render back on the task card; validation and round-trip tests pass.
-- Human verdict: PASS | FAIL - why:
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Clear product navigation and build identity
 
@@ -71,10 +73,9 @@ commit and Cloud Run revision without exposing configuration or secrets.
 
 - Model verdict: PASS - Directory filtering hides the compatibility-only Space, `/api/version`
   returns only commit/revision/service/environment with `no-store`, and the release smoke refuses a
-  candidate unless both its commit and revision match exactly. Production proof passed for commit
-  `13569183da57c419ac0da279dde5a6d6a0b0da14` on revision
-  `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, now serving 100% traffic.
-- Human verdict: PASS | FAIL - why:
+  candidate unless both its commit and revision match exactly. The final production commit/revision
+  will be recorded after promotion.
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Client action center and meeting agenda
 
@@ -84,4 +85,4 @@ can be followed top to bottom during the meeting.
 
 - Model verdict: PASS - Both self-contained HTML files exist, pass the client-copy and redaction
   gates, use working in-app and document links, and separate client actions from the presenter flow.
-- Human verdict: PASS | FAIL - why:
+- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:

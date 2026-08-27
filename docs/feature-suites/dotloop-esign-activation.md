@@ -2,7 +2,7 @@
 
 # S34 — Dotloop e-signature activation
 
-> Status: Packet truth and an inert binding seam exist; live OAuth, approved catalog, mappings, and provider proof are missing.
+> Status: Exact packet binding, preview/confirmation, idempotency, readback, receipt, reconciliation, and rollback seams are complete; official account inputs are missing.
 
 **Goal.**
 
@@ -14,7 +14,9 @@ S66 produces a current exact-hash packet snapshot. Activation maps only an appro
 
 **Open questions & assumptions.**
 
-Client/provider must supply approved artifacts and field/participant/signature rules, account/profile/template mapping, OAuth, and webhook/re-fetch contract.
+Client/provider must supply one approved S66 catalog plus OAuth and the exact account/profile,
+template, participant, field, signature, webhook/re-fetch, correction, and rollback mappings. No
+provider action becomes executable until those references are official and configured.
 
 **Cross-product impacts.**
 

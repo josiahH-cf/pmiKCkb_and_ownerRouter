@@ -1,67 +1,37 @@
 # What is next
 
-Updated: 2026-08-26.
+Updated: 2026-08-27.
 
-## Internal actions that do not need more client information
+## Release work already in progress
 
-1. Triage all three live support reports; verify deployed work details before resolving that report,
-   acknowledge the pending move-out walkthrough, and assign the Connections report.
-2. Reconcile RentVine Action Registry readiness text with the implemented restricted POST seam while
-   leaving `production_allowed` false.
-3. Decide whether deployment-managed rehearsal-Sheet setup satisfies the product requirement or
-   whether Admin needs a validated paste/save control.
-4. Complete and date all eight human-verification verdicts.
-5. Finish Gmail-watch reversal/follow-up integration and make an explicit S36/S37 disposition.
-6. Rehearse the captured Cloud Run rollback in a controlled release window.
-7. Trace and disposition the four transitive production dependency advisories with the smallest safe
-   upgrade and a full canonical recheck.
+The dependency-independent product implementation is complete in the current ship candidate. The
+remaining internal sequence is verification, commit/push/CI, zero-traffic deployment and promotion,
+version-aware rollback rehearsal, eight real owner litmus verdicts, and the final editable readout
+deck. These are release evidence requirements, not client product decisions.
 
-## Client, owner, and provider actions
+## Client, owner, and provider inputs
 
-1. Confirm the six renewal steps, their order, owner, and completion evidence.
-2. Define current rent in RentVine and the Sheet: base rent or total recurring monthly charge.
-3. Create a verbatim renewal Sheet copy, share it to the managed Sheets identity, and enter its id in
-   the rehearsal-copy Admin configuration.
-4. Designate one unmistakable RentVine test lease/owner for a future reversible proof.
-5. Name the move-out deposit-disposition process expert and walkthrough date.
-6. Identify the exact lease behind the wrong-resident report.
-7. Confirm RentCast search radius and comparable-count policy.
-8. Approve tenant wording, required fields, and channel-evidence rules.
-9. Approve waiting-on, follow-up, timing, and override-authority rules.
-10. Clarify the exact end-of-September commitment.
-11. Approve the S66 lease packet/provider catalog and Dotloop mapping.
-12. Supply the selected LeadSimple action/contract and official RentVine resident-channel contract.
-13. Decide whether S64 per-person approval authority is authorized.
+1. Confirm the six renewal steps, current-rent meaning, and operator comp policy.
+2. Create/share a distinct rehearsal Sheet copy and select one blank proof cell.
+3. Designate one unmistakable RentVine test lease/owner for a separately reviewed reversible proof.
+4. Provide the move-out walkthrough and exact lease behind the wrong-resident report.
+5. Approve tenant wording, channel-evidence rules, waiting-on/timing/override policy, RentCast policy,
+   and the exact end-of-September scope.
+6. Approve the S66 lease packet catalog and supply Dotloop OAuth/exact mappings.
+7. Supply one selected LeadSimple account action/contract/credential.
+8. Supply the official RentVine resident invitation/reply/webhook/correction/rollback contract.
+9. Supply one S36 owner-approved pilot packet if a twelfth Space should be proven.
+10. Decide separately whether S64 per-person approval authority is authorized; it remains closed.
 
-Use `docs/pmi-kc-completion-blocker-audit-2026-08-26.html` as the controlling report and
-`docs/pmi-kc-client-action-center-2026-08-26.html` to capture meeting inputs.
+## Safe next action after each input
 
-## Engineering after client answers
+- Enter policy through its versioned Admin surface, then rerun the affected deterministic tests.
+- Run the Sheet proof only on the distinct copy: blank → marker → readback → clear → blank.
+- Keep RentVine write closed until the exact designated-record preview, rollback, and protected gate
+  review are complete.
+- Run the four-lease packet in `docs/evidence/four-lease-proof-readiness-2026-08-27.md`; missing policy
+  remains `not evaluated`.
+- Configure only the official provider adapter references; do not change schemas or invent values to
+  simulate readiness.
 
-- Implement S72 from the confirmed six-step process.
-- Implement S74 from approved tenant wording/channel rules.
-- Implement S75 follow-up fields and per-property timing overrides.
-- Run S76's copy-only blank-cell proof.
-- Prepare S30's exact one-record RentVine preview/confirm/readback/rollback packet.
-- Correct source discrepancies only after the current-rent rule and a safe source-specific write
-  contract are approved.
-- Complete the four-lease operational proof.
-- Keep S64 closed unless the owner explicitly authorizes per-person approval authority.
-
-## Provider seams
-
-- S66: approved lease document/field/participant/signature catalog and Dotloop mapping.
-- S34: Dotloop OAuth, profile/template mapping, and webhook contract.
-- S35: LeadSimple account contract, stage mapping, and credential.
-- S47: documented RentVine resident invitation/reply/webhook contract.
-- S36: self-service provisioning only when its exact cost/identity/IAM contract is selected.
-- S37: no-code page builder remains product work, not a hidden “future phase.”
-
-Each missing provider input blocks only its action.
-
-## Operational follow-up
-
-- Rehearse the captured Cloud Run rollback during the next non-meeting release window.
-- Recheck the budget/guardrail and managed identities monthly.
-- Re-run the bodyless current-rent diagnostic after material source changes.
-- Remove or rewrite a document in the same change that makes it false.
+Every missing external input blocks only its named capability. The rest of PMI KC remains usable.

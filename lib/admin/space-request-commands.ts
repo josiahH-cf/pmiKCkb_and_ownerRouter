@@ -1,23 +1,22 @@
-// Pure provisioning-command generator for the add-a-Space request (Slice 7, D12).
-//
-// Given a requested Space plus the CURRENT config, it emits the exact gcloud/Vertex + Drive steps the
-// OWNER runs by hand (this app NEVER provisions Vertex — that would bill) and the .env.local lines to
-// add. It deliberately reinforces that the SPACE maps must live in .env.local, because `npm run deploy`
-// reads them from there: a value set only via a one-off env update is reverted on the next deploy.
-//
-// Pure + deterministic: no I/O, no Date.now().
+// S36 fixed one-Space resource plan. Despite the historical filename, this module emits no shell
+// command and accepts no caller-supplied project, service account, bucket, data-store, or IAM id.
 
-const DRIVE_FOLDER_PLACEHOLDER = "<DRIVE_FOLDER_ID>";
-const PROJECT_PLACEHOLDER = "<GCP_PROJECT_ID>";
+import { createHash } from "node:crypto";
 
-/** Kebab-case a Space name into a stable slug used as the Space key AND the Vertex data-store id. */
+export const FIXED_SPACE_PROVISIONING_PROJECT = "pmi-kc-kb-prod";
+export const FIXED_SPACE_PROVISIONING_LOCATION = "us";
+export const FIXED_SPACE_PROVISIONING_RUNTIME_IDENTITY =
+  "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com";
+export const FIXED_SPACE_PROVISIONING_SHAPE = "one-space-gcs-discovery-v1";
+
+/** Kebab-case a Space name into a stable slug used as the Space key. */
 export function slugifySpaceId(name: string): string {
   const slug = name
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 60)
+    .slice(0, 50)
     .replace(/-+$/g, "");
   return slug || "new-space";
 }
@@ -27,92 +26,160 @@ export interface SpaceProvisioningInput {
   scope: string;
   intendedSources: string[];
   gcpProjectId?: string;
-  /** VERTEX_SEARCH_LOCATION: "global" | "us" | "eu". */
   vertexSearchLocation: string;
   existingVertexDataStoreIds: Record<string, string>;
+  /** Historical key name; live values are verified gs:// per-Space prefixes. */
   existingDriveFolderIds: Record<string, string>;
 }
 
 export interface SpaceProvisioningPlan {
+  shape: typeof FIXED_SPACE_PROVISIONING_SHAPE;
   spaceId: string;
+  displayName: string;
   dataStoreId: string;
-  /** True when a Space with this slug already exists in either config map (a duplicate). */
+  sourcePrefix: string | null;
+  projectId: typeof FIXED_SPACE_PROVISIONING_PROJECT;
+  location: typeof FIXED_SPACE_PROVISIONING_LOCATION;
+  runtimeServiceAccount: typeof FIXED_SPACE_PROVISIONING_RUNTIME_IDENTITY;
+  protectedDataStoreIds: string[];
   alreadyExists: boolean;
-  /** The owner console steps (comments + commands), in order. */
+  readyForAuthorization: boolean;
+  blockers: string[];
+  previewHash: string;
+  resourceDisclosure: string[];
+  iamDisclosure: string[];
+  costDisclosure: string[];
+  retirementDisclosure: string[];
+  externalInputRequired: string;
+  /** Always empty: S36 no longer emits executable generic cloud commands. */
   commands: string[];
-  /** The exact .env.local lines to set (existing spaces preserved; the new space merged in). */
+  /** Exact post-provision deployment mappings; current eleven entries are preserved. */
   envLocalLines: string[];
-  /** Plain-English guidance and guardrails. */
   notes: string[];
 }
 
-function discoveryEngineEndpoint(location: string): string {
-  return location === "global"
-    ? "discoveryengine.googleapis.com"
-    : `${location}-discoveryengine.googleapis.com`;
-}
-
 /**
- * Build the provisioning plan for a requested Space. Never mutates the input maps; the emitted env lines
- * are the CURRENT maps with the new Space merged in (existing Spaces preserved verbatim, so the 11-space
- * config is never dropped). The Vertex data store is created by the owner, not here.
+ * Select the only supported resource shape from server-owned current config. A caller can submit a
+ * business name/scope/source description, but cannot choose cloud identifiers or IAM.
  */
 export function buildSpaceProvisioningPlan(
   input: SpaceProvisioningInput,
 ): SpaceProvisioningPlan {
   const spaceId = slugifySpaceId(input.name);
-  const dataStoreId = spaceId;
+  const dataStoreId = `kb-${spaceId}-txt`;
   const alreadyExists =
     spaceId in input.existingVertexDataStoreIds ||
-    spaceId in input.existingDriveFolderIds;
-  const project = input.gcpProjectId?.trim() || PROJECT_PLACEHOLDER;
-  const location = input.vertexSearchLocation;
-  const endpoint = discoveryEngineEndpoint(location);
-
-  const mergedVertex = { ...input.existingVertexDataStoreIds, [spaceId]: dataStoreId };
-  const mergedDrive = {
-    ...input.existingDriveFolderIds,
-    [spaceId]: DRIVE_FOLDER_PLACEHOLDER,
+    spaceId in input.existingDriveFolderIds ||
+    Object.values(input.existingVertexDataStoreIds).includes(dataStoreId);
+  const blockers: string[] = [];
+  if (input.gcpProjectId !== FIXED_SPACE_PROVISIONING_PROJECT) {
+    blockers.push("Production project readback does not match the fixed S36 project.");
+  }
+  if (input.vertexSearchLocation !== FIXED_SPACE_PROVISIONING_LOCATION) {
+    blockers.push(
+      "Discovery Engine location readback does not match the fixed S36 location.",
+    );
+  }
+  const sourceRoot = commonProductionSourceRoot(input.existingDriveFolderIds);
+  if (!sourceRoot) {
+    blockers.push(
+      "The eleven existing Space source prefixes do not resolve to one verified production bucket.",
+    );
+  }
+  if (alreadyExists) blockers.push("The derived Space or data-store id already exists.");
+  const sourcePrefix = sourceRoot ? `${sourceRoot}${spaceId}/` : null;
+  const mergedVertex = {
+    ...input.existingVertexDataStoreIds,
+    [spaceId]: dataStoreId,
   };
+  const mergedSources = sourcePrefix
+    ? { ...input.existingDriveFolderIds, [spaceId]: sourcePrefix }
+    : input.existingDriveFolderIds;
 
-  const commands = [
-    `# 1. Create the Vertex AI Search (Discovery Engine) data store for "${input.name}".`,
-    "curl -X POST \\",
-    `  "https://${endpoint}/v1/projects/${project}/locations/${location}/collections/default_collection/dataStores?dataStoreId=${dataStoreId}" \\`,
-    '  -H "Authorization: Bearer $(gcloud auth print-access-token)" \\',
-    '  -H "Content-Type: application/json" \\',
-    `  -d '{"displayName":"${input.name}","industryVertical":"GENERIC","solutionTypes":["SOLUTION_TYPE_SEARCH"],"contentConfig":"CONTENT_REQUIRED"}'`,
-    "# 2. Create a Google Drive folder for this Space's KB sources inside the pmikcmetro.com boundary and copy its folder id.",
-    "# 3. Add both mappings to .env.local (the lines below), then import the sources:",
-    "npm run import:agent-search",
-  ];
+  const safePreview = {
+    shape: FIXED_SPACE_PROVISIONING_SHAPE,
+    spaceId,
+    displayName: input.name.trim(),
+    scope: input.scope.trim(),
+    dataStoreId,
+    sourcePrefix,
+    projectId: FIXED_SPACE_PROVISIONING_PROJECT,
+    location: FIXED_SPACE_PROVISIONING_LOCATION,
+    runtimeServiceAccount: FIXED_SPACE_PROVISIONING_RUNTIME_IDENTITY,
+    protectedDataStoreIds: Object.values(input.existingVertexDataStoreIds).sort(),
+    existingSpaceIds: Object.keys(input.existingVertexDataStoreIds).sort(),
+  };
+  const previewHash = createHash("sha256")
+    .update(JSON.stringify(safePreview), "utf8")
+    .digest("hex");
+  const externalInputRequired =
+    "One owner-approved pilot packet naming this exact Space request, the first verified JSONL source object inside the displayed gs:// prefix, and the approval evidence reference.";
 
-  const envLocalLines = [
-    `SPACE_VERTEX_DATA_STORE_IDS=${JSON.stringify(mergedVertex)}`,
-    `SPACE_DRIVE_FOLDER_IDS=${JSON.stringify(mergedDrive)}`,
-  ];
+  return {
+    shape: FIXED_SPACE_PROVISIONING_SHAPE,
+    spaceId,
+    displayName: input.name.trim(),
+    dataStoreId,
+    sourcePrefix,
+    projectId: FIXED_SPACE_PROVISIONING_PROJECT,
+    location: FIXED_SPACE_PROVISIONING_LOCATION,
+    runtimeServiceAccount: FIXED_SPACE_PROVISIONING_RUNTIME_IDENTITY,
+    protectedDataStoreIds: Object.values(input.existingVertexDataStoreIds).sort(),
+    alreadyExists,
+    readyForAuthorization: blockers.length === 0,
+    blockers,
+    previewHash,
+    resourceDisclosure: [
+      `Create exactly one Discovery Engine data store: ${dataStoreId}.`,
+      sourcePrefix
+        ? `Use only the isolated existing-bucket namespace: ${sourcePrefix}`
+        : "Source namespace is unavailable until live configuration readback succeeds.",
+      "Preserve all eleven existing Space data-store and source mappings verbatim.",
+    ],
+    iamDisclosure: [
+      `Use only ${FIXED_SPACE_PROVISIONING_RUNTIME_IDENTITY}.`,
+      "Create no service account, IAM binding, bucket, topic, secret, or cross-project grant.",
+    ],
+    costDisclosure: [
+      "One Discovery Engine data store and later ingestion/search usage may add metered cost.",
+      "Existing $25 alert, $100 project stop, $100 account backstop, and $100 runtime guardrail remain unchanged.",
+      "No dollar estimate is invented; provider billing depends on the approved source and usage.",
+    ],
+    retirementDisclosure: [
+      `Delete only data store ${dataStoreId} after exact readback.`,
+      sourcePrefix
+        ? `Remove only mapping ${spaceId}; do not delete the shared bucket or any object outside ${sourcePrefix}`
+        : "No storage retirement is allowed without a resolved isolated prefix.",
+      "Read back all eleven predecessor data-store ids before and after retirement.",
+    ],
+    externalInputRequired,
+    commands: [],
+    envLocalLines: [
+      `SPACE_VERTEX_DATA_STORE_IDS=${JSON.stringify(mergedVertex)}`,
+      `SPACE_DRIVE_FOLDER_IDS=${JSON.stringify(mergedSources)}`,
+    ],
+    notes: [
+      "This is an exact preview, not a provisioning receipt.",
+      "Provisioning stays closed while SPACE_PROVISIONING_ENABLED is false or the owner-approved pilot packet is absent.",
+      "The app accepts no caller-supplied cloud resource or IAM identifier.",
+      ...(input.intendedSources.length
+        ? [`Request source descriptions: ${input.intendedSources.join("; ")}`]
+        : []),
+    ],
+  };
+}
 
-  const notes: string[] = [
-    "These are owner console steps. The app records the request and prints the commands; it never provisions Vertex (that would bill).",
-    "The SPACE maps must live in .env.local: npm run deploy reads them from there, so a value set only with a one-off env update is reverted on the next deploy.",
-    `Replace ${DRIVE_FOLDER_PLACEHOLDER} with the real Drive folder id from step 2 before deploying.`,
-    "After updating .env.local, deploy with: npm run deploy -- --budget-confirmed --allow-multiple-spaces",
-  ];
-  if (alreadyExists) {
-    notes.unshift(
-      `A Space keyed "${spaceId}" already exists in the config maps. Choose a different name or update the existing Space instead of creating a duplicate.`,
-    );
+function commonProductionSourceRoot(mappings: Record<string, string>): string | null {
+  const entries = Object.entries(mappings);
+  if (entries.length !== 11) return null;
+  let bucketRoot: string | null = null;
+  for (const [spaceId, raw] of entries) {
+    const value = raw.trim();
+    const match = value.match(/^gs:\/\/([a-z0-9._-]+)\/([a-z0-9-]+)\/$/);
+    if (!match || match[2] !== spaceId) return null;
+    const candidate = `gs://${match[1]}/`;
+    if (bucketRoot && bucketRoot !== candidate) return null;
+    bucketRoot = candidate;
   }
-  if (!input.gcpProjectId?.trim()) {
-    notes.push(
-      `Set GCP_PROJECT_ID; the create command shows a ${PROJECT_PLACEHOLDER} placeholder until it is set.`,
-    );
-  }
-  if (input.intendedSources.length > 0) {
-    notes.push(
-      `Intended sources to load into the data store: ${input.intendedSources.join("; ")}.`,
-    );
-  }
-
-  return { spaceId, dataStoreId, alreadyExists, commands, envLocalLines, notes };
+  return bucketRoot;
 }

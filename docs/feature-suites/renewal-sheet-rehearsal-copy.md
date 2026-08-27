@@ -2,7 +2,7 @@
 
 # S76 — Renewal Sheet rehearsal copy and reversible proof
 
-> Status: Boundary and proof tooling are built; no distinct rehearsal Sheet is configured and no live cell proof has run.
+> Status: Admin paste/save configuration and proof tooling are complete; no distinct rehearsal Sheet is configured and no live cell proof has run.
 
 **Goal.**
 
@@ -10,7 +10,10 @@ Prove the Sheet write/read/undo path on a verbatim copy without touching the ope
 
 **What it is / how it functions.**
 
-Admin separates operating/read-only and rehearsal-copy links. CLI proof is dry by default; live mode binds exact copy/cell/marker confirmation.
+Admin accepts a Google Sheet URL or id, canonicalizes it server-side, refuses invalid or
+operating-equal values, records an audit entry, and never reads Sheet contents or starts the proof.
+The CLI consumes the Admin-saved id without an environment deployment, is dry by default, and binds
+live mode to the exact copy/cell/confirmation.
 
 **Open questions & assumptions.**
 

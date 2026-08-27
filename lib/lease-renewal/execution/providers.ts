@@ -504,10 +504,37 @@ export interface DotloopProvider {
     contentHash: string;
     idempotencyKey: string;
   }): Promise<{ documentRef: string }>;
+  readLoop(loopRef: string): Promise<{
+    loopRef: string;
+    templateRef: string;
+    participantRefs: readonly string[];
+    active: boolean;
+  } | null>;
+  readDocument(documentRef: string): Promise<{
+    documentRef: string;
+    loopRef: string;
+    documentType: string;
+    contentHash: string;
+    active: boolean;
+  } | null>;
   reconcile(input: {
     actionKey: string;
     idempotencyKey: string;
   }): Promise<{ providerRef: string } | null>;
+  /** Official-contract adapter only; absent until the provider defines an exact reversible operation. */
+  rollbackLoop?(input: {
+    loopRef: string;
+    expectedTemplateRef: string;
+    expectedParticipantRefs: readonly string[];
+    idempotencyKey: string;
+  }): Promise<{ loopRef: string; applied: boolean }>;
+  /** Official-contract adapter only; absent until the provider defines an exact reversible operation. */
+  rollbackDocument?(input: {
+    documentRef: string;
+    expectedLoopRef: string;
+    expectedContentHash: string;
+    idempotencyKey: string;
+  }): Promise<{ documentRef: string; applied: boolean }>;
 }
 
 export class DotloopRenewalExecutor implements ExternalExecutor {
@@ -548,7 +575,21 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
         participantRefs: splitRefs(stringValue(input, "participant_refs")),
         idempotencyKey,
       });
-      return receipt(input, result.loopRef, { templateRef: input.values.template_ref });
+      const observed = await this.provider.readLoop(result.loopRef);
+      const participants = splitRefs(stringValue(input, "participant_refs"));
+      if (
+        !observed ||
+        !observed.active ||
+        observed.loopRef !== result.loopRef ||
+        observed.templateRef !== input.values.template_ref ||
+        !sameRefs(observed.participantRefs, participants)
+      ) {
+        throw new ExternalExecutionError(
+          "Dotloop loop readback did not match the exact preview.",
+          "ambiguous",
+        );
+      }
+      return receipt(input, result.loopRef, observed);
     }
     const result = await this.provider.uploadDocument({
       loopRef: stringValue(input, "loop_ref"),
@@ -557,10 +598,21 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
       contentHash: stringValue(input, "content_hash"),
       idempotencyKey,
     });
-    return receipt(input, result.documentRef, {
-      loopRef: digest(stringValue(input, "loop_ref")),
-      contentHash: input.values.content_hash,
-    });
+    const observed = await this.provider.readDocument(result.documentRef);
+    if (
+      !observed ||
+      !observed.active ||
+      observed.documentRef !== result.documentRef ||
+      observed.loopRef !== input.values.loop_ref ||
+      observed.documentType !== input.values.document_type ||
+      observed.contentHash !== input.values.content_hash
+    ) {
+      throw new ExternalExecutionError(
+        "Dotloop document readback did not match the exact preview.",
+        "ambiguous",
+      );
+    }
+    return receipt(input, result.documentRef, observed);
   }
 
   async reconcile(input: ExternalActionInput) {
@@ -568,10 +620,87 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
       actionKey: input.actionKey,
       idempotencyKey: externalActionIdempotencyKey(input),
     });
-    return result
-      ? receipt(input, result.providerRef, { reconciled: true }, "succeeded", true)
+    if (!result) return null;
+    if (input.actionKey === "dotloop.loop.create_from_template") {
+      const observed = await this.provider.readLoop(result.providerRef);
+      return observed &&
+        observed.active &&
+        observed.templateRef === input.values.template_ref &&
+        sameRefs(
+          observed.participantRefs,
+          splitRefs(stringValue(input, "participant_refs")),
+        )
+        ? receipt(input, result.providerRef, observed, "succeeded", true)
+        : null;
+    }
+    const observed = await this.provider.readDocument(result.providerRef);
+    return observed &&
+      observed.active &&
+      observed.loopRef === input.values.loop_ref &&
+      observed.documentType === input.values.document_type &&
+      observed.contentHash === input.values.content_hash
+      ? receipt(input, result.providerRef, observed, "succeeded", true)
       : null;
   }
+
+  async correct(input: ExternalActionInput, prior: ExternalActionReceipt) {
+    const blocker = this.validate(input);
+    if (blocker) throw new ExternalExecutionError(blocker, "blocked");
+    if (prior.actionKey !== input.actionKey || !prior.providerRef.trim()) {
+      throw new ExternalExecutionError(
+        "Dotloop rollback receipt does not match the exact action.",
+        "blocked",
+      );
+    }
+    const rollbackKey = `${externalActionIdempotencyKey(input)}:rollback`;
+    if (input.actionKey === "dotloop.loop.create_from_template") {
+      if (!this.provider.rollbackLoop) {
+        throw new ExternalExecutionError(
+          "The official Dotloop loop rollback contract is not configured.",
+          "blocked",
+        );
+      }
+      const result = await this.provider.rollbackLoop({
+        loopRef: prior.providerRef,
+        expectedTemplateRef: stringValue(input, "template_ref"),
+        expectedParticipantRefs: splitRefs(stringValue(input, "participant_refs")),
+        idempotencyKey: rollbackKey,
+      });
+      const observed = await this.provider.readLoop(prior.providerRef);
+      if (!result.applied || result.loopRef !== prior.providerRef || observed?.active) {
+        throw new ExternalExecutionError(
+          "Dotloop loop rollback is ambiguous.",
+          "ambiguous",
+        );
+      }
+      return;
+    }
+    if (!this.provider.rollbackDocument) {
+      throw new ExternalExecutionError(
+        "The official Dotloop document rollback contract is not configured.",
+        "blocked",
+      );
+    }
+    const result = await this.provider.rollbackDocument({
+      documentRef: prior.providerRef,
+      expectedLoopRef: stringValue(input, "loop_ref"),
+      expectedContentHash: stringValue(input, "content_hash"),
+      idempotencyKey: rollbackKey,
+    });
+    const observed = await this.provider.readDocument(prior.providerRef);
+    if (!result.applied || result.documentRef !== prior.providerRef || observed?.active) {
+      throw new ExternalExecutionError(
+        "Dotloop document rollback is ambiguous.",
+        "ambiguous",
+      );
+    }
+  }
+}
+
+function sameRefs(left: readonly string[], right: readonly string[]): boolean {
+  return (
+    left.length === right.length && left.every((value, index) => value === right[index])
+  );
 }
 
 export class RenewalChannelExecutor extends LeaseGmailExecutor {}

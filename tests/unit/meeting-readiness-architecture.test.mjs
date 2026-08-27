@@ -50,8 +50,8 @@ describe("2026-08-26 meeting-readiness architecture outcome", () => {
     const audit = read("docs/pmi-kc-completion-blocker-audit-2026-08-26.html");
     expect(audit).toContain('id="client-blockers"');
     expect(audit).toContain('id="internal-blockers"');
-    expect(audit).toContain("No: not everything originally requested is closed.");
-    expect(audit).toContain("I11 · Dependency assurance");
+    expect(audit).toContain("No dependency-independent product blocker remains.");
+    expect(audit).toContain("I11 · Dependencies");
   });
 
   it("opens only the approved RentCast read key and keeps RentVine writeback closed", () => {

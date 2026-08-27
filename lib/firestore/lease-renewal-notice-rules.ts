@@ -10,6 +10,7 @@
 
 import { z } from "zod";
 import type { Firestore } from "firebase-admin/firestore";
+import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -25,26 +26,70 @@ import type {
 } from "@/lib/lease-renewal/process-definition-seed";
 
 export const NOTICE_RULE_CONFIG_COLLECTION = "lease_renewal_notice_rules";
+export const NOTICE_RULE_ACTIVITY_COLLECTION = "lease_renewal_notice_rule_activity";
 export const NOTICE_RULE_CONFIG_DOC_ID = "active";
 
-const ScopedNoticeRuleSchema = z.object({
-  scope: z.enum(["global", "property", "lease"]),
-  key: z.string().min(1).optional(),
-  values: z
-    .object({
-      noticeDeadlineDayOfMonth: z.number().int().min(1).max(31),
-      noticeDeadlineMonthOffset: z.number().int().min(-12).max(12),
-      operatorWarningLeadDays: z.number().int().min(0).max(120),
-      followUpIntervalDays: z.number().int().min(0).max(365),
-      enabled: z.boolean(),
-    })
-    .partial(),
-  verified: z.boolean(),
-});
+const ScopedNoticeRuleSchema = z
+  .object({
+    scope: z.enum(["global", "property", "lease"]),
+    key: z.string().trim().min(1).max(200).optional(),
+    values: z
+      .object({
+        noticeDeadlineDayOfMonth: z.number().int().min(1).max(31),
+        noticeDeadlineMonthOffset: z.number().int().min(-12).max(12),
+        operatorWarningLeadDays: z.number().int().min(0).max(120),
+        followUpIntervalDays: z.number().int().min(0).max(365),
+        enabled: z.boolean(),
+      })
+      .partial(),
+    verified: z.boolean(),
+  })
+  .strict()
+  .superRefine((rule, context) => {
+    if (rule.scope === "global" && rule.key) {
+      context.addIssue({
+        code: "custom",
+        path: ["key"],
+        message: "The global notice rule cannot have a key.",
+      });
+    }
+    if (rule.scope !== "global" && !rule.key) {
+      context.addIssue({
+        code: "custom",
+        path: ["key"],
+        message: "Property and lease notice rules require an exact key.",
+      });
+    }
+  });
+
+const NoticeRulesSchema = z
+  .array(ScopedNoticeRuleSchema)
+  .min(1)
+  .superRefine((rules, context) => {
+    if (rules.filter((rule) => rule.scope === "global").length !== 1) {
+      context.addIssue({
+        code: "custom",
+        message: "Exactly one global notice rule is required.",
+      });
+    }
+    const identities = new Set<string>();
+    for (const [index, rule] of rules.entries()) {
+      const identity = `${rule.scope}:${rule.key ?? "global"}`;
+      if (identities.has(identity)) {
+        context.addIssue({
+          code: "custom",
+          path: [index],
+          message: "Notice rule scope and key must be unique.",
+        });
+      }
+      identities.add(identity);
+    }
+  });
 
 export const NoticeRuleSetRecordSchema = z.object({
   id: z.string().min(1),
-  rules: z.array(ScopedNoticeRuleSchema).min(1),
+  rules: NoticeRulesSchema,
+  version: z.number().int().positive().default(1),
   created_at: z.string(),
   updated_at: z.string(),
   seeded_by_uid: z.string().min(1),
@@ -56,9 +101,11 @@ export const NoticeRuleSetRecordSchema = z.object({
 export type NoticeRuleSetRecord = z.infer<typeof NoticeRuleSetRecordSchema>;
 
 // F-TMPL-5: the Admin edit surface sends the full desired rule set (global defaults + any overrides).
-export const UpdateNoticeRuleConfigInputSchema = z.object({
-  rules: z.array(ScopedNoticeRuleSchema).min(1),
-});
+export const UpdateNoticeRuleConfigInputSchema = z
+  .object({
+    rules: NoticeRulesSchema,
+  })
+  .strict();
 export type UpdateNoticeRuleConfigInput = z.infer<
   typeof UpdateNoticeRuleConfigInputSchema
 >;
@@ -79,6 +126,7 @@ export function buildNoticeRuleConfigRecord(options: {
   return {
     id: NOTICE_RULE_CONFIG_DOC_ID,
     rules: ruleSet.rules.map((rule) => ({ ...rule, values: { ...rule.values } })),
+    version: 1,
     seeded_by_uid: options.seededByUid,
   };
 }
@@ -195,6 +243,10 @@ export async function updateNoticeRuleConfig(
     const record: NoticeRuleSetRecord = {
       id: NOTICE_RULE_CONFIG_DOC_ID,
       rules: parsed.rules,
+      version:
+        typeof existing?.version === "number" && Number.isInteger(existing.version)
+          ? existing.version + 1
+          : 1,
       created_at: typeof existing?.created_at === "string" ? existing.created_at : now,
       updated_at: now,
       seeded_by_uid:
@@ -202,6 +254,14 @@ export async function updateNoticeRuleConfig(
       updated_by_uid: actor.uid,
     };
     transaction.set(ref, record);
+    transaction.create(db.collection(NOTICE_RULE_ACTIVITY_COLLECTION).doc(uuidv7()), {
+      config_id: NOTICE_RULE_CONFIG_DOC_ID,
+      version: record.version,
+      rules: record.rules,
+      actor_uid: actor.uid,
+      action: "notice_rules_replaced",
+      created_at: now,
+    });
     return record;
   });
 

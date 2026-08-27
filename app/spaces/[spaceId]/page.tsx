@@ -16,6 +16,10 @@ import { readServerConfig } from "@/lib/config/server";
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { getApprovedTemplate } from "@/lib/firestore/approved-templates";
+import {
+  listPublishedOperationalPages,
+  type OperationalPageHead,
+} from "@/lib/firestore/operational-pages";
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
 import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
 import type {
@@ -115,6 +119,12 @@ export default async function SpaceDetailPage({
   let deskStepChecks: WorkflowRunStepCheckRecord[] = [];
   let deskPresence: Record<string, boolean> = {};
   let deskConnectors: ConnectorDef[] = [];
+  let operationalPages: OperationalPageHead[] = [];
+  try {
+    operationalPages = await listPublishedOperationalPages(user, space.id);
+  } catch {
+    operationalPages = [];
+  }
   if (hasProcess && space.processDefinitionId) {
     const definitionId = space.processDefinitionId;
     try {
@@ -190,6 +200,21 @@ export default async function SpaceDetailPage({
               Process
             </Link>
           </nav>
+        ) : null}
+
+        {operationalPages.length > 0 ? (
+          <aside className="panel ui-stack-tight" aria-label="Operational pages">
+            <h2>Operational pages</h2>
+            <ul className="compact-list">
+              {operationalPages.map((page) => (
+                <li key={page.id}>
+                  <Link href={`/spaces/${space.id}/pages/${page.slug}`}>
+                    {page.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
         ) : null}
 
         {activeTab === "process" && space.processDefinitionId ? (

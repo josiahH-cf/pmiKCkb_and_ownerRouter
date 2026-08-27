@@ -13,16 +13,9 @@ interface CommunicationAttention {
   href: string;
   createdAtMs: number;
   attentionAtMs?: number;
-}
-
-interface GmailWatchPreview {
-  mailboxEmail: string;
-  topicName: string;
-  currentWatchExpirationMs: number | null;
-  effect: string;
-  proposedExpiration: string;
-  risk: string;
-  reversibility: string;
+  waitingOn?: "team" | "owner" | "resident" | "vendor" | "outside" | "none";
+  lastContactAtMs?: number;
+  lastContactSource?: "gmail_thread";
 }
 
 export function LiveGmailWorkspace({
@@ -36,11 +29,10 @@ export function LiveGmailWorkspace({
   >(hasAuthenticatedMailbox ? "checking" : "gated");
   const [connectionMessage, setConnectionMessage] = useState(WAITING_ON_GMAIL);
   const [connectedEmail, setConnectedEmail] = useState(authenticatedEmail);
-  const [syncMessage, setSyncMessage] = useState("Manual watch renewal only");
+  const [syncMessage, setSyncMessage] = useState(
+    "Read-only manual refresh has not run in this session",
+  );
   const [communications, setCommunications] = useState<CommunicationAttention[]>([]);
-  const [watchPreview, setWatchPreview] = useState<GmailWatchPreview | null>(null);
-  const [watchAttemptKey, setWatchAttemptKey] = useState("");
-  const [watchConfirmed, setWatchConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -65,9 +57,9 @@ export function LiveGmailWorkspace({
           setConnectionMessage(`Connected as ${data.mailboxEmail}`);
           setConnectedEmail(data.mailboxEmail);
           setSyncMessage(
-            data.sync?.health === "watching" && data.sync?.lastSuccessfulSyncMs
-              ? `Targeted reply detection last processed ${new Date(data.sync.lastSuccessfulSyncMs).toLocaleString()}`
-              : "On-demand workflow reads are active; push watch needs operator review.",
+            data.sync?.lastSuccessfulSyncMs
+              ? `Last workflow refresh: ${new Date(data.sync.lastSuccessfulSyncMs).toLocaleString()}`
+              : "Read-only manual refresh is ready; continuous watch is retired.",
           );
           try {
             await loadCommunications();
@@ -97,77 +89,31 @@ export function LiveGmailWorkspace({
     };
   }, [hasAuthenticatedMailbox, loadCommunications]);
 
-  async function reviewPushWatch() {
+  async function refreshMailbox() {
     if (connection !== "connected" || busy) return;
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/gmail-hub/watch");
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "The Gmail watch preview could not be loaded.");
-      }
-      setWatchPreview(data as GmailWatchPreview);
-      setWatchAttemptKey(globalThis.crypto.randomUUID());
-      setWatchConfirmed(false);
-    } catch (watchError) {
-      setError(
-        watchError instanceof Error
-          ? watchError.message
-          : "The Gmail watch preview could not be loaded.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function startPushWatch() {
-    if (
-      connection !== "connected" ||
-      busy ||
-      !watchPreview ||
-      !watchAttemptKey ||
-      !watchConfirmed
-    ) {
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/gmail-hub/watch", {
+      const response = await fetch("/api/gmail-hub/refresh", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          mailboxEmail: watchPreview.mailboxEmail,
-          topicName: watchPreview.topicName,
-          observedWatchExpirationMs: watchPreview.currentWatchExpirationMs,
-          attemptKey: watchAttemptKey,
-          confirmed: true,
-        }),
+        body: JSON.stringify({ attemptKey: globalThis.crypto.randomUUID() }),
       });
       const data = await response.json();
       if (!response.ok) {
-        if (data.status === "ambiguous") {
-          setSyncMessage(
-            "Watch outcome ambiguous; the one-attempt key is consumed. Review current watch health before trying again.",
-          );
-        }
-        throw new Error(data.error ?? "The Gmail watch could not be renewed.");
+        throw new Error(data.error ?? "The Gmail workflow refresh could not run.");
       }
-      const expirationMs = Number(data.expiration);
+      await loadCommunications();
       setSyncMessage(
-        Number.isFinite(expirationMs)
-          ? `Targeted reply watch readback confirmed until ${new Date(expirationMs).toLocaleString()}.`
-          : "Targeted reply watch active.",
+        data.status === "duplicate"
+          ? "That exact read-only refresh had already completed; no provider write occurred."
+          : `Read-only workflow refresh completed at ${new Date().toLocaleString()}.`,
       );
-      setWatchPreview(null);
-      setWatchAttemptKey("");
-      setWatchConfirmed(false);
-    } catch (watchError) {
+    } catch (refreshError) {
       setError(
-        watchError instanceof Error
-          ? watchError.message
-          : "The Gmail watch could not be renewed.",
+        refreshError instanceof Error
+          ? refreshError.message
+          : "The Gmail workflow refresh could not run.",
       );
     } finally {
       setBusy(false);
@@ -201,97 +147,13 @@ export function LiveGmailWorkspace({
           <button
             className="secondary-button"
             disabled={busy}
-            onClick={() => void reviewPushWatch()}
+            onClick={() => void refreshMailbox()}
             type="button"
           >
-            Review targeted reply watch renewal
+            Refresh linked Gmail now
           </button>
         ) : null}
       </div>
-
-      {watchPreview ? (
-        <section
-          className="notice notice-warning ui-stack"
-          aria-label="Gmail watch exact preview"
-        >
-          <div>
-            <strong>Exact Live watch preview</strong>
-            <p>
-              Review the mailbox, topic, current state, and one-attempt boundary before
-              execution.
-            </p>
-          </div>
-          <dl className="review-grid">
-            <div>
-              <dt>Mailbox</dt>
-              <dd>{watchPreview.mailboxEmail}</dd>
-            </div>
-            <div>
-              <dt>Topic</dt>
-              <dd>{watchPreview.topicName}</dd>
-            </div>
-            <div>
-              <dt>Current expiration</dt>
-              <dd>
-                {watchPreview.currentWatchExpirationMs
-                  ? new Date(watchPreview.currentWatchExpirationMs).toLocaleString()
-                  : "No active expiration recorded"}
-              </dd>
-            </div>
-            <div>
-              <dt>Attempt key</dt>
-              <dd>{watchAttemptKey}</dd>
-            </div>
-            <div>
-              <dt>Effect</dt>
-              <dd>{watchPreview.effect}</dd>
-            </div>
-            <div>
-              <dt>Proposed expiration</dt>
-              <dd>{watchPreview.proposedExpiration}</dd>
-            </div>
-            <div>
-              <dt>Risk</dt>
-              <dd>{watchPreview.risk}</dd>
-            </div>
-            <div>
-              <dt>Reversibility</dt>
-              <dd>{watchPreview.reversibility}</dd>
-            </div>
-          </dl>
-          <label>
-            <input
-              checked={watchConfirmed}
-              disabled={busy}
-              onChange={(event) => setWatchConfirmed(event.target.checked)}
-              type="checkbox"
-            />{" "}
-            I confirm this exact mailbox, topic, and single Live provider attempt.
-          </label>
-          <div className="button-row">
-            <button
-              className="primary-button"
-              disabled={busy || !watchConfirmed}
-              onClick={() => void startPushWatch()}
-              type="button"
-            >
-              Confirm and execute one watch attempt
-            </button>
-            <button
-              className="secondary-button"
-              disabled={busy}
-              onClick={() => {
-                setWatchPreview(null);
-                setWatchAttemptKey("");
-                setWatchConfirmed(false);
-              }}
-              type="button"
-            >
-              Cancel watch review
-            </button>
-          </div>
-        </section>
-      ) : null}
 
       {!liveEnabled ? (
         <div className="notice notice-warning" role="status">
@@ -331,6 +193,14 @@ export function LiveGmailWorkspace({
                     {communication.lane === "renewals" ? "Renewal" : "Maintenance"}{" "}
                     communication · {statusLabel(communication.status)}
                   </Link>
+                  <span className="muted">
+                    {communication.waitingOn
+                      ? ` · Waiting on ${communication.waitingOn}`
+                      : " · Waiting on not yet observed"}
+                    {communication.lastContactAtMs
+                      ? ` · Last contact ${new Date(communication.lastContactAtMs).toLocaleString()}`
+                      : " · Last contact not yet observed"}
+                  </span>
                 </li>
               ))}
             </ul>

@@ -37,6 +37,7 @@ const EXPECTED_BOUNDARIES = [
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
   "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
+  "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
   "lib/external-execution/governed-draft-execution.ts:reconcileGovernedDraft:request.createClient",
   "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
@@ -223,6 +224,13 @@ const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
 const OWNER_PROVISIONING_SCRIPT_BOUNDARIES = new Set([
   "scripts/ensure-maintenance-drive-folder.ts:main:new GoogleDriveClient",
   "scripts/import-agent-search-documents.mjs:ensureDataStore:dataStoreClient.createDataStore",
+]);
+
+// The exact one-Space provider effect is behind Admin auth, a closed-by-default runtime flag, an
+// owner-approved immutable packet, exact confirmation, an idempotent claim, predecessor inventory
+// proof, readback, and isolated rollback. The focused pilot tests prove refusal before provider work.
+const EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES = new Set([
+  "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
 ]);
 
 const GATED_PROVIDER_ADAPTERS = new Set([
@@ -1025,6 +1033,7 @@ describe("runtime suspension provider-construction boundary", () => {
       ...EXACT_CONFIRMED_SCRIPT_PROVIDER_FACTORIES,
       ...READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES,
       ...OWNER_PROVISIONING_SCRIPT_BOUNDARIES,
+      ...EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES,
       ...GATED_PROVIDER_ADAPTERS,
     ];
     expect(new Set(classified).size).toBe(classified.length);
@@ -1038,6 +1047,9 @@ describe("runtime suspension provider-construction boundary", () => {
       "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new GoogleSheetsApiReader",
       "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new RentVineClient",
       "lib/lease-renewal/live-config.ts:buildLiveRentVineConfig:new RentVineClient",
+    ]);
+    expect([...EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES]).toEqual([
+      "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
     ]);
   }, 20_000);
 

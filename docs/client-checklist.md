@@ -1,73 +1,56 @@
 # Client, owner, and provider actions
 
-Updated: 2026-08-26.
+Updated: 2026-08-27.
 
-This is the complete current external-input list. Missing input blocks only the named capability.
-Do not use old V1, Demo, audit, or roadmap documents as a client checklist.
+The application is internally complete to each boundary below. Missing input blocks only the named
+capability; it is not an unfinished engineering dependency.
 
-| Priority | Client input                                                       | What it unlocks                                    | Safe state now                                       |
-| -------: | ------------------------------------------------------------------ | -------------------------------------------------- | ---------------------------------------------------- |
-|        1 | Six renewal steps, in order, with owner and completion proof       | S72 workspace/process alignment                    | Keep generic steps; do not claim client confirmation |
-|        2 | Definition of current rent in each source                          | Correct discrepancy disposition                    | Needs Verification; write neither source             |
-|        3 | Verbatim renewal Sheet copy and managed sharing                    | S76 reversible copy-only proof                     | Proof refuses; operating Sheet remains read-only     |
-|        4 | One unmistakable RentVine test lease/owner                         | S30 one-record write-capability proof              | Dry preview only; write key closed                   |
-|        5 | Move-out deposit-disposition process expert and walkthrough date   | Correct move-out workflow                          | Support report stays open                            |
-|        6 | Exact lease behind the wrong-resident report                       | Client verification of the address/identity repair | Treat as unresolved                                  |
-|        7 | RentCast radius and comparable-count policy                        | Consistent operator comp searches                  | Results are reference-only                           |
-|        8 | Approved tenant wording and channel-evidence rules                 | S74 accurate editable offers and honest status     | Invent no legal copy or contacted/sent status        |
-|        9 | Waiting-on, follow-up, and property/lease timing policy            | S75 source-backed follow-up and override surface   | Infer no contact or timer                            |
-|       10 | Exact end-of-September scope                                       | Honest delivery commitment                         | Infer nothing                                        |
-|       11 | Approved lease packet artifact/field/participant/signature catalog | S66 packet readiness and Dotloop mapping           | Fail closed; invent no legal content                 |
-|       12 | Dotloop OAuth plus exact profile/template/provider mapping         | S34 one-packet provider proof                      | Dotloop execution unavailable                        |
-|       13 | One selected LeadSimple action, account contract, and credential   | S35 bounded connector proof                        | No guessed endpoint, stage, or broad sync            |
-|       14 | Documented RentVine resident invitation/reply/webhook contract     | S47 preferred provider channel                     | App intake remains usable; provider channel closed   |
-|       15 | Explicit per-person approval-authority decision                    | S64 implementation or durable rejection            | Current Admin/role rules remain                      |
+| Priority | Owner                 | Exact input required                                                             | Completed seam waiting on it                                              | Next action                                                         |
+| -------: | --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+|        1 | Client process owner  | Six renewal steps, order, owner, completion evidence                             | Versioned step/workspace model                                            | Record and review the exact process                                 |
+|        2 | Client                | “Current rent” meaning per source and correction source choice                   | Lease/row-bound discrepancy disposition and exact transaction contract    | Approve base-rent vs recurring-total semantics                      |
+|        3 | Client/Admin          | Distinct verbatim Sheet copy, managed sharing, blank cell                        | Admin URL/id save plus copy-only CAS/read/clear proof                     | Save the copy in Admin, dry-run, then confirm once                  |
+|        4 | Client/Admin          | One unmistakable RentVine test lease/owner and allowed field                     | Two restricted POST shapes, exact preview/rollback/readback; gate closed  | Review the designated-record proof and protected gate separately    |
+|        5 | Client process expert | Move-out deposit-disposition walkthrough and date                                | Report acknowledged and current workflow kept non-invented                | Complete walkthrough, then disposition the report                   |
+|        6 | Client                | Exact lease behind wrong-resident report                                         | Address/lease identity remains fail-closed                                | Identify and verify that one lease                                  |
+|        7 | Client/Admin          | RentCast radius, comp count, freshness/selection policy                          | Allowance-capped reference search                                         | Record operator policy; provider never sets rent                    |
+|        8 | Client                | Approved offer wording and channel-evidence rules                                | Editable drafts and honest status model                                   | Approve copy and contacted/sent evidence                            |
+|        9 | Client/Admin          | Waiting-on timing values and override authority                                  | Source-backed contact state plus versioned global/property/lease rules    | Enter client-confirmed values in Admin                              |
+|       10 | Owner/client          | Exact end-of-September commitment                                                | Scope remains unasserted                                                  | Record the agreed deliverable and evidence                          |
+|       11 | Client/provider       | Approved S66 artifacts, fields, participants, signatures, form rules             | Immutable packet truth and exact Dotloop binding                          | Publish the approved catalog                                        |
+|       12 | Provider/client       | Dotloop OAuth plus exact account/profile/template/webhook/correction mappings    | Preview/confirm/idempotency/readback/receipt/reconcile/rollback lifecycle | Configure one official adapter and prove one packet                 |
+|       13 | Provider/client       | One LeadSimple action, official account contract, credential, mappings           | CAS/readback/idempotency/receipt/reconcile/rollback lifecycle             | Configure and prove only that action                                |
+|       14 | RentVine/client       | Invitation/reply/webhook/auth/identity/correction/rollback contract              | Verified-resident channel lifecycle; app intake remains usable            | Configure official adapter; keep provider channel closed until then |
+|       15 | Owner                 | One saved Space request, first JSONL object in its isolated prefix, approval ref | Fixed official Discovery Engine lifecycle and isolated retirement         | Review packet, then enable one bounded pilot attempt                |
+|       16 | Owner                 | Explicit S64 authority decision                                                  | No S64 implementation or implied authority                                | Keep current role rules unless separately authorized                |
 
-## Live support follow-up
+## Live support state
 
-A read-only 2026-08-26 recheck found three support reports and zero status transitions. All three are
-still `new`: the work-details report, the move-out deposit-disposition report, and an older
-Connections report mentioning API-key testing, Dotloop, and LeadSimple. The two August reports share
-one reporter identity, but the live managed identity did not verify the literal name Chastity. Admin
-must triage all three before any is called acknowledged or resolved.
+- Work details: resolved after the deployed location/material behavior was verified.
+- Connections: acknowledged; completed portions were separated from Dotloop/LeadSimple external inputs.
+- Move-out: acknowledged and intentionally unresolved until the client walkthrough.
+- Reporter display uses the managed-user directory lookup; the UI does not infer a person's name from
+  an unverified identifier.
 
-## What the client can do now
+## What the team can use now
 
-- Use the live renewal desk and review source discrepancies.
-- Refresh complete RentVine/Sheet reads.
-- View RentCast reference comps.
-- Review owner/tenant draft previews and create governed unsent drafts where the exact gate is open.
-- Create and assign app-owned work with location and material details.
-- File and resolve feedback.
-- Use current Maintenance, Console, Spaces, processes, approvals, and Admin surfaces.
+- Complete RentVine and operating-Sheet reads, renewal reconciliation, RentCast reference comps, and
+  lease-specific workspaces.
+- Governed Gmail workflow reads, labels, replies, and unsent renewal/maintenance drafts where the
+  exact key is open; a person sends from Gmail.
+- Manual Workflow Communications refresh with source-backed waiting-on/last-contact.
+- Console, 11 Spaces, processes, approvals, Admin, Maintenance, feedback, tokenized resident intake,
+  Vendor boundaries, work accountability, and the bounded operational-page builder after deployment.
 
-## What remains intentionally unavailable
+## Rehearsal-copy proof
 
-- Direct app sends of renewal or maintenance notices.
-- RentVine renewal writes.
-- Operating renewal Sheet writes.
-- Rehearsal-copy proof until a distinct copy is configured.
-- Per-person approval authority (S64).
-- Provider actions missing their exact credential, endpoint, mapping, or rollback contract.
-
-## Rehearsal-copy setup
-
-1. Make a verbatim copy of the operating renewal spreadsheet.
-2. Give it a clear rehearsal-only name.
-3. Share it to the same managed Sheets access identity.
-4. Configure only its id as `RENEWAL_REHEARSAL_SHEET_ID`.
-5. Confirm Admin shows different operating and rehearsal links.
-6. Select a blank sacrificial cell.
-7. Run the exact-confirmed proof: blank → synthetic write → readback → clear → blank.
-8. Keep the proof receipt; never reuse the operating file.
-
-## RentVine proof setup
-
-The client must name one true test record. Before any gate change, review the exact lease-date and/or
-existing recurring-charge payload, expected provider state, rollback payload, and readback. A test
-record designation does not by itself authorize the write; the exact per-key review remains required.
+1. Make and share a verbatim copy; never reuse the operating workbook.
+2. Paste its URL/id into Admin. Saving performs no Sheet API call.
+3. Choose one blank sacrificial cell and run the dry proof to obtain the exact confirmation token.
+4. Confirm once: blank → synthetic marker → readback → exact clear → final blank.
+5. Retain only the bodyless receipt; if final blank cannot be proven, treat the result as ambiguous.
 
 ## Safety statement
 
-No client-facing send is autonomous. No test data becomes a real draft or provider write. No
-credential or customer value belongs in this repository.
+No live RentVine or operating-Sheet write is authorized by this checklist. No app path autonomously
+sends a client notice. No test identity, credential, or client evidence belongs in Git.

@@ -2,8 +2,10 @@
 
 // Exact-confirmed write/read/rollback proof for a configured COPY of the renewal Sheet.
 // The operating Sheet id is loaded alongside the copy id and aliases are refused before writer
-// construction. Dry mode makes no auth or network call. Live mode touches one explicitly named blank
-// cell in the copy with a synthetic marker and restores it in the same run.
+// construction. When the copy is not deployment-configured, the script reads the Admin-saved app
+// configuration (identifier only; never Sheet contents). Dry mode makes no Google Sheets auth/call.
+// Live mode touches one explicitly named blank cell in the copy with a synthetic marker and restores
+// it in the same run.
 
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -15,6 +17,14 @@ import {
   proveRehearsalSheetRoundTrip,
   resolveRenewalSheetBindings,
 } from "../lib/lease-renewal/rehearsal-sheet";
+import { readRenewalRehearsalSheetAdminConfig } from "../lib/firestore/renewal-rehearsal-sheet-config";
+
+const PROOF_ACTOR = {
+  uid: "script:prove-rehearsal-sheet-write",
+  email: "automation@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Admin" as const,
+};
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -53,7 +63,16 @@ export async function main(
   const fileName = readArg("--env-file", argv) ?? ".env.production.local";
   const fileEnv = readEnvFile(resolve(root, fileName));
   const env = { ...fileEnv, ...ambient };
-  const bindings = resolveRenewalSheetBindings(env);
+  let bindings = resolveRenewalSheetBindings(env);
+  if (bindings.rehearsal.status !== "ready") {
+    const saved = await readRenewalRehearsalSheetAdminConfig(PROOF_ACTOR, undefined, env);
+    if (saved.rehearsal.status === "ready") {
+      bindings = resolveRenewalSheetBindings({
+        ...env,
+        RENEWAL_REHEARSAL_SHEET_ID: saved.rehearsal.spreadsheetId,
+      });
+    }
+  }
   if (!bindings.operating.configured) {
     throw new Error(
       "Operating renewal Sheet is not configured; alias safety cannot be proven.",
@@ -63,7 +82,7 @@ export async function main(
     throw new Error(
       bindings.rehearsal.status === "same_as_operating"
         ? "Rehearsal Sheet equals the operating Sheet; proof refused."
-        : "RENEWAL_REHEARSAL_SHEET_ID is not configured.",
+        : "No distinct rehearsal copy is saved in Admin or deployment configuration.",
     );
   }
   const range = readArg("--range", argv) ?? "Lease Renewal!ZZ1";
@@ -72,7 +91,9 @@ export async function main(
     range,
   );
   if (!argv.includes("--live")) {
-    console.log("Rehearsal Sheet proof plan (DRY): no auth or network call was made.");
+    console.log(
+      "Rehearsal Sheet proof plan (DRY): no Google Sheets auth, content read, or write was made.",
+    );
     console.log(`Target: configured rehearsal copy only; exact cell ${range}.`);
     console.log(
       "Sequence: require blank → synthetic CAS write → readback → exact clear → blank readback.",

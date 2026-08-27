@@ -19,10 +19,28 @@ export interface RenewalSheetBindings {
     | { status: "ready"; configured: true; spreadsheetId: string; url: string };
 }
 
-function sheetLink(spreadsheetId: string | undefined): RenewalSheetLink {
-  const id = spreadsheetId?.trim();
+/**
+ * Accept either a raw spreadsheet id or the canonical Google Sheets URL copied from the browser.
+ * Other hosts, query-only ids, fragments, and malformed identifiers fail closed.
+ */
+export function canonicalizeSpreadsheetIdentifier(value: string): string | null {
+  const candidate = value.trim();
+  if (!candidate) return null;
+  if (/^[A-Za-z0-9_-]+$/.test(candidate)) return candidate;
+
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "https:" || url.hostname !== "docs.google.com") return null;
+    const match = /^\/spreadsheets\/d\/([A-Za-z0-9_-]+)(?:\/|$)/.exec(url.pathname);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function sheetLink(spreadsheetId: string | undefined): RenewalSheetLink {
+  const id = spreadsheetId ? canonicalizeSpreadsheetIdentifier(spreadsheetId) : null;
   if (!id) return { configured: false };
-  if (!/^[A-Za-z0-9_-]+$/.test(id)) return { configured: false };
   return {
     configured: true,
     spreadsheetId: id,

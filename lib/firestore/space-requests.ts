@@ -1,8 +1,8 @@
 // KB-owned persistence for Admin "request a new Space" intake (Slice 7, D12).
 //
-// One append-only record per request (Admin captures name/scope/intended sources). It changes NO system
-// of record and provisions nothing: the record is the intent, and the provisioning commands are generated
-// separately (lib/admin/space-request-commands.ts) for the owner to run by hand. Admin-only by
+// One append-only record per request (Admin captures name/scope/intended sources). It changes no provider
+// record by itself: the record is the intent, and the fixed provisioning preview is generated separately.
+// Any later provider attempt has its own exact-confirmation and durable idempotency boundary. Admin-only by
 // construction here AND at the route; Firestore rules deny every client write, so the browser can never
 // forge one.
 
@@ -84,6 +84,20 @@ export async function listSpaceRequests(
   return snapshot.docs
     .map((doc) => toSpaceRequest(doc.data()))
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+}
+
+/** Read one exact request for the separately confirmed provider pilot (Admin only). */
+export async function getSpaceRequest(
+  actor: AuthenticatedUser,
+  requestId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<SpaceRequest> {
+  assertAdmin(actor);
+  const snapshot = await db.collection(SPACE_REQUESTS_COLLECTION).doc(requestId).get();
+  if (!snapshot.exists) {
+    throw new EditableLayerError("The exact Space request was not found.", 404);
+  }
+  return toSpaceRequest(snapshot.data() ?? {});
 }
 
 function toSpaceRequest(record: Record<string, unknown>): SpaceRequest {

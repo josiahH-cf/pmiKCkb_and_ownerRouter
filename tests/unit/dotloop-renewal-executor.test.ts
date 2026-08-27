@@ -23,6 +23,13 @@ describe("Dotloop renewal executor", () => {
     const result = await new DotloopRenewalExecutor({
       createLoop,
       uploadDocument,
+      readLoop: vi.fn().mockResolvedValue({
+        loopRef: "loop-1",
+        templateRef: "template-synthetic",
+        participantRefs: ["owner-synthetic", "tenant-synthetic"],
+        active: true,
+      }),
+      readDocument: vi.fn(),
       reconcile: vi.fn(),
     }).execute(base);
     expect(result.providerRef).toBe("loop-1");
@@ -39,6 +46,8 @@ describe("Dotloop renewal executor", () => {
       new DotloopRenewalExecutor({
         createLoop,
         uploadDocument: vi.fn(),
+        readLoop: vi.fn(),
+        readDocument: vi.fn(),
         reconcile: vi.fn(),
       }).execute({
         ...base,
@@ -46,5 +55,50 @@ describe("Dotloop renewal executor", () => {
       }),
     ).rejects.toBeDefined();
     expect(createLoop).not.toHaveBeenCalled();
+  });
+
+  it("refuses mismatched readback and proves exact rollback separately", async () => {
+    let active = true;
+    const readLoop = vi.fn(async () => ({
+      loopRef: "loop-1",
+      templateRef: "template-synthetic",
+      participantRefs: ["owner-synthetic", "tenant-synthetic"],
+      active,
+    }));
+    const rollbackLoop = vi.fn(async () => {
+      active = false;
+      return { loopRef: "loop-1", applied: true };
+    });
+    const executor = new DotloopRenewalExecutor({
+      createLoop: vi.fn().mockResolvedValue({ loopRef: "loop-1" }),
+      uploadDocument: vi.fn(),
+      readLoop,
+      readDocument: vi.fn(),
+      reconcile: vi.fn(),
+      rollbackLoop,
+    });
+    const receipt = await executor.execute(base);
+    await expect(executor.correct!(base, receipt)).resolves.toBeUndefined();
+    expect(rollbackLoop).toHaveBeenCalledWith(
+      expect.objectContaining({
+        loopRef: "loop-1",
+        expectedTemplateRef: "template-synthetic",
+      }),
+    );
+
+    await expect(
+      new DotloopRenewalExecutor({
+        createLoop: vi.fn().mockResolvedValue({ loopRef: "loop-1" }),
+        uploadDocument: vi.fn(),
+        readLoop: vi.fn().mockResolvedValue({
+          loopRef: "loop-1",
+          templateRef: "wrong-template",
+          participantRefs: [],
+          active: true,
+        }),
+        readDocument: vi.fn(),
+        reconcile: vi.fn(),
+      }).execute(base),
+    ).rejects.toMatchObject({ code: "ambiguous" });
   });
 });

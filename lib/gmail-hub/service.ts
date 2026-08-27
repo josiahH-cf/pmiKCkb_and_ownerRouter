@@ -65,6 +65,8 @@ import {
   workflowActionContextKey,
   type WorkflowCommunicationContext,
   type WorkflowCommunicationLink,
+  type WorkflowCommunicationPurpose,
+  type WorkflowCommunicationWaitingOn,
 } from "@/lib/gmail-hub/workflow-context";
 import {
   createRfcMessageId,
@@ -185,6 +187,64 @@ export class GmailHubService {
     );
   }
 
+  /**
+   * Read-only replacement for the retired continuous watch. One caller-generated UUID is a durable
+   * dedupe identity; the provider history cursor can only advance, and no Gmail message or label is
+   * changed. A first refresh registers the current cursor without scanning historical inbox data.
+   */
+  async refreshMailbox(input: { attemptKey: string }) {
+    if (!/^[a-f0-9-]{36}$/i.test(input.attemptKey)) {
+      throw new GmailHubError("Gmail refresh attempt key is invalid.", 409);
+    }
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
+    const profile = await client.getProfile();
+    const nowMs = this.now();
+    let state = await this.dependencies.store.getMailboxState(this.mailboxEmail);
+    if (!state) {
+      await this.dependencies.store.saveMailboxState({
+        mailbox_email: this.mailboxEmail,
+        user_uid: this.actor.uid,
+        history_id: profile.historyId,
+        last_successful_sync_ms: nowMs,
+        health: "connected",
+        updated_at_ms: nowMs,
+      });
+      return {
+        status: "initialized" as const,
+        addedCount: 0,
+        matchedCount: 0,
+        historyId: profile.historyId,
+      };
+    }
+    if (state.user_uid !== this.actor.uid && state.user_uid !== "unknown") {
+      throw new GmailHubError("Gmail refresh state belongs to another user.", 403);
+    }
+    if (state.user_uid === "unknown" || state.health === "watching") {
+      state = {
+        mailbox_email: this.mailboxEmail,
+        user_uid: this.actor.uid,
+        history_id: state.history_id,
+        ...(state.last_successful_sync_ms
+          ? { last_successful_sync_ms: state.last_successful_sync_ms }
+          : {}),
+        health: "connected",
+        updated_at_ms: nowMs,
+      };
+      await this.dependencies.store.saveMailboxState(state);
+    }
+    return processGmailPushNotification({
+      messageId: `manual-${hashWatchBoundary(
+        `${this.actor.uid}:${this.mailboxEmail}:${input.attemptKey}`,
+      )}`,
+      mailboxEmail: this.mailboxEmail,
+      historyId: profile.historyId,
+      source: "manual",
+      store: this.dependencies.store,
+      client,
+      now: this.now,
+    });
+  }
+
   async linkExistingThread(input: {
     context: WorkflowCommunicationContext;
     threadId: string;
@@ -198,10 +258,16 @@ export class GmailHubService {
     // The targeted read proves the opaque id belongs to this signed-in mailbox. Its content is returned
     // transiently by Gmail but is neither logged nor persisted by the link operation.
     const thread = await client.getThread(input.threadId);
+    const observation = observeWorkflowThread(
+      thread,
+      this.mailboxEmail,
+      input.context.purpose,
+    );
     await this.saveCommunicationLink(input.context, {
       threadId: thread.id,
       status: "linked",
       reasonHash: hashOperationalReason(input.reason),
+      ...observation,
     });
     return { status: "linked" as const, threadId: thread.id };
   }
@@ -1256,6 +1322,10 @@ export class GmailHubService {
       threadId?: string;
       status: WorkflowCommunicationLink["status"];
       reasonHash?: string;
+      waitingOn?: WorkflowCommunicationWaitingOn;
+      lastContactAtMs?: number;
+      lastContactMessageId?: string;
+      lastContactSource?: "gmail_thread";
     },
   ) {
     this.requireWorkflowLinkTtlDays();
@@ -1277,6 +1347,14 @@ export class GmailHubService {
       gmail_message_id: result.messageId,
       gmail_thread_id: result.threadId,
       status: result.status,
+      ...(result.waitingOn ? { waiting_on: result.waitingOn } : {}),
+      ...(result.lastContactAtMs ? { last_contact_at_ms: result.lastContactAtMs } : {}),
+      ...(result.lastContactMessageId
+        ? { last_contact_message_id: result.lastContactMessageId }
+        : {}),
+      ...(result.lastContactSource
+        ? { last_contact_source: result.lastContactSource }
+        : {}),
       created_at_ms: nowMs,
       updated_at_ms: nowMs,
       ...communicationsRetentionFields("workflow_link", nowMs),
@@ -1322,6 +1400,7 @@ export async function processGmailPushNotification(input: {
   historyId: string;
   store: GmailStateStore;
   client: GmailRuntimeClient;
+  source?: "push" | "manual";
   now?: () => number;
 }) {
   const maxHistoryPages = 5;
@@ -1365,16 +1444,24 @@ export async function processGmailPushNotification(input: {
       threadIds: [...new Set([...addedRefs.values()].map((ref) => ref.threadId))],
     });
     let matchedCount = 0;
+    const threadReadbacks = new Map<string, GmailThreadView>();
     for (const link of linked) {
-      const newest = [...addedRefs.values()].find(
-        (ref) => ref.threadId === link.gmail_thread_id,
-      );
-      if (!newest) continue;
-      if (newest.id === link.gmail_message_id) continue;
+      const threadId = link.gmail_thread_id;
+      if (!threadId) continue;
+      if (![...addedRefs.values()].some((ref) => ref.threadId === threadId)) continue;
+      let thread = threadReadbacks.get(threadId);
+      if (!thread) {
+        thread = await input.client.getThread(threadId);
+        threadReadbacks.set(threadId, thread);
+      }
+      const observation = observeWorkflowThread(thread, input.mailboxEmail, link.purpose);
+      const newestMessageId = observation.lastContactMessageId;
+      if (!newestMessageId || newestMessageId === link.gmail_message_id) continue;
       if (
         (await input.store.markCommunicationAttention({
           linkId: link.id,
-          messageId: newest.id,
+          messageId: newestMessageId,
+          ...observation,
           nowMs: now(),
         })) === "updated"
       ) {
@@ -1387,7 +1474,7 @@ export async function processGmailPushNotification(input: {
       historyId: cursor,
       addedCount,
       matchedCount,
-      mode: "history",
+      mode: input.source === "manual" ? "manual_history" : "history",
       nowMs: now(),
     });
     return {
@@ -1416,6 +1503,7 @@ async function boundedMailboxResync(
     mailboxEmail: string;
     store: GmailStateStore;
     client: GmailRuntimeClient;
+    source?: "push" | "manual";
   },
   now: () => number,
 ) {
@@ -1428,7 +1516,7 @@ async function boundedMailboxResync(
     historyId: profile.historyId,
     addedCount: 0,
     matchedCount: 0,
-    mode: "bounded_resync",
+    mode: input.source === "manual" ? "manual_bounded_resync" : "bounded_resync",
     nowMs: now(),
   });
   return {
@@ -1437,6 +1525,53 @@ async function boundedMailboxResync(
     matchedCount: 0,
     historyId: profile.historyId,
   };
+}
+
+interface WorkflowThreadObservation {
+  waitingOn?: WorkflowCommunicationWaitingOn;
+  lastContactAtMs?: number;
+  lastContactMessageId?: string;
+  lastContactSource?: "gmail_thread";
+}
+
+/** Provider-only observation; no body, address, or inferred model output is persisted. */
+function observeWorkflowThread(
+  thread: GmailThreadView,
+  mailboxEmail: string,
+  purpose: WorkflowCommunicationPurpose,
+): WorkflowThreadObservation {
+  const latest = [...thread.messages]
+    .sort(
+      (left, right) =>
+        providerMessageTime(left.internalDate) - providerMessageTime(right.internalDate),
+    )
+    .at(-1);
+  if (!latest?.id) return {};
+  const lastContactAtMs = providerMessageTime(latest.internalDate);
+  const sender = extractEmailAddress(latest.from);
+  const waitingOn = sender
+    ? sender === mailboxEmail
+      ? counterpartyForPurpose(purpose)
+      : "team"
+    : undefined;
+  return {
+    ...(waitingOn ? { waitingOn } : {}),
+    ...(lastContactAtMs > 0 ? { lastContactAtMs } : {}),
+    lastContactMessageId: latest.id,
+    lastContactSource: "gmail_thread",
+  };
+}
+
+function counterpartyForPurpose(
+  purpose: WorkflowCommunicationPurpose,
+): WorkflowCommunicationWaitingOn {
+  return purpose === "renewal_tenant" ? "resident" : "owner";
+}
+
+function providerMessageTime(value: string | undefined): number {
+  if (!value || !/^\d+$/.test(value)) return 0;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 0;
 }
 
 export class GmailHubError extends Error {

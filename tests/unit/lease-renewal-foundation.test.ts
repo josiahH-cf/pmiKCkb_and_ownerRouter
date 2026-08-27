@@ -135,14 +135,16 @@ describe("lease renewal process-definition template", () => {
     );
   });
 
-  it("keeps the Rentvine renewal writeback gated as a pending future automation step", () => {
+  it("keeps the documented RentVine writeback closed pending exact one-record permission", () => {
     const parsed = CreateProcessDefinitionInputSchema.parse(template());
     const writeback = parsed.action_references.find(
       (reference) => reference.action_registry_key === "rentvine.lease.renewal_writeback",
     );
 
-    expect(writeback?.readiness).toBe("Planned");
-    expect(writeback?.missing_connection_or_permission).toMatch(/[Vv]endor-confirmed/);
+    expect(writeback?.readiness).toBe("Needs Permission");
+    expect(writeback?.missing_connection_or_permission).toMatch(
+      /client-designated unmistakable test lease\/owner/i,
+    );
   });
 });
 

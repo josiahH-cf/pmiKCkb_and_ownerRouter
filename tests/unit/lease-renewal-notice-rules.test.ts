@@ -13,6 +13,16 @@ import {
   type NoticeRuleSet,
 } from "@/lib/lease-renewal/notice-rules";
 
+const CONFIRMED_RULE_SET: NoticeRuleSet = {
+  rules: [
+    {
+      scope: "global",
+      values: { ...DEFAULT_NOTICE_RULE_VALUES },
+      verified: true,
+    },
+  ],
+};
+
 describe("resolveNoticeRule — most-specific-wins precedence", () => {
   it("returns the unverified global default when there are no overrides", () => {
     const resolved = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, { leaseId: "L1" });
@@ -131,7 +141,7 @@ describe("date math — boundary days", () => {
 });
 
 describe("detectNoticeStatus", () => {
-  const resolved = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, {});
+  const resolved = resolveNoticeRule(CONFIRMED_RULE_SET, {});
   const leaseEnd = "2026-08-31"; // deadline 2026-07-15, warn 2026-07-12
 
   it("is scheduled well before the warning window", () => {
@@ -203,7 +213,7 @@ describe("detectNoticeStatus", () => {
         {
           scope: "global",
           values: { ...DEFAULT_NOTICE_RULE_VALUES, enabled: false },
-          verified: false,
+          verified: true,
         },
       ],
     };
@@ -218,7 +228,7 @@ describe("detectNoticeStatus", () => {
 });
 
 describe("buildEffectiveRuleView — provenance + Needs Verification", () => {
-  it("labels an unconfirmed default 'default' and flags it Needs Verification", () => {
+  it("keeps an unconfirmed default visibly unset and produces no due date", () => {
     const resolved = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, {});
     const status = detectNoticeStatus(
       resolved,
@@ -230,14 +240,20 @@ describe("buildEffectiveRuleView — provenance + Needs Verification", () => {
       "2026-06-01",
     );
     const view = buildEffectiveRuleView(resolved, status);
-    const dueLine = view.lines.find((line) => line.label === "Notice due by");
-    expect(dueLine?.value).toBe("Jul 15, 2026");
-    expect(dueLine?.provenance).toBe("default");
-    expect(dueLine?.needsVerification).toBe(true);
+    expect(status.code).toBe("policy_unset");
+    expect(status.schedule).toBeNull();
+    expect(view.statusLabel).toBe("Timing policy not confirmed");
+    expect(view.lines).toEqual([
+      expect.objectContaining({
+        label: "Client timing policy",
+        value: "Not confirmed",
+        needsVerification: true,
+      }),
+    ]);
     expect(view.hasUnverified).toBe(true);
   });
 
-  it("flags the warn date Needs Verification when the DEADLINE it derives from is an unconfirmed default", () => {
+  it("does not derive a warning date from a partially confirmed policy", () => {
     // Dan confirms ONLY the warning lead days on a lease override; the deadline stays the unverified
     // global default. The warn DATE is deadline - leadDays, so it must NOT read as confirmed.
     const ruleSet: NoticeRuleSet = {
@@ -262,15 +278,15 @@ describe("buildEffectiveRuleView — provenance + Needs Verification", () => {
       "2026-06-01",
     );
     const view = buildEffectiveRuleView(resolved, status);
-    const warn = view.lines.find((line) => line.label === "Warn operator on");
-    expect(warn?.needsVerification).toBe(true);
-    expect(warn?.provenance).toBe("default");
+    expect(status.code).toBe("policy_unset");
+    expect(status.schedule).toBeNull();
+    expect(view.lines.some((line) => line.label === "Warn operator on")).toBe(false);
   });
 
   it("labels a confirmed property override 'property rule' with no Needs Verification", () => {
     const ruleSet: NoticeRuleSet = {
       rules: [
-        { scope: "global", values: { ...DEFAULT_NOTICE_RULE_VALUES }, verified: false },
+        { scope: "global", values: { ...DEFAULT_NOTICE_RULE_VALUES }, verified: true },
         {
           scope: "property",
           key: "PROP-A",
@@ -308,14 +324,16 @@ describe("buildEffectiveRuleView — provenance + Needs Verification", () => {
 });
 
 describe("buildNoticeRuleSummary — rule-level desk view", () => {
-  it("describes the default rule in plain English, flagged Needs Verification", () => {
+  it("hides unconfirmed starter numbers and labels the client policy unset", () => {
     const resolved = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, {});
     const summary = buildNoticeRuleSummary(resolved);
-    expect(summary.statusLabel).toBe("Notice tracking on");
-    const deadline = summary.lines.find((line) => line.label === "Notice deadline");
-    expect(deadline?.value).toBe("By the 15th of the month before lease end");
-    expect(deadline?.provenance).toBe("default");
-    expect(deadline?.needsVerification).toBe(true);
+    expect(summary.statusLabel).toBe("Timing policy not confirmed");
+    expect(summary.lines).toEqual([
+      expect.objectContaining({
+        label: "Client timing policy",
+        value: "Not confirmed",
+      }),
+    ]);
     expect(summary.hasUnverified).toBe(true);
   });
 });

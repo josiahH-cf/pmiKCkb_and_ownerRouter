@@ -631,6 +631,22 @@ export interface LeadSimpleProvider {
   readTask(taskRef: string): Promise<LeadSimpleTaskState | null>;
   reconcileStage(idempotencyKey: string): Promise<LeadSimpleProcessState | null>;
   reconcileTask(idempotencyKey: string): Promise<LeadSimpleTaskState | null>;
+  /** Exact CAS rollback supplied only after the official account contract is confirmed. */
+  rollbackStage?(input: {
+    processRef: string;
+    expectedStageRef: string;
+    targetStageRef: string;
+    idempotencyKey: string;
+  }): Promise<{ processRef: string; applied: boolean }>;
+  /** Exact task reversal supplied only after the official account contract is confirmed. */
+  rollbackTask?(input: {
+    taskRef: string;
+    processRef: string;
+    expectedTitle: string;
+    expectedAssigneeRef: string;
+    expectedDueDate: string;
+    idempotencyKey: string;
+  }): Promise<{ taskRef: string; applied: boolean }>;
 }
 
 export class LeadSimpleMaintenanceExecutor implements ExternalExecutor {
@@ -746,6 +762,65 @@ export class LeadSimpleMaintenanceExecutor implements ExternalExecutor {
     return leadSimpleTaskMatches(input, observed)
       ? receipt(input, observed!.taskRef, observed, true)
       : null;
+  }
+
+  async correct(input: ExternalActionInput, prior: ExternalActionReceipt) {
+    assertValid(this.validate(input));
+    if (prior.actionKey !== input.actionKey || !prior.providerRef.trim()) {
+      throw new ExternalExecutionError(
+        "LeadSimple rollback receipt does not match the exact action.",
+        "blocked",
+      );
+    }
+    const rollbackKey = `${idempotencyKey(input)}:rollback`;
+    if (input.actionKey === "leadsimple.process.update_stage") {
+      if (!this.provider.rollbackStage) {
+        throw new ExternalExecutionError(
+          "The official LeadSimple stage rollback contract is not configured.",
+          "blocked",
+        );
+      }
+      const result = await this.provider.rollbackStage({
+        processRef: value(input, "process_id"),
+        expectedStageRef: value(input, "target_stage"),
+        targetStageRef: value(input, "current_stage"),
+        idempotencyKey: rollbackKey,
+      });
+      const observed = await this.provider.readProcess(value(input, "process_id"));
+      if (
+        !result.applied ||
+        result.processRef !== prior.providerRef ||
+        observed?.processRef !== prior.providerRef ||
+        observed.stageRef !== input.values.current_stage
+      ) {
+        throw new ExternalExecutionError(
+          "LeadSimple stage rollback is ambiguous.",
+          "ambiguous",
+        );
+      }
+      return;
+    }
+    if (!this.provider.rollbackTask) {
+      throw new ExternalExecutionError(
+        "The official LeadSimple task rollback contract is not configured.",
+        "blocked",
+      );
+    }
+    const result = await this.provider.rollbackTask({
+      taskRef: value(input, "task_ref"),
+      processRef: value(input, "process_id"),
+      expectedTitle: value(input, "task_title"),
+      expectedAssigneeRef: value(input, "assignee_ref"),
+      expectedDueDate: value(input, "due_date"),
+      idempotencyKey: rollbackKey,
+    });
+    const observed = await this.provider.readTask(value(input, "task_ref"));
+    if (!result.applied || result.taskRef !== prior.providerRef || observed) {
+      throw new ExternalExecutionError(
+        "LeadSimple task rollback is ambiguous.",
+        "ambiguous",
+      );
+    }
   }
 }
 

@@ -11,12 +11,15 @@ export function SupportReportsPanel({
   unavailableNote,
   newCount,
   followUpDueCount,
+  reporterDirectory = {},
 }: Readonly<{
   reports: SupportReportRecord[];
   unavailableNote?: string;
   /** Value-free counts from the shared gatherSupportAttention (same numbers the notifications hub shows). */
   newCount?: number;
   followUpDueCount?: number;
+  /** Verified Firebase managed-user lookup, keyed by reporter uid. */
+  reporterDirectory?: Readonly<Record<string, string>>;
 }>) {
   return (
     <article className="panel" aria-label="Feedback">
@@ -55,7 +58,8 @@ export function SupportReportsPanel({
                 <div>
                   <strong>{report.route}</strong>
                   <p className="muted">
-                    {formatReportedAt(report.created_at)} · {report.reporter_role}
+                    {formatReportedAt(report.created_at)} ·{" "}
+                    {reporterDirectory[report.reporter_uid] ?? report.reporter_role}
                     {report.origin === "error_boundary"
                       ? " · from an app error"
                       : ""} · {report.status}

@@ -10,9 +10,9 @@ import {
   listSpaceRequests,
 } from "@/lib/firestore/space-requests";
 
-// Admin-only "request a new Space" intake (Slice 7, D12). POST records the request and returns the
-// auto-generated owner provisioning commands + .env.local lines. GET lists prior requests. This route
-// provisions NOTHING (no live Vertex call) — it only records intent and prints commands for the owner.
+// Admin-only "request a new Space" intake (Slice 7, D12). POST records intent and returns the fixed
+// server-owned resource preview. It never provisions; provider execution is a separate exact-confirmed
+// route that remains fail-closed behind SPACE_PROVISIONING_ENABLED.
 
 export async function GET() {
   try {
@@ -41,7 +41,11 @@ export async function POST(request: Request) {
       existingDriveFolderIds: config.spaceDriveFolderIds,
     });
 
-    return NextResponse.json({ request: saved, plan });
+    return NextResponse.json({
+      request: saved,
+      plan,
+      executionEnabled: config.spaceProvisioningEnabled,
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

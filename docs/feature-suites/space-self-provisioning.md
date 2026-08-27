@@ -2,7 +2,7 @@
 
 # S36 — Space self-service provisioning
 
-> Status: Provisioning remains closed; current Production already has eleven configured Spaces.
+> Status: Fixed one-Space lifecycle is complete to the official Discovery Engine seam; execution remains closed pending one owner-approved pilot packet.
 
 **Goal.**
 
@@ -10,11 +10,16 @@ Allow a qualified Admin to provision one approved Space without weakening cost, 
 
 **What it is / how it functions.**
 
-A preview must name storage/search resources, service identity, source boundary, cost effect, and deletion/rollback. Provisioning is not ordinary content editing.
+Admin derives exactly one `kb-<space>-txt` Discovery Engine data store in project
+`pmi-kc-kb-prod`, location `us`, and one isolated prefix in the existing production source bucket.
+The runtime identity, eleven predecessor stores, cost controls, exact preview hash, confirmation,
+durable attempt/receipt, provider readback, and isolated retirement are fixed by server code.
 
 **Open questions & assumptions.**
 
-Select the exact provisioning product shape and required GCP resources/IAM/cost policy for a new Space.
+One owner-approved pilot packet must name the saved Space request, the first verified JSONL object in
+the displayed prefix, and the approval evidence reference. The runtime flag stays false until that
+packet is reviewed.
 
 **Cross-product impacts.**
 
@@ -32,9 +37,9 @@ No generic cloud-resource creation UI, personal identity, unbounded spend, or si
 
 **Ordered prompt sequence.**
 
-1. Choose one concrete Space/resource plan.
-2. Build exact preview/confirm/provision/readback/rollback.
-3. Pilot one Space under cost and identity controls.
+1. Supply the exact owner-approved pilot packet.
+2. Review the generated fixed preview and literal confirmation.
+3. Enable one bounded attempt, verify the receipt/readback, then prove isolated retirement.
 
 **Deletion/merge recommendation.**
 

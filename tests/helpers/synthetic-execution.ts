@@ -601,15 +601,42 @@ export function createSyntheticExecutorHarness() {
     },
   };
 
+  let syntheticLoop: {
+    loopRef: string;
+    templateRef: string;
+    participantRefs: readonly string[];
+    active: boolean;
+  } | null = null;
+  let syntheticDocument: {
+    documentRef: string;
+    loopRef: string;
+    documentType: string;
+    contentHash: string;
+    active: boolean;
+  } | null = null;
   const dotloopProvider = {
-    createLoop: async () => {
+    createLoop: async (input: {
+      templateRef: string;
+      participantRefs: readonly string[];
+    }) => {
       called("dotloop.loop_create");
-      return { loopRef: "loop-synthetic-001" };
+      syntheticLoop = { loopRef: "loop-synthetic-001", ...input, active: true };
+      return { loopRef: syntheticLoop.loopRef };
     },
-    uploadDocument: async (input: { documentRef: string }) => {
+    uploadDocument: async (input: {
+      loopRef: string;
+      documentRef: string;
+      documentType: string;
+      contentHash: string;
+    }) => {
       called("dotloop.document_upload");
+      syntheticDocument = { ...input, active: true };
       return { documentRef: input.documentRef };
     },
+    readLoop: async (loopRef: string) =>
+      syntheticLoop?.loopRef === loopRef ? syntheticLoop : null,
+    readDocument: async (documentRef: string) =>
+      syntheticDocument?.documentRef === documentRef ? syntheticDocument : null,
     reconcile: async () => null,
   };
 

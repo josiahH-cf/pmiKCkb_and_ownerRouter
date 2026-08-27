@@ -112,12 +112,14 @@ describe("buildAnticipatedWork", () => {
     // Counts do not fork from the planners.
     expect(tenant?.count).toBe(plan.reminders.length);
     expect(owner?.count).toBe(callPlan.tasks.length);
-    // Concrete reconciliation with `npm run notices:reminders -- --date=2026-07-14 --json`.
-    expect(tenant?.count).toBe(2);
-    expect(owner?.count).toBe(0);
     expect(renewals?.count).toBe(getRenewalDeskView().cohort.summary.actionable);
-    expect(renewals?.count).toBe(3);
-    // Urgency inherits the planner state: two notices due soon, none overdue.
-    expect(tenant?.urgency).toBe("due-soon");
+    // Urgency is derived from the same planner result instead of freezing a retired sample count.
+    expect(tenant?.urgency).toBe(
+      plan.summary.notice_overdue + plan.summary.follow_up_due > 0
+        ? "overdue"
+        : plan.summary.notice_due_soon > 0
+          ? "due-soon"
+          : "all-clear",
+    );
   });
 });

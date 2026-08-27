@@ -32,6 +32,7 @@ export type NoticeReminderKind = Extract<
 >;
 
 const ACTIONABLE: Record<NoticeStatusCode, NoticeReminderKind | null> = {
+  policy_unset: null,
   disabled: null,
   no_lease_end: null,
   notice_scheduled: null,

@@ -82,6 +82,17 @@ export const WORKFLOW_COMMUNICATION_STATUSES = [
 export type WorkflowCommunicationStatus =
   (typeof WORKFLOW_COMMUNICATION_STATUSES)[number];
 
+export const WORKFLOW_COMMUNICATION_WAITING_ON = [
+  "team",
+  "owner",
+  "resident",
+  "vendor",
+  "outside",
+  "none",
+] as const;
+export type WorkflowCommunicationWaitingOn =
+  (typeof WORKFLOW_COMMUNICATION_WAITING_ON)[number];
+
 /** Bodyless, client-safe projection. It intentionally contains no mailbox address or message text. */
 export interface WorkflowCommunicationLink extends CommunicationsRetentionFields {
   id: string;
@@ -104,6 +115,11 @@ export interface WorkflowCommunicationLink extends CommunicationsRetentionFields
   last_message_id?: string;
   attention_at_ms?: number;
   read_at_ms?: number;
+  /** Derived only from the newest provider-backed Gmail message, never from model output. */
+  waiting_on?: WorkflowCommunicationWaitingOn;
+  last_contact_at_ms?: number;
+  last_contact_source?: "gmail_thread";
+  last_contact_message_id?: string;
   created_at_ms: number;
   updated_at_ms: number;
   expires_at_ms: number | null;

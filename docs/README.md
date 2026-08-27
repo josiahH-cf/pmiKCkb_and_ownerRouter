@@ -76,6 +76,7 @@ tests, current facts, and Git history are their evidence.
 - `docs/pmi-meeting-reconciliation-2026-08-26.md`
 - `docs/pmi-kc-meeting-readiness-human-litmus-2026-08-26.md`
 - `docs/evidence/current-rent-bodyless-diagnostic-2026-08-26.md`
+- `docs/evidence/four-lease-proof-readiness-2026-08-27.md`
 
 ## Current evidence and templates
 
