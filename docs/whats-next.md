@@ -2,12 +2,12 @@
 
 Updated: 2026-08-27.
 
-## Release work already in progress
+## Internal closure artifacts
 
-The dependency-independent product implementation is complete in the current ship candidate. The
-remaining internal sequence is verification, commit/push/CI, zero-traffic deployment and promotion,
-version-aware rollback rehearsal, eight real owner litmus verdicts, and the final editable readout
-deck. These are release evidence requirements, not client product decisions.
+The dependency-independent product implementation, verification, commit/push/CI, zero-traffic
+deployment, promotion, and version-aware rollback/restoration rehearsal are complete. The only
+remaining internal closure artifacts are eight real owner litmus verdicts and the final editable,
+visually inspected readout deck. They are acceptance evidence, not client product decisions.
 
 ## Client, owner, and provider inputs
 

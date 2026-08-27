@@ -8,18 +8,19 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, 100% traffic
-- Serving commit: `13569183da57c419ac0da279dde5a6d6a0b0da14`
+- Serving revision: `pmi-kc-app-rmtbh280n-61b78ef991cc`, 100% traffic
+- Serving commit: `6aea639728efcad70e3e601e7a031c2b35722e08`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-The current closure slice is still a local ship candidate. Production keeps the preceding code until
-the full gate, commit, CI, zero-traffic candidate smoke, and exact promotion complete.
+The closure slice is deployed. The canonical local gate passed in 1,361.192 seconds, aggregate CI
+run `33069769758` is green, the zero-traffic candidate passed exact identity smoke, and the promoted
+revision was read back at 100% traffic.
 
-## Verified product state in the ship candidate
+## Verified product state in production
 
 - Admin can save a distinct rehearsal-Sheet URL/id without a deployment. Saving never reads Sheet
   contents or starts the one-cell proof; the proof also resolves the saved id.
@@ -47,18 +48,17 @@ the full gate, commit, CI, zero-traffic candidate smoke, and exact promotion com
   the client walkthrough. No report remains `new`; every transition used the audited Admin path.
 - Gmail watch Scheduler: absent. The expired watch's sole Pub/Sub subscription and topic were deleted
   and read back absent on 2026-08-27.
-- Rollback rehearsal attempt: predecessor traffic and behavioral checks passed, but that old revision
-  lacked `/api/version`; traffic was immediately restored to the captured current revision and exact
-  restoration smokes passed. A complete rehearsal will use the version-aware current revision as the
-  predecessor after this slice deploys.
+- Rollback rehearsal: 100% traffic moved to predecessor
+  `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, exact identity and bounded routes passed, traffic returned to
+  `pmi-kc-app-rmtbh280n-61b78ef991cc`, and the exact stable smoke passed again.
 
 ## Remaining blockers
 
-All remaining product blockers are external inputs: client process/rent/comp/timing/wording decisions,
-the distinct rehearsal copy, the designated RentVine test record, the move-out walkthrough, and exact
-provider contracts/credentials/mappings. The only unfinished release operations are the current
-slice's full gate, deployment/CI, version-aware rollback rehearsal, and real owner verdicts in the
-eight-row human litmus.
+All remaining capability blockers are external inputs: client process/rent/comp/timing/wording
+decisions, the distinct rehearsal copy, the designated RentVine test record, the move-out walkthrough,
+and exact provider contracts/credentials/mappings. Internal release engineering is complete. Final
+goal closure still requires eight real owner verdicts and the editable, visually inspected customer
+readout deck.
 
 ## Locked safety
 

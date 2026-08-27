@@ -2,7 +2,7 @@
 
 # S37 — Governed no-code page and layout builder
 
-> Status: Bounded read-only operational-process builder is complete in the current ship candidate.
+> Status: Bounded read-only operational-process builder is complete and deployed.
 
 **Goal.**
 
@@ -41,5 +41,5 @@ No arbitrary HTML/JS/CSS, code execution, secret fields, unreviewed external emb
 
 **Deletion/merge recommendation.**
 
-Merge the bounded page type into the Admin/Spaces product contract after deployment; retain any
-future broader no-code request as a new suite rather than widening this one.
+Retain this bounded type as the active S37 contract. Any future broader no-code request must be a new
+suite rather than widening this one.

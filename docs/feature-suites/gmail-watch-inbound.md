@@ -2,7 +2,7 @@
 
 # S31 — Gmail watch continuity and follow-up
 
-> Status: Continuous watch is retired; manual refresh and source-backed follow-up state are complete in the current ship candidate.
+> Status: Continuous watch is retired; manual refresh and source-backed follow-up state are complete and deployed.
 
 **Goal.**
 
@@ -41,4 +41,5 @@ No autonomous reply/send, mailbox-wide content capture, or claim that an un-stop
 
 **Deletion/merge recommendation.**
 
-Merge into the Workflow Communications operating contract after this ship candidate is deployed.
+Retain this file as the active source-specific operating contract until the next deliberate suite
+consolidation.

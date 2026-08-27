@@ -15,22 +15,23 @@ the editable customer deck without a RentVine/operating-Sheet/client-send effect
   S37 page builder, and provider lifecycle seams implemented.
 - Gmail Pub/Sub subscription/topic deleted after exact dependency readback; both now absent.
 - Production-only dependency audit is zero and patched behaviors pass.
-- Focused suites and typecheck pass; format/lint pass with pre-existing warnings only.
-- First rollback attempt safely restored current traffic after the old predecessor lacked
-  `/api/version`; repeat after deploy against the version-aware predecessor.
-- Production still serves `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` / commit `13569183...`.
+- Canonical local verification passed in 1,361.192 seconds; aggregate CI run `33069769758` is green.
+- Production serves `pmi-kc-app-rmtbh280n-61b78ef991cc` / commit
+  `6aea639728efcad70e3e601e7a031c2b35722e08` at 100% traffic.
+- Version-aware rollback to `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, exact smoke, forward restoration,
+  and final exact smoke all passed.
 
 ## Next exact action
 
-Finish present-truth docs, run `bash scripts/verify.sh`, review the diff and action gates, then commit,
-push, wait for CI, and deploy through a zero-traffic candidate.
+Finish present-truth docs, author and visually inspect the editable 8–10 slide customer deck through
+the native presentation capability, then ask the owner for the eight real human-litmus verdicts.
 
-## After promotion
+## Remaining internal closure
 
-1. Prove rollback to the captured version-aware predecessor and restoration.
-2. Update revision/commit/test evidence in facts, status, router, and completion audit.
+1. Reconcile revision/commit/test evidence in facts, status, router, and completion audit.
+2. Use @presentations to author, export, and visually inspect the final 8–10 slide deck.
 3. Ask the owner to perform all eight human-litmus rows; never fill their verdicts by inference.
-4. Use @presentations to author, export, and visually inspect the final 8–10 slide deck.
+4. Repair any human FAIL and rerun the applicable gates before final closure.
 
 ## External inputs that remain safe to wait on
 

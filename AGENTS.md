@@ -19,12 +19,15 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-08-26
+## Present production truth — 2026-08-27
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, 100% traffic.
-- Deployed code: `13569183da57c419ac0da279dde5a6d6a0b0da14`.
+- Serving revision: `pmi-kc-app-rmtbh280n-61b78ef991cc`, 100% traffic.
+- Deployed code: `6aea639728efcad70e3e601e7a031c2b35722e08`.
+- The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
+  `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
+  current revision, and passed the same smoke again.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -88,7 +91,7 @@ Every cloud mutation must be read back. Record verified non-secret outcomes in `
 
 Production activation is per exact Action Registry key. Never infer a category grant.
 
-Open keys as of 2026-08-26:
+Open keys as of 2026-08-27:
 
 - `gmail.mailbox.read`
 - `gmail.thread.reply`
@@ -118,9 +121,9 @@ Prepare and surface, but do not push without explicit owner direction:
 - `scripts/check-budget-guard.mjs`
 - `infra/budget-guardrail/**`
 
-This user-directed 2026-08-26 documentation reconciliation explicitly authorizes present-truth edits
-to this router and `docs/facts.md`. It does not authorize a new action key, identity, safety
-exception, cost change, or client effect.
+The owner-directed closure and documentation reconciliation authorize present-truth edits to this
+router and `docs/facts.md`. They do not authorize a new action key, identity, safety exception, cost
+change, or client effect.
 
 ## Cost and cloud controls
 

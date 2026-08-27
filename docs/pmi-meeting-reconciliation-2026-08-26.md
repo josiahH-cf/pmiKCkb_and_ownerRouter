@@ -2,8 +2,9 @@
 
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
-[`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version); the final commit and revision
-for this ship candidate will be recorded here only after candidate smoke, promotion, and readback.
+[`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
+`6aea639728efcad70e3e601e7a031c2b35722e08` as revision
+`pmi-kc-app-rmtbh280n-61b78ef991cc` at 100% traffic.
 
 Client handoffs:
 
@@ -18,12 +19,12 @@ Client handoffs:
 
 ## Direct outcome
 
-All dependency-independent product work in I01–I11 is implemented to its allowed boundary. The
-remaining work before final closure is release evidence and eight real owner verdicts. External
-activations still wait on named client, owner, source-data, credential, or official-provider inputs;
-none is disguised as internal engineering work.
+All dependency-independent product work in I01–I11 is implemented, verified, deployed, and
+rollback-proven to its allowed boundary. Final goal closure still needs the editable customer deck
+and eight real owner verdicts. External activations wait on named client, owner, source-data,
+credential, or official-provider inputs; none is disguised as internal engineering work.
 
-The ship candidate now includes:
+The deployed release includes:
 
 1. verified managed-user reporter identity in Admin and truthful audited support status;
 2. accurate RentVine renewal-write metadata while its production action remains closed;
@@ -126,15 +127,22 @@ guessed. Per-person approval authority remains unimplemented and unauthorized.
 | Owner                 | S36 saved request id, first verified JSONL object in its exact prefix, approval evidence ref                                         | Fixed official one-Space lifecycle with 11-Space protection and isolated rollback              | Review one bounded pilot packet.                                              |
 | Client/provider       | S66 catalog + Dotloop OAuth/mappings; one LeadSimple account action/credential/mappings; official RentVine resident-channel contract | Closed exact-lifecycle adapters                                                                | Configure and prove one official action at a time.                            |
 
-## Verification and release contract
+## Verification and release evidence
 
-Focused adversarial suites for every new seam are green. The final handoff still requires the full
-canonical local gate, clean diff/security review, commit and push, aggregate CI, zero-traffic
-candidate smoke, exact-revision promotion, 100% traffic readback, version-aware rollback and restore,
-and eight real dated owner verdicts. Until those steps are recorded, this document calls the build a
-ship candidate rather than a deployed release.
+The complete canonical local gate passed in 1,361.192 seconds: 523 unit files passed and one skipped,
+4,678 unit tests passed and four skipped, all 115 Firestore tests passed, the dependency audit was
+zero, every policy/static gate passed, and the production build emitted 104 routes. Commit
+`6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate
+[GitHub Actions run 33069769758](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33069769758)
+passed.
+
+Zero-traffic candidate `pmi-kc-app-rmtbh280n-61b78ef991cc` passed exact commit/revision and bounded
+route smoke before promotion. After 100% traffic readback, the rollback rehearsal moved traffic to
+version-aware predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed root, sign-in, Admin, and exact
+version smoke, restored the new revision, and passed the same smoke again. No client-data or provider
+effect occurred.
 
 The unit runner preserves the full 524-file inventory while using a bounded eight-worker thread pool
-in a native Linux shadow. The 2026-08-27 proof completed Vitest in 49.80 seconds and the full cached
-`npm test` command in 65.30 seconds; a native dependency-cache rebuild added 28 seconds. The retired
-roughly 40–48-minute behavior is not the current performance claim.
+in a native Linux shadow. The final canonical run completed Vitest in 43.39 seconds; a complete cached
+`npm test` proof measured 65.30 seconds. The retired roughly 40–48-minute behavior is no longer the
+current performance claim.

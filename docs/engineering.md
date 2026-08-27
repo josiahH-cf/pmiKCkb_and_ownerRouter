@@ -44,10 +44,9 @@ Updated: 2026-08-27.
 - On WSL Windows mounts, the unit runner uses a disposable native Linux Git worktree, eight or fewer
   thread workers, native temp files, and a lockfile/Node-ABI-keyed dependency cache. Ignored env,
   client, scratch, secret, output, and runner-local files are never mirrored.
-- The supported WSL full-unit lane has a ten-minute hard performance budget. The 2026-08-27
-  524-file proof measured 49.80 seconds inside Vitest and 65.30 seconds for the complete cached
-  `npm test` command. A native dependency-cache rebuild observed in the canonical run added 28
-  seconds; the clean repository install is a separate gate.
+- The supported WSL full-unit lane has a ten-minute hard performance budget. The final 2026-08-27
+  canonical run measured 43.39 seconds inside Vitest for all 524 files; a complete cached `npm test`
+  proof measured 65.30 seconds. Clean repository installation is a separate gate.
 - Firestore Rules tests cover access boundaries.
 - Architecture sentinels constrain imports, routes, secrets, gates, and provider construction.
 - E2E is bounded and must terminate on setup failure.

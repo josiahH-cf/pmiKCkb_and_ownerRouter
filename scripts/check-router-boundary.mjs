@@ -149,10 +149,13 @@ assertIncludes("docs/README.md", [
 
 assertIncludes("docs/environment-handoff.md", [
   "Production + Live",
+  "pmi-kc-app-rmtbh280n-61b78ef991cc",
+  "6aea639728efcad70e3e601e7a031c2b35722e08",
   "pmi-kc-app-rmtafuqbg-4e2e4ffe0f48",
   "Sheet write-back",
   "Current rollback",
-  "captured this command but did not execute",
+  "The 2026-08-27 rehearsal switched the predecessor to 100%",
+  "Forward restoration",
 ]);
 
 assertIncludes("docs/autonomous-agent-runner.md", [

@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback: 2026-08-26.
+Updated from live readback: 2026-08-27.
 
 ## Production
 
@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-26.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`            |
-| Serving commit    | `13569183da57c419ac0da279dde5a6d6a0b0da14`     |
+| Serving revision  | `pmi-kc-app-rmtbh280n-61b78ef991cc`            |
+| Serving commit    | `6aea639728efcad70e3e601e7a031c2b35722e08`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -62,16 +62,28 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmt99ltia-9119a24bf706`.
+Captured predecessor: `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` from commit
+`13569183da57c419ac0da279dde5a6d6a0b0da14`.
 
 ```bash
-gcloud run services update-traffic pmi-kc-app \
+CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
+  gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmt99ltia-9119a24bf706=100 --quiet
+  --to-revisions=pmi-kc-app-rmtafuqbg-4e2e4ffe0f48=100 --quiet
 ```
 
-After any rollback, read traffic back, run stable smoke, and preserve the forward-restoration command.
-The 2026-08-26 release captured this command but did not execute the traffic switch.
+Forward restoration:
+
+```bash
+CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
+  gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmtbh280n-61b78ef991cc=100 --quiet
+```
+
+The 2026-08-27 rehearsal switched the predecessor to 100% at `12:09:58Z`, read it back, and passed
+root, sign-in, Admin, and exact version smoke. It restored the new revision at `12:10:21Z`, read it
+back at 100%, and passed the same smoke again. No client-data or provider effect occurred.
 
 ## Configuration invariants
 

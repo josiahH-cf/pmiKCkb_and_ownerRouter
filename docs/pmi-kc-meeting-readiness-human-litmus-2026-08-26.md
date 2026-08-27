@@ -1,6 +1,6 @@
 # PMI KC meeting-readiness human litmus — 2026-08-26
 
-This is the consolidated human-verification checklist, reconciled to the 2026-08-27 ship candidate.
+This is the consolidated human-verification checklist, reconciled to the deployed 2026-08-27 release.
 Model verdicts are evidence only. Human verdicts intentionally remain blank until the owner performs
 the checks; each must include a real date and short observation. Never infer a human PASS.
 
@@ -73,8 +73,9 @@ commit and Cloud Run revision without exposing configuration or secrets.
 
 - Model verdict: PASS - Directory filtering hides the compatibility-only Space, `/api/version`
   returns only commit/revision/service/environment with `no-store`, and the release smoke refuses a
-  candidate unless both its commit and revision match exactly. The final production commit/revision
-  will be recorded after promotion.
+  candidate unless both its commit and revision match exactly. Production now reports commit
+  `6aea639728efcad70e3e601e7a031c2b35722e08` and revision
+  `pmi-kc-app-rmtbh280n-61b78ef991cc`.
 - Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Client action center and meeting agenda

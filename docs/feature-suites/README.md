@@ -11,7 +11,7 @@ unauthorized proposal. Completed and superseded suite narratives were removed fr
 | S34   | `docs/feature-suites/dotloop-esign-activation.md`                  | Internal lifecycle complete; OAuth/catalog/exact provider mappings required         |
 | S35   | `docs/feature-suites/leadsimple-activation.md`                     | Internal lifecycle complete; selected account contract and credential required      |
 | S36   | `docs/feature-suites/space-self-provisioning.md`                   | Fixed lifecycle complete; one owner-approved pilot packet required                  |
-| S37   | `docs/feature-suites/nocode-page-builder.md`                       | Bounded operational-process builder complete in ship candidate                      |
+| S37   | `docs/feature-suites/nocode-page-builder.md`                       | Bounded operational-process builder complete and deployed                           |
 | S47   | `docs/feature-suites/resident-maintenance-intake.md`               | App intake usable; internal channel lifecycle complete; official contract required  |
 | S51   | `docs/feature-suites/production-operational-readiness.md`          | Current production operating contract                                               |
 | S52   | `docs/feature-suites/production-cost-governance.md`                | Complete and live-verified                                                          |

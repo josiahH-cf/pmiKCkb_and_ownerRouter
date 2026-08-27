@@ -248,10 +248,10 @@
           activations.
         </h1>
         <p>
-          PMI KC’s dependency-independent work is implemented in the current ship
-          candidate. Operating RentVine records, the operating renewal Sheet, and
-          client-facing messages remain untouched. Release evidence and the owner’s eight
-          human verdicts are still being completed.
+          PMI KC’s dependency-independent work is implemented, deployed, and
+          rollback-proven. Operating RentVine records, the operating renewal Sheet, and
+          client-facing messages remain untouched. The editable readout and the owner’s
+          eight human verdicts are the only internal closure artifacts still open.
         </p>
         <div class="badges">
           <span class="badge">Production stays Live-only</span>
@@ -268,9 +268,9 @@
             <strong>No dependency-independent product blocker remains.</strong>
             <p>
               Each coupled capability now reaches one exact client, owner, credential,
-              contract, or source-data seam. The remaining internal work is release proof:
-              full gate, CI, deploy, version-aware rollback rehearsal, and real owner
-              litmus verdicts.
+              contract, or source-data seam. Local verification, CI, deployment, and
+              version-aware rollback/restoration are complete. The remaining internal work
+              is the editable readout and real owner litmus verdicts.
             </p>
           </div>
           <div class="grid">
@@ -394,15 +394,14 @@
                 </tr>
                 <tr>
                   <td>I10 · Rollback rehearsal</td>
-                  <td><span class="pill pending">Repeat after deploy</span></td>
+                  <td><span class="pill complete">Complete</span></td>
                   <td>
-                    Old predecessor behavior passed; missing version route triggered
-                    immediate abort and exact restoration as designed.
+                    Traffic moved to version-aware predecessor
+                    <code>pmi-kc-app-rmtafuqbg-4e2e4ffe0f48</code>, exact identity and
+                    bounded routes passed, the new revision was restored, and the same
+                    smoke passed again.
                   </td>
-                  <td>
-                    Use the version-aware current revision as predecessor after this
-                    deployment.
-                  </td>
+                  <td>None.</td>
                 </tr>
                 <tr>
                   <td>I11 · Dependencies</td>
@@ -528,31 +527,21 @@
         </section>
 
         <section id="internal-blockers">
-          <h2>Internal release evidence still in progress</h2>
+          <h2>Remaining internal closure artifacts</h2>
           <ol>
             <li>
-              Run the complete local gate, including the preserved 524-file unit
-              inventory, Firestore, policy/static gates, audit, and production build.
+              Create, export, and visually inspect the editable 8–10 slide customer
+              readout through the native presentation authoring capability.
             </li>
             <li>
-              Commit and push the green tree, then wait for the aggregate CI result.
-            </li>
-            <li>
-              Deploy a zero-traffic exact-commit candidate, smoke, promote, and read back
-              100% traffic.
-            </li>
-            <li>
-              Rollback to the version-aware predecessor, smoke, restore the new revision,
-              and smoke again.
-            </li>
-            <li>
-              Record eight real owner verdicts and deliver the visually inspected editable
-              presentation.
+              Have the owner perform and date all eight human-litmus rows; repair any FAIL
+              and rerun the affected checks.
             </li>
           </ol>
           <p>
-            This section must be empty or marked complete before the closure goal is
-            declared finished.
+            Release engineering is complete: the canonical gate, aggregate CI, exact
+            candidate smoke, promotion, and rollback/restoration rehearsal all passed. The
+            closure goal stays open until both artifacts above are complete.
           </p>
         </section>
 

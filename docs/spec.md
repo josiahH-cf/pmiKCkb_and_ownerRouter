@@ -49,8 +49,10 @@ closed.
 
 ## Current acceptance
 
-The production release at commit `1356918` passed 4,948 unit tests, 115 Firestore tests, bounded
-core E2E, all static/policy gates, a 99-page build, and exact candidate/stable smoke.
+The production release at commit `6aea639728efcad70e3e601e7a031c2b35722e08` passed 4,678 unit
+tests with four intentional skips across the complete 524-file inventory, all 115 Firestore tests,
+all static/policy gates, a 104-route production build, exact candidate/stable smoke, aggregate CI,
+and version-aware rollback/restoration smoke.
 
 ## Current unfinished work
 

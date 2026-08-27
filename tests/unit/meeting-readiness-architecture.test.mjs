@@ -52,6 +52,10 @@ describe("2026-08-26 meeting-readiness architecture outcome", () => {
     expect(audit).toContain('id="internal-blockers"');
     expect(audit).toContain("No dependency-independent product blocker remains.");
     expect(audit).toContain("I11 · Dependencies");
+    expect(audit).toContain("Remaining internal closure artifacts");
+    expect(audit).toContain("pmi-kc-app-rmtafuqbg-4e2e4ffe0f48");
+    expect(audit).not.toContain("Repeat after deploy");
+    expect(audit).not.toContain("Internal release evidence still in progress");
   });
 
   it("opens only the approved RentCast read key and keeps RentVine writeback closed", () => {
