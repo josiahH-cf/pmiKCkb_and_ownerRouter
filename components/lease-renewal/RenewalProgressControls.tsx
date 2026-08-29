@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-input";
+import type { MarketCompQueryBasis } from "@/lib/lease-renewal/market-comp-query-basis";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
 // Phase-A LIVE workspace controls that make the renewal flow move. They persist the operator's own
@@ -42,11 +43,23 @@ interface CompLookup {
     rent: number;
     correlation?: number;
     distanceMiles?: number;
+    propertyType?: string;
     bedrooms?: number;
     bathrooms?: number;
+    squareFootage?: number;
+    listedDate?: string;
+    lastSeenDate?: string;
+    daysOld?: number;
     daysOnMarket?: number;
   }[];
+  subjectProperty?: {
+    propertyType?: string;
+    bedrooms?: number;
+    bathrooms?: number;
+    squareFootage?: number;
+  };
   source: string;
+  sourceUrl?: string;
   retrievedAt?: string;
   confidence: "Likely" | "Needs Verification";
   /** S59: the legible refusal cause; each renders as a distinct message (AC-S59-8). */
@@ -54,6 +67,7 @@ interface CompLookup {
   /** S59: the operator-visible remaining-calls figure on the RentCast path. */
   quota?: { used: number; allowance: number; remaining: number; warn: boolean };
   cached?: boolean;
+  queryBasis?: MarketCompQueryBasis;
 }
 
 /** S60: the /markets trend lookup result the composer persists with the provider basis. */
@@ -84,6 +98,26 @@ const COMP_REFUSAL_COPY: Record<string, string> = {
     "The monthly comp-lookup allowance is used up, so no live lookup ran. Enter your own comp numbers.",
   provider_not_live:
     "Live comp lookups are not turned on for this environment. Enter your own comp numbers.",
+  invalid_currency_format:
+    "One of the typed comp values is not valid money. Correct it before looking up comps.",
+  rentvine_not_configured:
+    "RentVine is not connected, so the app cannot verify this lease before looking up comps.",
+  rentvine_account_mismatch:
+    "The configured RentVine account does not match the approved production account, so no lookup ran.",
+  rentvine_read_failed:
+    "The current RentVine lease read failed, so no live comp lookup ran. Try again after the connection recovers.",
+  lease_data_expired:
+    "The lease data is stale. Refresh the Renewals desk before looking up comps.",
+  lease_read_incomplete:
+    "The current RentVine read is incomplete, so this lease cannot be verified for a comp lookup.",
+  lease_not_found:
+    "This lease is not present in the current complete RentVine read, so no lookup ran.",
+  lease_ambiguous:
+    "More than one current RentVine row matched this lease, so no lookup ran.",
+  action_not_production_allowed:
+    "The RentCast read action is closed, so no live comp lookup ran.",
+  action_runtime_suspended:
+    "Live RentCast reads are temporarily suspended, so no comp lookup ran.",
 };
 
 interface ScreenshotReceipt {
@@ -159,16 +193,13 @@ export function OwnerDecisionForm({
   leaseId,
   current,
   address,
-  compAttributes,
   currentRent,
   compScreenshotExecutable = false,
 }: Readonly<{
   leaseId: string;
   current: RecordedDecision | null;
-  /** The in-boundary property address, used only for the reference-only comp lookup (never PII/rent). */
+  /** Server-rendered address used only to suppress an obviously empty lookup; it is never submitted. */
   address?: string;
-  /** S59: the lease's known unit attributes, passed through so the estimate fits the unit (AC-S59-7). */
-  compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
   /** S60: the authoritative current rent (RentVine), for the INTERNAL under-market signal only. */
   currentRent?: number;
   /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
@@ -245,7 +276,8 @@ export function OwnerDecisionForm({
   // operator's own numbers; the RentCast path is separately gate-controlled) and DISPLAYS the range. It never
   // sets the offered rent — the comp-derived SUGGESTED number is the separate Admin-gated S29.
   // S59: a lease with no address refuses LOCALLY and makes no request at all — the literal string
-  // "Unknown" is never sent (AC-S59-6) — and the known unit attributes ride along (AC-S59-7).
+  // "Unknown" is never sent. Otherwise the browser nominates only the lease identity; the server
+  // re-resolves every address/unit fact and decides whether a trend read has a usable postal code.
   async function lookupComps() {
     const trimmedAddress = (address ?? "").trim();
     if (trimmedAddress === "") {
@@ -257,6 +289,7 @@ export function OwnerDecisionForm({
       return;
     }
     setLookupPending(true);
+    setTrendLookup(null);
     try {
       const manualBasis: Record<string, number> = {};
       const low = parseOptionalCurrencyInput(rangeLow);
@@ -277,28 +310,30 @@ export function OwnerDecisionForm({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          address: trimmedAddress,
-          ...(compAttributes?.bedrooms !== undefined
-            ? { bedrooms: compAttributes.bedrooms }
-            : {}),
-          ...(compAttributes?.bathrooms !== undefined
-            ? { bathrooms: compAttributes.bathrooms }
-            : {}),
+          leaseId,
           ...(Object.keys(manualBasis).length > 0 ? { manualBasis } : {}),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as CompLookup & {
         error?: string;
+        error_type?: string;
       };
-      setCompLookup(response.ok ? payload : null);
+      setCompLookup(
+        response.ok
+          ? payload
+          : {
+              source: "Market comp service",
+              confidence: "Needs Verification",
+              reason: payload.error_type ?? "http_error",
+            },
+      );
       // S60: one deliberate follow-on trend call (separately billed and metered) when the lease's
       // zip is known and the comps lookup itself came back live. The decided presentation renders
       // it inline in the owner draft with a source link.
       if (
         response.ok &&
         payload.confidence === "Likely" &&
-        payload.source === "RentCast" &&
-        compAttributes?.postalCode
+        payload.source === "RentCast"
       ) {
         try {
           const trendResponse = await fetch("/api/lease-renewal/market-comps", {
@@ -306,7 +341,7 @@ export function OwnerDecisionForm({
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
               operation: "trend",
-              zipCode: compAttributes.postalCode,
+              leaseId,
             }),
           });
           const trendPayload = (await trendResponse
@@ -318,7 +353,11 @@ export function OwnerDecisionForm({
         }
       }
     } catch {
-      setCompLookup(null);
+      setCompLookup({
+        source: "Market comp service",
+        confidence: "Needs Verification",
+        reason: "network_error",
+      });
     } finally {
       setLookupPending(false);
     }
@@ -815,18 +854,31 @@ export function OwnerDecisionForm({
         pointEstimate: compLookup.pointEstimate,
         compCount: compLookup.compCount,
         retrievedAt: compLookup.retrievedAt,
-        ...(compAttributes?.bedrooms !== undefined ||
-        compAttributes?.bathrooms !== undefined
+        ...(compLookup.queryBasis
+          ? {
+              radiusMiles: compLookup.queryBasis.policy.maxRadiusMiles,
+              requestedCompCount: compLookup.queryBasis.policy.requestedCompCount,
+              lookupSubjectAttributes:
+                compLookup.queryBasis.policy.lookupSubjectAttributes,
+              providerVersion: compLookup.queryBasis.policy.providerVersion,
+              cacheState: compLookup.cached ? "cache" : "live",
+              omittedAttributes: compLookup.queryBasis.attributes
+                .filter((attribute) => attribute.status === "omitted")
+                .map((attribute) => ({
+                  field: attribute.field,
+                  reason: attribute.reason,
+                })),
+            }
+          : {}),
+        ...(compLookup.queryBasis && Object.keys(compLookup.queryBasis.query).length > 0
           ? {
               unitFilters: {
-                ...(compAttributes?.bedrooms !== undefined
-                  ? { bedrooms: compAttributes.bedrooms }
-                  : {}),
-                ...(compAttributes?.bathrooms !== undefined
-                  ? { bathrooms: compAttributes.bathrooms }
-                  : {}),
+                ...compLookup.queryBasis.query,
               },
             }
+          : {}),
+        ...(compLookup.subjectProperty
+          ? { subjectProperty: compLookup.subjectProperty }
           : {}),
         ...(compLookup.comparables && compLookup.comparables.length > 0
           ? { comps: compLookup.comparables.slice(0, 50) }
@@ -1110,6 +1162,110 @@ export function OwnerDecisionForm({
               left this month.
               {compLookup.quota.warn ? " Running low; use them deliberately." : ""}
             </p>
+          ) : null}
+          {compLookup.source === "RentCast" && compLookup.queryBasis ? (
+            <div className="ui-stack-tight">
+              <p className="muted">
+                Query basis: {compLookup.queryBasis.policy.maxRadiusMiles}-mile maximum
+                radius · {compLookup.queryBasis.policy.requestedCompCount} requested comps
+                · RentCast subject-attribute lookup{" "}
+                {compLookup.queryBasis.policy.lookupSubjectAttributes ? "on" : "off"}.
+              </p>
+              <p className="muted">Address sent: {compLookup.queryBasis.addressLabel}</p>
+              <ul className="ui-rows">
+                <li>
+                  Contractual base rent:{" "}
+                  {compLookup.queryBasis.baseRent.status === "verified" ? (
+                    <>
+                      {formatMoney(compLookup.queryBasis.baseRent.value)} (
+                      {compLookup.queryBasis.baseRent.sourcePath})
+                    </>
+                  ) : (
+                    <>omitted: {compLookup.queryBasis.baseRent.reason}</>
+                  )}
+                  . Recurring charges are separate.
+                </li>
+                {compLookup.queryBasis.attributes.map((attribute) => (
+                  <li key={attribute.field}>
+                    {attribute.label}:{" "}
+                    {attribute.status === "sent" ? (
+                      <>
+                        {attribute.value} sent from {attribute.sourcePath}
+                      </>
+                    ) : (
+                      <>omitted: {attribute.reason}</>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="muted">
+                {compLookup.cached ? "Cache hit" : "Fresh provider lookup"}
+                {compLookup.retrievedAt ? (
+                  <> · retrieved {compLookup.retrievedAt}</>
+                ) : null}
+                .
+              </p>
+              {compLookup.sourceUrl ? (
+                <p className="muted">
+                  <a href={compLookup.sourceUrl} rel="noreferrer" target="_blank">
+                    RentCast source
+                  </a>
+                </p>
+              ) : null}
+              {compLookup.subjectProperty ? (
+                <p className="muted">
+                  RentCast-returned subject attributes:
+                  {compLookup.subjectProperty.propertyType ? (
+                    <> {compLookup.subjectProperty.propertyType}</>
+                  ) : null}
+                  {compLookup.subjectProperty.bedrooms !== undefined ? (
+                    <> · {compLookup.subjectProperty.bedrooms} bed</>
+                  ) : null}
+                  {compLookup.subjectProperty.bathrooms !== undefined ? (
+                    <> · {compLookup.subjectProperty.bathrooms} bath</>
+                  ) : null}
+                  {compLookup.subjectProperty.squareFootage !== undefined ? (
+                    <> · {compLookup.subjectProperty.squareFootage} sq ft</>
+                  ) : null}
+                  . These are provider-returned, not relabeled RentVine facts.
+                </p>
+              ) : null}
+              {compLookup.comparables && compLookup.comparables.length > 0 ? (
+                <ol className="ui-rows">
+                  {compLookup.comparables.map((comp, index) => (
+                    <li key={[index, comp.rent, comp.correlation ?? "none"].join("-")}>
+                      Comp {index + 1}: {formatMoney(comp.rent)}
+                      {comp.correlation !== undefined ? (
+                        <> · {Math.round(comp.correlation * 100)}% correlation</>
+                      ) : null}
+                      {comp.distanceMiles !== undefined ? (
+                        <> · {comp.distanceMiles} mi</>
+                      ) : null}
+                      {comp.propertyType ? <> · {comp.propertyType}</> : null}
+                      {comp.bedrooms !== undefined ? <> · {comp.bedrooms} bed</> : null}
+                      {comp.bathrooms !== undefined ? (
+                        <> · {comp.bathrooms} bath</>
+                      ) : null}
+                      {comp.squareFootage !== undefined ? (
+                        <> · {comp.squareFootage} sq ft</>
+                      ) : null}
+                      {comp.daysOld !== undefined ? (
+                        <> · {comp.daysOld} days old</>
+                      ) : null}
+                      {comp.daysOnMarket !== undefined ? (
+                        <> · {comp.daysOnMarket} days on market</>
+                      ) : null}
+                      {comp.listedDate ? <> · listed {comp.listedDate}</> : null}
+                      {comp.lastSeenDate ? <> · last seen {comp.lastSeenDate}</> : null}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+              <p className="muted">
+                Provider order shown. The app applies no hidden freshness or selection
+                filter.
+              </p>
+            </div>
           ) : null}
           <p className="muted">Reference only. Does not set the rent.</p>
         </div>

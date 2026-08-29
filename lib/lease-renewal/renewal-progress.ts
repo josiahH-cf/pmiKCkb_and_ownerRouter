@@ -11,6 +11,7 @@
 // planners inside a transaction; the route maps a thrown EditableLayerError to its HTTP status.
 
 import { EditableLayerError } from "@/lib/firestore/errors";
+import type { MarketCompAttributeField } from "@/lib/lease-renewal/market-comp-query-basis";
 import type { OwnerDecision } from "@/lib/lease-renewal/tenant-draft";
 
 /** Stage indices into RENEWAL_STEPS (data → owner → tenant → build). */
@@ -35,9 +36,21 @@ export interface RenewalMarketProviderComp {
   rent: number;
   correlation?: number;
   distanceMiles?: number;
+  propertyType?: string;
   bedrooms?: number;
   bathrooms?: number;
+  squareFootage?: number;
+  listedDate?: string;
+  lastSeenDate?: string;
+  daysOld?: number;
   daysOnMarket?: number;
+}
+
+export interface RenewalMarketProviderSubject {
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFootage?: number;
 }
 
 /** Month-keyed rental trend distilled from the provider's /markets history (S60). */
@@ -63,12 +76,18 @@ export interface RenewalMarketProviderBasis {
   compCount: number;
   retrievedAt: string;
   radiusMiles?: number;
+  requestedCompCount?: number;
+  lookupSubjectAttributes?: boolean;
+  providerVersion?: string;
+  cacheState?: "live" | "cache";
+  omittedAttributes?: { field: MarketCompAttributeField; reason: string }[];
   unitFilters?: {
     bedrooms?: number;
     bathrooms?: number;
     squareFootage?: number;
     propertyType?: string;
   };
+  subjectProperty?: RenewalMarketProviderSubject;
   comps?: RenewalMarketProviderComp[];
   trend?: RenewalMarketProviderTrend;
 }
@@ -268,6 +287,60 @@ function normalizeProviderBasis(
   if (input.radiusMiles !== undefined) {
     provider.radiusMiles = assertMoney(input.radiusMiles, "Provider radius", true);
   }
+  if (input.requestedCompCount !== undefined) {
+    if (
+      !Number.isInteger(input.requestedCompCount) ||
+      input.requestedCompCount < 1 ||
+      input.requestedCompCount > 100
+    ) {
+      throw new EditableLayerError(
+        "Provider requested comp count must be an integer from 1 to 100.",
+        400,
+      );
+    }
+    provider.requestedCompCount = input.requestedCompCount;
+  }
+  if (input.lookupSubjectAttributes !== undefined) {
+    if (typeof input.lookupSubjectAttributes !== "boolean") {
+      throw new EditableLayerError(
+        "Provider subject-attribute lookup must be true or false.",
+        400,
+      );
+    }
+    provider.lookupSubjectAttributes = input.lookupSubjectAttributes;
+  }
+  if (input.providerVersion !== undefined) {
+    const providerVersion =
+      typeof input.providerVersion === "string" ? input.providerVersion.trim() : "";
+    if (providerVersion === "") {
+      throw new EditableLayerError("Provider version cannot be blank.", 400);
+    }
+    provider.providerVersion = providerVersion;
+  }
+  if (input.cacheState !== undefined) {
+    if (input.cacheState !== "live" && input.cacheState !== "cache") {
+      throw new EditableLayerError("Provider cache state is invalid.", 400);
+    }
+    provider.cacheState = input.cacheState;
+  }
+  if (input.omittedAttributes !== undefined) {
+    const allowed = new Set<MarketCompAttributeField>([
+      "bedrooms",
+      "bathrooms",
+      "squareFootage",
+      "propertyType",
+    ]);
+    provider.omittedAttributes = input.omittedAttributes.map((omission) => {
+      const reason = typeof omission.reason === "string" ? omission.reason.trim() : "";
+      if (!allowed.has(omission.field) || reason === "") {
+        throw new EditableLayerError(
+          "Every omitted provider attribute needs a known field and reason.",
+          400,
+        );
+      }
+      return { field: omission.field, reason };
+    });
+  }
   if (input.unitFilters) {
     const filters: NonNullable<RenewalMarketProviderBasis["unitFilters"]> = {};
     if (input.unitFilters.bedrooms !== undefined) {
@@ -290,6 +363,37 @@ function normalizeProviderBasis(
       filters.propertyType = input.unitFilters.propertyType.trim();
     }
     if (Object.keys(filters).length > 0) provider.unitFilters = filters;
+  }
+  if (input.subjectProperty) {
+    const subject: RenewalMarketProviderSubject = {};
+    if (
+      typeof input.subjectProperty.propertyType === "string" &&
+      input.subjectProperty.propertyType.trim() !== ""
+    ) {
+      subject.propertyType = input.subjectProperty.propertyType.trim();
+    }
+    if (input.subjectProperty.bedrooms !== undefined) {
+      subject.bedrooms = assertMoney(
+        input.subjectProperty.bedrooms,
+        "Provider subject bedrooms",
+        true,
+      );
+    }
+    if (input.subjectProperty.bathrooms !== undefined) {
+      subject.bathrooms = assertMoney(
+        input.subjectProperty.bathrooms,
+        "Provider subject bathrooms",
+        true,
+      );
+    }
+    if (input.subjectProperty.squareFootage !== undefined) {
+      subject.squareFootage = assertMoney(
+        input.subjectProperty.squareFootage,
+        "Provider subject square footage",
+        false,
+      );
+    }
+    if (Object.keys(subject).length > 0) provider.subjectProperty = subject;
   }
   if (input.comps !== undefined) {
     if (!Array.isArray(input.comps)) {
@@ -315,11 +419,40 @@ function normalizeProviderBasis(
       if (comp.distanceMiles !== undefined) {
         normalized.distanceMiles = assertMoney(comp.distanceMiles, "Comp distance", true);
       }
+      if (typeof comp.propertyType === "string" && comp.propertyType.trim() !== "") {
+        normalized.propertyType = comp.propertyType.trim();
+      }
       if (comp.bedrooms !== undefined) {
         normalized.bedrooms = assertMoney(comp.bedrooms, "Comp bedrooms", true);
       }
       if (comp.bathrooms !== undefined) {
         normalized.bathrooms = assertMoney(comp.bathrooms, "Comp bathrooms", true);
+      }
+      if (comp.squareFootage !== undefined) {
+        normalized.squareFootage = assertMoney(
+          comp.squareFootage,
+          "Comp square footage",
+          false,
+        );
+      }
+      for (const [field, value] of [
+        ["listedDate", comp.listedDate],
+        ["lastSeenDate", comp.lastSeenDate],
+      ] as const) {
+        if (value === undefined) continue;
+        const trimmed = typeof value === "string" ? value.trim() : "";
+        if (!/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+          throw new EditableLayerError(
+            "Comp " +
+              (field === "listedDate" ? "listed" : "last-seen") +
+              " date is invalid.",
+            400,
+          );
+        }
+        normalized[field] = trimmed;
+      }
+      if (comp.daysOld !== undefined) {
+        normalized.daysOld = assertMoney(comp.daysOld, "Comp age", true);
       }
       if (comp.daysOnMarket !== undefined) {
         normalized.daysOnMarket = assertMoney(

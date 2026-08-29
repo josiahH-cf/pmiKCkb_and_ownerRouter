@@ -136,7 +136,6 @@ export function RenewalWorkspace({
             </p>
             <OwnerDecisionForm
               address={summary.addressLabel}
-              compAttributes={workspace.compAttributes}
               compScreenshotExecutable={compScreenshotExecutable}
               current={workspace.live.ownerDecision}
               currentRent={workspace.currentRent}

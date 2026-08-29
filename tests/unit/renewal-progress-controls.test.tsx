@@ -95,10 +95,11 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
   // AC-S59-6: no address → refuse locally; NO lookup request; "Unknown" is never sent. The mount
   // effect's screenshot-status GET shares the fetch stub, so assertions filter to the lookup POST.
   it("refuses a comp lookup locally when the lease has no address and sends nothing", async () => {
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({
-      ok: true,
-      json: async () => ({}),
-    }));
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      void url;
+      void init;
+      return { ok: true, json: async () => ({}) };
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     render(<OwnerDecisionForm address="   " current={null} leaseId="L1" />);
@@ -113,21 +114,20 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     expect(lookupCalls).toHaveLength(0);
   });
 
-  // AC-S59-7 client half: the known unit attributes ride along with the lookup.
-  it("sends the lease's known unit attributes with the lookup", async () => {
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({
-      ok: true,
-      json: async () => ({ source: "RentCast", confidence: "Needs Verification" }),
-    }));
+  // AC-S59-1 client half: the browser nominates only the lease; the server owns query facts.
+  it("does not send address or unit attributes from the browser", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      void url;
+      void init;
+      return {
+        ok: true,
+        json: async () => ({ source: "RentCast", confidence: "Needs Verification" }),
+      };
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     render(
-      <OwnerDecisionForm
-        address="104 NE Lindsay Ave"
-        compAttributes={{ bedrooms: 3, bathrooms: 2.5, postalCode: "64118" }}
-        current={null}
-        leaseId="L1"
-      />,
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
 
@@ -144,12 +144,207 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
       string,
       unknown
     >;
-    expect(body).toMatchObject({
-      address: "104 NE Lindsay Ave",
-      bedrooms: 3,
-      bathrooms: 2.5,
-    });
+    expect(body).toEqual({ leaseId: "L1" });
     expect(JSON.stringify(body)).not.toContain("Unknown");
+  });
+
+  it("renders a typed server-side lease-data refusal instead of hiding the failed lookup", async () => {
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: !String(url).includes("market-comps"),
+      json: async () =>
+        String(url).includes("market-comps")
+          ? {
+              error_type: "lease_data_expired",
+              error:
+                "The live lease data is past its freshness maximum. Refresh the Renewals desk before looking up comps.",
+            }
+          : { status: "not_found" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/lease data is stale/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/Reference only\. Does not set the rent\./)).toBeVisible();
+  });
+
+  it("lets the server decide trend eligibility and sends only lease identity for both reads", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { operation?: string };
+      return {
+        ok: true,
+        json: async () =>
+          String(url).includes("comp-screenshot")
+            ? { status: "not_found" }
+            : body.operation === "trend"
+              ? {
+                  source: "RentCast",
+                  zipCode: "64118",
+                  history: { "2026-07": { averageRent: 1500 } },
+                  confidence: "Likely",
+                }
+              : {
+                  rangeLow: 1450,
+                  rangeHigh: 1650,
+                  pointEstimate: 1550,
+                  compCount: 3,
+                  source: "RentCast",
+                  retrievedAt: "2026-08-29T12:00:00.000Z",
+                  confidence: "Likely",
+                },
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() => {
+      const lookupCalls = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("market-comps"),
+      );
+      expect(lookupCalls).toHaveLength(2);
+    });
+    const lookupBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).includes("market-comps"))
+      .map(([, init]) => JSON.parse(String(init?.body ?? "{}")));
+    expect(lookupBodies).toEqual([
+      { leaseId: "L1" },
+      { operation: "trend", leaseId: "L1" },
+    ]);
+  });
+
+  it("sends only the lease identity and renders the exact server query/evidence projection", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      void init;
+      return {
+        ok: true,
+        json: async () =>
+          String(url).includes("comp-screenshot")
+            ? { status: "not_found" }
+            : {
+                rangeLow: 1450,
+                rangeHigh: 1650,
+                pointEstimate: 1550,
+                compCount: 3,
+                source: "RentCast",
+                sourceUrl: "https://www.rentcast.io",
+                retrievedAt: "2026-08-29T12:00:00.000Z",
+                confidence: "Likely",
+                cached: false,
+                quota: { used: 1, allowance: 50, remaining: 49, warn: false },
+                queryBasis: {
+                  leaseId: "L1",
+                  addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
+                  policy: {
+                    maxRadiusMiles: 2,
+                    requestedCompCount: 15,
+                    lookupSubjectAttributes: true,
+                    providerVersion: "rentcast-avm-long-term-v1",
+                  },
+                  query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
+                  attributes: [
+                    {
+                      field: "bedrooms",
+                      label: "Bedrooms",
+                      status: "sent",
+                      value: 3,
+                      sourcePath: "unit.beds",
+                    },
+                    {
+                      field: "squareFootage",
+                      label: "Square footage",
+                      status: "sent",
+                      value: 1400,
+                      sourcePath: "unit.size",
+                    },
+                  ],
+                  baseRent: {
+                    status: "verified",
+                    value: 1250,
+                    sourcePath: "unit.rent",
+                  },
+                },
+                comparables: [
+                  {
+                    rent: 1600,
+                    correlation: 0.97,
+                    distanceMiles: 0.4,
+                    bedrooms: 3,
+                    bathrooms: 2,
+                    squareFootage: 1400,
+                    daysOld: 10,
+                  },
+                ],
+              },
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Look up market comps/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/2-mile maximum radius · 15 requested comps/),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "LI" &&
+          Boolean(element.textContent?.includes("Contractual base rent: $1,250")),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "LI" &&
+          Boolean(element.textContent?.includes("Bedrooms: 3 sent from unit.beds")),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "LI" &&
+          Boolean(
+            element.textContent?.includes("Square footage: 1400 sent from unit.size"),
+          ),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "LI" &&
+          Boolean(
+            element.textContent?.includes("Comp 1: $1,600") &&
+            element.textContent.includes("97% correlation") &&
+            element.textContent.includes("0.4 mi"),
+          ),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Fresh provider lookup/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "RentCast source" })).toHaveAttribute(
+      "href",
+      "https://www.rentcast.io",
+    );
+
+    const lookupCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("market-comps"),
+    )!;
+    expect(JSON.parse(String(lookupCall[1]?.body))).toEqual({
+      leaseId: "L1",
+    });
+    expect((screen.getByLabelText(/Offered rent/i) as HTMLInputElement).value).toBe("");
   });
 
   it("renders the distinct out-of-allowance refusal with the remaining-count figure", async () => {

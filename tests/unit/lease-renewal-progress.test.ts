@@ -29,6 +29,7 @@ import {
   planMarkComplete,
   planRecordOwnerDecision,
   planRecordTenantOfferDraft,
+  type RenewalMarketProviderBasis,
   type RenewalOwnerDecisionWriteInput,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
@@ -742,8 +743,38 @@ describe("S60 provider comp basis persistence", () => {
     pointEstimate: 1550,
     compCount: 12,
     retrievedAt: "2026-08-06T12:00:00.000Z",
+    radiusMiles: 2,
+    requestedCompCount: 15,
+    lookupSubjectAttributes: true,
+    providerVersion: "rentcast-avm-long-term-v1",
+    cacheState: "live",
+    omittedAttributes: [
+      {
+        field: "propertyType",
+        reason: "RentVine propertyTypeID has no approved RentCast mapping.",
+      },
+    ],
+    unitFilters: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
+    subjectProperty: {
+      propertyType: "Single Family",
+      bedrooms: 3,
+      bathrooms: 2.5,
+      squareFootage: 1400,
+    },
     comps: [
-      { rent: 1600, correlation: 0.97, distanceMiles: 0.4 },
+      {
+        rent: 1600,
+        correlation: 0.97,
+        distanceMiles: 0.4,
+        propertyType: "Single Family",
+        bedrooms: 3,
+        bathrooms: 2.5,
+        squareFootage: 1400,
+        listedDate: "2026-07-01T00:00:00.000Z",
+        lastSeenDate: "2026-07-20T00:00:00.000Z",
+        daysOld: 10,
+        daysOnMarket: 19,
+      },
       { rent: 1500, correlation: 0.93 },
     ],
     trend: {
@@ -754,7 +785,7 @@ describe("S60 provider comp basis persistence", () => {
         "2026-07": { averageRent: 1520, medianRent: 1500 },
       },
     },
-  };
+  } satisfies RenewalMarketProviderBasis;
 
   // AC-S60-1 + AC-S60-5: both bases survive the round trip; neither write clears the other.
   it("persists provider and typed values together and reads both back", async () => {
@@ -784,10 +815,24 @@ describe("S60 provider comp basis persistence", () => {
       pointEstimate: 1550,
       compCount: 12,
       retrievedAt: "2026-08-06T12:00:00.000Z",
+      radiusMiles: 2,
+      requestedCompCount: 15,
+      lookupSubjectAttributes: true,
+      providerVersion: "rentcast-avm-long-term-v1",
+      cacheState: "live",
+      unitFilters: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
+      subjectProperty: {
+        propertyType: "Single Family",
+        bedrooms: 3,
+        bathrooms: 2.5,
+        squareFootage: 1400,
+      },
     });
+    expect(market?.provider?.omittedAttributes).toEqual(PROVIDER.omittedAttributes);
     expect(market?.provider?.comps?.map((comp) => comp.correlation)).toEqual([
       0.97, 0.93,
     ]);
+    expect(market?.provider?.comps?.[0]).toEqual(PROVIDER.comps[0]);
     expect(market?.provider?.trend?.months["2026-07"]).toEqual({
       averageRent: 1520,
       medianRent: 1500,
@@ -798,13 +843,44 @@ describe("S60 provider comp basis persistence", () => {
     ) as Record<string, never>;
     const persisted = (record as Record<string, Record<string, Record<string, unknown>>>)
       .owner_decision.market;
-    expect(persisted.provider).toMatchObject({
+    const persistedProvider = persisted.provider as Record<string, unknown> & {
+      comps?: unknown;
+    };
+    expect(persistedProvider).toMatchObject({
       source: "RentCast",
       range_low: 1450,
       range_high: 1650,
       point_estimate: 1550,
       comp_count: 12,
+      radius_miles: 2,
+      requested_comp_count: 15,
+      lookup_subject_attributes: true,
+      provider_version: "rentcast-avm-long-term-v1",
+      cache_state: "live",
+      unit_filters: { bedrooms: 3, bathrooms: 2.5, square_footage: 1400 },
+      subject_property: {
+        property_type: "Single Family",
+        bedrooms: 3,
+        bathrooms: 2.5,
+        square_footage: 1400,
+      },
     });
+    expect(persistedProvider.comps).toEqual([
+      {
+        rent: 1600,
+        correlation: 0.97,
+        distance_miles: 0.4,
+        property_type: "Single Family",
+        bedrooms: 3,
+        bathrooms: 2.5,
+        square_footage: 1400,
+        listed_date: "2026-07-01T00:00:00.000Z",
+        last_seen_date: "2026-07-20T00:00:00.000Z",
+        days_old: 10,
+        days_on_market: 19,
+      },
+      { rent: 1500, correlation: 0.93 },
+    ]);
   });
 
   it("refuses an incoherent provider block instead of persisting a half-truth", () => {

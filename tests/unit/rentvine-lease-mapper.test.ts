@@ -3,6 +3,7 @@ import {
   DEFAULT_RENTVINE_LEASE_FIELD_MAP,
   RENTVINE_SOURCE,
   RENTVINE_SOURCE_SYSTEM,
+  leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
@@ -10,6 +11,29 @@ import { runRenewalPipeline } from "@/lib/lease-renewal/pipeline";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 
 const READ_TS = "2026-06-20T00:00:00.000Z";
+
+describe("leaseViewsFromExport S59 query inputs", () => {
+  it("preserves the measured unit and property siblings beside canonical base rent", () => {
+    const unit = {
+      rent: 1250,
+      beds: 3,
+      fullBaths: 2,
+      halfBaths: 1,
+      postalCode: "64118",
+    };
+    const property = {
+      streetNumber: "104",
+      streetName: "NE Lindsay Ave",
+      propertyTypeID: 7,
+    };
+
+    expect(
+      leaseViewsFromExport([
+        { lease: { leaseID: 7, tenants: [{ name: "Tenant" }] }, unit, property },
+      ])[0],
+    ).toMatchObject({ currentRent: 1250, unit, property });
+  });
+});
 
 describe("mapLeasesToNonSheetCandidates", () => {
   it("maps a lease with the default keys to the synthetic-identical candidate shape", () => {

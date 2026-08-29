@@ -401,6 +401,11 @@ function providerBasisToRecord(
     comp_count: provider.compCount,
     retrieved_at: provider.retrievedAt,
     radius_miles: provider.radiusMiles,
+    requested_comp_count: provider.requestedCompCount,
+    lookup_subject_attributes: provider.lookupSubjectAttributes,
+    provider_version: provider.providerVersion,
+    cache_state: provider.cacheState,
+    omitted_attributes: provider.omittedAttributes,
     unit_filters: provider.unitFilters
       ? stripUndefined({
           bedrooms: provider.unitFilters.bedrooms,
@@ -409,14 +414,27 @@ function providerBasisToRecord(
           property_type: provider.unitFilters.propertyType,
         })
       : undefined,
+    subject_property: provider.subjectProperty
+      ? stripUndefined({
+          property_type: provider.subjectProperty.propertyType,
+          bedrooms: provider.subjectProperty.bedrooms,
+          bathrooms: provider.subjectProperty.bathrooms,
+          square_footage: provider.subjectProperty.squareFootage,
+        })
+      : undefined,
     comps: provider.comps
       ? provider.comps.map((comp) =>
           stripUndefined({
             rent: comp.rent,
             correlation: comp.correlation,
             distance_miles: comp.distanceMiles,
+            property_type: comp.propertyType,
             bedrooms: comp.bedrooms,
             bathrooms: comp.bathrooms,
+            square_footage: comp.squareFootage,
+            listed_date: comp.listedDate,
+            last_seen_date: comp.lastSeenDate,
+            days_old: comp.daysOld,
             days_on_market: comp.daysOnMarket,
           }),
         )
@@ -452,6 +470,19 @@ function providerBasisFromRecord(
     compCount: record.comp_count,
     retrievedAt: record.retrieved_at,
     ...(record.radius_miles !== undefined ? { radiusMiles: record.radius_miles } : {}),
+    ...(record.requested_comp_count !== undefined
+      ? { requestedCompCount: record.requested_comp_count }
+      : {}),
+    ...(record.lookup_subject_attributes !== undefined
+      ? { lookupSubjectAttributes: record.lookup_subject_attributes }
+      : {}),
+    ...(record.provider_version !== undefined
+      ? { providerVersion: record.provider_version }
+      : {}),
+    ...(record.cache_state !== undefined ? { cacheState: record.cache_state } : {}),
+    ...(record.omitted_attributes
+      ? { omittedAttributes: record.omitted_attributes }
+      : {}),
     ...(record.unit_filters
       ? {
           unitFilters: {
@@ -470,6 +501,24 @@ function providerBasisFromRecord(
           },
         }
       : {}),
+    ...(record.subject_property
+      ? {
+          subjectProperty: {
+            ...(record.subject_property.property_type !== undefined
+              ? { propertyType: record.subject_property.property_type }
+              : {}),
+            ...(record.subject_property.bedrooms !== undefined
+              ? { bedrooms: record.subject_property.bedrooms }
+              : {}),
+            ...(record.subject_property.bathrooms !== undefined
+              ? { bathrooms: record.subject_property.bathrooms }
+              : {}),
+            ...(record.subject_property.square_footage !== undefined
+              ? { squareFootage: record.subject_property.square_footage }
+              : {}),
+          },
+        }
+      : {}),
     ...(record.comps
       ? {
           comps: record.comps.map((comp) => ({
@@ -478,8 +527,19 @@ function providerBasisFromRecord(
             ...(comp.distance_miles !== undefined
               ? { distanceMiles: comp.distance_miles }
               : {}),
+            ...(comp.property_type !== undefined
+              ? { propertyType: comp.property_type }
+              : {}),
             ...(comp.bedrooms !== undefined ? { bedrooms: comp.bedrooms } : {}),
             ...(comp.bathrooms !== undefined ? { bathrooms: comp.bathrooms } : {}),
+            ...(comp.square_footage !== undefined
+              ? { squareFootage: comp.square_footage }
+              : {}),
+            ...(comp.listed_date !== undefined ? { listedDate: comp.listed_date } : {}),
+            ...(comp.last_seen_date !== undefined
+              ? { lastSeenDate: comp.last_seen_date }
+              : {}),
+            ...(comp.days_old !== undefined ? { daysOld: comp.days_old } : {}),
             ...(comp.days_on_market !== undefined
               ? { daysOnMarket: comp.days_on_market }
               : {}),

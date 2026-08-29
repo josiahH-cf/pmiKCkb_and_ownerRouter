@@ -81,8 +81,9 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   --to-revisions=pmi-kc-app-rmtep3ke9-9d3ecafb0c2e=100 --quiet
 ```
 
-The 2026-08-27 rehearsal switched predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` to 100%, read it
-back, and passed root, sign-in, Admin, and exact version smoke. It restored the then-current
+The 2026-08-27 rehearsal switched the predecessor to 100%
+(`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`), read it back, and passed root, sign-in, Admin, and exact
+version smoke. It restored the then-current
 `pmi-kc-app-rmtbh280n-61b78ef991cc` revision and passed the same smoke again. The 2026-08-29 S77
 release captured that restored revision as its immediate rollback target. No client-data or provider
 effect occurred.

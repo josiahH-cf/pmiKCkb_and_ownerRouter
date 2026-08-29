@@ -23,6 +23,7 @@ const QUERY = {
   bedrooms: 3,
   bathrooms: 2,
   squareFootage: 1450,
+  propertyType: "Single Family",
 };
 
 const AVM_BODY = {
@@ -34,16 +35,26 @@ const AVM_BODY = {
     { price: 1500, correlation: 0.93, distance: 0.9 },
     { price: 1525, correlation: 0.88, daysOnMarket: 12 },
   ],
+  subjectProperty: {
+    propertyType: "Single Family",
+    bedrooms: 3,
+    bathrooms: 2,
+    squareFootage: 1450,
+  },
 };
 
 function stubTransport(response: { status: number; body: unknown }): {
   transport: MarketCompTransport;
   get: ReturnType<typeof vi.fn>;
 } {
-  const get = vi.fn(async (_url: string, _headers: Record<string, string>) => ({
-    status: response.status,
-    json: async () => response.body,
-  }));
+  const get = vi.fn(async (url: string, headers: Record<string, string>) => {
+    void url;
+    void headers;
+    return {
+      status: response.status,
+      json: async () => response.body,
+    };
+  });
   return { transport: { get }, get };
 }
 
@@ -70,6 +81,42 @@ describe("parseComparables", () => {
     ]);
   });
 
+  it("retains documented comparable property and age fields without reordering", () => {
+    expect(
+      parseComparables({
+        comparables: [
+          {
+            price: 1600,
+            correlation: 0.97,
+            distance: 0,
+            propertyType: "Single Family",
+            bedrooms: 0,
+            bathrooms: 1.5,
+            squareFootage: 900,
+            listedDate: "2026-07-01T00:00:00.000Z",
+            lastSeenDate: "2026-07-20T00:00:00.000Z",
+            daysOld: 10,
+            daysOnMarket: 0,
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        rent: 1600,
+        correlation: 0.97,
+        distanceMiles: 0,
+        propertyType: "Single Family",
+        bedrooms: 0,
+        bathrooms: 1.5,
+        squareFootage: 900,
+        listedDate: "2026-07-01T00:00:00.000Z",
+        lastSeenDate: "2026-07-20T00:00:00.000Z",
+        daysOld: 10,
+        daysOnMarket: 0,
+      },
+    ]);
+  });
+
   it("returns empty for a payload without a comparables array", () => {
     expect(parseComparables({})).toEqual([]);
     expect(parseComparables(null)).toEqual([]);
@@ -91,6 +138,7 @@ describe("RentCastMarketCompProvider.lookup (AVM comp basis)", () => {
       billed: true,
     });
     expect(result.comparables?.map((c) => c.correlation)).toEqual([0.97, 0.93, 0.88]);
+    expect(result.subjectProperty).toEqual(AVM_BODY.subjectProperty);
     expect(get).toHaveBeenCalledTimes(1);
   });
 
@@ -103,8 +151,10 @@ describe("RentCastMarketCompProvider.lookup (AVM comp basis)", () => {
     expect(url).toContain("bedrooms=3");
     expect(url).toContain("bathrooms=2");
     expect(url).toContain("squareFootage=1450");
+    expect(url).toContain("propertyType=Single+Family");
     expect(url).toContain(`maxRadius=${DEFAULT_MAX_RADIUS_MILES}`);
     expect(url).toContain(`compCount=${DEFAULT_COMP_COUNT}`);
+    expect(url).toContain("lookupSubjectAttributes=true");
     expect(headers["X-Api-Key"]).toBe("secret-key");
   });
 
@@ -175,6 +225,17 @@ describe("RentCastMarketCompProvider.lookup (AVM comp basis)", () => {
     });
     const result = await provider(transport).lookup(QUERY);
     expect(result).toMatchObject({ reason: "too_few_comps", billed: true });
+    expect(result.rangeLow).toBeUndefined();
+    expect(result.pointEstimate).toBeUndefined();
+  });
+
+  it("fails closed on an inverted provider range, BILLED, with no usable numbers", async () => {
+    const { transport } = stubTransport({
+      status: 200,
+      body: { ...AVM_BODY, rentRangeLow: 1700, rentRangeHigh: 1600 },
+    });
+    const result = await provider(transport).lookup(QUERY);
+    expect(result).toMatchObject({ reason: "parse_error", billed: true });
     expect(result.rangeLow).toBeUndefined();
     expect(result.pointEstimate).toBeUndefined();
   });

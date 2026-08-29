@@ -3,9 +3,8 @@
 
 # S59 — RentCast query truth and reference-comp policy
 
-> Status: Live read activation is complete; the owner has approved a two-mile maximum radius and 15
-> requested comparables, while query provenance, complete unit-attribute flow, cache identity, and
-> operator-visible evidence remain active implementation work.
+> Status: Candidate implementation and a controlled live-read parity proof are complete; exact
+> production release, configuration preservation, and stable readback remain delivery work.
 
 **Goal.**
 
@@ -16,13 +15,13 @@ turning the provider estimate into an offered rent.
 **Current state / intended end state.**
 
 Production has the exact read key open, a Secret Manager-backed key, a measured allowance of 50,
-cache, metering, and a hard allowance stop. The adapter explicitly requests a two-mile maximum radius
-and 15 comparables. The live export flattener currently preserves `unit.rent` but drops the sibling
-`unit` object later used for bedrooms/bathrooms; square footage can shape a provider request but is
-absent from the cache key; property type has no approved RentVine-to-RentCast mapping; and the UI does
-not show the complete query basis or returned comparable set. The intended state preserves every
-known authoritative attribute end to end, treats every omission honestly, keys cache on every
-request-shaping value, and exposes the provider evidence that explains a result.
+cache, metering, and a hard allowance stop. The candidate now preserves the sibling `unit` and
+`property` objects, derives the exact query server-side from one current lease identity, requests a
+two-mile maximum radius and 15 comparables, keys cache on every request-shaping value, and displays
+the query, omissions, returned evidence, retrieval/cache/quota state, and separately labeled
+contractual base rent. The only supported square-footage mapping is a positive-integer `unit.size`;
+`property.stateID` is accepted as the address state only when it is a two-letter code; and property
+type stays explicitly omitted because `property.propertyTypeID` has no approved RentCast mapping.
 
 **Actors and entry conditions.**
 
@@ -58,10 +57,13 @@ increase, provider mutation, or source-system write.
 
 **Open questions & assumptions.**
 
-No radius/count decision remains. A future client policy may add a comparable freshness threshold or
-selection/rejection rule; until then there is no hidden filter and the retrieved timestamp plus raw
-available comparable age fields are shown. Exact RentVine square-footage/property-type source paths
-must be measured before mapping; absence remains visible rather than guessed.
+No radius/count or square-footage-source decision remains. A complete redacted live export measured
+307 rows: `property.stateID` was present and shaped as a two-letter code on all 307, while `unit.size`
+was present on 282 and was a usable positive integer on 259. Missing/invalid size remains a visible
+omission. A future client policy may add a comparable freshness threshold or selection/rejection
+rule; until then there is no hidden filter and the retrieved timestamp plus raw available comparable
+age fields are shown. Property type remains omitted until an exact provider-compatible mapping is
+approved.
 
 **Cross-product impacts.**
 
@@ -74,10 +76,11 @@ cost controls.
 | Input                                                                                               | Classification                | Use and limitation                                                                                                                                                                          |
 | --------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md`, `docs/facts.md`, and live action/config readback                                       | Authority                     | RentCast is a capped read-only reference seam; the exact key is open, allowance is 50, and no provider result may create an offer or source write.                                          |
-| RentVine lease mapper/live-desk attribute projection, RentCast provider/route/cache, and quota code | Verified implementation truth | The mapper retains `unit.rent` but drops sibling `unit`; square footage can shape a request without shaping cache identity; evidence display is incomplete.                                 |
+| RentVine lease mapper/live-desk attribute projection, RentCast provider/route/cache, and quota code | Verified implementation truth | The candidate preserves sibling `unit`/`property`, resolves query facts server-side, includes every shaping value in cache identity, and projects complete evidence without offer mutation. |
 | Mapper, provider, quota, current-rent, desk, and approval tests                                     | Verification baseline         | They anchor source shape, provider validation, three-comp floor, cost accounting, and offer separation; new cross-boundary/cache variants must initially fail.                              |
 | Stabilization intake and meeting notes                                                              | Intent evidence only          | They establish the observed RentCast-site/app mismatch and need for screenshot/explanation; they do not authorize an invented mapping, hidden comp filter, AVM, or automatic rent decision. |
 | Owner-approved decision in `docs/facts.md`                                                          | Product decision              | The request is a maximum two-mile radius and 15 requested comparables; returned count may be lower and provider order remains visible.                                                      |
+| Redacted 2026-08-29 complete RentVine export measurement and one-call RentCast parity proof         | Live read evidence            | Verifies the field shapes, exact supported mappings, one billed AVM read, usable range, subject/comparable evidence fields, zero customer-value emission, and zero durable writes.          |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -116,7 +119,12 @@ cost controls.
 why a different set of inputs could differ from another RentCast view. The estimate is visibly a
 reference, not the approved offer.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - why: 117 focused mapping/resolver/provider/route/quota/UI/persistence and
+  renewal-preservation tests pass; TypeScript is green; and one redacted, allowance-capped live AVM
+  read returned a usable Likely result with the exact server-derived policy and mapped fields, no
+  emitted customer values, and zero writes. The canonical gate passed 526 unit files with one
+  intentional skip (4,783 tests passing and four skipped), 115 Firestore tests, every policy/static
+  gate, and the 104-page production build. Exact release evidence remains the delivery step.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -164,12 +172,10 @@ proves case-level results. None may weaken S59's reference-only boundary.
 - **Deliverable now:** measured export preservation, exact supported mapping/omission model, complete
   cache key, two-mile/15-request policy, query/evidence UI, base-rent separation, quota/refusal paths,
   and deterministic tests can reach `ALL_GATES_GREEN` without another suite.
-- **Consumes, but does not assume:** an exact RentVine property-type source mapping. If it is not
-  measured and provider-compatible, `propertyType` remains explicitly omitted; no other outcome is
-  blocked.
-- **Externally blocked effect:** a controlled live parity observation may be `BLOCKED` by current
-  credential/quota/runtime readiness. Fixtures and recorded shapes still complete every implementation
-  outcome without spending allowance.
+- **Consumes, but does not assume:** an exact RentVine property-type source mapping. Because none is
+  approved, `propertyType` remains explicitly omitted; no other outcome is blocked.
+- **Externally blocked effect:** none. The controlled live parity observation completed with one
+  billed read and zero writes; production deployment/readback remains the ordinary delivery step.
 - **Produces for downstream suites:** a stable reference-result projection containing query basis,
   omissions, comparables, retrieval/cache/quota provenance, and strict separation from human offer.
 

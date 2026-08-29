@@ -6,10 +6,10 @@
 //
 // Two adapters implement the same interface: ManualMarketCompProvider reproduces exactly today's
 // operator-typed behavior with no network call (the default, works day one with no owner step), and the
-// RentCastMarketCompProvider (built behind this interface, inert until its gate flips) queries the
-// licensed rental-listings search API. Selecting the adapter is prod-fenced by config exactly like
-// createMaintenanceImageStore. The ONLY external datum is the property address (D07/D08 boundary,
-// never tenant PII, never a rent figure.
+// RentCastMarketCompProvider (built behind this interface and governed by its exact read key) queries
+// the licensed rental-listings search API. Selecting the adapter is prod-fenced by config exactly like
+// createMaintenanceImageStore. External data is limited to the complete property address plus
+// supported non-identifying property attributes (D07/D08 boundary); never tenant PII or rent.
 
 import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 import {
@@ -17,7 +17,7 @@ import {
   type MarketCompTransport,
 } from "@/lib/lease-renewal/providers/rentcast-market-comp-provider";
 
-/** In-boundary query for a comp lookup. The address is the only external datum; no tenant PII, no rent. */
+/** In-boundary comp query: address plus supported property attributes; no tenant PII or rent. */
 export interface MarketCompQuery {
   /** The property address label (in-boundary; never written to git). */
   addressLabel: string;
@@ -48,9 +48,22 @@ export interface MarketComparable {
   /** RentCast's 0-to-1 similarity score; higher is more similar. */
   correlation?: number;
   distanceMiles?: number;
+  propertyType?: string;
   bedrooms?: number;
   bathrooms?: number;
+  squareFootage?: number;
+  listedDate?: string;
+  lastSeenDate?: string;
+  daysOld?: number;
   daysOnMarket?: number;
+}
+
+/** Provider-returned subject attributes, kept separate from authoritative values sent by PMI KC. */
+export interface MarketCompSubjectProperty {
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFootage?: number;
 }
 
 /** A DISPLAY-only comparable-rent result. Any numeric field is optional; absent → Needs Verification. */
@@ -63,6 +76,8 @@ export interface MarketCompResult {
   compCount?: number;
   /** The comparables themselves, provider-ordered with correlation (RentCast only). */
   comparables?: MarketComparable[];
+  /** RentCast's returned subject attributes; never relabeled as RentVine source truth. */
+  subjectProperty?: MarketCompSubjectProperty;
   /** Attribution shown on the reference display and carried onto the owner-draft comp fact. */
   source: string;
   /** ISO timestamp the result was retrieved (RentCast receipt); omitted for the manual echo. */
@@ -113,7 +128,7 @@ export class ManualMarketCompProvider implements MarketCompProvider {
 export type MarketCompProviderKind = "manual" | "rentcast";
 
 export interface MarketCompProviderConfig {
-  /** Which adapter to build. Prod-fenced upstream; defaults to "manual" until the RentCast gate flips. */
+  /** Which adapter to build. Prod-fenced upstream and still checked against the exact action key. */
   provider: MarketCompProviderKind;
   /** The operator's own entered numbers, for the manual pass-through. */
   basis?: RenewalMarketBasis;

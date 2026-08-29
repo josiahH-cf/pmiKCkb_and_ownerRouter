@@ -59,11 +59,11 @@ export const RENTVINE_SOURCE_SYSTEM = "Rentvine (read-authoritative)";
  * the plain /leases list omits tenant names and carries no rent, so the live read uses /leases/export
  * — where the tenant names live on `lease.tenants[].name` and the contractual rent on `unit.rent`.
  * This lifts `unit.rent` onto the lease view as `currentRent` (without clobbering a real field) and
- * keeps `lease.tenants[]` for the name join. It also preserves the export row's owner-bearing siblings
- * (`property`, `portfolio`, `owner`, `owners`) on the view — the lease itself carries no owner contact,
- * so dropping these siblings is why the OWNER recipient channel could never resolve. Attaching them is
- * additive (the pipeline field map reads only scalar tenant/date/rent keys, never these objects). Pure
- * and deterministic.
+ * keeps `lease.tenants[]` for the name join. It also preserves the export row's measured unit/property
+ * and owner-bearing siblings (`unit`, `property`, `portfolio`, `owner`, `owners`) on the view. The unit
+ * sibling carries the authoritative bedroom/bathroom facts used by the RentCast query, while the lease
+ * itself carries no owner contact. Attaching them is additive (the pipeline field map reads only scalar
+ * tenant/date/rent keys, never these objects). Pure and deterministic.
  */
 export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
   return rows.flatMap((row) => {
@@ -85,9 +85,9 @@ export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
     if (unit.rent !== undefined && unit.rent !== null) {
       view.currentRent = unit.rent;
     }
-    // Preserve owner-bearing siblings so resolveRenewalRecipient's owner channel can reach them
-    // (never overwriting a real lease field of the same name).
-    for (const key of ["property", "portfolio", "owner", "owners"] as const) {
+    // Preserve measured unit/property and owner-bearing siblings so downstream query/recipient
+    // boundaries can reach the exact export facts (never overwriting a real lease field).
+    for (const key of ["unit", "property", "portfolio", "owner", "owners"] as const) {
       if (view[key] === undefined && record[key] !== undefined && record[key] !== null) {
         view[key] = record[key];
       }

@@ -727,18 +727,37 @@ export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetenti
         comp_count: number;
         retrieved_at: string;
         radius_miles?: number;
+        requested_comp_count?: number;
+        lookup_subject_attributes?: boolean;
+        provider_version?: string;
+        cache_state?: "live" | "cache";
+        omitted_attributes?: {
+          field: "bedrooms" | "bathrooms" | "squareFootage" | "propertyType";
+          reason: string;
+        }[];
         unit_filters?: {
           bedrooms?: number;
           bathrooms?: number;
           square_footage?: number;
           property_type?: string;
         };
+        subject_property?: {
+          property_type?: string;
+          bedrooms?: number;
+          bathrooms?: number;
+          square_footage?: number;
+        };
         comps?: {
           rent: number;
           correlation?: number;
           distance_miles?: number;
+          property_type?: string;
           bedrooms?: number;
           bathrooms?: number;
+          square_footage?: number;
+          listed_date?: string;
+          last_seen_date?: string;
+          days_old?: number;
           days_on_market?: number;
         }[];
         trend?: {

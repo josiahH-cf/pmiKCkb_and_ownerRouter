@@ -76,6 +76,35 @@ describe("comp cache", () => {
     );
   });
 
+  it("cannot collide when any S59 provider-shaping field changes", () => {
+    const base = {
+      address: "104 NE Lindsay Ave",
+      bedrooms: 3,
+      bathrooms: 2,
+      squareFootage: 1450,
+      propertyType: "Single Family",
+      maxRadiusMiles: 2,
+      requestedCompCount: 15,
+      lookupSubjectAttributes: true,
+      providerVersion: "rentcast-avm-long-term-v1",
+    };
+    const variants = [
+      { ...base, address: "105 NE Lindsay Ave" },
+      { ...base, bedrooms: 2 },
+      { ...base, bathrooms: 1.5 },
+      { ...base, squareFootage: 1600 },
+      { ...base, propertyType: "Condo" },
+      { ...base, maxRadiusMiles: 1.5 },
+      { ...base, requestedCompCount: 10 },
+      { ...base, lookupSubjectAttributes: false },
+      { ...base, providerVersion: "rentcast-avm-long-term-v2" },
+    ];
+
+    for (const variant of variants) {
+      expect(compCacheKey(base)).not.toBe(compCacheKey(variant));
+    }
+  });
+
   it("serves inside the TTL and expires after it", () => {
     const key = compCacheKey({ address: "104 NE Lindsay Ave" });
     writeCompCache(key, { marker: 1 }, 1_000);

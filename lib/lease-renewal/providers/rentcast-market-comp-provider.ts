@@ -13,21 +13,22 @@
 // and a DISTINGUISHABLE `reason` — missing_key, missing_address, timeout, network_error,
 // http_error, parse_error, too_few_comps. A timeout is reported as a timeout, never as "no comps
 // found", and no failure ever renders as a range. It is a READ: one-attempt, cost-bounded, no
-// mutation. INERT until its Action Registry gate (rentcast.rental_listings.search) is flipped by
-// the reviewed D12 patch; the route refuses the live path with the closed-action response until
-// then.
+// mutation. The route checks the exact open Action Registry read key and still fails closed if that
+// key or the runtime suspension gate closes.
 
 import type {
   MarketCompProvider,
   MarketCompQuery,
   MarketCompResult,
   MarketComparable,
+  MarketCompSubjectProperty,
 } from "@/lib/lease-renewal/market-comp-provider";
+import { RENTCAST_QUERY_POLICY } from "@/lib/lease-renewal/market-comp-query-basis";
 
 /** The RentCast attribution label carried onto the reference display + the owner-draft comp fact. */
 export const RENTCAST_MARKET_COMP_SOURCE = "RentCast";
 
-/** The Action Registry gate key for the live RentCast read (gated OFF until the reviewed flip). */
+/** The exact Action Registry key governing this live RentCast read. */
 export const RENTCAST_LISTINGS_ACTION_KEY = "rentcast.rental_listings.search";
 
 /** RentCast's AVM long-term rent estimate endpoint — the comp basis since S59 (AC-S59-15). */
@@ -40,8 +41,11 @@ export const RENTCAST_MARKETS_URL = "https://api.rentcast.io/v1/markets";
 export const MIN_COMP_COUNT = 3;
 
 /** Explicit query defaults (AC-S59-16): never rely on the provider's implicit search shape. */
-export const DEFAULT_MAX_RADIUS_MILES = 2;
-export const DEFAULT_COMP_COUNT = 15;
+export const DEFAULT_MAX_RADIUS_MILES = RENTCAST_QUERY_POLICY.maxRadiusMiles;
+export const DEFAULT_COMP_COUNT = RENTCAST_QUERY_POLICY.requestedCompCount;
+export const DEFAULT_LOOKUP_SUBJECT_ATTRIBUTES =
+  RENTCAST_QUERY_POLICY.lookupSubjectAttributes;
+export const RENTCAST_AVM_QUERY_VERSION = RENTCAST_QUERY_POLICY.providerVersion;
 /** Months of rental history requested from /markets (available from April 2020). */
 export const DEFAULT_TREND_HISTORY_MONTHS = 24;
 
@@ -97,6 +101,12 @@ function finitePositive(value: unknown): number | undefined {
     : undefined;
 }
 
+function finiteNonNegative(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
+}
+
 function finiteInRange(value: unknown, min: number, max: number): number | undefined {
   return typeof value === "number" &&
     Number.isFinite(value) &&
@@ -104,6 +114,15 @@ function finiteInRange(value: unknown, min: number, max: number): number | undef
     value <= max
     ? value
     : undefined;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+function isoDateString(value: unknown): string | undefined {
+  const text = nonEmptyString(value);
+  return text && /^\d{4}-\d{2}-\d{2}/.test(text) ? text : undefined;
 }
 
 /** Parse the AVM payload's comparables, keeping PROVIDER ORDER and correlation (AC-S59-17). */
@@ -121,21 +140,59 @@ export function parseComparables(payload: unknown): MarketComparable[] {
     comparables.push({
       rent,
       ...(correlation !== undefined ? { correlation } : {}),
-      ...(finitePositive(record.distance) !== undefined
-        ? { distanceMiles: finitePositive(record.distance) }
+      ...(finiteNonNegative(record.distance) !== undefined
+        ? { distanceMiles: finiteNonNegative(record.distance) }
         : {}),
-      ...(finitePositive(record.bedrooms) !== undefined
-        ? { bedrooms: finitePositive(record.bedrooms) }
+      ...(nonEmptyString(record.propertyType)
+        ? { propertyType: nonEmptyString(record.propertyType) }
         : {}),
-      ...(finitePositive(record.bathrooms) !== undefined
-        ? { bathrooms: finitePositive(record.bathrooms) }
+      ...(finiteNonNegative(record.bedrooms) !== undefined
+        ? { bedrooms: finiteNonNegative(record.bedrooms) }
         : {}),
-      ...(finitePositive(record.daysOnMarket) !== undefined
-        ? { daysOnMarket: finitePositive(record.daysOnMarket) }
+      ...(finiteNonNegative(record.bathrooms) !== undefined
+        ? { bathrooms: finiteNonNegative(record.bathrooms) }
+        : {}),
+      ...(finitePositive(record.squareFootage) !== undefined
+        ? { squareFootage: finitePositive(record.squareFootage) }
+        : {}),
+      ...(isoDateString(record.listedDate)
+        ? { listedDate: isoDateString(record.listedDate) }
+        : {}),
+      ...(isoDateString(record.lastSeenDate)
+        ? { lastSeenDate: isoDateString(record.lastSeenDate) }
+        : {}),
+      ...(finiteNonNegative(record.daysOld) !== undefined
+        ? { daysOld: finiteNonNegative(record.daysOld) }
+        : {}),
+      ...(finiteNonNegative(record.daysOnMarket) !== undefined
+        ? { daysOnMarket: finiteNonNegative(record.daysOnMarket) }
         : {}),
     });
   }
   return comparables;
+}
+
+/** Parse only documented, non-identifying subject attributes from RentCast's response. */
+function parseSubjectProperty(payload: unknown): MarketCompSubjectProperty | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const raw = (payload as Record<string, unknown>).subjectProperty;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const record = raw as Record<string, unknown>;
+  const subject: MarketCompSubjectProperty = {
+    ...(nonEmptyString(record.propertyType)
+      ? { propertyType: nonEmptyString(record.propertyType) }
+      : {}),
+    ...(finiteNonNegative(record.bedrooms) !== undefined
+      ? { bedrooms: finiteNonNegative(record.bedrooms) }
+      : {}),
+    ...(finiteNonNegative(record.bathrooms) !== undefined
+      ? { bathrooms: finiteNonNegative(record.bathrooms) }
+      : {}),
+    ...(finitePositive(record.squareFootage) !== undefined
+      ? { squareFootage: finitePositive(record.squareFootage) }
+      : {}),
+  };
+  return Object.keys(subject).length > 0 ? subject : undefined;
 }
 
 export interface RentCastProviderConfig {
@@ -143,6 +200,7 @@ export interface RentCastProviderConfig {
   apiKey?: string;
   maxRadiusMiles?: number;
   compCount?: number;
+  lookupSubjectAttributes?: boolean;
 }
 
 /** Month-keyed rental history from /markets (AC-S59-18). Values pass through unmodified. */
@@ -220,13 +278,18 @@ export class RentCastMarketCompProvider implements MarketCompProvider {
     const rangeLow = finitePositive(body.rentRangeLow);
     const rangeHigh = finitePositive(body.rentRangeHigh);
     const comparables = parseComparables(payload);
+    const subjectProperty = parseSubjectProperty(payload);
     if (
       rent === undefined ||
       rangeLow === undefined ||
       rangeHigh === undefined ||
+      rangeHigh < rangeLow ||
       comparables.length < MIN_COMP_COUNT
     ) {
-      return failClosed("too_few_comps", true);
+      return failClosed(
+        comparables.length < MIN_COMP_COUNT ? "too_few_comps" : "parse_error",
+        true,
+      );
     }
     // AC-S59-15: the persisted range is the provider's own; the point estimate is its `rent`.
     return {
@@ -235,6 +298,7 @@ export class RentCastMarketCompProvider implements MarketCompProvider {
       pointEstimate: rent,
       compCount: comparables.length,
       comparables,
+      ...(subjectProperty ? { subjectProperty } : {}),
       source: RENTCAST_MARKET_COMP_SOURCE,
       retrievedAt,
       confidence: "Likely",
@@ -299,8 +363,8 @@ export class RentCastMarketCompProvider implements MarketCompProvider {
       return failClosed("parse_error", true);
     }
     // The month-keyed history sits either at the top level or under `rentalData` depending on the
-    // response variant; accept both and fail closed otherwise. The controlled live smoke confirms
-    // the real shape before any gate flip.
+    // response variant; accept both and fail closed otherwise. A controlled live smoke must confirm
+    // the real shape without widening this parser.
     const body = payload as Record<string, unknown>;
     const rentalData =
       body.rentalData && typeof body.rentalData === "object"
@@ -331,6 +395,9 @@ export class RentCastMarketCompProvider implements MarketCompProvider {
       address,
       maxRadius: String(this.config.maxRadiusMiles ?? DEFAULT_MAX_RADIUS_MILES),
       compCount: String(this.config.compCount ?? DEFAULT_COMP_COUNT),
+      lookupSubjectAttributes: String(
+        this.config.lookupSubjectAttributes ?? DEFAULT_LOOKUP_SUBJECT_ATTRIBUTES,
+      ),
     });
     if (query.bedrooms !== undefined) params.set("bedrooms", String(query.bedrooms));
     if (query.bathrooms !== undefined) params.set("bathrooms", String(query.bathrooms));

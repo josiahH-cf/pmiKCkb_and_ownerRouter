@@ -133,6 +133,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/live-desk.ts:loadLiveRenewalLeaseWorkspace:buildLiveRenewalConfig",
   "lib/lease-renewal/live-notices.ts:loadLiveRenewalNotices:buildLiveRentVineConfig",
   "lib/lease-renewal/live-review.ts:runLiveReview:buildLiveRenewalConfig",
+  // S59: resolves one exact lease for a read-only RentCast query; it constructs no writer.
+  "lib/lease-renewal/market-comp-query-resolver.ts:resolveCurrentMarketCompQueryBasis:buildLiveRentVineConfig",
   "lib/lease-renewal/sheet-writeback-service.ts:buildLiveWritebackDeps:buildLiveRenewalConfig",
   "lib/maintenance/live-unit-source.ts:loadLiveUnitCandidates:buildLiveRentVineConfig",
   // S68: source verification reads the cached complete lease portfolio and creates no effect.

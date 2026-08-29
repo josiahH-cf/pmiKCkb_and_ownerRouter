@@ -12,6 +12,28 @@ const harness = vi.hoisted(() => ({
   incrementCalls: [] as number[],
   lookupMock: vi.fn(),
   lookupTrendMock: vi.fn(),
+  queryError: { current: null as unknown },
+  queryBasis: {
+    current: {
+      leaseId: "L1",
+      addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
+      policy: {
+        maxRadiusMiles: 2,
+        requestedCompCount: 15,
+        lookupSubjectAttributes: true,
+        providerVersion: "rentcast-avm-long-term-v1",
+      },
+      query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 } as {
+        bedrooms?: number;
+        bathrooms?: number;
+        squareFootage?: number;
+        propertyType?: string;
+      },
+      attributes: [],
+      baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+      trendPostalCode: "64118" as string | undefined,
+    },
+  },
 }));
 
 vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
@@ -62,6 +84,13 @@ vi.mock("@/lib/firestore/rentcast-usage", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/lease-renewal/market-comp-query-resolver", () => ({
+  resolveCurrentMarketCompQueryBasis: vi.fn(async () => {
+    if (harness.queryError.current) throw harness.queryError.current;
+    return harness.queryBasis.current;
+  }),
+}));
+
 vi.mock(
   "@/lib/lease-renewal/providers/rentcast-market-comp-provider",
   async (importOriginal) => {
@@ -82,6 +111,7 @@ import {
   resetMarketCompsCacheForTests,
 } from "@/app/api/lease-renewal/market-comps/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
+import { MarketCompQueryResolutionError } from "@/lib/lease-renewal/market-comp-query-basis";
 import { RENTCAST_MONTHLY_ALLOWANCE_DEFAULT } from "@/lib/lease-renewal/rentcast-quota";
 
 const LIKELY_RESULT = {
@@ -110,6 +140,21 @@ beforeEach(() => {
   harness.gateOpen.current = true;
   harness.usage.current = 0;
   harness.incrementCalls.length = 0;
+  harness.queryError.current = null;
+  harness.queryBasis.current = {
+    leaseId: "L1",
+    addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
+    policy: {
+      maxRadiusMiles: 2,
+      requestedCompCount: 15,
+      lookupSubjectAttributes: true,
+      providerVersion: "rentcast-avm-long-term-v1",
+    },
+    query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
+    attributes: [],
+    baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+    trendPostalCode: "64118",
+  };
   harness.lookupMock.mockReset().mockResolvedValue(LIKELY_RESULT);
   harness.lookupTrendMock.mockReset().mockResolvedValue({
     source: "RentCast",
@@ -135,7 +180,7 @@ afterEach(() => {
 
 describe("market-comps route (S59 RentCast path)", () => {
   it("meters a billed live call and returns the range with the quota view", async () => {
-    const res = await POST(req({ address: "104 NE Lindsay Ave", bedrooms: 3 }));
+    const res = await POST(req({ leaseId: "L1" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toMatchObject({
@@ -146,18 +191,27 @@ describe("market-comps route (S59 RentCast path)", () => {
         allowance: RENTCAST_MONTHLY_ALLOWANCE_DEFAULT,
         remaining: RENTCAST_MONTHLY_ALLOWANCE_DEFAULT - 1,
       },
+      queryBasis: {
+        leaseId: "L1",
+        policy: { maxRadiusMiles: 2, requestedCompCount: 15 },
+      },
+      cached: false,
     });
     expect(harness.lookupMock).toHaveBeenCalledTimes(1);
     expect(harness.lookupMock).toHaveBeenCalledWith(
-      expect.objectContaining({ addressLabel: "104 NE Lindsay Ave", bedrooms: 3 }),
+      expect.objectContaining({
+        addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
+        bedrooms: 3,
+        squareFootage: 1400,
+      }),
     );
     expect(harness.incrementCalls).toEqual([1]);
   });
 
   // AC-S59-3: a repeat inside the TTL performs zero additional live calls, identical range.
   it("serves a repeat lookup from the cache with zero live calls", async () => {
-    const first = await (await POST(req({ address: "104 NE Lindsay Ave" }))).json();
-    const second = await (await POST(req({ address: "104 NE Lindsay Ave" }))).json();
+    const first = await (await POST(req({ leaseId: "L1" }))).json();
+    const second = await (await POST(req({ leaseId: "L1" }))).json();
     expect(harness.lookupMock).toHaveBeenCalledTimes(1);
     expect(harness.incrementCalls).toEqual([1]);
     expect(second).toMatchObject({
@@ -167,6 +221,22 @@ describe("market-comps route (S59 RentCast path)", () => {
     });
   });
 
+  it("treats changed square footage as a distinct provider request", async () => {
+    harness.queryBasis.current = {
+      ...harness.queryBasis.current,
+      query: { ...harness.queryBasis.current.query, squareFootage: 1200 },
+    };
+    await POST(req({ leaseId: "L1" }));
+    harness.queryBasis.current = {
+      ...harness.queryBasis.current,
+      query: { ...harness.queryBasis.current.query, squareFootage: 1800 },
+    };
+    await POST(req({ leaseId: "L1" }));
+
+    expect(harness.lookupMock).toHaveBeenCalledTimes(2);
+    expect(harness.incrementCalls).toEqual([1, 1]);
+  });
+
   // AC-S59-4: no increment on a refusal that was never billed.
   it("does not increment the counter on an unbilled refusal, and passes the reason through", async () => {
     harness.lookupMock.mockResolvedValue({
@@ -174,7 +244,7 @@ describe("market-comps route (S59 RentCast path)", () => {
       confidence: "Needs Verification",
       reason: "timeout",
     });
-    const json = await (await POST(req({ address: "104 NE Lindsay Ave" }))).json();
+    const json = await (await POST(req({ leaseId: "L1" }))).json();
     expect(json).toMatchObject({ reason: "timeout", confidence: "Needs Verification" });
     expect(harness.incrementCalls).toEqual([]);
   });
@@ -186,7 +256,7 @@ describe("market-comps route (S59 RentCast path)", () => {
       reason: "too_few_comps",
       billed: true,
     });
-    const json = await (await POST(req({ address: "104 NE Lindsay Ave" }))).json();
+    const json = await (await POST(req({ leaseId: "L1" }))).json();
     expect(json).toMatchObject({ reason: "too_few_comps" });
     expect(harness.incrementCalls).toEqual([1]);
   });
@@ -194,7 +264,7 @@ describe("market-comps route (S59 RentCast path)", () => {
   // AC-S59-5: at the stop the route refuses with the explicit reason and makes no call.
   it("refuses at the hard quota stop with no live call", async () => {
     harness.usage.current = RENTCAST_MONTHLY_ALLOWANCE_DEFAULT;
-    const res = await POST(req({ address: "104 NE Lindsay Ave" }));
+    const res = await POST(req({ leaseId: "L1" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toMatchObject({
@@ -207,16 +277,21 @@ describe("market-comps route (S59 RentCast path)", () => {
   });
 
   it("still serves a cached range after the allowance is exhausted (a hit costs nothing)", async () => {
-    await POST(req({ address: "104 NE Lindsay Ave" }));
+    await POST(req({ leaseId: "L1" }));
     harness.usage.current = RENTCAST_MONTHLY_ALLOWANCE_DEFAULT;
-    const json = await (await POST(req({ address: "104 NE Lindsay Ave" }))).json();
+    const json = await (await POST(req({ leaseId: "L1" }))).json();
     expect(json).toMatchObject({ cached: true, rangeLow: 1450 });
     expect(harness.lookupMock).toHaveBeenCalledTimes(1);
   });
 
-  // AC-S59-6 route half: a missing address refuses locally; nothing is looked up.
-  it("refuses a comps request with no address before any provider work", async () => {
-    const res = await POST(req({}));
+  // AC-S59-1/3: the server resolver refuses a missing authoritative address; nothing is looked up.
+  it("refuses a lease whose current RentVine view has no address", async () => {
+    harness.queryError.current = new MarketCompQueryResolutionError(
+      "missing_address",
+      400,
+      "This lease has no complete RentVine address, so no RentCast lookup ran.",
+    );
+    const res = await POST(req({ leaseId: "L1" }));
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({ error_type: "missing_address" });
     expect(harness.lookupMock).not.toHaveBeenCalled();
@@ -225,8 +300,8 @@ describe("market-comps route (S59 RentCast path)", () => {
 
   // AC-S59-18: a trend lookup is a separate billable request metered separately.
   it("meters a trend lookup separately and returns the month-keyed history intact", async () => {
-    await POST(req({ address: "104 NE Lindsay Ave" }));
-    const res = await POST(req({ operation: "trend", zipCode: "64118" }));
+    await POST(req({ leaseId: "L1" }));
+    const res = await POST(req({ operation: "trend", leaseId: "L1" }));
     const json = await res.json();
     expect(json).toMatchObject({
       zipCode: "64118",
@@ -238,15 +313,24 @@ describe("market-comps route (S59 RentCast path)", () => {
     expect(harness.incrementCalls).toEqual([1, 1]);
   });
 
-  it("refuses a trend request with no zip before any provider work", async () => {
-    const res = await POST(req({ operation: "trend" }));
+  it("refuses a trend request when the authoritative lease has no postal code", async () => {
+    harness.queryBasis.current.trendPostalCode = undefined;
+    const res = await POST(req({ operation: "trend", leaseId: "L1" }));
     expect(res.status).toBe(400);
     expect(harness.lookupTrendMock).not.toHaveBeenCalled();
   });
 
-  // AC-S59-9 + AC-S59-13: with the committed seed still closed, the route refuses BEFORE parsing
-  // the body, names the action key, and the comps path reports itself as not live.
-  it("refuses with the real closed-seed response before body parse while the flip is unpushed", async () => {
+  it("rejects browser-nominated address or unit attributes", async () => {
+    const res = await POST(
+      req({ leaseId: "L1", address: "invented", squareFootage: 9999 }),
+    );
+    expect(res.status).toBe(400);
+    expect(harness.lookupMock).not.toHaveBeenCalled();
+  });
+
+  // Closed-key regression: if the presently open read key is closed later, refuse BEFORE parsing
+  // the body, name the exact action key, and make no provider call.
+  it("fails closed before body parse when the exact RentCast read key is unavailable", async () => {
     harness.gateOpen.current = false;
     const json = vi.fn();
     const request = { headers: new Headers(), json } as unknown as Request;

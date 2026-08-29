@@ -14,6 +14,13 @@ import {
   type MarketCompResult,
 } from "@/lib/lease-renewal/market-comp-provider";
 import {
+  MarketCompQueryResolutionError,
+  RENTCAST_PUBLIC_SOURCE_URL,
+  type MarketCompQueryBasis,
+} from "@/lib/lease-renewal/market-comp-query-basis";
+import { resolveCurrentMarketCompQueryBasis } from "@/lib/lease-renewal/market-comp-query-resolver";
+import {
+  DEFAULT_TREND_HISTORY_MONTHS,
   RentCastMarketCompProvider,
   RENTCAST_LISTINGS_ACTION_KEY,
   RENTCAST_MARKET_COMP_SOURCE,
@@ -44,16 +51,9 @@ const MarketCompsRequestSchema = z
     // S59: "comps" (the default) is the AVM comp basis; "trend" is the month-keyed /markets history.
     // Each is a SEPARATE billable RentCast request and is metered separately (AC-S59-18).
     operation: z.enum(["comps", "trend"]).default("comps"),
-    address: z.string().trim().min(1).max(300).optional(),
-    zipCode: z
-      .string()
-      .trim()
-      .regex(/^\d{5}$/)
-      .optional(),
-    bedrooms: z.number().int().nonnegative().max(20).optional(),
-    bathrooms: z.number().nonnegative().max(20).optional(),
-    squareFootage: z.number().int().positive().max(100_000).optional(),
-    propertyType: z.string().trim().min(1).max(50).optional(),
+    // The browser nominates only a lease identity. Address, unit attributes, policy, and base rent
+    // are re-resolved from the current RentVine export on the server.
+    leaseId: z.string().trim().min(1).max(120),
     // The operator's OWN entered comp numbers, for the manual pass-through only (RentCast ignores them).
     manualBasis: z
       .object({
@@ -79,13 +79,21 @@ async function readQuota(
   return evaluateRentcastQuota(usage.billedCalls, resolveRentcastAllowance());
 }
 
+function referenceProjection(queryBasis: MarketCompQueryBasis, cached: boolean) {
+  return {
+    queryBasis,
+    sourceUrl: RENTCAST_PUBLIC_SOURCE_URL,
+    cached,
+  };
+}
+
 /**
  * Run the configured market-comp provider and return a DISPLAY-only result. Reference only: the
  * response never sets or moves the offered rent. S59 adds, on the RentCast path only: a per-address
  * TTL cache (a hit costs zero live calls), a persisted monthly counter of billed calls, a soft
  * warning, and a hard quota stop that refuses live calls for the period while the manual path keeps
- * working. When the RentCast adapter is selected it is refused with the closed-action response until
- * its reviewed gate flip lands; the manual adapter needs no gate and echoes the operator's numbers.
+ * working. When the RentCast adapter is selected, the exact action key and runtime suspension gate
+ * are enforced before a call; the manual adapter needs no provider gate and echoes operator input.
  */
 export async function POST(request: Request) {
   try {
@@ -98,24 +106,16 @@ export async function POST(request: Request) {
 
     const body = await parseJsonBody(request, MarketCompsRequestSchema);
 
-    // Local refusals BEFORE any provider work: a missing address (or zip for a trend) never spends
-    // a call and never sends a placeholder like the literal "Unknown" (AC-S59-6).
-    if (body.operation === "comps" && !body.address) {
-      return NextResponse.json(
-        {
-          error:
-            "This lease has no address on file, so a comp lookup would search for nothing. Enter your own comp numbers instead.",
-          error_type: "missing_address",
-        },
-        { status: 400 },
-      );
-    }
-    if (body.operation === "trend" && !body.zipCode) {
+    const queryBasis = await resolveCurrentMarketCompQueryBasis(body.leaseId);
+
+    // A trend needs the server-resolved RentVine postal code. No browser-supplied fallback and no
+    // placeholder can spend a provider call.
+    if (body.operation === "trend" && !queryBasis.trendPostalCode) {
       return NextResponse.json(
         {
           error:
             "This lease has no 5-digit zip on file, so a market-trend lookup has nothing to query.",
-          error_type: "missing_address",
+          error_type: "missing_postal_code",
         },
         { status: 400 },
       );
@@ -128,14 +128,22 @@ export async function POST(request: Request) {
           source: RENTCAST_MARKET_COMP_SOURCE,
           confidence: "Needs Verification",
           reason: "provider_not_live",
+          ...referenceProjection(queryBasis, false),
         } satisfies MarketTrendResult);
       }
       const provider = createMarketCompProvider({
         provider: config.marketCompProvider,
         ...(body.manualBasis ? { basis: body.manualBasis } : {}),
       });
-      const result = await provider.lookup({ addressLabel: body.address ?? "" });
-      return NextResponse.json(result);
+      const result = await provider.lookup({
+        addressLabel: queryBasis.addressLabel,
+        ...queryBasis.query,
+      });
+      return NextResponse.json({
+        ...result,
+        queryBasis,
+        cached: false,
+      });
     }
 
     // --- RentCast path: cache → quota stop → one gated live call → meter billed calls. ---
@@ -146,18 +154,24 @@ export async function POST(request: Request) {
     const nowMs = Date.now();
     const cacheKey =
       body.operation === "trend"
-        ? `trend:${body.zipCode}`
+        ? `trend:${queryBasis.policy.providerVersion}:${queryBasis.trendPostalCode}:${DEFAULT_TREND_HISTORY_MONTHS}`
         : compCacheKey({
-            address: body.address ?? "",
-            ...(body.bedrooms !== undefined ? { bedrooms: body.bedrooms } : {}),
-            ...(body.bathrooms !== undefined ? { bathrooms: body.bathrooms } : {}),
-            ...(body.propertyType ? { propertyType: body.propertyType } : {}),
+            address: queryBasis.addressLabel,
+            ...queryBasis.query,
+            maxRadiusMiles: queryBasis.policy.maxRadiusMiles,
+            requestedCompCount: queryBasis.policy.requestedCompCount,
+            lookupSubjectAttributes: queryBasis.policy.lookupSubjectAttributes,
+            providerVersion: queryBasis.policy.providerVersion,
           });
     const cached = readCompCache<MarketCompResult | MarketTrendResult>(cacheKey, nowMs);
     if (cached) {
       // AC-S59-3: a repeat inside the TTL performs ZERO additional live calls — a cached range
       // stays servable even after the allowance is exhausted, because serving it costs nothing.
-      return NextResponse.json({ ...cached, quota, cached: true });
+      return NextResponse.json({
+        ...cached,
+        quota,
+        ...referenceProjection(queryBasis, true),
+      });
     }
 
     if (quota.exhausted) {
@@ -167,23 +181,25 @@ export async function POST(request: Request) {
         confidence: "Needs Verification",
         reason: "out_of_allowance",
       };
-      return NextResponse.json({ ...refusal, quota });
+      return NextResponse.json({
+        ...refusal,
+        quota,
+        ...referenceProjection(queryBasis, false),
+      });
     }
 
-    const provider = new RentCastMarketCompProvider(
-      config.rentcastApiKey ? { apiKey: config.rentcastApiKey } : {},
-    );
+    const provider = new RentCastMarketCompProvider({
+      ...(config.rentcastApiKey ? { apiKey: config.rentcastApiKey } : {}),
+      maxRadiusMiles: queryBasis.policy.maxRadiusMiles,
+      compCount: queryBasis.policy.requestedCompCount,
+      lookupSubjectAttributes: queryBasis.policy.lookupSubjectAttributes,
+    });
     const lookup = async () =>
       body.operation === "trend"
-        ? provider.lookupTrend(body.zipCode as string)
+        ? provider.lookupTrend(queryBasis.trendPostalCode as string)
         : provider.lookup({
-            addressLabel: body.address as string,
-            ...(body.bedrooms !== undefined ? { bedrooms: body.bedrooms } : {}),
-            ...(body.bathrooms !== undefined ? { bathrooms: body.bathrooms } : {}),
-            ...(body.squareFootage !== undefined
-              ? { squareFootage: body.squareFootage }
-              : {}),
-            ...(body.propertyType ? { propertyType: body.propertyType } : {}),
+            addressLabel: queryBasis.addressLabel,
+            ...queryBasis.query,
           });
     const result = await runProductionRuntimeGatedAction(
       RENTCAST_LISTINGS_ACTION_KEY,
@@ -199,8 +215,18 @@ export async function POST(request: Request) {
     if (result.confidence === "Likely") {
       writeCompCache(cacheKey, result, nowMs);
     }
-    return NextResponse.json({ ...result, quota });
+    return NextResponse.json({
+      ...result,
+      quota,
+      ...referenceProjection(queryBasis, false),
+    });
   } catch (error) {
+    if (error instanceof MarketCompQueryResolutionError) {
+      return NextResponse.json(
+        { error: error.message, error_type: error.code },
+        { status: error.status },
+      );
+    }
     if (
       error instanceof ActionNotExecutableError ||
       error instanceof ActionRuntimeSuspendedError
