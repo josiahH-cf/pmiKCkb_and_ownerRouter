@@ -1,28 +1,38 @@
 # Client, owner, and provider actions
 
-Updated: 2026-08-27.
+Updated: 2026-08-29.
 
 The application is internally complete to each boundary below. Missing input blocks only the named
 capability; it is not an unfinished engineering dependency.
 
+## Decisions recorded on 2026-08-29
+
+- S72 carries the approved six-step process with detailed substeps, roles, evidence, branches, and
+  reopening rules.
+- Contractual base rent is the renewal comparison/decision value; recurring charges stay separate.
+- RentCast requests a two-mile maximum radius and 15 comparables, preserves provider order, applies
+  no hidden freshness/selection filter, and remains reference-only.
+- RentCast radius, comp count, freshness/selection policy: the first two are approved above; any
+  future freshness or selection rule stays unset until explicitly approved and versioned.
+- Renewals-space Editors may perform ordinary app-owned work and exact-confirm unsent drafts; stronger
+  approval/Admin/action/write boundaries remain separate.
+
 | Priority | Owner                 | Exact input required                                                             | Completed seam waiting on it                                              | Next action                                                         |
 | -------: | --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-|        1 | Client process owner  | Six renewal steps, order, owner, completion evidence                             | Versioned step/workspace model                                            | Record and review the exact process                                 |
-|        2 | Client                | “Current rent” meaning per source and correction source choice                   | Lease/row-bound discrepancy disposition and exact transaction contract    | Approve base-rent vs recurring-total semantics                      |
-|        3 | Client/Admin          | Distinct verbatim Sheet copy, managed sharing, blank cell                        | Admin URL/id save plus copy-only CAS/read/clear proof                     | Save the copy in Admin, dry-run, then confirm once                  |
-|        4 | Client/Admin          | One unmistakable RentVine test lease/owner and allowed field                     | Two restricted POST shapes, exact preview/rollback/readback; gate closed  | Review the designated-record proof and protected gate separately    |
-|        5 | Client process expert | Move-out deposit-disposition walkthrough and date                                | Report acknowledged and current workflow kept non-invented                | Complete walkthrough, then disposition the report                   |
-|        6 | Client                | Exact lease behind wrong-resident report                                         | Address/lease identity remains fail-closed                                | Identify and verify that one lease                                  |
-|        7 | Client/Admin          | RentCast radius, comp count, freshness/selection policy                          | Allowance-capped reference search                                         | Record operator policy; provider never sets rent                    |
-|        8 | Client                | Approved offer wording and channel-evidence rules                                | Editable drafts and honest status model                                   | Approve copy and contacted/sent evidence                            |
-|        9 | Client/Admin          | Waiting-on timing values and override authority                                  | Source-backed contact state plus versioned global/property/lease rules    | Enter client-confirmed values in Admin                              |
-|       10 | Owner/client          | Exact end-of-September commitment                                                | Scope remains unasserted                                                  | Record the agreed deliverable and evidence                          |
-|       11 | Client/provider       | Approved S66 artifacts, fields, participants, signatures, form rules             | Immutable packet truth and exact Dotloop binding                          | Publish the approved catalog                                        |
-|       12 | Provider/client       | Dotloop OAuth plus exact account/profile/template/webhook/correction mappings    | Preview/confirm/idempotency/readback/receipt/reconcile/rollback lifecycle | Configure one official adapter and prove one packet                 |
-|       13 | Provider/client       | One LeadSimple action, official account contract, credential, mappings           | CAS/readback/idempotency/receipt/reconcile/rollback lifecycle             | Configure and prove only that action                                |
-|       14 | RentVine/client       | Invitation/reply/webhook/auth/identity/correction/rollback contract              | Verified-resident channel lifecycle; app intake remains usable            | Configure official adapter; keep provider channel closed until then |
-|       15 | Owner                 | One saved Space request, first JSONL object in its isolated prefix, approval ref | Fixed official Discovery Engine lifecycle and isolated retirement         | Review packet, then enable one bounded pilot attempt                |
-|       16 | Owner                 | Explicit S64 authority decision                                                  | No S64 implementation or implied authority                                | Keep current role rules unless separately authorized                |
+|        1 | Client/Admin          | Distinct verbatim Sheet copy, managed sharing, blank cell                        | Admin URL/id save plus copy-only CAS/read/clear proof                     | Save the copy in Admin, dry-run, then confirm once                  |
+|        2 | Client/Admin          | One unmistakable RentVine test lease/owner and allowed field                     | Two restricted POST shapes, exact preview/rollback/readback; gate closed  | Review the designated-record proof and protected gate separately    |
+|        3 | Client process expert | Move-out deposit-disposition walkthrough and date                                | Report acknowledged and current workflow kept non-invented                | Complete walkthrough, then disposition the report                   |
+|        4 | Client                | Exact lease behind wrong-resident report                                         | Address/lease identity remains fail-closed                                | Identify and verify that one lease                                  |
+|        5 | Client                | Approved owner/tenant wording, locked copy, and channel-evidence rules           | Versioned templates, constrained AI, editable drafts, honest status       | Approve exact copy and contacted/sent evidence                      |
+|        6 | Client/Admin          | Waiting-on timing values and override authority                                  | Source-backed contact state plus versioned global/property/lease rules    | Enter client-confirmed values in Admin                              |
+|        7 | Client/Admin          | Any future RentCast freshness or selection/rejection rule beyond provider order  | Transparent two-mile/15-request reference search                          | Leave unset or approve an explicit versioned rule                   |
+|        8 | Owner/client          | Exact end-of-September commitment                                                | Scope remains unasserted                                                  | Record the agreed deliverable and evidence                          |
+|        9 | Client/provider       | Approved S66 artifacts, fields, participants, signatures, form rules             | Immutable packet truth and exact Dotloop binding                          | Publish the approved catalog                                        |
+|       10 | Provider/client       | Dotloop OAuth plus exact account/profile/template/webhook/correction mappings    | Preview/confirm/idempotency/readback/receipt/reconcile/rollback lifecycle | Configure one official adapter and prove one packet                 |
+|       11 | Provider/client       | One LeadSimple action, official account contract, credential, mappings           | CAS/readback/idempotency/receipt/reconcile/rollback lifecycle             | Configure and prove only that action                                |
+|       12 | RentVine/client       | Invitation/reply/webhook/auth/identity/correction/rollback contract              | Verified-resident channel lifecycle; app intake remains usable            | Configure official adapter; keep provider channel closed until then |
+|       13 | Owner                 | One saved Space request, first JSONL object in its isolated prefix, approval ref | Fixed official Discovery Engine lifecycle and isolated retirement         | Review packet, then enable one bounded pilot attempt                |
+|       14 | Owner                 | Explicit S64 authority decision                                                  | No S64 implementation or implied authority                                | Keep current role rules unless separately authorized                |
 
 ## Live support state
 

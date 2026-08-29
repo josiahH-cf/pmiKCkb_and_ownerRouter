@@ -75,11 +75,12 @@ renewal Sheet without printing client values:
 | Both missing or not joined |   216 |
 | High current-rent flags    |    20 |
 
-These are review outcomes, not a claim that 20 RentVine records are wrong. Unknown meaning—especially
-base rent versus total monthly charge—is waiting on the client. Conflict, missing, stale, expired, or
-ambiguous evidence remains fail-closed. A disposition records authoritative source, proposed
-correction, reason, owner, status, and evidence for one exact lease/row. It cannot perform a source
-write without a separate approved source-specific transaction contract.
+These are review outcomes, not a claim that 20 RentVine records are wrong. On 2026-08-29 the owner
+selected contractual base rent as the renewal comparison/decision value, with recurring charges kept
+separate; S72/S59 implementation remains pending. Conflict, missing, stale, expired, or ambiguous
+evidence remains fail-closed. A disposition records authoritative source, proposed correction, reason,
+owner, status, and evidence for one exact lease/row. It cannot perform a source write without a
+separate approved source-specific transaction contract.
 
 ## Safe rehearsal and provider posture
 
@@ -112,14 +113,14 @@ guessed. Per-person approval authority remains unimplemented and unauthorized.
 3. Team Work for assignment location and materials needed/already available.
 4. Workflow Communications for manual refresh of linked Gmail threads and honest waiting-on/contact
    state; every client message remains an unsent draft or a human Gmail action.
-5. The four-lease proof packet after the client supplies its process, rent-definition, and comp-policy
-   decisions.
+5. The four-lease proof packet under the approved six-step, base-rent, two-mile/15-request criteria;
+   lease-specific missing evidence remains explicit.
 
 ## Named external inputs only
 
 | Owner                 | Exact input                                                                                                                          | Completed seam waiting on it                                                                   | Next action                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| PMI KC renewal owner  | Six steps, current-rent meaning, and comp radius/count/freshness/selection policy                                                    | Versioned workflow, discrepancy dispositions, immutable four-case runner, reference-only comps | Record decisions and run the four-case packet.                                |
+| PMI KC renewal owner  | Approved wording/channel evidence, timing values, and any future RentCast freshness/selection rule beyond provider order             | Versioned templates, follow-up policy, immutable four-case runner, transparent reference comps | Approve exact copy/timing; run the four-case packet under recorded criteria.  |
 | PMI KC Admin          | Distinct shared rehearsal Sheet copy and one blank cell                                                                              | Saved Admin config and reversible copy-only proof                                              | Save the real link, preview, confirm, and run one-cell proof.                 |
 | PMI KC owner          | One unmistakable RentVine test lease/owner and allowed field                                                                         | Restricted preview/readback/rollback seam with closed key                                      | Review a dry preview; treat live proof as a separate protected gate decision. |
 | PMI KC process expert | Move-out walkthrough/date and exact lease behind the resident-identity report                                                        | Acknowledged support record and fail-closed lease identity                                     | Walk through and verify before resolving.                                     |

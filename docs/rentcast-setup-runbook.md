@@ -1,6 +1,6 @@
 # RentCast operations
 
-Updated: 2026-08-26.
+Updated: 2026-08-29.
 
 RentCast is configured and live for the exact reference-read action.
 
@@ -19,10 +19,17 @@ RentCast is configured and live for the exact reference-read action.
 Use a real lease address/unit only inside the authenticated application. Review the returned source,
 range, comparable count, and age. Do not treat the estimate as an approved offer.
 
-## Open policy
+## Approved query policy
 
-Client/Admin still needs to confirm search radius and comparable-count rules. Until then, label output
-as reference and preserve the Admin approval boundary.
+- Request a maximum radius of two miles.
+- Request 15 comparable records; fewer than the existing three-usable-comparable floor fails closed.
+- Preserve RentCast provider order and correlation; apply no hidden application-side freshness,
+  selection, or rejection filter.
+- Show retrieval time and available comparable age fields without inventing a freshness claim.
+- Treat every result as reference evidence and preserve the human decision/approval boundary.
+
+Any later freshness or selection/rejection rule requires a new explicit versioned client/Admin
+decision; it is not inferred from the current provider payload.
 
 ## Failure
 

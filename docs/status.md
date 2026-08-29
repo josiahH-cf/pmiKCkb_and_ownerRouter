@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-08-27.
+Last updated: 2026-08-29.
 
 This is a present snapshot, not a changelog. Historical implementation detail remains in Git.
 
@@ -16,51 +16,61 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-The closure slice is deployed. The canonical local gate passed in 1,361.192 seconds, aggregate CI
-run `33069769758` is green, the zero-traffic candidate passed exact identity smoke, and the promoted
-revision was read back at 100% traffic.
+The closure slice is deployed. The canonical local gate and aggregate CI run `33069769758` are green,
+the zero-traffic candidate passed exact identity smoke, and the promoted revision plus rollback/restore
+were read back. No new code from the renewal stabilization specifications is deployed.
 
 ## Verified product state in production
 
-- Admin can save a distinct rehearsal-Sheet URL/id without a deployment. Saving never reads Sheet
-  contents or starts the one-cell proof; the proof also resolves the saved id.
-- Renewal discrepancies have append-only dispositions with source identity, proposed correction,
-  reason, owner, evidence, and status. No correction can execute without a source-specific contract.
-- Gmail continuous watch is retired. Manual refresh fetches only linked threads and derives
-  waiting-on/last-contact from provider state; duplicate/out-of-order refreshes are idempotent.
+- Complete RentVine and operating-Sheet reads feed renewal reconciliation and Live workspaces.
+- RentCast is open for allowance-capped reference reads; provider output cannot set offered rent.
+- Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only at the service layer.
+  The current browser composer/API confirmation shapes are inconsistent and are active S77 work.
+- Gmail continuous watch is retired. Manual refresh fetches only linked threads and derives waiting-on/
+  last-contact from provider state; duplicate/out-of-order refreshes are idempotent.
 - Admin has versioned global/property/lease timing rules. Unconfirmed policy displays as unset and
   cannot create a timer, reminder, work, draft, or send.
-- S36 has one fixed Discovery Engine Space shape with exact preview, official provider adapter,
-  durable idempotency/receipt, eleven-Space protection, and isolated retirement. Its flag is off.
-- S37 supports only read-only operational process pages composed from allowlisted components, with
-  immutable draft/approval/publication/readback/rollback.
-- Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal
-  preview/confirmation/idempotency/receipt/readback/correction/rollback seams and remain closed until
-  their exact official inputs exist.
+- Renewal screenshot preview/store/receipt/rollback machinery exists behind the closed exact Drive
+  key; outgoing renewal Gmail MIME does not yet attach the screenshot.
+- Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal exact-
+  lifecycle seams and remain closed until their official external inputs exist.
 - The four-lease proof machinery is immutable, read-only against source systems, separates process
-  and number criteria, and reports missing client policy as `not evaluated`.
-- Production dependency overrides resolve `fast-uri` 3.1.5, `hono` 4.12.34, `ip-address` 10.3.1,
-  and `nanoid` 3.3.18. `npm audit --omit=dev` reports zero vulnerabilities.
+  and number criteria, and reports missing evidence honestly. Its current scripts still track/print
+  exact case values, so S63 must move those bindings to secure runtime input and redact output before
+  the next proof.
 
-## Live operating readback
+## Approved renewal stabilization contract — not yet implemented
 
-- Support reports: Work `resolved`; Connections `acknowledged`; move-out `acknowledged` and open for
-  the client walkthrough. No report remains `new`; every transition used the audited Admin path.
-- Gmail watch Scheduler: absent. The expired watch's sole Pub/Sub subscription and topic were deleted
-  and read back absent on 2026-08-27.
-- Rollback rehearsal: 100% traffic moved to predecessor
-  `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, exact identity and bounded routes passed, traffic returned to
-  `pmi-kc-app-rmtbh280n-61b78ef991cc`, and the exact stable smoke passed again.
+- S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
+- Contractual base rent is the renewal comparison/decision value; recurring charges remain separate.
+- RentCast requests a maximum two-mile radius and 15 comparables, retains provider order, applies no
+  hidden freshness/selection filter, and remains reference-only.
+- Renewals-space Editors may perform ordinary app-owned renewal work and exact-confirm unsent drafts;
+  pricing approval, Admin configuration, exact action gates, and source writes retain stronger rules.
+- Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
+  terms, mandatory copy, evidence, and channel status stay locked.
+- The comp screenshot target is one exact receipted Gmail attachment, not a text reference or inline
+  image; the separate Drive action remains closed until independently authorized.
+- S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
+  Admin/Connections authority.
+- S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
+  human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
+  verification, and terminal-state rules. Their presence is not implementation or activation evidence.
 
 ## Remaining blockers
 
-All remaining capability blockers are external inputs: client process/rent/comp/timing/wording
-decisions, the distinct rehearsal copy, the designated RentVine test record, the move-out walkthrough,
-and exact provider contracts/credentials/mappings. Internal release engineering is complete. Final
-goal closure still requires eight real owner verdicts and the editable, visually inspected customer
-readout deck.
+- Client-approved owner/tenant wording, required/forbidden language, and channel-evidence rules.
+- Client-confirmed follow-up/timing values and any later RentCast freshness/selection policy.
+- Distinct rehearsal Sheet copy and blank proof cell.
+- Exact S30 RentVine test lease/owner/field plus a separate protected key review.
+- S66 packet catalog and exact Dotloop OAuth/account/template/participant/field/signature/webhook/
+  correction mappings.
+- Move-out walkthrough, exact wrong-resident lease, other named provider contracts, and real human
+  litmus verdicts.
 
 ## Locked safety
 
-No autonomous client send, no unconfirmed system-of-record write, no operating-Sheet proof, no test
-record substitution, and no guessed endpoint, identity, recipient, mapping, policy, or client value.
+No autonomous client send, unconfirmed system-of-record write, operating-Sheet proof, test-record
+substitution, guessed endpoint/identity/recipient/mapping/customer value, action-gate inference,
+personal runtime identity, secret/client evidence in Git, or protected-path push without exact owner
+direction.
