@@ -3,8 +3,8 @@
 
 # S77 — Renewal draft preview-confirm reliability
 
-> Status: Active; the live UI/API confirmation contract is internally inconsistent, so the current
-> composer cannot complete the already-authorized unsent-draft lifecycle reliably.
+> Status: Complete and deployed; the shared exact-confirm/reconcile contract is the downstream
+> foundation for S74 and S79 and remains preserved through the stabilization bundle.
 
 **Goal.**
 
@@ -14,14 +14,11 @@ Gmail's result is uncertain.
 
 **Current state / intended end state.**
 
-The component posts `confirm:false` for preview and `confirm:true` for creation. The route accepts no
-confirmation for preview and requires `{ executionId, previewHash }` for creation; the service and
-execution ledger already enforce the exact-object contract. Component and route tests pass in
-isolation because no check crosses that boundary. Currency controls already parse display strings to
-numbers, but the same missing cross-layer check does not prove those numeric fields and confirmation
-retain their distinct types. The intended state has one shared request/outcome contract, typed
-positive-money validation, input-bound preview state, exact confirmation, one-attempt execution, and
-visible reconciliation.
+The deployed component, route, and service consume one shared request/outcome contract. Preview omits
+confirmation; creation requires `{ executionId, previewHash }`; positive-money and owner-range
+validation fail closed; all material inputs invalidate stale previews; and uncertain one-attempt
+results expose only exact RFC Message-ID reconciliation. Cross-layer tests prove that numeric offer
+fields and confirmation retain distinct types and that boolean confirmation is rejected.
 
 **Actors and entry conditions.**
 
@@ -98,7 +95,8 @@ forces a fresh review, and an uncertain result offers a check rather than anothe
 
 - Model verdict: PASS - why: the fail-first boolean/object, stale-input, range, and uncertain-attempt
   cases now pass through the shared contract; the focused S77 set, one-attempt ledger/send-boundary
-  preservation, 524-file canonical unit gate, 115 Firestore tests, and 104-route build are green.
+  preservation, 524 passing unit files plus one intentional skip, 115 Firestore tests, and 104-route
+  build are green.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**

@@ -1,10 +1,10 @@
-# PMI KC meeting reconciliation — present truth as of 2026-08-27
+# PMI KC meeting reconciliation — present truth as of 2026-08-29
 
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`6aea639728efcad70e3e601e7a031c2b35722e08` as revision
-`pmi-kc-app-rmtbh280n-61b78ef991cc` at 100% traffic.
+`2d7903d42dce9dbfad49338b959e467f6c333ccc` as revision
+`pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` at 100% traffic.
 
 Client handoffs:
 
@@ -143,7 +143,15 @@ version-aware predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed root, sign
 version smoke, restored the new revision, and passed the same smoke again. No client-data or provider
 effect occurred.
 
-The unit runner preserves the full 524-file inventory while using a bounded eight-worker thread pool
-in a native Linux shadow. The final canonical run completed Vitest in 43.39 seconds; a complete cached
-`npm test` proof measured 65.30 seconds. The retired roughly 40–48-minute behavior is no longer the
+The subsequent S77 release passed 524 unit files with one intentional file skip (4,762 passing tests
+and four skips), all 115 Firestore tests, every policy/static gate, and the 104-route build. Commit
+`2d7903d42dce9dbfad49338b959e467f6c333ccc` was pushed to `main`; zero-traffic candidate
+`pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` passed exact commit/revision and bounded-route smoke, preserved
+the reviewed Production+Live configuration, and was promoted/read back at 100% traffic.
+[GitHub Actions run 33267458811](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33267458811)
+also passed.
+
+The unit runner preserves the current full 525-file inventory while using a bounded eight-worker
+thread pool in a native Linux shadow. The 2026-08-27 524-file canonical run completed Vitest in 43.39
+seconds; a complete cached `npm test` proof measured 65.30 seconds. The retired roughly 40–48-minute behavior is no longer the
 current performance claim.

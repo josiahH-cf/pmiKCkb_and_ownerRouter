@@ -91,7 +91,7 @@ not block independent suites.
 | S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`        | Constrained AI scope approved; exact wording/channel evidence remains              |
 | S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Source/policy seams built; shared desk projection missing; timing values unset     |
 | S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required     |
-| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Active; UI/API exact-confirm mismatch and cross-layer test gap identified          |
+| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation   |
 | S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Active; canonical searchable role-consistent Live desk not implemented             |
 | S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Active; receipt/MIME design specified; Drive action remains closed                 |
 | S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Approved Editor ordinary-work matrix; guard alignment not implemented              |

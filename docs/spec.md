@@ -1,6 +1,6 @@
 # PMI KC current product contract
 
-Updated: 2026-08-26.
+Updated: 2026-08-29.
 
 ## Application
 
@@ -49,10 +49,11 @@ closed.
 
 ## Current acceptance
 
-The production release at commit `6aea639728efcad70e3e601e7a031c2b35722e08` passed 4,678 unit
-tests with four intentional skips across the complete 524-file inventory, all 115 Firestore tests,
-all static/policy gates, a 104-route production build, exact candidate/stable smoke, aggregate CI,
-and version-aware rollback/restoration smoke.
+The production release at commit `2d7903d42dce9dbfad49338b959e467f6c333ccc` passed 4,762 unit
+tests with four intentional skips across the complete 525-file inventory, all 115 Firestore tests,
+all static/policy gates, a 104-route production build, and exact candidate/stable smoke. Its immediate
+predecessor remains the captured rollback target; aggregate CI run `33267458811` passed, and the
+predecessor had already passed the recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 

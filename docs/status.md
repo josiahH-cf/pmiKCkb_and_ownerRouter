@@ -8,19 +8,19 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtbh280n-61b78ef991cc`, 100% traffic
-- Serving commit: `6aea639728efcad70e3e601e7a031c2b35722e08`
+- Serving revision: `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`, 100% traffic
+- Serving commit: `2d7903d42dce9dbfad49338b959e467f6c333ccc`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-The closure slice is deployed. The canonical local gate and aggregate CI run `33069769758` are green,
-the zero-traffic candidate passed exact identity smoke, and the promoted revision plus rollback/restore
-were read back. No new code from the renewal stabilization specifications is deployed.
+S77 is deployed. Its canonical local gate and aggregate CI run `33267458811` passed, the zero-traffic
+candidate passed exact identity and bounded-route smoke, and the promoted revision was read back at
+100% with the preserved runtime configuration. The earlier closure slice remains green.
 
-## Current release candidate
+## Deployed renewal stabilization slice
 
 - S77 now has one strict request/outcome contract used by the browser, route, and service. Preview
   omits confirmation; create carries the exact execution id and preview hash; boolean confirmation,
@@ -30,16 +30,16 @@ were read back. No new code from the renewal stabilization specifications is dep
 - A timeout/invalid create response retains the exact attempt, disables retry-as-new, and offers only
   read-only RFC Message-ID reconciliation with created/not-found/needs-review outcomes.
 - The focused S77 component, contract, route, service, ledger, and send-boundary checks plus TypeScript
-  are green. The canonical gate passed 524 unit files (4,762 tests), 115 Firestore tests, every policy
-  gate, and the 104-route build. Exact zero-traffic release proof remains; none of this candidate is
-  production truth yet.
+  are green. The canonical gate passed 524 unit files with one intentional file skip (4,762 passing
+  tests and four skips), 115 Firestore tests, every policy gate, and the 104-route build. Exact
+  candidate and stable production readback are green.
 
 ## Verified product state in production
 
 - Complete RentVine and operating-Sheet reads feed renewal reconciliation and Live workspaces.
 - RentCast is open for allowance-capped reference reads; provider output cannot set offered rent.
-- Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only at the service layer.
-  The current browser composer/API confirmation shapes are inconsistent and are active S77 work.
+- Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only. The browser,
+  route, and service now share exact preview/confirm/reconcile shapes.
 - Gmail continuous watch is retired. Manual refresh fetches only linked threads and derives waiting-on/
   last-contact from provider state; duplicate/out-of-order refreshes are idempotent.
 - Admin has versioned global/property/lease timing rules. Unconfirmed policy displays as unset and
@@ -67,8 +67,8 @@ were read back. No new code from the renewal stabilization specifications is dep
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77 implementation is the current unshipped candidate; S59/S72/S74/S75/S78/S79/S80/S81/S63 and the
-  separately gated S30 effect remain in the ordered execution bundle.
+- S77 is complete and deployed; S59/S72/S74/S75/S78/S79/S80/S81/S63 and the separately gated S30
+  effect remain in the ordered execution bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Their presence is not implementation or activation evidence.

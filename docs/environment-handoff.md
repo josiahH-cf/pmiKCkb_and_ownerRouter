@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback: 2026-08-27.
+Updated from live readback: 2026-08-29.
 
 ## Production
 
@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-27.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtbh280n-61b78ef991cc`            |
-| Serving commit    | `6aea639728efcad70e3e601e7a031c2b35722e08`     |
+| Serving revision  | `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`            |
+| Serving commit    | `2d7903d42dce9dbfad49338b959e467f6c333ccc`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -62,17 +62,8 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` from commit
-`13569183da57c419ac0da279dde5a6d6a0b0da14`.
-
-```bash
-CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
-  gcloud run services update-traffic pmi-kc-app \
-  --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtafuqbg-4e2e4ffe0f48=100 --quiet
-```
-
-Forward restoration:
+Captured predecessor: `pmi-kc-app-rmtbh280n-61b78ef991cc` from commit
+`6aea639728efcad70e3e601e7a031c2b35722e08`.
 
 ```bash
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
@@ -81,9 +72,20 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   --to-revisions=pmi-kc-app-rmtbh280n-61b78ef991cc=100 --quiet
 ```
 
-The 2026-08-27 rehearsal switched the predecessor to 100% at `12:09:58Z`, read it back, and passed
-root, sign-in, Admin, and exact version smoke. It restored the new revision at `12:10:21Z`, read it
-back at 100%, and passed the same smoke again. No client-data or provider effect occurred.
+Forward restoration:
+
+```bash
+CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
+  gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmtep3ke9-9d3ecafb0c2e=100 --quiet
+```
+
+The 2026-08-27 rehearsal switched predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` to 100%, read it
+back, and passed root, sign-in, Admin, and exact version smoke. It restored the then-current
+`pmi-kc-app-rmtbh280n-61b78ef991cc` revision and passed the same smoke again. The 2026-08-29 S77
+release captured that restored revision as its immediate rollback target. No client-data or provider
+effect occurred.
 
 ## Configuration invariants
 

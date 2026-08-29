@@ -27,11 +27,12 @@ the specification work or by an unconfirmed effect.
 9. Applied and behavior-tested the smallest dependency overrides; the production audit is zero.
 10. Authored and registered the approved renewal contracts as standalone feature specifications.
     Their newly specified product behavior remains implementation work, not completed code.
-11. Implemented the S77 source candidate: one strict draft request/outcome contract, numeric/range
+11. Implemented and deployed S77: one strict draft request/outcome contract, numeric/range
     refusals, input-bound preview state, exact-object confirmation, one-attempt transport recovery,
     and read-only exact Message-ID reconciliation. Focused architecture, behavior, service/route,
-    composer, ledger, and send-boundary checks are green; the canonical gate passed 524 unit files,
-    115 Firestore tests, and the 104-route build. Production release remains.
+    composer, ledger, and send-boundary checks are green; the canonical gate passed 524 unit files
+    with one intentional file skip, 115 Firestore tests, and the 104-route build. Exact candidate and
+    stable release readback passed.
 
 ## Completed release evidence
 
@@ -44,13 +45,18 @@ the specification work or by an unconfirmed effect.
    promoted, and was read back at 100% traffic.
 4. Traffic was rolled back to version-aware predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`,
    smoked, restored to the new revision, and smoked again.
+5. S77 commit `2d7903d42dce9dbfad49338b959e467f6c333ccc` was pushed to `main`; zero-traffic revision
+   `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` preserved Production+Live, managed identity, 11 Spaces,
+   closed Sheet writeback, allowance, and secret bindings, passed exact candidate smoke, and was
+   promoted/read back at 100% traffic. Aggregate CI run `33267458811` passed. Immediate rollback
+   target is `pmi-kc-app-rmtbh280n-61b78ef991cc`.
 
 ## Current closure sequence
 
 The contracts are frozen as follows:
 
-- **S77:** source candidate and canonical gate complete; exact release and production readback remain
-  before this item is closed.
+- **S77:** complete and deployed with canonical, exact candidate, configuration, promotion, and
+  stable readback proof.
 - **S59:** RentVine unit-attribute preservation, complete RentCast cache/query provenance, approved
   two-mile/15-request policy, and base-rent/reference separation.
 - **S80:** Editor ordinary-work matrix with exact Admin/Approver/action-key/source-write boundaries.
@@ -70,8 +76,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
 
 1. Re-read current authority, facts, live version, working tree, and all registered suite contracts;
    record pre-existing failures and user-owned changes.
-2. Finish S77 diff/PII/gate audit, exact commit/push, zero-traffic candidate smoke, promotion, and
-   production readback so later draft/template/attachment work consumes the released contract.
+2. Preserve the deployed S77 contract as the draft/template/attachment foundation; do not reopen its
+   exact-confirm or one-attempt boundaries while implementing downstream suites.
 3. Implement S59 mapping, cache, query, and evidence correctness while preserving allowance and
    reference-only rules.
 4. Implement S80 page/API/control authority parity without S64, action-key, send, or source-write
