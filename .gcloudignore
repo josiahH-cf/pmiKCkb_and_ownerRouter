@@ -1,0 +1,10 @@
+# Cloud Run source uploads must never include repository metadata, local runner state, or
+# user-generated deliverables. Keep the application exclusions aligned with .gitignore.
+.gcloudignore
+.git/
+.gitignore
+#!include:.gitignore
+
+# Runner-local state and user-owned artifacts are intentionally outside the deployable app.
+.claude/
+output/
