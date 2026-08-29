@@ -3,8 +3,8 @@
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`64031f8ee028f09930660060c8f5f627ca5ccde1` as revision
-`pmi-kc-app-rmtew9a2z-46a2353b6491` at 100% traffic.
+`d2dfbcc2a865af1f92103083c2a49714c2dc3977` as revision
+`pmi-kc-app-rmtf01asj-4b3665ad072f` at 100% traffic.
 
 Client handoffs:
 
@@ -161,6 +161,15 @@ passed. Zero-traffic candidate `pmi-kc-app-rmtew9a2z-46a2353b6491` passed exact 
 route smoke, and configuration readback before promotion and stable 100% readback. Its immediate
 rollback target is the S77 revision `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`.
 
-The unit runner preserves the current full 527-file inventory while using a bounded eight-worker
-thread pool in a native Linux shadow. The two S59 canonical runs completed Vitest in 54.54 and 52.11
-seconds. The retired roughly 40–48-minute behavior is no longer the current performance claim.
+The subsequent S80 release passed the complete canonical gate: 528 unit files with one intentional
+file skip (4,795 passing tests and four skips), all 115 Firestore tests, every policy/static gate, the
+production-only zero-vulnerability audit, and the 104-page build. Exact commit
+`d2dfbcc2a865af1f92103083c2a49714c2dc3977` passed aggregate CI run
+[33280384474](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33280384474).
+Zero-traffic candidate `pmi-kc-app-rmtf01asj-4b3665ad072f` passed exact identity, bounded-route, and
+configuration readback before promotion and stable 100% readback. Its immediate rollback target is
+the S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491`.
+
+The unit runner preserves the current full 529-file inventory while using a bounded eight-worker
+thread pool in a native Linux shadow. The final S80 canonical run completed Vitest in 58.40 seconds.
+The retired roughly 40–48-minute behavior is no longer the current performance claim.

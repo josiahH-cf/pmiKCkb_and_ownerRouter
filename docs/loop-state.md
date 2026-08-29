@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtew9a2z-46a2353b6491` / commit
-  `64031f8ee028f09930660060c8f5f627ca5ccde1` at 100% traffic.
+- Production serves `pmi-kc-app-rmtf01asj-4b3665ad072f` / commit
+  `d2dfbcc2a865af1f92103083c2a49714c2dc3977` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -26,14 +26,14 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   query/source/omission/base-rent/comparable/retrieval/cache/quota truth; property type remains omitted;
   and provider output cannot populate the offer. Focused, live parity, canonical, CI, candidate, and
   stable readback evidence are green.
-- S80 is implemented and canonical-green in the ship candidate: one matrix covers every renewal page,
-  API method, and rendered control; Editors reach ordinary work, Approver/Admin distinctions remain,
-  exact-action state stays independent, source writes/sends remain closed, and no protected path or
-  S64 grant changed. Exact commit, CI, candidate, promotion, and stable readback remain.
+- S80 is implemented and deployed: one matrix covers every renewal page, API method, and rendered
+  control; Editors reach ordinary work, Approver/Admin distinctions remain, exact-action state stays
+  independent, source writes/sends remain closed, and no protected path or S64 grant changed. The
+  canonical gate, exact-SHA CI, zero-traffic candidate/configuration smoke, promotion, and stable
+  readback are green; S59 is the captured rollback target.
 - Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
   `.gcloudignore`; the user-owned working-tree paths remain untouched.
-- The remaining application still has the four-step model and text-only screenshot ref; production
-  still has the pre-S80 page guards until the candidate is released.
+- The remaining application still has the four-step model and text-only screenshot ref.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
 - S59 used one controlled billed RentCast read and zero writes. Delivery changed only the bounded
@@ -41,15 +41,15 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Next exact action
 
-Commit and push the canonical-green S80 candidate, require aggregate CI, then run exact zero-traffic
-candidate smoke/configuration readback, promote the exact revision, and verify stable production.
+Implement S72's exact six-step/substep state and evidence graph fail-first, preserving deployed S59
+base-rent/reference evidence and S80 authority while leaving unknown policy/provider facts unset.
 
 ## Ordered continuation
 
 1. S77 canonical/release/readback proof — complete.
 2. S59 RentCast mapping/cache/query truth — complete and deployed.
-3. S80 role/action parity — implementation complete; exact release proof active.
-4. S72 six-step/substep model and S75 follow-up projection after S80 release reconciliation.
+3. S80 role/action parity — complete and deployed.
+4. S72 six-step/substep model — active; then S75 follow-up projection.
 5. S78 canonical triage desk.
 6. S74 governed copy/AI and S79 receipt-bound attachment.
 7. S81 navigation/readiness.

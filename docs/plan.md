@@ -46,7 +46,7 @@ the specification work or by an unconfirmed effect.
     control. Canonical access now admits Editors to ordinary work while retaining Approver
     reconciliation, Admin pricing/source approvals and configuration, independent exact-action
     readiness, closed source writes, and permanent in-app-send refusal. Focused and canonical gates
-    are green; exact release proof remains pending.
+    are green; exact CI, candidate/configuration, promotion, and stable production proof also passed.
 
 ## Completed release evidence
 
@@ -70,6 +70,11 @@ the specification work or by an unconfirmed effect.
    `pmi-kc-app-rmtew9a2z-46a2353b6491` preserved Production+Live, managed identity, 11 Spaces,
    closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
    before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`.
+7. S80 commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` was pushed to `main`; exact-SHA
+   aggregate CI run `33280384474` passed. Zero-traffic revision
+   `pmi-kc-app-rmtf01asj-4b3665ad072f` preserved Production+Live, managed identity, 11 Spaces,
+   closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
+   before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtew9a2z-46a2353b6491`.
 
 ## Current closure sequence
 
@@ -79,8 +84,8 @@ The contracts are frozen as follows:
   stable readback proof.
 - **S59:** complete and deployed with measured RentVine mapping, server-owned query truth, complete
   cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
-- **S80:** implementation and canonical gate complete; exact commit, CI, candidate, promotion, and
-  stable production readback remain.
+- **S80:** complete and deployed with canonical, exact-SHA CI, candidate/configuration, promotion,
+  stable production, and rollback-target readback proof.
 - **S72:** versioned six-step process with detailed substeps, evidence, branches, and reopening.
 - **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
 - **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
@@ -101,10 +106,9 @@ already-correct safety facts stay in preservation rather than being rewritten as
    exact-confirm or one-attempt boundaries while implementing downstream suites.
 3. Preserve deployed S59 mapping, cache, query/evidence, allowance, and reference-only contracts as
    downstream suites consume them.
-4. Release the exact S80 commit through aggregate CI, zero-traffic candidate smoke/configuration
-   readback, promotion, and stable readback; preserve the captured S59 predecessor for rollback.
-5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection after
-   S80 release evidence is reconciled.
+4. Preserve deployed S80 role/Space/effect parity and its exact closed-key/send boundaries while
+   downstream suites consume the matrix.
+5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection.
 6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
    those projections.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.

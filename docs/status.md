@@ -8,17 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtew9a2z-46a2353b6491`, 100% traffic
-- Serving commit: `64031f8ee028f09930660060c8f5f627ca5ccde1`
+- Serving revision: `pmi-kc-app-rmtf01asj-4b3665ad072f`, 100% traffic
+- Serving commit: `d2dfbcc2a865af1f92103083c2a49714c2dc3977`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77 and S59 are deployed. S59 passed two canonical local runs and aggregate CI run `33276113459`;
-its zero-traffic candidate passed exact identity, bounded-route smoke, and configuration readback
-before promotion. The promoted revision was read back at 100% with every runtime invariant preserved.
+S77, S59, and S80 are deployed. S80 passed the canonical local gate and exact-SHA aggregate CI run
+`33280384474`; its zero-traffic candidate passed exact identity, bounded-route smoke, and
+configuration readback before promotion. The promoted revision was read back at 100% with every
+runtime invariant preserved and S59 retained as the exact rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -45,7 +46,7 @@ before promotion. The promoted revision was read back at 100% with every runtime
   intentional skip (4,783 passing tests and four skips), 115 Firestore tests, every policy gate, and
   the 104-page build. Exact candidate and stable production readback are green.
 
-## S80 ship candidate (not yet production)
+## Deployed S80 role/action governance
 
 - One explicit 16-row role/Space/effect matrix now projects all 10 renewal pages, 19 exported API
   methods, and eight rendered controls. A filesystem-backed inventory fails on an unclassified or
@@ -62,7 +63,7 @@ before promotion. The promoted revision was read back at 100% with every runtime
 - The final canonical run passed 528 unit files with one intentional file skip (4,795 passing tests
   and four skips), all 115 Firestore tests, every policy/static gate, the production-only
   zero-vulnerability audit, and the 104-page build. Exact commit, CI, candidate, promotion, and stable
-  production readback remain pending.
+  production readback all passed.
 
 ## Verified product state in production
 
@@ -89,21 +90,20 @@ before promotion. The promoted revision was read back at 100% with every runtime
 - S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
 - S72 must carry the deployed contractual-base-rent/reference-evidence contract through its six-step
   process; recurring charges remain separate.
-- The S80 ship candidate implements Editor ordinary app work and exact-confirmed unsent drafts while
-  preserving stronger pricing, reconciliation, Admin configuration, exact-action, and source-write
-  boundaries; production remains on S59 until the release proof completes.
+- Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
+  stronger pricing, reconciliation, Admin configuration, exact-action, and source-write boundaries.
 - Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
   terms, mandatory copy, evidence, and channel status stay locked.
 - The comp screenshot target is one exact receipted Gmail attachment, not a text reference or inline
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77 and S59 are complete and deployed; S80 implementation is canonical-green with release pending;
-  S72/S74/S75/S78/S79/S81/S63 and the separately gated S30 effect remain in the ordered bundle.
+- S77, S59, and S80 are complete and deployed; S72/S74/S75/S78/S79/S81/S63 and the separately gated
+  S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation
-  evidence; S80's separate candidate evidence is listed above.
+  evidence; S80's separate deployed evidence is listed above.
 
 ## Remaining blockers
 

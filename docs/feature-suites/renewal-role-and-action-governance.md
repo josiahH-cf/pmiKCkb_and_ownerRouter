@@ -3,8 +3,8 @@
 
 # S80 — Renewal role and action governance
 
-> Status: Implementation complete and canonical-green; exact commit, aggregate CI, zero-traffic
-> candidate, promotion, and stable production readback remain before deployed closure.
+> Status: Complete and deployed; canonical, exact-SHA CI, zero-traffic candidate, promotion, and
+> stable production readback are green.
 
 **Goal.**
 
@@ -15,7 +15,7 @@ their exact stronger boundaries.
 **Current state / intended end state.**
 
 The measured starting state required Admin for the canonical Live desk/workspace while the draft API
-and legacy notices surface permitted Editor. The current ship candidate replaces that disagreement
+and legacy notices surface permitted Editor. The deployed implementation replaces that disagreement
 with one explicit, tested capability/effect matrix across app-owned progress/owner decisions, comp
 suggestions, policy changes, draft creation, and provider effects. It presents honest unavailable
 reasons and creates neither per-person authority nor a weaker exact action gate.
@@ -64,7 +64,7 @@ readiness, audit records, Space access, and user-facing refusal copy.
 | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md` action authority, standing authority, and protected-path rules                                                | Authority                     | Roles, Space access, exact action keys, and runtime readiness are independent; protected auth/Rules/gate paths may be prepared but not pushed without explicit owner direction. |
 | `docs/facts.md` renewal decisions and S64 status                                                                          | Product authority             | The Editor ordinary-work matrix is approved; per-person authority remains an unauthorized proposal.                                                                             |
-| Canonical Live desk/workspace guards, legacy notices guards, draft route, progress/decision routes, and rendered controls | Verified implementation truth | The fail-first inventory proved the Admin-only starting mismatch; the current candidate now classifies and checks every actual entry point rather than assuming parity.         |
+| Canonical Live desk/workspace guards, legacy notices guards, draft route, progress/decision routes, and rendered controls | Verified implementation truth | The fail-first inventory proved the Admin-only starting mismatch; the deployed matrix now classifies and checks every actual entry point rather than assuming parity.           |
 | Role, Space, route, component, Action Registry, suspension, and send-boundary tests                                       | Verification baseline         | Existing denials are preservation evidence; the inventory/matrix checks retain the starting mismatch as a regression case.                                                      |
 | Stabilization intake                                                                                                      | Intent evidence only          | “Less approval friction” means approved ordinary app work, not blanket unchecked provider effects or a role redesign.                                                           |
 
@@ -192,8 +192,11 @@ authorized; unprotected page/route alignment may proceed under standing implemen
 - Focused S80 and preservation runs are green. The canonical run passed 528 unit files with one
   intentional file skip (4,795 tests passed and four skipped), 25 Firestore files/115 tests, every
   policy/static gate, the production-only zero-vulnerability audit, and the 104-page build.
-- Production still serves the prior S59 revision until the exact S80 commit completes aggregate CI,
-  zero-traffic candidate smoke/configuration readback, promotion, and stable readback.
+- Exact commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` passed aggregate CI run `33280384474`.
+  Zero-traffic revision `pmi-kc-app-rmtf01asj-4b3665ad072f` passed exact identity, bounded-route,
+  Production+Live, managed-identity, eleven-Space, allowance-50, closed-Sheet-write, and secret-
+  binding readback before promotion; the same revision then passed stable readback at 100% traffic.
+  Captured rollback target `pmi-kc-app-rmtew9a2z-46a2353b6491` remains available.
 
 **Deletion/merge recommendation.**
 

@@ -149,6 +149,8 @@ assertIncludes("docs/README.md", [
 
 assertIncludes("docs/environment-handoff.md", [
   "Production + Live",
+  "pmi-kc-app-rmtf01asj-4b3665ad072f",
+  "d2dfbcc2a865af1f92103083c2a49714c2dc3977",
   "pmi-kc-app-rmtew9a2z-46a2353b6491",
   "64031f8ee028f09930660060c8f5f627ca5ccde1",
   "pmi-kc-app-rmtep3ke9-9d3ecafb0c2e",

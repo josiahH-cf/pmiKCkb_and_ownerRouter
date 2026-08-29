@@ -74,8 +74,8 @@ commit and Cloud Run revision without exposing configuration or secrets.
 - Model verdict: PASS - Directory filtering hides the compatibility-only Space, `/api/version`
   returns only commit/revision/service/environment with `no-store`, and the release smoke refuses a
   candidate unless both its commit and revision match exactly. Production now reports commit
-  `64031f8ee028f09930660060c8f5f627ca5ccde1` and revision
-  `pmi-kc-app-rmtew9a2z-46a2353b6491`.
+  `d2dfbcc2a865af1f92103083c2a49714c2dc3977` and revision
+  `pmi-kc-app-rmtf01asj-4b3665ad072f`.
 - Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
 
 ### Client action center and meeting agenda

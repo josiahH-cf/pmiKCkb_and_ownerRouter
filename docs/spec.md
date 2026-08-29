@@ -51,17 +51,13 @@ closed.
 
 ## Current acceptance
 
-The production release at commit `64031f8ee028f09930660060c8f5f627ca5ccde1` passed 4,783 unit
-tests with four intentional skips across the complete 527-file inventory, all 115 Firestore tests,
-all static/policy gates, a 104-page production build, and exact candidate/stable smoke. Its immediate
-predecessor remains the captured rollback target; aggregate CI run `33276113459` passed, and the
-earlier predecessor chain had already passed the recorded version-aware rollback/restoration
-rehearsal.
-
-The S80 ship candidate separately passed 528 unit files with one intentional file skip (4,795 tests
-and four skips), all 115 Firestore tests, every static/policy gate, a zero-vulnerability production
-audit, and the 104-page build. It is not production truth until its exact commit passes CI and the
-zero-traffic candidate/promotion/stable readback sequence.
+The production release at commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` passed 528 unit files
+with one intentional file skip (4,795 tests and four skips), all 115 Firestore tests, every
+static/policy gate, a zero-vulnerability production audit, and the 104-page build. Exact-SHA aggregate
+CI run `33280384474` passed. Zero-traffic revision `pmi-kc-app-rmtf01asj-4b3665ad072f` then passed
+exact identity, bounded-route, and configuration readback before promotion and stable 100% traffic
+readback. S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491` is the captured rollback target; the
+earlier predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
