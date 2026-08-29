@@ -17,6 +17,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   executeGovernedDraft,
   prepareGovernedDraft,
+  reconcileGovernedDraft,
   type GovernedDraftSeams,
 } from "@/lib/external-execution/governed-draft-execution";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -33,47 +34,35 @@ import {
   buildRenewalNoticeDraftPreview,
   type RenewalDraftPreview,
 } from "@/lib/lease-renewal/execution/renewal-draft-preview";
+import type {
+  RenewalNoticeDraftOffer,
+  RenewalNoticeDraftOutcome,
+  RenewalNoticeDraftRequest,
+} from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import type {
   OwnerDraftInput,
   OwnerDraftMarketInput,
 } from "@/lib/lease-renewal/owner-draft";
-import type { RenewalRecipientChannel } from "@/lib/lease-renewal/recipient-resolution";
-import type { OwnerDecision, TenantOfferInput } from "@/lib/lease-renewal/tenant-draft";
+import type { TenantOfferInput } from "@/lib/lease-renewal/tenant-draft";
 
 export interface RenewalNoticeMailbox {
   email: string;
   sourceRef: string;
 }
 
-export interface TenantRenewalOffer {
-  ownerDecision: OwnerDecision;
-  offeredRent: number;
-  charges?: { rbp?: number; insurance?: number };
-  infoFormUrl?: string;
-}
-
-export interface OwnerRenewalOffer {
-  market: OwnerDraftMarketInput;
-}
-
-interface CommonInput {
-  leaseId: string;
+export interface RenewalNoticeDraftInput {
+  /** The exact browser/route request; never enriched with server-owned recipient or fact values. */
+  request: RenewalNoticeDraftRequest;
   mailbox: RenewalNoticeMailbox;
   /**
-   * Absent → return the preview plus its S20 execution id and immutable preview hash.
-   * Present → execute that exact prepared execution.
-   *
-   * This replaced a bare `confirm: boolean`, which could only say "do it" and carried no binding to
-   * WHAT was reviewed: a boolean cannot detect that the lease, recipient, or offer changed between
-   * preview and confirmation, and gives the ledger nothing to make the attempt idempotent against.
+   * Values derived under server authority after request parsing. Keeping this separate prevents a
+   * browser from impersonating an approved suggestion while the shared request remains unchanged.
    */
-  confirm?: { executionId: string; previewHash: string };
+  serverContext?: {
+    approvedSuggestion?: NonNullable<OwnerDraftMarketInput["approvedSuggestion"]>;
+  };
 }
-
-export type RenewalNoticeDraftInput =
-  | (CommonInput & { channel: "tenant"; offer: TenantRenewalOffer })
-  | (CommonInput & { channel: "owner"; offer: OwnerRenewalOffer });
 
 export interface RenewalNoticeDraftDeps {
   /** Load the live RentVine lease VIEW (export-shaped: tenants[], property, lifted rent) by id. */
@@ -94,33 +83,6 @@ export interface RenewalNoticeDraftDeps {
   seams?: GovernedDraftSeams;
 }
 
-export type RenewalNoticeDraftOutcome =
-  | { status: "blocked"; channel: RenewalRecipientChannel; reasons: string[] }
-  | {
-      status: "preview";
-      channel: RenewalRecipientChannel;
-      recipient: { to: string; sourceRef: string };
-      subject: string;
-      body: string;
-      /** The exact prepared execution the caller must confirm; binds this reviewed preview. */
-      executionId: string;
-      previewHash: string;
-    }
-  | {
-      status: "created";
-      channel: RenewalRecipientChannel;
-      recipient: { to: string; sourceRef: string };
-      subject: string;
-      draftId: string;
-      executionId: string;
-    }
-  | {
-      status: "needs_reconciliation";
-      channel: RenewalRecipientChannel;
-      executionId: string;
-      reason: string;
-    };
-
 interface LeaseRenewalFacts {
   tenantNameLabel?: string;
   leaseEndDateIso?: string;
@@ -129,6 +91,8 @@ interface LeaseRenewalFacts {
 }
 
 type DecisionResult<T> = { ok: true; decision: T } | { ok: false; reasons: string[] };
+type TenantRenewalOffer = Extract<RenewalNoticeDraftOffer, { channel: "tenant" }>;
+type OwnerRenewalOffer = { channel: "owner"; market: OwnerDraftMarketInput };
 
 /**
  * Preview or create a renewal-notice draft for one live lease + channel. Throws EditableLayerError(404)
@@ -138,7 +102,9 @@ export async function prepareRenewalNoticeDraft(
   deps: RenewalNoticeDraftDeps,
   input: RenewalNoticeDraftInput,
 ): Promise<RenewalNoticeDraftOutcome> {
-  const lease = await deps.loadLease(input.leaseId);
+  const browserRequest = input.request;
+  const channel = browserRequest.offer.channel;
+  const lease = await deps.loadLease(browserRequest.leaseId);
   if (!lease) {
     throw new EditableLayerError(
       "That lease was not found in the live RentVine read.",
@@ -149,14 +115,14 @@ export async function prepareRenewalNoticeDraft(
   const facts = leaseRenewalFacts(lease);
   const common = {
     mailbox: input.mailbox,
-    workflowId: `renewal-live:${input.leaseId}`,
-    actionId: `renewal-notice-draft:${input.channel}:${input.leaseId}`,
-    workflowContext: `renewal:${input.leaseId}`,
-    sourceRefs: [`rentvine:lease:${input.leaseId}`],
+    workflowId: `renewal-live:${browserRequest.leaseId}`,
+    actionId: `renewal-notice-draft:${channel}:${browserRequest.leaseId}`,
+    workflowContext: `renewal:${browserRequest.leaseId}`,
+    sourceRefs: [`rentvine:lease:${browserRequest.leaseId}`],
   };
 
-  if (input.channel === "tenant") {
-    const decision = buildTenantDecision(facts, input.offer);
+  if (browserRequest.offer.channel === "tenant") {
+    const decision = buildTenantDecision(facts, browserRequest.offer);
     if (!decision.ok) {
       return { status: "blocked", channel: "tenant", reasons: decision.reasons };
     }
@@ -166,12 +132,21 @@ export async function prepareRenewalNoticeDraft(
       lease,
       decision: decision.decision,
     });
-    return finalize(preview, input, deps);
+    return finalize(preview, browserRequest, input.mailbox, deps);
   }
 
   const currentRentDecision =
-    (await deps.loadOwnerCurrentRentDecision?.(input.leaseId)) ?? null;
-  const decision = buildOwnerDecision(facts, input.offer, currentRentDecision);
+    (await deps.loadOwnerCurrentRentDecision?.(browserRequest.leaseId)) ?? null;
+  const ownerOffer: OwnerRenewalOffer = {
+    ...browserRequest.offer,
+    market: {
+      ...browserRequest.offer.market,
+      ...(input.serverContext?.approvedSuggestion
+        ? { approvedSuggestion: input.serverContext.approvedSuggestion }
+        : {}),
+    },
+  };
+  const decision = buildOwnerDecision(facts, ownerOffer, currentRentDecision);
   if (!decision.ok) {
     return { status: "blocked", channel: "owner", reasons: decision.reasons };
   }
@@ -181,28 +156,86 @@ export async function prepareRenewalNoticeDraft(
     lease,
     decision: decision.decision,
   });
-  return finalize(preview, input, deps);
+  return finalize(preview, browserRequest, input.mailbox, deps);
 }
 
 async function finalize(
   preview: RenewalDraftPreview,
-  input: RenewalNoticeDraftInput,
+  input: RenewalNoticeDraftRequest,
+  mailbox: RenewalNoticeMailbox,
   deps: RenewalNoticeDraftDeps,
 ): Promise<RenewalNoticeDraftOutcome> {
+  const channel = input.offer.channel;
   if (preview.status === "blocked") {
-    return { status: "blocked", channel: input.channel, reasons: preview.reasons };
+    if (input.reconcile) {
+      return {
+        status: "reconciliation",
+        channel,
+        executionId: input.reconcile.executionId,
+        resolution: "needs_review",
+        reason:
+          "The exact attempt can no longer be reconstructed from current authoritative facts. Review the execution before preparing any new draft.",
+      };
+    }
+    return { status: "blocked", channel, reasons: preview.reasons };
   }
-  const request = {
+  const governedRequest = {
     action: preview.action as never,
     definition: LEASE_EXECUTION_DEFINITION_MAP.get(RENEWAL_NOTICE_DRAFT_ACTION_KEY)!,
-    createClient: () => deps.createGmailClient(input.mailbox.email),
+    createClient: () => deps.createGmailClient(mailbox.email),
   };
 
+  if (input.reconcile) {
+    try {
+      const outcome = await reconcileGovernedDraft(
+        deps.actor,
+        {
+          ...governedRequest,
+          executionId: input.reconcile.executionId,
+        },
+        deps.seams,
+      );
+      if (outcome.status === "not_found") {
+        return {
+          status: "reconciliation",
+          channel,
+          executionId: input.reconcile.executionId,
+          resolution: "not_found",
+          reason:
+            "The exact RFC Message-ID was not found. The one attempt remains unresolved; review Gmail before any new draft.",
+        };
+      }
+      const draftId =
+        "receipt" in outcome && outcome.receipt ? outcome.receipt.providerRef : undefined;
+      return {
+        status: "reconciliation",
+        channel,
+        executionId: input.reconcile.executionId,
+        resolution: "created",
+        duplicate: outcome.duplicate,
+        ...(draftId ? { draftId } : {}),
+        reason: "The exact unsent Gmail draft was found and the execution is reconciled.",
+      };
+    } catch (error) {
+      if (error instanceof EditableLayerError && error.status === 409) {
+        return {
+          status: "reconciliation",
+          channel,
+          executionId: input.reconcile.executionId,
+          resolution: "needs_review",
+          reason:
+            "The exact attempt does not match the current authoritative draft inputs. Review the execution before preparing any new draft.",
+        };
+      }
+      throw error;
+    }
+  }
+
   if (!input.confirm) {
-    const prepared = await prepareGovernedDraft(deps.actor, request, deps.seams);
+    const prepared = await prepareGovernedDraft(deps.actor, governedRequest, deps.seams);
     return {
       status: "preview",
-      channel: input.channel,
+      channel,
       recipient: preview.recipient,
       subject: preview.subject,
       body: preview.body,
@@ -214,7 +247,7 @@ async function finalize(
   const outcome = await executeGovernedDraft(
     deps.actor,
     {
-      ...request,
+      ...governedRequest,
       executionId: input.confirm.executionId,
       previewHash: input.confirm.previewHash,
     },
@@ -225,7 +258,7 @@ async function finalize(
     // value-free A2 event. Surface it truthfully instead of implying a draft exists.
     return {
       status: "needs_reconciliation",
-      channel: input.channel,
+      channel,
       executionId: outcome.execution.id,
       reason:
         outcome.execution.state === "Failed"
@@ -235,7 +268,7 @@ async function finalize(
   }
   return {
     status: "created",
-    channel: input.channel,
+    channel,
     recipient: preview.recipient,
     subject: preview.subject,
     draftId: outcome.result.providerRef,

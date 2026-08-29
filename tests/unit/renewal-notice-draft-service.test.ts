@@ -69,8 +69,17 @@ function s20Seams(db: FakeFirestore): GovernedDraftSeams {
   };
 }
 
-function deps(lease: RawLease | null) {
-  const createDraft = vi.fn(async () => ({ draftId: "draft-svc-1" }));
+function deps(
+  lease: RawLease | null,
+  options: {
+    createDraft?: () => Promise<{ draftId: string }>;
+    findDraft?: (messageId: string) => Promise<{ draftId: string } | null>;
+  } = {},
+) {
+  const createDraft = vi.fn(
+    options.createDraft ?? (async () => ({ draftId: "draft-svc-1" })),
+  );
+  const findDraft = vi.fn(options.findDraft ?? (async () => null));
   const db = new FakeFirestore();
   const d: RenewalNoticeDraftDeps = {
     loadLease: async () => lease,
@@ -87,38 +96,45 @@ function deps(lease: RawLease | null) {
           }
         : null;
     },
-    createGmailClient: (subject): RenewalDraftGmailClient => ({ subject, createDraft }),
+    createGmailClient: (subject): RenewalDraftGmailClient => ({
+      subject,
+      createDraft,
+      findDraftByRfcMessageId: findDraft,
+    }),
     actor,
     seams: s20Seams(db),
   };
-  return { d, createDraft, db };
+  return { d, createDraft, findDraft, db };
 }
 
 type Confirmation = { executionId: string; previewHash: string };
 
-const tenantInput = (
-  confirm?: Confirmation,
-): Extract<RenewalNoticeDraftInput, { channel: "tenant" }> => ({
-  channel: "tenant",
-  leaseId: "42",
+const tenantInput = (confirm?: Confirmation): RenewalNoticeDraftInput => ({
   mailbox: MAILBOX,
-  ...(confirm ? { confirm } : {}),
-  offer: { ownerDecision: "increase", offeredRent: 1550 },
+  request: {
+    leaseId: "42",
+    ...(confirm ? { confirm } : {}),
+    offer: {
+      channel: "tenant",
+      ownerDecision: "increase",
+      offeredRent: 1550,
+    },
+  },
 });
 
-const ownerInput = (
-  confirm?: Confirmation,
-): Extract<RenewalNoticeDraftInput, { channel: "owner" }> => ({
-  channel: "owner",
-  leaseId: "42",
+const ownerInput = (confirm?: Confirmation): RenewalNoticeDraftInput => ({
   mailbox: MAILBOX,
-  ...(confirm ? { confirm } : {}),
-  offer: {
-    market: {
-      specificNumber: 1550,
-      rangeLow: 1450,
-      rangeHigh: 1650,
-      compsScreenshotRef: "drive://comps/cedar.png",
+  request: {
+    leaseId: "42",
+    ...(confirm ? { confirm } : {}),
+    offer: {
+      channel: "owner",
+      market: {
+        specificNumber: 1550,
+        rangeLow: 1450,
+        rangeHigh: 1650,
+        compsScreenshotRef: "drive://comps/cedar.png",
+      },
     },
   },
 });
@@ -162,6 +178,137 @@ describe("prepareRenewalNoticeDraft", () => {
     expect(createDraft).toHaveBeenCalledWith(
       expect.objectContaining({ to: "tenant42@northend-apts.com" }),
     );
+  });
+
+  it("reconciles one uncertain attempt by exact Message-ID without drafting again", async () => {
+    const { d, createDraft, findDraft } = deps(tenantLease, {
+      createDraft: async () => {
+        throw new Error("gmail timeout");
+      },
+      findDraft: async () => ({ draftId: "draft-recovered-1" }),
+    });
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    expect(prepared.status).toBe("preview");
+    if (prepared.status !== "preview") return;
+
+    const uncertain = await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
+    expect(uncertain).toMatchObject({
+      status: "needs_reconciliation",
+      executionId: prepared.executionId,
+    });
+
+    const reconciled = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(),
+      request: {
+        ...tenantInput().request,
+        reconcile: { executionId: prepared.executionId },
+      },
+    });
+
+    expect(reconciled).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      executionId: prepared.executionId,
+      draftId: "draft-recovered-1",
+    });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).toHaveBeenCalledWith(expect.stringMatching(/^<gmail-draft-/));
+
+    const repeated = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(),
+      request: {
+        ...tenantInput().request,
+        reconcile: { executionId: prepared.executionId },
+      },
+    });
+    expect(repeated).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      duplicate: true,
+      executionId: prepared.executionId,
+    });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a not-found exact attempt unresolved and never creates a second draft", async () => {
+    const { d, createDraft, findDraft } = deps(tenantLease, {
+      createDraft: async () => {
+        throw new Error("gmail timeout");
+      },
+      findDraft: async () => null,
+    });
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    if (prepared.status !== "preview") throw new Error("Expected preview.");
+    await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
+
+    const checked = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(),
+      request: {
+        ...tenantInput().request,
+        reconcile: { executionId: prepared.executionId },
+      },
+    });
+
+    expect(checked).toMatchObject({
+      status: "reconciliation",
+      resolution: "not_found",
+      executionId: prepared.executionId,
+    });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns needs-review when the retained offer no longer matches the consumed attempt", async () => {
+    const { d, createDraft, findDraft } = deps(tenantLease, {
+      createDraft: async () => {
+        throw new Error("gmail timeout");
+      },
+      findDraft: async () => ({ draftId: "must-not-read" }),
+    });
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    if (prepared.status !== "preview") throw new Error("Expected preview.");
+    await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
+
+    const checked = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(),
+      request: {
+        ...tenantInput().request,
+        offer: {
+          channel: "tenant",
+          ownerDecision: "increase",
+          offeredRent: 1600,
+        },
+        reconcile: { executionId: prepared.executionId },
+      },
+    });
+
+    expect(checked).toMatchObject({
+      status: "reconciliation",
+      resolution: "needs_review",
+      executionId: prepared.executionId,
+    });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).not.toHaveBeenCalled();
   });
 
   it("previews an owner draft from the joined property.owner email", async () => {
@@ -263,7 +410,14 @@ describe("prepareRenewalNoticeDraft", () => {
     const { d, createDraft } = deps(tenantLease);
     const outcome = await prepareRenewalNoticeDraft(d, {
       ...tenantInput(),
-      offer: { ownerDecision: "increase", offeredRent: 0 },
+      request: {
+        ...tenantInput().request,
+        offer: {
+          channel: "tenant",
+          ownerDecision: "increase",
+          offeredRent: 0,
+        },
+      },
     });
 
     expect(outcome.status).toBe("blocked");

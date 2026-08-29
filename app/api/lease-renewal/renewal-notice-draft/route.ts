@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
@@ -21,10 +20,8 @@ import {
   LeaseDataExpiredError,
   requireCurrentLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
-import {
-  prepareRenewalNoticeDraft,
-  type RenewalNoticeDraftInput,
-} from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
+import { prepareRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
+import { RenewalNoticeDraftRequestSchema } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
 import {
@@ -32,60 +29,6 @@ import {
   ActionRuntimeSuspendedError,
   assertProductionRuntimeActionExecutable,
 } from "@/lib/operations/runtime-suspension-gate";
-
-// A rent/market figure: finite and strictly positive (a $0 renewal offer is never valid).
-const positiveMoney = z.number().finite().positive();
-// A charge line that may legitimately be zero (e.g. no resident-benefit package).
-const chargeMoney = z.number().finite().nonnegative();
-
-const TenantOfferSchema = z
-  .object({
-    channel: z.literal("tenant"),
-    ownerDecision: z.enum(["keep_same", "increase", "custom"]),
-    offeredRent: positiveMoney,
-    charges: z
-      .object({ rbp: chargeMoney.optional(), insurance: chargeMoney.optional() })
-      .strict()
-      .optional(),
-    infoFormUrl: z.string().trim().url().optional(),
-  })
-  .strict();
-
-const OwnerOfferSchema = z
-  .object({
-    channel: z.literal("owner"),
-    market: z
-      .object({
-        specificNumber: positiveMoney.optional(),
-        rangeLow: positiveMoney.optional(),
-        rangeHigh: positiveMoney.optional(),
-        compsScreenshotRef: z.string().trim().min(1).max(500).optional(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const RenewalNoticeDraftBodySchema = z
-  .object({
-    leaseId: z.string().trim().min(1).max(120),
-    // Confirmation carries the exact prepared execution and the preview hash it was reviewed at.
-    // A bare boolean could not detect that the lease, recipient, or offer changed in between.
-    confirm: z
-      .object({
-        executionId: z
-          .string()
-          .trim()
-          .regex(/^exec_[a-f0-9]{40}$/),
-        previewHash: z
-          .string()
-          .trim()
-          .regex(/^[a-f0-9]{64}$/),
-      })
-      .strict()
-      .optional(),
-    offer: z.discriminatedUnion("channel", [TenantOfferSchema, OwnerOfferSchema]),
-  })
-  .strict();
 
 function leaseIdOf(view: RawLease): string | undefined {
   for (const key of ["leaseID", "leaseId", "id"]) {
@@ -98,15 +41,17 @@ function leaseIdOf(view: RawLease): string | undefined {
 }
 
 /**
- * Preview or create (confirm:true) a real UNSENT renewal-notice Gmail draft for one LIVE lease. The
- * recipient + facts come from the authoritative live RentVine read; the offer is the operator's input.
- * Draft-only — the service re-asserts the production gate and never sends.
+ * Preview, exactly confirm, or read-only reconcile a real UNSENT renewal-notice Gmail draft for one
+ * LIVE lease. The recipient + facts come from the authoritative live RentVine read; the offer is the
+ * operator's input. Draft-only — the service re-asserts the production gate and never sends.
  */
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "renewals");
-    const body = await parseJsonBody(request, RenewalNoticeDraftBodySchema);
-    await assertProductionRuntimeActionExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
+    const body = await parseJsonBody(request, RenewalNoticeDraftRequestSchema);
+    if (!body.reconcile) {
+      await assertProductionRuntimeActionExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
+    }
 
     const config = buildLiveRentVineConfig();
     if (!config.ok) {
@@ -123,20 +68,16 @@ export async function POST(request: Request) {
 
     const rentvineClient = config.rentvineClient;
     const nowMs = Date.now();
-    const { channel, ...offer } = body.offer;
-    const input = {
-      channel,
-      offer,
-      leaseId: body.leaseId,
-      ...(body.confirm ? { confirm: body.confirm } : {}),
-      mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
-    } as RenewalNoticeDraftInput;
+    const channel = body.offer.channel;
+    let approvedSuggestion:
+      | { value: number; comps: { rent: number; source: string; label?: string }[] }
+      | undefined;
 
     // S29: for the OWNER channel, resolve any Admin-approved comp-derived rent number SERVER-SIDE and
     // inject it into the owner-draft market. The request schema deliberately omits approvedSuggestion, so
     // the number is NEVER client-supplied; getApprovedRentSuggestion returns it only when an Approved
     // record still matches the current server recompute (otherwise null, and the draft stays unchanged).
-    if (input.channel === "owner") {
+    if (body.offer.channel === "owner") {
       // S60 (AC-S60-10): the stale-approval re-verify recomputes with the same authoritative rent
       // the approval was clamped against; the shared cache makes this read a coalesced hit.
       let approvalCurrentRent: number | null = null;
@@ -157,10 +98,7 @@ export async function POST(request: Request) {
         approvalPortfolioId,
       );
       if (approved) {
-        input.offer.market = {
-          ...input.offer.market,
-          approvedSuggestion: { value: approved.value, comps: approved.comps },
-        };
+        approvedSuggestion = { value: approved.value, comps: approved.comps };
       }
     }
 
@@ -206,7 +144,11 @@ export async function POST(request: Request) {
           ),
         actor: user,
       },
-      input,
+      {
+        request: body,
+        mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
+        ...(approvedSuggestion ? { serverContext: { approvedSuggestion } } : {}),
+      },
     );
 
     // Phase A: creating the tenant-offer draft advances this lease's recorded progress to Build docs.

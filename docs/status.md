@@ -20,6 +20,20 @@ The closure slice is deployed. The canonical local gate and aggregate CI run `33
 the zero-traffic candidate passed exact identity smoke, and the promoted revision plus rollback/restore
 were read back. No new code from the renewal stabilization specifications is deployed.
 
+## Current release candidate
+
+- S77 now has one strict request/outcome contract used by the browser, route, and service. Preview
+  omits confirmation; create carries the exact execution id and preview hash; boolean confirmation,
+  invalid/non-finite/non-positive money, and inverted ranges fail closed.
+- Preview readiness is bound to every operator-controlled input. A changed offer/channel or changed
+  server fact cannot reuse the reviewed execution.
+- A timeout/invalid create response retains the exact attempt, disables retry-as-new, and offers only
+  read-only RFC Message-ID reconciliation with created/not-found/needs-review outcomes.
+- The focused S77 component, contract, route, service, ledger, and send-boundary checks plus TypeScript
+  are green. The canonical gate passed 524 unit files (4,762 tests), 115 Firestore tests, every policy
+  gate, and the 104-route build. Exact zero-traffic release proof remains; none of this candidate is
+  production truth yet.
+
 ## Verified product state in production
 
 - Complete RentVine and operating-Sheet reads feed renewal reconciliation and Live workspaces.
@@ -39,7 +53,7 @@ were read back. No new code from the renewal stabilization specifications is dep
   exact case values, so S63 must move those bindings to secure runtime input and redact output before
   the next proof.
 
-## Approved renewal stabilization contract — not yet implemented
+## Remaining renewal stabilization implementation
 
 - S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
 - Contractual base rent is the renewal comparison/decision value; recurring charges remain separate.
@@ -53,6 +67,8 @@ were read back. No new code from the renewal stabilization specifications is dep
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
+- S77 implementation is the current unshipped candidate; S59/S72/S74/S75/S78/S79/S80/S81/S63 and the
+  separately gated S30 effect remain in the ordered execution bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Their presence is not implementation or activation evidence.

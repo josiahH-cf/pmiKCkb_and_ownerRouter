@@ -69,18 +69,24 @@ vi.mock("@/lib/lease-renewal/live-desk", async (importActual) => {
   };
 });
 
-const { createDraftMock } = vi.hoisted(() => ({
+const { createDraftMock, findDraftMock } = vi.hoisted(() => ({
   createDraftMock: vi.fn(async () => ({ draftId: "draft_owner_1" })),
+  findDraftMock: vi.fn(async () => null as { draftId: string } | null),
 }));
 vi.mock("@/lib/gmail-runtime/client", () => ({
   GmailRuntimeClient: vi.fn(function (
-    this: { subject: string; createDraft: unknown },
+    this: {
+      subject: string;
+      createDraft: unknown;
+      findDraftByRfcMessageId: unknown;
+    },
     opts: { subject: string },
   ) {
     // The draft provider guards that the action sender matches the client's authenticated mailbox, so
     // the fake must carry the subject it was constructed with (lowercased, as the real client stores it).
     this.subject = opts.subject.trim().toLowerCase();
     this.createDraft = createDraftMock;
+    this.findDraftByRfcMessageId = findDraftMock;
   }),
   GmailRuntimeError: class GmailRuntimeError extends Error {},
 }));
@@ -524,5 +530,160 @@ describe("renewal-notice-draft route — tenant channel is unchanged", () => {
     expect(getProperty).not.toHaveBeenCalled();
     expect(getPortfolio).not.toHaveBeenCalled();
     expect(getContact).not.toHaveBeenCalled();
+  });
+});
+
+describe("renewal-notice-draft route — shared request and recovery contract", () => {
+  it.each([
+    [
+      "boolean confirmation",
+      {
+        leaseId: "42",
+        confirm: true,
+        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 1550 },
+      },
+    ],
+    [
+      "string money",
+      {
+        leaseId: "42",
+        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: "1550" },
+      },
+    ],
+    [
+      "zero money",
+      {
+        leaseId: "42",
+        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 0 },
+      },
+    ],
+    [
+      "non-finite money",
+      {
+        leaseId: "42",
+        offer: {
+          channel: "tenant",
+          ownerDecision: "increase",
+          offeredRent: Number.POSITIVE_INFINITY,
+        },
+      },
+    ],
+  ])("rejects %s before any live dependency", async (_label, body) => {
+    const response = await POST(req(body));
+
+    expect(response.status).toBe(400);
+    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+    expect(GmailRuntimeClient).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an inverted owner range before any live dependency", async () => {
+    const body = ownerBody();
+    body.offer.market.rangeLow = 1700;
+    body.offer.market.rangeHigh = 1500;
+
+    const response = await POST(req(body));
+
+    expect(response.status).toBe(400);
+    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses an offer changed after preview and creates no draft", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    const previewed = await (await POST(req(tenantBody()))).json();
+    expect(previewed.status).toBe("preview");
+    const changed = tenantBody({
+      executionId: previewed.executionId,
+      previewHash: previewed.previewHash,
+    });
+    changed.offer.offeredRent = 1600;
+
+    const response = await POST(req(changed));
+
+    expect(response.status).toBe(409);
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a server-side fact change after preview and creates no draft", async () => {
+    const initial = fakeClient();
+    useClient(initial.client);
+    const previewed = await (await POST(req(tenantBody()))).json();
+    expect(previewed.status).toBe("preview");
+
+    clearLiveLeaseCache();
+    const changed = fakeClient({
+      exportRows: [
+        {
+          lease: {
+            leaseID: 42,
+            endDate: "2026-10-31",
+            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
+          },
+          unit: { rent: 1400 },
+          property: { streetName: "200 Cedar Ct" },
+          portfolio: {
+            owners: [{ name: "Cedar Holdings", email: "owner42@cedar-holdings.com" }],
+          },
+        },
+      ],
+    });
+    useClient(changed.client);
+
+    const response = await POST(
+      req(
+        tenantBody({
+          executionId: previewed.executionId,
+          previewHash: previewed.previewHash,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(409);
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("reconciles an uncertain exact attempt during suspension without drafting again", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    createDraftMock.mockRejectedValueOnce(new Error("gmail timeout"));
+    findDraftMock.mockResolvedValueOnce({ draftId: "draft-recovered-route-1" });
+
+    const previewed = await (await POST(req(tenantBody()))).json();
+    expect(previewed.status).toBe("preview");
+    const uncertain = await (
+      await POST(
+        req(
+          tenantBody({
+            executionId: previewed.executionId,
+            previewHash: previewed.previewHash,
+          }),
+        ),
+      )
+    ).json();
+    expect(uncertain).toMatchObject({
+      status: "needs_reconciliation",
+      executionId: previewed.executionId,
+    });
+
+    runtimeSuspension.current = { status: "global_suspended" };
+    const response = await POST(
+      req({
+        ...tenantBody(),
+        reconcile: { executionId: previewed.executionId },
+      }),
+    );
+    const checked = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(checked).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      executionId: previewed.executionId,
+      draftId: "draft-recovered-route-1",
+    });
+    expect(createDraftMock).toHaveBeenCalledTimes(1);
+    expect(findDraftMock).toHaveBeenCalledTimes(1);
   });
 });

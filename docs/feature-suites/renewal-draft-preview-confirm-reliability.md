@@ -96,7 +96,9 @@ governed artifacts, progress stamping, error presentation, and the renewal send-
 copy, chooses Create Gmail draft, and finds one matching unsent draft. Editing the offer after preview
 forces a fresh review, and an uncertain result offers a check rather than another create attempt.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - why: the fail-first boolean/object, stale-input, range, and uncertain-attempt
+  cases now pass through the shared contract; the focused S77 set, one-attempt ledger/send-boundary
+  preservation, 524-file canonical unit gate, 115 Firestore tests, and 104-route build are green.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**

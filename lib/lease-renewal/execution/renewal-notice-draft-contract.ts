@@ -1,0 +1,216 @@
+import { z } from "zod";
+
+// Browser-safe, shared contract for the renewal draft surface. The browser, route, and service all
+// consume this file; server-only authority (mailbox, recipient, live facts, approved suggestions,
+// template selection, and provider construction) deliberately does not appear in the request.
+
+const positiveMoney = z.number().finite().positive();
+const chargeMoney = z.number().finite().nonnegative();
+
+export const RenewalDraftConfirmationSchema = z
+  .object({
+    executionId: z
+      .string()
+      .trim()
+      .regex(/^exec_[a-f0-9]{40}$/),
+    previewHash: z
+      .string()
+      .trim()
+      .regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
+export const RenewalDraftReconciliationSchema = z
+  .object({
+    executionId: z
+      .string()
+      .trim()
+      .regex(/^exec_[a-f0-9]{40}$/),
+  })
+  .strict();
+
+export const TenantRenewalDraftOfferSchema = z
+  .object({
+    channel: z.literal("tenant"),
+    ownerDecision: z.enum(["keep_same", "increase", "custom"]),
+    offeredRent: positiveMoney,
+    charges: z
+      .object({ rbp: chargeMoney.optional(), insurance: chargeMoney.optional() })
+      .strict()
+      .optional(),
+    infoFormUrl: z.string().trim().url().optional(),
+  })
+  .strict();
+
+const OwnerRenewalDraftMarketSchema = z
+  .object({
+    specificNumber: positiveMoney.optional(),
+    rangeLow: positiveMoney.optional(),
+    rangeHigh: positiveMoney.optional(),
+    compsScreenshotRef: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict()
+  .superRefine((market, context) => {
+    if (
+      market.rangeLow !== undefined &&
+      market.rangeHigh !== undefined &&
+      market.rangeLow > market.rangeHigh
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Comp range low cannot exceed comp range high.",
+        path: ["rangeLow"],
+      });
+    }
+  });
+
+export const OwnerRenewalDraftOfferSchema = z
+  .object({
+    channel: z.literal("owner"),
+    market: OwnerRenewalDraftMarketSchema,
+  })
+  .strict();
+
+export const RenewalNoticeDraftOfferSchema = z.discriminatedUnion("channel", [
+  TenantRenewalDraftOfferSchema,
+  OwnerRenewalDraftOfferSchema,
+]);
+
+export const RenewalNoticeDraftRequestSchema = z
+  .object({
+    leaseId: z.string().trim().min(1).max(120),
+    offer: RenewalNoticeDraftOfferSchema,
+    // Preview omits both fields. Create carries exact confirmation. Read-only recovery carries only
+    // the consumed execution identity. A boolean is invalid and no request may do both operations.
+    confirm: RenewalDraftConfirmationSchema.optional(),
+    reconcile: RenewalDraftReconciliationSchema.optional(),
+  })
+  .strict()
+  .superRefine((request, context) => {
+    if (request.confirm && request.reconcile) {
+      context.addIssue({
+        code: "custom",
+        message: "A draft request cannot confirm and reconcile at the same time.",
+        path: ["reconcile"],
+      });
+    }
+  });
+
+export type RenewalNoticeDraftRequest = z.infer<typeof RenewalNoticeDraftRequestSchema>;
+export type RenewalNoticeDraftOffer = RenewalNoticeDraftRequest["offer"];
+export type RenewalDraftConfirmation = z.infer<typeof RenewalDraftConfirmationSchema>;
+
+export const RenewalNoticeDraftRecipientSchema = z
+  .object({
+    to: z.string().trim().min(1),
+    sourceRef: z.string().trim().min(1),
+    cc: z.array(z.string().trim().min(1)).optional(),
+  })
+  .strict();
+
+const outcomeChannel = z.enum(["tenant", "owner"]);
+const executionId = RenewalDraftConfirmationSchema.shape.executionId;
+
+export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      status: z.literal("blocked"),
+      channel: outcomeChannel,
+      reasons: z.array(z.string().min(1)),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("preview"),
+      channel: outcomeChannel,
+      recipient: RenewalNoticeDraftRecipientSchema,
+      subject: z.string(),
+      body: z.string(),
+      executionId,
+      previewHash: RenewalDraftConfirmationSchema.shape.previewHash,
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("created"),
+      channel: outcomeChannel,
+      recipient: RenewalNoticeDraftRecipientSchema,
+      subject: z.string(),
+      draftId: z.string().trim().min(1),
+      executionId,
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("needs_reconciliation"),
+      channel: outcomeChannel,
+      executionId,
+      reason: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("reconciliation"),
+      channel: outcomeChannel,
+      executionId,
+      resolution: z.enum(["created", "not_found", "needs_review"]),
+      reason: z.string().min(1),
+      duplicate: z.boolean().optional(),
+      draftId: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+]);
+
+export type RenewalNoticeDraftOutcome = z.infer<typeof RenewalNoticeDraftOutcomeSchema>;
+export type RenewalNoticeDraftPreviewOutcome = Extract<
+  RenewalNoticeDraftOutcome,
+  { status: "preview" }
+>;
+
+/**
+ * Client-only freshness identity for the fields the operator can mutate. This is not an authority
+ * or security hash; the server-owned preview hash remains the exact-confirmation boundary.
+ */
+export function renewalDraftInputFingerprint(
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+): string {
+  return JSON.stringify(canonicalize({ leaseId: request.leaseId, offer: request.offer }));
+}
+
+export interface RenewalDraftPreviewBinding {
+  executionId: string;
+  previewHash: string;
+  inputFingerprint: string;
+}
+
+export function bindRenewalDraftPreview(
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+  outcome: RenewalNoticeDraftPreviewOutcome,
+): RenewalDraftPreviewBinding {
+  return {
+    executionId: outcome.executionId,
+    previewHash: outcome.previewHash,
+    inputFingerprint: renewalDraftInputFingerprint(request),
+  };
+}
+
+export function isRenewalDraftPreviewCurrent(
+  binding: RenewalDraftPreviewBinding | null,
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+): binding is RenewalDraftPreviewBinding {
+  return (
+    binding !== null && binding.inputFingerprint === renewalDraftInputFingerprint(request)
+  );
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, canonicalize(entry)]),
+    );
+  }
+  return value;
+}

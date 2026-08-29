@@ -27,6 +27,11 @@ the specification work or by an unconfirmed effect.
 9. Applied and behavior-tested the smallest dependency overrides; the production audit is zero.
 10. Authored and registered the approved renewal contracts as standalone feature specifications.
     Their newly specified product behavior remains implementation work, not completed code.
+11. Implemented the S77 source candidate: one strict draft request/outcome contract, numeric/range
+    refusals, input-bound preview state, exact-object confirmation, one-attempt transport recovery,
+    and read-only exact Message-ID reconciliation. Focused architecture, behavior, service/route,
+    composer, ledger, and send-boundary checks are green; the canonical gate passed 524 unit files,
+    115 Firestore tests, and the 104-route build. Production release remains.
 
 ## Completed release evidence
 
@@ -44,7 +49,8 @@ the specification work or by an unconfirmed effect.
 
 The contracts are frozen as follows:
 
-- **S77:** shared draft preview/confirmation contract, invalidation, and one-attempt reconciliation.
+- **S77:** source candidate and canonical gate complete; exact release and production readback remain
+  before this item is closed.
 - **S59:** RentVine unit-attribute preservation, complete RentCast cache/query provenance, approved
   two-mile/15-request policy, and base-rent/reference separation.
 - **S80:** Editor ordinary-work matrix with exact Admin/Approver/action-key/source-write boundaries.
@@ -64,8 +70,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
 
 1. Re-read current authority, facts, live version, working tree, and all registered suite contracts;
    record pre-existing failures and user-owned changes.
-2. Implement S77 first so every later draft, template, and attachment input binds to one exact
-   preview and one-attempt reconciliation lifecycle.
+2. Finish S77 diff/PII/gate audit, exact commit/push, zero-traffic candidate smoke, promotion, and
+   production readback so later draft/template/attachment work consumes the released contract.
 3. Implement S59 mapping, cache, query, and evidence correctness while preserving allowance and
    reference-only rules.
 4. Implement S80 page/API/control authority parity without S64, action-key, send, or source-write
