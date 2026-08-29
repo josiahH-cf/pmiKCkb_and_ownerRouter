@@ -26,7 +26,8 @@ the specification work or by an unconfirmed effect.
 8. Completed dependency-independent Dotloop, LeadSimple, and RentVine resident-channel lifecycles.
 9. Applied and behavior-tested the smallest dependency overrides; the production audit is zero.
 10. Authored and registered the approved renewal contracts as standalone feature specifications.
-    Their newly specified product behavior remains implementation work, not completed code.
+    Registration alone is not implementation evidence; S80's separate implementation is recorded in
+    item 14, while the other pending suite behavior remains implementation work.
 11. Implemented and deployed S77: one strict draft request/outcome contract, numeric/range
     refusals, input-bound preview state, exact-object confirmation, one-attempt transport recovery,
     and read-only exact Message-ID reconciliation. Focused architecture, behavior, service/route,
@@ -41,6 +42,11 @@ the specification work or by an unconfirmed effect.
 13. Added `.gcloudignore` after adversarial upload-manifest inspection proved local `.claude/` state
     and user-owned `output/` PDFs would otherwise enter Cloud Build; the hardened manifest excludes
     those paths and all local env files.
+14. Implemented the S80 role/Space/effect matrix across every renewal page, API method, and rendered
+    control. Canonical access now admits Editors to ordinary work while retaining Approver
+    reconciliation, Admin pricing/source approvals and configuration, independent exact-action
+    readiness, closed source writes, and permanent in-app-send refusal. Focused and canonical gates
+    are green; exact release proof remains pending.
 
 ## Completed release evidence
 
@@ -73,7 +79,8 @@ The contracts are frozen as follows:
   stable readback proof.
 - **S59:** complete and deployed with measured RentVine mapping, server-owned query truth, complete
   cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
-- **S80:** Editor ordinary-work matrix with exact Admin/Approver/action-key/source-write boundaries.
+- **S80:** implementation and canonical gate complete; exact commit, CI, candidate, promotion, and
+  stable production readback remain.
 - **S72:** versioned six-step process with detailed substeps, evidence, branches, and reopening.
 - **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
 - **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
@@ -94,9 +101,10 @@ already-correct safety facts stay in preservation rather than being rewritten as
    exact-confirm or one-attempt boundaries while implementing downstream suites.
 3. Preserve deployed S59 mapping, cache, query/evidence, allowance, and reference-only contracts as
    downstream suites consume them.
-4. Implement S80 page/API/control authority parity without S64, action-key, send, or source-write
-   expansion; stop before pushing any required protected-path edit without exact owner direction.
-5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection.
+4. Release the exact S80 commit through aggregate CI, zero-traffic candidate smoke/configuration
+   readback, promotion, and stable readback; preserve the captured S59 predecessor for rollback.
+5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection after
+   S80 release evidence is reconciled.
 6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
    those projections.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.

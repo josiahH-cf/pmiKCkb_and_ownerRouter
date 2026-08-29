@@ -24,12 +24,13 @@ import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
 } from "@/lib/lease-renewal/live-desk";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 interface LiveLeaseWorkspacePageProps {
   params: Promise<{ leaseId: string }>;
 }
 
-// Owner-gated (Admin only). One live lease's renewal workspace, read-only / draft-only. The email step
+// Renewals-space Editors and up. One live lease's renewal workspace, read-only / draft-only. The email step
 // renders the gated live composer; there is no sample email button and no sheet write-back here.
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   params,
 }: LiveLeaseWorkspacePageProps) {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("manageAdmin");
+  const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
   const { leaseId } = await params;
 
   const progress = await getRenewalProgress(user, leaseId);
@@ -121,6 +122,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
             <RenewalWorkspace
               compScreenshotExecutable={compScreenshotAction.executable}
               packetSnapshot={packetSnapshot}
+              role={user.role}
               workspace={outcome.workspace}
             />
             <DiscrepancyDispositionPanel

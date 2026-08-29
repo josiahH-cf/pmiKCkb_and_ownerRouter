@@ -4,6 +4,10 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
+  assertRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
+import {
   EnvironmentContextError,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
@@ -41,7 +45,11 @@ const WritebackExecuteBodySchema = z
  */
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("manageAdmin", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
+    assertRenewalRoleAuthority("execute_source_write", user.role);
     const descriptor = requireEnvironmentDescriptor();
     const executionContext = { descriptor };
 

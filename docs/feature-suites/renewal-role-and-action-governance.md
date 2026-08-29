@@ -3,8 +3,8 @@
 
 # S80 — Renewal role and action governance
 
-> Status: Active; the owner approved an Editor-level ordinary-work matrix, while current page/API
-> gates are inconsistent and all provider/action safety boundaries remain unchanged.
+> Status: Implementation complete and canonical-green; exact commit, aggregate CI, zero-traffic
+> candidate, promotion, and stable production readback remain before deployed closure.
 
 **Goal.**
 
@@ -14,11 +14,11 @@ their exact stronger boundaries.
 
 **Current state / intended end state.**
 
-The canonical Live desk/workspace requires Admin, while the draft API and legacy notices surface
-permit Editor. App-owned progress/owner decisions, comp suggestions, policy changes, draft creation,
-and provider writes are presented through different mechanisms whose authority is not summarized for
-the operator. The intended state has one explicit, tested capability/effect matrix and honest
-unavailable reasons; it does not create per-person authority or weaken an exact action gate.
+The measured starting state required Admin for the canonical Live desk/workspace while the draft API
+and legacy notices surface permitted Editor. The current ship candidate replaces that disagreement
+with one explicit, tested capability/effect matrix across app-owned progress/owner decisions, comp
+suggestions, policy changes, draft creation, and provider effects. It presents honest unavailable
+reasons and creates neither per-person authority nor a weaker exact action gate.
 
 **Actors and entry conditions.**
 
@@ -64,8 +64,8 @@ readiness, audit records, Space access, and user-facing refusal copy.
 | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md` action authority, standing authority, and protected-path rules                                                | Authority                     | Roles, Space access, exact action keys, and runtime readiness are independent; protected auth/Rules/gate paths may be prepared but not pushed without explicit owner direction. |
 | `docs/facts.md` renewal decisions and S64 status                                                                          | Product authority             | The Editor ordinary-work matrix is approved; per-person authority remains an unauthorized proposal.                                                                             |
-| Canonical Live desk/workspace guards, legacy notices guards, draft route, progress/decision routes, and rendered controls | Verified implementation truth | Current Admin-only page access disagrees with Editor-capable ordinary APIs/surfaces; the inventory must prove every actual entry point rather than assume parity.               |
-| Role, Space, route, component, Action Registry, suspension, and send-boundary tests                                       | Verification baseline         | Existing denials are preservation evidence; new inventory/matrix checks must fail on the current page/API disagreement.                                                         |
+| Canonical Live desk/workspace guards, legacy notices guards, draft route, progress/decision routes, and rendered controls | Verified implementation truth | The fail-first inventory proved the Admin-only starting mismatch; the current candidate now classifies and checks every actual entry point rather than assuming parity.         |
+| Role, Space, route, component, Action Registry, suspension, and send-boundary tests                                       | Verification baseline         | Existing denials are preservation evidence; the inventory/matrix checks retain the starting mismatch as a regression case.                                                      |
 | Stabilization intake                                                                                                      | Intent evidence only          | “Less approval friction” means approved ordinary app work, not blanket unchecked provider effects or a role redesign.                                                           |
 
 **Architecture outcome (deterministic, fail-first).**
@@ -95,7 +95,9 @@ readiness, audit records, Space access, and user-facing refusal copy.
 a pricing approval, setup change, source write, or client send is unavailable. The UI never suggests
 that becoming an Admin would override a closed action or permit in-app sending.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - why: one explicit matrix now projects every renewal page, API method, and
+  rendered control; focused privilege/refusal checks and the canonical gate are green without a
+  protected-path, action-key, send, source-write, identity, or S64 change.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -116,7 +118,7 @@ path policy, and every send/write refusal remain green separately.
 **Adversarial acceptance checks.**
 
 - **AC-S80-1** — `ARCH-S80-1` enumerates canonical page/API/control authority and fails on any
-  disagreement, including the present Admin-page/Editor-API mismatch.
+  disagreement, including a regression to the starting Admin-page/Editor-API mismatch.
 - **AC-S80-2** — `BEH-S80-1` proves Editor ordinary work through real route contracts, not only hidden
   controls or mocked roles.
 - **AC-S80-3** — `ARCH-S80-2` and `BEH-S80-2` prove an app-owned save cannot construct a provider and a
@@ -168,6 +170,30 @@ authorized; unprotected page/route alignment may proceed under standing implemen
    authority.
 4. Run adversarial role/Space/action/suspension/send tests and the canonical gate; surface protected
    edits separately.
+
+**Implementation evidence — 2026-08-29.**
+
+- The fail-first check reproduced the missing matrix and Admin-page/Editor-API mismatch before the
+  implementation existed.
+- `lib/lease-renewal/role-action-governance.ts` now owns 16 distinct capability/effect rows, exact
+  denial reasons, safe next actions, and separate role, Space, managed-identity, exact-action,
+  runtime-suspension, quota, and confirmation terms.
+- A filesystem-backed inventory covers all 10 renewal pages, 19 exported API methods, and eight
+  rendered controls; it fails if a new surface is unclassified or an enforcement source stops
+  projecting its declared row.
+- Editors can enter the canonical desk/workspace and use ordinary app-owned progress, owner-direction,
+  comp-read, and exact unsent-draft flows. Approver reconciliation, Admin pricing/source approvals,
+  Admin configuration, closed source writes, and permanent in-app-send refusal remain distinct and
+  are explained in the operator UI and direct API errors.
+- The exact Registry preservation test proves the RentCast and renewal-draft keys remain open while
+  screenshot storage, RentVine/Sheet writes, and renewal/generic sends remain closed. No protected
+  auth, Action Registry, action-gate, Firestore Rules, or budget path changed, so `AC-S80-5` passes
+  without a withheld patch.
+- Focused S80 and preservation runs are green. The canonical run passed 528 unit files with one
+  intentional file skip (4,795 tests passed and four skipped), 25 Firestore files/115 tests, every
+  policy/static gate, the production-only zero-vulnerability audit, and the 104-page build.
+- Production still serves the prior S59 revision until the exact S80 commit completes aggregate CI,
+  zero-traffic candidate smoke/configuration readback, promotion, and stable readback.
 
 **Deletion/merge recommendation.**
 

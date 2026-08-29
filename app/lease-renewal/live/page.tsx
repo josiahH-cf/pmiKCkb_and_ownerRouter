@@ -16,8 +16,9 @@ import {
   loadLiveRenewalReview,
   type LiveReviewStatus,
 } from "@/lib/lease-renewal/live-review";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
-// Owner-gated (Admin only). Reads live data on each render, so never statically cached.
+// Renewals-space read access. Stronger controls stay projected from the signed-in role.
 export const dynamic = "force-dynamic";
 
 type PanelStatus = Exclude<LiveReviewStatus, "ok">;
@@ -49,7 +50,7 @@ const PANELS: Record<
 
 export default async function LiveRenewalReviewPage() {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("manageAdmin");
+  const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
 
   // The live flags are recomputed on each render; only persisted resolutions + write-back approvals +
   // their append-only decision history need Firestore. Load them for run_id "live-review" (the same id
@@ -81,9 +82,9 @@ export default async function LiveRenewalReviewPage() {
         </Link>
         {outcome.status === "ok" ? (
           <LiveRenewalReview
-            canDefer={can(user.role, "edit")}
-            canResolve={can(user.role, "approve")}
-            isAdmin={can(user.role, "manageAdmin")}
+            canDefer={can(user.role, renewalRoleCapability("save_navigation_progress"))}
+            canResolve={can(user.role, renewalRoleCapability("resolve_reconciliation"))}
+            isAdmin={can(user.role, renewalRoleCapability("approve_source_write"))}
             meta={outcome.meta}
             resolutionsError={resolutionsError}
             view={outcome.view}

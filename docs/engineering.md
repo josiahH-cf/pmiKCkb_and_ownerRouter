@@ -1,6 +1,6 @@
 # Engineering and security contract
 
-Updated: 2026-08-27.
+Updated: 2026-08-29.
 
 ## Runtime
 
@@ -15,6 +15,9 @@ Updated: 2026-08-27.
 - Authenticate and authorize on the server for every protected route/action.
 - Treat missing, malformed, stale, wrong-domain, and Vendor-drift claims as denial.
 - Never trust client-supplied role, scope, actor, target, or provider state.
+- Renewal role, Renewals Space access, exact action state, runtime suspension, quota, confirmation,
+  and effect type are independent terms. Every renewal page/API/control projects one declared matrix
+  row; role alone never authorizes a provider effect.
 - Secrets come from Secret Manager or ignored local env; no key files.
 - Logs/evidence are bodyless and value-minimized.
 - Client data, exports, messages, documents, and identifiers do not enter Git.
@@ -44,9 +47,9 @@ Updated: 2026-08-27.
 - On WSL Windows mounts, the unit runner uses a disposable native Linux Git worktree, eight or fewer
   thread workers, native temp files, and a lockfile/Node-ABI-keyed dependency cache. Ignored env,
   client, scratch, secret, output, and runner-local files are never mirrored.
-- The supported WSL full-unit lane has a ten-minute hard performance budget. The final 2026-08-27
-  canonical run measured 43.39 seconds inside Vitest for all 524 files; a complete cached `npm test`
-  proof measured 65.30 seconds. Clean repository installation is a separate gate.
+- The supported WSL full-unit lane has a ten-minute hard performance budget. The final S80 canonical
+  run measured 58.40 seconds inside the runner for 528 passing files and one intentional file skip;
+  clean repository installation is a separate gate.
 - Firestore Rules tests cover access boundaries.
 - Architecture sentinels constrain imports, routes, secrets, gates, and provider construction.
 - E2E is bounded and must terminate on setup failure.

@@ -22,8 +22,9 @@ import {
   LIVE_REVIEW_RUN_ID,
   rebuildLiveRenewalRun,
 } from "@/lib/lease-renewal/live-review";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
-// Admin-only, and it reads persisted decision Activity on each render, so never statically cached.
+// Renewals-space read access; this page has no mutation control and never executes a source write.
 export const dynamic = "force-dynamic";
 
 interface PropertyPageProps {
@@ -36,7 +37,7 @@ export default async function LeaseRenewalPropertyPage({
   searchParams,
 }: PropertyPageProps) {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("manageAdmin");
+  const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
   const { propertyKey: rawKey } = await params;
   const propertyKey = decodeURIComponent(rawKey);
   const returnTo = normalizeRenewalReturnTo((await searchParams)?.returnTo);

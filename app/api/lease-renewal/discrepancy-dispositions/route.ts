@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   listRenewalDiscrepancyDispositions,
   recordRenewalDiscrepancyDisposition,
@@ -54,7 +55,10 @@ const BodySchema = z
 
 export async function GET(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
     const leaseId = new URL(request.url).searchParams.get("lease_id")?.trim() ?? "";
     if (!leaseId)
       return NextResponse.json({ error: "lease_id is required" }, { status: 400 });
@@ -67,7 +71,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("record_discrepancy_disposition"),
+      "renewals",
+    );
     const input = await parseJsonBody(request, BodySchema);
     const disposition = await recordRenewalDiscrepancyDisposition(user, input);
     return NextResponse.json({ disposition });

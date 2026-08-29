@@ -94,7 +94,7 @@ not block independent suites.
 | S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation   |
 | S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Active; canonical searchable role-consistent Live desk not implemented             |
 | S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Active; receipt/MIME design specified; Drive action remains closed                 |
-| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Approved Editor ordinary-work matrix; guard alignment not implemented              |
+| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Implementation and canonical gate green; exact production release pending          |
 | S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Approved narrow navigation/readiness scope; not implemented                        |
 
 A status in this table is authoritative for planning. A suite body is the acceptance contract, not a

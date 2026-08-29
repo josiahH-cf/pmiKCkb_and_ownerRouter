@@ -45,6 +45,25 @@ before promotion. The promoted revision was read back at 100% with every runtime
   intentional skip (4,783 passing tests and four skips), 115 Firestore tests, every policy gate, and
   the 104-page build. Exact candidate and stable production readback are green.
 
+## S80 ship candidate (not yet production)
+
+- One explicit 16-row role/Space/effect matrix now projects all 10 renewal pages, 19 exported API
+  methods, and eight rendered controls. A filesystem-backed inventory fails on an unclassified or
+  mismatched future surface.
+- Renewals-space Editors can enter the canonical desk/workspace and use ordinary app-owned progress,
+  owner-direction, reference-comp, and exact unsent-draft flows. Approver reconciliation and Admin
+  pricing/source approvals and configuration retain their stronger route and repository checks.
+- The operator UI and direct API refusals explain missing authority and the safe next action. Roles
+  never imply an exact key; action closure, suspension, quota, and confirmation are checked
+  independently before provider construction.
+- RentCast and unsent renewal-draft keys remain open. Screenshot storage, RentVine and operating-Sheet
+  writes, and renewal/generic sends remain closed. No protected auth, Registry, action-gate, Rules, or
+  budget path changed, and S64 remains absent.
+- The final canonical run passed 528 unit files with one intentional file skip (4,795 passing tests
+  and four skips), all 115 Firestore tests, every policy/static gate, the production-only
+  zero-vulnerability audit, and the 104-page build. Exact commit, CI, candidate, promotion, and stable
+  production readback remain pending.
+
 ## Verified product state in production
 
 - Complete RentVine and operating-Sheet reads feed renewal reconciliation and Live workspaces.
@@ -70,19 +89,21 @@ before promotion. The promoted revision was read back at 100% with every runtime
 - S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
 - S72 must carry the deployed contractual-base-rent/reference-evidence contract through its six-step
   process; recurring charges remain separate.
-- Renewals-space Editors may perform ordinary app-owned renewal work and exact-confirm unsent drafts;
-  pricing approval, Admin configuration, exact action gates, and source writes retain stronger rules.
+- The S80 ship candidate implements Editor ordinary app work and exact-confirmed unsent drafts while
+  preserving stronger pricing, reconciliation, Admin configuration, exact-action, and source-write
+  boundaries; production remains on S59 until the release proof completes.
 - Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
   terms, mandatory copy, evidence, and channel status stay locked.
 - The comp screenshot target is one exact receipted Gmail attachment, not a text reference or inline
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77 and S59 are complete and deployed; S72/S74/S75/S78/S79/S80/S81/S63 and the separately gated
-  S30 effect remain in the ordered execution bundle.
+- S77 and S59 are complete and deployed; S80 implementation is canonical-green with release pending;
+  S72/S74/S75/S78/S79/S81/S63 and the separately gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
-  verification, and terminal-state rules. Their presence is not implementation or activation evidence.
+  verification, and terminal-state rules. Registration alone is not implementation or activation
+  evidence; S80's separate candidate evidence is listed above.
 
 ## Remaining blockers
 

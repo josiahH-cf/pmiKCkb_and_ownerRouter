@@ -4,6 +4,10 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { can } from "@/lib/auth/roles";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
+  assertRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
+import {
   DecideRentSuggestionApprovalInputSchema,
   decideRentSuggestionApproval,
   getRentSuggestionApproval,
@@ -46,7 +50,10 @@ async function resolveLeaseLiveFacts(
 // number is always recomputed server-side from the lease's own comp basis; it is never client-supplied.
 export async function GET(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
     const leaseId = new URL(request.url).searchParams.get("lease_id")?.trim() ?? "";
     if (leaseId === "") {
       return NextResponse.json({ error: "A lease_id is required." }, { status: 400 });
@@ -61,7 +68,10 @@ export async function GET(request: Request) {
     const approval = await getRentSuggestionApproval(user, leaseId);
     const activity = await listRentSuggestionApprovalActivity(user, leaseId);
     // The server is the source of truth for who may approve; the client renders the control from this.
-    const canApprove = can(user.role, "manageAdmin");
+    const canApprove = can(
+      user.role,
+      renewalRoleCapability("approve_pricing_suggestion"),
+    );
     return NextResponse.json({ suggestion, approval, activity, canApprove });
   } catch (error) {
     return apiErrorResponse(error);
@@ -69,12 +79,16 @@ export async function GET(request: Request) {
 }
 
 // Approve or return the comp-derived rent suggestion (S29 control plane). The route gates at "read"; the
-// data layer enforces the Admin-only rule (manageAdmin — a non-Admin gets 403), the required reason, the
+// route and data layer both enforce the Admin-only rule, the required reason, the
 // server-side recompute, and the no-execute invariant. No system-of-record write and no send happen here:
 // approving only records human authorization to place the number in the owner-notice DRAFT.
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
+    assertRenewalRoleAuthority("approve_pricing_suggestion", user.role);
     const input = await parseJsonBody(request, DecideRentSuggestionApprovalInputSchema);
     const facts = await resolveLeaseLiveFacts(input.lease_id);
     const approval = await decideRentSuggestionApproval(

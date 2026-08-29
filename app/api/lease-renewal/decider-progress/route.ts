@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, createdJson, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   RenewalDeciderProgressRunQuerySchema,
@@ -16,7 +17,10 @@ import {
 // both gate writes at `edit`; this is per-user navigation state, not a renewal resolution.
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("save_navigation_progress"),
+      "renewals",
+    );
     const input = await parseJsonBody(request, SetRenewalDeciderProgressInputSchema);
     const progress = await setRenewalDeciderProgress(user, input);
     return createdJson({ progress: toClientMarker(progress) });
@@ -29,7 +33,10 @@ export async function POST(request: Request) {
 // filter, and Firestore client rules independently enforce read-own on both current + Activity.
 export async function GET(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
     const url = new URL(request.url);
     const parsed = RenewalDeciderProgressRunQuerySchema.safeParse({
       run_id: url.searchParams.get("run_id") ?? undefined,

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { LiveRenewalNotices } from "@/components/lease-renewal/LiveRenewalNotices";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { loadLiveRenewalNotices } from "@/lib/lease-renewal/live-notices";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 // Editors and up (D4): drafting renewal notices is core Editor work, so this desk matches the draft
 // API's own "edit" gate instead of standing behind an Admin-only wall. It reads live RentVine on each
@@ -15,7 +16,7 @@ const WINDOW_DAYS = 120;
 
 export default async function LiveRenewalNoticesPage() {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("edit");
+  const user = await requirePageCapability(renewalRoleCapability("draft_create"));
 
   // The renewal window is computed here (the pure loader never calls Date.now()): leases ending on a
   // month boundary between today and ~4 months out are the actionable batch.

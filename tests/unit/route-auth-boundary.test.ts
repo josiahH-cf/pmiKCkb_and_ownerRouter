@@ -102,7 +102,9 @@ describe("API route auth-boundary invariant", () => {
       const [, scope] = entry;
       const code = stripComments(readFileSync(join(API_ROOT, relPath), "utf8"));
       const scopedGuard = new RegExp(
-        `require(?:SpaceAccess|CapabilityInSpace)\\([\\s\\S]{0,120}["']${scope}["']\\s*\\)`,
+        // Multiline calls receive a trailing comma from Prettier. Matrix-projected capabilities add
+        // one nested pure call, but the throwing scope guard and exact scope literal stay mandatory.
+        `require(?:SpaceAccess|CapabilityInSpace)\\([\\s\\S]{0,240}["']${scope}["']\\s*,?\\s*\\)`,
       );
       return scopedGuard.test(code) ? [] : [relPath];
     });

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   markRenewalComplete,
   recordOwnerDecision,
@@ -189,7 +190,10 @@ export function createRenewalProgressPostHandler(
   const deps = { ...DEFAULT_ROUTE_DEPS, ...overrides };
   return async function handleRenewalProgressPost(request: Request) {
     try {
-      const user = await deps.requireCapabilityInSpace("edit", "renewals");
+      const user = await deps.requireCapabilityInSpace(
+        renewalRoleCapability("save_renewal_progress"),
+        "renewals",
+      );
       const body = await parseJsonBody(request, RenewalProgressBodySchema);
 
       // S58: a decision recorded against data past the hard max age is a decision about a lease

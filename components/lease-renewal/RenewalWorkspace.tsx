@@ -17,10 +17,12 @@ import {
   Tabs,
 } from "@/components/ui";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
+import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
+import type { Role } from "@/lib/auth/roles";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
@@ -48,10 +50,12 @@ const RECON_PILL: Record<DeskReconItem["agreement"], { value: string; label: str
 export function RenewalWorkspace({
   compScreenshotExecutable = false,
   packetSnapshot = null,
+  role = "Editor",
   workspace,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
+  role?: Role;
   workspace: RenewalLeaseWorkspace;
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
@@ -67,6 +71,8 @@ export function RenewalWorkspace({
         subtitle={`${summary.tenantNameLabel}${summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}`}
         title={summary.addressLabel}
       />
+
+      <RenewalAuthorityPanel role={role} />
 
       <Stepper currentIndex={workspace.currentStepIndex} steps={workspace.steps} />
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   getCurrentPacketSnapshot,
   savePacketSnapshot,
@@ -78,7 +79,10 @@ export function createPacketTruthGetHandler(
   const deps = { ...DEFAULT_DEPS, ...overrides };
   return async function handlePacketTruthGet(request: Request) {
     try {
-      const user = await deps.requireCapabilityInSpace("read", "renewals");
+      const user = await deps.requireCapabilityInSpace(
+        renewalRoleCapability("read_workspace"),
+        "renewals",
+      );
       const url = new URL(request.url);
       const identity = PacketIdentitySchema.parse({
         leaseId: url.searchParams.get("leaseId"),
@@ -104,7 +108,10 @@ export function createPacketTruthPostHandler(
     try {
       // Capability + Space refusal happens before catalog resolution, persistence, or any future
       // connector construction.
-      const user = await deps.requireCapabilityInSpace("edit", "renewals");
+      const user = await deps.requireCapabilityInSpace(
+        renewalRoleCapability("save_packet_truth"),
+        "renewals",
+      );
       const body = await parseJsonBody(request, EvaluatePacketSchema);
       const observedAt = deps.nowIso();
       const input = await deps.resolveInput(body.leaseId, body.transactionId, observedAt);

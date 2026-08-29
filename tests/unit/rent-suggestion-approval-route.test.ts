@@ -71,8 +71,13 @@ describe("rent-suggestion route (AC-S29-3)", () => {
     mocks.requireCapabilityInSpace.mockResolvedValue(editor);
     const res = await post({ lease_id: LEASE_ID, decision: "approve", reason: "x" });
     expect(res.status).toBe(403);
-    // The Admin gate is enforced by the data layer even though the route gates at read.
+    // S80 first proves Renewals Space/read access, then returns the matrix's specific Admin refusal;
+    // the data layer repeats the stronger rule if a caller ever reaches it.
     expect(mocks.requireCapabilityInSpace).toHaveBeenCalledWith("read", "renewals");
+    await expect(res.clone().json()).resolves.toEqual({
+      error:
+        "Admin authority is required to approve a comp-derived pricing suggestion. Leave the suggestion pending for Admin review; no offer is changed.",
+    });
     const stored = db.store.get(
       `lease_renewal_rent_suggestion_approvals/${progressDocId(LEASE_ID)}`,
     );

@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
+  assertRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
+import {
   DecideWritebackApprovalsBulkInputSchema,
   decideWritebackApprovalsBulk,
 } from "@/lib/firestore/lease-renewal-writeback-approvals";
@@ -14,7 +18,11 @@ import {
 // record write happens here.
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("read_workspace"),
+      "renewals",
+    );
+    assertRenewalRoleAuthority("approve_source_write", user.role);
     const input = await parseJsonBody(request, DecideWritebackApprovalsBulkInputSchema);
     const outcome = await decideWritebackApprovalsBulk(user, input);
 

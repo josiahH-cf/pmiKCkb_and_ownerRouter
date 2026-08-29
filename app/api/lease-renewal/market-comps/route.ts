@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { readServerConfig } from "@/lib/config/server";
 import {
   createRentcastUsageStore,
@@ -97,7 +98,10 @@ function referenceProjection(queryBasis: MarketCompQueryBasis, cached: boolean) 
  */
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("request_reference_comps"),
+      "renewals",
+    );
     const config = readServerConfig();
 
     if (config.marketCompProvider === "rentcast") {

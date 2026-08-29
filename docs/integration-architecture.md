@@ -1,6 +1,6 @@
 # Integration architecture
 
-Updated: 2026-08-26.
+Updated: 2026-08-29.
 
 ## Effect model
 
@@ -16,6 +16,18 @@ Every provider capability is one exact Action Registry key. Execution requires:
 8. rollback/correction exists.
 
 A category, credential, UI button, or runtime flag cannot imply action authority.
+
+## Renewal role/effect projection
+
+Renewal pages, APIs, and rendered controls consume one explicit capability/effect matrix. A managed
+identity and Renewals Space access are always conjunctive with the row's role capability. Editors may
+read and save ordinary app-owned progress/owner direction, request reference comps, and exact-confirm
+one unsent draft. Approver reconciliation, Admin pricing/source approvals and configuration, provider
+effects, and source writes remain separate rows.
+
+An open action key does not grant page/role access, and a role cannot open a key. Exact action state,
+runtime suspension, quota, provider readiness, preview/confirmation, receipts, readback, and rollback
+remain downstream effect checks. In-app renewal sending is permanently unavailable for every role.
 
 ## Current open keys
 

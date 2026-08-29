@@ -26,10 +26,14 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   query/source/omission/base-rent/comparable/retrieval/cache/quota truth; property type remains omitted;
   and provider output cannot populate the offer. Focused, live parity, canonical, CI, candidate, and
   stable readback evidence are green.
+- S80 is implemented and canonical-green in the ship candidate: one matrix covers every renewal page,
+  API method, and rendered control; Editors reach ordinary work, Approver/Admin distinctions remain,
+  exact-action state stays independent, source writes/sends remain closed, and no protected path or
+  S64 grant changed. Exact commit, CI, candidate, promotion, and stable readback remain.
 - Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
   `.gcloudignore`; the user-owned working-tree paths remain untouched.
-- The remaining application still has the four-step model, Admin-only canonical desk, and text-only
-  screenshot ref.
+- The remaining application still has the four-step model and text-only screenshot ref; production
+  still has the pre-S80 page guards until the candidate is released.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
 - S59 used one controlled billed RentCast read and zero writes. Delivery changed only the bounded
@@ -37,15 +41,15 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Next exact action
 
-Implement S80's Editor ordinary-renewal-work capability matrix and exact page/API/control refusals
-without changing protected auth/action gates, source-write authority, direct-send closure, or S64.
+Commit and push the canonical-green S80 candidate, require aggregate CI, then run exact zero-traffic
+candidate smoke/configuration readback, promote the exact revision, and verify stable production.
 
 ## Ordered continuation
 
 1. S77 canonical/release/readback proof — complete.
 2. S59 RentCast mapping/cache/query truth — complete and deployed.
-3. S80 role/action parity — active.
-4. S72 six-step/substep model and S75 follow-up projection.
+3. S80 role/action parity — implementation complete; exact release proof active.
+4. S72 six-step/substep model and S75 follow-up projection after S80 release reconciliation.
 5. S78 canonical triage desk.
 6. S74 governed copy/AI and S79 receipt-bound attachment.
 7. S81 navigation/readiness.

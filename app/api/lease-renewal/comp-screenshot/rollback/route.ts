@@ -7,6 +7,7 @@ import {
   requireCapabilityInSpace,
   type AuthenticatedUser,
 } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { renewalCompScreenshotClosedResponse } from "@/lib/lease-renewal/comp-screenshot-action";
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
 import {
@@ -65,7 +66,8 @@ export interface RenewalCompScreenshotRollbackRouteDeps {
 }
 
 const DEFAULT_DEPS: RenewalCompScreenshotRollbackRouteDeps = {
-  authenticate: () => requireCapabilityInSpace("manageAdmin", "renewals"),
+  authenticate: () =>
+    requireCapabilityInSpace(renewalRoleCapability("screenshot_rollback"), "renewals"),
   assertRuntimeExecutable: () =>
     assertProductionRuntimeActionExecutable("google_drive.renewal_comp_screenshot.store"),
   buildRuntime: buildLiveCompScreenshotRuntime,

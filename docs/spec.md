@@ -29,6 +29,8 @@ or cause provider effects.
 - Verify current rent only from fresh agreement or exact current resolution.
 - Use RentCast as a reference input with source link, cache, counter, and allowance stop.
 - Keep offered rent Admin-approved and separate from provider estimates.
+- Let Renewals-space Editors read and perform ordinary app-owned work; keep Approver reconciliation,
+  Admin pricing/source approvals and configuration, and exact action readiness as independent terms.
 - Address all owners/tenants of record through separated channels.
 - Prepare human-reviewed unsent drafts; never direct-send.
 - Keep packet truth fail-closed until approved artifacts/provider mappings exist.
@@ -55,6 +57,11 @@ all static/policy gates, a 104-page production build, and exact candidate/stable
 predecessor remains the captured rollback target; aggregate CI run `33276113459` passed, and the
 earlier predecessor chain had already passed the recorded version-aware rollback/restoration
 rehearsal.
+
+The S80 ship candidate separately passed 528 unit files with one intentional file skip (4,795 tests
+and four skips), all 115 Firestore tests, every static/policy gate, a zero-vulnerability production
+audit, and the 104-page build. It is not production truth until its exact commit passes CI and the
+zero-traffic candidate/promotion/stable readback sequence.
 
 ## Current unfinished work
 

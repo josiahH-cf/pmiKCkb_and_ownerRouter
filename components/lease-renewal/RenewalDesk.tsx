@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 
+import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
 import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
 import {
   Card,
@@ -19,6 +20,7 @@ import {
   Stepper,
 } from "@/components/ui";
 import { buildRenewalAttention, type AttentionItem } from "@/lib/lease-renewal/attention";
+import type { Role } from "@/lib/auth/roles";
 import {
   LEASE_EXPORT_MAX_AGE_MS,
   LEASE_EXPORT_TTL_MS,
@@ -87,7 +89,8 @@ function DataCurrencyBanner({ currency }: Readonly<{ currency: DeskDataCurrency 
 export function RenewalDesk({
   view,
   liveReviewHref,
-}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string }>) {
+  role = "Editor",
+}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string; role?: Role }>) {
   const { summary } = view.cohort;
   const attention = buildRenewalAttention(view.actionable, leaseHrefFor);
 
@@ -115,6 +118,8 @@ export function RenewalDesk({
         }
         title="Renewals"
       />
+
+      <RenewalAuthorityPanel role={role} />
 
       <DataCurrencyBanner currency={view.dataCurrency} />
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
@@ -47,7 +48,10 @@ function leaseIdOf(view: RawLease): string | undefined {
  */
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("draft_create"),
+      "renewals",
+    );
     const body = await parseJsonBody(request, RenewalNoticeDraftRequestSchema);
     if (!body.reconcile) {
       await assertProductionRuntimeActionExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);

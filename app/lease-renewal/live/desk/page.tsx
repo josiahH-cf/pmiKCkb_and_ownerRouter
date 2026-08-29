@@ -5,8 +5,9 @@ import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
-// Owner-gated (Admin only). Reads live RentVine + the renewal sheet on each render, so it is never
+// Renewals-space Editors and up. Reads live RentVine + the renewal sheet on each render, so it is never
 // statically cached. It is read-only and draft-only: no send, no sheet write-back. This is the
 // canonical Renewal landing and surfaces real leases with their real reconciliation.
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ const PANELS: Record<
 
 export default async function LiveRenewalDeskPage() {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("manageAdmin");
+  const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
 
   // The renewal window is computed here (the pure loader never calls Date.now()): leases ending on a
   // month boundary between today and ~4 months out are the actionable batch.
@@ -62,7 +63,7 @@ export default async function LiveRenewalDeskPage() {
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalDesk view={outcome.view} />
+          <RenewalDesk role={user.role} view={outcome.view} />
         ) : (
           <LiveDeskPanel status={outcome.status} />
         )}

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import {
   getLiveLeaseSnapshot,
@@ -27,7 +28,10 @@ export function resetRefreshRateLimitForTests(): void {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
+    const user = await requireCapabilityInSpace(
+      renewalRoleCapability("refresh_source_facts"),
+      "renewals",
+    );
     const body = await parseJsonBody(request, RefreshBodySchema);
 
     const config = buildLiveRentVineConfig();

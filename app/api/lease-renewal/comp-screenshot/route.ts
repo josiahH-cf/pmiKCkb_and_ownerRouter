@@ -7,6 +7,7 @@ import {
   requireCapabilityInSpace,
   type AuthenticatedUser,
 } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { renewalCompScreenshotClosedResponse } from "@/lib/lease-renewal/comp-screenshot-action";
 import { COMP_SCREENSHOT_MAX_BYTES } from "@/lib/lease-renewal/comp-screenshot-contract";
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
@@ -114,7 +115,8 @@ export interface RenewalCompScreenshotRouteDeps {
 }
 
 const DEFAULT_DEPS: RenewalCompScreenshotRouteDeps = {
-  authenticate: () => requireCapabilityInSpace("edit", "renewals"),
+  authenticate: () =>
+    requireCapabilityInSpace(renewalRoleCapability("screenshot_store"), "renewals"),
   assertRuntimeExecutable: () =>
     assertProductionRuntimeActionExecutable("google_drive.renewal_comp_screenshot.store"),
   buildRuntime: buildLiveCompScreenshotRuntime,
