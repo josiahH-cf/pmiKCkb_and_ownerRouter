@@ -25,10 +25,12 @@ const CURRENT_PROVIDERS = [
 
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
+    expect(handoff).toContain("pmi-kc-app-rmtew9a2z-46a2353b6491");
+    expect(handoff).toContain("64031f8ee028f09930660060c8f5f627ca5ccde1");
+    // The immediately preceding S77 release remains the exact rollback target.
     expect(handoff).toContain("pmi-kc-app-rmtep3ke9-9d3ecafb0c2e");
     expect(handoff).toContain("2d7903d42dce9dbfad49338b959e467f6c333ccc");
     expect(handoff).toContain("pmi-kc-app-rmtbh280n-61b78ef991cc");
-    expect(handoff).toContain("6aea639728efcad70e3e601e7a031c2b35722e08");
     expect(handoff).toContain("pmi-kc-app-rmtafuqbg-4e2e4ffe0f48");
     expect(handoff).toContain(
       "The 2026-08-27 rehearsal switched the predecessor to 100%",

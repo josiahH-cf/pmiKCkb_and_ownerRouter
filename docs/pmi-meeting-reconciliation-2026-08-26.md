@@ -3,8 +3,8 @@
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`2d7903d42dce9dbfad49338b959e467f6c333ccc` as revision
-`pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` at 100% traffic.
+`64031f8ee028f09930660060c8f5f627ca5ccde1` as revision
+`pmi-kc-app-rmtew9a2z-46a2353b6491` at 100% traffic.
 
 Client handoffs:
 
@@ -77,10 +77,11 @@ renewal Sheet without printing client values:
 
 These are review outcomes, not a claim that 20 RentVine records are wrong. On 2026-08-29 the owner
 selected contractual base rent as the renewal comparison/decision value, with recurring charges kept
-separate; S72/S59 implementation remains pending. Conflict, missing, stale, expired, or ambiguous
-evidence remains fail-closed. A disposition records authoritative source, proposed correction, reason,
-owner, status, and evidence for one exact lease/row. It cannot perform a source write without a
-separate approved source-specific transaction contract.
+separate. S59 now implements that boundary beside RentCast reference evidence; S72 still must carry it
+through the six-step process. Conflict, missing, stale, expired, or ambiguous evidence remains fail-
+closed. A disposition records authoritative source, proposed correction, reason, owner, status, and
+evidence for one exact lease/row. It cannot perform a source write without a separate approved source-
+specific transaction contract.
 
 ## Safe rehearsal and provider posture
 
@@ -151,7 +152,15 @@ the reviewed Production+Live configuration, and was promoted/read back at 100% t
 [GitHub Actions run 33267458811](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33267458811)
 also passed.
 
-The unit runner preserves the current full 525-file inventory while using a bounded eight-worker
-thread pool in a native Linux shadow. The 2026-08-27 524-file canonical run completed Vitest in 43.39
-seconds; a complete cached `npm test` proof measured 65.30 seconds. The retired roughly 40–48-minute behavior is no longer the
-current performance claim.
+The subsequent S59 release passed two canonical runs: 526 unit files with one intentional skip (4,783
+passing tests and four skips), all 115 Firestore tests, every policy/static gate, and the 104-page
+build. Implementation commit `c29906b85f2ce3129e35914abecb5bcbf7c2de65` and hardened source-
+boundary commit `64031f8ee028f09930660060c8f5f627ca5ccde1` were pushed to `main`; aggregate CI run
+[33276113459](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33276113459)
+passed. Zero-traffic candidate `pmi-kc-app-rmtew9a2z-46a2353b6491` passed exact identity, bounded-
+route smoke, and configuration readback before promotion and stable 100% readback. Its immediate
+rollback target is the S77 revision `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`.
+
+The unit runner preserves the current full 527-file inventory while using a bounded eight-worker
+thread pool in a native Linux shadow. The two S59 canonical runs completed Vitest in 54.54 and 52.11
+seconds. The retired roughly 40–48-minute behavior is no longer the current performance claim.

@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` / commit
-  `2d7903d42dce9dbfad49338b959e467f6c333ccc` at 100% traffic.
+- Production serves `pmi-kc-app-rmtew9a2z-46a2353b6491` / commit
+  `64031f8ee028f09930660060c8f5f627ca5ccde1` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -21,22 +21,30 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   request/outcome contract; previews bind exact confirmation and every operator input; uncertain
   attempts retain read-only RFC Message-ID reconciliation and cannot retry as new. The canonical gate,
   exact zero-traffic candidate smoke, configuration readback, promotion, and stable smoke are green.
-- The remaining application still has the four-step model, Admin-only canonical desk, incomplete
-  RentCast unit/cache provenance, and text-only screenshot ref.
+- S59 is implemented and deployed: one lease identity resolves server-side into a complete supported
+  RentVine query basis; cache identity covers every provider-shaping value; operator evidence includes
+  query/source/omission/base-rent/comparable/retrieval/cache/quota truth; property type remains omitted;
+  and provider output cannot populate the offer. Focused, live parity, canonical, CI, candidate, and
+  stable readback evidence are green.
+- Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
+  `.gcloudignore`; the user-owned working-tree paths remain untouched.
+- The remaining application still has the four-step model, Admin-only canonical desk, and text-only
+  screenshot ref.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
-- Documentation/spec creation caused no provider, client, cloud, action-key, or production effect.
+- S59 used one controlled billed RentCast read and zero writes. Delivery changed only the bounded
+  Cloud Run candidate/traffic state; no client-facing effect, action-key change, or source write ran.
 
 ## Next exact action
 
-Implement S59's fail-first RentVine unit-attribute, RentCast cache/query-provenance, two-mile/15-result,
-and base-rent/reference-only contracts while preserving the allowance and every provider/write gate.
+Implement S80's Editor ordinary-renewal-work capability matrix and exact page/API/control refusals
+without changing protected auth/action gates, source-write authority, direct-send closure, or S64.
 
 ## Ordered continuation
 
 1. S77 canonical/release/readback proof — complete.
-2. S59 RentCast mapping/cache/query truth — active.
-3. S80 role/action parity.
+2. S59 RentCast mapping/cache/query truth — complete and deployed.
+3. S80 role/action parity — active.
 4. S72 six-step/substep model and S75 follow-up projection.
 5. S78 canonical triage desk.
 6. S74 governed copy/AI and S79 receipt-bound attachment.

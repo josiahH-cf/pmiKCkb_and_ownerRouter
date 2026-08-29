@@ -83,7 +83,7 @@ not block independent suites.
 | S53   | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`   | Current per-key activation contract                                                |
 | S54   | `docs/feature-suites/verification-and-ci-parity.md`                 | Complete; canonical gate current                                                   |
 | S56   | `docs/feature-suites/production-live-only-test-lane-retirement.md`  | Complete; current environment contract                                             |
-| S59   | `docs/feature-suites/rentcast-live-activation.md`                   | Live read deployed; approved policy/query-provenance corrections active            |
+| S59   | `docs/feature-suites/rentcast-live-activation.md`                   | Complete and deployed; query/evidence/reference-only contract is preserved         |
 | S63   | `docs/feature-suites/four-lease-renewal-test-set.md`                | Machinery built; secure cohort/log cleanup and fresh evidence remain               |
 | S64   | `docs/feature-suites/per-person-approval-authority.md`              | Specified but NOT authorized                                                       |
 | S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`    | Truth machinery built; approved catalog/provider mapping required                  |

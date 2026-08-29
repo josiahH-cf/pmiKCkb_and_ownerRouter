@@ -149,8 +149,11 @@ assertIncludes("docs/README.md", [
 
 assertIncludes("docs/environment-handoff.md", [
   "Production + Live",
+  "pmi-kc-app-rmtew9a2z-46a2353b6491",
+  "64031f8ee028f09930660060c8f5f627ca5ccde1",
+  "pmi-kc-app-rmtep3ke9-9d3ecafb0c2e",
+  "2d7903d42dce9dbfad49338b959e467f6c333ccc",
   "pmi-kc-app-rmtbh280n-61b78ef991cc",
-  "6aea639728efcad70e3e601e7a031c2b35722e08",
   "pmi-kc-app-rmtafuqbg-4e2e4ffe0f48",
   "Sheet write-back",
   "Current rollback",

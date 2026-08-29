@@ -8,17 +8,17 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`, 100% traffic
-- Serving commit: `2d7903d42dce9dbfad49338b959e467f6c333ccc`
+- Serving revision: `pmi-kc-app-rmtew9a2z-46a2353b6491`, 100% traffic
+- Serving commit: `64031f8ee028f09930660060c8f5f627ca5ccde1`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77 is deployed. Its canonical local gate and aggregate CI run `33267458811` passed, the zero-traffic
-candidate passed exact identity and bounded-route smoke, and the promoted revision was read back at
-100% with the preserved runtime configuration. The earlier closure slice remains green.
+S77 and S59 are deployed. S59 passed two canonical local runs and aggregate CI run `33276113459`;
+its zero-traffic candidate passed exact identity, bounded-route smoke, and configuration readback
+before promotion. The promoted revision was read back at 100% with every runtime invariant preserved.
 
 ## Deployed renewal stabilization slice
 
@@ -33,11 +33,23 @@ candidate passed exact identity and bounded-route smoke, and the promoted revisi
   are green. The canonical gate passed 524 unit files with one intentional file skip (4,762 passing
   tests and four skips), 115 Firestore tests, every policy gate, and the 104-route build. Exact
   candidate and stable production readback are green.
+- S59 derives the RentCast query server-side from one current lease identity, preserves measured
+  RentVine `unit`/`property` facts, and sends only a complete address plus supported bed/bath/positive-
+  integer `unit.size` attributes. Property type remains explicitly omitted rather than guessed.
+- The S59 cache identity covers address, all unit filters, radius, requested count, subject lookup,
+  and provider version. The operator sees source paths/omissions, contractual base rent, returned
+  subject/comparable evidence, retrieval/cache/quota state, provider order, and typed refusals; none
+  can populate offered rent.
+- S59's focused set passed 117 tests and one controlled redacted live parity read returned a usable
+  result with one billed call and zero writes. The canonical gate passed 526 unit files with one
+  intentional skip (4,783 passing tests and four skips), 115 Firestore tests, every policy gate, and
+  the 104-page build. Exact candidate and stable production readback are green.
 
 ## Verified product state in production
 
 - Complete RentVine and operating-Sheet reads feed renewal reconciliation and Live workspaces.
-- RentCast is open for allowance-capped reference reads; provider output cannot set offered rent.
+- RentCast is open for allowance-capped reference reads with deployed server-derived query/evidence
+  provenance; provider output cannot set offered rent.
 - Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only. The browser,
   route, and service now share exact preview/confirm/reconcile shapes.
 - Gmail continuous watch is retired. Manual refresh fetches only linked threads and derives waiting-on/
@@ -56,9 +68,8 @@ candidate passed exact identity and bounded-route smoke, and the promoted revisi
 ## Remaining renewal stabilization implementation
 
 - S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
-- Contractual base rent is the renewal comparison/decision value; recurring charges remain separate.
-- RentCast requests a maximum two-mile radius and 15 comparables, retains provider order, applies no
-  hidden freshness/selection filter, and remains reference-only.
+- S72 must carry the deployed contractual-base-rent/reference-evidence contract through its six-step
+  process; recurring charges remain separate.
 - Renewals-space Editors may perform ordinary app-owned renewal work and exact-confirm unsent drafts;
   pricing approval, Admin configuration, exact action gates, and source writes retain stronger rules.
 - Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
@@ -67,8 +78,8 @@ candidate passed exact identity and bounded-route smoke, and the promoted revisi
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77 is complete and deployed; S59/S72/S74/S75/S78/S79/S80/S81/S63 and the separately gated S30
-  effect remain in the ordered execution bundle.
+- S77 and S59 are complete and deployed; S72/S74/S75/S78/S79/S80/S81/S63 and the separately gated
+  S30 effect remain in the ordered execution bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Their presence is not implementation or activation evidence.

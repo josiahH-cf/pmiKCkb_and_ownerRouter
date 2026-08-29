@@ -33,12 +33,20 @@ the specification work or by an unconfirmed effect.
     composer, ledger, and send-boundary checks are green; the canonical gate passed 524 unit files
     with one intentional file skip, 115 Firestore tests, and the 104-route build. Exact candidate and
     stable release readback passed.
+12. Implemented and deployed S59: one server-derived lease-to-RentCast query basis, verified
+    `property.stateID`/`unit.size` mapping with explicit property-type omission, full request cache
+    identity, provider subject/comparable evidence, query/base-rent/cache/quota UI, typed refusals,
+    and persistence round-trip without offer mutation. A controlled live parity read used one billed
+    call and made zero writes.
+13. Added `.gcloudignore` after adversarial upload-manifest inspection proved local `.claude/` state
+    and user-owned `output/` PDFs would otherwise enter Cloud Build; the hardened manifest excludes
+    those paths and all local env files.
 
 ## Completed release evidence
 
-1. The last shipped full local gate passed: 523 unit files passed and one skipped; 4,678 unit tests
-   passed and four skipped; all 115 Firestore tests, policy/static gates, dependency audit, and the
-   104-route production build passed.
+1. The last shipped full local gate passed twice: 526 unit files passed and one skipped; 4,783 unit
+   tests passed and four skipped; all 115 Firestore tests, policy/static gates, dependency audit, and
+   the 104-page production build passed.
 2. Commit `6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate CI run
    `33069769758` passed.
 3. Zero-traffic revision `pmi-kc-app-rmtbh280n-61b78ef991cc` passed exact commit/revision smoke, was
@@ -50,6 +58,12 @@ the specification work or by an unconfirmed effect.
    closed Sheet writeback, allowance, and secret bindings, passed exact candidate smoke, and was
    promoted/read back at 100% traffic. Aggregate CI run `33267458811` passed. Immediate rollback
    target is `pmi-kc-app-rmtbh280n-61b78ef991cc`.
+6. S59 implementation commit `c29906b85f2ce3129e35914abecb5bcbf7c2de65` and source-boundary
+   commit `64031f8ee028f09930660060c8f5f627ca5ccde1` were pushed to `main`; aggregate CI runs
+   `33274833421` and `33276113459` passed. Zero-traffic revision
+   `pmi-kc-app-rmtew9a2z-46a2353b6491` preserved Production+Live, managed identity, 11 Spaces,
+   closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
+   before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`.
 
 ## Current closure sequence
 
@@ -57,8 +71,8 @@ The contracts are frozen as follows:
 
 - **S77:** complete and deployed with canonical, exact candidate, configuration, promotion, and
   stable readback proof.
-- **S59:** RentVine unit-attribute preservation, complete RentCast cache/query provenance, approved
-  two-mile/15-request policy, and base-rent/reference separation.
+- **S59:** complete and deployed with measured RentVine mapping, server-owned query truth, complete
+  cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
 - **S80:** Editor ordinary-work matrix with exact Admin/Approver/action-key/source-write boundaries.
 - **S72:** versioned six-step process with detailed substeps, evidence, branches, and reopening.
 - **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
@@ -78,8 +92,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    record pre-existing failures and user-owned changes.
 2. Preserve the deployed S77 contract as the draft/template/attachment foundation; do not reopen its
    exact-confirm or one-attempt boundaries while implementing downstream suites.
-3. Implement S59 mapping, cache, query, and evidence correctness while preserving allowance and
-   reference-only rules.
+3. Preserve deployed S59 mapping, cache, query/evidence, allowance, and reference-only contracts as
+   downstream suites consume them.
 4. Implement S80 page/API/control authority parity without S64, action-key, send, or source-write
    expansion; stop before pushing any required protected-path edit without exact owner direction.
 5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection.

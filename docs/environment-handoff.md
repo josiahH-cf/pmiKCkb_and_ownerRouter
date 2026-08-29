@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-29.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`            |
-| Serving commit    | `2d7903d42dce9dbfad49338b959e467f6c333ccc`     |
+| Serving revision  | `pmi-kc-app-rmtew9a2z-46a2353b6491`            |
+| Serving commit    | `64031f8ee028f09930660060c8f5f627ca5ccde1`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -31,6 +31,8 @@ Secret names are bound through Secret Manager. Values never belong in this file.
   `/mnt/c/Users/josia/AppData/Roaming/gcloud`
 - Run Node/npm commands through WSL.
 - Do not commit `.env.local` or `.env.production.local`.
+- `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files from
+  every Cloud Run source upload.
 
 ## Preflight
 
@@ -62,17 +64,8 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtbh280n-61b78ef991cc` from commit
-`6aea639728efcad70e3e601e7a031c2b35722e08`.
-
-```bash
-CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
-  gcloud run services update-traffic pmi-kc-app \
-  --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtbh280n-61b78ef991cc=100 --quiet
-```
-
-Forward restoration:
+Captured predecessor: `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` from commit
+`2d7903d42dce9dbfad49338b959e467f6c333ccc`.
 
 ```bash
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
@@ -81,12 +74,22 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   --to-revisions=pmi-kc-app-rmtep3ke9-9d3ecafb0c2e=100 --quiet
 ```
 
+Forward restoration:
+
+```bash
+CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
+  gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmtew9a2z-46a2353b6491=100 --quiet
+```
+
 The 2026-08-27 rehearsal switched the predecessor to 100%
 (`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`), read it back, and passed root, sign-in, Admin, and exact
 version smoke. It restored the then-current
 `pmi-kc-app-rmtbh280n-61b78ef991cc` revision and passed the same smoke again. The 2026-08-29 S77
-release captured that restored revision as its immediate rollback target. No client-data or provider
-effect occurred.
+release captured that restored revision, and the later S59 release captured the S77 revision
+`pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` as its immediate rollback target. No client-data write or client-
+facing effect occurred.
 
 ## Configuration invariants
 

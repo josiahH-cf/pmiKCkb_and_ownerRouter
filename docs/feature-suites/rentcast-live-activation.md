@@ -3,8 +3,8 @@
 
 # S59 — RentCast query truth and reference-comp policy
 
-> Status: Candidate implementation and a controlled live-read parity proof are complete; exact
-> production release, configuration preservation, and stable readback remain delivery work.
+> Status: Complete and deployed; exact query provenance, provider evidence, cache identity, and the
+> reference-only/base-rent boundary are downstream foundations and remain preserved.
 
 **Goal.**
 
@@ -15,7 +15,7 @@ turning the provider estimate into an offered rent.
 **Current state / intended end state.**
 
 Production has the exact read key open, a Secret Manager-backed key, a measured allowance of 50,
-cache, metering, and a hard allowance stop. The candidate now preserves the sibling `unit` and
+cache, metering, and a hard allowance stop. The deployed path preserves the sibling `unit` and
 `property` objects, derives the exact query server-side from one current lease identity, requests a
 two-mile maximum radius and 15 comparables, keys cache on every request-shaping value, and displays
 the query, omissions, returned evidence, retrieval/cache/quota state, and separately labeled
@@ -124,7 +124,10 @@ reference, not the approved offer.
   read returned a usable Likely result with the exact server-derived policy and mapped fields, no
   emitted customer values, and zero writes. The canonical gate passed 526 unit files with one
   intentional skip (4,783 tests passing and four skipped), 115 Firestore tests, every policy/static
-  gate, and the 104-page production build. Exact release evidence remains the delivery step.
+  gate, and the 104-page production build. Aggregate CI run `33276113459`, exact zero-traffic
+  candidate smoke, configuration readback, promotion, and stable 100% readback are green for revision
+  `pmi-kc-app-rmtew9a2z-46a2353b6491` / commit
+  `64031f8ee028f09930660060c8f5f627ca5ccde1`.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -175,7 +178,7 @@ proves case-level results. None may weaken S59's reference-only boundary.
 - **Consumes, but does not assume:** an exact RentVine property-type source mapping. Because none is
   approved, `propertyType` remains explicitly omitted; no other outcome is blocked.
 - **Externally blocked effect:** none. The controlled live parity observation completed with one
-  billed read and zero writes; production deployment/readback remains the ordinary delivery step.
+  billed read and zero writes, and exact production deployment/readback completed.
 - **Produces for downstream suites:** a stable reference-result projection containing query basis,
   omissions, comparables, retrieval/cache/quota provenance, and strict separation from human offer.
 
