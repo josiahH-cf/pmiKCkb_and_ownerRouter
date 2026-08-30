@@ -69,14 +69,19 @@ tests, current facts, and Git history are their evidence.
 
 ## Current meeting package
 
-- `docs/pmi-kc-completion-blocker-audit-2026-08-26.html` — adversarial closure audit with separate
-  client/external and internal blockers plus the next-action sequence.
 - `docs/pmi-kc-client-action-center-2026-08-26.html`
 - `docs/pmi-kc-meeting-agenda-2026-08-26.html`
 - `docs/pmi-meeting-reconciliation-2026-08-26.md`
 - `docs/pmi-kc-meeting-readiness-human-litmus-2026-08-26.md`
+- `docs/evidence/pmi-kc-renewal-stabilization-readout-2026-08-30.pptx` — editable 16:9 customer
+  readout.
+- `docs/evidence/pmi-kc-renewal-stabilization-readout-2026-08-30.pdf` — matching inspected
+  10-page readout.
+- `docs/evidence/renewal-stabilization-suite-audit-2026-08-30.md` — final standalone dual-model and
+  intent-to-outcome audit.
 - `docs/evidence/current-rent-bodyless-diagnostic-2026-08-26.md`
 - `docs/evidence/four-lease-proof-readiness-2026-08-27.md`
+- `docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md`
 
 ## Current evidence and templates
 
@@ -88,6 +93,8 @@ tests, current facts, and Git history are their evidence.
 - `docs/source-corpus/lease-renewal-source-inventory.template.json`
 - `docs/source-corpus/four-lease-runtime.template.json`
 - `docs/source-corpus/four-lease-observations.template.json`
+- `docs/source-corpus/rentvine-proof-runtime.template.json`
+- `docs/source-corpus/rentvine-proof-confirmation.template.json`
 
 `docs/brand_pack/` contains versioned visual source assets, not operating authority. Ignored
 `docs/client_docs/` and `docs/context_and_calls/` contain local client source material; do not load

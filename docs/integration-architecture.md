@@ -57,9 +57,14 @@ All other keys are closed.
 
 ## RentVine write boundary
 
-The write client exposes only documented lease update and existing recurring-charge update POSTs.
-It has no generic request, delete, new-charge, status-change, or production factory. S30 controls any
-future one-record proof.
+The reusable write client exposes only documented lease-update and existing-recurring-charge POSTs;
+it has no generic request, delete, new-charge, status-change, or production factory. S30 deliberately
+narrows its executable proof one step further: one exact lease `endDate` through the lease-update
+POST. Recurring-charge proof is unreachable until its exact provider readback seam is verified. The
+proof requires secure untracked inputs, exact managed-actor/action/runtime readback, fresh state before
+writer construction, one durable attempt, exact readback, separately confirmed rollback, and
+closed-state closeout. RentVine supplies no proven atomic compare-and-set or idempotency token, so an
+ambiguous attempt is never retried and matching readback is not presented as proof of causality.
 
 ## Sheet boundary
 

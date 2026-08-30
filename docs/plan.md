@@ -4,239 +4,86 @@ Updated: 2026-08-30.
 
 ## Outcome
 
-Implement the approved renewal stabilization bundle so an authorized Renewals-space operator can
-find and prioritize the correct lease, verify base-rent/source/RentCast evidence, follow the
-six-step process and its detailed substeps, record human decisions, exact-preview and create one
-unsent Gmail draft, track waiting/completion, attach exact comp evidence when separately authorized,
-and reach setup answers without weakening any action, send, write, identity, cost, or protected-path
-boundary. No live RentVine record, operating Sheet cell, or client-facing message may be changed by
-the specification work or by an unconfirmed effect.
+Close the approved renewal stabilization bundle through independently verifiable implementation,
+safe production release, customer-readable evidence, consolidated human acceptance, and exact
+external blockers without weakening any send, write, identity, cost, or protected-path boundary.
 
 ## Completed implementation
 
-1. Triaged all three live support reports and added verified managed-user reporter display.
-2. Corrected RentVine Registry metadata without changing `production_allowed:false`.
-3. Built auditable Admin rehearsal-Sheet configuration and saved-config proof resolution.
-4. Built discrepancy dispositions and kept correction execution source-contract closed.
-5. Built and deployed the immutable S63 four-lease baseline/evidence/report machinery with
-   canonicalized secure exact-four inputs, exact row-link identity, independent verdict families,
-   whole-batch append preflight, gitignored reports, and value-free output. Fresh operational evidence
-   and human review remain blocked on secure external packets rather than implementation work.
-6. Retired Gmail watch infrastructure; built manual refresh, source-backed follow-up truth, and S75
-   versioned policy surfaces with unset-safe behavior.
-7. Completed the fixed S36 provider lifecycle and bounded S37 operational page builder.
-8. Completed dependency-independent Dotloop, LeadSimple, and RentVine resident-channel lifecycles.
-9. Applied and behavior-tested the smallest dependency overrides; the production audit is zero.
-10. Authored and registered the approved renewal contracts as standalone feature specifications.
-    Registration alone is not implementation evidence; S80's separate implementation is recorded in
-    item 14, while the other pending suite behavior remains implementation work.
-11. Implemented and deployed S77: one strict draft request/outcome contract, numeric/range
-    refusals, input-bound preview state, exact-object confirmation, one-attempt transport recovery,
-    and read-only exact Message-ID reconciliation. Focused architecture, behavior, service/route,
-    composer, ledger, and send-boundary checks are green; the canonical gate passed 524 unit files
-    with one intentional file skip, 115 Firestore tests, and the 104-route build. Exact candidate and
-    stable release readback passed.
-12. Implemented and deployed S59: one server-derived lease-to-RentCast query basis, verified
-    `property.stateID`/`unit.size` mapping with explicit property-type omission, full request cache
-    identity, provider subject/comparable evidence, query/base-rent/cache/quota UI, typed refusals,
-    and persistence round-trip without offer mutation. A controlled live parity read used one billed
-    call and made zero writes.
-13. Added `.gcloudignore` after adversarial upload-manifest inspection proved local `.claude/` state
-    and user-owned `output/` PDFs would otherwise enter Cloud Build; the hardened manifest excludes
-    those paths and all local env files.
-14. Implemented the S80 role/Space/effect matrix across every renewal page, API method, and rendered
-    control. Canonical access now admits Editors to ordinary work while retaining Approver
-    reconciliation, Admin pricing/source approvals and configuration, independent exact-action
-    readiness, closed source writes, and permanent in-app-send refusal. Focused and canonical gates
-    are green; exact CI, candidate/configuration, promotion, and stable production proof also passed.
-15. Implemented and deployed S72: immutable `renewal-v1`, legacy compatibility without live
-    migration, stable substep/evidence ids, exact evidence projection, deterministic branch/reopening
-    rules, base-rent/charge separation, evidence-gated completion, and a six-step workspace panel.
-    The expected four fail-first assertions were captured; focused, canonical, exact-SHA CI,
-    candidate/configuration, promotion, and stable production gates are green.
-16. Implemented and deployed S75: one provider-free, monotonic follow-up projection now binds exact
-    lease/thread/message identity, waiting party, last verified contact, most-specific effective
-    timing policy, due/work truth, S72 evidence, and attention state across renewal surfaces. Missing
-    or unconfirmed policy, incomplete threads, and stale refreshes fail safely; refresh remains exact,
-    targeted, and read-only. App-only dismiss/reopen is audited, and a new policy identity reopens the
-    item. Client timing values remain an external input rather than a guessed implementation default.
-17. Implemented and deployed S78: one canonical role-consistent Live worklist now projects exact
-    identity, process, follow-up, conflict, retention, and next-action truth; deterministic URL-backed
-    search/filter/sort controls define every missing-value and tie rule; the first-of-month/120-day
-    cohort retains tracked incomplete work; attention consumes the same ordered source; and the
-    legacy notices route redirects to the canonical desk without a sample-data story.
-18. Implemented and deployed S74: separate versioned owner/tenant copy contracts, one server-built
-    locked fact/recipient envelope, strict editable regions, deterministic rendering/validation,
-    optional constrained assistance, S77-bound template/envelope hashes, and exact channel-evidence
-    states. Current copy remains review-only and refuses tailoring/Gmail creation before provider
-    construction until client-approved wording and channel rules arrive.
-19. Implemented and deployed S79: one current same-Space/lease delivered receipt binds one allowlisted
-    image to immutable preview identity, deterministic multipart MIME, exact Gmail raw-draft readback,
-    and one-attempt reconciliation. Text-only callers remain compatible; arbitrary Drive refs,
-    multiple/inline attachments, sends, and live effects remain unreachable behind the closed key.
-20. Implemented and deployed S81: one validated task manifest groups honest Connections status and
-    indexes existing Admin controls with stable anchors and capability-matched targets. Read-only
-    staff visibility, Admin mutations, closed actions, status-only RentCast verification, direct-route
-    guards, active state, focus, keyboard order, and narrow layout remain independently enforced.
-21. Implemented and deployed S63's deterministic machinery at commit
-    `e661ef5653821c79c7047bc1952735f3b1ded6f5`: the canonical gate passed 5,005 unit and 115 Firestore
-    tests plus the 107-route build; exact-SHA CI run `33321026273`, zero-traffic candidate smoke,
-    normalized runtime parity, promotion, and stable readback all passed with no operational case run.
+| Order | Suite | Delivered standalone outcome                                                                                                                                                              |
+| ----: | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     1 | S77   | Shared draft preview/exact-confirm/one-attempt/reconcile contract across browser, route, service, ledger, and composer.                                                                   |
+|     2 | S59   | Server-owned RentVine-to-RentCast query, cache, quota, and source/comparable evidence with base-rent/reference separation.                                                                |
+|     3 | S80   | Exhaustive role/Space/effect matrix for renewal pages, APIs, and controls; ordinary Editor work remains separate from stronger approvals and exact actions.                               |
+|     4 | S72   | Immutable six-step `renewal-v1` with detailed evidence/substeps, branches, reopening, legacy compatibility, and no provider-effect authority.                                             |
+|     5 | S75   | Exact-identity waiting/contact/due projection with most-specific unset-safe timing and manual linked-thread read refresh.                                                                 |
+|     6 | S78   | Canonical role-consistent Live desk with exact identity, deterministic URL query rules, cohort/retention, progress, follow-up, and next-action truth.                                     |
+|     7 | S74   | Versioned owner/tenant copy, locked server facts/recipients, allowlisted prose, deterministic fallback, exact hash binding, and honest channel states; currently review-only.             |
+|     8 | S79   | One current same-Space/lease receipt-bound image, deterministic MIME, exact raw-draft readback, and one-attempt reconciliation behind a closed Drive action.                              |
+|     9 | S81   | Capability-validated task-oriented Connections/Admin manifest and stable navigation without authority, store, credential, or provider-effect merge.                                       |
+|    10 | S63   | Secure exact-four source-read-only capture/baseline/evidence/report machinery with exact row/lease linkage, independent process/number/safety verdicts, and value-free output.            |
+|    11 | S30   | Secure managed-actor one-lease `endDate` proof runner with temporal freshness barriers, at-most-one forward/rollback, exact readback/reconciliation, and mandatory closed-state closeout. |
+
+All eleven suites contain a standalone goal, dual architecture/behavior model, human litmus,
+requirement traceability, preservation set, explicit dependencies/non-goals, and deterministic
+verification/terminal-state contract.
 
 ## Completed release evidence
 
-1. The last shipped full local gate passed 545 unit files with one intentional skip and 4,983 unit
-   tests with four skips; all 115 Firestore tests, policy/static gates, dependency audit, and the
-   107-page production build passed.
-2. Commit `6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate CI run
-   `33069769758` passed.
-3. Zero-traffic revision `pmi-kc-app-rmtbh280n-61b78ef991cc` passed exact commit/revision smoke, was
-   promoted, and was read back at 100% traffic.
-4. Traffic was rolled back to version-aware predecessor `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`,
-   smoked, restored to the new revision, and smoked again.
-5. S77 commit `2d7903d42dce9dbfad49338b959e467f6c333ccc` was pushed to `main`; zero-traffic revision
-   `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` preserved Production+Live, managed identity, 11 Spaces,
-   closed Sheet writeback, allowance, and secret bindings, passed exact candidate smoke, and was
-   promoted/read back at 100% traffic. Aggregate CI run `33267458811` passed. Immediate rollback
-   target is `pmi-kc-app-rmtbh280n-61b78ef991cc`.
-6. S59 implementation commit `c29906b85f2ce3129e35914abecb5bcbf7c2de65` and source-boundary
-   commit `64031f8ee028f09930660060c8f5f627ca5ccde1` were pushed to `main`; aggregate CI runs
-   `33274833421` and `33276113459` passed. Zero-traffic revision
-   `pmi-kc-app-rmtew9a2z-46a2353b6491` preserved Production+Live, managed identity, 11 Spaces,
-   closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
-   before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e`.
-7. S80 commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` was pushed to `main`; exact-SHA
-   aggregate CI run `33280384474` passed. Zero-traffic revision
-   `pmi-kc-app-rmtf01asj-4b3665ad072f` preserved Production+Live, managed identity, 11 Spaces,
-   closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
-   before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtew9a2z-46a2353b6491`.
-8. S72 commit `4131df973ae2593d4f75184513db4366fb56ddae` was pushed to `main`; exact-SHA
-   aggregate CI run `33285602786` passed. Zero-traffic revision
-   `pmi-kc-app-rmtf4s18h-3813fe5277d5` preserved Production+Live, managed identity, 11 Spaces,
-   closed Sheet writeback, allowance 50, and three expected secret references; exact candidate and
-   stable canonical-host smoke passed before/after promotion to 100%. Immediate rollback target is
-   `pmi-kc-app-rmtf01asj-4b3665ad072f`.
-9. S75 commit `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` was pushed to `main`; exact-SHA
-   aggregate CI run `33291061530` passed. Zero-traffic revision
-   `pmi-kc-app-rmtf9wrzz-4c981bf57679` preserved Production+Live, managed identity, 11 Spaces,
-   closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
-   configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
-   before/after promotion to 100%. Immediate rollback target is
-   `pmi-kc-app-rmtf4s18h-3813fe5277d5`.
-10. S78 commit `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` was pushed to `main`; exact-SHA
-    aggregate CI run `33294476282` passed. Zero-traffic revision
-    `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` preserved Production+Live, managed identity, 11 Spaces,
-    closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
-    configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
-    before/after promotion to 100%. Immediate rollback target is
-    `pmi-kc-app-rmtf9wrzz-4c981bf57679`.
-11. S74 commit `2745cdbbf0a0bf14320a6dde6c63128134f6d807` was pushed to `main`; exact-SHA
-    aggregate CI run `33300119902` passed. Zero-traffic revision
-    `pmi-kc-app-rmtfk9fln-c9af498cb9c5` preserved Production+Live, managed identity, 11 Spaces,
-    closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
-    configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
-    before/after promotion to 100%. Immediate rollback target is
-    `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`.
-12. S79 commit `4a05462065bcad6433574cc7d7a6f4801b7311eb` was pushed to `main`; exact-SHA
-    aggregate CI run `33307517553` passed. Zero-traffic revision
-    `pmi-kc-app-rmtfp5ac4-8824eb39358b` preserved Production+Live, managed identity, 11 Spaces,
-    closed Sheet writeback, allowance 50, three expected secret references, and closed/unconfigured
-    renewal-comp Drive state. Its normalized configuration matched the predecessor; exact candidate
-    and stable root/sign-in/Ask/Admin/version smoke passed before/after promotion to 100%. Immediate
-    rollback target is `pmi-kc-app-rmtfk9fln-c9af498cb9c5`.
-13. S81 commit `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb` was pushed to `main`; exact-SHA
-    aggregate CI run `33310823319` passed. Zero-traffic revision
-    `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` preserved Production+Live, managed identity, 11 Spaces,
-    closed Sheet writeback, allowance 50, three expected secret references, and closed/unconfigured
-    renewal-comp Drive state. After excluding only the expected image and exact commit identity, its
-    normalized configuration matched the predecessor; exact candidate and stable root/sign-in/
-    Connections/Admin/version smoke passed before/after promotion to 100%. Immediate rollback target
-    is `pmi-kc-app-rmtfp5ac4-8824eb39358b`.
-14. S63 commit `e661ef5653821c79c7047bc1952735f3b1ded6f5` was pushed to `main`; exact-SHA
-    aggregate CI run `33321026273` passed. Zero-traffic revision
-    `pmi-kc-app-rmtfzwn77-8153d75d1cd5` preserved Production+Live, managed identity, 11 Spaces,
-    closed Sheet writeback, allowance 50, three expected secret references, and unconfigured
-    rehearsal/renewal-comp storage. Normalized configuration matched the predecessor; exact candidate
-    and stable root/sign-in/Ask/version smoke passed before/after promotion to 100%. Immediate
-    rollback target is `pmi-kc-app-rmtfrv9zf-456d0c8fdc83`.
+- Commit: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`
+- Zero-traffic revision: `pmi-kc-app-rmtg73suu-fe8734d35330`; exact candidate smoke passed before
+  promotion, and the same revision now serves 100% traffic.
+- Exact-SHA aggregate CI run: `33330420327`, passed
+- Canonical gate: 559 unit files passed plus one intentional skip; 5,064 tests passed plus four
+  skips; 26 Firestore files/119 tests; policy/static gates; 107-route build; production audit zero
+- Candidate/config/promotion/stable proof: passed
+- Immediate version-aware predecessor: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`
+- Post-release S30 action: non-executable
+- S30 implementation/release client/provider effects: zero
+
+## Delivered closure artifacts
+
+1. S30 standalone contract corrected to one exact lease `endDate`, with recurring-charge proof
+   explicitly unreachable until exact readback is verified.
+2. S30 bodyless readiness packet with the complete future secure forward/rollback/closeout sequence.
+3. An editable 16:9, 8–10 slide customer readout delivered at 10 slides with a matching PDF; every
+   PowerPoint-rendered slide was visually inspected and PDF page count/dimensions were verified.
+4. Consolidated human litmus preserving the original eight-row human litmus and adding every suite,
+   including separate S63 process and number/safety entries.
+5. Adversarial intent-to-outcome audit proving standalone dual-model coverage and recording the S30
+   temporal-freshness/suspension corrections, provider limitations, preservation gates, and exact
+   external blockers.
 
 ## Current closure sequence
 
-The contracts are frozen as follows:
+1. Run formatting, active-path/context/spec-traceability/copy/redaction/static gates against the final
+   documentation and artifacts.
+2. Audit the diff, protected paths, secrets/PII, client values, binary artifacts, stale production
+   identity, and user-owned untracked paths.
+3. Commit and push only a green documentation/artifact slice; do not deploy it because it changes no
+   served asset.
+4. Confirm exact-SHA aggregate CI and update the resume state to external acceptance only.
 
-- **S77:** complete and deployed with canonical, exact candidate, configuration, promotion, and
-  stable readback proof.
-- **S59:** complete and deployed with measured RentVine mapping, server-owned query truth, complete
-  cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
-- **S80:** complete and deployed with canonical, exact-SHA CI, candidate/configuration, promotion,
-  stable production, and rollback-target readback proof.
-- **S72:** complete and deployed with versioned six-step process, detailed substeps/evidence,
-  compatibility, branches/reopening, canonical, exact CI, candidate/configuration, and stable proof.
-- **S75:** complete and deployed with one shared exact-identity follow-up projection, unset-safe
-  most-specific timing, monotonic manual refresh, S72/attention parity, canonical/CI/candidate/config/
-  stable proof, and no client effect. Confirmed timing values remain an external policy input.
-- **S78:** complete and deployed with one exact-source canonical worklist, deterministic URL-backed
-  search/sort/filter/null/cohort rules, shared attention ordering, role-consistent routing, canonical
-  and exact-SHA CI gates, candidate/configuration/promotion/stable proof, and no client effect.
-- **S74:** complete and deployed with versioned owner/tenant copy, a locked server envelope,
-  constrained editable/AI phrasing, S77 hash binding, exact channel truth, canonical/CI/candidate/
-  configuration/stable proof, and review-only refusal until approved wording/evidence arrives.
-- **S79:** complete and deployed with receipt-bound download, one-image MIME, exact raw-draft
-  readback/reconciliation, canonical/CI/candidate/configuration/stable proof, and a closed Drive key.
-- **S81:** complete and deployed with a capability-validated task manifest, grouped honest status,
-  stable Admin anchors/back-links, role/direct-route/API preservation, accessibility checks,
-  canonical/CI/candidate/configuration/stable proof, and no authority/store/provider merge.
-- **S63:** deterministic secure exact-four machinery is complete and deployed; fresh source-read-only
-  evidence and human verdicts remain externally blocked on secure packets and review.
-- **S30:** the separately gated one-record RentVine write seam is the next implementation slice; live
-  proof remains blocked on an exact designation and protected owner direction.
+No live RentVine record, operating Sheet cell, or client-facing message may be changed while this
+documentation/artifact closure runs.
 
-Each suite is independently implementable and owns separate deterministic architecture and behavior
-outcomes, one or more plain-language human litmus entries, a preservation gate, refusal/recovery behavior, and
-explicit dependencies and non-goals. New obligations fail first against the starting state;
-already-correct safety facts stay in preservation rather than being rewritten as feature work.
+## External acceptance sequence
 
-1. Re-read current authority, facts, live version, working tree, and all registered suite contracts;
-   record pre-existing failures and user-owned changes.
-2. Preserve the deployed S77 contract as the draft/template/attachment foundation; do not reopen its
-   exact-confirm or one-attempt boundaries while implementing downstream suites.
-3. Preserve deployed S59 mapping, cache, query/evidence, allowance, and reference-only contracts as
-   downstream suites consume them.
-4. Preserve deployed S80 role/Space/effect parity and its exact closed-key/send boundaries while
-   downstream suites consume the matrix.
-5. Preserve deployed S72 and S75 process/follow-up projections and their unset-safe, manual-read-only
-   boundaries.
-6. Preserve deployed S78's canonical desk, exact identity/query/cohort contract, role routing, and
-   shared attention source while downstream suites consume its lease links.
-7. Preserve deployed S74's versioned template/fact-lock/channel-state boundary and review-only
-   provider refusal while downstream suites bind its exact envelope identity.
-8. Preserve deployed S79's receipt/MIME/readback/reconciliation and text-compatibility contracts;
-   keep its Drive action closed unless separately authorized.
-9. Preserve deployed S81's task manifest, grouped status, anchors, capability parity, and explicit
-   status-versus-authority boundary while downstream work links to renewal and Admin surfaces.
-10. Preserve deployed S63 secure-input, exact-row-link, immutable evidence, independent verdict, and
-    value-free/no-effect boundaries. Implement S30 closed and fail-first; keep its live proof dry and
-    closed until the exact external designation and protected owner direction exist.
-11. For every coherent green code slice, run focused adversarial checks and `bash scripts/verify.sh`,
-    audit secrets/PII/gates/config/diff, and use the authorized commit/push and zero-traffic candidate
-    smoke path. Do not deploy documentation-only changes.
-12. Use the native presentation authoring capability to create an editable 16:9, 8–10 slide customer
-    readout from final deployed evidence; export and visually inspect every slide.
-13. Run the existing eight-row human litmus and every new named suite-level entry with the owner,
-    including S63's separate process and number/read-only entries; record real dated PASS/FAIL
-    observations and repair every FAIL.
+1. Owner runs every consolidated human litmus row and records a dated observation; repair/rerun each
+   FAIL.
+2. Client/operator supplies S63 secure exact-four runtime/observation packets and performs separate
+   process and number/safety review.
+3. Client/owner separately supplies the S30 exact lease/date/actor/evidence packet and explicit
+   protected one-key direction before any live proof. Execute at most one forward, exact readback,
+   separately confirmed rollback/restoration, restore/read back closed, and close out.
+4. Client approves owner/tenant copy, mandatory/forbidden language, editable regions, channel evidence,
+   timing values, and override authority.
+5. Client/Admin supplies the distinct rehearsal Sheet/blank cell; client/provider supplies S66 and
+   other exact official provider contracts when those effects enter scope.
 
 ## Completion rule
 
-`ALL_GATES_GREEN` requires every applicable architecture and behavior outcome, the separate
-preservation gate, canonical verification, scope traceability, and model-filled evidence to pass;
-human-verdict fields remain blank until the owner performs the consolidated litmus. Keep iterating on
-any remaining in-scope implementation failure; `BUDGET_EXHAUSTED` is valid only when an explicit
-budget was supplied and must name exact failing obligations. A genuine external input or protected-
-path authority gap yields `BLOCKED` for only the dependent effect, never false completion and never
-license to weaken or guess around it.
-
-Internal closure also requires the served revision and rollback proof, delivered customer deck, no
-blank required human verdict, and a blocker report containing external owners and inputs only.
-Approved wording/channel rules, timing values, the distinct rehearsal Sheet, the exact S30 test
-record/field, and S66/Dotloop mappings/OAuth remain external until received and read back.
+Internal requested implementation is complete when the final documentation/artifact slice is green,
+pushed, and exact-SHA CI passes. Operational S63/S30 acceptance and human verdicts remain separately
+`BLOCKED` until their named external inputs/authority exist. Deployment, model evidence, or source
+read success never fills a human verdict or grants a provider effect.

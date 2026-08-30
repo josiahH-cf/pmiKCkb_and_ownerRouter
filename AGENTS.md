@@ -23,12 +23,12 @@ the current code and live service. Date-stamped history is not authority.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`, 100% traffic.
-- Deployed code: `e661ef5653821c79c7047bc1952735f3b1ded6f5`.
+- Serving revision: `pmi-kc-app-rmtg73suu-fe8734d35330`, 100% traffic.
+- Deployed code: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtfzwn77-8153d75d1cd5` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -38,7 +38,8 @@ the current code and live service. Date-stamped history is not authority.
 - No rehearsal Sheet is configured. A distinct copy is required before the copy-only proof can run.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
   open.
-- RentVine read credentials are Secret Manager-bound. Renewal write remains closed and live-unproven.
+- RentVine read credentials are Secret Manager-bound. The S30 proof runner can target only one exact
+  lease `endDate`, remains closed, and is live-unproven.
 - Budget controls are live: $25 alert-only budget, $100 project hard stop, $100 account backstop, and
   active Node.js 22 guardrail with `KILL_SWITCH_CAP_USD=100`.
 

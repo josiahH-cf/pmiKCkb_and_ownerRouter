@@ -329,10 +329,10 @@
         <p>
           This page turns the remaining client inputs into plain-language decisions and
           safe test steps. It preserves the August 26 meeting walkthrough and was
-          reconciled to implementation truth on August 27.
+          reconciled to implementation and production truth on August 30.
         </p>
         <div class="hero-meta">
-          <span class="chip">Reconciled August 27, 2026</span>
+          <span class="chip">Reconciled August 30, 2026</span>
           <span class="chip">Operating systems: read-only</span>
           <span class="chip">No automatic client messages</span>
         </div>
@@ -340,9 +340,10 @@
 
       <div class="notice" role="note">
         <strong>Safety result:</strong> no RentVine operating record, operating Google
-        Sheet cell, or client-facing message was changed or sent. Only the three submitted
-        support reports received audited status updates. Any data difference below is a
-        review item, not an automatic correction.
+        Sheet cell, or client-facing message was changed or sent by the stabilization
+        release. Cloud Run candidate and traffic state changed through the reviewed
+        release path; client data did not. Any data difference below is a review item, not
+        an automatic correction.
       </div>
 
       <nav aria-label="Useful application links">
@@ -402,14 +403,27 @@
         <h2 id="actions-title">Actions for the client team</h2>
         <ol class="actions">
           <li>
-            <h3>Tell us the six renewal steps—in order</h3>
+            <h3>Walk the deployed six-step renewal journey</h3>
             <p>
-              Use the exact words the team uses. For each step, tell us who owns it, what
-              proves it is done, and what should happen next.
+              Review Find and verify, Build comps, Decide terms, Build packet, Review and
+              draft, and Track outcome. Confirm that each role, blocker, completion proof,
+              branch, and reopening rule matches how the team works.
             </p>
             <p class="owner">
-              <strong>Owner:</strong> PMI KC renewal team · <strong>Use:</strong> aligns
-              the Renewal Desk with the real process.
+              <strong>Owner:</strong> PMI KC renewal team · <strong>Use:</strong> records
+              the real human acceptance observation.
+            </p>
+          </li>
+          <li>
+            <h3>Supply the secure four-case evidence packets</h3>
+            <p>
+              Provide the exact-four runtime and observation packets through the secure
+              channel, then review process and number/safety verdicts separately. Do not
+              put lease values or identities in Git or this page.
+            </p>
+            <p class="owner">
+              <strong>Owner:</strong> PMI KC renewal operator · <strong>Default:</strong>
+              the deployed machinery stays read-only and no human PASS is inferred.
             </p>
           </li>
           <li>
@@ -430,28 +444,29 @@
             </p>
           </li>
           <li>
-            <h3>Define “current rent” for the team</h3>
+            <h3>Approve owner/tenant copy and follow-up timing</h3>
             <p>
-              Is it base rent only, or the total monthly charge including items such as
-              the resident benefit package or insurance? This one definition may explain
-              some of the Sheet-versus-RentVine differences.
+              Contractual base rent is already the comparison and decision value, with
+              recurring charges shown separately. Supply the approved wording,
+              mandatory/forbidden language, channel-evidence rules, timing values, and
+              override authority that the software must not invent.
             </p>
             <p class="owner">
-              <strong>Owner:</strong> PMI KC · <strong>Use:</strong> separates real data
-              errors from intentional differences.
+              <strong>Owner:</strong> PMI KC · <strong>Use:</strong> publishes the
+              review-only copy and turns visibly unset timing into confirmed policy.
             </p>
           </li>
           <li>
-            <h3>Choose one dedicated RentVine test lease and owner</h3>
+            <h3>Separately designate one exact S30 lease end-date proof</h3>
             <p>
-              Choose a record that is unmistakably a test and safe to restore. We will
-              prepare the exact proposed lease-date and existing recurring-charge changes,
-              show the before/after values, and stop at preview unless the team separately
-              confirms a live test.
+              Through the secure channel, designate one unmistakable existing lease, its
+              exact current/proposed/rollback <code>endDate</code>, the managed Admin, and
+              the required evidence references. Recurring-charge proof is not supported.
+              The protected one-key review is a separate owner decision.
             </p>
             <p class="owner">
-              <strong>Owner:</strong> PMI KC · <strong>Today’s default:</strong> preview
-              only; no RentVine change.
+              <strong>Owner:</strong> PMI KC owner · <strong>Today’s default:</strong>
+              exact action non-executable; no RentVine writer or change.
             </p>
           </li>
           <li>
@@ -480,15 +495,16 @@
             </p>
           </li>
           <li>
-            <h3>Confirm the market-comparable defaults and delivery date</h3>
+            <h3>Confirm only future comp policy and delivery scope</h3>
             <p>
-              Confirm whether the current search radius and comparable count fit PMI KC’s
-              submarkets, and restate what “end of September” includes. Comparable data is
-              reference-only and never sets the offered rent.
+              Two miles and 15 requested comparables are already approved and deployed.
+              Decide only whether a future freshness/selection rule is needed, and record
+              the exact delivery commitment rather than inferring it. Comparable data
+              remains reference-only and never sets the offered rent.
             </p>
             <p class="owner">
-              <strong>Owner:</strong> PMI KC leadership · <strong>Use:</strong> settles
-              two policy choices the software should not invent.
+              <strong>Owner:</strong> PMI KC leadership · <strong>Use:</strong> records
+              only the remaining policy and scope choices.
             </p>
           </li>
         </ol>
@@ -592,18 +608,18 @@
             <span class="status ready">DOCUMENTED PREVIEW</span>
             <h3>Allowlisted proposal</h3>
             <p>
-              The preview may show updates to the selected lease dates and to one
-              <em>existing</em> recurring rent charge. It also shows the prior values
-              needed to reverse the change.
+              The S30 review may show only one exact existing lease
+              <code>endDate</code>, its proposed value, and the original rollback value. A
+              separate confirmation is required for forward and rollback.
             </p>
           </article>
           <article class="card">
             <span class="status waiting">NOT ALLOWED</span>
             <h3>No broad write access</h3>
             <p>
-              No delete, no new charge creation, no status change, no bulk update, no
-              guessed route, and no automatic correction. The live renewal-write action
-              remains closed.
+              No recurring-charge proof, delete, new charge, status change, bulk/second
+              record, guessed route, blind retry, or automatic correction. The exact live
+              renewal-write action remains non-executable.
             </p>
           </article>
         </div>
@@ -647,8 +663,8 @@
         <div>
           <ul>
             <li>
-              The complete RentVine export returned 307 rows in the latest read-only
-              diagnostic.
+              The complete RentVine export and operating Sheet were read only in the
+              value-free diagnostic.
             </li>
             <li>
               The current-rent comparison produced 14 agreements, 20 conflicts, 140
@@ -666,8 +682,8 @@
             <li>
               The deployed build can be checked through the linked version endpoint using
               exact commit and revision identifiers. The verified release is commit
-              <code>d2dfbcc2a865af1f92103083c2a49714c2dc3977</code> on revision
-              <code>pmi-kc-app-rmtf01asj-4b3665ad072f</code>.
+              <code>1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c</code> on revision
+              <code>pmi-kc-app-rmtg73suu-fe8734d35330</code>.
             </li>
           </ul>
         </div>
@@ -680,7 +696,7 @@
           change.
         </p>
         <p>
-          Prepared for PMI KC by the product delivery team · reconciled August 29, 2026.
+          Prepared for PMI KC by the product delivery team · reconciled August 30, 2026.
         </p>
       </footer>
     </main>

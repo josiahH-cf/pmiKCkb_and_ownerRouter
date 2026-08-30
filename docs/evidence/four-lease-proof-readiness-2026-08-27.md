@@ -92,9 +92,11 @@ external even after a report is generated.
 
 ## Completion evidence
 
-S63 machinery is deployed at commit `e661ef5653821c79c7047bc1952735f3b1ded6f5` in revision
-`pmi-kc-app-rmtfzwn77-8153d75d1cd5`. Focused/adversarial/canonical tests, exact-SHA CI run
-`33321026273`, candidate and canonical smoke, normalized runtime parity, source/log redaction, and
+S63 machinery was delivered at commit `e661ef5653821c79c7047bc1952735f3b1ded6f5` and remains
+included in current serving commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` / revision
+`pmi-kc-app-rmtg73suu-fe8734d35330`. Focused/adversarial/canonical tests, original exact-SHA CI run
+`33321026273`, current aggregate CI run `33330420327`, candidate and canonical smoke, normalized
+runtime parity, source/log redaction, and
 action/no-effect audits are green. S63 operational evidence is complete only when four
 source-current exact baselines exist, every required observation has been reviewed under the approved
 criteria, real human verdicts are recorded, and the generated report contains no unresolved result
