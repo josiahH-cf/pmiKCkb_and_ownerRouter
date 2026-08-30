@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "s63-runtime-v1",
+  "scope": "renewals",
+  "actor": {
+    "uid": "<managed-operator-uid>",
+    "email": "<managed-operator>@pmikcmetro.com",
+    "hd": "pmikcmetro.com",
+    "role": "Editor",
+    "scopes": ["renewals"]
+  },
+  "cases": [
+    {
+      "caseRef": "case-1",
+      "leaseId": "<secure-lease-id-1>",
+      "sheetRowNumber": 0
+    },
+    {
+      "caseRef": "case-2",
+      "leaseId": "<secure-lease-id-2>",
+      "sheetRowNumber": 0
+    },
+    {
+      "caseRef": "case-3",
+      "leaseId": "<secure-lease-id-3>",
+      "sheetRowNumber": 0
+    },
+    {
+      "caseRef": "case-4",
+      "leaseId": "<secure-lease-id-4>",
+      "sheetRowNumber": 0
+    }
+  ],
+  "report": {
+    "windowDescription": "<review-window-description>",
+    "dailyOwner": "<managed-daily-owner>",
+    "abortTrigger": "<exact-abort-trigger>"
+  }
+}

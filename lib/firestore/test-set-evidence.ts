@@ -13,6 +13,7 @@
 // in git. The generated report is produced from these records and written outside git.
 
 import { type Firestore } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
@@ -28,7 +29,7 @@ export const TEST_SET_EVIDENCE_KINDS = [
   "app_position",
   // The human's actual position: the rent the team landed on and how.
   "human_position",
-  // A source disagreement the app raised (e.g. lease 297's RentVine-zero vs Sheet rent).
+  // A source disagreement the app raised rather than silently accepting.
   "discrepancy_raised",
   // How a raised discrepancy was dispositioned by a person.
   "discrepancy_disposition",
@@ -36,7 +37,13 @@ export const TEST_SET_EVIDENCE_KINDS = [
   "stage_transition",
   // A human reviewed-and-sent draft under D33, if the owner resolves the window that way.
   "human_send",
-  // A per-lease verdict evaluation against the four criteria.
+  // Exact S72 process/substep projection observed for one bound case.
+  "process_observation",
+  // S59/base-rent/query/evidence/human-decision separation observed for one bound case.
+  "number_evidence_observation",
+  // Preview-only and explicit zero draft/send/write-receipt counts for one bound case.
+  "safety_observation",
+  // A legacy per-lease verdict entry retained for existing evidence readback.
   "verdict",
 ] as const;
 
@@ -52,6 +59,8 @@ export interface TestSetEvidenceEntry {
   payload: Record<string, unknown>;
   recordedAt: string;
   recordedByUid: string;
+  /** Optional stable key used by the secure S63 batch loader to make retries idempotent. */
+  idempotencyKey?: string;
 }
 
 export interface AppendTestSetEvidenceInput {
@@ -59,6 +68,7 @@ export interface AppendTestSetEvidenceInput {
   kind: TestSetEvidenceKind;
   note: string;
   payload?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 function assertEditor(actor: AuthenticatedUser): void {
@@ -98,7 +108,22 @@ export async function appendTestSetEvidence(
     throw new EditableLayerError("A plain-English evidence note is required.", 400);
   }
 
-  const id = uuidv7();
+  const idempotencyKey =
+    input.idempotencyKey === undefined ? undefined : String(input.idempotencyKey).trim();
+  if (
+    idempotencyKey !== undefined &&
+    (idempotencyKey === "" ||
+      idempotencyKey.length > 512 ||
+      !/^[A-Za-z0-9._:-]+$/.test(idempotencyKey))
+  ) {
+    throw new EditableLayerError("The evidence idempotency key is invalid.", 400);
+  }
+
+  const id = idempotencyKey
+    ? `s63_${createHash("sha256")
+        .update(`${leaseId}\u0000${idempotencyKey}`)
+        .digest("hex")}`
+    : uuidv7();
   const recordedAt = new Date().toISOString();
   const ref = db.collection(TEST_SET_EVIDENCE_COLLECTION).doc(id);
   await db.runTransaction(async (transaction) => {
@@ -110,6 +135,7 @@ export async function appendTestSetEvidence(
       payload: input.payload ?? {},
       recorded_at: recordedAt,
       recorded_by_uid: actor.uid,
+      ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
     });
   });
 
@@ -121,6 +147,7 @@ export async function appendTestSetEvidence(
     payload: input.payload ?? {},
     recordedAt,
     recordedByUid: actor.uid,
+    ...(idempotencyKey ? { idempotencyKey } : {}),
   };
 }
 
@@ -181,5 +208,8 @@ function entryFromRecord(raw: Record<string, unknown>): TestSetEvidenceEntry | n
         : {},
     recordedAt: typeof raw.recorded_at === "string" ? raw.recorded_at : "",
     recordedByUid: typeof raw.recorded_by_uid === "string" ? raw.recorded_by_uid : "",
+    ...(typeof raw.idempotency_key === "string"
+      ? { idempotencyKey: raw.idempotency_key }
+      : {}),
   };
 }

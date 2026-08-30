@@ -86,6 +86,8 @@ tests, current facts, and Git history are their evidence.
 - `docs/evidence/s66-boom-document-source-decision-2026-08-10.md`
 - `docs/source-corpus/client-production-source-manifest.template.json`
 - `docs/source-corpus/lease-renewal-source-inventory.template.json`
+- `docs/source-corpus/four-lease-runtime.template.json`
+- `docs/source-corpus/four-lease-observations.template.json`
 
 `docs/brand_pack/` contains versioned visual source assets, not operating authority. Ignored
 `docs/client_docs/` and `docs/context_and_calls/` contain local client source material; do not load

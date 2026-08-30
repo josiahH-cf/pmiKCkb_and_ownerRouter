@@ -1,12 +1,9 @@
-// S63 baseline capture (AC-S63-2). Captures the frozen baseline for each cohort lease ONCE: the
-// authoritative RentVine facts from the complete paged export, the Sheet row as it reads today
-// (normalized by the Renewals-tab header schema), and the hash over both. The store is
-// create-only, so re-running this script refuses per lease instead of replacing anything.
-// Read-only against RentVine and the Sheet; its only writes are the app-plane Firestore baseline
-// documents. Output prints NO address, NO rent figure, NO tenant identity — ids, row numbers,
-// booleans, and hashes only.
+// S63 secure four-case baseline capture. Exact case and actor values arrive only through the
+// git-excluded runtime config. Invalid config refuses before any provider read. RentVine and the
+// operating Sheet are read-only; the only mutation is an immutable app-plane Firestore create.
+// Terminal output contains counts plus one opaque run reference and never emits a case value.
 //
-//   npm run testset:capture-baseline
+//   S63_TEST_SET_RUNTIME_CONFIG_PATH=<secure path> npm run testset:capture-baseline
 
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -14,12 +11,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { AuthenticatedUser } from "../lib/auth/session";
-import { captureTestSetBaseline } from "../lib/firestore/test-set-baseline";
 import {
-  GoogleSheetsApiReader,
-  readRenewalSheetGrids,
-} from "../lib/google-sheets/read-client";
+  captureTestSetBaseline,
+  getTestSetBaseline,
+  testSetBaselineMatchesInput,
+  verifyTestSetBaselineHash,
+  type CaptureTestSetBaselineInput,
+} from "../lib/firestore/test-set-baseline";
+import { GoogleSheetsApiReader } from "../lib/google-sheets/read-client";
 import {
   RentVineClient,
   createFetchTransport,
@@ -33,20 +32,16 @@ import {
   leaseViewsFromExport,
 } from "../lib/integrations/rentvine/lease-mapper";
 import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "../lib/lease-renewal/headers";
-
-const COHORT: ReadonlyArray<{ leaseId: string; sheetRow: number }> = [
-  { leaseId: "278", sheetRow: 507 },
-  { leaseId: "279", sheetRow: 508 },
-  { leaseId: "280", sheetRow: 509 },
-  { leaseId: "297", sheetRow: 510 },
-];
-
-const CAPTURE_ACTOR: AuthenticatedUser = {
-  uid: "script:capture-test-set-baseline",
-  email: "ops@pmikcmetro.com",
-  hd: "pmikcmetro.com",
-  role: "Editor",
-};
+import { readRenewalSheetGridsWithLinks } from "../lib/lease-renewal/sheet-links";
+import {
+  createTestSetRunReference,
+  formatTestSetCaptureSummary,
+  formatTestSetRefusal,
+  S63RunError,
+  safeTestSetFailureCode,
+} from "../lib/lease-renewal/test-set-run-output";
+import { loadTestSetRuntimeConfig } from "../lib/lease-renewal/test-set-runtime-config";
+import { assertTestSetSheetBindingIdentity } from "../lib/lease-renewal/test-set-source-binding";
 
 function loadLocalEnv(root: string): void {
   try {
@@ -57,13 +52,13 @@ function loadLocalEnv(root: string): void {
       }
     }
   } catch {
-    // Fall back to ambient env.
+    // Ambient environment remains authoritative when no local env file exists.
   }
 }
 
 function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required env: ${name}`);
+  const value = process.env[name]?.trim();
+  if (!value) throw new S63RunError("required_environment_missing");
   return value;
 }
 
@@ -83,10 +78,12 @@ function getLiveFirestore() {
 }
 
 async function main(): Promise<void> {
-  loadLocalEnv(process.cwd());
+  const root = process.cwd();
+  loadLocalEnv(root);
+  const runtime = loadTestSetRuntimeConfig({ rootDir: root });
+  const runReference = createTestSetRunReference();
 
-  // 1) The authoritative RentVine facts via the SAME complete paged read the desk uses.
-  const client = new RentVineClient(
+  const rentvine = new RentVineClient(
     {
       baseUrl: requireEnv("RENTVINE_API_BASE_URL"),
       apiKey: requireEnv("RENTVINE_API_KEY"),
@@ -94,43 +91,41 @@ async function main(): Promise<void> {
     },
     createFetchTransport({ timeoutMs: 30_000 }),
   );
-  const exportResult = await client.listAllLeasesExport();
+  const exportResult = await rentvine.listAllLeasesExport();
   if (!exportResult.complete) {
-    throw new Error("RentVine export read incomplete; refusing to capture baselines.");
+    throw new S63RunError("rentvine_export_incomplete");
   }
   const views = leaseViewsFromExport(exportResult.rows);
 
-  // 2) The Sheet rows as they read right now (read-only), normalized by the Renewals schema.
   const sheetReader = new GoogleSheetsApiReader(
     requireEnv("SHEETS_IMPERSONATE_SA"),
     requireEnv("SHEETS_DWD_SUBJECT"),
   );
-  const sheetRead = await readRenewalSheetGrids({
+  const sheetRead = await readRenewalSheetGridsWithLinks({
     reader: sheetReader,
     spreadsheetId: requireEnv("RENEWAL_SHEET_ID"),
     tabTitles: ["Lease Renewal"],
   });
   const grid = sheetRead.tables[0];
-  if (!grid) throw new Error("Lease Renewal tab read returned no grid.");
+  if (!grid) throw new S63RunError("sheet_grid_missing");
   const resolution = resolveHeaders(grid, RENEWAL_TAB_SCHEMAS.Renewals ?? []);
   if (resolution.headerRowIndex === null) {
-    throw new Error("Could not resolve the Lease Renewal tab headers.");
+    throw new S63RunError("sheet_headers_unresolved");
   }
 
-  const db = getLiveFirestore();
-  for (const member of COHORT) {
-    const view = findLeaseViewById(views, member.leaseId);
-    if (!view) {
-      console.log(`lease ${member.leaseId}: NOT in the export; baseline not captured`);
-      continue;
+  // Resolve every secure binding before opening the app-plane store. Missing source evidence
+  // therefore produces no partial baseline write.
+  const prepared: CaptureTestSetBaselineInput[] = [];
+  for (const binding of runtime.cases) {
+    const view = findLeaseViewById(views, binding.leaseId);
+    const row = grid[binding.sheetRowNumber - 1];
+    if (!view || !row) {
+      throw new S63RunError("source_binding_unresolved");
     }
-    const row = grid[member.sheetRow - 1];
-    if (!row) {
-      console.log(
-        `lease ${member.leaseId}: Sheet row ${member.sheetRow} absent; baseline not captured`,
-      );
-      continue;
-    }
+    assertTestSetSheetBindingIdentity({
+      leaseId: binding.leaseId,
+      rowJoinId: sheetRead.tableJoinIds[0]?.[binding.sheetRowNumber - 1] ?? null,
+    });
     const sheetRow: Record<string, string> = {};
     for (const [field, columnIndex] of Object.entries(resolution.resolvedFields)) {
       const cell = row[columnIndex];
@@ -138,45 +133,75 @@ async function main(): Promise<void> {
         sheetRow[field] = cell;
       }
     }
-
     const tenants = (view as { tenants?: unknown[] }).tenants;
-    try {
-      const baseline = await captureTestSetBaseline(
-        CAPTURE_ACTOR,
-        {
-          leaseId: member.leaseId,
-          sheetRowNumber: member.sheetRow,
-          rentvineFacts: {
-            leaseId: member.leaseId,
-            leaseEnd: leaseEndDateIso(view) ?? null,
-            currentRent: leaseCurrentRent(view) ?? null,
-            tenantCount: Array.isArray(tenants) ? tenants.length : null,
-            addressLabel: leaseAddressLabel(view) ?? null,
-            portfolioId: leasePortfolioId(view) ?? null,
-          },
-          sheetRow,
-        },
-        db,
-      );
-      console.log(
-        `lease ${member.leaseId}: baseline CAPTURED row=${member.sheetRow} sheetFields=${Object.keys(sheetRow).length} hash=${baseline.hash}`,
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (/already exists/i.test(message)) {
-        console.log(
-          `lease ${member.leaseId}: baseline already captured; capture refused (immutable)`,
-        );
-      } else {
-        throw error;
+    prepared.push({
+      leaseId: binding.leaseId,
+      sheetRowNumber: binding.sheetRowNumber,
+      rentvineFacts: {
+        leaseId: binding.leaseId,
+        leaseEnd: leaseEndDateIso(view) ?? null,
+        currentRent: leaseCurrentRent(view) ?? null,
+        tenantCount: Array.isArray(tenants) ? tenants.length : null,
+        addressLabel: leaseAddressLabel(view) ?? null,
+        portfolioId: leasePortfolioId(view) ?? null,
+      },
+      sheetRow,
+    });
+  }
+
+  const db = getLiveFirestore();
+  let capturedCount = 0;
+  let reusedCount = 0;
+  for (const input of prepared) {
+    const existing = await getTestSetBaseline(runtime.actor, input.leaseId, db);
+    if (existing) {
+      if (!verifyTestSetBaselineHash(existing)) {
+        throw new S63RunError("baseline_hash_invalid");
       }
+      if (!testSetBaselineMatchesInput(existing, input)) {
+        throw new S63RunError("baseline_source_conflict");
+      }
+      reusedCount += 1;
+      continue;
+    }
+
+    try {
+      await captureTestSetBaseline(runtime.actor, input, db);
+      capturedCount += 1;
+    } catch {
+      // A concurrent create is acceptable only when readback proves the exact immutable binding.
+      const after = await getTestSetBaseline(runtime.actor, input.leaseId, db);
+      if (!after) {
+        throw new S63RunError("app_plane_write_failed");
+      }
+      if (!verifyTestSetBaselineHash(after)) {
+        throw new S63RunError("baseline_hash_invalid");
+      }
+      if (!testSetBaselineMatchesInput(after, input)) {
+        throw new S63RunError("baseline_source_conflict");
+      }
+      reusedCount += 1;
     }
   }
+
+  console.log(
+    formatTestSetCaptureSummary({
+      runReference,
+      configuredCount: runtime.cases.length,
+      capturedCount,
+      reusedCount,
+    }),
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
+    console.error(
+      formatTestSetRefusal({
+        operation: "capture",
+        code: safeTestSetFailureCode(error),
+      }),
+    );
     process.exitCode = 1;
   });
 }

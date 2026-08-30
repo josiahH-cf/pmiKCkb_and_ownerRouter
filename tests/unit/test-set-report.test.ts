@@ -1,6 +1,4 @@
-// S63 report builder (AC-S63-8, AC-S63-13) and the evidence/report output-path boundary
-// (AC-S63-11). Fixture data only — no client value appears here; committed identifiers (lease
-// ids, Sheet rows, end dates, counts, hashes) are deliberately in scope.
+// S63 report shape and git boundary. All values are synthetic unit fixtures.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -12,7 +10,14 @@ import {
   TEST_SET_OPEN_SEND_KEYS,
   type TestSetReportLease,
 } from "@/lib/lease-renewal/test-set-report";
-import { evaluateTestSetVerdict } from "@/lib/lease-renewal/test-set-verdict";
+import {
+  evaluateTestSetVerdict,
+  type TestSetVerdictInput,
+} from "@/lib/lease-renewal/test-set-verdict";
+import {
+  RENEWAL_PROCESS_DEFINITION,
+  RENEWAL_PROCESS_VERSION,
+} from "@/lib/lease-renewal/renewal-process";
 
 function entry(
   kind: TestSetEvidenceEntry["kind"],
@@ -21,86 +26,106 @@ function entry(
 ): TestSetEvidenceEntry {
   return {
     id: recordedAt,
-    leaseId: "297",
+    leaseId: "fixture-lease-b",
     kind,
     note,
     payload: {},
     recordedAt,
-    recordedByUid: "editor-1",
+    recordedByUid: "fixture-editor",
   };
 }
 
-function fixtureLease(overrides: Partial<TestSetReportLease>): TestSetReportLease {
+function passingInput(): TestSetVerdictInput {
   return {
-    leaseId: "278",
-    sheetRowNumber: 507,
-    endDateIso: "2026-09-30",
+    process: {
+      processVersion: RENEWAL_PROCESS_VERSION,
+      observedStepIds: RENEWAL_PROCESS_DEFINITION.steps.map((step) => step.id),
+      observedSubstepIds: RENEWAL_PROCESS_DEFINITION.steps.flatMap((step) =>
+        step.substeps.map((substep) => substep.id),
+      ),
+      branchOrBlockerExplained: true,
+      transitionEvidenceExplained: true,
+    },
+    numberEvidence: {
+      knownDiscrepancyFields: [],
+      raisedDiscrepancyFields: [],
+      sourceFactsMatchOrRaised: true,
+      contractualBaseRentVerified: true,
+      recurringChargesSeparated: true,
+      rentCastRadiusMiles: 2,
+      rentCastRequestedCount: 15,
+      providerOrderPreserved: true,
+      hiddenSelectionApplied: false,
+      providerEvidenceAttributed: true,
+      humanDecisionRecordedSeparately: true,
+      providerSetOfferedRent: false,
+    },
+    safety: {
+      previewWithoutConfirmationObserved: true,
+      appDraftCreateCount: 0,
+      appClientSendCount: 0,
+      rentvineWriteReceiptCount: 0,
+      sheetWriteReceiptCount: 0,
+      dotloopWriteReceiptCount: 0,
+    },
+  };
+}
+
+function fixtureLease(overrides: Partial<TestSetReportLease> = {}): TestSetReportLease {
+  return {
+    leaseId: "fixture-lease-a",
+    sheetRowNumber: 101,
+    endDateIso: "2030-01-31",
     baseline: {
       captured: true,
       hash: "a".repeat(64),
-      capturedAt: "2026-08-06T00:00:00Z",
+      capturedAt: "2030-01-01T00:00:00.000Z",
     },
     evidence: [],
-    verdict: evaluateTestSetVerdict({
-      reachability: {
-        appearedOnDesk: true,
-        endDateMatchesBaseline: true,
-        dispositionCorrect: true,
-      },
-      factAccuracy: {
-        knownDiscrepancyFields: [],
-        raisedDiscrepancyFields: [],
-        factsMatchOrRaised: true,
-      },
-      numberAgreement: {
-        providerEstimate: null,
-        providerMissingReason: "RentCast account inactive (Q-RENTCAST-ACCOUNT-403)",
-        sheetMarketValue: 1300,
-      },
-      communicationCorrectness: {
-        ownerDraftRecipientsCorrect: true,
-        tenantDraftRecipientsCorrect: true,
-        channelsSeparated: true,
-        numbersAttributed: true,
-      },
-    }),
+    verdict: evaluateTestSetVerdict(passingInput()),
     comparisonMode: null,
     ...overrides,
   };
 }
 
 function fixtureReport(): string {
+  const incompleteInput = passingInput();
+  incompleteInput.safety.appDraftCreateCount = null;
   return buildTestSetReport({
-    generatedAtIso: "2026-08-06T23:00:00.000Z",
-    windowDescription: "Two to four weeks per D08, from the test-set opening.",
-    dailyOwner: "Bailey (fallback: Josiah)",
-    abortTrigger:
-      "Any Sev-1 the runtime suspend cannot contain, or a second Sev-1 with the same cause.",
+    generatedAtIso: "2030-01-05T00:00:00.000Z",
+    windowDescription: "Fixture review window.",
+    dailyOwner: "Fixture operational owner.",
+    abortTrigger: "Fixture abort trigger.",
     leases: [
-      fixtureLease({}),
+      fixtureLease(),
       fixtureLease({
-        leaseId: "297",
-        sheetRowNumber: 510,
-        endDateIso: "2026-10-10",
+        leaseId: "fixture-lease-b",
+        sheetRowNumber: 102,
+        endDateIso: "2030-02-28",
         comparisonMode: "blind",
+        verdict: evaluateTestSetVerdict(incompleteInput),
         evidence: [
           entry(
             "discrepancy_raised",
-            "2026-08-07T10:00:00.000Z",
-            "RentVine reads a zero current rent while the Sheet lists a non-zero figure.",
+            "2030-01-02T00:00:00.000Z",
+            "Fixture source disagreement was raised.",
           ),
-          entry("human_position", "2026-08-07T11:00:00.000Z", "Team figure recorded."),
+          entry(
+            "human_position",
+            "2030-01-03T00:00:00.000Z",
+            "Fixture human decision was recorded.",
+          ),
         ],
       }),
     ],
-    applicationInitiatedClientSends: 0,
   });
 }
 
-describe("buildTestSetReport (AC-S63-8, AC-S63-13)", () => {
-  it("states the procedural cohort boundary and lists both open send keys out of scope", () => {
+describe("buildTestSetReport", () => {
+  it("states the exact runtime boundary and scopes both open send keys out", () => {
     const report = fixtureReport();
-    expect(report).toContain("procedural, not enforced by code");
+    expect(report).toContain("secure runtime input");
+    expect(report).toContain("does not create an unsent");
     for (const key of TEST_SET_OPEN_SEND_KEYS) {
       expect(report).toContain(key);
     }
@@ -108,65 +133,54 @@ describe("buildTestSetReport (AC-S63-8, AC-S63-13)", () => {
       "gmail.thread.reply",
       "internal.transactional_notice.send",
     ]);
-    expect(report).toContain("Application-initiated client sends during the test: 0");
   });
 
-  it("renders one section per lease with all four criteria and their reasons", () => {
+  it("renders process, number/evidence, and read-only safety outcomes separately", () => {
     const report = fixtureReport();
-    expect(report).toContain("## Lease 278 (Sheet row 507, ends 2026-09-30)");
-    expect(report).toContain("## Lease 297 (Sheet row 510, ends 2026-10-10)");
-    for (const title of [
-      "1. Reachability and classification",
-      "2. Fact accuracy",
-      "3. Number agreement",
-      "4. Communication correctness",
-    ]) {
-      expect(report).toContain(title);
-    }
-    // A not_evaluated criterion renders its status AND its reason, never a bare pass.
+    expect(report).toContain("## Lease fixture-lease-a (Sheet row 101");
+    expect(report).toContain("## Lease fixture-lease-b (Sheet row 102");
+    expect(report).toContain("### Process outcome");
+    expect(report).toContain("### Number and evidence outcome");
+    expect(report).toContain("### Read-only safety outcome");
     expect(report).toContain("`not_evaluated`");
-    expect(report).toContain("Q-RENTCAST-ACCOUNT-403");
+    expect(report).toContain("cannot infer a zero");
   });
 
-  it("is generated from the evidence records (timeline lines come from entries)", () => {
+  it("generates discrepancy/timeline facts from evidence rather than case-specific source prose", () => {
     const report = fixtureReport();
-    expect(report).toContain(
-      "RentVine reads a zero current rent while the Sheet lists a non-zero figure.",
-    );
+    expect(report).toContain("Fixture source disagreement was raised.");
     expect(report).toContain("Discrepancies raised: 1");
-    expect(report).toContain("blind (before the app's output)");
+    expect(report).toContain("blind (before the app evidence)");
+    expect(report).not.toMatch(/\bLeases?\s+\d+/);
+    expect(report).not.toContain("Application-initiated client sends during the test: 0");
   });
 
-  it("cannot read as an unqualified pass: the limits section is unconditional", () => {
+  it("always discloses sample, unevaluated families, exact identity, and S59 policy limits", () => {
     const report = fixtureReport();
     expect(report).toContain("## Limits of this report");
     expect(report).toContain("Sample size");
-    expect(report).toContain("not evaluated:");
-    expect(report).toContain("Leases 279 and 280 share one street address");
-    expect(report).toContain("Lease 297 carried a source disagreement from day zero");
-    expect(report).toContain("No cohort lease is MKD-owned");
-    expect(report).toContain("±5%");
-    expect(report).toContain("$50");
-    // Window, daily owner, abort trigger are carried into the document.
-    expect(report).toContain("Daily owner: Bailey (fallback: Josiah)");
-    expect(report).toContain("Abort trigger:");
+    expect(report).toContain("not_evaluated:");
+    expect(report).toContain("exact lease-id/Sheet-row binding");
+    expect(report).toContain("2-mile maximum and 15-request policy");
+    expect(report).toContain("Daily owner: Fixture operational owner.");
+    expect(report).toContain("Abort trigger: Fixture abort trigger.");
   });
 });
 
-describe("evidence and report artifacts live outside git (AC-S63-11)", () => {
-  it("temp/ (cohort detail, generated reports) is gitignored", () => {
+describe("evidence and report artifacts stay outside Git", () => {
+  it("temp/ is gitignored", () => {
     const gitignore = readFileSync(join(process.cwd(), ".gitignore"), "utf8");
-    const lines = gitignore.split(/\r?\n/).map((line) => line.trim());
-    expect(lines).toContain("temp/");
+    expect(gitignore.split(/\r?\n/).map((line) => line.trim())).toContain("temp/");
   });
 
-  it("the report generator writes under temp/ by default", () => {
+  it("uses a temp-only opaque-run output and never prints its path", () => {
     const source = readFileSync(
       join(process.cwd(), "scripts", "generate-test-set-report.ts"),
       "utf8",
     );
-    expect(source).toContain('"temp/test-set"');
-    // The generator refuses to write anywhere outside the gitignored tree.
-    expect(source).toContain("outside the gitignored temp/ tree");
+    expect(source).toContain('const REPORT_DEFAULT_DIR = "temp/test-set"');
+    expect(source).toContain("report-${runReference}.md");
+    expect(source).toContain("formatTestSetReportSummary");
+    expect(source).not.toMatch(/console\.log\([^)]*outPath/s);
   });
 });

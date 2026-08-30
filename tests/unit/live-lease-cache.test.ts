@@ -79,8 +79,8 @@ describe("getLiveLeaseViews", () => {
   });
 
   // AC-S57-2: the desk's loaded lease set comes from the COMPLETE read, so leases outside the
-  // provider's 25-row default page — including every test-cohort lease — are present.
-  it("loads leases beyond the provider's default page, including the test cohort ids", async () => {
+  // provider's 25-row default page are present without committing a Live proof cohort.
+  it("loads fixture leases beyond the provider's default page", async () => {
     const rows = Array.from({ length: 305 }, (_, i) => ({
       lease: { leaseID: i + 1 },
     }));
@@ -88,8 +88,8 @@ describe("getLiveLeaseViews", () => {
     const views = await getLiveLeaseViews(client, 1_000);
     expect(views).toHaveLength(305);
     const ids = new Set(views.map((view) => String(view.leaseID)));
-    for (const cohortId of ["278", "279", "280", "297"]) {
-      expect(ids.has(cohortId)).toBe(true);
+    for (const beyondDefaultId of ["26", "100", "250", "305"]) {
+      expect(ids.has(beyondDefaultId)).toBe(true);
     }
   });
 });
@@ -263,28 +263,37 @@ describe("getLiveLeaseRead", () => {
   });
 });
 
-// S63 (AC-S63-1): the four cohort leases surface through the same complete read with their REAL
-// end dates — including 297's 2026-10-10 (the "all end September 30" framing was wrong) — and
-// 297's zero rent arrives as the value RentVine actually reports, never invented away.
-describe("S63 cohort shape through the live read (AC-S63-1)", () => {
-  const cohortRows = [
-    { lease: { leaseID: 278, endDate: "2026-09-30" }, unit: { rent: 1200 } },
-    { lease: { leaseID: 279, endDate: "2026-09-30" }, unit: { rent: 1250 } },
-    { lease: { leaseID: 280, endDate: "2026-09-30" }, unit: { rent: 1275 } },
-    { lease: { leaseID: 297, endDate: "2026-10-10" }, unit: { rent: 0 } },
+// S63 preservation: four securely supplied bindings traverse the same complete read; unit tests use
+// synthetic identities only. Distinct end dates and a zero source rent are preserved as read.
+describe("S63 four-binding shape through the live read", () => {
+  const fixtureRows = [
+    {
+      lease: { leaseID: "fixture-lease-a", endDate: "2030-01-31" },
+      unit: { rent: 1200 },
+    },
+    {
+      lease: { leaseID: "fixture-lease-b", endDate: "2030-02-28" },
+      unit: { rent: 1250 },
+    },
+    {
+      lease: { leaseID: "fixture-lease-c", endDate: "2030-03-31" },
+      unit: { rent: 1275 },
+    },
+    {
+      lease: { leaseID: "fixture-lease-d", endDate: "2030-04-30" },
+      unit: { rent: 0 },
+    },
   ];
 
-  it("carries all four leases with their real end dates and 297's zero rent", async () => {
-    const { client } = reader(cohortRows);
+  it("carries all four fixture leases with distinct dates and the exact zero source rent", async () => {
+    const { client } = reader(fixtureRows);
     const views = await getLiveLeaseViews(client, 1_000);
     expect(views).toHaveLength(4);
     const byId = new Map(views.map((view) => [String(view.leaseID), view]));
-    expect(byId.get("278")?.endDate).toBe("2026-09-30");
-    expect(byId.get("279")?.endDate).toBe("2026-09-30");
-    expect(byId.get("280")?.endDate).toBe("2026-09-30");
-    // 297 ends 2026-10-10, not 09-30: the evidence must carry real dates.
-    expect(byId.get("297")?.endDate).toBe("2026-10-10");
-    // The zero current rent is preserved as read — the day-zero discrepancy stays visible.
-    expect(byId.get("297")?.currentRent).toBe(0);
+    expect(byId.get("fixture-lease-a")?.endDate).toBe("2030-01-31");
+    expect(byId.get("fixture-lease-b")?.endDate).toBe("2030-02-28");
+    expect(byId.get("fixture-lease-c")?.endDate).toBe("2030-03-31");
+    expect(byId.get("fixture-lease-d")?.endDate).toBe("2030-04-30");
+    expect(byId.get("fixture-lease-d")?.currentRent).toBe(0);
   });
 });

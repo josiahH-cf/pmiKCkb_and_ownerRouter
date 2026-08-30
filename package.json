@@ -77,6 +77,7 @@
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
     "smoke:rentcast-comp": "tsx scripts/smoke-rentcast-comp.ts",
     "testset:capture-baseline": "tsx scripts/capture-test-set-baseline.ts",
+    "testset:append-evidence": "tsx scripts/append-test-set-evidence.ts",
     "testset:report": "tsx scripts/generate-test-set-report.ts",
     "discover:rentvine-fields": "tsx scripts/discover-rentvine-fields.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",

@@ -1,220 +1,269 @@
-// S63 verdict logic (AC-S63-10, AC-S63-13). Pure evaluation of the four pass criteria for one
-// cohort lease. `not_evaluated` is a first-class outcome carrying its reason: a criterion whose
-// inputs are missing must NEVER read as a pass — a missing provider number, a missing Market
-// Value, or an unstarted window all surface as `not_evaluated` with the reason spelled out, and
-// the overall verdict can only be `pass` when all four criteria individually pass.
-//
-// Tolerance (owner-decided, Q-TESTSET-TOLERANCE resolved 2026-08-06): the app's provider-derived
-// estimate passes criterion 3 when it falls within ±5 percent or ±$50 of the team's own recorded
-// Market Value for the lease, whichever tolerance is LARGER. The comparison basis is the Sheet's
-// human-entered Market Value for ALL FOUR leases (F-TESTSET-COMPARISON-BASIS: no cohort lease
-// carries a negotiated rent; if one closes during the window its agreed rent is recorded as an
-// additional comparison, not a substitute).
+// S63 dual operational verdict. Process behavior, number/evidence truth, and the read-only safety
+// boundary are evaluated independently. Missing observations remain `not_evaluated`; one passing
+// family can never mask a missing or failed family.
 
 import type { TestSetBaseline } from "@/lib/firestore/test-set-baseline";
+import {
+  RENEWAL_PROCESS_DEFINITION,
+  RENEWAL_PROCESS_VERSION,
+} from "@/lib/lease-renewal/renewal-process";
 
-export const TESTSET_TOLERANCE_PCT = 5;
-export const TESTSET_TOLERANCE_USD = 50;
+export const S63_RENTCAST_RADIUS_MILES = 2;
+export const S63_RENTCAST_REQUESTED_COUNT = 15;
 
 export type CriterionStatus = "pass" | "fail" | "not_evaluated";
 
 export interface CriterionOutcome {
   status: CriterionStatus;
-  /** Plain-English reason; REQUIRED for every outcome so the report never asserts a bare pass. */
+  /** Required for every outcome so the report never asserts a bare result. */
   reason: string;
 }
 
 export interface TestSetVerdict {
   criteria: {
-    reachability: CriterionOutcome;
-    factAccuracy: CriterionOutcome;
-    numberAgreement: CriterionOutcome;
-    communicationCorrectness: CriterionOutcome;
+    process: CriterionOutcome;
+    numberEvidence: CriterionOutcome;
+    safety: CriterionOutcome;
   };
-  /** pass only when all four criteria pass; fail when any fails; incomplete otherwise. */
+  /** `pass` only when all three independent families pass. */
   overall: "pass" | "fail" | "incomplete";
 }
 
 export interface TestSetVerdictInput {
-  /** Criterion 1: the lease appeared on the desk with this end date and disposition. */
-  reachability: {
-    appearedOnDesk: boolean | null;
-    endDateMatchesBaseline: boolean | null;
-    dispositionCorrect: boolean | null;
+  process: {
+    processVersion: string | null;
+    observedStepIds: readonly string[] | null;
+    observedSubstepIds: readonly string[] | null;
+    branchOrBlockerExplained: boolean | null;
+    transitionEvidenceExplained: boolean | null;
   };
-  /** Criterion 2: facts matched, or a genuine disagreement was raised rather than swallowed. */
-  factAccuracy: {
-    /** Field-level disagreements that genuinely exist between the sources (day-zero derived). */
+  numberEvidence: {
     knownDiscrepancyFields: readonly string[];
-    /** Fields for which a discrepancy_raised evidence entry exists. */
     raisedDiscrepancyFields: readonly string[];
-    /** True when every checked fact either matched or appears in raisedDiscrepancyFields. */
-    factsMatchOrRaised: boolean | null;
+    sourceFactsMatchOrRaised: boolean | null;
+    contractualBaseRentVerified: boolean | null;
+    recurringChargesSeparated: boolean | null;
+    rentCastRadiusMiles: number | null;
+    rentCastRequestedCount: number | null;
+    providerOrderPreserved: boolean | null;
+    hiddenSelectionApplied: boolean | null;
+    providerEvidenceAttributed: boolean | null;
+    humanDecisionRecordedSeparately: boolean | null;
+    providerSetOfferedRent: boolean | null;
   };
-  /** Criterion 3: the app's provider-derived estimate vs the team's recorded Market Value. */
-  numberAgreement: {
-    providerEstimate: number | null;
-    /** Why the provider estimate is missing, when it is (e.g. Q-RENTCAST-ACCOUNT-403). */
-    providerMissingReason?: string;
-    sheetMarketValue: number | null;
-    /** A renewal that actually closed during the window; recorded as an ADDITIONAL comparison. */
-    agreedRent?: number | null;
-  };
-  /** Criterion 4: recipients right, channels never mixed, every number attributed. */
-  communicationCorrectness: {
-    ownerDraftRecipientsCorrect: boolean | null;
-    tenantDraftRecipientsCorrect: boolean | null;
-    channelsSeparated: boolean | null;
-    numbersAttributed: boolean | null;
+  safety: {
+    previewWithoutConfirmationObserved: boolean | null;
+    appDraftCreateCount: number | null;
+    appClientSendCount: number | null;
+    rentvineWriteReceiptCount: number | null;
+    sheetWriteReceiptCount: number | null;
+    dotloopWriteReceiptCount: number | null;
   };
 }
 
-/** The larger of ±5% and ±$50, per the owner-decided tolerance. */
-export function numberAgreementTolerance(marketValue: number): number {
-  return Math.max((TESTSET_TOLERANCE_PCT / 100) * marketValue, TESTSET_TOLERANCE_USD);
+const EXPECTED_STEP_IDS = RENEWAL_PROCESS_DEFINITION.steps.map((step) => step.id);
+const EXPECTED_SUBSTEP_IDS = RENEWAL_PROCESS_DEFINITION.steps.flatMap((step) =>
+  step.substeps.map((substep) => substep.id),
+);
+
+function sameUniqueSet(actual: readonly string[], expected: readonly string[]): boolean {
+  return (
+    new Set(actual).size === actual.length &&
+    actual.length === expected.length &&
+    expected.every((value) => actual.includes(value))
+  );
 }
 
-function boolCriterion(
-  checks: ReadonlyArray<readonly [string, boolean | null]>,
-  passReason: string,
-): CriterionOutcome {
-  const unknown = checks.filter(([, value]) => value === null);
-  if (unknown.length > 0) {
+function processOutcome(input: TestSetVerdictInput["process"]): CriterionOutcome {
+  const missing: string[] = [];
+  if (input.processVersion === null) missing.push("process version");
+  if (input.observedStepIds === null) missing.push("six-step projection");
+  if (input.observedSubstepIds === null) missing.push("substep projection");
+  if (input.branchOrBlockerExplained === null) missing.push("branch or blocker");
+  if (input.transitionEvidenceExplained === null) {
+    missing.push("transition evidence");
+  }
+  if (missing.length > 0) {
     return {
       status: "not_evaluated",
-      reason: `Not yet observed: ${unknown.map(([name]) => name).join(", ")}. A missing input never reads as success.`,
+      reason: `Not yet observed: ${missing.join(", ")}. Missing process evidence never reads as success.`,
     };
   }
-  const failed = checks.filter(([, value]) => value === false);
+
+  const failed: string[] = [];
+  if (input.processVersion !== RENEWAL_PROCESS_VERSION) {
+    failed.push("the process version is not renewal-v1");
+  }
+  if (!sameUniqueSet(input.observedStepIds ?? [], EXPECTED_STEP_IDS)) {
+    failed.push(
+      "the exact six-step projection is incomplete or contains an unknown step",
+    );
+  }
+  if (!sameUniqueSet(input.observedSubstepIds ?? [], EXPECTED_SUBSTEP_IDS)) {
+    failed.push(
+      "the detailed substep projection is incomplete or contains an unknown substep",
+    );
+  }
+  if (input.branchOrBlockerExplained !== true) {
+    failed.push("the current branch or blocker is not explained");
+  }
+  if (input.transitionEvidenceExplained !== true) {
+    failed.push("the evidence permitting or preventing transitions is not explained");
+  }
+  if (failed.length > 0) {
+    return { status: "fail", reason: `Failed process checks: ${failed.join("; ")}.` };
+  }
+  return {
+    status: "pass",
+    reason: `The renewal-v1 projection exposes all ${EXPECTED_STEP_IDS.length} steps and ${EXPECTED_SUBSTEP_IDS.length} substeps with the current branch/blocker and transition evidence explained.`,
+  };
+}
+
+function numberEvidenceOutcome(
+  input: TestSetVerdictInput["numberEvidence"],
+): CriterionOutcome {
+  const checks: ReadonlyArray<readonly [string, boolean | number | null]> = [
+    ["source facts matched or were raised", input.sourceFactsMatchOrRaised],
+    ["contractual base rent verified", input.contractualBaseRentVerified],
+    ["recurring charges separated", input.recurringChargesSeparated],
+    ["RentCast radius observed", input.rentCastRadiusMiles],
+    ["RentCast requested count observed", input.rentCastRequestedCount],
+    ["provider order preserved", input.providerOrderPreserved],
+    ["hidden selection state observed", input.hiddenSelectionApplied],
+    ["provider evidence attributed", input.providerEvidenceAttributed],
+    ["human decision separated", input.humanDecisionRecordedSeparately],
+    ["offer mutation state observed", input.providerSetOfferedRent],
+  ];
+  const missing = checks.filter(([, value]) => value === null).map(([name]) => name);
+  if (missing.length > 0) {
+    return {
+      status: "not_evaluated",
+      reason: `Not yet observed: ${missing.join(", ")}. Missing number/evidence input never reads as success.`,
+    };
+  }
+
+  const unraised = input.knownDiscrepancyFields.filter(
+    (field) => !input.raisedDiscrepancyFields.includes(field),
+  );
+  if (unraised.length > 0) {
+    return {
+      status: "fail",
+      reason: `Source disagreement was not raised: ${unraised.join(", ")}.`,
+    };
+  }
+
+  const failed: string[] = [];
+  if (input.sourceFactsMatchOrRaised !== true) {
+    failed.push("source facts neither matched nor carried an exact raised discrepancy");
+  }
+  if (input.contractualBaseRentVerified !== true) {
+    failed.push("contractual base rent was not verified");
+  }
+  if (input.recurringChargesSeparated !== true) {
+    failed.push("recurring charges were not kept separate");
+  }
+  if (input.rentCastRadiusMiles !== S63_RENTCAST_RADIUS_MILES) {
+    failed.push(
+      `RentCast did not use the approved ${S63_RENTCAST_RADIUS_MILES}-mile radius`,
+    );
+  }
+  if (input.rentCastRequestedCount !== S63_RENTCAST_REQUESTED_COUNT) {
+    failed.push(
+      `RentCast did not request the approved ${S63_RENTCAST_REQUESTED_COUNT} comparables`,
+    );
+  }
+  if (input.providerOrderPreserved !== true) {
+    failed.push("provider order was not preserved");
+  }
+  if (input.hiddenSelectionApplied !== false) {
+    failed.push("a hidden selection or freshness filter was applied");
+  }
+  if (input.providerEvidenceAttributed !== true) {
+    failed.push("provider reference evidence was not attributed");
+  }
+  if (input.humanDecisionRecordedSeparately !== true) {
+    failed.push("the human decision was not recorded separately");
+  }
+  if (input.providerSetOfferedRent !== false) {
+    failed.push("provider evidence populated or changed offered rent");
+  }
   if (failed.length > 0) {
     return {
       status: "fail",
-      reason: `Failed checks: ${failed.map(([name]) => name).join(", ")}.`,
+      reason: `Failed number/evidence checks: ${failed.join("; ")}.`,
     };
   }
-  return { status: "pass", reason: passReason };
-}
-
-export function evaluateTestSetVerdict(input: TestSetVerdictInput): TestSetVerdict {
-  const reachability = boolCriterion(
-    [
-      ["appeared on desk", input.reachability.appearedOnDesk],
-      ["end date matches baseline", input.reachability.endDateMatchesBaseline],
-      ["disposition correct", input.reachability.dispositionCorrect],
-    ],
-    "The lease appeared on the desk with the correct end date and disposition.",
-  );
-
-  const unraised = input.factAccuracy.knownDiscrepancyFields.filter(
-    (field) => !input.factAccuracy.raisedDiscrepancyFields.includes(field),
-  );
-  let factAccuracy: CriterionOutcome;
-  if (input.factAccuracy.factsMatchOrRaised === null) {
-    factAccuracy = {
-      status: "not_evaluated",
-      reason:
-        "Fact comparison not yet performed. A missing input never reads as success.",
-    };
-  } else if (unraised.length > 0) {
-    factAccuracy = {
-      status: "fail",
-      reason: `Genuine source disagreement silently accepted (never raised): ${unraised.join(", ")}.`,
-    };
-  } else if (!input.factAccuracy.factsMatchOrRaised) {
-    factAccuracy = {
-      status: "fail",
-      reason: "A checked fact neither matched its authoritative source nor was raised.",
-    };
-  } else {
-    factAccuracy = {
-      status: "pass",
-      reason:
-        input.factAccuracy.knownDiscrepancyFields.length > 0
-          ? `Facts match or were raised as discrepancies (${input.factAccuracy.knownDiscrepancyFields.join(", ")}).`
-          : "Every checked fact matches its authoritative source.",
-    };
-  }
-
-  let numberAgreement: CriterionOutcome;
-  const { providerEstimate, sheetMarketValue } = input.numberAgreement;
-  if (typeof sheetMarketValue !== "number" || !Number.isFinite(sheetMarketValue)) {
-    numberAgreement = {
-      status: "not_evaluated",
-      reason:
-        "No recorded Market Value to compare against. A missing input never reads as success.",
-    };
-  } else if (typeof providerEstimate !== "number" || !Number.isFinite(providerEstimate)) {
-    numberAgreement = {
-      status: "not_evaluated",
-      reason: `No provider-derived estimate to evaluate${
-        input.numberAgreement.providerMissingReason
-          ? ` (${input.numberAgreement.providerMissingReason})`
-          : ""
-      }. A missing input never reads as success.`,
-    };
-  } else {
-    const tolerance = numberAgreementTolerance(sheetMarketValue);
-    const delta = Math.abs(providerEstimate - sheetMarketValue);
-    const extra =
-      typeof input.numberAgreement.agreedRent === "number"
-        ? " An agreed rent from a closed renewal is recorded as an additional comparison."
-        : "";
-    numberAgreement =
-      delta <= tolerance
-        ? {
-            status: "pass",
-            reason: `The provider estimate is within the ±${TESTSET_TOLERANCE_PCT}%/±$${TESTSET_TOLERANCE_USD} tolerance (larger applies) of the recorded Market Value.${extra}`,
-          }
-        : {
-            status: "fail",
-            reason: `The provider estimate differs from the recorded Market Value by more than the ±${TESTSET_TOLERANCE_PCT}%/±$${TESTSET_TOLERANCE_USD} tolerance.${extra}`,
-          };
-  }
-
-  const communicationCorrectness = boolCriterion(
-    [
-      [
-        "owner draft recipients",
-        input.communicationCorrectness.ownerDraftRecipientsCorrect,
-      ],
-      [
-        "tenant draft recipients",
-        input.communicationCorrectness.tenantDraftRecipientsCorrect,
-      ],
-      ["channel separation", input.communicationCorrectness.channelsSeparated],
-      ["number attribution", input.communicationCorrectness.numbersAttributed],
-    ],
-    "Drafts composed with the right recipients on the right channels, never mixed, every number attributed.",
-  );
-
-  const all = [reachability, factAccuracy, numberAgreement, communicationCorrectness];
-  const overall = all.every((criterion) => criterion.status === "pass")
-    ? "pass"
-    : all.some((criterion) => criterion.status === "fail")
-      ? "fail"
-      : "incomplete";
 
   return {
-    criteria: { reachability, factAccuracy, numberAgreement, communicationCorrectness },
-    overall,
+    status: "pass",
+    reason:
+      "Contractual base rent and recurring charges remain separate; the two-mile/15-request reference query preserves provider order and attribution; the human decision remains separate from provider evidence.",
   };
 }
 
-/**
- * Day-zero source disagreements derivable from the frozen baseline alone (AC-S63-5 input).
- * Lease 297's RentVine-zero rent against a non-zero Sheet figure surfaces here as
- * `current_rent`; the field list feeds `knownDiscrepancyFields`, so a verdict can only pass
- * criterion 2 when each derived disagreement was RAISED on the evidence record, never silently
- * absorbed.
- */
+function effectCount(value: number | null): boolean {
+  return value !== null && Number.isInteger(value) && value >= 0;
+}
+
+function safetyOutcome(input: TestSetVerdictInput["safety"]): CriterionOutcome {
+  const counts = [
+    input.appDraftCreateCount,
+    input.appClientSendCount,
+    input.rentvineWriteReceiptCount,
+    input.sheetWriteReceiptCount,
+    input.dotloopWriteReceiptCount,
+  ];
+  if (
+    input.previewWithoutConfirmationObserved === null ||
+    counts.some((count) => !effectCount(count))
+  ) {
+    return {
+      status: "not_evaluated",
+      reason:
+        "Preview/refusal or effect-count evidence is missing. The report cannot infer a zero from an absent observation.",
+    };
+  }
+  if (
+    input.previewWithoutConfirmationObserved !== true ||
+    counts.some((count) => count !== 0)
+  ) {
+    return {
+      status: "fail",
+      reason:
+        "The proof did not remain preview-only, or an app draft/send or RentVine/Sheet/Dotloop write receipt was observed.",
+    };
+  }
+  return {
+    status: "pass",
+    reason:
+      "Preview/refusal behavior was observed without confirmation; app draft/send and RentVine/Sheet/Dotloop write-receipt counts were explicitly observed as zero.",
+  };
+}
+
+export function evaluateTestSetVerdict(input: TestSetVerdictInput): TestSetVerdict {
+  const process = processOutcome(input.process);
+  const numberEvidence = numberEvidenceOutcome(input.numberEvidence);
+  const safety = safetyOutcome(input.safety);
+  const all = [process, numberEvidence, safety];
+  return {
+    criteria: { process, numberEvidence, safety },
+    overall: all.every((criterion) => criterion.status === "pass")
+      ? "pass"
+      : all.some((criterion) => criterion.status === "fail")
+        ? "fail"
+        : "incomplete",
+  };
+}
+
+/** Source disagreements derivable from the immutable baseline itself. */
 export function deriveBaselineDiscrepancies(baseline: TestSetBaseline): string[] {
   const fields: string[] = [];
   const sheetRent = parseSheetCurrency(baseline.sheetRow.current_rent);
-  const rvRent = baseline.rentvineFacts.currentRent;
+  const providerRent = baseline.rentvineFacts.currentRent;
   if (
     sheetRent !== null &&
-    typeof rvRent === "number" &&
-    Math.abs(rvRent - sheetRent) > 0.005
+    typeof providerRent === "number" &&
+    Math.abs(providerRent - sheetRent) > 0.005
   ) {
     fields.push("current_rent");
   }
@@ -229,77 +278,122 @@ export function parseSheetCurrency(raw: string | undefined): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/**
- * Build the verdict input FROM the frozen baseline and the appended evidence entries — the report
- * generator derives everything from records, never from hand-typed values. Observations the window
- * has not produced yet stay null and therefore evaluate `not_evaluated` (AC-S63-10). Conventions:
- * a `verdict`-kind entry may carry observed booleans under `payload.reachability` /
- * `payload.factAccuracy` / `payload.communicationCorrectness`; an `app_position` entry may carry
- * `payload.providerEstimate`; `discrepancy_raised` entries carry `payload.field`.
- */
+function latestPayload(
+  entries: ReadonlyArray<{ kind: string; payload: Record<string, unknown> }>,
+  kind: string,
+): Record<string, unknown> | null {
+  return [...entries].reverse().find((entry) => entry.kind === kind)?.payload ?? null;
+}
+
+function booleanValue(
+  payload: Record<string, unknown> | null,
+  key: string,
+): boolean | null {
+  const value = payload?.[key];
+  return typeof value === "boolean" ? value : null;
+}
+
+function numberValue(
+  payload: Record<string, unknown> | null,
+  key: string,
+): number | null {
+  const value = payload?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringValue(
+  payload: Record<string, unknown> | null,
+  key: string,
+): string | null {
+  const value = payload?.[key];
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function stringArray(
+  payload: Record<string, unknown> | null,
+  key: string,
+): readonly string[] | null {
+  const value = payload?.[key];
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+    ? value
+    : null;
+}
+
+/** Build the dual verdict input only from a frozen baseline plus append-only observations. */
 export function verdictInputFromRecords(input: {
   baseline: TestSetBaseline | null;
   entries: ReadonlyArray<{ kind: string; payload: Record<string, unknown> }>;
 }): TestSetVerdictInput {
-  const latestVerdict = [...input.entries]
-    .reverse()
-    .find((entry) => entry.kind === "verdict");
-  const latestApp = [...input.entries]
-    .reverse()
-    .find((entry) => entry.kind === "app_position");
-  const raisedFields = input.entries
+  const eligibleEntries = input.baseline
+    ? input.entries.filter((entry) => entry.payload.baselineHash === input.baseline?.hash)
+    : [];
+  const process = latestPayload(eligibleEntries, "process_observation");
+  const numberEvidence = latestPayload(eligibleEntries, "number_evidence_observation");
+  const safety = latestPayload(eligibleEntries, "safety_observation");
+  const raisedFields = eligibleEntries
     .filter((entry) => entry.kind === "discrepancy_raised")
     .map((entry) => entry.payload.field)
     .filter((field): field is string => typeof field === "string");
-
-  const observed = (section: string, key: string): boolean | null => {
-    const block = latestVerdict?.payload[section];
-    if (!block || typeof block !== "object") return null;
-    const value = (block as Record<string, unknown>)[key];
-    return typeof value === "boolean" ? value : null;
-  };
-
-  const providerEstimate =
-    typeof latestApp?.payload.providerEstimate === "number"
-      ? latestApp.payload.providerEstimate
-      : null;
+  const hasBaseline = input.baseline !== null;
 
   return {
-    reachability: {
-      appearedOnDesk: observed("reachability", "appearedOnDesk"),
-      endDateMatchesBaseline: observed("reachability", "endDateMatchesBaseline"),
-      dispositionCorrect: observed("reachability", "dispositionCorrect"),
+    process: {
+      processVersion: hasBaseline ? stringValue(process, "processVersion") : null,
+      observedStepIds: hasBaseline ? stringArray(process, "observedStepIds") : null,
+      observedSubstepIds: hasBaseline ? stringArray(process, "observedSubstepIds") : null,
+      branchOrBlockerExplained: hasBaseline
+        ? booleanValue(process, "branchOrBlockerExplained")
+        : null,
+      transitionEvidenceExplained: hasBaseline
+        ? booleanValue(process, "transitionEvidenceExplained")
+        : null,
     },
-    factAccuracy: {
+    numberEvidence: {
       knownDiscrepancyFields: input.baseline
         ? deriveBaselineDiscrepancies(input.baseline)
         : [],
       raisedDiscrepancyFields: raisedFields,
-      factsMatchOrRaised: observed("factAccuracy", "factsMatchOrRaised"),
-    },
-    numberAgreement: {
-      providerEstimate,
-      ...(providerEstimate === null
-        ? {
-            providerMissingReason:
-              "no app_position entry carries a provider estimate yet; the RentCast account activation is an open owner step (Q-RENTCAST-ACCOUNT-403)",
-          }
-        : {}),
-      sheetMarketValue: input.baseline
-        ? parseSheetCurrency(input.baseline.sheetRow.market_value)
+      sourceFactsMatchOrRaised: hasBaseline
+        ? booleanValue(numberEvidence, "sourceFactsMatchOrRaised")
+        : null,
+      contractualBaseRentVerified: hasBaseline
+        ? booleanValue(numberEvidence, "contractualBaseRentVerified")
+        : null,
+      recurringChargesSeparated: hasBaseline
+        ? booleanValue(numberEvidence, "recurringChargesSeparated")
+        : null,
+      rentCastRadiusMiles: hasBaseline
+        ? numberValue(numberEvidence, "rentCastRadiusMiles")
+        : null,
+      rentCastRequestedCount: hasBaseline
+        ? numberValue(numberEvidence, "rentCastRequestedCount")
+        : null,
+      providerOrderPreserved: hasBaseline
+        ? booleanValue(numberEvidence, "providerOrderPreserved")
+        : null,
+      hiddenSelectionApplied: hasBaseline
+        ? booleanValue(numberEvidence, "hiddenSelectionApplied")
+        : null,
+      providerEvidenceAttributed: hasBaseline
+        ? booleanValue(numberEvidence, "providerEvidenceAttributed")
+        : null,
+      humanDecisionRecordedSeparately: hasBaseline
+        ? booleanValue(numberEvidence, "humanDecisionRecordedSeparately")
+        : null,
+      providerSetOfferedRent: hasBaseline
+        ? booleanValue(numberEvidence, "providerSetOfferedRent")
         : null,
     },
-    communicationCorrectness: {
-      ownerDraftRecipientsCorrect: observed(
-        "communicationCorrectness",
-        "ownerDraftRecipientsCorrect",
+    safety: {
+      previewWithoutConfirmationObserved: booleanValue(
+        safety,
+        "previewWithoutConfirmationObserved",
       ),
-      tenantDraftRecipientsCorrect: observed(
-        "communicationCorrectness",
-        "tenantDraftRecipientsCorrect",
-      ),
-      channelsSeparated: observed("communicationCorrectness", "channelsSeparated"),
-      numbersAttributed: observed("communicationCorrectness", "numbersAttributed"),
+      appDraftCreateCount: numberValue(safety, "appDraftCreateCount"),
+      appClientSendCount: numberValue(safety, "appClientSendCount"),
+      rentvineWriteReceiptCount: numberValue(safety, "rentvineWriteReceiptCount"),
+      sheetWriteReceiptCount: numberValue(safety, "sheetWriteReceiptCount"),
+      dotloopWriteReceiptCount: numberValue(safety, "dotloopWriteReceiptCount"),
     },
   };
 }

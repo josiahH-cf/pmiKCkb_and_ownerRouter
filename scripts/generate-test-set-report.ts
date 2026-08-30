@@ -1,20 +1,20 @@
-// S63 report generator (AC-S63-7). Generates the four-lease test-set report FROM the Firestore
-// evidence records and frozen baselines — never hand-authored — and writes it OUTSIDE git, under
-// the gitignored temp/ tree (same boundary as the golden-data captures), because the report
-// contains client data. Read-only against every external system; its only writes are the local
-// report file.
+// S63 secure report generator. Exact case/operator/report context comes only from git-excluded
+// runtime configuration. The generator reads immutable Firestore baselines/evidence, validates the
+// exact binding/hash, and writes client data only under gitignored temp/test-set/. Terminal output
+// contains counts and an opaque run reference, never a case value or report path.
 //
-//   npm run testset:report                 # writes temp/test-set/report-<timestamp>.md
-//   npm run testset:report -- --out temp/test-set/custom.md
+//   S63_TEST_SET_RUNTIME_CONFIG_PATH=<secure path> npm run testset:report
 
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { AuthenticatedUser } from "../lib/auth/session";
-import { getTestSetBaseline } from "../lib/firestore/test-set-baseline";
+import {
+  getTestSetBaseline,
+  verifyTestSetBaselineHash,
+} from "../lib/firestore/test-set-baseline";
 import {
   humanComparisonMode,
   listTestSetEvidence,
@@ -24,26 +24,19 @@ import {
   type TestSetReportLease,
 } from "../lib/lease-renewal/test-set-report";
 import {
+  createTestSetRunReference,
+  formatTestSetRefusal,
+  formatTestSetReportSummary,
+  S63RunError,
+  safeTestSetFailureCode,
+} from "../lib/lease-renewal/test-set-run-output";
+import { loadTestSetRuntimeConfig } from "../lib/lease-renewal/test-set-runtime-config";
+import {
   evaluateTestSetVerdict,
   verdictInputFromRecords,
 } from "../lib/lease-renewal/test-set-verdict";
 
 const REPORT_DEFAULT_DIR = "temp/test-set";
-
-// The resolved cohort (lease ids, Sheet rows, end dates are deliberately committable).
-const COHORT: ReadonlyArray<{ leaseId: string; sheetRow: number; endDate: string }> = [
-  { leaseId: "278", sheetRow: 507, endDate: "2026-09-30" },
-  { leaseId: "279", sheetRow: 508, endDate: "2026-09-30" },
-  { leaseId: "280", sheetRow: 509, endDate: "2026-09-30" },
-  { leaseId: "297", sheetRow: 510, endDate: "2026-10-10" },
-];
-
-const REPORT_ACTOR: AuthenticatedUser = {
-  uid: "script:generate-test-set-report",
-  email: "ops@pmikcmetro.com",
-  hd: "pmikcmetro.com",
-  role: "Editor",
-};
 
 function loadLocalEnv(root: string): void {
   try {
@@ -54,7 +47,7 @@ function loadLocalEnv(root: string): void {
       }
     }
   } catch {
-    // Fall back to ambient env.
+    // Ambient environment remains authoritative when no local env file exists.
   }
 }
 
@@ -76,79 +69,79 @@ function getLiveFirestore() {
 async function main(): Promise<void> {
   const root = process.cwd();
   loadLocalEnv(root);
-
-  const outArgIndex = process.argv.indexOf("--out");
-  const outPath = resolve(
-    root,
-    outArgIndex >= 0 && process.argv[outArgIndex + 1]
-      ? process.argv[outArgIndex + 1]!
-      : join(
-          REPORT_DEFAULT_DIR,
-          `report-${new Date().toISOString().replace(/[:.]/g, "-")}.md`,
-        ),
-  );
-  // The report contains client data: refuse any destination outside the gitignored temp/ tree.
+  const runtime = loadTestSetRuntimeConfig({ rootDir: root });
+  const runReference = createTestSetRunReference();
+  const outPath = resolve(root, REPORT_DEFAULT_DIR, `report-${runReference}.md`);
   const relOut = relative(resolve(root, "temp"), outPath);
-  if (relOut.startsWith("..")) {
-    throw new Error(
-      `Refusing to write the report outside the gitignored temp/ tree: ${outPath}`,
-    );
+  if (
+    relOut === "" ||
+    relOut === ".." ||
+    relOut.startsWith(`..${sep}`) ||
+    isAbsolute(relOut)
+  ) {
+    throw new S63RunError("report_path_refused");
   }
 
   const db = getLiveFirestore();
   const leases: TestSetReportLease[] = [];
-  for (const member of COHORT) {
-    const baseline = await getTestSetBaseline(REPORT_ACTOR, member.leaseId, db);
-    const evidence = await listTestSetEvidence(REPORT_ACTOR, member.leaseId, db);
-    const verdict = evaluateTestSetVerdict(
-      verdictInputFromRecords({ baseline, entries: evidence }),
-    );
+  for (const binding of runtime.cases) {
+    const baseline = await getTestSetBaseline(runtime.actor, binding.leaseId, db);
+    if (
+      baseline &&
+      (baseline.leaseId !== binding.leaseId ||
+        baseline.rentvineFacts.leaseId !== binding.leaseId ||
+        baseline.sheetRowNumber !== binding.sheetRowNumber)
+    ) {
+      throw new S63RunError("baseline_binding_conflict");
+    }
+    if (baseline && !verifyTestSetBaselineHash(baseline)) {
+      throw new S63RunError("baseline_hash_invalid");
+    }
+    const evidence = await listTestSetEvidence(runtime.actor, binding.leaseId, db);
     leases.push({
-      leaseId: member.leaseId,
-      sheetRowNumber: member.sheetRow,
-      endDateIso: baseline?.rentvineFacts.leaseEnd ?? member.endDate,
+      leaseId: binding.leaseId,
+      sheetRowNumber: binding.sheetRowNumber,
+      endDateIso: baseline?.rentvineFacts.leaseEnd ?? null,
       baseline: {
         captured: baseline !== null,
         hash: baseline?.hash ?? null,
         capturedAt: baseline?.capturedAt ?? null,
       },
       evidence,
-      verdict,
+      verdict: evaluateTestSetVerdict(
+        verdictInputFromRecords({ baseline, entries: evidence }),
+      ),
       comparisonMode: humanComparisonMode(evidence),
     });
   }
 
-  const humanSends = leases.reduce(
-    (count, lease) =>
-      count + lease.evidence.filter((entry) => entry.kind === "human_send").length,
-    0,
-  );
   const report = buildTestSetReport({
     generatedAtIso: new Date().toISOString(),
-    windowDescription:
-      "Two to four weeks per D08, starting when the test set opens. Human reviewed sends recorded: " +
-      `${humanSends}.`,
-    dailyOwner: "Bailey (fallback: Josiah)",
-    abortTrigger:
-      "Any Sev-1 the runtime suspend cannot contain, or a second Sev-1 with the same cause.",
+    windowDescription: runtime.report.windowDescription,
+    dailyOwner: runtime.report.dailyOwner,
+    abortTrigger: runtime.report.abortTrigger,
     leases,
-    // Renewal/maintenance client sends stay Registry-closed under D33; the application has no
-    // path that sends a client notice, so the checked count is the number of application-send
-    // evidence entries, which the evidence model does not even define a kind for.
-    applicationInitiatedClientSends: 0,
   });
-
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, report, "utf8");
-  console.log(`test-set report written: ${relative(root, outPath)}`);
   console.log(
-    `leases: ${leases.length}; baselines captured: ${leases.filter((lease) => lease.baseline.captured).length}; evidence entries: ${leases.reduce((count, lease) => count + lease.evidence.length, 0)}`,
+    formatTestSetReportSummary({
+      runReference,
+      caseCount: leases.length,
+      baselineCount: leases.filter((lease) => lease.baseline.captured).length,
+      evidenceCount: leases.reduce((count, lease) => count + lease.evidence.length, 0),
+    }),
   );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
+    console.error(
+      formatTestSetRefusal({
+        operation: "report",
+        code: safeTestSetFailureCode(error),
+      }),
+    );
     process.exitCode = 1;
   });
 }

@@ -3,9 +3,10 @@
 
 # S63 — Four-lease renewal operational proof
 
-> Status: Immutable read-only proof machinery is built and the evaluation policy is approved, but
-> the capture/report scripts still track and print exact case identifiers in repository code; secure
-> runtime designation and output redaction must land before fresh case evidence or human review.
+> Status: The deterministic read-only proof machinery, secure exact-four runtime contracts, and
+> value-free command boundary are implemented. Fresh operational evidence is blocked only because
+> no secure four-case runtime packet or observation packet is currently supplied; human review is
+> blocked until that fresh report exists.
 
 **Goal.**
 
@@ -18,13 +19,13 @@ baseline and evidence record described here.
 **Current state / intended end state.**
 
 The runner freezes create-only baselines by lease id, exact Sheet row, timestamp, and source hash;
-keeps process and number evidence separate; generates a gitignored report; and imports no writer or
-sender. However, the capture/report scripts currently hard-code the four lease ids, Sheet rows, end
-dates, and a fixed operator identity in tracked source and print lease id, row, and source hash. That
-contradicts the current client-data boundary even though the external access is read-only. The three
-former policy blockers are now recorded in S59/S72. The intended state removes current-tree case
-values, requires exactly four secure runtime designations, emits only counts/opaque run references,
-and then performs one fresh four-case run with every criterion evaluated and reviewed by a human.
+keeps process, number/evidence, and read-only safety verdicts independent; preflights an observation
+batch before its first append; generates a gitignored report; and imports no writer or sender. The
+tracked cohort/operator literals and identity-bearing command output have been removed. Exactly four
+secure runtime designations and structured observations are required through files outside tracked
+source (or under gitignored `temp/`), and commands emit only counts, allowlisted refusal codes, and
+opaque run references. The remaining work is operational: supply those secure inputs, perform one
+fresh four-case run, and have a real reviewer complete both litmus entries.
 
 **Actors and entry conditions.**
 
@@ -68,19 +69,20 @@ report generation, redaction, human litmus, facts/status, and future defect suit
 
 **Authority and evidence map.**
 
-| Input                                                                                 | Classification                | Use and limitation                                                                                                                                            |
-| ------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md` Production+Live, no-synthetic-effect, write/send, and Git-data boundaries | Authority                     | The four cases must be real and securely runtime-configured; the proof may not draft, send, write, replace identity, or place client values in Git/logs.      |
-| `docs/facts.md` approved S59/S72 decisions                                            | Product authority             | Six-step/substep process, contractual base rent, two-mile radius, 15 requested comps, and no hidden filter are the evaluation contract.                       |
-| Baseline/evidence/verdict/report code and capture/report scripts                      | Verified implementation truth | Immutable exact-identity machinery exists, but tracked cohort ids/rows/dates/operator and identity-bearing console output must be removed before a fresh run. |
-| Baseline/evidence/report/workflow tests and static no-writer/no-sender checks         | Verification baseline         | They prove create-only/append-only/redaction/read-only structure; fresh report content is operational evidence, not a replacement for these checks.           |
-| Meeting reference to a fake test tenant/property                                      | Superseded context            | It cannot be used in Production. Only four securely runtime-configured real cases are eligible, and no new case identity/value enters Git/logs.               |
-| Current credentials/configured lease ids/allowance and human reviewer                 | External runtime inputs       | Their absence blocks only the operational capture or human verdict; no model may invent either.                                                               |
+| Input                                                                                 | Classification                | Use and limitation                                                                                                                                             |
+| ------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md` Production+Live, no-synthetic-effect, write/send, and Git-data boundaries | Authority                     | The four cases must be real and securely runtime-configured; the proof may not draft, send, write, replace identity, or place client values in Git/logs.       |
+| `docs/facts.md` approved S59/S72 decisions                                            | Product authority             | Six-step/substep process, contractual base rent, two-mile radius, 15 requested comps, and no hidden filter are the evaluation contract.                        |
+| Baseline/evidence/verdict/report code and capture/append/report scripts               | Verified implementation truth | Strict secure inputs, whole-batch preflight, create-only baselines/evidence, independent verdicts, gitignored reports, and value-free output are implemented.  |
+| Baseline/evidence/report/workflow tests and static no-writer/no-sender checks         | Verification baseline         | They prove exact-four/create-only/append-only/redaction/read-only structure; fresh report content is operational evidence, not a replacement for these checks. |
+| Meeting reference to a fake test tenant/property                                      | Superseded context            | It cannot be used in Production. Only four securely runtime-configured real cases are eligible, and no new case identity/value enters Git/logs.                |
+| Current credentials/configured lease ids/allowance and human reviewer                 | External runtime inputs       | Their absence blocks only the operational capture or human verdict; no model may invent either.                                                                |
 
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S63-1** — Baseline identity is exact lease id + Sheet row + source hash and create-only; a
-  deterministic check proves recapture/replacement/address-only joins and cross-lease evidence fail.
+  deterministic check proves the selected row's RentVine link matches that lease before app-plane
+  access, and that recapture/replacement/address-only joins and cross-lease evidence fail.
 - **ARCH-S63-2** — Process, source-number, provider-reference, human-decision, draft, and safety
   criteria are separate fields/checks with explicit not-evaluated reasons; no aggregate can hide one.
 - **ARCH-S63-3** — Static import and execution checks prove the capture/report path cannot reach any
@@ -111,8 +113,10 @@ report generation, redaction, human litmus, facts/status, and future defect suit
 four exact leases, see the correct accepted/counter/non-renewal/waiting branch or named blocker, and
 explain what evidence permits or prevents every transition.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Model verdict: BLOCKED - why: deterministic machinery evidence is green, but no fresh operational
+  case evidence can be evaluated until the secure runtime and observation packets are supplied.
+- Human verdict: BLOCKED - why: a real reviewer must evaluate the fresh generated report; the
+  implementation runner cannot fill this verdict.
 
 ### Explain the numbers and prove the read-only boundary
 
@@ -121,14 +125,16 @@ rent, separate charges, RentCast's two-mile/15-request query and returned eviden
 decision. The report proves no application draft/send or provider/source write occurred and exposes
 any missing evidence instead of averaging it away.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Model verdict: BLOCKED - why: deterministic machinery evidence is green, but no fresh operational
+  case evidence can be evaluated until the secure runtime and observation packets are supplied.
+- Human verdict: BLOCKED - why: a real reviewer must evaluate the fresh generated report; the
+  implementation runner cannot fill this verdict.
 
 **Requirement-to-outcome traceability.**
 
 | Requirement                                                            | Architecture outcome | Behavior outcome         | Human litmus                                         | Deterministic evidence / falsification                                                                                                                                          |
 | ---------------------------------------------------------------------- | -------------------- | ------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exactly four immutable source identities                               | `ARCH-S63-1`         | `BEH-S63-1`              | Both four-case litmus entries                        | Duplicate/reordered/conflicting row and recapture tests prove exact lease + row + hash binding and append-only observations.                                                    |
+| Exactly four immutable source identities                               | `ARCH-S63-1`         | `BEH-S63-1`              | Both four-case litmus entries                        | Missing/unit-only/cross-lease row-link, duplicate/reordered/conflicting row, and recapture tests prove exact lease + row + hash binding and append-only observations.           |
 | Process and number/evidence verdicts cannot mask each other            | `ARCH-S63-2`         | `BEH-S63-2`, `BEH-S63-3` | The two separate litmus entries                      | Report-schema tests require per-case/per-criterion PASS/FAIL/not-evaluated plus reason; no aggregate substitutes for either family.                                             |
 | Missing/stale/conflicting facts remain explicit                        | `ARCH-S63-2`         | `BEH-S63-3`              | Reviewer can explain every blocker                   | Fixtures remove or conflict each required source/policy field and prove zero guessed value or false PASS.                                                                       |
 | Capture/report execution is read-only and client data stays out of Git | `ARCH-S63-3`         | `BEH-S63-4`              | Explain the numbers and prove the read-only boundary | Static import/provider spies, receipt absence, redaction, `.gitignore`, and diff scan prove no draft creator/writer/sender/gate mutator or client value.                        |
@@ -188,7 +194,7 @@ named criteria and must remain explicit rather than blocking unrelated proof.
    omission; make repository/log redaction and secure exact-four input checks fail against the current
    hard-coded baseline; record immutability/no-effect preservation; never copy a live case into a unit
    fixture.
-2. Run `npm run test:direct -- tests/unit/test-set-baseline.test.ts tests/unit/test-set-evidence.test.ts tests/unit/test-set-report.test.ts tests/unit/lease-renewal-test-workflow.test.ts tests/unit/lease-renewal-send-boundary.test.ts` and the static no-effect checks, then `bash scripts/verify.sh`.
+2. Run `npm run test:direct -- tests/unit/test-set-runtime-config.test.ts tests/unit/test-set-source-binding.test.ts tests/unit/test-set-observation-input.test.ts tests/unit/test-set-evidence-plan.test.ts tests/unit/test-set-templates.test.ts tests/unit/test-set-runtime-boundary.test.mjs tests/unit/test-set-operational-verdict.test.ts tests/unit/test-set-baseline.test.ts tests/unit/test-set-evidence.test.ts tests/unit/test-set-report.test.ts tests/unit/testset-baseline-immutability-boundary.test.ts tests/unit/lease-renewal-test-workflow.test.ts tests/unit/lease-renewal-send-boundary.test.ts tests/unit/live-lease-cache.test.ts` and the static no-effect checks, then `bash scripts/verify.sh`.
 3. Only after runtime preflight and repository/log scans are green, receive the four bindings through
    the approved secure channel and run `testset:capture-baseline` and `testset:report`; inspect the
    gitignored report, Git diff, receipts, action state, and value-free logs before requesting two human

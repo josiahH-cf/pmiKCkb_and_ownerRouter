@@ -90,8 +90,8 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
     role: "Editor",
   };
   const facts: TestSetBaselineRentvineFacts = {
-    leaseId: "297",
-    leaseEnd: "2026-10-10",
+    leaseId: "fixture-lease-a",
+    leaseEnd: "2030-01-31",
     currentRent: 0,
     tenantCount: 5,
     addressLabel: "fixture address",
@@ -102,7 +102,12 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
   function fakeReader(): liveLeaseCache.LeaseExportReader {
     return {
       listAllLeasesExport: async () => ({
-        rows: [{ lease: { leaseID: 297, endDate: "2026-10-10" }, unit: { rent: 0 } }],
+        rows: [
+          {
+            lease: { leaseID: "fixture-lease-a", endDate: "2030-01-31" },
+            unit: { rent: 0 },
+          },
+        ],
         pages: 1,
         complete: true,
       }),
@@ -113,7 +118,12 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
     const db = new FakeFirestore();
     const captured = await captureTestSetBaseline(
       editor,
-      { leaseId: "297", sheetRowNumber: 510, rentvineFacts: facts, sheetRow },
+      {
+        leaseId: "fixture-lease-a",
+        sheetRowNumber: 101,
+        rentvineFacts: facts,
+        sheetRow,
+      },
       db as unknown as Firestore,
     );
 
@@ -124,7 +134,11 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
     await liveLeaseCache.getLiveLeaseSnapshot(fakeReader(), Date.now());
     liveLeaseCache.clearLiveLeaseCache();
 
-    const after = await getTestSetBaseline(editor, "297", db as unknown as Firestore);
+    const after = await getTestSetBaseline(
+      editor,
+      "fixture-lease-a",
+      db as unknown as Firestore,
+    );
     expect(after).not.toBeNull();
     // The hash is identical before and after the refresh cycle — the baseline did not move.
     expect(after?.hash).toBe(captured.hash);
@@ -135,15 +149,19 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
       captureTestSetBaseline(
         editor,
         {
-          leaseId: "297",
-          sheetRowNumber: 510,
+          leaseId: "fixture-lease-a",
+          sheetRowNumber: 101,
           rentvineFacts: { ...facts, currentRent: 999 },
           sheetRow,
         },
         db as unknown as Firestore,
       ),
     ).rejects.toThrow(/already exists/i);
-    const unchanged = await getTestSetBaseline(editor, "297", db as unknown as Firestore);
+    const unchanged = await getTestSetBaseline(
+      editor,
+      "fixture-lease-a",
+      db as unknown as Firestore,
+    );
     expect(unchanged?.rentvineFacts.currentRent).toBe(0);
     expect(unchanged?.hash).toBe(captured.hash);
   });
@@ -153,9 +171,9 @@ describe("frozen baseline survives a refresh cycle (AC-S63-3)", () => {
     const captured = await captureTestSetBaseline(
       editor,
       {
-        leaseId: "278",
-        sheetRowNumber: 507,
-        rentvineFacts: { ...facts, leaseId: "278" },
+        leaseId: "fixture-lease-b",
+        sheetRowNumber: 102,
+        rentvineFacts: { ...facts, leaseId: "fixture-lease-b" },
         sheetRow,
       },
       db as unknown as Firestore,

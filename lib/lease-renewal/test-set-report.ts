@@ -1,20 +1,15 @@
-// S63 report builder (AC-S63-7, AC-S63-8, AC-S63-9, AC-S63-13). Builds the plain-English test-set
-// report FROM the evidence records — never hand-authored, so it cannot drift from what actually
-// happened. The report contains client data and is therefore written OUTSIDE git by the generator
-// script (`scripts/generate-test-set-report.ts`), following the golden-data boundary.
-//
-// The report is structurally incapable of reading as an unqualified pass: the limits section, the
-// procedural-boundary statement, and the send-key scope-out are unconditional parts of the
-// document, and every criterion renders its status WITH its reason.
+// S63 report builder. The report is generated from immutable baselines and append-only evidence,
+// never hand-authored. It contains client data and is written only under the gitignored report
+// boundary by `scripts/generate-test-set-report.ts`.
 
 import type { TestSetEvidenceEntry } from "@/lib/firestore/test-set-evidence";
 import type { TestSetVerdict } from "@/lib/lease-renewal/test-set-verdict";
 import {
-  TESTSET_TOLERANCE_PCT,
-  TESTSET_TOLERANCE_USD,
+  S63_RENTCAST_RADIUS_MILES,
+  S63_RENTCAST_REQUESTED_COUNT,
 } from "@/lib/lease-renewal/test-set-verdict";
 
-/** The two production-open send keys the test set must scope out in writing (AC-S63-9). */
+/** Production-open sends explicitly scoped out of the source-read-only S63 runner. */
 export const TEST_SET_OPEN_SEND_KEYS = [
   "gmail.thread.reply",
   "internal.transactional_notice.send",
@@ -27,7 +22,7 @@ export interface TestSetReportLease {
   baseline: { captured: boolean; hash: string | null; capturedAt: string | null };
   evidence: readonly TestSetEvidenceEntry[];
   verdict: TestSetVerdict;
-  /** blind | informed | null (AC-S63-12) — null renders as "not yet distinguishable". */
+  /** blind | informed | null; null renders as not yet distinguishable. */
   comparisonMode: "blind" | "informed" | null;
 }
 
@@ -37,56 +32,52 @@ export interface TestSetReportInput {
   dailyOwner: string;
   abortTrigger: string;
   leases: readonly TestSetReportLease[];
-  /** Count of application-initiated client sends observed during the window. Must be reported. */
-  applicationInitiatedClientSends: number;
 }
 
 const CRITERION_TITLES: ReadonlyArray<
   readonly [keyof TestSetVerdict["criteria"], string]
 > = [
-  ["reachability", "1. Reachability and classification"],
-  ["factAccuracy", "2. Fact accuracy"],
-  ["numberAgreement", "3. Number agreement"],
-  ["communicationCorrectness", "4. Communication correctness"],
+  ["process", "Process outcome"],
+  ["numberEvidence", "Number and evidence outcome"],
+  ["safety", "Read-only safety outcome"],
 ];
 
 export function buildTestSetReport(input: TestSetReportInput): string {
   const lines: string[] = [];
   lines.push("# Four-lease renewal test set — evidence report");
   lines.push("");
-  lines.push(`Generated ${input.generatedAtIso} from the recorded evidence entries.`);
   lines.push(
-    "This document is produced by the report generator from the Firestore evidence",
-    "records; it is not hand-authored and it is written outside git because it contains",
-    "client data.",
+    `Generated ${input.generatedAtIso} from immutable baseline and evidence records.`,
+  );
+  lines.push(
+    "This report is generated inside the authorized evidence boundary and is written outside",
+    "Git because it contains client data. Terminal output exposes only counts and an opaque run",
+    "reference.",
     "",
   );
 
   lines.push("## Scope and safety posture");
   lines.push("");
   lines.push(
-    "- The cohort boundary was **procedural, not enforced by code**: the desk shows every",
-    "  lease in its window, and the operators worked the four test leases by their per-lease",
-    "  links. No lease filter, allowlist, or pilot flag exists.",
+    "- The four-case boundary is exact lease id plus exact Sheet row from secure runtime input.",
+    "  The ordinary renewal desk remains broader; this proof runner does not add a product",
+    "  allowlist or change who may work other leases.",
   );
   lines.push(
-    `- **Application-initiated client sends during the test: ${input.applicationInitiatedClientSends}.**`,
-    "  Renewal and maintenance client notices are draft-only and their send keys are",
-    "  Registry-closed under D33. This is a checked statement, not a remembered one.",
+    "- S63 exercises preview/refusal behavior without confirmation. It does not create an unsent",
+    "  Gmail draft, send a client message, or write RentVine, the operating Sheet, or Dotloop.",
   );
   lines.push(
-    "- Two send keys ARE open in production and are explicitly **out of scope for this test**,",
-    "  scoped out in writing rather than assumed away:",
+    "- A per-case safety observation is required before any zero-effect claim can pass. Missing",
+    "  safety evidence stays not evaluated rather than being inferred from the evidence schema.",
+  );
+  lines.push(
+    "- Two production-open send keys are explicitly out of scope and are not used by S63:",
   );
   for (const key of TEST_SET_OPEN_SEND_KEYS) {
-    lines.push(`  - \`${key}\` — not used by the test set.`);
+    lines.push(`  - \`${key}\``);
   }
-  lines.push(
-    "- Test-window communication is **compose-and-review only**: owner drafts are produced",
-    "  and reviewed by a person in Gmail and are not sent during the window. Any human",
-    "  reviewed-and-sent draft under D33 would be recorded on the evidence record.",
-    "",
-  );
+  lines.push("");
 
   lines.push("## Window, daily owner, abort trigger");
   lines.push("");
@@ -103,20 +94,25 @@ export function buildTestSetReport(input: TestSetReportInput): string {
     lines.push(
       lease.baseline.captured
         ? `Frozen baseline captured ${lease.baseline.capturedAt ?? "(time unrecorded)"} — hash \`${lease.baseline.hash ?? ""}\`.`
-        : "Frozen baseline NOT yet captured for this lease.",
+        : "Frozen baseline NOT yet captured for this exact binding.",
     );
     lines.push(
       lease.comparisonMode === null
-        ? "Blind-versus-informed comparison: not yet distinguishable (one side of the comparison has not been recorded)."
-        : `The human figure was captured **${lease.comparisonMode === "blind" ? "blind (before the app's output)" : "informed (after the app's output)"}**.`,
+        ? "Blind-versus-informed human comparison: not yet distinguishable."
+        : `The human decision was captured **${lease.comparisonMode === "blind" ? "blind (before the app evidence)" : "informed (after the app evidence)"}**.`,
     );
     lines.push("");
+
     for (const [key, title] of CRITERION_TITLES) {
       const outcome = lease.verdict.criteria[key];
-      lines.push(`- **${title}** — \`${outcome.status}\`. ${outcome.reason}`);
+      lines.push(`### ${title}`);
+      lines.push("");
+      lines.push(`- \`${outcome.status}\` — ${outcome.reason}`);
+      lines.push("");
     }
     lines.push(`- **Overall:** \`${lease.verdict.overall}\``);
     lines.push("");
+
     const discrepancies = lease.evidence.filter(
       (entry) => entry.kind === "discrepancy_raised",
     );
@@ -159,36 +155,27 @@ export function buildTestSetReport(input: TestSetReportInput): string {
     }
   }
   lines.push(
-    `- **Sample size:** ${input.leases.length} lease(s). Four leases prove process and catch`,
-    "  gross errors; they are not a statistical claim about the portfolio.",
+    `- **Sample size:** ${input.leases.length} lease(s). Four leases prove process behavior and`,
+    "  catch gross evidence errors; they are not a statistical portfolio claim.",
   );
   lines.push(
-    `- **Criteria evaluated:** ${evaluated.length}; **not evaluated:** ${notEvaluated.length}.`,
+    `- **Verdict families evaluated:** ${evaluated.length}; **not evaluated:** ${notEvaluated.length}.`,
   );
   for (const item of notEvaluated) {
     lines.push(`  - not_evaluated: ${item}`);
   }
   lines.push(
-    "- The cohort boundary was procedural (stated above), so nothing in code prevented an",
-    "  operator from working a non-cohort lease.",
+    "- Address or property text never identifies a case. Every baseline and evidence read uses the",
+    "  secure exact lease-id/Sheet-row binding and immutable source hash.",
   );
   lines.push(
-    "- Leases 279 and 280 share one street address; every record in this test keys on lease",
-    "  id, and address alone does not identify a lease.",
+    "- Source disagreements are derived from each frozen baseline and must be raised explicitly;",
+    "  no case-specific conflict is hard-coded into the report generator.",
   );
   lines.push(
-    "- Lease 297 carried a source disagreement from day zero: RentVine reads a current rent",
-    "  of zero while the Sheet lists a non-zero figure. That is finding number one of the",
-    "  test, present before any work began.",
-  );
-  lines.push(
-    "- No cohort lease is MKD-owned (portfolio 27), so the owner-policy rule path (S62) and",
-    "  the equal-ownership tie case (S61) are not exercised by this cohort.",
-  );
-  lines.push(
-    `- Criterion 3 tolerance: the larger of ±${TESTSET_TOLERANCE_PCT}% and ±$${TESTSET_TOLERANCE_USD},`,
-    "  against the Sheet's human-entered Market Value (no cohort lease carried a negotiated",
-    "  rent when the test opened).",
+    `- RentCast evidence is checked against the approved ${S63_RENTCAST_RADIUS_MILES}-mile maximum and ${S63_RENTCAST_REQUESTED_COUNT}-request policy.`,
+    "  Provider order is preserved, no hidden selection/freshness rule is invented, and provider",
+    "  evidence cannot set the human offer or decision.",
   );
   lines.push("");
   return lines.join("\n");

@@ -169,6 +169,29 @@ export function verifyTestSetBaselineHash(baseline: TestSetBaseline): boolean {
   );
 }
 
+/**
+ * An idempotent capture retry is reusable only when today's fully resolved source input is exactly
+ * the immutable baseline already stored. A changed row or provider fact is a source conflict, not
+ * permission to replace the baseline or silently call an old snapshot current.
+ */
+export function testSetBaselineMatchesInput(
+  baseline: TestSetBaseline,
+  input: CaptureTestSetBaselineInput,
+): boolean {
+  return (
+    verifyTestSetBaselineHash(baseline) &&
+    baseline.leaseId === input.leaseId &&
+    baseline.rentvineFacts.leaseId === input.leaseId &&
+    input.rentvineFacts.leaseId === input.leaseId &&
+    baseline.sheetRowNumber === input.sheetRowNumber &&
+    baseline.hash ===
+      testSetBaselineHash({
+        rentvineFacts: input.rentvineFacts,
+        sheetRow: input.sheetRow,
+      })
+  );
+}
+
 function baselineFromRecord(raw: Record<string, unknown>): TestSetBaseline | null {
   const leaseId = typeof raw.lease_id === "string" ? raw.lease_id : null;
   const facts =

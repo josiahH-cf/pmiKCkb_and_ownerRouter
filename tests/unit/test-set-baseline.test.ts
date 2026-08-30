@@ -10,6 +10,7 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   captureTestSetBaseline,
   getTestSetBaseline,
+  testSetBaselineMatchesInput,
   testSetBaselineHash,
   TEST_SET_BASELINE_COLLECTION,
   type TestSetBaselineRentvineFacts,
@@ -23,8 +24,8 @@ const editor: AuthenticatedUser = {
   role: "Editor",
 };
 const facts: TestSetBaselineRentvineFacts = {
-  leaseId: "278",
-  leaseEnd: "2026-09-30",
+  leaseId: "fixture-lease-a",
+  leaseEnd: "2030-01-31",
   currentRent: 1234,
   tenantCount: 1,
   addressLabel: "fixture address",
@@ -41,18 +42,23 @@ describe("captureTestSetBaseline (AC-S63-2)", () => {
     const db = new FakeFirestore();
     const baseline = await captureTestSetBaseline(
       editor,
-      { leaseId: "278", sheetRowNumber: 507, rentvineFacts: facts, sheetRow },
+      {
+        leaseId: "fixture-lease-a",
+        sheetRowNumber: 101,
+        rentvineFacts: facts,
+        sheetRow,
+      },
       fs(db),
     );
     expect(baseline.hash).toBe(testSetBaselineHash({ rentvineFacts: facts, sheetRow }));
     expect(baseline.hash).toMatch(/^[0-9a-f]{64}$/);
 
-    const stored = db.store.get(`${TEST_SET_BASELINE_COLLECTION}/278`);
-    expect(stored?.lease_id).toBe("278");
-    expect(stored?.sheet_row_number).toBe(507);
+    const stored = db.store.get(`${TEST_SET_BASELINE_COLLECTION}/fixture-lease-a`);
+    expect(stored?.lease_id).toBe("fixture-lease-a");
+    expect(stored?.sheet_row_number).toBe(101);
     expect(stored?.hash).toBe(baseline.hash);
 
-    const read = await getTestSetBaseline(editor, "278", fs(db));
+    const read = await getTestSetBaseline(editor, "fixture-lease-a", fs(db));
     expect(read?.rentvineFacts).toEqual(facts);
     expect(read?.sheetRow).toEqual(sheetRow);
     expect(read?.hash).toBe(baseline.hash);
@@ -72,19 +78,49 @@ describe("captureTestSetBaseline (AC-S63-2)", () => {
     ).not.toBe(reordered);
   });
 
+  it("reuses only an exact source-equivalent immutable baseline", async () => {
+    const db = new FakeFirestore();
+    const input = {
+      leaseId: "fixture-lease-a",
+      sheetRowNumber: 101,
+      rentvineFacts: facts,
+      sheetRow,
+    };
+    const baseline = await captureTestSetBaseline(editor, input, fs(db));
+
+    expect(testSetBaselineMatchesInput(baseline, input)).toBe(true);
+    expect(
+      testSetBaselineMatchesInput(baseline, {
+        ...input,
+        sheetRow: { ...sheetRow, market_value: "$1,301.00" },
+      }),
+    ).toBe(false);
+    expect(
+      testSetBaselineMatchesInput(baseline, {
+        ...input,
+        rentvineFacts: { ...facts, currentRent: 1235 },
+      }),
+    ).toBe(false);
+  });
+
   it("requires a lease id and a positive Sheet row number", async () => {
     const db = new FakeFirestore();
     await expect(
       captureTestSetBaseline(
         editor,
-        { leaseId: "  ", sheetRowNumber: 507, rentvineFacts: facts, sheetRow },
+        { leaseId: "  ", sheetRowNumber: 101, rentvineFacts: facts, sheetRow },
         fs(db),
       ),
     ).rejects.toThrow(EditableLayerError);
     await expect(
       captureTestSetBaseline(
         editor,
-        { leaseId: "278", sheetRowNumber: 0, rentvineFacts: facts, sheetRow },
+        {
+          leaseId: "fixture-lease-a",
+          sheetRowNumber: 0,
+          rentvineFacts: facts,
+          sheetRow,
+        },
         fs(db),
       ),
     ).rejects.toThrow(EditableLayerError);
@@ -92,6 +128,6 @@ describe("captureTestSetBaseline (AC-S63-2)", () => {
 
   it("returns null for a lease with no captured baseline", async () => {
     const db = new FakeFirestore();
-    expect(await getTestSetBaseline(editor, "280", fs(db))).toBeNull();
+    expect(await getTestSetBaseline(editor, "fixture-lease-missing", fs(db))).toBeNull();
   });
 });
