@@ -1,8 +1,8 @@
-// KB-owned persistence for the Phase-A LIVE renewal PROGRESS state (the clickable front-to-back flow).
+// KB-owned persistence for the versioned LIVE renewal evidence and branch state.
 //
 // One record per lease (docId = sanitized RentVine lease id) plus an append-only Activity trail. It holds
-// ONLY the operator's own forward progress — the recorded owner decision, the tenant-offer draft id once
-// created, and a complete flag. Every field is derived from operator action inside the auth boundary.
+// ONLY app-owned progress plus value-free evidence references. It never copies provider bodies or
+// makes a provider receipt from a local flag.
 //
 // GOVERNANCE: this layer changes NO system of record. RentVine stays GET-only and the Sheet stays
 // read-only; recording a decision here never composes, sends, or writes back. The transition rules live
@@ -21,6 +21,7 @@ import {
   progressDocId,
 } from "@/lib/firestore/lease-renewal-progress-schema";
 import type {
+  LeaseRenewalProcessEvidenceRecord,
   LeaseRenewalProgressActivityRecord,
   LeaseRenewalProgressRecord,
 } from "@/lib/firestore/types";
@@ -37,6 +38,8 @@ import { decodeLegacyManualMarketBasis } from "@/lib/lease-renewal/legacy-market
 import {
   planMarkComplete,
   planRecordOwnerDecision,
+  planRecordRenewalEvidence,
+  planRecordTenantOutcome,
   planRecordTenantOfferDraft,
   type RenewalMarketProviderBasis,
   type RenewalOwnerDecision,
@@ -44,6 +47,15 @@ import {
   type RenewalProgress,
   type RenewalProgressPlan,
 } from "@/lib/lease-renewal/renewal-progress";
+import {
+  LEGACY_RENEWAL_PROCESS_VERSION,
+  buildRenewalEvidenceReference,
+  normalizeRenewalEvidenceMap,
+  type RenewalEvidenceKey,
+  type RenewalEvidenceMap,
+  type RenewalEvidenceReference,
+  type RenewalTenantOutcomeState,
+} from "@/lib/lease-renewal/renewal-process";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 export {
@@ -58,7 +70,7 @@ interface TransitionResolution {
   attachment?: CompScreenshotAttachment;
 }
 
-/** Record (or replace) the owner's rent decision for a lease, advancing it to the Tenant-offer step. */
+/** Record (or replace) the human owner's decision; evidence, not this click, advances the process. */
 export async function recordOwnerDecision(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -95,7 +107,7 @@ export async function recordOwnerDecision(
   );
 }
 
-/** Stamp the created tenant-offer Gmail draft id and advance the lease to Build docs. */
+/** Stamp the created unsent tenant-offer Gmail draft; a draft remains in Tenant decision. */
 export async function recordTenantOfferDraft(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -114,6 +126,49 @@ export async function recordTenantOfferDraft(
   );
 }
 
+/** Record one source-backed tenant outcome; no message is sent and no provider is called. */
+export async function recordTenantOutcome(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  state: RenewalTenantOutcomeState,
+  evidence: RenewalEvidenceReference,
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalProgress> {
+  return applyTransition(
+    actor,
+    leaseId,
+    (current, _transaction, currentAttachment) => ({
+      plan: planRecordTenantOutcome(current, state, evidence),
+      ...(currentAttachment ? { attachment: currentAttachment } : {}),
+    }),
+    "tenant_outcome",
+    db,
+  );
+}
+
+/**
+ * Persist one value-free evidence reference contributed by an already-governed source seam. This
+ * function performs no provider operation; upstream changes invalidate only their exact dependents.
+ */
+export async function recordRenewalProcessEvidence(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  key: RenewalEvidenceKey,
+  evidence: RenewalEvidenceReference,
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalProgress> {
+  return applyTransition(
+    actor,
+    leaseId,
+    (current, _transaction, currentAttachment) => ({
+      plan: planRecordRenewalEvidence(current, key, evidence),
+      ...(currentAttachment ? { attachment: currentAttachment } : {}),
+    }),
+    "process_evidence",
+    db,
+  );
+}
+
 /** Mark the renewal complete for a lease (operator confirms the process is done). */
 export async function markRenewalComplete(
   actor: AuthenticatedUser,
@@ -124,7 +179,14 @@ export async function markRenewalComplete(
     actor,
     leaseId,
     (current, _transaction, currentAttachment) => ({
-      plan: planMarkComplete(current),
+      plan: planMarkComplete(
+        current,
+        buildRenewalEvidenceReference({
+          ref: `lease-progress:completion:${uuidv7()}`,
+          source: "app_record",
+          disposition: "verified",
+        }),
+      ),
       ...(currentAttachment ? { attachment: currentAttachment } : {}),
     }),
     "mark_complete",
@@ -251,6 +313,7 @@ async function applyTransition(
         stripUndefined({
           id: docId,
           lease_id: trimmedLeaseId,
+          process_version: next.processVersion,
           stage_index: next.stageIndex,
           owner_decision: next.ownerDecision
             ? stripUndefined({
@@ -274,7 +337,15 @@ async function applyTransition(
                   : undefined,
               })
             : undefined,
+          owner_decision_revision: next.ownerDecisionRevision,
           tenant_offer_draft_id: next.tenantOfferDraftId ?? undefined,
+          tenant_outcome: next.tenantOutcome
+            ? {
+                state: next.tenantOutcome.state,
+                evidence: evidenceReferenceToRecord(next.tenantOutcome.evidence),
+              }
+            : undefined,
+          process_evidence: evidenceMapToRecord(next.evidence),
           complete: next.complete,
           updated_by_uid: actor.uid,
           created_at: createdAt,
@@ -292,6 +363,7 @@ async function applyTransition(
         lease_id: trimmedLeaseId,
         actor_uid: actor.uid,
         action,
+        process_version: next.processVersion,
         stage_index: next.stageIndex,
         created_at: FieldValue.serverTimestamp(),
       }),
@@ -570,6 +642,64 @@ function providerBasisFromRecord(
   };
 }
 
+function evidenceReferenceToRecord(
+  reference: RenewalEvidenceReference,
+): LeaseRenewalProcessEvidenceRecord {
+  const normalized = buildRenewalEvidenceReference(reference);
+  return stripUndefined({
+    ref: normalized.ref,
+    source: normalized.source,
+    disposition: normalized.disposition,
+    observed_at: normalized.observedAt,
+    fingerprint: normalized.fingerprint,
+    reason: normalized.reason,
+  }) as unknown as LeaseRenewalProcessEvidenceRecord;
+}
+
+function evidenceMapToRecord(
+  evidenceInput: RenewalEvidenceMap,
+): Record<string, LeaseRenewalProcessEvidenceRecord> {
+  const evidence = normalizeRenewalEvidenceMap(evidenceInput);
+  return Object.fromEntries(
+    Object.entries(evidence).map(([key, reference]) => [
+      key,
+      evidenceReferenceToRecord(reference),
+    ]),
+  );
+}
+
+function evidenceReferenceFromRecord(
+  record: LeaseRenewalProcessEvidenceRecord | undefined,
+): RenewalEvidenceReference | null {
+  if (!record) return null;
+  try {
+    return buildRenewalEvidenceReference({
+      ref: record.ref,
+      source: record.source,
+      disposition: record.disposition,
+      ...(record.observed_at ? { observedAt: record.observed_at } : {}),
+      ...(record.fingerprint ? { fingerprint: record.fingerprint } : {}),
+      ...(record.reason ? { reason: record.reason } : {}),
+    });
+  } catch {
+    return null;
+  }
+}
+
+function evidenceMapFromRecord(
+  record: LeaseRenewalProgressRecord["process_evidence"],
+): RenewalEvidenceMap {
+  if (!record) return {};
+  const candidate: RenewalEvidenceMap = {};
+  for (const [key, value] of Object.entries(record)) {
+    const reference = evidenceReferenceFromRecord(value);
+    if (reference) {
+      (candidate as Record<string, RenewalEvidenceReference>)[key] = reference;
+    }
+  }
+  return normalizeRenewalEvidenceMap(candidate);
+}
+
 /** Project the persisted (snake_case) record onto the app-shaped RenewalProgress. */
 function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress {
   const decision = record.owner_decision;
@@ -581,8 +711,16 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
   const rangeHigh =
     decision?.market?.range_high ??
     (!legacyManual.invalid ? legacyManual.rangeHigh : undefined);
+  const evidence = evidenceMapFromRecord(record.process_evidence);
+  const tenantOutcomeEvidence = evidenceReferenceFromRecord(
+    record.tenant_outcome?.evidence,
+  );
   return {
     leaseId: record.lease_id,
+    processVersion:
+      typeof record.process_version === "string" && record.process_version.trim() !== ""
+        ? record.process_version
+        : LEGACY_RENEWAL_PROCESS_VERSION,
     stageIndex: record.stage_index,
     ownerDecision: decision
       ? {
@@ -615,7 +753,20 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
             : {}),
         }
       : null,
+    ownerDecisionRevision:
+      Number.isInteger(record.owner_decision_revision) &&
+      (record.owner_decision_revision ?? 0) > 0
+        ? (record.owner_decision_revision as number)
+        : 0,
     tenantOfferDraftId: record.tenant_offer_draft_id ?? null,
+    tenantOutcome:
+      record.tenant_outcome && tenantOutcomeEvidence
+        ? {
+            state: record.tenant_outcome.state,
+            evidence: tenantOutcomeEvidence,
+          }
+        : null,
+    evidence,
     complete: record.complete === true,
   };
 }

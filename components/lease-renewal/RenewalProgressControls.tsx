@@ -8,8 +8,8 @@ import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-i
 import type { MarketCompQueryBasis } from "@/lib/lease-renewal/market-comp-query-basis";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
-// Phase-A LIVE workspace controls that make the renewal flow move. They persist the operator's own
-// forward progress through /api/lease-renewal/renewal-progress and refresh the server-rendered workspace.
+// LIVE workspace controls persist app-owned inputs through the versioned renewal-progress boundary
+// and refresh the server-rendered evidence projection.
 // They change NO system of record: RentVine and the Sheet stay read-only; recording a decision here does
 // not compose or send anything. The tenant offer is drafted only through the gated Gmail composer.
 
@@ -1293,9 +1293,8 @@ export function OwnerDecisionForm({
 }
 
 /**
- * Mark the renewal complete for a live lease (operator confirms the process is done). Once complete it
- * shows a done state; otherwise it offers the button. Complete is app-owned state only — it writes back
- * to no system of record.
+ * Request app completion for a live lease. The server refuses until every accepted-path evidence
+ * predicate is satisfied. App completion is still separate from every system-of-record write.
  */
 export function RenewalCompleteButton({
   leaseId,

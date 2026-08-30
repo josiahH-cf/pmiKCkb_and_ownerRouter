@@ -2,6 +2,7 @@ import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { LEASE_RENEWAL_STAGES } from "@/lib/lease-renewal/constants";
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
+import { RENEWAL_PROCESS_DEFINITION } from "@/lib/lease-renewal/renewal-process";
 
 /**
  * Non-executable Lease Renewal process-definition template. Converts the confirmed
@@ -22,24 +23,12 @@ export const LEASE_RENEWAL_ACTION_KEYS = [
   ...LEASE_EXECUTION_ACTIONS,
 ] as const;
 
-const STAGE_DESCRIPTIONS: Record<(typeof LEASE_RENEWAL_STAGES)[number], string> = {
-  "Candidate detection":
-    "Identify due renewals from lease timing (Rentvine is read-authoritative for lease dates, tenant contacts, and property/owner context). Manual start remains allowed.",
-  "Owner decision":
-    "Gather facts read-only, show source/timestamp/confidence per fact, and prepare exact channel previews plus the approval package. Missing or conflicting authority remains Blocked.",
-  "Tenant intake":
-    "Capture the tenant-side renewal response and negotiated terms as source-backed facts. Email, portal, and SMS remain separate exact-confirmed actions with separate receipts.",
-  "Document package":
-    "Create the approved Dotloop renewal loop and upload only the configured document package after the required High-risk approval.",
-  "Signature/confirmation":
-    "Track source-backed signature and confirmation evidence; exact Dotloop signature lifecycle remains vendor-confirmation-required.",
-  "System-of-record update":
-    "Write the signed renewal back into Rentvine only through the documented account contract, exact preview, Admin approval, and read-after-write receipt.",
-  "Service/charge verification":
-    "Verify renewal charges and services against approved sources; record Boom as audited not-applicable or execute the approved High-risk enrollment contract.",
-  Closeout:
-    "Close only when every applicable action has its own reconciled receipt; a failed channel or ambiguous provider outcome remains visible.",
-};
+const STAGE_DESCRIPTIONS = Object.fromEntries(
+  RENEWAL_PROCESS_DEFINITION.steps.map((step) => [
+    step.title,
+    `${step.completionRule} Responsible role: ${step.responsibleRole}.`,
+  ]),
+) as Record<string, string>;
 
 export interface LeaseRenewalTemplateOptions {
   ownerUid: string;
@@ -53,7 +42,7 @@ export function buildLeaseRenewalProcessTemplate(
   return {
     name: "Lease Renewal",
     short_outcome:
-      "Carry a source-backed renewal through exact-confirmed outreach, the approved document package, renewal writeback, and conditional Boom enrollment with every external action individually gated.",
+      "Carry a source-backed renewal through exact-confirmed outreach, the approved document package, signatures, compliance, app completion, and only separately authorized external actions.",
     trigger:
       "Manual start by a team member; the system anticipates due renewals from lease timing and reminds the team.",
     owner_uid: options.ownerUid,

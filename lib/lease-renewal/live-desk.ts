@@ -72,11 +72,26 @@ import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {
   effectiveStageIndex,
+  ownerDecisionIsCurrent,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
+import {
+  RENEWAL_PROCESS_VERSION,
+  buildRenewalEvidenceReference,
+  projectRenewalProcess,
+  removeRenewalEvidence,
+  replaceRenewalEvidence,
+  type RenewalEvidenceBlocker,
+  type RenewalEvidenceKey,
+  type RenewalEvidenceMap,
+  type RenewalEvidenceSource,
+} from "@/lib/lease-renewal/renewal-process";
 import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
+import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
 import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 import { parseCurrencyInput } from "@/lib/currency-input";
+import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
+import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 
 // Parity with the live review: the single "Lease Renewal" tab, name join, no cohort pre-filter inside
 // the pipeline (the desk classifies the cohort itself). The run id is inert here (the desk never uses
@@ -412,6 +427,276 @@ function buildLiveNotice(
   );
 }
 
+function liveEvidenceReference(
+  source: RenewalEvidenceSource,
+  ref: string,
+  fingerprintInput?: unknown,
+  observedAt?: string,
+) {
+  return buildRenewalEvidenceReference({
+    source,
+    ref,
+    disposition: "verified",
+    ...(fingerprintInput === undefined
+      ? {}
+      : {
+          fingerprint: hashExecutionPreview({
+            evidenceVersion: "renewal-live-v1",
+            value: fingerprintInput,
+          }),
+        }),
+    ...(observedAt ? { observedAt } : {}),
+  });
+}
+
+function overlayLiveEvidence(
+  evidence: RenewalEvidenceMap,
+  key: RenewalEvidenceKey,
+  reference: ReturnType<typeof liveEvidenceReference>,
+): RenewalEvidenceMap {
+  if (!evidence[key]) return { ...evidence, [key]: reference };
+  return replaceRenewalEvidence(evidence, key, reference).evidence;
+}
+
+function clearLiveEvidence(
+  evidence: RenewalEvidenceMap,
+  key: RenewalEvidenceKey,
+): RenewalEvidenceMap {
+  return removeRenewalEvidence(evidence, key).evidence;
+}
+
+function buildLiveProcessEvidence(input: {
+  leaseId: string;
+  view: RawLease;
+  endDateIso: string | null;
+  currentRent: number;
+  currentRentEvidence: LiveOwnerCurrentRentDecision["currentRentEvidence"];
+  dataCheck: DeskReconItem[];
+  dataCurrency: LiveLeaseCurrency;
+  readComplete: boolean;
+  progress: RenewalProgress | null;
+  /** undefined means this surface did not load packet state; null means it proved none current. */
+  packetSnapshot: RenewalPacketSnapshot | null | undefined;
+}): {
+  evidence: RenewalEvidenceMap;
+  blockers: Partial<Record<RenewalEvidenceKey, RenewalEvidenceBlocker>>;
+} {
+  let evidence: RenewalEvidenceMap = { ...(input.progress?.evidence ?? {}) };
+  const set = (
+    key: RenewalEvidenceKey,
+    source: RenewalEvidenceSource,
+    ref: string,
+    fingerprintInput?: unknown,
+    observedAt?: string,
+  ) => {
+    evidence = overlayLiveEvidence(
+      evidence,
+      key,
+      liveEvidenceReference(source, ref, fingerprintInput, observedAt),
+    );
+  };
+  const clear = (key: RenewalEvidenceKey) => {
+    evidence = clearLiveEvidence(evidence, key);
+  };
+  const blockers: Partial<Record<RenewalEvidenceKey, RenewalEvidenceBlocker>> = {};
+
+  set("lease-tracked", "rentvine_snapshot", `rentvine:lease:${input.leaseId}:tracked`, {
+    leaseId: input.leaseId,
+  });
+  set("lease-identity", "rentvine_snapshot", `rentvine:lease:${input.leaseId}:identity`, {
+    leaseId: input.leaseId,
+    view: input.view,
+  });
+  set(
+    "recurring-charges-separated",
+    "app_record",
+    "app-contract:base-rent-and-recurring-charges:v1",
+  );
+
+  if (input.endDateIso) {
+    set(
+      "lease-end-date",
+      "rentvine_snapshot",
+      `rentvine:lease:${input.leaseId}:end-date`,
+      { leaseId: input.leaseId, endDateIso: input.endDateIso },
+    );
+  } else {
+    clear("lease-end-date");
+    blockers["lease-end-date"] = {
+      reason: "The current lease snapshot has no verified end date.",
+      nextAction: "Resolve the missing end date from an authoritative source.",
+    };
+  }
+
+  const baseRentVerified =
+    input.currentRentEvidence.currencyState === "fresh" &&
+    (input.currentRentEvidence.agreement === "agree" ||
+      input.currentRentEvidence.agreement === "resolved");
+  if (baseRentVerified && Number.isFinite(input.currentRent) && input.currentRent > 0) {
+    set(
+      "base-rent",
+      "reconciliation_receipt",
+      `renewal-current-rent:${input.leaseId}`,
+      {
+        leaseId: input.leaseId,
+        currentRent: input.currentRent,
+        agreement: input.currentRentEvidence.agreement,
+        resolvedSource: input.currentRentEvidence.resolvedSource,
+      },
+      input.currentRentEvidence.readAtIso,
+    );
+  } else {
+    clear("base-rent");
+    blockers["base-rent"] = {
+      reason: "Contractual base rent is missing, stale, ambiguous, or conflicting.",
+      nextAction: "Resolve contractual base rent before continuing.",
+    };
+  }
+
+  const blockingData = input.dataCheck.filter(
+    (item) => item.agreement === "conflict" || item.agreement === "missing",
+  );
+  if (blockingData.length === 0) {
+    set(
+      "source-conflicts-resolved",
+      "reconciliation_receipt",
+      `renewal-reconciliation:${input.leaseId}:clear`,
+      { leaseId: input.leaseId, dataCheck: input.dataCheck },
+    );
+  } else {
+    clear("source-conflicts-resolved");
+    blockers["source-conflicts-resolved"] = {
+      reason: `${blockingData.length} blocking source item${blockingData.length === 1 ? " remains" : "s remain"}.`,
+      nextAction: "Record an exact source disposition or leave the lease visibly held.",
+    };
+  }
+
+  if (input.readComplete && input.dataCurrency.state !== "expired") {
+    const observedAt = new Date(input.dataCurrency.readAtMs).toISOString();
+    set(
+      "source-snapshot-current",
+      "rentvine_snapshot",
+      `rentvine:lease:${input.leaseId}:snapshot`,
+      { leaseId: input.leaseId, view: input.view, dataCheck: input.dataCheck },
+      observedAt,
+    );
+  } else {
+    clear("source-snapshot-current");
+    blockers["source-snapshot-current"] = {
+      reason: input.readComplete
+        ? "The current lease snapshot is too old to act on."
+        : "The current portfolio read did not complete.",
+      nextAction: "Refresh the source read before recording new renewal work.",
+    };
+  }
+
+  const ownerRecipients = resolveRenewalRecipient({
+    lease: input.view,
+    channel: "owner",
+  });
+  const tenantRecipients = resolveRenewalRecipient({
+    lease: input.view,
+    channel: "tenant",
+  });
+  if (ownerRecipients.verified && tenantRecipients.verified) {
+    set(
+      "renewal-recipients",
+      "rentvine_snapshot",
+      `rentvine:lease:${input.leaseId}:renewal-recipients`,
+      { leaseId: input.leaseId, ownerRecipients, tenantRecipients },
+    );
+  } else {
+    clear("renewal-recipients");
+    blockers["renewal-recipients"] = {
+      reason: "One or more authoritative owner/tenant recipients are unresolved.",
+      nextAction:
+        "Resolve every owner and tenant of record without guessing contact data.",
+    };
+  }
+  if (tenantRecipients.verified) {
+    set(
+      "tenant-recipients",
+      "rentvine_snapshot",
+      `rentvine:lease:${input.leaseId}:tenant-recipients`,
+      { leaseId: input.leaseId, tenantRecipients },
+    );
+  } else {
+    clear("tenant-recipients");
+    blockers["tenant-recipients"] = {
+      reason: "One or more authoritative tenant recipients are unresolved.",
+      nextAction: "Resolve every tenant of record before preparing an offer.",
+    };
+  }
+
+  const packet = input.packetSnapshot;
+  if (packet?.current) {
+    set(
+      "packet-catalog-version",
+      "policy_version",
+      `packet-catalog:${packet.catalogVersion}`,
+      { catalogVersion: packet.catalogVersion },
+    );
+    set(
+      "current-packet-version",
+      "packet_snapshot",
+      `packet:${packet.snapshotId}:v${packet.snapshotVersion}`,
+      {
+        snapshotId: packet.snapshotId,
+        snapshotVersion: packet.snapshotVersion,
+        payloadHash: packet.payloadHash,
+      },
+    );
+    if (packet.state === "Ready for preview") {
+      set("packet-facts", "packet_snapshot", `packet:${packet.snapshotId}:facts`, {
+        snapshotId: packet.snapshotId,
+        payloadHash: packet.payloadHash,
+      });
+      set(
+        "packet-snapshot",
+        "packet_snapshot",
+        `packet:${packet.snapshotId}:${packet.payloadHash}`,
+        { snapshotId: packet.snapshotId, payloadHash: packet.payloadHash },
+      );
+    } else {
+      clear("packet-facts");
+      clear("packet-snapshot");
+    }
+    if (packet.visibleState === "Executed" && packet.execution?.receiptId) {
+      set(
+        "dotloop-packet-readback",
+        "dotloop_receipt",
+        `dotloop-receipt:${packet.execution.receiptId}`,
+        { receiptId: packet.execution.receiptId, payloadHash: packet.payloadHash },
+      );
+    } else {
+      clear("dotloop-packet-readback");
+    }
+  } else if (packet === null) {
+    clear("current-packet-version");
+    clear("packet-facts");
+    clear("packet-snapshot");
+    clear("dotloop-packet-readback");
+  }
+
+  return { evidence, blockers };
+}
+
+function effectiveProgressAfterEvidence(
+  progress: RenewalProgress | null,
+  evidence: RenewalEvidenceMap,
+): RenewalProgress | null {
+  if (!progress) return null;
+  return {
+    ...progress,
+    evidence,
+    tenantOfferDraftId: evidence["tenant-draft-receipt"]
+      ? progress.tenantOfferDraftId
+      : null,
+    tenantOutcome: evidence["tenant-outcome"] ? progress.tenantOutcome : null,
+    complete: progress.complete && Boolean(evidence["app-completion"]),
+  };
+}
+
 /**
  * Load the live Renewal Desk (read-only). One shared RentVine export read + one Sheet read; classifies
  * the cohort and, for each actionable lease, reconciles its rent through the REAL pipeline so the open
@@ -443,12 +728,45 @@ export async function loadLiveRenewalDesk(
         ? (progressByLease?.get(classification.leaseId) ?? null)
         : null;
       if (classification.disposition === "actionable") {
-        return toLiveSummary(
+        const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+        const summary = toLiveSummary(view, classification, dataCheck, progress);
+        const leaseId = classification.leaseId ?? leaseIdOf(view);
+        if (!leaseId) return summary;
+        const currentRentDecision = resolveOwnerCurrentRentDecision(
           view,
-          classification,
-          buildLeaseDataCheck(view, tables, readTimestamp),
-          progress,
+          dataCheck,
+          currency,
+          [],
         );
+        const processEvidence = buildLiveProcessEvidence({
+          leaseId,
+          view,
+          endDateIso: classification.endDateIso,
+          currentRent: currentRentDecision.currentRent,
+          currentRentEvidence: currentRentDecision.currentRentEvidence,
+          dataCheck,
+          dataCurrency: currency,
+          readComplete: complete,
+          progress,
+          packetSnapshot: undefined,
+        });
+        const effectiveProgress = effectiveProgressAfterEvidence(
+          progress,
+          processEvidence.evidence,
+        );
+        const process = projectRenewalProcess({
+          processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+          evidence: processEvidence.evidence,
+          evidenceBlockers: processEvidence.blockers,
+          tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+          complete: effectiveProgress?.complete ?? false,
+        });
+        return {
+          ...summary,
+          stageIndex: process.currentStepIndex,
+          stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+          nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+        };
       }
       return toLiveSummary(view, classification);
     });
@@ -498,6 +816,7 @@ export async function loadLiveRenewalLeaseWorkspace(
     comps: { rent: number; source: string; label?: string }[];
   } | null = null,
   resolutions: readonly LeaseRenewalResolutionRecord[] = [],
+  packetSnapshot: RenewalPacketSnapshot | null = null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -533,24 +852,59 @@ export async function loadLiveRenewalLeaseWorkspace(
     const currentRent = currentRentDecision.currentRent;
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
-    const summary = toLiveSummary(view, classification, dataCheck, progress);
+    let summary = toLiveSummary(view, classification, dataCheck, progress);
+
+    const processEvidence = buildLiveProcessEvidence({
+      leaseId,
+      view,
+      endDateIso: classification.endDateIso,
+      currentRent,
+      currentRentEvidence: currentRentDecision.currentRentEvidence,
+      dataCheck,
+      dataCurrency: currency,
+      readComplete: complete,
+      progress,
+      packetSnapshot,
+    });
+    // Live source drift can invalidate stored downstream evidence without mutating Firestore during a
+    // read. Project every coupled field through that effective evidence so stale draft/outcome/
+    // completion flags cannot survive merely because their historical scalar is still present.
+    const effectiveProgress = effectiveProgressAfterEvidence(
+      progress,
+      processEvidence.evidence,
+    );
+    const process = projectRenewalProcess({
+      processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+      evidence: processEvidence.evidence,
+      evidenceBlockers: processEvidence.blockers,
+      tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+      complete: effectiveProgress?.complete ?? false,
+    });
+    summary = {
+      ...summary,
+      stageIndex: process.currentStepIndex,
+      stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+      nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+    };
 
     // Once the owner decision is RECORDED, the Tenant-offer step shows a real offer built from those
     // numbers (not a placeholder). Without a recorded decision — or a lease with no end date — it stays
     // null and the Tenant-offer card invites composing below. The gated composer is still the only send.
     const endDateIso = classification.endDateIso;
     const tenantDraft =
-      progress?.ownerDecision && endDateIso
+      ownerDecisionIsCurrent(effectiveProgress) &&
+      effectiveProgress?.ownerDecision &&
+      endDateIso
         ? buildTenantOfferDraft({
             tenantNameLabel: summary.tenantNameLabel,
             leaseEndDateIso: endDateIso,
-            ownerDecision: progress.ownerDecision.decision,
-            offeredRent: progress.ownerDecision.offeredRent,
-            ...(progress.ownerDecision.charges
-              ? { charges: progress.ownerDecision.charges }
+            ownerDecision: effectiveProgress.ownerDecision.decision,
+            offeredRent: effectiveProgress.ownerDecision.offeredRent,
+            ...(effectiveProgress.ownerDecision.charges
+              ? { charges: effectiveProgress.ownerDecision.charges }
               : {}),
-            ...(progress.ownerDecision.infoFormUrl
-              ? { infoFormUrl: progress.ownerDecision.infoFormUrl }
+            ...(effectiveProgress.ownerDecision.infoFormUrl
+              ? { infoFormUrl: effectiveProgress.ownerDecision.infoFormUrl }
               : {}),
           })
         : null;
@@ -558,7 +912,8 @@ export async function loadLiveRenewalLeaseWorkspace(
     const workspace: RenewalLeaseWorkspace = {
       summary,
       steps: RENEWAL_STEPS,
-      currentStepIndex: summary.stageIndex >= 0 ? summary.stageIndex : 0,
+      currentStepIndex: process.currentStepIndex,
+      process,
       dataCheck,
       // A degenerate rentless lease has no meaningful owner draft; the Data-check reports the missing
       // rent as "Needs input" and the gated composer blocks an owner notice without a rent.
@@ -593,12 +948,15 @@ export async function loadLiveRenewalLeaseWorkspace(
       // "Needs input" rather than a fabricated pass.
       readiness: evaluateRenewalReadiness({}),
       notice: buildLiveNotice(endDateIso, readTimestamp.slice(0, 10)),
-      // The operator's recorded progress drives the Phase-A controls in the workspace UI.
+      // Effective current evidence drives the versioned progress controls in the workspace UI.
       live: {
         leaseId,
-        ownerDecision: progress?.ownerDecision ?? null,
-        tenantOfferDraftId: progress?.tenantOfferDraftId ?? null,
-        complete: progress?.complete ?? false,
+        ownerDecision: effectiveProgress?.ownerDecision ?? null,
+        ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
+        tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
+        tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+        processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+        complete: effectiveProgress?.complete ?? false,
       },
       // S58: expired data disables compose/record controls in the workspace UI; the routes refuse
       // server-side regardless.

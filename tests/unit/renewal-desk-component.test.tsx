@@ -152,7 +152,7 @@ describe("RenewalDesk data currency", () => {
 });
 
 describe("RenewalWorkspace", () => {
-  it("shows the four steps, source-tagged drafts, the 3 tenant channels, and readiness", async () => {
+  it("shows six evidence steps, source-tagged drafts, 3 tenant channels, and readiness", async () => {
     const user = userEvent.setup();
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7");
     expect(workspace).not.toBeNull();

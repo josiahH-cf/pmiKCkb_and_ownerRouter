@@ -3,8 +3,10 @@
 
 # S72 — Six-step renewal process and substep evidence model
 
-> Status: The owner approved the six top-level steps, base-rent semantics, and the requirement that
-> each step contain operational substeps; the current application still implements a four-step model.
+> Status: The owner approved the six top-level steps, base-rent semantics, and operational substeps.
+> The repository release candidate implements the independently deliverable `renewal-v1` model and
+> focused plus canonical adversarial checks are green; production still serves the preceding
+> four-step revision until exact-SHA CI and release/readback complete.
 
 **Goal.**
 
@@ -13,12 +15,12 @@ prerequisites, completion evidence, alternate exits, and downstream reopening ru
 
 **Current state / intended end state.**
 
-The workspace currently exposes Data check, Owner decision, Tenant offer, and Build docs. It can save
-an owner decision, tenant draft receipt, and broad completion flag, but cannot represent the approved
-six-step process or prove the many actions inside each step. The intended state pins every renewal to
-an approved process version, computes progress from exact evidence instead of button intent, shows
-incomplete/blocking substeps, supports valid non-renewal branches, and prevents later process edits
-from silently rewriting earlier leases.
+The serving production revision exposes Data check, Owner decision, Tenant offer, and Build docs. The
+repository candidate replaces that projection with a pinned, immutable `renewal-v1` definition,
+computes all six steps and their substeps from exact evidence rather than button intent, shows exact
+blockers/next actions, supports accepted/counter/declined/waiting branches, and preserves the legacy
+four-step meaning instead of silently reinterpreting historical records. No live progress record is
+migrated by this change.
 
 **Actors and entry conditions.**
 
@@ -70,7 +72,7 @@ current product/facts documentation.
 | Input                                                                                                           | Classification                        | Use and limitation                                                                                                                                                        |
 | --------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md` product/write/send boundaries and `docs/facts.md` F-RENEWAL-SCOPE                                   | Authority / approved product decision | Exactly six top-level steps, many explicit substeps, contractual base rent, and human-owned external effects are approved; process position grants no provider authority. |
-| Current desk-model, renewal-progress schema/store, process-definition seed, workspace, and decision projections | Verified implementation truth         | The application implements four broad steps and coarse evidence today; these are migration inputs, not the approved end model.                                            |
+| Serving desk-model, renewal-progress schema/store, process-definition seed, workspace, and decision projections | Verified production baseline          | Production still implements four broad steps and coarse evidence; the release candidate preserves that legacy version while adding `renewal-v1`.                          |
 | Process-definition, progress, workspace, decision, current-rent, provider-boundary, and Firestore tests         | Verification baseline                 | They preserve identity/audit/current behavior while new definition/version/branch/invalidation tests fail against the four-step baseline.                                 |
 | Stabilization intake and meeting record                                                                         | Intent evidence only                  | They supply the operational substeps and desired path to documents/Dotloop; they do not approve copy, timing values, provider mappings, writes, or automated sends.       |
 | S74, S75, S66, S34, and S30 external inputs                                                                     | Named dependencies                    | Missing copy/policy/catalog/OAuth/mapping/write authority blocks only the exact dependent substep and remains visible.                                                    |
@@ -110,8 +112,28 @@ inside each one, understands who owns the next action and what proof is missing,
 lease complete merely by clicking through. A counteroffer reopens the right earlier work, while a
 non-renewal leaves the document path honestly.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: **PASS** — the candidate implements the exact six-step definition, pinned-version
+  compatibility, evidence graph, branch/reopening rules, base-rent separation, UI projection, and
+  provider-effect refusals; focused and canonical architecture/behavior/preservation checks pass.
 - Human verdict: PASS | FAIL - why:
+
+**Implementation evidence.**
+
+- The clean-start fail-first check failed four expected assertions: no six-step definition, no
+  process-version pin, tenant-draft intent advanced to document work, and a coarse completion flag
+  could complete a renewal without exact evidence.
+- The candidate adds one immutable six-step definition with stable step/substep/evidence ids,
+  `not_started | blocked | ready | complete` projection, explicit dependency blockers, compatibility
+  assessment for `legacy-four-step-v0`, and transitive evidence invalidation.
+- Accepted proceeds to documents; counter/change reopens owner work and removes affected downstream
+  evidence; declined requires a non-renewal handoff; waiting/Needs Verification stays incomplete.
+  Current-source drift invalidates dependent evidence while separately recorded human responses retain
+  their authority boundary.
+- The complete focused matrix passes 14 files and 115 tests. The canonical gate passes 531 unit files
+  with one intentional file skip (4,818 tests and four skips), 25 Firestore files/115 tests, every
+  static/policy/document gate, a zero-vulnerability production audit, and the 104-page build.
+  Exact-SHA CI, candidate smoke, promotion, and production readback remain delivery gates and are not
+  yet claimed by this candidate status.
 
 **Requirement-to-outcome traceability.**
 

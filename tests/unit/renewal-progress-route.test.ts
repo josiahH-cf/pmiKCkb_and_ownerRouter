@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Wiring test for the Phase-A renewal-progress route: it is edit/renewals-gated, dispatches the two
+// Wiring test for the renewal-progress route: it is edit/renewals-gated, dispatches the
 // actions to the store, and rejects a malformed body without ever touching the store.
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   recordOwnerDecision: vi.fn(),
+  recordTenantOutcome: vi.fn(),
   markRenewalComplete: vi.fn(),
 }));
 
@@ -15,6 +16,7 @@ vi.mock("@/lib/auth/session", async (importActual) => {
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   recordOwnerDecision: mocks.recordOwnerDecision,
+  recordTenantOutcome: mocks.recordTenantOutcome,
   markRenewalComplete: mocks.markRenewalComplete,
 }));
 
@@ -32,6 +34,7 @@ function post(body: unknown) {
   return createRenewalProgressPostHandler({
     requireCapabilityInSpace: mocks.requireCapabilityInSpace,
     recordDecision: mocks.recordOwnerDecision,
+    recordOutcome: mocks.recordTenantOutcome,
     markComplete: mocks.markRenewalComplete,
   })(
     new Request("http://localhost/api/lease-renewal/renewal-progress", {
@@ -188,6 +191,58 @@ describe("renewal-progress route", () => {
     expect(res.status).toBe(200);
     expect(mocks.markRenewalComplete).toHaveBeenCalledWith(user, "5001");
     expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
+  });
+
+  it("records a source-backed accepted tenant outcome without a provider action", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    mocks.recordTenantOutcome.mockResolvedValue({
+      leaseId: "5001",
+      processVersion: "renewal-v1",
+      stageIndex: 3,
+      tenantOutcome: { state: "accepted" },
+      complete: false,
+    });
+
+    const evidence = {
+      ref: "gmail-thread:thread-5001:message-7",
+      source: "gmail_receipt",
+      disposition: "verified",
+      observedAt: "2026-08-29T12:00:00.000Z",
+    } as const;
+    const res = await post({
+      action: "tenant_outcome",
+      leaseId: "5001",
+      outcome: "accepted",
+      evidence,
+    });
+
+    expect(res.status).toBe(200);
+    expect(mocks.recordTenantOutcome).toHaveBeenCalledWith(
+      user,
+      "5001",
+      "accepted",
+      evidence,
+    );
+    expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
+    expect(mocks.markRenewalComplete).not.toHaveBeenCalled();
+  });
+
+  it("rejects a tenant outcome without an exact verified evidence reference", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+
+    const res = await post({
+      action: "tenant_outcome",
+      leaseId: "5001",
+      outcome: "counter_change_requested",
+      evidence: {
+        ref: "gmail-thread:thread-5001\nraw body",
+        source: "gmail_receipt",
+        disposition: "not_applicable",
+      },
+    });
+
+    expect(res.status).toBe(400);
+    expect(mocks.recordTenantOutcome).not.toHaveBeenCalled();
   });
 
   it("rejects a non-positive offer with a 400 and never touches the store", async () => {

@@ -10,6 +10,7 @@ import {
   RENEWAL_STAGE,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
+import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 
 // The loaders use the shared module-level export cache; reset it so cases don't leak reads.
@@ -154,9 +155,10 @@ describe("loadLiveRenewalDesk", () => {
     const needsInput = result.view.actionable.find((s) => s.id === "6002");
 
     expect(agrees?.openConflicts).toBe(0);
-    expect(agrees?.stageLabel).toBe("Owner decision");
+    // Rent agreement alone cannot skip unresolved authoritative recipients.
+    expect(agrees?.stageLabel).toBe("Verify renewal");
     expect(conflicts?.openConflicts).toBe(1);
-    expect(conflicts?.stageLabel).toBe("Data check");
+    expect(conflicts?.stageLabel).toBe("Verify renewal");
     // A field RentVine could not reconcile is NOT counted as a conflict (and never a fabricated pass).
     expect(needsInput?.openConflicts).toBe(0);
   });
@@ -381,31 +383,49 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
   });
 });
 
-describe("live renewal workspace + recorded progress (Phase A)", () => {
+describe("live renewal workspace + versioned evidence progress", () => {
   function progressFor(overrides: Partial<RenewalProgress>): RenewalProgress {
     return {
       leaseId: "4821",
+      processVersion: RENEWAL_PROCESS_VERSION,
       stageIndex: RENEWAL_STAGE.tenant,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
+      ownerDecisionRevision: 1,
       tenantOfferDraftId: null,
+      tenantOutcome: null,
+      evidence: {},
       complete: false,
       ...overrides,
     };
   }
 
-  it("a recorded owner decision advances the stage and builds the tenant offer from those numbers", async () => {
+  it("a current owner decision builds the tenant offer without skipping unresolved verification", async () => {
     const result = await loadLiveRenewalLeaseWorkspace(
       "4821",
       READ_TS,
       okConfig() as unknown as WorkspaceConfigArg,
-      progressFor({}),
+      progressFor({
+        evidence: {
+          "owner-decision": {
+            ref: "lease-progress:owner-decision:r1",
+            source: "app_record",
+            disposition: "verified",
+          },
+          "recurring-charges-separated": {
+            ref: "app-contract:base-rent-and-recurring-charges:v1",
+            source: "app_record",
+            disposition: "verified",
+          },
+        },
+      }),
     );
     if (result.status !== "ok") throw new Error(result.status);
     const { workspace } = result;
 
-    // Stage now reflects the recorded progress, not the data-derived default (which was Owner decision).
-    expect(workspace.currentStepIndex).toBe(RENEWAL_STAGE.tenant);
-    expect(workspace.summary.stageLabel).toBe("Tenant offer");
+    // Exact process evidence wins over the old coarse stage pointer. Missing authoritative recipient
+    // evidence keeps verification current even though the recorded owner decision may shape a draft.
+    expect(workspace.currentStepIndex).toBe(RENEWAL_STAGE.verify);
+    expect(workspace.summary.stageLabel).toBe("Verify renewal");
     // The tenant offer is a REAL draft built from the recorded rent, not null and not a placeholder.
     expect(workspace.tenantDraft).not.toBeNull();
     expect(workspace.tenantDraft?.channels.email.body).toContain("$1,300");
@@ -429,7 +449,71 @@ describe("live renewal workspace + recorded progress (Phase A)", () => {
     expect(result.workspace.live?.ownerDecision).toBeNull();
   });
 
-  it("the desk projects each lease's recorded stage over the derived default", async () => {
+  it("invalidates a stored decision when current base-rent evidence has drifted", async () => {
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "4821",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      progressFor({
+        evidence: {
+          "base-rent": {
+            ref: "renewal-current-rent:4821",
+            source: "reconciliation_receipt",
+            disposition: "verified",
+            fingerprint: "a".repeat(64),
+          },
+          "owner-decision": {
+            ref: "lease-progress:owner-decision:r1",
+            source: "app_record",
+            disposition: "verified",
+          },
+        },
+      }),
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+
+    expect(result.workspace.live?.ownerDecisionCurrent).toBe(false);
+    expect(result.workspace.tenantDraft).toBeNull();
+    expect(
+      result.workspace.process.steps[1].substeps.find(
+        (substep) => substep.id === "record-owner-decision",
+      )?.state,
+    ).not.toBe("complete");
+  });
+
+  it("removes stale stored base-rent proof when current reconciliation conflicts", async () => {
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "5001",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      progressFor({
+        leaseId: "5001",
+        evidence: {
+          "base-rent": {
+            ref: "renewal-current-rent:5001",
+            source: "reconciliation_receipt",
+            disposition: "verified",
+          },
+          "owner-decision": {
+            ref: "lease-progress:owner-decision:r1",
+            source: "app_record",
+            disposition: "verified",
+          },
+        },
+      }),
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+
+    const baseRent = result.workspace.process.steps[0].substeps.find(
+      (substep) => substep.id === "verify-base-rent",
+    );
+    expect(baseRent?.state).toBe("blocked");
+    expect(baseRent?.blockers.join(" ")).toMatch(/base rent/i);
+    expect(result.workspace.live?.ownerDecisionCurrent).toBe(false);
+    expect(result.workspace.tenantDraft).toBeNull();
+  });
+
+  it("the desk projects exact evidence instead of trusting a recorded coarse stage", async () => {
     const progressByLease = new Map<string, RenewalProgress>([
       [
         "4821",
@@ -444,10 +528,10 @@ describe("live renewal workspace + recorded progress (Phase A)", () => {
     );
     if (result.status !== "ok") throw new Error(result.status);
     const recorded = result.view.actionable.find((s) => s.id === "4821");
-    // 4821 agrees on rent (derived stage = Owner decision), but the recorded stage wins.
-    expect(recorded?.stageLabel).toBe("Build docs");
-    // A lease with no record keeps its derived stage.
+    // A coarse Document-packet pointer cannot skip unresolved verification evidence.
+    expect(recorded?.stageLabel).toBe("Verify renewal");
+    // A lease with no record is also projected from current evidence.
     const untouched = result.view.actionable.find((s) => s.id === "5001");
-    expect(untouched?.stageLabel).toBe("Data check");
+    expect(untouched?.stageLabel).toBe("Verify renewal");
   });
 });

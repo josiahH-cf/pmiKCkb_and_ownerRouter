@@ -7,6 +7,7 @@ import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governanc
 import {
   markRenewalComplete,
   recordOwnerDecision,
+  recordTenantOutcome,
 } from "@/lib/firestore/lease-renewal-progress";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import {
@@ -143,15 +144,48 @@ const MarkCompleteActionSchema = z
   })
   .strict();
 
+const TenantOutcomeActionSchema = z
+  .object({
+    action: z.literal("tenant_outcome"),
+    leaseId: z.string().trim().min(1).max(120),
+    outcome: z.enum([
+      "awaiting_response",
+      "accepted",
+      "counter_change_requested",
+      "declined_nonrenewing",
+      "needs_verification",
+    ]),
+    evidence: z
+      .object({
+        ref: z
+          .string()
+          .trim()
+          .min(1)
+          .max(240)
+          .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/),
+        source: z.enum(["gmail_receipt", "app_record"]),
+        disposition: z.literal("verified"),
+        observedAt: z.string().trim().min(1).max(40).optional(),
+        fingerprint: z
+          .string()
+          .trim()
+          .regex(/^[a-fA-F0-9]{64}$/)
+          .optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
 const RenewalProgressBodySchema = z.discriminatedUnion("action", [
   OwnerDecisionActionSchema,
+  TenantOutcomeActionSchema,
   MarkCompleteActionSchema,
 ]);
 
 /**
- * Advance a LIVE lease's renewal progress: record the owner's rent decision (unlocks the tenant offer) or
- * mark the renewal complete. Edit-gated in the renewals space. This changes NO system of record — it
- * persists the operator's own forward state in the KB's Firestore; RentVine + the Sheet stay read-only.
+ * Advance a LIVE lease's app-owned renewal progress. Edit-gated in the renewals space. This changes NO
+ * system of record and sends no message: RentVine + the Sheet stay read-only, while the operator may
+ * record only a bounded Gmail/app evidence identifier for a tenant outcome.
  */
 export async function POST(request: Request) {
   return createRenewalProgressPostHandler()(request);
@@ -160,6 +194,7 @@ export async function POST(request: Request) {
 export interface RenewalProgressRouteDeps {
   requireCapabilityInSpace: typeof requireCapabilityInSpace;
   recordDecision: typeof recordOwnerDecision;
+  recordOutcome: typeof recordTenantOutcome;
   markComplete: typeof markRenewalComplete;
   /** S58: refuses (LeaseDataExpiredError) when the live lease snapshot is past the hard max age. */
   assertLeaseDataCurrent: () => Promise<void>;
@@ -180,6 +215,7 @@ async function defaultAssertLeaseDataCurrent(): Promise<void> {
 const DEFAULT_ROUTE_DEPS: RenewalProgressRouteDeps = {
   requireCapabilityInSpace,
   recordDecision: recordOwnerDecision,
+  recordOutcome: recordTenantOutcome,
   markComplete: markRenewalComplete,
   assertLeaseDataCurrent: defaultAssertLeaseDataCurrent,
 };
@@ -220,6 +256,16 @@ export function createRenewalProgressPostHandler(
           ...(body.infoFormUrl ? { infoFormUrl: body.infoFormUrl } : {}),
           ...(body.market ? { market: body.market } : {}),
         });
+        return NextResponse.json({ progress });
+      }
+
+      if (body.action === "tenant_outcome") {
+        const progress = await deps.recordOutcome(
+          user,
+          body.leaseId,
+          body.outcome,
+          body.evidence,
+        );
         return NextResponse.json({ progress });
       }
 

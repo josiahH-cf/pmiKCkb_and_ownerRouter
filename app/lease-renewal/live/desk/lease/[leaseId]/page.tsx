@@ -106,6 +106,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     progress,
     approvedSuggestion,
     resolutions,
+    packetSnapshot,
   );
   const dispositions = await listRenewalDiscrepancyDispositions(user, leaseId).catch(
     () => [],

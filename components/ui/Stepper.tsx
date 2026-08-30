@@ -1,6 +1,5 @@
-// Stepper — the per-lease renewal workflow (Data check → Owner decision → Tenant offer →
-// Build docs). Purely presentational/server-safe: pass the steps and the current index; each
-// step renders done (✓) / current / upcoming from its position.
+// Stepper — a purely presentational/server-safe ordered workflow. Pass the steps and current index;
+// each step renders done (✓) / current / upcoming from its position.
 
 import type { ReactNode } from "react";
 

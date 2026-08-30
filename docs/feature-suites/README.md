@@ -87,7 +87,7 @@ not block independent suites.
 | S63   | `docs/feature-suites/four-lease-renewal-test-set.md`                | Machinery built; secure cohort/log cleanup and fresh evidence remain               |
 | S64   | `docs/feature-suites/per-person-approval-authority.md`              | Specified but NOT authorized                                                       |
 | S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`    | Truth machinery built; approved catalog/provider mapping required                  |
-| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`  | Approved six-step/substep/base-rent contract; four-step implementation remains     |
+| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`  | Six-step candidate canonical-green; exact CI and release/readback pending          |
 | S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`        | Constrained AI scope approved; exact wording/channel evidence remains              |
 | S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Source/policy seams built; shared desk projection missing; timing values unset     |
 | S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required     |

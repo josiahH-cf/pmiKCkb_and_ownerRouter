@@ -10,6 +10,8 @@ import {
   markRenewalComplete,
   progressDocId,
   recordOwnerDecision,
+  recordRenewalProcessEvidence,
+  recordTenantOutcome,
   recordTenantOfferDraft,
 } from "@/lib/firestore/lease-renewal-progress";
 import { COMP_SCREENSHOT_EXECUTION_COLLECTIONS } from "@/lib/firestore/lease-renewal-comp-screenshot-executions";
@@ -33,6 +35,26 @@ import {
   type RenewalOwnerDecisionWriteInput,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
+import {
+  RENEWAL_PROCESS_VERSION,
+  type RenewalEvidenceKey,
+  type RenewalEvidenceSource,
+} from "@/lib/lease-renewal/renewal-process";
+
+function currentProgress(overrides: Partial<RenewalProgress> = {}): RenewalProgress {
+  return {
+    leaseId: "42",
+    processVersion: RENEWAL_PROCESS_VERSION,
+    stageIndex: RENEWAL_STAGE.data,
+    ownerDecision: null,
+    ownerDecisionRevision: 0,
+    tenantOfferDraftId: null,
+    tenantOutcome: null,
+    evidence: {},
+    complete: false,
+    ...overrides,
+  };
+}
 
 // ── Pure planner ────────────────────────────────────────────────────────────────────────────────────
 
@@ -122,88 +144,99 @@ describe("renewal-progress pure planner", () => {
 
   it("recording a decision places the lease at the Tenant step and clears any prior draft", () => {
     const plan = planRecordOwnerDecision(
-      {
-        leaseId: "42",
+      currentProgress({
         stageIndex: RENEWAL_STAGE.build,
         ownerDecision: { decision: "keep_same", offeredRent: 1000 },
+        ownerDecisionRevision: 1,
         tenantOfferDraftId: "old-draft",
         complete: true,
-      },
+      }),
       { decision: "increase", offeredRent: 1300 },
     );
-    expect(plan).toEqual({
-      stageIndex: RENEWAL_STAGE.tenant,
+    expect(plan).toMatchObject({
+      processVersion: RENEWAL_PROCESS_VERSION,
+      stageIndex: RENEWAL_STAGE.owner,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
+      ownerDecisionRevision: 2,
       tenantOfferDraftId: null,
+      tenantOutcome: null,
       complete: false,
     });
+    expect(plan.evidence).toHaveProperty("owner-decision");
+    expect(plan.evidence).toHaveProperty("recurring-charges-separated");
   });
 
-  it("recording a tenant draft advances to Build; without a decision it is out of order (409)", () => {
-    const current: RenewalProgress = {
-      leaseId: "42",
+  it("recording a tenant draft stays in Tenant decision; without a current decision it is out of order (409)", () => {
+    const current = currentProgress({
       stageIndex: RENEWAL_STAGE.tenant,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
-      tenantOfferDraftId: null,
-      complete: false,
-    };
-    expect(planRecordTenantOfferDraft(current, "draft-1")).toEqual({
-      stageIndex: RENEWAL_STAGE.build,
+      ownerDecisionRevision: 1,
+      evidence: {
+        "owner-decision": {
+          ref: "lease-progress:owner-decision:r1",
+          source: "app_record",
+          disposition: "verified",
+        },
+      },
+    });
+    expect(planRecordTenantOfferDraft(current, "draft-1")).toMatchObject({
+      processVersion: RENEWAL_PROCESS_VERSION,
+      stageIndex: RENEWAL_STAGE.tenant,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
       tenantOfferDraftId: "draft-1",
       complete: false,
     });
     expect(() => planRecordTenantOfferDraft(null, "draft-1")).toThrow();
     expect(() =>
-      planRecordTenantOfferDraft({ ...current, ownerDecision: null }, "draft-1"),
+      planRecordTenantOfferDraft(
+        { ...current, ownerDecision: null, evidence: {} },
+        "draft-1",
+      ),
     ).toThrow();
     expect(() => planRecordTenantOfferDraft(current, "   ")).toThrow();
   });
 
-  it("marking complete requires a recorded decision and pins the stage to Build", () => {
-    const current: RenewalProgress = {
-      leaseId: "42",
+  it("marking complete refuses a coarse decision/draft state without compliance evidence", () => {
+    const current = currentProgress({
       stageIndex: RENEWAL_STAGE.tenant,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
+      ownerDecisionRevision: 1,
       tenantOfferDraftId: "draft-1",
-      complete: false,
-    };
-    expect(planMarkComplete(current)).toEqual({
-      stageIndex: RENEWAL_STAGE.build,
-      ownerDecision: { decision: "increase", offeredRent: 1300 },
-      tenantOfferDraftId: "draft-1",
-      complete: true,
+      evidence: {
+        "owner-decision": {
+          ref: "lease-progress:owner-decision:r1",
+          source: "app_record",
+          disposition: "verified",
+        },
+      },
     });
+    expect(() => planMarkComplete(current)).toThrow(/compliance evidence/i);
     expect(() => planMarkComplete(null)).toThrow();
-    expect(() => planMarkComplete({ ...current, ownerDecision: null })).toThrow();
+    expect(() =>
+      planMarkComplete({ ...current, ownerDecision: null, evidence: {} }),
+    ).toThrow();
   });
 
   it("effectiveStageIndex prefers recorded progress and clamps out-of-range values", () => {
     expect(effectiveStageIndex(null, 1)).toBe(1);
     expect(
       effectiveStageIndex(
-        {
+        currentProgress({
           leaseId: "1",
           stageIndex: 2,
-          ownerDecision: null,
-          tenantOfferDraftId: null,
-          complete: false,
-        },
+        }),
         1,
       ),
     ).toBe(2);
     expect(
       effectiveStageIndex(
-        {
+        currentProgress({
           leaseId: "1",
           stageIndex: 99,
-          ownerDecision: null,
-          tenantOfferDraftId: null,
-          complete: false,
-        },
+        }),
         0,
       ),
-    ).toBe(RENEWAL_STAGE.build);
+    ).toBe(RENEWAL_STAGE.close);
   });
 });
 
@@ -381,8 +414,103 @@ function seedDeliveredCompScreenshot(
   return delivered;
 }
 
+async function recordEvidence(
+  db: ProgressTestFirestore,
+  key: RenewalEvidenceKey,
+  source: RenewalEvidenceSource = "app_record",
+) {
+  await recordRenewalProcessEvidence(
+    editor,
+    LEASE_ID,
+    key,
+    {
+      ref: `${source}:${key}:fixture-receipt`,
+      source,
+      disposition: "verified",
+    },
+    db as unknown as Firestore,
+  );
+}
+
+/** Build the accepted path in process order so every upstream replacement invalidates only stale work. */
+async function recordAcceptedCompletionEvidence(db: ProgressTestFirestore) {
+  for (const [key, source] of [
+    ["lease-tracked", "app_record"],
+    ["lease-identity", "rentvine_snapshot"],
+    ["lease-end-date", "rentvine_snapshot"],
+    ["base-rent", "rentvine_snapshot"],
+    ["recurring-charges-separated", "app_record"],
+    ["source-conflicts-resolved", "reconciliation_receipt"],
+    ["source-snapshot-current", "rentvine_snapshot"],
+    ["renewal-recipients", "rentvine_snapshot"],
+    ["market-evidence", "rentcast_receipt"],
+    ["market-evidence-reviewed", "app_record"],
+    ["owner-copy-version", "policy_version"],
+    ["owner-draft-receipt", "gmail_receipt"],
+    ["owner-message-sent", "gmail_receipt"],
+    ["owner-response", "gmail_receipt"],
+  ] as const) {
+    await recordEvidence(db, key, source);
+  }
+
+  // Explicitly re-recording the human decision is the reviewed migration/currentness seam.
+  await recordOwnerDecision(
+    editor,
+    LEASE_ID,
+    { decision: "increase", offeredRent: 1300 },
+    db as unknown as Firestore,
+  );
+  for (const [key, source] of [
+    ["tenant-offer-fact-lock", "app_record"],
+    ["tenant-recipients", "rentvine_snapshot"],
+    ["tenant-copy-version", "policy_version"],
+  ] as const) {
+    await recordEvidence(db, key, source);
+  }
+  await recordTenantOfferDraft(
+    editor,
+    LEASE_ID,
+    "draft_accepted_fixture",
+    db as unknown as Firestore,
+  );
+  await recordEvidence(db, "tenant-message-sent", "gmail_receipt");
+  await recordEvidence(db, "tenant-contact-state", "gmail_receipt");
+  await recordTenantOutcome(
+    editor,
+    LEASE_ID,
+    "accepted",
+    {
+      ref: "gmail_receipt:tenant-outcome:accepted-fixture",
+      source: "gmail_receipt",
+      disposition: "verified",
+    },
+    db as unknown as Firestore,
+  );
+
+  for (const [key, source] of [
+    ["packet-catalog-version", "policy_version"],
+    ["packet-facts", "app_record"],
+    ["packet-snapshot", "packet_snapshot"],
+    ["dotloop-packet-readback", "dotloop_receipt"],
+    ["signer-roster", "packet_snapshot"],
+    ["signature-state", "dotloop_receipt"],
+    ["timing-policy-version", "policy_version"],
+    ["current-packet-version", "packet_snapshot"],
+    ["signatures-complete", "signed_artifact"],
+    ["final-documents", "signed_artifact"],
+    ["animal-compliance", "compliance_record"],
+    ["deposit-compliance", "compliance_record"],
+    ["insurance-and-charges", "compliance_record"],
+    ["inspection-compliance", "compliance_record"],
+    ["term-dates", "compliance_record"],
+    ["compliance-exceptions", "compliance_record"],
+  ] as const) {
+    await recordEvidence(db, key, source);
+  }
+}
+
 describe("lease-renewal-progress store", () => {
-  it("records an owner decision, advancing to the Tenant step with an activity twin", async () => {
+  it("records a version-pinned owner decision without pretending owner outreach is complete", async () => {
     const db = new ProgressTestFirestore();
     const progress = await recordOwnerDecision(
       editor,
@@ -393,8 +521,10 @@ describe("lease-renewal-progress store", () => {
 
     expect(progress).toMatchObject({
       leaseId: LEASE_ID,
-      stageIndex: RENEWAL_STAGE.tenant,
+      processVersion: RENEWAL_PROCESS_VERSION,
+      stageIndex: RENEWAL_STAGE.owner,
       ownerDecision: { decision: "increase", offeredRent: 1300 },
+      ownerDecisionRevision: 1,
       tenantOfferDraftId: null,
       complete: false,
     });
@@ -404,8 +534,16 @@ describe("lease-renewal-progress store", () => {
     );
     expect(record).toMatchObject({
       lease_id: LEASE_ID,
-      stage_index: RENEWAL_STAGE.tenant,
+      process_version: RENEWAL_PROCESS_VERSION,
+      stage_index: RENEWAL_STAGE.owner,
       owner_decision: { decision: "increase", offered_rent: 1300 },
+      owner_decision_revision: 1,
+      process_evidence: {
+        "owner-decision": expect.objectContaining({ disposition: "verified" }),
+        "recurring-charges-separated": expect.objectContaining({
+          disposition: "verified",
+        }),
+      },
       complete: false,
       product_retention_policy: "product-record-retention:v1.0",
       product_retention_class: "indefinite",
@@ -420,6 +558,7 @@ describe("lease-renewal-progress store", () => {
     expect(activity[0][1]).toMatchObject({
       lease_id: LEASE_ID,
       action: "owner_decision",
+      process_version: RENEWAL_PROCESS_VERSION,
     });
   });
 
@@ -676,7 +815,7 @@ describe("lease-renewal-progress store", () => {
     });
   });
 
-  it("stamps the tenant-offer draft id and advances to Build; a re-recorded decision clears it", async () => {
+  it("stamps the unsent tenant-draft receipt without completing the decision; a re-recorded owner decision clears it", async () => {
     const db = new ProgressTestFirestore();
     await recordOwnerDecision(
       editor,
@@ -691,18 +830,18 @@ describe("lease-renewal-progress store", () => {
       db as unknown as Firestore,
     );
     expect(drafted).toMatchObject({
-      stageIndex: RENEWAL_STAGE.build,
+      stageIndex: RENEWAL_STAGE.tenant,
       tenantOfferDraftId: "draft_abc",
     });
 
-    // Re-recording the decision reopens the tenant step and drops the stale draft id (full set, no merge).
+    // Re-recording the decision stays in owner work and drops the stale draft id (full set, no merge).
     const rerecorded = await recordOwnerDecision(
       editor,
       LEASE_ID,
       { decision: "custom", offeredRent: 1275 },
       db as unknown as Firestore,
     );
-    expect(rerecorded.stageIndex).toBe(RENEWAL_STAGE.tenant);
+    expect(rerecorded.stageIndex).toBe(RENEWAL_STAGE.owner);
     expect(rerecorded.tenantOfferDraftId).toBeNull();
   });
 
@@ -713,7 +852,7 @@ describe("lease-renewal-progress store", () => {
     ).rejects.toThrow();
   });
 
-  it("marks a renewal complete and lists all progress keyed by lease id", async () => {
+  it("refuses coarse completion, then completes only after the accepted evidence path", async () => {
     const db = new ProgressTestFirestore();
     await recordOwnerDecision(
       editor,
@@ -721,13 +860,18 @@ describe("lease-renewal-progress store", () => {
       { decision: "increase", offeredRent: 1300 },
       db as unknown as Firestore,
     );
+    await expect(
+      markRenewalComplete(editor, LEASE_ID, db as unknown as Firestore),
+    ).rejects.toThrow(/tenant-outcome|evidence/i);
+
+    await recordAcceptedCompletionEvidence(db);
     const complete = await markRenewalComplete(
       editor,
       LEASE_ID,
       db as unknown as Firestore,
     );
     expect(complete.complete).toBe(true);
-    expect(complete.stageIndex).toBe(RENEWAL_STAGE.build);
+    expect(complete.stageIndex).toBe(RENEWAL_STAGE.compliance);
 
     const all = await listAllRenewalProgress(editor, db as unknown as Firestore);
     expect(all.get(LEASE_ID)?.complete).toBe(true);

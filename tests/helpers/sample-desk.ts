@@ -2,8 +2,8 @@
 //
 // The app is still source-blocked (no approved live sheet/lease feed), so the Renewal Desk renders a
 // deterministic, in-boundary SAMPLE batch — the same simulation-only posture as `simulation.ts`. Its
-// only job is to drive the redesigned surfaces and EXERCISE the four already-built renewal modules in
-// the order the work actually happens:
+// only job is to drive the redesigned surfaces and exercise the operational modules beneath the
+// versioned six-step model:
 //   - classifyRenewalCohort  → the triage board (actionable / review / skip / out-of-window)
 //   - buildOwnerRenewalDraft → step 2 (owner email, source-tagged, "Needs Verification" markers)
 //   - buildTenantOfferDraft  → step 3 (tenant offer across email / portal / text)
@@ -32,6 +32,16 @@ import {
 } from "@/lib/lease-renewal/tenant-draft";
 import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
 import {
+  RENEWAL_PROCESS_VERSION,
+  RENEWAL_STAGE_NEXT_ACTIONS,
+  RENEWAL_STEPPER_STEPS,
+  buildRenewalEvidenceReference,
+  projectRenewalProcess,
+  type RenewalEvidenceMap,
+  type RenewalProcessProjection,
+  type RenewalTenantOutcome,
+} from "@/lib/lease-renewal/renewal-process";
+import {
   evaluateRenewalReadiness,
   type RenewalReadinessInput,
   type RenewalReadinessResult,
@@ -53,21 +63,11 @@ export const SAMPLE_DESK_WINDOWS: DateWindow[] = [
   { startIso: "2026-08-01", endIso: "2026-09-30" },
 ];
 
-/** The four renewal steps, in process order. */
-export const RENEWAL_STEPS = [
-  { id: "data", label: "Data check" },
-  { id: "owner", label: "Owner decision" },
-  { id: "tenant", label: "Tenant offer" },
-  { id: "build", label: "Build docs" },
-] as const;
+/** The six renewal steps, derived from the production renewal-v1 contract. */
+export const RENEWAL_STEPS = RENEWAL_STEPPER_STEPS;
 
 /** Next-step copy per stage (index-aligned with RENEWAL_STEPS). Shared with the live desk. */
-export const STAGE_NEXT_ACTION = [
-  "Confirm the rent before drafting",
-  "Get the owner's rent decision",
-  "Review the tenant offer drafts",
-  "Run the build-out checks",
-] as const;
+export const STAGE_NEXT_ACTION = RENEWAL_STAGE_NEXT_ACTIONS;
 
 const REASON_LABEL: Record<CohortReason, string> = {
   actionable: "Ready to work",
@@ -327,11 +327,14 @@ export interface RenewalDeskView {
   outOfWindow: DeskLeaseSummary[];
 }
 
-/** The operator's recorded LIVE progress, surfaced to the Phase-A workspace controls. */
+/** The operator's recorded LIVE progress, surfaced to the versioned workspace controls. */
 export interface RenewalWorkspaceLiveState {
   leaseId: string;
   ownerDecision: RenewalOwnerDecision | null;
+  ownerDecisionCurrent: boolean;
   tenantOfferDraftId: string | null;
+  tenantOutcome: RenewalTenantOutcome | null;
+  processVersion: string;
   complete: boolean;
 }
 
@@ -339,6 +342,7 @@ export interface RenewalLeaseWorkspace {
   summary: DeskLeaseSummary;
   steps: typeof RENEWAL_STEPS;
   currentStepIndex: number;
+  process: RenewalProcessProjection;
   dataCheck: DeskReconItem[];
   ownerDraft: OwnerRenewalDraft;
   /** Present only once the owner has recorded a decision. */
@@ -347,7 +351,7 @@ export interface RenewalLeaseWorkspace {
   /** Read-only effective notice-rule view for this lease (F2). Null when no lease-end is on file. */
   notice: EffectiveRuleView | null;
   /**
-   * Present only for the LIVE workspace: the operator's recorded Phase-A progress. Drives the
+   * Present only for the LIVE workspace: the operator's recorded process progress. Drives the
    * record-owner-decision form, the composer prefill, and the mark-complete control. The sample
    * workspace leaves this undefined (its flow is illustrative, not operator-editable).
    */
@@ -455,14 +459,50 @@ export function getRenewalLeaseWorkspace(
         })
       : null;
 
+  const sampleEvidence: RenewalEvidenceMap = {
+    "lease-tracked": sampleEvidenceRef(`sample:${seed.id}:tracked`),
+    "lease-identity": sampleEvidenceRef(`sample:${seed.id}:identity`),
+    "lease-end-date": sampleEvidenceRef(`sample:${seed.id}:end-date`),
+    "base-rent": sampleEvidenceRef(`sample:${seed.id}:base-rent`),
+    "recurring-charges-separated": sampleEvidenceRef(
+      "app-contract:base-rent-and-recurring-charges:v1",
+    ),
+    "source-snapshot-current": sampleEvidenceRef(`sample:${seed.id}:snapshot`),
+    ...(seed.dataCheck.every((item) => item.agreement !== "conflict")
+      ? {
+          "source-conflicts-resolved": sampleEvidenceRef(
+            `sample:${seed.id}:reconciliation`,
+          ),
+        }
+      : {}),
+    ...(seed.ownerDecision
+      ? { "owner-decision": sampleEvidenceRef(`sample:${seed.id}:owner-decision`) }
+      : {}),
+  };
+  const process = projectRenewalProcess({
+    processVersion: RENEWAL_PROCESS_VERSION,
+    evidence: sampleEvidence,
+    tenantOutcome: null,
+    complete: false,
+  });
+
   return {
     summary,
     steps: RENEWAL_STEPS,
-    currentStepIndex: seed.stageIndex,
+    currentStepIndex: process.currentStepIndex,
+    process,
     dataCheck: seed.dataCheck,
     ownerDraft,
     tenantDraft,
     readiness: evaluateRenewalReadiness(seed.readiness),
     notice,
   };
+}
+
+function sampleEvidenceRef(ref: string) {
+  return buildRenewalEvidenceReference({
+    ref,
+    source: "app_record",
+    disposition: "verified",
+  });
 }

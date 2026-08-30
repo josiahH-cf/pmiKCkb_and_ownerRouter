@@ -13,23 +13,19 @@ import type { EffectiveRuleView } from "@/lib/lease-renewal/notice-rules";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
 import type { RenewalReadinessResult } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
+import {
+  RENEWAL_STAGE_NEXT_ACTIONS,
+  RENEWAL_STEPPER_STEPS,
+  type RenewalProcessProjection,
+  type RenewalTenantOutcome,
+} from "@/lib/lease-renewal/renewal-process";
 import type { TenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 
-/** The four renewal steps, in process order. */
-export const RENEWAL_STEPS = [
-  { id: "data", label: "Data check" },
-  { id: "owner", label: "Owner decision" },
-  { id: "tenant", label: "Tenant offer" },
-  { id: "build", label: "Build docs" },
-] as const;
+/** S72: the six renewal steps, derived from the one immutable renewal-v1 definition. */
+export const RENEWAL_STEPS = RENEWAL_STEPPER_STEPS;
 
 /** Next-step copy per stage (index-aligned with RENEWAL_STEPS). */
-export const STAGE_NEXT_ACTION = [
-  "Confirm the rent before drafting",
-  "Get the owner's rent decision",
-  "Review the tenant offer drafts",
-  "Run the build-out checks",
-] as const;
+export const STAGE_NEXT_ACTION = RENEWAL_STAGE_NEXT_ACTIONS;
 
 const REASON_LABEL: Record<CohortReason, string> = {
   actionable: "Ready to work",
@@ -131,7 +127,10 @@ export interface RenewalDeskView {
 export interface RenewalWorkspaceLiveState {
   leaseId: string;
   ownerDecision: RenewalOwnerDecision | null;
+  ownerDecisionCurrent: boolean;
   tenantOfferDraftId: string | null;
+  tenantOutcome: RenewalTenantOutcome | null;
+  processVersion: string;
   complete: boolean;
 }
 
@@ -139,6 +138,7 @@ export interface RenewalLeaseWorkspace {
   summary: DeskLeaseSummary;
   steps: typeof RENEWAL_STEPS;
   currentStepIndex: number;
+  process: RenewalProcessProjection;
   dataCheck: DeskReconItem[];
   ownerDraft: OwnerRenewalDraft;
   tenantDraft: TenantOfferDraft | null;

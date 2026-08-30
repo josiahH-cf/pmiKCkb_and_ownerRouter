@@ -35,7 +35,7 @@ describe("getRenewalDeskView", () => {
     const view = getRenewalDeskView();
     const walnut = view.actionable.find((s) => s.id === "lease-1207-walnut-2");
     expect(walnut?.openConflicts).toBe(1);
-    expect(walnut?.stageLabel).toBe("Data check");
+    expect(walnut?.stageLabel).toBe("Verify renewal");
     const maple = view.actionable.find((s) => s.id === "lease-4821-maple-4");
     expect(maple?.openConflicts).toBe(0);
     expect(maple?.stageLabel).toBe("Owner decision");
@@ -50,7 +50,9 @@ describe("getRenewalLeaseWorkspace", () => {
   it("builds owner + tenant drafts and the readiness checklist for a decided lease", () => {
     const ws = getRenewalLeaseWorkspace("lease-318-cedar-7");
     expect(ws).not.toBeNull();
-    expect(ws?.currentStepIndex).toBe(2);
+    // The illustrative decision may render a draft, but it cannot skip missing process evidence.
+    expect(ws?.currentStepIndex).toBe(0);
+    expect(ws?.process.steps).toHaveLength(6);
     expect(ws?.ownerDraft.production_allowed).toBe(false);
     expect(ws?.tenantDraft).not.toBeNull();
     expect(ws?.tenantDraft?.send_allowed).toBe(false);

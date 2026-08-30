@@ -29,6 +29,8 @@ or cause provider effects.
 - Verify current rent only from fresh agreement or exact current resolution.
 - Use RentCast as a reference input with source link, cache, counter, and allowance stop.
 - Keep offered rent Admin-approved and separate from provider estimates.
+- Pin new renewal work to the immutable six-step `renewal-v1` process; derive substep state from exact
+  evidence, preserve historical legacy meaning, and reopen only affected downstream work.
 - Let Renewals-space Editors read and perform ordinary app-owned work; keep Approver reconciliation,
   Admin pricing/source approvals and configuration, and exact action readiness as independent terms.
 - Address all owners/tenants of record through separated channels.
@@ -62,4 +64,5 @@ earlier predecessor chain retains its recorded version-aware rollback/restoratio
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/client-checklist.md`, and `docs/feature-suites/README.md`. Historical
-V1/Demo specifications are not part of this contract.
+V1/Demo specifications are not part of this contract. S72 is implemented as a repository candidate;
+its canonical gate is green and exact CI plus production release/readback remain pending.

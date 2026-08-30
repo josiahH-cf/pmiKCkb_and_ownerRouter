@@ -73,14 +73,12 @@ describe("lease renewal vocabulary", () => {
       "Conflict",
     ]);
     expect(LEASE_RENEWAL_STAGES).toEqual([
-      "Candidate detection",
-      "Owner decision",
-      "Tenant intake",
-      "Document package",
-      "Signature/confirmation",
-      "System-of-record update",
-      "Service/charge verification",
-      "Closeout",
+      "Find and verify the renewal",
+      "Analyze market evidence and record the owner decision",
+      "Prepare the tenant offer and track the decision",
+      "Build the required document packet",
+      "Obtain signatures and perform follow-up",
+      "Complete final compliance checks and close the renewal",
     ]);
     expect(LEASE_RENEWAL_PLANNED_READS).toHaveLength(5);
     expect(LEASE_RENEWAL_PLANNED_OUTPUTS).toEqual([
@@ -163,7 +161,7 @@ describe("lease renewal app-plane acceptance scenarios", () => {
     expect(run).toMatchObject({
       data_mode: "live",
       status: "In Progress",
-      next_action: "Candidate detection",
+      next_action: "Find and verify the renewal",
       owner_uid: "admin-dan",
     });
 

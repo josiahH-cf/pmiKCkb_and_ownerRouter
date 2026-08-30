@@ -87,9 +87,14 @@ runtime invariant preserved and S59 retained as the exact rollback target.
 
 ## Remaining renewal stabilization implementation
 
-- S72 defines six steps with detailed operational substeps, evidence, alternate exits, and reopening.
-- S72 must carry the deployed contractual-base-rent/reference-evidence contract through its six-step
-  process; recurring charges remain separate.
+- The S72 repository candidate implements six versioned steps with detailed operational substeps,
+  exact evidence, alternate exits, deterministic reopening, legacy-version compatibility, and a
+  workspace projection of roles/blockers/next actions. Focused and canonical gates are green; exact
+  CI and production release/readback remain before it is a deployed fact. The canonical run passed
+  531 unit files with one intentional skip (4,818 tests and four skips), 25 Firestore files/115 tests,
+  every policy/static gate, the zero-vulnerability production audit, and the 104-page build.
+- S72 carries the deployed contractual-base-rent/reference-evidence contract through its six-step
+  process and keeps recurring charges separate.
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
   stronger pricing, reconciliation, Admin configuration, exact-action, and source-write boundaries.
 - Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
@@ -98,8 +103,8 @@ runtime invariant preserved and S59 retained as the exact rollback target.
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, and S80 are complete and deployed; S72/S74/S75/S78/S79/S81/S63 and the separately gated
-  S30 effect remain in the ordered bundle.
+- S77, S59, and S80 are complete and deployed; S72 is an implemented release candidate;
+  S74/S75/S78/S79/S81/S63 and the separately gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation

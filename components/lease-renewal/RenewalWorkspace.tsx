@@ -1,5 +1,5 @@
-// The per-lease Renewal Workspace — walks one lease through the four-step process (Data check →
-// Owner decision → Tenant offer → Build docs), surfacing the four built renewal modules in order.
+// The per-lease Renewal Workspace — presents the versioned six-step renewal process and its
+// operational modules. The process projection, not a click or draft, determines progress.
 // Server component; the tenant-channel switch uses the client Tabs primitive.
 //
 // Governance is visible, not buried: drafts carry DRAFT_BANNER and never offer a send; the data-check
@@ -18,6 +18,8 @@ import {
 } from "@/components/ui";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
 import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
+import { RenewalProcessPanel } from "@/components/lease-renewal/RenewalProcessPanel";
+import { RenewalTenantOutcomeControl } from "@/components/lease-renewal/RenewalTenantOutcomeControl";
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
@@ -75,6 +77,8 @@ export function RenewalWorkspace({
       <RenewalAuthorityPanel role={role} />
 
       <Stepper currentIndex={workspace.currentStepIndex} steps={workspace.steps} />
+
+      <RenewalProcessPanel process={workspace.process} />
 
       {dataExpired ? (
         <Card>
@@ -213,6 +217,14 @@ export function RenewalWorkspace({
             title="Compose the tenant offer below"
           />
         )}
+        {workspace.live?.ownerDecisionCurrent &&
+        workspace.live.tenantOfferDraftId &&
+        !dataExpired ? (
+          <RenewalTenantOutcomeControl
+            current={workspace.live.tenantOutcome}
+            leaseId={workspace.live.leaseId}
+          />
+        ) : null}
       </Card>
 
       {/* Resolves the real RentVine lease by id and drafts an UNSENT Gmail draft through the gated
@@ -226,7 +238,7 @@ export function RenewalWorkspace({
         ) : (
           <RenewalNoticeDraftComposer
             initialOffer={
-              workspace.live?.ownerDecision
+              workspace.live?.ownerDecisionCurrent && workspace.live.ownerDecision
                 ? {
                     decision: workspace.live.ownerDecision.decision,
                     offeredRent: workspace.live.ownerDecision.offeredRent,

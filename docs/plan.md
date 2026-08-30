@@ -47,6 +47,11 @@ the specification work or by an unconfirmed effect.
     reconciliation, Admin pricing/source approvals and configuration, independent exact-action
     readiness, closed source writes, and permanent in-app-send refusal. Focused and canonical gates
     are green; exact CI, candidate/configuration, promotion, and stable production proof also passed.
+15. Implemented the S72 release candidate: immutable `renewal-v1`, legacy compatibility without live
+    migration, stable substep/evidence ids, exact evidence projection, deterministic branch/reopening
+    rules, base-rent/charge separation, evidence-gated completion, and a six-step workspace panel.
+    The expected four fail-first assertions were captured; the focused and canonical gates are green.
+    Exact-SHA CI and production release/readback remain before this item is deployed.
 
 ## Completed release evidence
 
@@ -86,7 +91,8 @@ The contracts are frozen as follows:
   cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
 - **S80:** complete and deployed with canonical, exact-SHA CI, candidate/configuration, promotion,
   stable production, and rollback-target readback proof.
-- **S72:** versioned six-step process with detailed substeps, evidence, branches, and reopening.
+- **S72:** implementation candidate canonical-green; exact-SHA CI and release/readback pending for
+  the versioned six-step process, detailed substeps, evidence, branches, and reopening.
 - **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
 - **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
 - **S74:** approved owner/tenant templates plus optional constrained AI phrasing and channel truth.
@@ -108,7 +114,7 @@ already-correct safety facts stay in preservation rather than being rewritten as
    downstream suites consume them.
 4. Preserve deployed S80 role/Space/effect parity and its exact closed-key/send boundaries while
    downstream suites consume the matrix.
-5. Implement S72's versioned six-step/substep state model and S75's shared follow-up projection.
+5. Finish S72's exact-SHA CI/release/readback proof, then implement S75's shared follow-up projection.
 6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
    those projections.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.

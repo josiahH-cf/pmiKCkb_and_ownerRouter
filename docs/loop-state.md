@@ -33,7 +33,12 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   readback are green; S59 is the captured rollback target.
 - Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
   `.gcloudignore`; the user-owned working-tree paths remain untouched.
-- The remaining application still has the four-step model and text-only screenshot ref.
+- The S72 repository candidate now has immutable `renewal-v1`, legacy compatibility without live
+  migration, exact evidence projection, branch/reopening/invalidation rules, and a six-step workspace
+  panel. The expected four fail-first assertions were captured; focused and canonical gates are
+  green. Production still serves the preceding four-step revision pending exact-SHA CI and
+  release/readback proof.
+- The screenshot path remains text-only until S79.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
 - S59 used one controlled billed RentCast read and zero writes. Delivery changed only the bounded
@@ -41,15 +46,16 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Next exact action
 
-Implement S72's exact six-step/substep state and evidence graph fail-first, preserving deployed S59
-base-rent/reference evidence and S80 authority while leaving unknown policy/provider facts unset.
+Audit the canonical-green S72 diff, commit/push it, require exact-SHA aggregate CI, then release the
+exact zero-traffic candidate with configuration/smoke/promotion/stable readback before advancing to
+S75. Preserve S59/S80 and leave unknown policy/provider facts explicitly unset.
 
 ## Ordered continuation
 
 1. S77 canonical/release/readback proof — complete.
 2. S59 RentCast mapping/cache/query truth — complete and deployed.
 3. S80 role/action parity — complete and deployed.
-4. S72 six-step/substep model — active; then S75 follow-up projection.
+4. S72 six-step/substep model — canonical-green candidate; exact CI/release active, then S75.
 5. S78 canonical triage desk.
 6. S74 governed copy/AI and S79 receipt-bound attachment.
 7. S81 navigation/readiness.

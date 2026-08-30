@@ -693,15 +693,36 @@ export interface LeaseRenewalResolutionActivityRecord {
   created_at: string;
 }
 
-// Lease Renewal Phase-A live PROGRESS: the small, app-owned forward state that makes the live workspace
-// clickable front-to-back (owner decision → tenant offer → build → complete). Written server-side through
-// the edit-gated Admin SDK boundary only; it changes NO system of record (RentVine + Sheet stay
-// read-only). `owner_decision` holds the operator's own inputs; `stage_index` indexes RENEWAL_STEPS.
+// Versioned Lease Renewal progress: app-owned values plus value-free evidence references. Written
+// server-side through the edit-gated Admin SDK boundary; RentVine and the Sheet remain read-only.
+// `stage_index` is only a six-step navigation pointer, never completion proof.
 export type LeaseRenewalOwnerDecisionKind = "keep_same" | "increase" | "custom";
+
+export interface LeaseRenewalProcessEvidenceRecord {
+  ref: string;
+  source:
+    | "rentvine_snapshot"
+    | "sheet_snapshot"
+    | "reconciliation_receipt"
+    | "rentcast_receipt"
+    | "gmail_receipt"
+    | "app_record"
+    | "policy_version"
+    | "packet_snapshot"
+    | "dotloop_receipt"
+    | "signed_artifact"
+    | "compliance_record";
+  disposition: "verified" | "not_applicable";
+  observed_at?: string;
+  fingerprint?: string;
+  reason?: string;
+}
 
 export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   lease_id: string;
+  /** Missing only on historical four-step records; readers classify those as migration-required. */
+  process_version?: string;
   stage_index: number;
   owner_decision?: {
     decision: LeaseRenewalOwnerDecisionKind;
@@ -768,7 +789,18 @@ export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetenti
       };
     };
   };
+  owner_decision_revision?: number;
   tenant_offer_draft_id?: string;
+  tenant_outcome?: {
+    state:
+      | "awaiting_response"
+      | "accepted"
+      | "counter_change_requested"
+      | "declined_nonrenewing"
+      | "needs_verification";
+    evidence: LeaseRenewalProcessEvidenceRecord;
+  };
+  process_evidence?: Record<string, LeaseRenewalProcessEvidenceRecord>;
   complete: boolean;
   updated_by_uid: string;
   created_at: string;
@@ -779,7 +811,13 @@ export interface LeaseRenewalProgressActivityRecord {
   id: string;
   lease_id: string;
   actor_uid: string;
-  action: "owner_decision" | "tenant_offer_drafted" | "mark_complete";
+  action:
+    | "owner_decision"
+    | "tenant_offer_drafted"
+    | "tenant_outcome"
+    | "process_evidence"
+    | "mark_complete";
+  process_version?: string;
   stage_index: number;
   created_at: string;
 }

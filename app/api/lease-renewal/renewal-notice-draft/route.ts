@@ -155,7 +155,7 @@ export async function POST(request: Request) {
       },
     );
 
-    // Phase A: creating the tenant-offer draft advances this lease's recorded progress to Build docs.
+    // Record the exact unsent-draft receipt. It remains in Tenant decision until a verified outcome.
     // Best-effort and non-blocking — progress is a convenience layer, so a stamp failure (e.g. no owner
     // decision recorded yet when composing from the notices desk) never fails an already-created draft.
     if (channel === "tenant" && outcome.status === "created") {

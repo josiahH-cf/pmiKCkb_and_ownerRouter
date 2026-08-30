@@ -1,7 +1,7 @@
-// Lease Renewal Agent shared vocabulary. Every constant below is confirmed by
-// docs/products/lease-renewal-agent.md; do not extend this vocabulary without a
-// product-doc change. This module is metadata only: it defines no runtime trigger,
-// queue, agent, or API integration.
+// Lease Renewal Agent shared vocabulary. This module is metadata only: it defines no runtime
+// trigger, queue, agent, or API integration.
+
+import { RENEWAL_PROCESS_DEFINITION } from "@/lib/lease-renewal/renewal-process";
 
 // Imported fact confidence display states.
 export const RENEWAL_FACT_CONFIDENCE = [
@@ -11,17 +11,11 @@ export const RENEWAL_FACT_CONFIDENCE = [
   "Conflict",
 ] as const;
 
-// The verified multi-step stage model for a renewal run.
-export const LEASE_RENEWAL_STAGES = [
-  "Candidate detection",
-  "Owner decision",
-  "Tenant intake",
-  "Document package",
-  "Signature/confirmation",
-  "System-of-record update",
-  "Service/charge verification",
-  "Closeout",
-] as const;
+// S72: the one approved six-step model. Titles derive from the immutable renewal-v1 definition so
+// the generic process-definition surface and the canonical workspace cannot drift.
+export const LEASE_RENEWAL_STAGES = Object.freeze(
+  RENEWAL_PROCESS_DEFINITION.steps.map((step) => step.title),
+);
 
 // Initial planned read/gather facts (reads come before writes).
 export const LEASE_RENEWAL_PLANNED_READS = [

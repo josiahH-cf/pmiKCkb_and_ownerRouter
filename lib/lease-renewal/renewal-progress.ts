@@ -1,9 +1,6 @@
-// Per-lease LIVE renewal PROGRESS — the small, app-owned state machine that makes the live workspace
-// clickable front-to-back (Phase A). The reconciliation, facts, recipients, and drafts all stay derived
-// from RentVine + the Sheet exactly as before; this adds ONLY the operator's own forward progress:
-//   • the owner's recorded rent decision (which unlocks + shapes the tenant offer),
-//   • the id of the tenant-offer Gmail draft once one has been created,
-//   • whether the operator has marked the renewal complete.
+// Per-lease LIVE renewal progress — pure transitions for the pinned six-step evidence model.
+// Reconciliation and source facts remain provider-derived; this stores app-owned decisions, exact
+// receipt references, branch state, deterministic invalidation, and evidence-gated completion.
 //
 // It changes NO system of record: RentVine stays read-only, the Sheet stays read-only. This state lives
 // in the KB's own Firestore (see lib/firestore/lease-renewal-progress.ts). This module is the PURE core:
@@ -12,18 +9,36 @@
 
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { MarketCompAttributeField } from "@/lib/lease-renewal/market-comp-query-basis";
+import {
+  RENEWAL_PROCESS_VERSION,
+  buildRenewalEvidenceReference,
+  missingRenewalCompletionEvidence,
+  normalizeRenewalEvidenceMap,
+  renewalEvidenceInvalidatedBy,
+  replaceRenewalEvidence,
+  type RenewalEvidenceKey,
+  type RenewalEvidenceMap,
+  type RenewalEvidenceReference,
+  type RenewalTenantOutcome,
+  type RenewalTenantOutcomeState,
+} from "@/lib/lease-renewal/renewal-process";
 import type { OwnerDecision } from "@/lib/lease-renewal/tenant-draft";
 
-/** Stage indices into RENEWAL_STEPS (data → owner → tenant → build). */
+/** Stage indices into the S72 six-step model. Legacy aliases remain source-compatible. */
 export const RENEWAL_STAGE = {
+  verify: 0,
   data: 0,
   owner: 1,
   tenant: 2,
+  documents: 3,
   build: 3,
+  signatures: 4,
+  compliance: 5,
+  close: 5,
 } as const;
 
-/** Highest valid stage index (build). */
-export const MAX_RENEWAL_STAGE = RENEWAL_STAGE.build;
+/** Highest valid stage index (compliance and close). */
+export const MAX_RENEWAL_STAGE = RENEWAL_STAGE.close;
 
 /**
  * The operator's comp basis for the owner email + (gated) write-back proposal. Every field here is the
@@ -127,24 +142,38 @@ export type RenewalOwnerDecisionWriteInput = Omit<RenewalOwnerDecision, "market"
   market?: Omit<RenewalMarketBasis, "compScreenshotRef">;
 };
 
-/** One lease's forward progress. `stageIndex` is the furthest step the operator has reached. */
+/** One lease's app-owned progress pinned to one process definition. */
 export interface RenewalProgress {
   leaseId: string;
+  processVersion: string;
   stageIndex: number;
   ownerDecision: RenewalOwnerDecision | null;
+  ownerDecisionRevision: number;
   tenantOfferDraftId: string | null;
+  tenantOutcome: RenewalTenantOutcome | null;
+  evidence: RenewalEvidenceMap;
   complete: boolean;
 }
 
 /** The value-shape a transition planner returns (identity omitted — the store owns the leaseId). */
 export interface RenewalProgressPlan {
+  processVersion: string;
   stageIndex: number;
   ownerDecision: RenewalOwnerDecision | null;
+  ownerDecisionRevision: number;
   tenantOfferDraftId: string | null;
+  tenantOutcome: RenewalTenantOutcome | null;
+  evidence: RenewalEvidenceMap;
   complete: boolean;
 }
 
 const OWNER_DECISIONS: readonly OwnerDecision[] = ["keep_same", "increase", "custom"];
+const DEDICATED_TRANSITION_EVIDENCE: readonly RenewalEvidenceKey[] = [
+  "owner-decision",
+  "tenant-draft-receipt",
+  "tenant-outcome",
+  "app-completion",
+];
 
 function clampStage(index: number): number {
   if (!Number.isInteger(index)) return RENEWAL_STAGE.data;
@@ -495,34 +524,90 @@ function normalizeProviderBasis(
   return provider;
 }
 
+function appEvidence(ref: string): RenewalEvidenceReference {
+  return buildRenewalEvidenceReference({
+    ref,
+    source: "app_record",
+    disposition: "verified",
+  });
+}
+
+function assertCurrentProcess(current: RenewalProgress | null): RenewalProgress {
+  if (!current) {
+    throw new EditableLayerError("Start the renewal by recording current evidence.", 409);
+  }
+  if (current.processVersion !== RENEWAL_PROCESS_VERSION) {
+    throw new EditableLayerError(
+      "This lease has legacy progress. Review it and re-record the owner decision to pin renewal-v1 before continuing.",
+      409,
+    );
+  }
+  return current;
+}
+
+function evidenceHasCurrentOwnerDecision(current: RenewalProgress): boolean {
+  return Boolean(
+    current.ownerDecision &&
+    normalizeRenewalEvidenceMap(current.evidence)["owner-decision"],
+  );
+}
+
+export function ownerDecisionIsCurrent(current: RenewalProgress | null): boolean {
+  return Boolean(
+    current &&
+    current.processVersion === RENEWAL_PROCESS_VERSION &&
+    evidenceHasCurrentOwnerDecision(current),
+  );
+}
+
 /**
- * Record the owner's rent decision. This is the seam that makes the flow move: it (re)places the lease at
- * the Tenant-offer step and clears any prior tenant draft, since a changed decision invalidates a draft
- * built from the old numbers. Always leaves `complete: false` — a new decision reopens the work.
+ * Record the human owner's current decision. This explicit operator action is also the safe migration
+ * seam for a legacy four-step record: it pins renewal-v1, retains the prior value for review until the
+ * new save succeeds, and invalidates every tenant/packet/signature/compliance reference downstream.
  */
 export function planRecordOwnerDecision(
-  _current: RenewalProgress | null,
+  current: RenewalProgress | null,
   decision: RenewalOwnerDecision,
 ): RenewalProgressPlan {
+  const ownerDecision = normalizeOwnerDecision(decision);
+  const ownerDecisionRevision = (current?.ownerDecisionRevision ?? 0) + 1;
+  const changed = replaceRenewalEvidence(
+    current?.evidence ?? {},
+    "owner-decision",
+    appEvidence(`lease-progress:owner-decision:r${ownerDecisionRevision}`),
+  );
+  const evidence: RenewalEvidenceMap = {
+    ...changed.evidence,
+    // This is an app shape invariant, not a claim about a provider value: charges remain separate
+    // fields and cannot be folded into offeredRent/base rent by this planner.
+    "recurring-charges-separated": appEvidence(
+      "app-contract:base-rent-and-recurring-charges:v1",
+    ),
+  };
   return {
-    stageIndex: RENEWAL_STAGE.tenant,
-    ownerDecision: normalizeOwnerDecision(decision),
+    processVersion: RENEWAL_PROCESS_VERSION,
+    stageIndex: RENEWAL_STAGE.owner,
+    ownerDecision,
+    ownerDecisionRevision,
     tenantOfferDraftId: null,
+    tenantOutcome: null,
+    evidence,
     complete: false,
   };
 }
 
 /**
- * Stamp the tenant-offer Gmail draft id and advance to Build docs. Requires a recorded owner decision —
- * a tenant offer without a decision would be an out-of-order state. Idempotent for the same draft id.
+ * Stamp the exact UNSENT tenant-offer Gmail draft receipt. A draft never completes the tenant-decision
+ * step and never advances to documents; only a source-backed accepted outcome can do that.
  */
 export function planRecordTenantOfferDraft(
   current: RenewalProgress | null,
   draftId: string,
 ): RenewalProgressPlan {
-  if (!current || !current.ownerDecision) {
+  const active = assertCurrentProcess(current);
+  if (!evidenceHasCurrentOwnerDecision(active)) {
     throw new EditableLayerError(
-      "Record the owner decision before drafting the tenant offer.",
+      "Record the current owner decision before drafting the tenant offer.",
       409,
     );
   }
@@ -530,41 +615,195 @@ export function planRecordTenantOfferDraft(
   if (trimmed === "") {
     throw new EditableLayerError("A tenant-offer draft id is required.", 400);
   }
+  if (active.tenantOfferDraftId === trimmed) {
+    return {
+      processVersion: active.processVersion,
+      stageIndex: active.stageIndex,
+      ownerDecision: active.ownerDecision,
+      ownerDecisionRevision: active.ownerDecisionRevision,
+      tenantOfferDraftId: active.tenantOfferDraftId,
+      tenantOutcome: active.tenantOutcome,
+      evidence: active.evidence,
+      complete: active.complete,
+    };
+  }
+  const changed = replaceRenewalEvidence(
+    active.evidence,
+    "tenant-draft-receipt",
+    buildRenewalEvidenceReference({
+      ref: `gmail-draft:${trimmed}`,
+      source: "gmail_receipt",
+      disposition: "verified",
+    }),
+  );
   return {
-    stageIndex: Math.max(clampStage(current.stageIndex), RENEWAL_STAGE.build),
-    ownerDecision: current.ownerDecision,
+    processVersion: active.processVersion,
+    stageIndex: RENEWAL_STAGE.tenant,
+    ownerDecision: active.ownerDecision,
+    ownerDecisionRevision: active.ownerDecisionRevision,
     tenantOfferDraftId: trimmed,
-    complete: current.complete,
+    tenantOutcome: null,
+    evidence: changed.evidence,
+    complete: false,
   };
 }
 
 /**
- * Mark the renewal complete (operator confirms the process is done for this lease). Requires that the
- * owner decision was recorded — you cannot complete a lease no one has decided. Pins the stage to Build.
+ * Record a source-backed tenant outcome. Counter/change removes the current owner-decision evidence
+ * and all dependent previews while retaining the last value for operator review. Decline exits to the
+ * separate non-renewal handoff; accepted is the only branch that may enter document work.
  */
-export function planMarkComplete(current: RenewalProgress | null): RenewalProgressPlan {
-  if (!current || !current.ownerDecision) {
+export function planRecordTenantOutcome(
+  current: RenewalProgress | null,
+  state: RenewalTenantOutcomeState,
+  evidenceReference: RenewalEvidenceReference,
+): RenewalProgressPlan {
+  const active = assertCurrentProcess(current);
+  if (!evidenceHasCurrentOwnerDecision(active) || !active.tenantOfferDraftId) {
     throw new EditableLayerError(
-      "Record the owner decision before marking the renewal complete.",
+      "Create the current tenant-offer draft from a current owner decision before recording an outcome.",
       409,
     );
   }
+  const evidence = buildRenewalEvidenceReference(evidenceReference);
+  if (evidence.disposition !== "verified") {
+    throw new EditableLayerError("A tenant outcome needs verified evidence.", 400);
+  }
+  if (evidence.source !== "gmail_receipt" && evidence.source !== "app_record") {
+    throw new EditableLayerError(
+      "A tenant outcome needs a linked Gmail receipt or verified app record.",
+      400,
+    );
+  }
+  let changed = replaceRenewalEvidence(active.evidence, "tenant-outcome", evidence);
+  let tenantOfferDraftId: string | null = active.tenantOfferDraftId;
+  let stageIndex: number = RENEWAL_STAGE.tenant;
+
+  if (state === "counter_change_requested") {
+    const reopened = { ...changed.evidence };
+    delete reopened["owner-decision"];
+    for (const key of renewalEvidenceInvalidatedBy("owner-decision")) {
+      delete reopened[key];
+    }
+    // Preserve the counter evidence after clearing the stale accepted-path evidence.
+    reopened["tenant-outcome"] = evidence;
+    changed = { evidence: reopened, invalidated: [] };
+    tenantOfferDraftId = null;
+    stageIndex = RENEWAL_STAGE.owner;
+  } else if (state === "accepted") {
+    stageIndex = RENEWAL_STAGE.documents;
+  } else if (state === "declined_nonrenewing") {
+    const exited = { ...changed.evidence };
+    for (const key of renewalEvidenceInvalidatedBy("tenant-outcome")) {
+      delete exited[key];
+    }
+    exited["tenant-outcome"] = evidence;
+    changed = { evidence: exited, invalidated: [] };
+  }
+
   return {
-    stageIndex: RENEWAL_STAGE.build,
-    ownerDecision: current.ownerDecision,
-    tenantOfferDraftId: current.tenantOfferDraftId,
+    processVersion: active.processVersion,
+    stageIndex,
+    ownerDecision: active.ownerDecision,
+    ownerDecisionRevision: active.ownerDecisionRevision,
+    tenantOfferDraftId,
+    tenantOutcome: { state, evidence },
+    evidence: changed.evidence,
+    complete: false,
+  };
+}
+
+/**
+ * Add or replace one validated evidence reference. Changing an upstream reference invalidates its exact
+ * transitive dependents; unrelated evidence remains intact. This app-owned planner invokes no provider.
+ */
+export function planRecordRenewalEvidence(
+  current: RenewalProgress | null,
+  key: RenewalEvidenceKey,
+  reference: RenewalEvidenceReference,
+): RenewalProgressPlan {
+  const active = assertCurrentProcess(current);
+  if (DEDICATED_TRANSITION_EVIDENCE.includes(key)) {
+    throw new EditableLayerError(
+      `${key} evidence must be recorded through its dedicated state transition.`,
+      409,
+    );
+  }
+  const changed = replaceRenewalEvidence(active.evidence, key, reference);
+  const invalidated = new Set(changed.invalidated);
+  const ownerDecision = active.ownerDecision;
+  const tenantOfferDraftId = invalidated.has("tenant-draft-receipt")
+    ? null
+    : active.tenantOfferDraftId;
+  const tenantOutcome = invalidated.has("tenant-outcome") ? null : active.tenantOutcome;
+  let stageIndex = clampStage(active.stageIndex);
+  if (invalidated.has("owner-decision")) stageIndex = RENEWAL_STAGE.owner;
+  else if (invalidated.has("tenant-outcome")) stageIndex = RENEWAL_STAGE.tenant;
+  else if (invalidated.has("packet-snapshot")) stageIndex = RENEWAL_STAGE.documents;
+  else if (invalidated.has("signatures-complete")) {
+    stageIndex = RENEWAL_STAGE.signatures;
+  } else if (invalidated.has("app-completion")) {
+    stageIndex = RENEWAL_STAGE.compliance;
+  }
+  return {
+    processVersion: active.processVersion,
+    stageIndex,
+    ownerDecision,
+    ownerDecisionRevision: active.ownerDecisionRevision,
+    tenantOfferDraftId,
+    tenantOutcome,
+    evidence: changed.evidence,
+    complete: false,
+  };
+}
+
+/** Mark app completion only after exact accepted-path evidence is present. */
+export function planMarkComplete(
+  current: RenewalProgress | null,
+  completionReference?: RenewalEvidenceReference,
+): RenewalProgressPlan {
+  const active = assertCurrentProcess(current);
+  const missing = missingRenewalCompletionEvidence(active.evidence, active.tenantOutcome);
+  if (missing.length > 0) {
+    throw new EditableLayerError(
+      `Renewal compliance evidence is incomplete: ${missing.join(", ")}.`,
+      409,
+    );
+  }
+  if (!completionReference) {
+    throw new EditableLayerError(
+      "An exact app-completion evidence reference is required.",
+      400,
+    );
+  }
+  const changed = replaceRenewalEvidence(
+    active.evidence,
+    "app-completion",
+    completionReference,
+  );
+  return {
+    processVersion: active.processVersion,
+    stageIndex: RENEWAL_STAGE.close,
+    ownerDecision: active.ownerDecision,
+    ownerDecisionRevision: active.ownerDecisionRevision,
+    tenantOfferDraftId: active.tenantOfferDraftId,
+    tenantOutcome: active.tenantOutcome,
+    evidence: changed.evidence,
     complete: true,
   };
 }
 
 /**
- * The stage the workspace should show. When the operator has recorded progress, that wins; otherwise the
- * data-derived fallback (open conflict → Data check, else Owner decision) computed by the live desk holds.
+ * The coarse desk stage is only a pointer. A legacy index is never reinterpreted as renewal-v1; it
+ * returns to Data/Owner review until the explicit owner-decision migration seam pins the version.
  */
 export function effectiveStageIndex(
   progress: RenewalProgress | null,
   derivedFallback: number,
 ): number {
   if (!progress) return derivedFallback;
+  if (progress.processVersion !== RENEWAL_PROCESS_VERSION) {
+    return progress.ownerDecision ? RENEWAL_STAGE.owner : RENEWAL_STAGE.data;
+  }
   return clampStage(progress.stageIndex);
 }
