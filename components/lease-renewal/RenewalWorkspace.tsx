@@ -20,11 +20,14 @@ import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNo
 import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
 import { RenewalProcessPanel } from "@/components/lease-renewal/RenewalProcessPanel";
 import { RenewalTenantOutcomeControl } from "@/components/lease-renewal/RenewalTenantOutcomeControl";
+import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowUpStatus";
+import { RenewalFollowUpThreadControl } from "@/components/lease-renewal/RenewalFollowUpThreadControl";
+import { RenewalFollowUpAttentionControl } from "@/components/lease-renewal/RenewalFollowUpAttentionControl";
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
-import type { Role } from "@/lib/auth/roles";
+import { can, type Role } from "@/lib/auth/roles";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
@@ -109,6 +112,21 @@ export function RenewalWorkspace({
               </li>
             ))}
           </ul>
+        </Card>
+      ) : null}
+
+      {workspace.followUp ? (
+        <Card title="Waiting and follow-up truth">
+          <RenewalFollowUpStatus projection={workspace.followUp} />
+          <RenewalFollowUpAttentionControl
+            canEdit={can(role, "edit")}
+            projection={workspace.followUp}
+          />
+          <RenewalFollowUpThreadControl
+            canEdit={can(role, "edit")}
+            leaseId={summary.id}
+            projection={workspace.followUp}
+          />
         </Card>
       ) : null}
 

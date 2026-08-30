@@ -12,6 +12,9 @@ import {
 } from "@/lib/lease-renewal/renewal-progress";
 import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
+import { DEFAULT_NOTICE_RULE_VALUES } from "@/lib/lease-renewal/notice-rules";
+import type { WorkflowCommunicationLink } from "@/lib/gmail-hub/workflow-context";
+import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 
 // The loaders use the shared module-level export cache; reset it so cases don't leak reads.
 beforeEach(clearLiveLeaseCache);
@@ -208,6 +211,95 @@ describe("loadLiveRenewalDesk", () => {
     );
     if (partial.status !== "ok") throw new Error(partial.status);
     expect(partial.view.readComplete).toBe(false);
+  });
+
+  it("carries one byte-equal contact/policy/due projection across desk and workspace", async () => {
+    const anchor = Date.parse("2026-07-10T12:00:00.000Z");
+    const linked: WorkflowCommunicationLink = {
+      id: "link-4821",
+      actor_uid: "operator-1",
+      mailbox_key: "mailbox-hash",
+      lane: "renewals",
+      entity_type: "renewal_lease",
+      entity_id: "4821",
+      purpose: "renewal_tenant",
+      origin_action_key: "gmail.mailbox.read",
+      source_refs: ["rentvine:lease:4821"],
+      gmail_thread_id: "thread-4821",
+      status: "linked",
+      waiting_on: "resident",
+      last_contact_at_ms: anchor,
+      last_contact_source: "gmail_thread",
+      last_contact_message_id: "message-4821",
+      contact_observation_state: "current",
+      created_at_ms: anchor,
+      updated_at_ms: anchor,
+      ...communicationsRetentionFields("workflow_link", anchor),
+    };
+    const followUpSources = {
+      communicationState: "current" as const,
+      links: [linked],
+      policy: {
+        state: "saved" as const,
+        version: 4,
+        updatedAtIso: "2026-07-09T00:00:00.000Z",
+        ruleSet: {
+          rules: [
+            {
+              scope: "global" as const,
+              values: { ...DEFAULT_NOTICE_RULE_VALUES },
+              verified: true,
+            },
+            {
+              scope: "lease" as const,
+              key: "4821",
+              values: { followUpIntervalDays: 3 },
+              verified: true,
+            },
+          ],
+        },
+      },
+    };
+
+    const desk = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+      undefined,
+      followUpSources,
+    );
+    if (desk.status !== "ok") throw new Error(desk.status);
+    const deskProjection = desk.view.actionable.find(
+      (lease) => lease.id === "4821",
+    )?.followUp;
+    expect(deskProjection?.due).toEqual({
+      state: "due",
+      atIso: "2026-07-13T12:00:00.000Z",
+    });
+
+    const workspace = await loadLiveRenewalLeaseWorkspace(
+      "4821",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      null,
+      null,
+      [],
+      null,
+      followUpSources,
+    );
+    if (workspace.status !== "ok") throw new Error(workspace.status);
+    expect(workspace.workspace.followUp).toEqual(deskProjection);
+    expect(workspace.workspace.summary.followUp).toEqual(deskProjection);
+    expect(
+      workspace.workspace.process.steps[2].substeps.find(
+        (substep) => substep.id === "refresh-contact-truth",
+      )?.missingEvidence,
+    ).toEqual([]);
+    expect(
+      workspace.workspace.process.steps[4].substeps.find(
+        (substep) => substep.id === "apply-confirmed-follow-up-policy",
+      )?.missingEvidence,
+    ).toEqual([]);
   });
 });
 

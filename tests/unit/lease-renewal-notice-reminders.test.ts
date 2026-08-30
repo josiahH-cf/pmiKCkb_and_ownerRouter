@@ -139,6 +139,7 @@ describe("planCallTasks", () => {
       reminders: reminderPlan.reminders,
       lastContactByLease: {},
       referenceDateIso: "2026-07-14",
+      minDaysSinceContact: 7,
     });
     const byLease = new Map(plan.tasks.map((task) => [task.leaseId, task]));
     expect(byLease.get("L-overdue")?.basis).toBe("notice_overdue");
@@ -179,11 +180,13 @@ describe("planCallTasks", () => {
       reminders: reminderPlan.reminders,
       lastContactByLease: {},
       referenceDateIso: "2026-07-14",
+      minDaysSinceContact: 7,
     });
     const second = planCallTasks({
       reminders: reminderPlan.reminders,
       lastContactByLease: {},
       referenceDateIso: "2026-07-14",
+      minDaysSinceContact: 7,
     });
     expect(first.tasks.map((task) => task.dedupeKey)).toEqual(
       second.tasks.map((task) => task.dedupeKey),

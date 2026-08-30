@@ -7,6 +7,7 @@ import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { DiscrepancyDispositionPanel } from "@/components/lease-renewal/DiscrepancyDispositionPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
 import { getCurrentPacketSnapshot } from "@/lib/firestore/lease-document-packet-snapshots";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { listRenewalDiscrepancyDispositions } from "@/lib/firestore/renewal-discrepancy-dispositions";
@@ -25,6 +26,8 @@ import {
   type LiveDeskStatus,
 } from "@/lib/lease-renewal/live-desk";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
+import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 
 interface LiveLeaseWorkspacePageProps {
   params: Promise<{ leaseId: string }>;
@@ -61,8 +64,23 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
   const { leaseId } = await params;
 
-  const progress = await getRenewalProgress(user, leaseId);
-  const packetSnapshot = await getCurrentPacketSnapshot(user, leaseId, leaseId);
+  const [progress, packetSnapshot, policy, communications, dismissedAttentionKeys] =
+    await Promise.all([
+      getRenewalProgress(user, leaseId),
+      getCurrentPacketSnapshot(user, leaseId, leaseId),
+      readNoticeRuleSnapshot(),
+      (async () => {
+        try {
+          return {
+            state: "current" as const,
+            links: await createGmailHubService(user).listCommunications(),
+          };
+        } catch {
+          return { state: "unreadable" as const, links: [] };
+        }
+      })(),
+      listDismissedRenewalFollowUpKeys(user),
+    ]);
   // S60 (AC-S60-10): the approval re-verify recomputes against the AUTHORITATIVE current rent from
   // the shared live read (a coalesced cache read the workspace loader reuses). Null when the live
   // source is unavailable, which leaves the recompute visibly unclamped rather than guessed.
@@ -107,6 +125,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
     approvedSuggestion,
     resolutions,
     packetSnapshot,
+    {
+      communicationState: communications.state,
+      links: communications.links,
+      policy,
+      dismissedAttentionKeys,
+    },
   );
   const dispositions = await listRenewalDiscrepancyDispositions(user, leaseId).catch(
     () => [],

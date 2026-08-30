@@ -1,5 +1,4 @@
 import {
-  planCallTasks,
   planNoticeReminders,
   type NoticeReminderLeaseFacts,
 } from "@/lib/lease-renewal/notice-reminders";
@@ -16,8 +15,9 @@ import { launchSpaces, spaceHref, type LaunchSpace } from "@/lib/spaces";
  * PURE and deterministic: the reference date, the (already-classified) in-boundary lease batch, and the
  * notice rule set are all INPUTS. It never calls Date.now(), reads a mailbox/sheet, sends, or writes a
  * system of record — it only PROPOSES work a human starts with one click. It folds the same
- * classifyRenewalCohort output (via the desk view), planNoticeReminders, and planCallTasks the CLI uses,
- * so the lane's counts cannot fork from the planners (AC-S18-8). Every emitted field is VALUE-FREE: no
+ * classifyRenewalCohort output (via the desk view), the notice planner, and S75's exact follow-up
+ * attention projection, so the lane's counts cannot fork from their canonical sources (AC-S18-8).
+ * Every emitted field is VALUE-FREE: no
  * address, rent, tenant name, or lease-end date crosses onto the list (AC-S18-2) — the real detail lives
  * behind each group's startHref.
  */
@@ -118,17 +118,14 @@ export function buildAnticipatedWork(input: AnticipatedWorkInput): AnticipatedWo
     }));
 
   const plan = planNoticeReminders({ leases: noticeBatch, ruleSet, referenceDateIso });
-  const callPlan = planCallTasks({
-    reminders: plan.reminders,
-    lastContactByLease: Object.fromEntries(
-      noticeBatch.map((lease) => [lease.leaseId, lease.renewalLetterSentIso]),
-    ),
-    referenceDateIso,
-  });
-
   const actionableCount = deskView.cohort.summary.actionable;
   const noticeCount = plan.reminders.length;
-  const callCount = callPlan.tasks.length;
+  // S75: outreach/work counts consume only the shared exact contact+policy projection. The former
+  // planner invented a seven-day call cadence when no client policy existed.
+  const ownerFollowUpCount = deskView.actionable.filter(
+    (lease) =>
+      lease.followUp?.waiting.party === "owner" && lease.followUp.attention !== null,
+  ).length;
 
   const groups: AnticipatedWorkGroup[] = [
     {
@@ -142,11 +139,11 @@ export function buildAnticipatedWork(input: AnticipatedWorkInput): AnticipatedWo
     },
     {
       ...familyBase(findSpace("owner-renewal-outreach")),
-      count: callCount,
-      urgency: callCount > 0 ? "overdue" : "all-clear",
+      count: ownerFollowUpCount,
+      urgency: ownerFollowUpCount > 0 ? "overdue" : "all-clear",
       summary:
-        callCount > 0
-          ? `${pluralize(callCount, "owner call", "owner calls")} to make`
+        ownerFollowUpCount > 0
+          ? `${pluralize(ownerFollowUpCount, "owner follow-up", "owner follow-ups")} to review`
           : "All clear",
     },
     {

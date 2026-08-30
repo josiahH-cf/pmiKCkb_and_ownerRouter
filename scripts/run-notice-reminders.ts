@@ -13,7 +13,6 @@ import { pathToFileURL } from "node:url";
 
 import { readNoticeRuleSet } from "../lib/firestore/lease-renewal-notice-rules";
 import {
-  planCallTasks,
   planNoticeReminders,
   type CallTaskPlan,
   type NoticeReminderLeaseFacts,
@@ -106,21 +105,8 @@ export async function main(argv = process.argv.slice(2)) {
     ruleSet,
     referenceDateIso: options.referenceDate,
   });
-  // "Last contact" is the internal renewal-letter-sent date already on file (never a Gmail read).
-  // When no notice has been sent, there is no recorded contact and the call task says so honestly.
-  const lastContactByLease = Object.fromEntries(
-    leases.map((lease) => [lease.leaseId, lease.renewalLetterSentIso]),
-  );
-  const callPlan = planCallTasks({
-    reminders: plan.reminders,
-    lastContactByLease,
-    referenceDateIso: options.referenceDate,
-  });
-
   console.log(
-    options.json
-      ? JSON.stringify({ plan, callTasks: callPlan }, null, 2)
-      : formatNoticeReminderPlan(plan, callPlan),
+    options.json ? JSON.stringify({ plan }, null, 2) : formatNoticeReminderPlan(plan),
   );
 }
 

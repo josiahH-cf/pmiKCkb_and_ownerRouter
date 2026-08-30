@@ -8,6 +8,7 @@ import {
   NOTICE_RULE_ACTIVITY_COLLECTION,
   buildNoticeRuleConfigRecord,
   readNoticeRuleConfigRecord,
+  readNoticeRuleSnapshot,
   readNoticeRuleSet,
   seedNoticeRuleConfig,
   updateNoticeRuleConfig,
@@ -209,5 +210,50 @@ describe("notice rule admin edit surface (F-TMPL-5)", () => {
     );
     const ruleSet = await readNoticeRuleSet(db);
     expect(ruleSet.rules[0]).toMatchObject({ scope: "global", verified: true });
+  });
+
+  it("preserves saved version provenance for non-mutating consumers", async () => {
+    const db = new FakeFirestore() as unknown as Firestore;
+    await updateNoticeRuleConfig(
+      admin,
+      { rules: [confirmedGlobal] },
+      db,
+      "2026-07-10T00:00:00.000Z",
+    );
+    const snapshot = await readNoticeRuleSnapshot(db);
+    expect(snapshot).toMatchObject({
+      state: "saved",
+      version: 1,
+      updatedAtIso: "2026-07-10T00:00:00.000Z",
+    });
+    expect(snapshot.ruleSet.rules[0]).toMatchObject({
+      scope: "global",
+      verified: true,
+    });
+  });
+
+  it("distinguishes missing, invalid, and unreadable config without activating defaults", async () => {
+    const missing = await readNoticeRuleSnapshot(
+      new FakeFirestore() as unknown as Firestore,
+    );
+    expect(missing).toMatchObject({ state: "missing", version: null });
+    expect(missing.ruleSet.rules[0].verified).toBe(false);
+
+    const invalidDb = new FakeFirestore();
+    invalidDb.store.set(`lease_renewal_notice_rules/${NOTICE_RULE_CONFIG_DOC_ID}`, {
+      rules: "not-a-rule-set",
+      version: 77,
+    });
+    const invalid = await readNoticeRuleSnapshot(invalidDb as unknown as Firestore);
+    expect(invalid).toMatchObject({ state: "invalid", version: null });
+    expect(invalid.ruleSet.rules[0].verified).toBe(false);
+
+    const unreadable = await readNoticeRuleSnapshot({
+      collection() {
+        throw new Error("unavailable");
+      },
+    } as unknown as Firestore);
+    expect(unreadable).toMatchObject({ state: "unreadable", version: null });
+    expect(unreadable.ruleSet.rules[0].verified).toBe(false);
   });
 });

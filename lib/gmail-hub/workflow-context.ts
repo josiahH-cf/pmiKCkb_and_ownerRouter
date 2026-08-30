@@ -8,6 +8,7 @@ export type WorkflowCommunicationLane = (typeof WORKFLOW_COMMUNICATION_LANES)[nu
 export const WORKFLOW_COMMUNICATION_ENTITY_TYPES = [
   "workflow_run",
   "renewal_run",
+  "renewal_lease",
   "maintenance_ticket",
 ] as const;
 export type WorkflowCommunicationEntityType =
@@ -47,13 +48,25 @@ export const WorkflowCommunicationContextSchema = z
   .strict()
   .superRefine((context, issue) => {
     const renewalEntity =
-      context.entityType === "workflow_run" || context.entityType === "renewal_run";
+      context.entityType === "workflow_run" ||
+      context.entityType === "renewal_run" ||
+      context.entityType === "renewal_lease";
     const renewalPurpose = context.purpose.startsWith("renewal_");
     if (context.lane === "renewals" && (!renewalEntity || !renewalPurpose)) {
       issue.addIssue({
         code: "custom",
         message:
           "Renewal Gmail context must reference a renewal workflow entity and purpose.",
+      });
+    }
+    if (
+      context.entityType === "renewal_lease" &&
+      context.actionKey !== "gmail.mailbox.read"
+    ) {
+      issue.addIssue({
+        code: "custom",
+        message:
+          "Renewal lease Gmail context is read-only; draft, reply, send, and label actions are not exposed.",
       });
     }
     if (
@@ -120,6 +133,10 @@ export interface WorkflowCommunicationLink extends CommunicationsRetentionFields
   last_contact_at_ms?: number;
   last_contact_source?: "gmail_thread";
   last_contact_message_id?: string;
+  /** Whether the exact linked thread was readable at the most recent targeted observation. */
+  contact_observation_state?: "current" | "needs_verification";
+  /** Bodyless bounded reason; provider error text is never stored. */
+  contact_observation_reason?: "thread_unavailable" | "thread_unreadable";
   created_at_ms: number;
   updated_at_ms: number;
   expires_at_ms: number | null;
@@ -167,6 +184,8 @@ export function workflowEntityHref(
       return `/maintenance?ticket_id=${encodeURIComponent(input.entity_id)}`;
     case "renewal_run":
       return `/lease-renewal/runs/${encodeURIComponent(input.entity_id)}`;
+    case "renewal_lease":
+      return `/lease-renewal/live/desk/lease/${encodeURIComponent(input.entity_id)}`;
     case "workflow_run":
       return `/workflow-runs/${encodeURIComponent(input.entity_id)}`;
   }

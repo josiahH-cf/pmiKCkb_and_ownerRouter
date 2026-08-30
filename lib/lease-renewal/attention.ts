@@ -31,6 +31,9 @@ export interface AttentionItem {
   lane: AttentionLane;
   /** Neutral attention severity derived from urgency. */
   severity: AttentionSeverity;
+  /** Present for a source-backed due item; bodyless exact evidence never enters the headline. */
+  dedupeKey?: string;
+  sourceRefs?: string[];
 }
 
 const URGENCY_RANK: Record<AttentionUrgency, number> = { high: 0, medium: 1 };
@@ -43,6 +46,7 @@ const OWNER_DECISION_STAGE_INDEX = 1;
 // or owner decision. Progressing leases (tenant offer / build docs, in agreement) are not shown here.
 function needsAttention(lease: DeskLeaseSummary): boolean {
   return (
+    Boolean(lease.followUp?.attention) ||
     lease.openConflicts > 0 ||
     (lease.stageIndex >= 0 && lease.stageIndex <= OWNER_DECISION_STAGE_INDEX)
   );
@@ -76,6 +80,21 @@ function itemFor(
       urgency: "high",
       lane: RENEWAL_LANE,
       severity: "high",
+    };
+  }
+
+  if (lease.followUp?.attention) {
+    return {
+      leaseId: lease.id,
+      addressLabel: lease.addressLabel,
+      headline: `Follow-up review due ${lease.followUp.attention.dueAtIso}; last verified contact ${lease.followUp.attention.lastContactAtIso}`,
+      actionLabel: "Review follow-up",
+      href,
+      urgency: "high",
+      lane: RENEWAL_LANE,
+      severity: "high",
+      dedupeKey: lease.followUp.attention.dedupeKey,
+      sourceRefs: [...lease.followUp.attention.sourceRefs],
     };
   }
 

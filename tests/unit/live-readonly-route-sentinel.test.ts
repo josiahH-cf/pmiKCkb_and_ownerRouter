@@ -43,6 +43,10 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   "app/api/gmail-hub/threads/[threadId]/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:linkMatchesContext",
+  // S75 page loads construct the descriptor-bound service only to list bodyless app-owned workflow
+  // links from Firestore. The Gmail provider is constructed solely by the separate manual refresh.
+  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:createGmailHubService",
+  "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createGmailHubService",
   // S66 GET composes only an authenticated app-owned Firestore read handler. Its POST is separately
   // denied by the Live-read-only request policy and the handler's edit + renewals guard.
   "app/api/lease-renewal/packet-truth/route.ts:GET:createPacketTruthGetHandler",

@@ -267,9 +267,79 @@ export class GmailHubService {
       threadId: thread.id,
       status: "linked",
       reasonHash: hashOperationalReason(input.reason),
+      contactObservationState: observation.lastContactMessageId
+        ? "current"
+        : "needs_verification",
+      ...(!observation.lastContactMessageId
+        ? { contactObservationReason: "thread_unreadable" as const }
+        : {}),
       ...observation,
     });
     return { status: "linked" as const, threadId: thread.id };
+  }
+
+  /**
+   * Deliberately re-read one already-linked thread. The body is transient; only the newest provider
+   * message identity, time, and direction enter the bodyless link. Replays and older observations
+   * cannot rewind that evidence.
+   */
+  async refreshLinkedThread(input: {
+    context: WorkflowCommunicationContext;
+    threadId: string;
+  }) {
+    this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.read);
+    const link = await this.assertLinkedThread(input.threadId, input.context);
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
+    let thread: GmailThreadView;
+    try {
+      thread = await client.getThread(input.threadId);
+    } catch (error) {
+      const reason =
+        error instanceof GmailRuntimeError && error.status === 404
+          ? ("thread_unavailable" as const)
+          : ("thread_unreadable" as const);
+      await this.dependencies.store.markCommunicationNeedsVerification({
+        linkId: link.id,
+        nowMs: this.now(),
+        reason,
+      });
+      if (reason === "thread_unavailable") {
+        return { status: "needs_verification" as const, reason };
+      }
+      throw error;
+    }
+
+    const observation = observeWorkflowThread(
+      thread,
+      this.mailboxEmail,
+      input.context.purpose,
+    );
+    if (!observation.lastContactMessageId) {
+      await this.dependencies.store.markCommunicationNeedsVerification({
+        linkId: link.id,
+        nowMs: this.now(),
+        reason: "thread_unreadable",
+      });
+      return {
+        status: "needs_verification" as const,
+        reason: "thread_unreadable" as const,
+      };
+    }
+
+    const status = await this.dependencies.store.refreshCommunicationObservation({
+      linkId: link.id,
+      messageId: observation.lastContactMessageId,
+      ...observation,
+      nowMs: this.now(),
+    });
+    return {
+      status,
+      ...(observation.waitingOn ? { waitingOn: observation.waitingOn } : {}),
+      ...(observation.lastContactAtMs
+        ? { lastContactAtMs: observation.lastContactAtMs }
+        : {}),
+      messageId: observation.lastContactMessageId,
+    };
   }
 
   async getThread(
@@ -1326,6 +1396,8 @@ export class GmailHubService {
       lastContactAtMs?: number;
       lastContactMessageId?: string;
       lastContactSource?: "gmail_thread";
+      contactObservationState?: "current" | "needs_verification";
+      contactObservationReason?: "thread_unavailable" | "thread_unreadable";
     },
   ) {
     this.requireWorkflowLinkTtlDays();
@@ -1354,6 +1426,12 @@ export class GmailHubService {
         : {}),
       ...(result.lastContactSource
         ? { last_contact_source: result.lastContactSource }
+        : {}),
+      ...(result.contactObservationState
+        ? { contact_observation_state: result.contactObservationState }
+        : {}),
+      ...(result.contactObservationReason
+        ? { contact_observation_reason: result.contactObservationReason }
         : {}),
       created_at_ms: nowMs,
       updated_at_ms: nowMs,
@@ -1540,23 +1618,28 @@ function observeWorkflowThread(
   mailboxEmail: string,
   purpose: WorkflowCommunicationPurpose,
 ): WorkflowThreadObservation {
+  // `truncated` can mean Gmail returned more messages than this bounded read retained. Body
+  // truncation alone would not affect direction, but the view does not distinguish those causes, so
+  // it cannot prove the authoritative latest message.
+  if (thread.truncated) return {};
   const latest = [...thread.messages]
     .sort(
       (left, right) =>
-        providerMessageTime(left.internalDate) - providerMessageTime(right.internalDate),
+        providerMessageTime(left.internalDate) -
+          providerMessageTime(right.internalDate) || left.id.localeCompare(right.id),
     )
     .at(-1);
   if (!latest?.id) return {};
   const lastContactAtMs = providerMessageTime(latest.internalDate);
   const sender = extractEmailAddress(latest.from);
-  const waitingOn = sender
-    ? sender === mailboxEmail
-      ? counterpartyForPurpose(purpose)
-      : "team"
-    : undefined;
+  if (!sender || lastContactAtMs <= 0) return {};
+  const normalizedMailbox = extractEmailAddress(mailboxEmail);
+  if (!normalizedMailbox) return {};
+  const waitingOn =
+    sender === normalizedMailbox ? counterpartyForPurpose(purpose) : "team";
   return {
-    ...(waitingOn ? { waitingOn } : {}),
-    ...(lastContactAtMs > 0 ? { lastContactAtMs } : {}),
+    waitingOn,
+    lastContactAtMs,
     lastContactMessageId: latest.id,
     lastContactSource: "gmail_thread",
   };

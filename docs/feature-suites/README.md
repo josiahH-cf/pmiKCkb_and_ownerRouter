@@ -89,7 +89,7 @@ not block independent suites.
 | S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`    | Truth machinery built; approved catalog/provider mapping required                  |
 | S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`  | Complete and deployed; exact six-step/evidence/compatibility model                 |
 | S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`        | Constrained AI scope approved; exact wording/channel evidence remains              |
-| S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Source/policy seams built; shared desk projection missing; timing values unset     |
+| S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Shared unset-safe projection built; live confirmed timing policy still external    |
 | S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required     |
 | S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation   |
 | S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Active; canonical searchable role-consistent Live desk not implemented             |

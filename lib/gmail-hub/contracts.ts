@@ -158,6 +158,13 @@ export const LinkWorkflowCommunicationSchema = z
   })
   .strict();
 
+export const RefreshWorkflowCommunicationSchema = z
+  .object({
+    context: WorkflowCommunicationContextSchema,
+    threadId: GmailIdSchema,
+  })
+  .strict();
+
 export function hashGmailPayload(payload: GmailOutgoingMessage): string {
   const parsed = GmailOutgoingMessageSchema.parse(payload);
   return sha256(

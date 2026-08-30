@@ -10,6 +10,7 @@ import type {
   RenewalCohort,
 } from "@/lib/lease-renewal/cohort";
 import type { EffectiveRuleView } from "@/lib/lease-renewal/notice-rules";
+import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
 import type { RenewalReadinessResult } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
@@ -70,6 +71,8 @@ export interface DeskLeaseSummary {
   stageLabel: string | null;
   nextAction: string | null;
   openConflicts: number;
+  /** S75: one source-backed contact/policy projection on canonical Live cards. */
+  followUp?: RenewalFollowUpProjection;
 }
 
 /**
@@ -144,6 +147,8 @@ export interface RenewalLeaseWorkspace {
   tenantDraft: TenantOfferDraft | null;
   readiness: RenewalReadinessResult;
   notice: EffectiveRuleView | null;
+  /** Byte-equal to the projection on this lease's Live desk summary. */
+  followUp?: RenewalFollowUpProjection;
   live?: RenewalWorkspaceLiveState;
   /** S58: present on the LIVE workspace; expired disables compose/record controls with a plain
    *  explanation (the routes refuse server-side regardless). The sample workspace omits it. */

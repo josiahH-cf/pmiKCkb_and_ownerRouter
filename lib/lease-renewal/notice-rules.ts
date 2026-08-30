@@ -46,6 +46,18 @@ export interface NoticeRuleSet {
   rules: ScopedNoticeRule[];
 }
 
+/**
+ * Read provenance for one immutable notice-rule snapshot. Keeping this provider-neutral shape beside
+ * the pure rule model lets every consumer distinguish a saved version from a safe built-in fallback;
+ * a fallback can render, but it can never manufacture timing.
+ */
+export interface NoticeRuleSnapshot {
+  state: "saved" | "missing" | "invalid" | "unreadable";
+  ruleSet: NoticeRuleSet;
+  version: number | null;
+  updatedAtIso: string | null;
+}
+
 /** Which lease/property a resolution is for. Missing keys simply never match an override. */
 export interface NoticeRuleContext {
   leaseId?: string | null;

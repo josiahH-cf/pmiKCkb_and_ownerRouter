@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { buildAnticipatedWork } from "@/lib/anticipation/projection";
 import {
-  planCallTasks,
   planNoticeReminders,
   type NoticeReminderLeaseFacts,
 } from "@/lib/lease-renewal/notice-reminders";
+import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import {
   getRenewalDeskView,
@@ -87,7 +87,7 @@ describe("buildAnticipatedWork", () => {
     expect(compliance?.processDefinitionId).toBeNull();
   });
 
-  it("AC-S18-8: renewal-family counts reconcile with the notice planners over the same batch", () => {
+  it("AC-S18-8: renewal-family counts reconcile with their canonical sources", () => {
     const ref = SAMPLE_NOTICE_REFERENCE_DATE; // "2026-07-14"
     const batch = noticeBatchFromDesk();
     const plan = planNoticeReminders({
@@ -95,12 +95,6 @@ describe("buildAnticipatedWork", () => {
       ruleSet: DEFAULT_NOTICE_RULE_SET,
       referenceDateIso: ref,
     });
-    const callPlan = planCallTasks({
-      reminders: plan.reminders,
-      lastContactByLease: Object.fromEntries(batch.map((l) => [l.leaseId, null])),
-      referenceDateIso: ref,
-    });
-
     const groups = buildAnticipatedWork({
       referenceDateIso: ref,
       deskView: getRenewalDeskView(),
@@ -109,9 +103,9 @@ describe("buildAnticipatedWork", () => {
     const owner = groups.find((g) => g.spaceId === "owner-renewal-outreach");
     const renewals = groups.find((g) => g.spaceId === "lease-renewals");
 
-    // Counts do not fork from the planners.
+    // Counts do not fork from their canonical notice/cohort/follow-up projections.
     expect(tenant?.count).toBe(plan.reminders.length);
-    expect(owner?.count).toBe(callPlan.tasks.length);
+    expect(owner?.count).toBe(0);
     expect(renewals?.count).toBe(getRenewalDeskView().cohort.summary.actionable);
     // Urgency is derived from the same planner result instead of freezing a retired sample count.
     expect(tenant?.urgency).toBe(
@@ -121,5 +115,38 @@ describe("buildAnticipatedWork", () => {
           ? "due-soon"
           : "all-clear",
     );
+  });
+
+  it("counts only exact owner-bound due evidence as owner follow-up work", () => {
+    const view = getRenewalDeskView();
+    const dueProjection = (
+      party: "owner" | "tenant",
+      leaseId: string,
+    ): RenewalFollowUpProjection =>
+      ({
+        leaseId,
+        waiting: { party },
+        attention: { dedupeKey: `due:${leaseId}` },
+      }) as RenewalFollowUpProjection;
+    const deskView = {
+      ...view,
+      actionable: view.actionable.map((lease, index) => ({
+        ...lease,
+        ...(index === 0
+          ? { followUp: dueProjection("owner", lease.id) }
+          : index === 1
+            ? { followUp: dueProjection("tenant", lease.id) }
+            : {}),
+      })),
+    };
+
+    const owner = buildAnticipatedWork({
+      referenceDateIso: SAMPLE_NOTICE_REFERENCE_DATE,
+      deskView,
+    }).groups.find((group) => group.spaceId === "owner-renewal-outreach");
+    expect(owner).toMatchObject({
+      count: 1,
+      summary: "1 owner follow-up to review",
+    });
   });
 });

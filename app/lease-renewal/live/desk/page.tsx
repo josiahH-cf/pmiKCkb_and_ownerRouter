@@ -4,6 +4,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
+import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
+import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
@@ -48,12 +51,33 @@ export default async function LiveRenewalDeskPage() {
 
   // The desk cards show each lease's RECORDED stage (owner decision made, tenant offer drafted, complete)
   // over the data-derived default. Only leases an operator has touched carry a record, so this is small.
-  const progressByLease = await listAllRenewalProgress(user);
+  const [progressByLease, policy, communications, dismissedAttentionKeys] =
+    await Promise.all([
+      listAllRenewalProgress(user),
+      readNoticeRuleSnapshot(),
+      (async () => {
+        try {
+          return {
+            state: "current" as const,
+            links: await createGmailHubService(user).listCommunications(),
+          };
+        } catch {
+          return { state: "unreadable" as const, links: [] };
+        }
+      })(),
+      listDismissedRenewalFollowUpKeys(user),
+    ]);
   const outcome = await loadLiveRenewalDesk(
     [{ startIso, endIso }],
     now.toISOString(),
     undefined,
     progressByLease,
+    {
+      communicationState: communications.state,
+      links: communications.links,
+      policy,
+      dismissedAttentionKeys,
+    },
   );
 
   return (

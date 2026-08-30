@@ -69,6 +69,17 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to record a discrepancy disposition.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  manage_follow_up_attention: {
+    label: "Dismiss or reopen one exact renewal follow-up attention item",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to change renewal follow-up attention.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_packet_truth: {
     label: "Save app-owned packet-truth progress",
     roleCapability: "edit",
@@ -394,6 +405,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/renewal-progress/route.ts"],
   },
   {
+    control: "Dismiss or reopen exact follow-up attention",
+    source: "components/lease-renewal/RenewalFollowUpAttentionControl.tsx",
+    capability: "manage_follow_up_attention",
+    enforcementSources: ["app/api/lease-renewal/follow-up-attention/route.ts"],
+  },
+  {
     control: "Request reference comps",
     source: "components/lease-renewal/RenewalProgressControls.tsx",
     capability: "request_reference_comps",
@@ -526,6 +543,12 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/discrepancy-dispositions/route.ts",
     method: "POST",
     capability: "record_discrepancy_disposition",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/follow-up-attention/route.ts",
+    method: "POST",
+    capability: "manage_follow_up_attention",
   },
   {
     kind: "api",

@@ -18,6 +18,7 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   DEFAULT_NOTICE_RULE_SET,
+  type NoticeRuleSnapshot,
   type NoticeRuleSet,
 } from "@/lib/lease-renewal/notice-rules";
 import type {
@@ -165,26 +166,57 @@ export async function seedNoticeRuleConfig(options: {
   return { id: options.record.id, action: snapshot.exists ? "updated" : "created" };
 }
 
-/** Read the effective rule set. Never throws: a missing or malformed record returns the built-in
- *  DEFAULT_NOTICE_RULE_SET (all values unverified), so a fresh environment is safe and honest. */
-export async function readNoticeRuleSet(
+function noticeRuleFallback(
+  state: Extract<NoticeRuleSnapshot["state"], "missing" | "invalid" | "unreadable">,
+): NoticeRuleSnapshot {
+  return {
+    state,
+    ruleSet: {
+      rules: DEFAULT_NOTICE_RULE_SET.rules.map((rule) => ({
+        ...rule,
+        values: { ...rule.values },
+      })),
+    },
+    version: null,
+    updatedAtIso: null,
+  };
+}
+
+/**
+ * Read the immutable rule snapshot without requiring Admin mutation authority. It never throws and
+ * preserves whether the safe, unverified fallback came from a missing, malformed, or unreadable
+ * record so downstream surfaces cannot present a fallback as a saved policy.
+ */
+export async function readNoticeRuleSnapshot(
   db: Firestore = getAdminFirestore(),
-): Promise<NoticeRuleSet> {
+): Promise<NoticeRuleSnapshot> {
   try {
     const snapshot = await db
       .collection(NOTICE_RULE_CONFIG_COLLECTION)
       .doc(NOTICE_RULE_CONFIG_DOC_ID)
       .get();
-    if (!snapshot.exists) return DEFAULT_NOTICE_RULE_SET;
+    if (!snapshot.exists) return noticeRuleFallback("missing");
     const parsed = NoticeRuleSetRecordSchema.safeParse({
       ...snapshot.data(),
       id: snapshot.id,
     });
-    if (!parsed.success) return DEFAULT_NOTICE_RULE_SET;
-    return { rules: parsed.data.rules };
+    if (!parsed.success) return noticeRuleFallback("invalid");
+    return {
+      state: "saved",
+      ruleSet: { rules: parsed.data.rules },
+      version: parsed.data.version,
+      updatedAtIso: parsed.data.updated_at,
+    };
   } catch {
-    return DEFAULT_NOTICE_RULE_SET;
+    return noticeRuleFallback("unreadable");
   }
+}
+
+/** Backward-compatible value-only reader; new operational consumers use the snapshot above. */
+export async function readNoticeRuleSet(
+  db: Firestore = getAdminFirestore(),
+): Promise<NoticeRuleSet> {
+  return (await readNoticeRuleSnapshot(db)).ruleSet;
 }
 
 // F-TMPL-5: the Admin edit surface for notice rules. Admin-only (mirrors the owner-transactional

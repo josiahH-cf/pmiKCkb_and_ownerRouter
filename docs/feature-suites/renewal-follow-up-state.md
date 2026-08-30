@@ -3,9 +3,9 @@
 
 # S75 — Renewal waiting, contact, and timing truth
 
-> Status: Targeted manual Gmail refresh and versioned global/property/lease timing rules exist;
-> client timing values remain unset and the canonical renewal desk does not yet project the complete
-> waiting/contact/due state.
+> Status: The unset-safe shared projection, targeted refresh recovery, canonical desk/workspace
+> consumers, S72 evidence adapter, and audited internal attention are implemented and verified.
+> Client timing values remain unset; only the live confirmed-policy branch remains externally blocked.
 
 **Goal.**
 
@@ -15,13 +15,13 @@ draft, message, or send.
 
 **Current state / intended end state.**
 
-Manual Gmail refresh reads only linked targeted threads and derives waiting-on/last-contact facts.
-Admin stores audited versioned global, property, and lease timing rules with deterministic most-
-specific-wins behavior. When no client-confirmed rule exists, the current system correctly shows
-policy unset and emits no due effect. These facts are not carried on the desk summary/cards and the
-current four-step workflow cannot associate them with the approved S72 substeps. The intended state
-projects exact evidence and unset-safe due state consistently into list, workspace, attention, and
-work surfaces.
+Manual Gmail refresh reads only one exact linked thread and derives bodyless waiting-on/last-contact
+facts with deterministic message ordering, monotonic storage, duplicate safety, and recovery from a
+missing/unreadable observation. Admin stores audited versioned global, property, and lease timing
+rules with deterministic most-specific-wins behavior. One provider-free projection now carries those
+facts through canonical desk summaries/cards, collapsed desk groups, the six-step S72 workspace and
+evidence graph, internal attention, and anticipated owner work. When no client-confirmed rule exists,
+the system shows policy unset and emits no due effect.
 
 **Actors and entry conditions.**
 
@@ -100,7 +100,10 @@ notifications, audit, and S74 channel truth.
 coordinator, or an unresolved source is holding the next step; can see the last verified contact; and
 sees a due date only when an Admin has entered confirmed policy. Nothing is sent automatically.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - one exact provider-free projection now drives desk, workspace, S72 evidence,
+  and internal attention; focused architecture/behavior/preservation tests cover unset, disabled,
+  confirmed, wrong-channel, stale, duplicate, truncated, missing-thread, recovery, dismissal, and
+  read-only action-boundary cases without a draft, send, schedule, or provider write.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**

@@ -56,7 +56,14 @@ import {
   detectNoticeStatus,
   resolveNoticeRule,
   type EffectiveRuleView,
+  type NoticeRuleSnapshot,
 } from "@/lib/lease-renewal/notice-rules";
+import type { WorkflowCommunicationLink } from "@/lib/gmail-hub/workflow-context";
+import {
+  buildRenewalFollowUpProjection,
+  type RenewalFollowUpProjectionInput,
+  type RenewalProcessWaitingFallback,
+} from "@/lib/lease-renewal/follow-up-projection";
 import {
   RENEWAL_STEPS,
   STAGE_NEXT_ACTION,
@@ -85,6 +92,7 @@ import {
   type RenewalEvidenceKey,
   type RenewalEvidenceMap,
   type RenewalEvidenceSource,
+  type RenewalProcessProjection,
 } from "@/lib/lease-renewal/renewal-process";
 import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
@@ -111,6 +119,24 @@ export type LiveRenewalDeskResult =
 export type LiveRenewalLeaseWorkspaceResult =
   | { status: "ok"; workspace: RenewalLeaseWorkspace }
   | { status: LiveDeskStatus | "not_found" };
+
+export interface RenewalFollowUpSources {
+  communicationState: "current" | "unreadable";
+  links: readonly WorkflowCommunicationLink[];
+  policy: NoticeRuleSnapshot;
+  dismissedAttentionKeys?: readonly string[];
+}
+
+const EMPTY_FOLLOW_UP_SOURCES: RenewalFollowUpSources = {
+  communicationState: "current",
+  links: [],
+  policy: {
+    state: "missing",
+    ruleSet: DEFAULT_NOTICE_RULE_SET,
+    version: null,
+    updatedAtIso: null,
+  },
+};
 
 export interface LiveOwnerCurrentRentDecision {
   currentRent: number;
@@ -408,11 +434,11 @@ function toLiveSummary(
 function buildLiveNotice(
   endDateIso: string | null,
   referenceDateIso: string,
+  policy: NoticeRuleSnapshot,
+  context: { leaseId: string; propertyKey?: string | null },
 ): EffectiveRuleView | null {
   if (!endDateIso) return null;
-  // Live surfaces read the built-in default rule set (values UNVERIFIED); there is no per-lease rule
-  // override, so the empty context resolves to those defaults with provenance shown on the view.
-  const rule = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, {});
+  const rule = resolveNoticeRule(policy.ruleSet, context);
   return buildEffectiveRuleView(
     rule,
     detectNoticeStatus(
@@ -425,6 +451,156 @@ function buildLiveNotice(
       referenceDateIso,
     ),
   );
+}
+
+/** Exact property key from the measured live view; an absent key stays absent. */
+function propertyKeyOf(view: RawLease): string | null {
+  const property =
+    view.property && typeof view.property === "object" && !Array.isArray(view.property)
+      ? (view.property as Record<string, unknown>)
+      : undefined;
+  for (const source of [property, view] as const) {
+    if (!source) continue;
+    for (const key of ["propertyID", "propertyId"] as const) {
+      const value = source[key];
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+  }
+  return null;
+}
+
+function processFollowUpHints(
+  process: RenewalProcessProjection,
+): Pick<RenewalFollowUpProjectionInput, "preferredPurpose" | "processFallback"> {
+  const step = process.steps[process.currentStepIndex];
+  if (!step) return {};
+  const sourceRef = `renewal-process:${process.version}:${step.id}`;
+  if (step.id === "verify-renewal") {
+    return {
+      processFallback: { party: "unresolved_source", sourceRef },
+    };
+  }
+  if (step.id === "owner-decision") {
+    return { preferredPurpose: "renewal_owner" };
+  }
+  if (step.id === "tenant-decision") {
+    return { preferredPurpose: "renewal_tenant" };
+  }
+  if (
+    step.id === "document-packet" ||
+    step.id === "signatures-follow-up" ||
+    step.id === "compliance-close"
+  ) {
+    const processFallback: RenewalProcessWaitingFallback = {
+      party: "document_coordinator",
+      sourceRef,
+    };
+    return { preferredPurpose: "renewal_tenant", processFallback };
+  }
+  return {};
+}
+
+function buildLiveFollowUp(input: {
+  leaseId: string;
+  view: RawLease;
+  readTimestamp: string;
+  sources: RenewalFollowUpSources;
+  process?: RenewalProcessProjection;
+}) {
+  return buildRenewalFollowUpProjection({
+    leaseId: input.leaseId,
+    propertyKey: propertyKeyOf(input.view),
+    asOfIso: input.readTimestamp,
+    communicationState: input.sources.communicationState,
+    links: input.sources.links,
+    policy: input.sources.policy,
+    dismissedAttentionKeys: input.sources.dismissedAttentionKeys,
+    ...(input.process ? processFollowUpHints(input.process) : {}),
+  });
+}
+
+/**
+ * Feed the same S75 contact/policy truth into the exact S72 evidence graph. This is a read projection:
+ * it never persists progress, and missing/unreadable current sources remove stale dependent proof.
+ */
+function applyLiveFollowUpEvidence(input: {
+  evidence: RenewalEvidenceMap;
+  leaseId: string;
+  view: RawLease;
+  readTimestamp: string;
+  sources: RenewalFollowUpSources;
+}): RenewalEvidenceMap {
+  let evidence = input.evidence;
+  const tenant = buildRenewalFollowUpProjection({
+    leaseId: input.leaseId,
+    propertyKey: propertyKeyOf(input.view),
+    asOfIso: input.readTimestamp,
+    communicationState: input.sources.communicationState,
+    links: input.sources.links,
+    policy: input.sources.policy,
+    preferredPurpose: "renewal_tenant",
+  });
+  if (
+    tenant.lastContact.state === "verified" &&
+    tenant.lastContact.atIso &&
+    tenant.lastContact.source?.purpose === "renewal_tenant" &&
+    tenant.waiting.state !== "needs_verification"
+  ) {
+    evidence = overlayLiveEvidence(
+      evidence,
+      "tenant-contact-state",
+      liveEvidenceReference(
+        "gmail_receipt",
+        `gmail:thread:${tenant.lastContact.source.threadId}:message:${tenant.lastContact.source.messageId}`,
+        {
+          waiting: tenant.waiting.party,
+          lastContactAtIso: tenant.lastContact.atIso,
+        },
+        tenant.lastContact.atIso,
+      ),
+    );
+  } else if (evidence["tenant-contact-state"]) {
+    evidence = removeRenewalEvidence(evidence, "tenant-contact-state").evidence;
+  }
+
+  const resolved = resolveNoticeRule(input.sources.policy.ruleSet, {
+    leaseId: input.leaseId,
+    propertyKey: propertyKeyOf(input.view),
+  });
+  if (
+    input.sources.policy.state === "saved" &&
+    input.sources.policy.version !== null &&
+    resolved.fullyVerified
+  ) {
+    const scope = resolved.followUpIntervalDays.scope;
+    const key =
+      scope === "lease"
+        ? input.leaseId
+        : scope === "property"
+          ? (propertyKeyOf(input.view) ?? "missing")
+          : "global";
+    evidence = overlayLiveEvidence(
+      evidence,
+      "timing-policy-version",
+      liveEvidenceReference(
+        "policy_version",
+        `notice-policy:active:v${input.sources.policy.version}:${scope}:${key}`,
+        {
+          version: input.sources.policy.version,
+          scope,
+          key,
+          enabled: resolved.enabled.value,
+          intervalDays: resolved.followUpIntervalDays.value,
+        },
+        input.sources.policy.updatedAtIso ?? input.readTimestamp,
+      ),
+    );
+  } else if (evidence["timing-policy-version"]) {
+    evidence = removeRenewalEvidence(evidence, "timing-policy-version").evidence;
+  }
+  return evidence;
 }
 
 function liveEvidenceReference(
@@ -708,6 +884,7 @@ export async function loadLiveRenewalDesk(
   readTimestamp: string,
   config: LiveRenewalConfig = buildLiveRenewalConfig(),
   progressByLease?: Map<string, RenewalProgress>,
+  followUpSources: RenewalFollowUpSources = EMPTY_FOLLOW_UP_SOURCES,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -750,13 +927,17 @@ export async function loadLiveRenewalDesk(
           progress,
           packetSnapshot: undefined,
         });
-        const effectiveProgress = effectiveProgressAfterEvidence(
-          progress,
-          processEvidence.evidence,
-        );
+        const evidence = applyLiveFollowUpEvidence({
+          evidence: processEvidence.evidence,
+          leaseId,
+          view,
+          readTimestamp,
+          sources: followUpSources,
+        });
+        const effectiveProgress = effectiveProgressAfterEvidence(progress, evidence);
         const process = projectRenewalProcess({
           processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-          evidence: processEvidence.evidence,
+          evidence,
           evidenceBlockers: processEvidence.blockers,
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
@@ -766,9 +947,28 @@ export async function loadLiveRenewalDesk(
           stageIndex: process.currentStepIndex,
           stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
           nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+          followUp: buildLiveFollowUp({
+            leaseId,
+            view,
+            readTimestamp,
+            sources: followUpSources,
+            process,
+          }),
         };
       }
-      return toLiveSummary(view, classification);
+      const summary = toLiveSummary(view, classification);
+      const leaseId = classification.leaseId ?? leaseIdOf(view);
+      return leaseId
+        ? {
+            ...summary,
+            followUp: buildLiveFollowUp({
+              leaseId,
+              view,
+              readTimestamp,
+              sources: followUpSources,
+            }),
+          }
+        : summary;
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
     // and inherited RentVine export row order, which is what the client saw as "dates need to be in
@@ -817,6 +1017,7 @@ export async function loadLiveRenewalLeaseWorkspace(
   } | null = null,
   resolutions: readonly LeaseRenewalResolutionRecord[] = [],
   packetSnapshot: RenewalPacketSnapshot | null = null,
+  followUpSources: RenewalFollowUpSources = EMPTY_FOLLOW_UP_SOURCES,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -869,22 +1070,34 @@ export async function loadLiveRenewalLeaseWorkspace(
     // Live source drift can invalidate stored downstream evidence without mutating Firestore during a
     // read. Project every coupled field through that effective evidence so stale draft/outcome/
     // completion flags cannot survive merely because their historical scalar is still present.
-    const effectiveProgress = effectiveProgressAfterEvidence(
-      progress,
-      processEvidence.evidence,
-    );
+    const evidence = applyLiveFollowUpEvidence({
+      evidence: processEvidence.evidence,
+      leaseId,
+      view,
+      readTimestamp,
+      sources: followUpSources,
+    });
+    const effectiveProgress = effectiveProgressAfterEvidence(progress, evidence);
     const process = projectRenewalProcess({
       processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-      evidence: processEvidence.evidence,
+      evidence,
       evidenceBlockers: processEvidence.blockers,
       tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
       complete: effectiveProgress?.complete ?? false,
+    });
+    const followUp = buildLiveFollowUp({
+      leaseId,
+      view,
+      readTimestamp,
+      sources: followUpSources,
+      process,
     });
     summary = {
       ...summary,
       stageIndex: process.currentStepIndex,
       stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
       nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+      followUp,
     };
 
     // Once the owner decision is RECORDED, the Tenant-offer step shows a real offer built from those
@@ -947,7 +1160,16 @@ export async function loadLiveRenewalLeaseWorkspace(
       // RentVine carries none of the build-out readiness inputs, so every check honestly reads
       // "Needs input" rather than a fabricated pass.
       readiness: evaluateRenewalReadiness({}),
-      notice: buildLiveNotice(endDateIso, readTimestamp.slice(0, 10)),
+      notice: buildLiveNotice(
+        endDateIso,
+        readTimestamp.slice(0, 10),
+        followUpSources.policy,
+        {
+          leaseId,
+          propertyKey: propertyKeyOf(view),
+        },
+      ),
+      followUp,
       // Effective current evidence drives the versioned progress controls in the workspace UI.
       live: {
         leaseId,

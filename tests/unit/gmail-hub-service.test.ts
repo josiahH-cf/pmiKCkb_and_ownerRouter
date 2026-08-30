@@ -94,6 +94,19 @@ function context(actionKey: string): WorkflowCommunicationContext {
   };
 }
 
+function renewalLeaseContext(
+  purpose: "renewal_owner" | "renewal_tenant" = "renewal_tenant",
+): WorkflowCommunicationContext {
+  return {
+    lane: "renewals",
+    entityType: "renewal_lease",
+    entityId: "lease-42",
+    purpose,
+    actionKey: "gmail.mailbox.read",
+    sourceRefs: ["rentvine:lease:lease-42"],
+  };
+}
+
 function reply(body: string) {
   return {
     context: context("gmail.thread.reply"),
@@ -170,6 +183,7 @@ class FakeGmailClient extends GmailRuntimeClient {
       },
     ],
   };
+  threadError: Error | null = null;
 
   constructor(subject = actor.email) {
     super({
@@ -184,6 +198,7 @@ class FakeGmailClient extends GmailRuntimeClient {
   }
 
   override async getThread() {
+    if (this.threadError) throw this.threadError;
     return structuredClone(this.thread);
   }
 
@@ -571,6 +586,206 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     );
     expect(saved?.reason_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(saved)).not.toContain("Synthetic owner response");
+  });
+
+  it("refreshes one exact renewal lease thread monotonically and idempotently", async () => {
+    const { hub, client, store } = service({ now: () => 2_000_000 });
+    client.thread = {
+      id: "thread-renewal",
+      truncated: false,
+      messages: [
+        {
+          id: "message-outbound",
+          threadId: "thread-renewal",
+          labelIds: ["SENT"],
+          from: actor.email,
+          to: ["tenant@example.com"],
+          cc: [],
+          bcc: [],
+          subject: "Synthetic renewal",
+          date: "Thu, 20 Aug 2026 12:00:00 +0000",
+          internalDate: String(Date.parse("2026-08-20T12:00:00.000Z")),
+          messageId: "<outbound@pmikcmetro.com>",
+          references: [],
+          bodyText: "Synthetic body",
+          bodyTruncated: false,
+          attachments: [],
+        },
+      ],
+    };
+    await hub.linkExistingThread({
+      context: renewalLeaseContext(),
+      threadId: "thread-renewal",
+      reason: "Exact renewal lease thread",
+    });
+    const renewalLink = [...store.communicationLinks.values()].find(
+      (candidate) => candidate.entity_type === "renewal_lease",
+    );
+    expect(renewalLink).toMatchObject({
+      waiting_on: "resident",
+      last_contact_message_id: "message-outbound",
+      contact_observation_state: "current",
+    });
+
+    client.thread.messages.push({
+      ...client.thread.messages[0],
+      id: "message-inbound",
+      from: "Tenant <tenant@example.com>",
+      to: [actor.email],
+      internalDate: String(Date.parse("2026-08-21T12:00:00.000Z")),
+      messageId: "<inbound@example.com>",
+    });
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "updated", waitingOn: "team" });
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "duplicate", waitingOn: "team" });
+
+    const afterDuplicate = store.communicationLinks.get(renewalLink!.id)!;
+    expect(afterDuplicate.last_contact_message_id).toBe("message-inbound");
+    expect(afterDuplicate.last_contact_at_ms).toBe(
+      Date.parse("2026-08-21T12:00:00.000Z"),
+    );
+
+    // Even a provider response whose newest item is older cannot rewind stored evidence.
+    client.thread.messages = [client.thread.messages[0]];
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "stale" });
+    expect(store.communicationLinks.get(renewalLink!.id)?.last_contact_message_id).toBe(
+      "message-inbound",
+    );
+
+    // Equal provider timestamps resolve by immutable provider message id, never array order.
+    const equalTimestamp = String(Date.parse("2026-08-22T12:00:00.000Z"));
+    client.thread.messages = [
+      {
+        ...client.thread.messages[0],
+        id: "message-equal-z",
+        internalDate: equalTimestamp,
+      },
+      {
+        ...client.thread.messages[0],
+        id: "message-equal-a",
+        internalDate: equalTimestamp,
+      },
+    ];
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "updated", messageId: "message-equal-z" });
+    expect(store.communicationLinks.get(renewalLink!.id)?.last_contact_message_id).toBe(
+      "message-equal-z",
+    );
+    client.thread.messages.reverse();
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "duplicate", messageId: "message-equal-z" });
+  });
+
+  it("marks a missing targeted renewal thread Needs Verification without erasing prior evidence", async () => {
+    const { hub, client, store } = service({ now: () => 3_000_000 });
+    client.thread = {
+      id: "thread-renewal",
+      truncated: false,
+      messages: [
+        {
+          ...client.thread.messages[0],
+          id: "message-current",
+          threadId: "thread-renewal",
+          internalDate: String(Date.parse("2026-08-20T12:00:00.000Z")),
+        },
+      ],
+    };
+    await hub.linkExistingThread({
+      context: renewalLeaseContext(),
+      threadId: "thread-renewal",
+      reason: "Exact renewal lease thread",
+    });
+    const renewalLink = [...store.communicationLinks.values()].find(
+      (candidate) => candidate.entity_type === "renewal_lease",
+    )!;
+
+    client.threadError = new GmailRuntimeError("not found", 404, false);
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "needs_verification" });
+    expect(store.communicationLinks.get(renewalLink.id)).toMatchObject({
+      contact_observation_state: "needs_verification",
+      contact_observation_reason: "thread_unavailable",
+      last_contact_message_id: "message-current",
+    });
+    expect(
+      store.audit.find(
+        (entry) => entry.action === "thread_observation_needs_verification",
+      ),
+    ).toMatchObject({
+      last_contact_message_id: "message-current",
+      contact_observation_state: "needs_verification",
+      contact_observation_reason: "thread_unavailable",
+    });
+
+    client.threadError = null;
+    await expect(
+      hub.refreshLinkedThread({
+        context: renewalLeaseContext(),
+        threadId: "thread-renewal",
+      }),
+    ).resolves.toMatchObject({ status: "updated", messageId: "message-current" });
+    expect(store.communicationLinks.get(renewalLink.id)).toMatchObject({
+      contact_observation_state: "current",
+      last_contact_message_id: "message-current",
+    });
+    expect(
+      store.communicationLinks.get(renewalLink.id)?.contact_observation_reason,
+    ).toBeUndefined();
+  });
+
+  it("refuses to claim latest contact from a truncated or incomplete targeted thread", async () => {
+    const { hub, client, store } = service({ now: () => 4_000_000 });
+    client.thread = {
+      id: "thread-renewal",
+      truncated: true,
+      messages: [
+        {
+          ...client.thread.messages[0],
+          id: "message-apparently-latest",
+          threadId: "thread-renewal",
+          internalDate: String(Date.parse("2026-08-20T12:00:00.000Z")),
+        },
+      ],
+    };
+    await hub.linkExistingThread({
+      context: renewalLeaseContext(),
+      threadId: "thread-renewal",
+      reason: "Exact renewal lease thread",
+    });
+    const renewalLink = [...store.communicationLinks.values()].find(
+      (candidate) => candidate.entity_type === "renewal_lease",
+    );
+    expect(renewalLink).toMatchObject({
+      contact_observation_state: "needs_verification",
+      contact_observation_reason: "thread_unreadable",
+    });
+    expect(renewalLink?.last_contact_message_id).toBeUndefined();
   });
 
   it("binds a one-time confirmation to one linked workflow reply", async () => {

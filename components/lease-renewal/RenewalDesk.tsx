@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
 import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
+import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowUpStatus";
 import {
   Card,
   Disclosure,
@@ -140,7 +141,7 @@ export function RenewalDesk({
         <section aria-label="Needs your attention" className="ui-stack">
           <h2 className="section-subtitle">Needs your attention</h2>
           {attention.map((item) => (
-            <AttentionCard item={item} key={item.leaseId} />
+            <AttentionCard item={item} key={item.dedupeKey ?? item.leaseId} />
           ))}
         </section>
       ) : null}
@@ -245,6 +246,9 @@ function ActionableLeaseCard({
           </div>
         </div>
         <Stepper currentIndex={lease.stageIndex} steps={RENEWAL_STEPS} />
+        {lease.followUp ? (
+          <RenewalFollowUpStatus compact projection={lease.followUp} />
+        ) : null}
         <div className="ui-spread">
           <span className="muted">Next: {lease.nextAction}</span>
           <Link className="secondary-button" href={href}>
@@ -268,9 +272,14 @@ function CollapsedGroup({
       <p className="muted">{note}</p>
       <ul className="ui-rows">
         {leases.map((lease) => (
-          <li className="ui-spread" key={lease.id}>
-            <span>{lease.addressLabel}</span>
-            <span className="ui-tag">{lease.reasonLabel}</span>
+          <li className="ui-stack-tight" key={lease.id}>
+            <div className="ui-spread">
+              <span>{lease.addressLabel}</span>
+              <span className="ui-tag">{lease.reasonLabel}</span>
+            </div>
+            {lease.followUp ? (
+              <RenewalFollowUpStatus compact projection={lease.followUp} />
+            ) : null}
           </li>
         ))}
       </ul>

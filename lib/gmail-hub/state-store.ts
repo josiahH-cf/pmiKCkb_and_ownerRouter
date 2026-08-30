@@ -330,6 +330,20 @@ export interface GmailStateStore {
     lastContactAtMs?: number;
     lastContactMessageId?: string;
     lastContactSource?: "gmail_thread";
+  }): Promise<"updated" | "duplicate" | "stale" | "missing">;
+  refreshCommunicationObservation(input: {
+    linkId: string;
+    messageId: string;
+    nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
+  }): Promise<"updated" | "duplicate" | "stale" | "missing">;
+  markCommunicationNeedsVerification(input: {
+    linkId: string;
+    nowMs: number;
+    reason: "thread_unavailable" | "thread_unreadable";
   }): Promise<"updated" | "duplicate" | "missing">;
   markCommunicationRead(input: {
     linkId: string;
@@ -995,7 +1009,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     lastContactAtMs?: number;
     lastContactMessageId?: string;
     lastContactSource?: "gmail_thread";
-  }): Promise<"updated" | "duplicate" | "missing"> {
+  }): Promise<"updated" | "duplicate" | "stale" | "missing"> {
     const ref = this.db
       .collection(GMAIL_STATE_COLLECTIONS.workflowLinks)
       .doc(input.linkId);
@@ -1003,7 +1017,15 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       const snapshot = await transaction.get(ref);
       if (!snapshot.exists) return "missing" as const;
       const link = snapshot.data() as WorkflowCommunicationLink;
-      if (link.last_message_id === input.messageId) return "duplicate" as const;
+      if (
+        link.last_message_id === input.messageId &&
+        link.contact_observation_state !== "needs_verification"
+      ) {
+        return "duplicate" as const;
+      }
+      if (communicationObservationIsStale(link, input)) {
+        return "stale" as const;
+      }
       const next: WorkflowCommunicationLink = {
         ...link,
         status: "attention_required",
@@ -1018,6 +1040,8 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         ...(input.lastContactSource
           ? { last_contact_source: input.lastContactSource }
           : {}),
+        contact_observation_state: "current",
+        contact_observation_reason: undefined,
         updated_at_ms: input.nowMs,
         ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
       };
@@ -1025,6 +1049,89 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       transaction.create(
         this.db.collection(GMAIL_STATE_COLLECTIONS.workflowAudit).doc(uuidv7()),
         workflowAudit(next, "reply_attention_created", input.nowMs),
+      );
+      return "updated" as const;
+    });
+  }
+
+  async refreshCommunicationObservation(input: {
+    linkId: string;
+    messageId: string;
+    nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
+  }): Promise<"updated" | "duplicate" | "stale" | "missing"> {
+    const ref = this.db
+      .collection(GMAIL_STATE_COLLECTIONS.workflowLinks)
+      .doc(input.linkId);
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) return "missing" as const;
+      const link = snapshot.data() as WorkflowCommunicationLink;
+      if (
+        link.last_contact_message_id === input.messageId &&
+        link.contact_observation_state !== "needs_verification"
+      ) {
+        return "duplicate" as const;
+      }
+      if (communicationObservationIsStale(link, input)) {
+        return "stale" as const;
+      }
+      const next: WorkflowCommunicationLink = {
+        ...link,
+        ...(input.waitingOn ? { waiting_on: input.waitingOn } : {}),
+        ...(input.lastContactAtMs ? { last_contact_at_ms: input.lastContactAtMs } : {}),
+        ...(input.lastContactMessageId
+          ? { last_contact_message_id: input.lastContactMessageId }
+          : {}),
+        ...(input.lastContactSource
+          ? { last_contact_source: input.lastContactSource }
+          : {}),
+        contact_observation_state: "current",
+        contact_observation_reason: undefined,
+        updated_at_ms: input.nowMs,
+        ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+      };
+      transaction.set(ref, stripUndefined(next));
+      transaction.create(
+        this.db.collection(GMAIL_STATE_COLLECTIONS.workflowAudit).doc(uuidv7()),
+        workflowAudit(next, "thread_observation_refreshed", input.nowMs),
+      );
+      return "updated" as const;
+    });
+  }
+
+  async markCommunicationNeedsVerification(input: {
+    linkId: string;
+    nowMs: number;
+    reason: "thread_unavailable" | "thread_unreadable";
+  }): Promise<"updated" | "duplicate" | "missing"> {
+    const ref = this.db
+      .collection(GMAIL_STATE_COLLECTIONS.workflowLinks)
+      .doc(input.linkId);
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) return "missing" as const;
+      const link = snapshot.data() as WorkflowCommunicationLink;
+      if (
+        link.contact_observation_state === "needs_verification" &&
+        link.contact_observation_reason === input.reason
+      ) {
+        return "duplicate" as const;
+      }
+      const next: WorkflowCommunicationLink = {
+        ...link,
+        contact_observation_state: "needs_verification",
+        contact_observation_reason: input.reason,
+        updated_at_ms: input.nowMs,
+        ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+      };
+      transaction.set(ref, next);
+      transaction.create(
+        this.db.collection(GMAIL_STATE_COLLECTIONS.workflowAudit).doc(uuidv7()),
+        workflowAudit(next, "thread_observation_needs_verification", input.nowMs),
       );
       return "updated" as const;
     });
@@ -1462,10 +1569,18 @@ export class MemoryGmailStateStore implements GmailStateStore {
     lastContactAtMs?: number;
     lastContactMessageId?: string;
     lastContactSource?: "gmail_thread";
-  }): Promise<"updated" | "duplicate" | "missing"> {
+  }): Promise<"updated" | "duplicate" | "stale" | "missing"> {
     const link = this.communicationLinks.get(input.linkId);
     if (!link) return "missing";
-    if (link.last_message_id === input.messageId) return "duplicate";
+    if (
+      link.last_message_id === input.messageId &&
+      link.contact_observation_state !== "needs_verification"
+    ) {
+      return "duplicate";
+    }
+    if (communicationObservationIsStale(link, input)) {
+      return "stale";
+    }
     link.status = "attention_required";
     link.last_message_id = input.messageId;
     link.attention_at_ms = input.nowMs;
@@ -1474,6 +1589,8 @@ export class MemoryGmailStateStore implements GmailStateStore {
     if (input.lastContactMessageId)
       link.last_contact_message_id = input.lastContactMessageId;
     if (input.lastContactSource) link.last_contact_source = input.lastContactSource;
+    link.contact_observation_state = "current";
+    delete link.contact_observation_reason;
     delete link.read_at_ms;
     link.updated_at_ms = input.nowMs;
     Object.assign(
@@ -1481,6 +1598,68 @@ export class MemoryGmailStateStore implements GmailStateStore {
       refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
     );
     this.audit.push(workflowAudit(link, "reply_attention_created", input.nowMs));
+    return "updated";
+  }
+
+  async refreshCommunicationObservation(input: {
+    linkId: string;
+    messageId: string;
+    nowMs: number;
+    waitingOn?: WorkflowCommunicationWaitingOn;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+    lastContactSource?: "gmail_thread";
+  }): Promise<"updated" | "duplicate" | "stale" | "missing"> {
+    const link = this.communicationLinks.get(input.linkId);
+    if (!link) return "missing";
+    if (
+      link.last_contact_message_id === input.messageId &&
+      link.contact_observation_state !== "needs_verification"
+    ) {
+      return "duplicate";
+    }
+    if (communicationObservationIsStale(link, input)) {
+      return "stale";
+    }
+    if (input.waitingOn) link.waiting_on = input.waitingOn;
+    if (input.lastContactAtMs) link.last_contact_at_ms = input.lastContactAtMs;
+    if (input.lastContactMessageId)
+      link.last_contact_message_id = input.lastContactMessageId;
+    if (input.lastContactSource) link.last_contact_source = input.lastContactSource;
+    link.contact_observation_state = "current";
+    delete link.contact_observation_reason;
+    link.updated_at_ms = input.nowMs;
+    Object.assign(
+      link,
+      refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+    );
+    this.audit.push(workflowAudit(link, "thread_observation_refreshed", input.nowMs));
+    return "updated";
+  }
+
+  async markCommunicationNeedsVerification(input: {
+    linkId: string;
+    nowMs: number;
+    reason: "thread_unavailable" | "thread_unreadable";
+  }): Promise<"updated" | "duplicate" | "missing"> {
+    const link = this.communicationLinks.get(input.linkId);
+    if (!link) return "missing";
+    if (
+      link.contact_observation_state === "needs_verification" &&
+      link.contact_observation_reason === input.reason
+    ) {
+      return "duplicate";
+    }
+    link.contact_observation_state = "needs_verification";
+    link.contact_observation_reason = input.reason;
+    link.updated_at_ms = input.nowMs;
+    Object.assign(
+      link,
+      refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+    );
+    this.audit.push(
+      workflowAudit(link, "thread_observation_needs_verification", input.nowMs),
+    );
     return "updated";
   }
 
@@ -1626,9 +1805,39 @@ function workflowAudit(
     ...(link.gmail_message_id ? { gmail_message_id: link.gmail_message_id } : {}),
     ...(link.gmail_thread_id ? { gmail_thread_id: link.gmail_thread_id } : {}),
     ...(link.last_message_id ? { last_message_id: link.last_message_id } : {}),
+    ...(link.last_contact_message_id
+      ? { last_contact_message_id: link.last_contact_message_id }
+      : {}),
+    ...(link.last_contact_at_ms ? { last_contact_at_ms: link.last_contact_at_ms } : {}),
+    ...(link.waiting_on ? { waiting_on: link.waiting_on } : {}),
+    ...(link.contact_observation_state
+      ? { contact_observation_state: link.contact_observation_state }
+      : {}),
+    ...(link.contact_observation_reason
+      ? { contact_observation_reason: link.contact_observation_reason }
+      : {}),
     created_at_ms: createdAtMs,
     ...bodylessRetentionAuditFields(createdAtMs),
   };
+}
+
+/** Compare immutable provider observation identity, including a deterministic equal-time tie. */
+function communicationObservationIsStale(
+  link: WorkflowCommunicationLink,
+  input: {
+    messageId: string;
+    lastContactAtMs?: number;
+    lastContactMessageId?: string;
+  },
+): boolean {
+  if (link.last_contact_at_ms === undefined) return false;
+  if (input.lastContactAtMs === undefined) return true;
+  if (input.lastContactAtMs !== link.last_contact_at_ms) {
+    return input.lastContactAtMs < link.last_contact_at_ms;
+  }
+  const currentId = link.last_contact_message_id ?? link.last_message_id;
+  const incomingId = input.lastContactMessageId ?? input.messageId;
+  return Boolean(currentId && incomingId.localeCompare(currentId) < 0);
 }
 
 function stripUndefined<T extends object>(input: T): Partial<T> {

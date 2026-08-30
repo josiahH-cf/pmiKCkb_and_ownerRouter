@@ -129,6 +129,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "lib/console/rentvine-live-provider.ts:configuredClient:buildLiveRentVineConfig",
+  // S75: authorizes an exact renewal-lease Gmail read against the cached Live portfolio before
+  // constructing any Gmail client; it exposes no RentVine mutation.
+  "lib/gmail-hub/workflow-authorization.ts:requireWorkflowCommunicationContext:buildLiveRentVineConfig",
   "lib/lease-renewal/live-desk.ts:loadLiveRenewalDesk:buildLiveRenewalConfig",
   "lib/lease-renewal/live-desk.ts:loadLiveRenewalLeaseWorkspace:buildLiveRenewalConfig",
   "lib/lease-renewal/live-notices.ts:loadLiveRenewalNotices:buildLiveRentVineConfig",

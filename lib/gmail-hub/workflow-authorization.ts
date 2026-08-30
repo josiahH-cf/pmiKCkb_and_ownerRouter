@@ -4,6 +4,9 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import { getMaintenanceTicket } from "@/lib/firestore/maintenance-tickets";
 import { getWorkflowRun } from "@/lib/firestore/workflows";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
+import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
 
 /**
@@ -39,6 +42,39 @@ export async function requireWorkflowCommunicationContext(
       "A renewal run context does not identify a Live-backed Gmail target.",
       409,
     );
+  }
+
+  if (context.entityType === "renewal_lease") {
+    const expectedSourceRef = `rentvine:lease:${context.entityId}`;
+    if (context.sourceRefs.length !== 1 || context.sourceRefs[0] !== expectedSourceRef) {
+      throw new EditableLayerError(
+        "Renewal communication must carry the exact live lease source reference.",
+        409,
+      );
+    }
+    const config = buildLiveRentVineConfig();
+    if (!config.ok) {
+      throw new EditableLayerError(
+        "Live RentVine must be connected before linking a renewal thread.",
+        409,
+      );
+    }
+    let views;
+    try {
+      views = await requireCurrentLeaseViews(config.rentvineClient, Date.now());
+    } catch {
+      throw new EditableLayerError(
+        "Current live lease evidence is unavailable; refresh it before linking Gmail.",
+        409,
+      );
+    }
+    if (!views.some((view) => leaseViewId(view) === context.entityId)) {
+      throw new EditableLayerError(
+        "The renewal communication target does not exist in the current live lease read.",
+        404,
+      );
+    }
+    return user;
   }
 
   const run = await getWorkflowRun(user, context.entityId);

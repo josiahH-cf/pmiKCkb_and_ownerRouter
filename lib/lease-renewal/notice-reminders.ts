@@ -185,9 +185,10 @@ export function planCallTasks(options: {
   reminders: readonly NoticeReminder[];
   lastContactByLease: Readonly<Record<string, string | null | undefined>>;
   referenceDateIso: string;
-  minDaysSinceContact?: number;
+  /** Explicit client-confirmed/operator-supplied cadence; there is no built-in timer. */
+  minDaysSinceContact: number;
 }): CallTaskPlan {
-  const minDays = options.minDaysSinceContact ?? 7;
+  const minDays = options.minDaysSinceContact;
   const seen = new Set<string>();
   const tasks: CallTask[] = [];
 
