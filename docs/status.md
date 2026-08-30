@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtf01asj-4b3665ad072f`, 100% traffic
-- Serving commit: `d2dfbcc2a865af1f92103083c2a49714c2dc3977`
+- Serving revision: `pmi-kc-app-rmtf4s18h-3813fe5277d5`, 100% traffic
+- Serving commit: `4131df973ae2593d4f75184513db4366fb56ddae`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, and S80 are deployed. S80 passed the canonical local gate and exact-SHA aggregate CI run
-`33280384474`; its zero-traffic candidate passed exact identity, bounded-route smoke, and
+S77, S59, S80, and S72 are deployed. S72 passed the canonical local gate and exact-SHA aggregate CI
+run `33285602786`; its zero-traffic candidate passed exact identity, bounded-route smoke, and
 configuration readback before promotion. The promoted revision was read back at 100% with every
-runtime invariant preserved and S59 retained as the exact rollback target.
+runtime invariant preserved and S80 retained as the exact rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -85,16 +85,24 @@ runtime invariant preserved and S59 retained as the exact rollback target.
   exact case values, so S63 must move those bindings to secure runtime input and redact output before
   the next proof.
 
+## Deployed S72 six-step process
+
+- New renewal work pins immutable `renewal-v1`: six ordered steps with stable operational substeps,
+  roles, exact evidence predicates, dependency blockers, alternate exits, and transitive reopening.
+- The workspace shows each role, state, blocker, and next safe action. Coarse intent, a draft, a note,
+  or a legacy stage cannot forge completion; base rent and recurring charges remain distinct.
+- Accepted moves toward documents, counter/change reopens exact owner work, declined requires a
+  non-renewal handoff, and waiting/Needs Verification remains incomplete. Missing copy, timing,
+  catalog/mapping, or write authority blocks only its dependent substep.
+- Historical unversioned records remain `legacy-four-step-v0` compatibility inputs and are not
+  silently migrated. Process state cannot send, write, grant an action, or claim provider success.
+- Focused checks passed 14 files/115 tests. The canonical gate passed 531 unit files with one
+  intentional skip (4,818 tests and four skips), 25 Firestore files/115 tests, every policy/static
+  gate, the zero-vulnerability production audit, and the 104-page build. Exact commit/CI,
+  candidate/configuration, promotion, and stable readback passed.
+
 ## Remaining renewal stabilization implementation
 
-- The S72 repository candidate implements six versioned steps with detailed operational substeps,
-  exact evidence, alternate exits, deterministic reopening, legacy-version compatibility, and a
-  workspace projection of roles/blockers/next actions. Focused and canonical gates are green; exact
-  CI and production release/readback remain before it is a deployed fact. The canonical run passed
-  531 unit files with one intentional skip (4,818 tests and four skips), 25 Firestore files/115 tests,
-  every policy/static gate, the zero-vulnerability production audit, and the 104-page build.
-- S72 carries the deployed contractual-base-rent/reference-evidence contract through its six-step
-  process and keeps recurring charges separate.
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
   stronger pricing, reconciliation, Admin configuration, exact-action, and source-write boundaries.
 - Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
@@ -103,8 +111,8 @@ runtime invariant preserved and S59 retained as the exact rollback target.
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, and S80 are complete and deployed; S72 is an implemented release candidate;
-  S74/S75/S78/S79/S81/S63 and the separately gated S30 effect remain in the ordered bundle.
+- S77, S59, S80, and S72 are complete and deployed; S74/S75/S78/S79/S81/S63 and the separately gated
+  S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation

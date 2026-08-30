@@ -53,16 +53,15 @@ closed.
 
 ## Current acceptance
 
-The production release at commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` passed 528 unit files
-with one intentional file skip (4,795 tests and four skips), all 115 Firestore tests, every
+The production release at commit `4131df973ae2593d4f75184513db4366fb56ddae` passed 531 unit files
+with one intentional file skip (4,818 tests and four skips), 25 Firestore files/115 tests, every
 static/policy gate, a zero-vulnerability production audit, and the 104-page build. Exact-SHA aggregate
-CI run `33280384474` passed. Zero-traffic revision `pmi-kc-app-rmtf01asj-4b3665ad072f` then passed
+CI run `33285602786` passed. Zero-traffic revision `pmi-kc-app-rmtf4s18h-3813fe5277d5` then passed
 exact identity, bounded-route, and configuration readback before promotion and stable 100% traffic
-readback. S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491` is the captured rollback target; the
+readback. S80 revision `pmi-kc-app-rmtf01asj-4b3665ad072f` is the captured rollback target; the
 earlier predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/client-checklist.md`, and `docs/feature-suites/README.md`. Historical
-V1/Demo specifications are not part of this contract. S72 is implemented as a repository candidate;
-its canonical gate is green and exact CI plus production release/readback remain pending.
+V1/Demo specifications are not part of this contract. S72 is deployed; S75 is the next active suite.

@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-29.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtf01asj-4b3665ad072f`            |
-| Serving commit    | `d2dfbcc2a865af1f92103083c2a49714c2dc3977`     |
+| Serving revision  | `pmi-kc-app-rmtf4s18h-3813fe5277d5`            |
+| Serving commit    | `4131df973ae2593d4f75184513db4366fb56ddae`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -64,17 +64,8 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtew9a2z-46a2353b6491` from commit
-`64031f8ee028f09930660060c8f5f627ca5ccde1`.
-
-```bash
-CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
-  gcloud run services update-traffic pmi-kc-app \
-  --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtew9a2z-46a2353b6491=100 --quiet
-```
-
-Forward restoration:
+Captured predecessor: `pmi-kc-app-rmtf01asj-4b3665ad072f` from commit
+`d2dfbcc2a865af1f92103083c2a49714c2dc3977`.
 
 ```bash
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
@@ -83,14 +74,25 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   --to-revisions=pmi-kc-app-rmtf01asj-4b3665ad072f=100 --quiet
 ```
 
+Forward restoration:
+
+```bash
+CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
+  gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmtf4s18h-3813fe5277d5=100 --quiet
+```
+
 The 2026-08-27 rehearsal switched the predecessor to 100%
 (`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`), read it back, and passed root, sign-in, Admin, and exact
 version smoke. It restored the then-current
 `pmi-kc-app-rmtbh280n-61b78ef991cc` revision and passed the same smoke again. The 2026-08-29 S77
 release captured that restored revision as `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` from commit
-`2d7903d42dce9dbfad49338b959e467f6c333ccc`; S59 then captured that S77 revision, and S80 captured
-the S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491` as its immediate rollback target. No client-data
-write or client-facing effect occurred.
+`2d7903d42dce9dbfad49338b959e467f6c333ccc`; S59 then captured that S77 revision. S80 captured the
+S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491` from commit
+`64031f8ee028f09930660060c8f5f627ca5ccde1`; S72 captured the S80 revision
+`pmi-kc-app-rmtf01asj-4b3665ad072f` as its immediate rollback target. No client-data write or
+client-facing effect occurred.
 
 ## Configuration invariants
 

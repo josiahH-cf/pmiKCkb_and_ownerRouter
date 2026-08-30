@@ -47,11 +47,11 @@ the specification work or by an unconfirmed effect.
     reconciliation, Admin pricing/source approvals and configuration, independent exact-action
     readiness, closed source writes, and permanent in-app-send refusal. Focused and canonical gates
     are green; exact CI, candidate/configuration, promotion, and stable production proof also passed.
-15. Implemented the S72 release candidate: immutable `renewal-v1`, legacy compatibility without live
+15. Implemented and deployed S72: immutable `renewal-v1`, legacy compatibility without live
     migration, stable substep/evidence ids, exact evidence projection, deterministic branch/reopening
     rules, base-rent/charge separation, evidence-gated completion, and a six-step workspace panel.
-    The expected four fail-first assertions were captured; the focused and canonical gates are green.
-    Exact-SHA CI and production release/readback remain before this item is deployed.
+    The expected four fail-first assertions were captured; focused, canonical, exact-SHA CI,
+    candidate/configuration, promotion, and stable production gates are green.
 
 ## Completed release evidence
 
@@ -80,6 +80,12 @@ the specification work or by an unconfirmed effect.
    `pmi-kc-app-rmtf01asj-4b3665ad072f` preserved Production+Live, managed identity, 11 Spaces,
    closed Sheet writeback, allowance 50, and secret bindings; exact candidate and stable smoke passed
    before/after promotion to 100%. Immediate rollback target is `pmi-kc-app-rmtew9a2z-46a2353b6491`.
+8. S72 commit `4131df973ae2593d4f75184513db4366fb56ddae` was pushed to `main`; exact-SHA
+   aggregate CI run `33285602786` passed. Zero-traffic revision
+   `pmi-kc-app-rmtf4s18h-3813fe5277d5` preserved Production+Live, managed identity, 11 Spaces,
+   closed Sheet writeback, allowance 50, and three expected secret references; exact candidate and
+   stable canonical-host smoke passed before/after promotion to 100%. Immediate rollback target is
+   `pmi-kc-app-rmtf01asj-4b3665ad072f`.
 
 ## Current closure sequence
 
@@ -91,8 +97,8 @@ The contracts are frozen as follows:
   cache/evidence provenance, approved two-mile/15-request policy, and base-rent/reference separation.
 - **S80:** complete and deployed with canonical, exact-SHA CI, candidate/configuration, promotion,
   stable production, and rollback-target readback proof.
-- **S72:** implementation candidate canonical-green; exact-SHA CI and release/readback pending for
-  the versioned six-step process, detailed substeps, evidence, branches, and reopening.
+- **S72:** complete and deployed with versioned six-step process, detailed substeps/evidence,
+  compatibility, branches/reopening, canonical, exact CI, candidate/configuration, and stable proof.
 - **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
 - **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
 - **S74:** approved owner/tenant templates plus optional constrained AI phrasing and channel truth.
@@ -114,7 +120,7 @@ already-correct safety facts stay in preservation rather than being rewritten as
    downstream suites consume them.
 4. Preserve deployed S80 role/Space/effect parity and its exact closed-key/send boundaries while
    downstream suites consume the matrix.
-5. Finish S72's exact-SHA CI/release/readback proof, then implement S75's shared follow-up projection.
+5. Preserve deployed S72 and implement S75's shared follow-up projection.
 6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
    those projections.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.

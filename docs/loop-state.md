@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtf01asj-4b3665ad072f` / commit
-  `d2dfbcc2a865af1f92103083c2a49714c2dc3977` at 100% traffic.
+- Production serves `pmi-kc-app-rmtf4s18h-3813fe5277d5` / commit
+  `4131df973ae2593d4f75184513db4366fb56ddae` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -33,11 +33,10 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   readback are green; S59 is the captured rollback target.
 - Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
   `.gcloudignore`; the user-owned working-tree paths remain untouched.
-- The S72 repository candidate now has immutable `renewal-v1`, legacy compatibility without live
+- S72 is implemented and deployed: immutable `renewal-v1`, legacy compatibility without live
   migration, exact evidence projection, branch/reopening/invalidation rules, and a six-step workspace
-  panel. The expected four fail-first assertions were captured; focused and canonical gates are
-  green. Production still serves the preceding four-step revision pending exact-SHA CI and
-  release/readback proof.
+  panel. The expected four fail-first assertions, focused/canonical gates, exact-SHA CI, candidate
+  config/smoke, promotion, and stable readback are green; S80 is the captured rollback target.
 - The screenshot path remains text-only until S79.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
@@ -46,20 +45,21 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Next exact action
 
-Audit the canonical-green S72 diff, commit/push it, require exact-SHA aggregate CI, then release the
-exact zero-traffic candidate with configuration/smoke/promotion/stable readback before advancing to
-S75. Preserve S59/S80 and leave unknown policy/provider facts explicitly unset.
+Implement S75's shared waiting/last-contact/effective-timing projection fail-first, consuming S72's
+stable evidence ids while preserving targeted manual refresh, unset-safe timing, and the permanent
+no-autonomous-outreach boundary.
 
 ## Ordered continuation
 
 1. S77 canonical/release/readback proof — complete.
 2. S59 RentCast mapping/cache/query truth — complete and deployed.
 3. S80 role/action parity — complete and deployed.
-4. S72 six-step/substep model — canonical-green candidate; exact CI/release active, then S75.
-5. S78 canonical triage desk.
-6. S74 governed copy/AI and S79 receipt-bound attachment.
-7. S81 navigation/readiness.
-8. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
+4. S72 six-step/substep model — complete and deployed.
+5. S75 shared follow-up projection — active.
+6. S78 canonical triage desk.
+7. S74 governed copy/AI and S79 receipt-bound attachment.
+8. S81 navigation/readiness.
+9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
    separately authorized.
 
 ## External inputs that remain safe to wait on
