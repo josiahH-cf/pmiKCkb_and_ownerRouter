@@ -3,8 +3,8 @@
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` as revision
-`pmi-kc-app-rmtfd7hvu-a310a0d0db6b` at 100% traffic.
+`2745cdbbf0a0bf14320a6dde6c63128134f6d807` as revision
+`pmi-kc-app-rmtfk9fln-c9af498cb9c5` at 100% traffic.
 
 Client handoffs:
 
@@ -19,9 +19,9 @@ Client handoffs:
 
 ## Direct outcome
 
-The dependency-independent I01–I11 baseline plus S77, S59, S80, S72, S75, and S78 are implemented,
+The dependency-independent I01–I11 baseline plus S77, S59, S80, S72, S75, S78, and S74 are implemented,
 verified, deployed, and rollback-proven to their allowed boundaries. Internal renewal stabilization
-continues with S74, S79, S81, and S63 before the editable customer deck and real owner verdicts.
+continues with S79, S81, and S63 before the editable customer deck and real owner verdicts.
 External activations wait on named client, owner, source-data, credential, or official-provider
 inputs; none is disguised as internal engineering work.
 
@@ -41,7 +41,9 @@ The deployed release includes:
 9. production dependency overrides with zero known production advisories; and
 10. one canonical role-consistent Live renewal desk with exact-source identity, six-step/follow-up
     truth, deterministic URL-backed query controls, current-month/tracked-incomplete retention, and
-    one legacy-route story.
+    one legacy-route story; and
+11. versioned owner/tenant copy, locked server facts/recipients, constrained editable/AI prose,
+    exact preview binding, and channel truth with review-only refusal until client copy is approved.
 
 ## Safety and external-effect boundary
 
@@ -197,6 +199,14 @@ Zero-traffic candidate `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` passed exact identity
 configuration readback before promotion and stable 100% readback. Its immediate rollback target is
 the S75 revision `pmi-kc-app-rmtf9wrzz-4c981bf57679`.
 
-The unit runner preserves the current full 538-file inventory while using a bounded eight-worker
+The subsequent S74 release passed 540 unit files with one intentional skip (4,932 passing tests and
+four skips), all 115 Firestore tests, every policy/static gate, the production dependency audit, and
+the 107-route build. Exact commit `2745cdbbf0a0bf14320a6dde6c63128134f6d807` passed aggregate CI run
+[33300119902](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33300119902).
+Zero-traffic candidate `pmi-kc-app-rmtfk9fln-c9af498cb9c5` passed exact identity, bounded-route, and
+normalized configuration readback before promotion and stable 100% readback. Its immediate rollback
+target is the S78 revision `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`.
+
+The unit runner preserves the current full 541-file inventory while using a bounded eight-worker
 thread pool in a native Linux shadow. The retired roughly 40–48-minute behavior is no longer the
 current performance claim.

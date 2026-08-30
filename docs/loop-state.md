@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` / commit
-  `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` at 100% traffic.
+- Production serves `pmi-kc-app-rmtfk9fln-c9af498cb9c5` / commit
+  `2745cdbbf0a0bf14320a6dde6c63128134f6d807` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -48,18 +48,23 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   search/filter/sort rules cover every supported value and explicit nulls; the default window begins
   on the first of the month and retains tracked incomplete work. The attention fold consumes the same
   ordered source, and the legacy notices route enters the canonical desk with no sample story.
+- S74 is implemented and deployed: separate versioned owner/tenant contracts, one locked server
+  fact/recipient envelope, strict editable regions, optional constrained assistance with deterministic
+  validation/fallback, S77-bound hashes, and exact channel-evidence states are green. Current copy is
+  review-only, so preview is available while tailoring/Gmail creation refuse before provider
+  construction until the client supplies approved wording and channel rules.
 - The screenshot path remains text-only until S79.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
-- S59 used one controlled billed RentCast read and zero writes. S75 and S78 delivery changed only the
-  bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change, or source
-  write ran.
+- S59 used one controlled billed RentCast read and zero writes. S75, S78, and S74 delivery changed only
+  bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change, model call,
+  Gmail draft, or source write ran.
 
 ## Next exact action
 
-Implement S74's governed owner/tenant template and optional constrained-AI boundary fail-first,
-preserving exact facts, recipients, values, dates, mandatory/forbidden copy, channel evidence, S77
-preview/confirmation, and every no-send/no-write boundary.
+Implement S79's exact receipt-bound one-image Gmail MIME/readback path fail-first behind the still-
+closed Drive action, preserving S77/S74 preview fingerprints, review-only refusal, one-attempt
+reconciliation, text-only compatibility, and every no-send/no-write boundary.
 
 ## Ordered continuation
 
@@ -69,8 +74,8 @@ preview/confirmation, and every no-send/no-write boundary.
 4. S72 six-step/substep model — complete and deployed.
 5. S75 shared follow-up projection — complete and deployed.
 6. S78 canonical triage desk — complete and deployed.
-7. S74 governed copy/AI — active; then S79 receipt-bound attachment.
-8. S81 navigation/readiness.
+7. S74 governed copy/AI — complete and deployed.
+8. S79 receipt-bound attachment — active; then S81 navigation/readiness.
 9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
    separately authorized.
 

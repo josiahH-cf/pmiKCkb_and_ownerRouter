@@ -63,12 +63,17 @@ the specification work or by an unconfirmed effect.
     search/filter/sort controls define every missing-value and tie rule; the first-of-month/120-day
     cohort retains tracked incomplete work; attention consumes the same ordered source; and the
     legacy notices route redirects to the canonical desk without a sample-data story.
+18. Implemented and deployed S74: separate versioned owner/tenant copy contracts, one server-built
+    locked fact/recipient envelope, strict editable regions, deterministic rendering/validation,
+    optional constrained assistance, S77-bound template/envelope hashes, and exact channel-evidence
+    states. Current copy remains review-only and refuses tailoring/Gmail creation before provider
+    construction until client-approved wording and channel rules arrive.
 
 ## Completed release evidence
 
-1. The last shipped full local gate passed 534 unit files with one intentional skip and 4,842 unit
+1. The last shipped full local gate passed 540 unit files with one intentional skip and 4,932 unit
    tests with four skips; all 115 Firestore tests, policy/static gates, dependency audit, and the
-   104-page production build passed.
+   107-page production build passed.
 2. Commit `6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate CI run
    `33069769758` passed.
 3. Zero-traffic revision `pmi-kc-app-rmtbh280n-61b78ef991cc` passed exact commit/revision smoke, was
@@ -111,6 +116,13 @@ the specification work or by an unconfirmed effect.
     configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
     before/after promotion to 100%. Immediate rollback target is
     `pmi-kc-app-rmtf9wrzz-4c981bf57679`.
+11. S74 commit `2745cdbbf0a0bf14320a6dde6c63128134f6d807` was pushed to `main`; exact-SHA
+    aggregate CI run `33300119902` passed. Zero-traffic revision
+    `pmi-kc-app-rmtfk9fln-c9af498cb9c5` preserved Production+Live, managed identity, 11 Spaces,
+    closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
+    configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
+    before/after promotion to 100%. Immediate rollback target is
+    `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`.
 
 ## Current closure sequence
 
@@ -130,7 +142,9 @@ The contracts are frozen as follows:
 - **S78:** complete and deployed with one exact-source canonical worklist, deterministic URL-backed
   search/sort/filter/null/cohort rules, shared attention ordering, role-consistent routing, canonical
   and exact-SHA CI gates, candidate/configuration/promotion/stable proof, and no client effect.
-- **S74:** approved owner/tenant templates plus optional constrained AI phrasing and channel truth.
+- **S74:** complete and deployed with versioned owner/tenant copy, a locked server envelope,
+  constrained editable/AI phrasing, S77 hash binding, exact channel truth, canonical/CI/candidate/
+  configuration/stable proof, and review-only refusal until approved wording/evidence arrives.
 - **S79:** exact receipt-bound screenshot as one unsent Gmail attachment; its Drive key stays closed.
 - **S81:** narrow task-oriented Admin/Connections navigation without authority/store merging.
 - **S63/S30:** four-lease source-read-only proof with exact app evidence, and separately blocked one-
@@ -153,7 +167,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    boundaries.
 6. Preserve deployed S78's canonical desk, exact identity/query/cohort contract, role routing, and
    shared attention source while downstream suites consume its lease links.
-7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.
+7. Preserve deployed S74's versioned template/fact-lock/channel-state boundary and review-only
+   provider refusal while downstream suites bind its exact envelope identity.
 8. Implement S79's receipt-bound MIME/readback path behind the still-closed Drive action.
 9. Implement S81's narrow navigation manifest, index, and anchors without moving authority or
    provider truth.

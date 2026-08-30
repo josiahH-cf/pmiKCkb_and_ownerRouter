@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-30.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`            |
-| Serving commit    | `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5`     |
+| Serving revision  | `pmi-kc-app-rmtfk9fln-c9af498cb9c5`            |
+| Serving commit    | `2745cdbbf0a0bf14320a6dde6c63128134f6d807`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -64,14 +64,14 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtf9wrzz-4c981bf57679` from commit
-`1bd2e8b0446e4e11e632563a9515f0fc8343b4d9`.
+Captured predecessor: `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` from commit
+`9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5`.
 
 ```bash
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtf9wrzz-4c981bf57679=100 --quiet
+  --to-revisions=pmi-kc-app-rmtfd7hvu-a310a0d0db6b=100 --quiet
 ```
 
 Forward restoration:
@@ -80,7 +80,7 @@ Forward restoration:
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtfd7hvu-a310a0d0db6b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtfk9fln-c9af498cb9c5=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%
@@ -96,7 +96,9 @@ S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491` from commit
 `pmi-kc-app-rmtf4s18h-3813fe5277d5` from commit
 `4131df973ae2593d4f75184513db4366fb56ddae`; S78 then captured the S75 revision
 `pmi-kc-app-rmtf9wrzz-4c981bf57679` from commit
-`1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` as its immediate rollback target. The S78 candidate and
+`1bd2e8b0446e4e11e632563a9515f0fc8343b4d9`; S74 then captured the S78 revision
+`pmi-kc-app-rmtfd7hvu-a310a0d0db6b` from commit
+`9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` as its immediate rollback target. The S74 candidate and
 predecessor normalized configurations matched before promotion. No client-data write or
 client-facing effect occurred.
 

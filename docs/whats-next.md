@@ -4,12 +4,12 @@ Updated: 2026-08-30.
 
 ## Internal closure artifacts
 
-S77, S59, S80, S72, S75, and S78 are implemented, verified, and deployed through exact-SHA CI,
-zero-traffic candidate smoke/configuration readback, promotion, and stable production readback. S74
-is the next internal slice: implement governed template/fact locks and optional constrained-AI
-behavior while approved wording and channel rules remain explicitly not ready. Then complete S79's
-receipt-bound attachment path, S81's narrow navigation, and S63's secure value-free four-case runner;
-keep S30 dry and closed until its separate external designation and protected direction exist.
+S77, S59, S80, S72, S75, S78, and S74 are implemented, verified, and deployed through exact-SHA CI,
+zero-traffic candidate smoke/configuration readback, promotion, and stable production readback. S74's
+governed template/fact-lock/constrained-assistance boundary remains review-only until approved wording
+and channel rules arrive. Complete S79's receipt-bound attachment path next, then S81's narrow
+navigation and S63's secure value-free four-case runner; keep S30 dry and closed until its separate
+external designation and protected direction exist.
 
 After those slices, internal closure still requires the editable visually inspected readout deck and
 the real owner litmus verdicts. Those are acceptance evidence, not substitutes for client product

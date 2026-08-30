@@ -3,8 +3,8 @@
 
 # S74 — Renewal copy, constrained AI assistance, and channel truth
 
-> Status: Active; the owner approved optional operator-invoked constrained tailoring, while exact
-> owner/tenant base wording and channel-evidence rules still require client approval.
+> Status: Complete and deployed for the publication-safe implementation. Exact owner/tenant base
+> wording and channel-evidence rules still require client approval, so Production remains review-only.
 
 **Goal.**
 
@@ -14,13 +14,12 @@ status through exact preview and unsent Gmail draft creation.
 
 **Current state / intended end state.**
 
-Renewal owner/tenant copy is deterministic and carries governed facts, but is hard-coded and not
-client-approved as the final operating wording. Renewal drafting does not use the existing bounded AI
-draft-assistance pattern. Channel intent and provider evidence are separate in principle, while the
-current broken preview lifecycle (S77) prevents reliable end-to-end use. The intended state has
-separate approved owner/tenant template versions, a locked fact envelope, optional constrained
-phrasing assistance with deterministic fallback, exact re-preview after any edit, and evidence-backed
-draft/contact/channel state.
+Production now has separate versioned owner/tenant template contracts, a server-built locked fact and
+recipient envelope, strict editable regions, optional constrained phrasing with deterministic
+validation/fallback, S77-bound template/envelope hashes, and evidence-backed draft/contact/channel
+states. The current template versions are explicitly review-only because the client has not supplied
+final operating wording or channel-evidence rules. Review-only copy can be previewed, but manual/AI
+tailoring and Gmail creation refuse before provider construction.
 
 **Actors and entry conditions.**
 
@@ -114,7 +113,9 @@ configuration, audit/redaction, and Admin/template readiness.
 for clearer phrasing, and sees that the recipient, rent, dates, terms, evidence, and required language
 did not change. The result remains an unsent draft until the person sends it from Gmail.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - why: adversarial template, fact-lock, assistance, channel-state, request,
+  service, composer, reconciliation, and send-boundary checks passed; exact CI and production
+  candidate/configuration/stable readback passed with review-only provider refusal intact.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -194,5 +195,6 @@ blocked on an approved template. S72 supplies step facts and S79 supplies attach
 
 **Deletion/merge recommendation.**
 
-Remove after client-approved owner/tenant template versions, constrained assistance, and channel-
-truth behavior are deployed and carried by durable template/product contracts and tests.
+Keep active until client-approved owner/tenant template versions and channel-evidence rules replace
+the deployed review-only publication state; then merge enduring contract references into the product
+contract and facts ledger.

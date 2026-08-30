@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`, 100% traffic
-- Serving commit: `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5`
+- Serving revision: `pmi-kc-app-rmtfk9fln-c9af498cb9c5`, 100% traffic
+- Serving commit: `2745cdbbf0a0bf14320a6dde6c63128134f6d807`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, S72, S75, and S78 are deployed. S78 passed the canonical local gate and exact-SHA
-aggregate CI run `33294476282`; its zero-traffic candidate passed exact identity, bounded-route
+S77, S59, S80, S72, S75, S78, and S74 are deployed. S74 passed the canonical local gate and exact-SHA
+aggregate CI run `33300119902`; its zero-traffic candidate passed exact identity, bounded-route
 smoke, and configuration readback before promotion. The promoted revision was read back alone at
-100% with every runtime invariant preserved and S75 retained as the exact rollback target.
+100% with every runtime invariant preserved and S78 retained as the exact rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -72,6 +72,9 @@ smoke, and configuration readback before promotion. The promoted revision was re
   provenance; provider output cannot set offered rent.
 - Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only. The browser,
   route, and service now share exact preview/confirm/reconcile shapes.
+- Versioned owner/tenant copy, a server-locked fact/recipient envelope, editable-region validation,
+  and channel-evidence taxonomy are deployed. Current templates are review-only, so preview remains
+  available while tailoring and Gmail creation refuse before model/Gmail provider construction.
 - Gmail continuous watch is retired. Manual refresh fetches only an exact linked thread. One shared
   provider-free projection binds lease/thread/message identity, waiting party, last verified contact,
   effective timing policy, due/work state, and deterministic ordering across all renewal surfaces.
@@ -140,17 +143,37 @@ smoke, and configuration readback before promotion. The promoted revision was re
   gate, the production dependency audit, and the 106-route build. Exact commit/CI,
   candidate/configuration, promotion, and stable production readback passed with no client effect.
 
+## Deployed S74 copy and channel governance
+
+- Separate immutable owner and tenant template contracts declare version, publication state, locked
+  facts, required facts, and editable regions. Current versions are explicitly review-only until the
+  client supplies approved wording, required/forbidden language, and channel-evidence rules.
+- One server-built recipient/fact envelope drives deterministic rendering, validation, S77 preview
+  hashing, exact confirmation, execution, and reconciliation. Browser/model inputs cannot supply or
+  alter authoritative recipients, money, dates, terms, evidence, or channel state.
+- Manual and optional AI tailoring are constrained to allowlisted prose regions. Any accepted edit
+  changes the fingerprint and requires a new preview; mutation, omission, unsupported promises,
+  cross-channel content, and invalid model output deterministically fall back or refuse.
+- Intent, preview, unsent-draft receipt, human external action, provider-backed contact, delivery,
+  and reply remain separate states. Current review-only readiness refuses before model or Gmail
+  provider construction and creates no client effect.
+- The canonical gate passed 540 unit files with one intentional skip (4,932 passing tests and four
+  skips), 25 Firestore files/115 tests, every policy/static gate, the production dependency audit,
+  and the 107-page build. Exact commit/CI, candidate/configuration, promotion, and stable production
+  readback passed with no provider or client-data effect.
+
 ## Remaining renewal stabilization implementation
 
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
   stronger pricing, reconciliation, Admin configuration, exact-action, and source-write boundaries.
-- Optional AI assistance may tailor approved phrasing only; server facts, recipients, values, dates,
-  terms, mandatory copy, evidence, and channel status stay locked.
+- Deployed optional AI assistance may tailor approved phrasing only; server facts, recipients,
+  values, dates, terms, mandatory copy, evidence, and channel status stay locked. Review-only copy
+  cannot invoke the model or create a Gmail draft.
 - The comp screenshot target is one exact receipted Gmail attachment, not a text reference or inline
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, S80, S72, S75, and S78 are complete and deployed; S74/S79/S81/S63 and the separately
+- S77, S59, S80, S72, S75, S78, and S74 are complete and deployed; S79/S81/S63 and the separately
   gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
