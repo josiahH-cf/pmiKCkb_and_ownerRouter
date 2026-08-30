@@ -3,8 +3,8 @@
 
 # S81 — Task-oriented Admin and Connections navigation
 
-> Status: Active; narrow discoverability scope is approved, with no permission, data-ownership, or
-> whole-app redesign authority.
+> Status: Implemented and canonically verified locally; production delivery is pending. The narrow
+> discoverability scope changes no permission, data ownership, action grant, or provider effect.
 
 **Goal.**
 
@@ -88,7 +88,9 @@ connector readiness, migration, users/roles, timing/pricing rules, suspensions, 
 connected and where to ask for help. An Admin can reach the relevant setting quickly, while neither
 person is shown controls they are not allowed to use.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - why: the manifest, both actor journeys, route/control capability parity,
+  status-only mutation refusals, stable anchors, focus/keyboard behavior, and preservation set pass
+  the full canonical verifier (545 unit files / 4,983 tests plus 25 Firestore files / 115 tests).
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**

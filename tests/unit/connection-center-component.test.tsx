@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -22,6 +22,66 @@ const configuredPresence = {
 };
 
 describe("ConnectionCenter", () => {
+  it("groups connection truth by staff task and keeps governance closure distinct", () => {
+    const view = buildConnectionView({
+      ...configuredPresence,
+      RENTCAST_API_KEY: true,
+    });
+    render(
+      <ConnectionCenter
+        canManage={false}
+        verifiableIds={["rentvine", "google_sheets", "rentcast"]}
+        view={view}
+      />,
+    );
+
+    for (const group of [
+      "Renewal data",
+      "Communications",
+      "Documents and storage",
+      "Other operations",
+    ]) {
+      expect(screen.getByRole("region", { name: group })).toBeInTheDocument();
+    }
+    expect(screen.getByText("RentCast")).toBeInTheDocument();
+    expect(screen.getAllByText("Closed by governance").length).toBeGreaterThan(1);
+    expect(document.body.textContent).toContain(
+      "Connection status does not grant action authority.",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Open Admin task index" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("gives an Admin a contextual return path to the task index", () => {
+    render(<ConnectionCenter canManage view={buildConnectionView({})} />);
+
+    expect(screen.getByRole("link", { name: "Open Admin task index" })).toHaveAttribute(
+      "href",
+      "/admin#admin-task-index",
+    );
+  });
+
+  it("lets an Admin run the existing RentCast read-only check without exposing setup mutation", () => {
+    render(
+      <ConnectionCenter
+        canManage
+        verifiableIds={["rentcast"]}
+        view={buildConnectionView({ RENTCAST_API_KEY: true })}
+      />,
+    );
+
+    const rentcast = screen.getByText("RentCast").closest("section");
+    expect(rentcast).not.toBeNull();
+    expect(within(rentcast as HTMLElement).getByText("Ready to verify")).toBeVisible();
+    expect(
+      within(rentcast as HTMLElement).getByRole("button", {
+        name: "Verify connection",
+      }),
+    ).toBeVisible();
+    expect(within(rentcast as HTMLElement).queryByText("Set up RentCast")).toBeNull();
+  });
+
   it("renders connector cards with status and never leaks an env var name or secret", () => {
     const view = buildConnectionView(configuredPresence);
     render(<ConnectionCenter canManage view={view} />);
@@ -60,7 +120,7 @@ describe("ConnectionCenter", () => {
     expect(document.body.textContent).not.toMatch(/PMI handles/i);
     expect(document.body.textContent).not.toMatch(/PMI stores/i);
     expect(document.body.textContent).toContain(
-      "Connect the systems the app reads from and acts through under governance.",
+      "Review source-backed setup and read-only verification by task.",
     );
   });
 

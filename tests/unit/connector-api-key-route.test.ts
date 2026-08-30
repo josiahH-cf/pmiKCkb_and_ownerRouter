@@ -88,6 +88,16 @@ describe("POST /api/connections/[connectorId]/api-key", () => {
     expect(mocks.storeSecret).not.toHaveBeenCalled();
   });
 
+  it("refuses the status-only RentCast card before vault or connection-store access", async () => {
+    setRole("Admin");
+
+    const response = await POST(request({ api_key: SECRET }), ctx("rentcast"));
+
+    expect(response.status).toBe(400);
+    expect(mocks.storeSecret).not.toHaveBeenCalled();
+    expect(mocks.saveConnection).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for a malformed body", async () => {
     setRole("Admin");
 

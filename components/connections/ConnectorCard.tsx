@@ -7,10 +7,14 @@ import { Card, Disclosure, StatusDot } from "@/components/ui";
 import { ConnectorSetupActions } from "@/components/connections/ConnectorSetupActions";
 import { VerifyConnectionButton } from "@/components/connections/VerifyConnectionButton";
 import {
+  allowsAppManagedConnection,
   connectorConnectLabel,
   connectorMethodBadge,
 } from "@/lib/connections/connector-catalog";
-import type { ConnectorView } from "@/lib/connections/connection-status";
+import {
+  connectionNextStep,
+  type ConnectorView,
+} from "@/lib/connections/connection-status";
 import { getHealthCheckContract } from "@/lib/integrations/health-checks";
 
 export function ConnectorCard({
@@ -20,6 +24,8 @@ export function ConnectorCard({
 }: Readonly<{ item: ConnectorView; canManage: boolean; verifiable: boolean }>) {
   const { def, status, connection } = item;
   const connected = connection?.status === "connected";
+  const setupAvailable = status.state !== "closed";
+  const managementAvailable = setupAvailable && allowsAppManagedConnection(def);
   const contract = def.healthCheckRef
     ? getHealthCheckContract(def.healthCheckRef)
     : undefined;
@@ -28,7 +34,7 @@ export function ConnectorCard({
   return (
     // The wrapper carries a stable per-connector anchor so app-state deep links land on this exact
     // card (S13 C2): /connections#connector-{id}.
-    <div id={`connector-${def.id}`}>
+    <div className="task-anchor" id={`connector-${def.id}`} tabIndex={-1}>
       <Card>
         <div className="ui-stack">
           <div className="ui-spread">
@@ -37,16 +43,21 @@ export function ConnectorCard({
           </div>
           <p className="muted">{def.powers}</p>
           <div className="ui-row">
-            <span className="ui-tag">{connectorMethodBadge(def.method)}</span>
+            <span className="ui-tag">
+              {setupAvailable ? connectorMethodBadge(def.method) : "Governance"}
+            </span>
             <span className="muted">{status.detail}</span>
           </div>
           {def.setupNote ? <p className="muted">{def.setupNote}</p> : null}
+          <p className="muted" data-connection-next-step={status.state}>
+            <strong>Next step:</strong> {connectionNextStep(status, canManage)}
+          </p>
 
-          {canManage && verifiable ? (
+          {canManage && setupAvailable && verifiable ? (
             <VerifyConnectionButton connectorId={def.id} connectorName={def.name} />
           ) : null}
 
-          {canManage ? (
+          {canManage && managementAvailable ? (
             <>
               <ConnectorSetupActions
                 connected={connected}
@@ -80,9 +91,9 @@ export function ConnectorCard({
                 </div>
               </Disclosure>
             </>
-          ) : (
+          ) : !canManage && managementAvailable ? (
             <p className="muted">An Admin connects and verifies this.</p>
-          )}
+          ) : null}
         </div>
       </Card>
     </div>

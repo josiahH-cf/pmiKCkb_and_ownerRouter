@@ -4,7 +4,10 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { can } from "@/lib/auth/roles";
 import { requireCapability } from "@/lib/auth/session";
-import { CONNECTORS } from "@/lib/connections/connector-catalog";
+import {
+  allowsAppManagedConnection,
+  CONNECTORS,
+} from "@/lib/connections/connector-catalog";
 import { resolveConnectorSecretVault } from "@/lib/connections/connector-secret-vault";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -31,6 +34,12 @@ export async function POST(request: Request, context: RouteContext) {
     const def = CONNECTORS.find((connector) => connector.id === connectorId);
     if (!def) {
       throw new EditableLayerError("That connector is not available.", 404);
+    }
+    if (!allowsAppManagedConnection(def)) {
+      throw new EditableLayerError(
+        "This connector is read and verified here, but its server setup is not managed by this API.",
+        400,
+      );
     }
     if (def.method !== "api_key") {
       throw new EditableLayerError("This connector does not use an API key.", 400);

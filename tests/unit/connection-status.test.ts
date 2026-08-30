@@ -4,12 +4,15 @@ import { CONNECTORS } from "@/lib/connections/connector-catalog";
 import {
   buildConnectionView,
   classifyConnector,
+  connectionNextStep,
 } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { LIVE_VERIFIABLE_CONNECTOR_IDS } from "@/lib/connections/verification";
 
 const rentvine = CONNECTORS.find((c) => c.id === "rentvine")!;
 const dotloop = CONNECTORS.find((c) => c.id === "dotloop")!;
+const rentcast = CONNECTORS.find((c) => c.id === "rentcast")!;
+const legacyGmailSender = CONNECTORS.find((c) => c.id === "gmail_sender")!;
 
 describe("readConnectorPresence", () => {
   it("reports presence by name and treats blank / empty-map as absent", () => {
@@ -87,6 +90,29 @@ describe("classifyConnector", () => {
     expect(status.label).toBe("Setup complete");
     expect(status.detail).toMatch(/No bounded live verification check is available/);
   });
+
+  it("makes the built RentCast verifier visible without treating connection as action authority", () => {
+    expect(rentcast.requiredConfig).toEqual(["RENTCAST_API_KEY"]);
+    expect(rentcast.healthCheckRef).toBe("health.rentcast.api_key");
+    expect(rentcast.liveVerificationAvailable).toBe(true);
+    const status = classifyConnector(rentcast, { RENTCAST_API_KEY: true });
+    expect(status.label).toBe("Ready to verify");
+    expect(connectionNextStep(status, true)).toContain(
+      "Action authority remains a separate check",
+    );
+  });
+
+  it("classifies the legacy sender as governance-closed instead of disconnected", () => {
+    const status = classifyConnector(legacyGmailSender, {});
+    expect(status).toMatchObject({
+      state: "closed",
+      label: "Closed by governance",
+      configuredCount: 0,
+      requiredCount: 0,
+    });
+    expect(status.detail).toContain("no connection setup step");
+    expect(connectionNextStep(status, true)).toContain("closed by governance");
+  });
 });
 
 describe("connector copy voice", () => {
@@ -110,8 +136,11 @@ describe("buildConnectionView", () => {
     const view = buildConnectionView({});
     expect(view.items).toHaveLength(CONNECTORS.length);
     expect(view.summary.total).toBe(CONNECTORS.length);
-    expect(view.summary.connected + view.summary.action + view.summary.none).toBe(
-      CONNECTORS.length,
-    );
+    expect(
+      view.summary.connected +
+        view.summary.action +
+        view.summary.none +
+        view.summary.closed,
+    ).toBe(CONNECTORS.length);
   });
 });

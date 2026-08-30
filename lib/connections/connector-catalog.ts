@@ -19,6 +19,12 @@ export interface ConnectorDef {
   requiredConfig: string[];
   /** Optional one-line setup note shown on the card (e.g. an owner step that is still pending). */
   setupNote?: string;
+  /** A connector-shaped legacy capability that is intentionally closed, not missing setup. */
+  availability?: "active" | "governance_closed";
+  /** Present-tense reason shown instead of connection setup when availability is closed. */
+  availabilityDetail?: string;
+  /** Status-only connectors may be read/verified but cannot enter generic connection mutation APIs. */
+  managementMode?: "app_managed" | "status_only";
 }
 
 export const CONNECTORS: readonly ConnectorDef[] = [
@@ -42,6 +48,18 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     // Truth (S13 D2): the runtime reads the sheet via keyless domain-wide delegation, so it needs
     // the DWD pair too (buildLiveRenewalConfig requires all three).
     requiredConfig: ["RENEWAL_SHEET_ID", "SHEETS_IMPERSONATE_SA", "SHEETS_DWD_SUBJECT"],
+  },
+  {
+    id: "rentcast",
+    name: "RentCast",
+    powers: "Reference rental estimates and comparable evidence for renewal review.",
+    method: "api_key",
+    healthCheckRef: "health.rentcast.api_key",
+    liveVerificationAvailable: true,
+    requiredConfig: ["RENTCAST_API_KEY"],
+    managementMode: "status_only",
+    setupNote:
+      "A healthy connection does not authorize a lookup. The exact read action and monthly allowance are checked separately.",
   },
   {
     id: "google_drive",
@@ -88,6 +106,10 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers: "Disabled. Approval notifications are in-app for the first release.",
     method: "google",
     requiredConfig: [],
+    availability: "governance_closed",
+    availabilityDetail:
+      "The legacy notification sender is closed by governance. Approval attention stays in-app, and there is no connection setup step.",
+    managementMode: "status_only",
   },
   {
     id: "gmail_inbox",
@@ -128,4 +150,9 @@ export function connectorConnectLabel(def: ConnectorDef): string {
   if (def.method === "google") return "Sign in with Google";
   if (def.method === "oauth") return `Connect with ${def.name}`;
   return "Add your API key";
+}
+
+/** True only for connectors already owned by the generic connection mutation lifecycle. */
+export function allowsAppManagedConnection(def: ConnectorDef): boolean {
+  return def.managementMode !== "status_only";
 }

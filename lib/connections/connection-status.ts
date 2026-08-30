@@ -5,7 +5,7 @@
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
 import type { ConnectorConnectionStatus } from "@/lib/connections/connector-connection";
 
-export type ConnectionState = "connected" | "action" | "none";
+export type ConnectionState = "connected" | "action" | "none" | "closed";
 
 /** The connection facts the classifier and card care about (status only, never a secretRef). */
 export interface ConnectorConnectionView {
@@ -33,6 +33,7 @@ export interface ConnectionSummary {
   connected: number;
   action: number;
   none: number;
+  closed: number;
   total: number;
 }
 
@@ -55,6 +56,16 @@ export function classifyConnector(
   const configuredCount = def.requiredConfig.filter((name) => presence[name]).length;
   const base = { id: def.id, configuredCount, requiredCount };
 
+  if (def.availability === "governance_closed") {
+    return {
+      ...base,
+      state: "closed",
+      label: "Closed by governance",
+      detail:
+        def.availabilityDetail ??
+        "This capability is intentionally closed and has no connection setup step.",
+    };
+  }
   if (verified) {
     return {
       ...base,
@@ -124,8 +135,31 @@ export function summarizeConnections(statuses: ConnectorStatus[]): ConnectionSum
     connected: statuses.filter((s) => s.state === "connected").length,
     action: statuses.filter((s) => s.state === "action").length,
     none: statuses.filter((s) => s.state === "none").length,
+    closed: statuses.filter((s) => s.state === "closed").length,
     total: statuses.length,
   };
+}
+
+/**
+ * Operator guidance derived only from the source-backed connection classification and current role.
+ * It never claims that connection health grants an action key, clears a suspension, or authorizes an
+ * effect.
+ */
+export function connectionNextStep(status: ConnectorStatus, canManage: boolean): string {
+  switch (status.state) {
+    case "connected":
+      return "No connection setup is needed. Action authority is checked separately when work runs.";
+    case "action":
+      return canManage
+        ? "Finish or verify this connection here. Action authority remains a separate check."
+        : "Ask an Admin to finish or verify this connection.";
+    case "none":
+      return canManage
+        ? "Complete the server-side setup, then verify where a read-only check is available."
+        : "Ask an Admin to connect this service.";
+    case "closed":
+      return "No setup step is available. This capability remains closed by governance.";
+  }
 }
 
 /** Build the whole Connection Center view from a presence map (pure). `connections` maps connectorId

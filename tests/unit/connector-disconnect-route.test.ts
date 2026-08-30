@@ -48,7 +48,9 @@ function request() {
   });
 }
 
-const ctx = { params: Promise.resolve({ connectorId: "rentvine" }) };
+function ctx(connectorId = "rentvine") {
+  return { params: Promise.resolve({ connectorId }) };
+}
 
 afterEach(() => {
   setAuthResolverForTest(null);
@@ -59,7 +61,7 @@ describe("POST /api/connections/[connectorId]/disconnect", () => {
   it("is Admin-only — an Editor gets 403 and nothing is touched", async () => {
     setRole("Editor");
 
-    const response = await POST(request(), ctx);
+    const response = await POST(request(), ctx());
 
     expect(response.status).toBe(403);
     expect(mocks.getConnection).not.toHaveBeenCalled();
@@ -71,7 +73,7 @@ describe("POST /api/connections/[connectorId]/disconnect", () => {
     setRole("Admin");
     mocks.getConnection.mockResolvedValue(null);
 
-    const response = await POST(request(), ctx);
+    const response = await POST(request(), ctx());
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -94,7 +96,7 @@ describe("POST /api/connections/[connectorId]/disconnect", () => {
       updatedAt: "2026-07-22T00:00:00.000Z",
     });
 
-    const response = await POST(request(), ctx);
+    const response = await POST(request(), ctx());
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -103,5 +105,16 @@ describe("POST /api/connections/[connectorId]/disconnect", () => {
     });
     expect(mocks.destroySecret).toHaveBeenCalledWith("vault://rentvine/abc");
     expect(mocks.deleteConnection).toHaveBeenCalledWith("rentvine");
+  });
+
+  it("refuses a status-only connector before reading or deleting a connection record", async () => {
+    setRole("Admin");
+
+    const response = await POST(request(), ctx("rentcast"));
+
+    expect(response.status).toBe(400);
+    expect(mocks.getConnection).not.toHaveBeenCalled();
+    expect(mocks.destroySecret).not.toHaveBeenCalled();
+    expect(mocks.deleteConnection).not.toHaveBeenCalled();
   });
 });

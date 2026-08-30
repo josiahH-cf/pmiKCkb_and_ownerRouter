@@ -30,6 +30,12 @@ describe("RenewalAuthorityPanel", () => {
     expect(row("Send from the app")).toHaveTextContent("never sends renewal messages");
     expect(screen.getByText(/exact draft key and runtime checks/)).toBeVisible();
     expect(screen.getByText(/send from Gmail\. The app never sends it/)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Check renewal data connections" }),
+    ).toHaveAttribute("href", "/connections#connection-task-renewal-data");
+    expect(
+      screen.getByRole("link", { name: "Check messaging connections" }),
+    ).toHaveAttribute("href", "/connections#connection-task-communications");
   });
 
   it("shows Approver reconciliation authority without implying pricing or source-write authority", () => {

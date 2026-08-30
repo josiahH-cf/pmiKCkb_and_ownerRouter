@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Card, StatusPill } from "@/components/ui";
 import type { Role } from "@/lib/auth/roles";
 import {
@@ -97,6 +99,14 @@ export function RenewalAuthorityPanel({ role }: Readonly<{ role: Role }>) {
         gate preview and creation; exact-confirm one unsent Gmail draft, then review and
         send from Gmail. The app never sends it.
       </p>
+      <nav aria-label="Renewal connection help" className="ui-row">
+        <Link href="/connections#connection-task-renewal-data">
+          Check renewal data connections
+        </Link>
+        <Link href="/connections#connection-task-communications">
+          Check messaging connections
+        </Link>
+      </nav>
     </Card>
   );
 }

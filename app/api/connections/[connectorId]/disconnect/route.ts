@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
 import { can } from "@/lib/auth/roles";
 import { requireCapability } from "@/lib/auth/session";
+import {
+  allowsAppManagedConnection,
+  CONNECTORS,
+} from "@/lib/connections/connector-catalog";
 import { resolveConnectorSecretVault } from "@/lib/connections/connector-secret-vault";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -21,6 +25,16 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     const { connectorId } = await context.params;
+    const def = CONNECTORS.find((connector) => connector.id === connectorId);
+    if (!def) {
+      throw new EditableLayerError("That connector is not available.", 404);
+    }
+    if (!allowsAppManagedConnection(def)) {
+      throw new EditableLayerError(
+        "This connector is read and verified here, but its server setup is not managed by this API.",
+        400,
+      );
+    }
     const store = getConnectorConnectionStore();
     const record = await store.getConnection(connectorId);
 

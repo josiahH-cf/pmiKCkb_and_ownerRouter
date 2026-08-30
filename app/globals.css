@@ -488,6 +488,50 @@ button {
   margin-top: 28px;
 }
 
+/* S81 task navigation: hash targets clear the sticky header, remain programmatically focusable, and
+   use an auto-fitting grid so the same link order works at desktop and narrow widths. */
+.task-anchor {
+  scroll-margin-top: 96px;
+}
+
+.task-anchor:target {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 4px;
+}
+
+.task-navigation-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.task-navigation-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.task-navigation-card h3 {
+  margin: 0 0 6px;
+}
+
+.task-navigation-card li {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.connection-task-section {
+  display: grid;
+  gap: 12px;
+}
+
+.connection-task-section + .connection-task-section {
+  margin-top: 16px;
+}
+
 /* In-app user + role management table (console overhaul Slice D). */
 .admin-user-table {
   display: grid;
@@ -1568,6 +1612,10 @@ button {
 
 .ui-status-dot[data-status="none"] {
   background: var(--status-none);
+}
+
+.ui-status-dot[data-status="closed"] {
+  background: var(--color-text-muted);
 }
 
 .ui-status-label {

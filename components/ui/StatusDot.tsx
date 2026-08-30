@@ -1,7 +1,7 @@
 // StatusDot — a small connection/health indicator (connected / action / none). With a label it
 // renders an inline dot+text; without one, a bare decorative dot. Server-safe.
 
-export type ConnectionStatus = "connected" | "action" | "none";
+export type ConnectionStatus = "connected" | "action" | "none" | "closed";
 
 export function StatusDot({
   status,

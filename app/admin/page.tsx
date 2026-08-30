@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminActivityLogPanel } from "@/components/admin/AdminActivityLogPanel";
+import { AdminTaskIndex } from "@/components/admin/AdminTaskIndex";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
 import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
@@ -245,8 +246,14 @@ export default async function AdminPage() {
     <AppShell user={user}>
       <section className="content">
         <h1 className="section-title">Admin</h1>
+        <AdminTaskIndex />
 
-        <section aria-label="People and access" className="admin-section">
+        <section
+          aria-label="People and access"
+          className="admin-section task-anchor"
+          id="admin-people-access"
+          tabIndex={-1}
+        >
           <h2 className="section-subtitle">People and Access</h2>
           <p className="muted">Who can use the app and what they can do.</p>
           <div className="grid two">
@@ -283,16 +290,23 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <section aria-label="Activity and logs" className="admin-section">
+        <section
+          aria-label="Activity and logs"
+          className="admin-section task-anchor"
+          id="admin-activity-logs"
+          tabIndex={-1}
+        >
           <h2 className="section-subtitle">Activity and Logs</h2>
           <p className="muted">
             Recent usage, approval-queue depth, and notification health.
           </p>
-          <RuntimeSuspensionAdminPanel
-            initialActions={runtimeSuspensionActions}
-            initialSnapshot={runtimeSuspensionSnapshot}
-            unavailableNote={runtimeSuspensionNote}
-          />
+          <div className="task-anchor" id="admin-runtime-suspensions" tabIndex={-1}>
+            <RuntimeSuspensionAdminPanel
+              initialActions={runtimeSuspensionActions}
+              initialSnapshot={runtimeSuspensionSnapshot}
+              unavailableNote={runtimeSuspensionNote}
+            />
+          </div>
           {hasMetrics ? (
             <>
               {observabilityNote ? (
@@ -371,42 +385,59 @@ export default async function AdminPage() {
               <p className="muted">{observabilityNote}</p>
             </article>
           )}
-          <ApprovalQueueAdminPanel
-            initialHealth={queueHealth}
-            initialSettings={queueEmailSettings}
-            unavailableNote={queueAdminNote}
-          />
-          <SupportReportsPanel
-            reports={supportReports}
-            unavailableNote={supportReportsNote}
-            newCount={supportAttention.newCount}
-            followUpDueCount={supportAttention.followUpDueCount}
-            reporterDirectory={supportReporterDirectory}
-          />
-          <AdminActivityLogPanel
-            entries={activityEntries}
-            unavailableNote={activityNote}
-          />
+          <div className="task-anchor" id="admin-approval-notifications" tabIndex={-1}>
+            <ApprovalQueueAdminPanel
+              initialHealth={queueHealth}
+              initialSettings={queueEmailSettings}
+              unavailableNote={queueAdminNote}
+            />
+          </div>
+          <div className="task-anchor" id="admin-support-reports" tabIndex={-1}>
+            <SupportReportsPanel
+              reports={supportReports}
+              unavailableNote={supportReportsNote}
+              newCount={supportAttention.newCount}
+              followUpDueCount={supportAttention.followUpDueCount}
+              reporterDirectory={supportReporterDirectory}
+            />
+          </div>
+          <div className="task-anchor" id="admin-activity-log" tabIndex={-1}>
+            <AdminActivityLogPanel
+              entries={activityEntries}
+              unavailableNote={activityNote}
+            />
+          </div>
         </section>
 
-        <section aria-label="App info and readiness" className="admin-section">
+        <section
+          aria-label="App info and readiness"
+          className="admin-section task-anchor"
+          id="admin-app-readiness"
+          tabIndex={-1}
+        >
           <h2 className="section-subtitle">App Info and Readiness</h2>
           <p className="muted">
             Configuration, migration readiness, and connected-service consoles.
           </p>
-          <KbCorrectionsPanel
-            proposed={proposedCorrections}
-            unavailableNote={proposedCorrectionsNote}
-          />
-          <ModelConfigPanel
-            answerModel={config.geminiAnswerModel}
-            classifyModel={config.geminiClassifyModel}
-            provider={config.modelProvider}
-          />
-          <RenewalRehearsalSheetPanel
-            initialConfig={rehearsalSheetConfig}
-            unavailableNote={rehearsalSheetNote}
-          />
+          <div className="task-anchor" id="admin-kb-corrections" tabIndex={-1}>
+            <KbCorrectionsPanel
+              proposed={proposedCorrections}
+              unavailableNote={proposedCorrectionsNote}
+            />
+          </div>
+          <div className="task-anchor" id="admin-model-config" tabIndex={-1}>
+            <ModelConfigPanel
+              answerModel={config.geminiAnswerModel}
+              classifyModel={config.geminiClassifyModel}
+              provider={config.modelProvider}
+            />
+          </div>
+          <div className="task-anchor" id="admin-renewal-rehearsal-sheet" tabIndex={-1}>
+            <RenewalRehearsalSheetPanel
+              initialConfig={rehearsalSheetConfig}
+              unavailableNote={rehearsalSheetNote}
+            />
+          </div>
           <div className="grid three">
             <article className="panel">
               <h2>Approval Label</h2>
@@ -455,20 +486,28 @@ export default async function AdminPage() {
             initialEmail={transactionalDestination.destination_email}
             note={transactionalDestinationNote}
           />
-          {noticeRules ? (
-            <NoticeRulesAdminPanel initialRecord={noticeRules} note={noticeRulesNote} />
-          ) : (
-            <article className="panel">
-              <h2>Renewal Notice Rules</h2>
-              <p className="muted">{noticeRulesNote}</p>
-            </article>
-          )}
-          <OperationalPageBuilderPanel
-            spaces={launchSpaces
-              .filter((space) => space.showInDirectory !== false && !space.readOnly)
-              .map((space) => ({ id: space.id, name: space.name }))}
-          />
-          <article className="panel">
+          <div className="task-anchor" id="admin-renewal-notice-rules" tabIndex={-1}>
+            {noticeRules ? (
+              <NoticeRulesAdminPanel initialRecord={noticeRules} note={noticeRulesNote} />
+            ) : (
+              <article className="panel">
+                <h2>Renewal Notice Rules</h2>
+                <p className="muted">{noticeRulesNote}</p>
+              </article>
+            )}
+          </div>
+          <div className="task-anchor" id="admin-content-builder" tabIndex={-1}>
+            <OperationalPageBuilderPanel
+              spaces={launchSpaces
+                .filter((space) => space.showInDirectory !== false && !space.readOnly)
+                .map((space) => ({ id: space.id, name: space.name }))}
+            />
+          </div>
+          <article
+            className="panel task-anchor"
+            id="admin-owner-pricing-rules"
+            tabIndex={-1}
+          >
             <h2>Owner Pricing Rules</h2>
             <OwnerPolicyRulesAdminPanel initialRules={ownerPolicyRules} />
           </article>
@@ -482,13 +521,15 @@ export default async function AdminPage() {
             <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
           </article>
           <CommunicationsRetentionAdminPanel />
-          <PublicationPolicyAdminPanel
-            initialPolicies={publicationPolicies}
-            spaces={launchSpaces.filter(
-              (space) => space.showInDirectory !== false && !space.readOnly,
-            )}
-            unavailableNote={publicationPolicyNote}
-          />
+          <div className="task-anchor" id="admin-publication-policies" tabIndex={-1}>
+            <PublicationPolicyAdminPanel
+              initialPolicies={publicationPolicies}
+              spaces={launchSpaces.filter(
+                (space) => space.showInDirectory !== false && !space.readOnly,
+              )}
+              unavailableNote={publicationPolicyNote}
+            />
+          </div>
         </section>
       </section>
     </AppShell>
