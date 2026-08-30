@@ -3,8 +3,8 @@
 
 # S79 — Renewal comp screenshot Gmail attachment
 
-> Status: Active but gate-blocked; screenshot preview/store/receipt/rollback exists behind a closed
-> Drive action, while renewal Gmail drafts currently carry only a textual screenshot reference.
+> Status: Complete and deployed behind the closed Drive action; deterministic receipt/MIME/readback
+> and refusal behavior is green, while the separately authorized live attachment effect is blocked.
 
 **Goal.**
 
@@ -13,14 +13,13 @@ the exact owner preview and create an unsent Gmail draft containing that image a
 
 **Current state / intended end state.**
 
-The app can validate, exact-preview, store, reconcile, and roll back a renewal screenshot through
-`google_drive.renewal_comp_screenshot.store`, but the key is closed. The progress record can retain a
-receipted Drive reference. Owner copy renders that reference as text, and Gmail's outgoing draft MIME
-is text-only. Existing exact-Message-ID draft reconciliation returns draft identity, not decoded MIME
-or attachment proof. The intended state retrieves only the exact current receipted file, binds its
-content hash/metadata into the renewal preview, writes standards-compliant multipart MIME, and reads
-back the exact created draft strongly enough to verify the bound attachment without exposing a
-general attachment or Drive-file primitive.
+The app now resolves only the current same-Space/lease delivered screenshot receipt server-side,
+verifies its exact Drive/file/name/MIME/size/SHA identity, binds byte-free metadata into the preview,
+and constructs deterministic one-image multipart MIME immediately before Gmail creation. Exact
+draft-id raw readback verifies headers, body, RFC Message-ID, and byte-identical attachment content;
+uncertainty reconciles once without blind retry. Pasted Drive ids/URLs, general file access, and
+multiple/inline attachments are rejected. Production keeps the exact Drive key closed and its folder
+ids unconfigured, and current S74 copy remains review-only, so the live attachment effect has not run.
 
 **Actors and entry conditions.**
 
@@ -60,13 +59,13 @@ Gmail raw-message/client/provider/readback, Drive DWD health, Action Registry re
 
 **Authority and evidence map.**
 
-| Input                                                                                                                                       | Classification                | Use and limitation                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md` action/protected-path/data boundaries and `docs/facts.md` action inventory                                                      | Authority                     | The Drive store key remains closed, Gmail renewal draft creation is unsent-only, and no gate activation or customer bytes may enter Git/logs.                                       |
-| Screenshot contract/service/execution/receipt/Drive provider, attachment resolver, renewal draft builder, Gmail raw-message/client/provider | Verified implementation truth | Receipt-bound upload/rollback exists and text-only raw draft creation works; exact draft lookup proves identity only, so MIME attachment creation and content readback are missing. |
-| Screenshot, folder-boundary, Drive-provider, draft-service, Gmail-client/MIME, live-provider, reconciliation, and send-boundary tests       | Verification baseline         | They preserve narrow file ownership/idempotency/text compatibility; new byte-level MIME and exact provider-readback checks must fail first.                                         |
-| Stabilization intake and meeting record                                                                                                     | Intent evidence only          | They establish that the reviewed comp screenshot should appear in the owner draft; they do not authorize automatic capture, arbitrary Drive access, upload activation, or sending.  |
-| Separate owner direction for the exact Drive key/live upload                                                                                | External authority            | Its absence blocks the live upload/draft litmus, not the receipt/MIME/readback/refusal implementation.                                                                              |
+| Input                                                                                                                                       | Classification                | Use and limitation                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md` action/protected-path/data boundaries and `docs/facts.md` action inventory                                                      | Authority                     | The Drive store key remains closed, Gmail renewal draft creation is unsent-only, and no gate activation or customer bytes may enter Git/logs.                                      |
+| Screenshot contract/service/execution/receipt/Drive provider, attachment resolver, renewal draft builder, Gmail raw-message/client/provider | Verified implementation truth | Receipt-bound exact-file download, byte verification, multipart creation, exact raw-draft readback, reconciliation, and rollback separation are implemented behind the closed key. |
+| Screenshot, folder-boundary, Drive-provider, draft-service, Gmail-client/MIME, live-provider, reconciliation, and send-boundary tests       | Verification baseline         | They prove narrow file ownership, byte-level MIME/readback, one-attempt behavior, text compatibility, and closed-provider refusal.                                                 |
+| Stabilization intake and meeting record                                                                                                     | Intent evidence only          | They establish that the reviewed comp screenshot should appear in the owner draft; they do not authorize automatic capture, arbitrary Drive access, upload activation, or sending. |
+| Separate owner direction for the exact Drive key/live upload                                                                                | External authority            | Its absence blocks the live upload/draft litmus, not the receipt/MIME/readback/refusal implementation.                                                                             |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -95,7 +94,9 @@ Gmail raw-message/client/provider/readback, Drive DWD health, Action Registry re
 unsent Gmail draft contains that exact image as an ordinary attachment. A failed or uncertain upload
 does not produce a draft or pretend the image is present.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - deterministic receipt/Drive/MIME/readback/refusal checks, the canonical gate,
+  exact-sha CI, candidate/configuration equality, and stable production readback are green at commit
+  `4a05462065bcad6433574cc7d7a6f4801b7311eb`.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -140,16 +141,17 @@ Separate owner direction is required before any protected gate change or live up
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** narrow receipt resolver, byte verification, multipart encoder, exact preview
-  binding, exact provider draft readback/decoder, reconciliation/refusal states, text-caller
-  compatibility, malicious-input tests, and closed-key behavior can reach `ALL_GATES_GREEN` using
-  deterministic Drive/Gmail fixtures.
+- **Delivered:** narrow receipt resolver, byte verification, multipart encoder, exact preview binding,
+  exact provider draft readback/decoder, reconciliation/refusal states, text-caller compatibility,
+  malicious-input tests, and closed-key behavior reached `ALL_GATES_GREEN` using deterministic
+  Drive/Gmail fixtures.
 - **Consumes, but does not assume:** S77 supplies the final shared confirmation state; an adapter can
   bind the documented execution/hash contract without opening Drive or creating a general attachment
   API.
-- **Externally blocked effect:** AC-S79-4 and the live human litmus remain `BLOCKED` until separate
-  owner direction authorizes the protected exact Drive key and one bounded live file/draft proof.
-  Implementation must ship closed and must not flip `production_allowed`.
+- **Externally blocked effect:** the provider-effect portion of `BEH-S79-1` and the live human litmus
+  remain `BLOCKED` until separate owner direction authorizes the protected exact Drive key and one
+  bounded live file/draft proof. `AC-S79-4` passes because the deployed implementation refuses before
+  Drive/Gmail construction while closed; it did not flip `production_allowed`.
 - **Produces for downstream suites:** one receipt-bound attachment input, byte-level MIME/readback
   proof, preview fingerprint fields, and honest rollback/reconciliation outcomes.
 
@@ -165,6 +167,14 @@ Separate owner direction is required before any protected gate change or live up
 4. Report `ALL_GATES_GREEN` for the closed-key implementation; `BUDGET_EXHAUSTED` requires an explicit
    budget. Report `BLOCKED` only for the separately authorized live upload/draft proof, and never call
    identity-only lookup or draft creation attachment verification.
+
+**Verified delivery result — 2026-08-30.**
+
+Fail-first evidence, 23-file/367-test focused coverage, 5-file/85-test hardening coverage, the full
+541-file/4,965-test canonical pass (plus one intentional file skip/four test skips), exact-sha CI run
+`33307517553`, zero-traffic candidate identity/configuration proof, and stable production readback are
+green. No protected path, action key, Drive file, Gmail draft/message, source record, or client-facing
+effect changed. The live human verdict remains intentionally blank pending its separate authority.
 
 **Ordered prompt sequence.**
 

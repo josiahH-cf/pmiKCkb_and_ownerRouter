@@ -23,8 +23,8 @@ the current code and live service. Date-stamped history is not authority.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtfk9fln-c9af498cb9c5`, 100% traffic.
-- Deployed code: `2745cdbbf0a0bf14320a6dde6c63128134f6d807`.
+- Serving revision: `pmi-kc-app-rmtfp5ac4-8824eb39358b`, 100% traffic.
+- Deployed code: `4a05462065bcad6433574cc7d7a6f4801b7311eb`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The

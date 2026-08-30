@@ -69,33 +69,33 @@ external input/authority and affected acceptance checks after all other safe wor
 green behind-a-closed-gate implementation is not a completed live proof, and a blocked live proof does
 not block independent suites.
 
-| Suite | Contract                                                            | Present status                                                                     |
-| ----- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| S30   | `docs/feature-suites/rentvine-write-activation.md`                  | Restricted dry seam built; designated test record and gate review required         |
-| S31   | `docs/feature-suites/gmail-watch-inbound.md`                        | Continuous watch retired; manual refresh and follow-up integration complete        |
-| S34   | `docs/feature-suites/dotloop-esign-activation.md`                   | Internal lifecycle complete; OAuth/catalog/exact provider mappings required        |
-| S35   | `docs/feature-suites/leadsimple-activation.md`                      | Internal lifecycle complete; selected account contract and credential required     |
-| S36   | `docs/feature-suites/space-self-provisioning.md`                    | Fixed lifecycle complete; one owner-approved pilot packet required                 |
-| S37   | `docs/feature-suites/nocode-page-builder.md`                        | Bounded operational-process builder complete and deployed                          |
-| S47   | `docs/feature-suites/resident-maintenance-intake.md`                | App intake usable; internal channel lifecycle complete; official contract required |
-| S51   | `docs/feature-suites/production-operational-readiness.md`           | Current production operating contract                                              |
-| S52   | `docs/feature-suites/production-cost-governance.md`                 | Complete and live-verified                                                         |
-| S53   | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`   | Current per-key activation contract                                                |
-| S54   | `docs/feature-suites/verification-and-ci-parity.md`                 | Complete; canonical gate current                                                   |
-| S56   | `docs/feature-suites/production-live-only-test-lane-retirement.md`  | Complete; current environment contract                                             |
-| S59   | `docs/feature-suites/rentcast-live-activation.md`                   | Complete and deployed; query/evidence/reference-only contract is preserved         |
-| S63   | `docs/feature-suites/four-lease-renewal-test-set.md`                | Machinery built; secure cohort/log cleanup and fresh evidence remain               |
-| S64   | `docs/feature-suites/per-person-approval-authority.md`              | Specified but NOT authorized                                                       |
-| S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`    | Truth machinery built; approved catalog/provider mapping required                  |
-| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`  | Complete and deployed; exact six-step/evidence/compatibility model                 |
-| S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`        | Complete/deployed review-only boundary; approved wording/channel evidence remains  |
-| S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Shared unset-safe projection built; live confirmed timing policy still external    |
-| S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required     |
-| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation   |
-| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Complete and deployed; canonical role-consistent desk/query/route contract is live |
-| S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Active; receipt/MIME design specified; Drive action remains closed                 |
-| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Complete and deployed; exact role/Space/effect matrix is downstream foundation     |
-| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Approved narrow navigation/readiness scope; not implemented                        |
+| Suite | Contract                                                            | Present status                                                                      |
+| ----- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| S30   | `docs/feature-suites/rentvine-write-activation.md`                  | Restricted dry seam built; designated test record and gate review required          |
+| S31   | `docs/feature-suites/gmail-watch-inbound.md`                        | Continuous watch retired; manual refresh and follow-up integration complete         |
+| S34   | `docs/feature-suites/dotloop-esign-activation.md`                   | Internal lifecycle complete; OAuth/catalog/exact provider mappings required         |
+| S35   | `docs/feature-suites/leadsimple-activation.md`                      | Internal lifecycle complete; selected account contract and credential required      |
+| S36   | `docs/feature-suites/space-self-provisioning.md`                    | Fixed lifecycle complete; one owner-approved pilot packet required                  |
+| S37   | `docs/feature-suites/nocode-page-builder.md`                        | Bounded operational-process builder complete and deployed                           |
+| S47   | `docs/feature-suites/resident-maintenance-intake.md`                | App intake usable; internal channel lifecycle complete; official contract required  |
+| S51   | `docs/feature-suites/production-operational-readiness.md`           | Current production operating contract                                               |
+| S52   | `docs/feature-suites/production-cost-governance.md`                 | Complete and live-verified                                                          |
+| S53   | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`   | Current per-key activation contract                                                 |
+| S54   | `docs/feature-suites/verification-and-ci-parity.md`                 | Complete; canonical gate current                                                    |
+| S56   | `docs/feature-suites/production-live-only-test-lane-retirement.md`  | Complete; current environment contract                                              |
+| S59   | `docs/feature-suites/rentcast-live-activation.md`                   | Complete and deployed; query/evidence/reference-only contract is preserved          |
+| S63   | `docs/feature-suites/four-lease-renewal-test-set.md`                | Machinery built; secure cohort/log cleanup and fresh evidence remain                |
+| S64   | `docs/feature-suites/per-person-approval-authority.md`              | Specified but NOT authorized                                                        |
+| S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`    | Truth machinery built; approved catalog/provider mapping required                   |
+| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`  | Complete and deployed; exact six-step/evidence/compatibility model                  |
+| S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`        | Complete/deployed review-only boundary; approved wording/channel evidence remains   |
+| S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Shared unset-safe projection built; live confirmed timing policy still external     |
+| S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required      |
+| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation    |
+| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Complete and deployed; canonical role-consistent desk/query/route contract is live  |
+| S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Complete/deployed closed-safe receipt/MIME/readback path; live Drive effect blocked |
+| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Complete and deployed; exact role/Space/effect matrix is downstream foundation      |
+| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Approved narrow navigation/readiness scope; not implemented                         |
 
 A status in this table is authoritative for planning. A suite body is the acceptance contract, not a
 historical progress log.

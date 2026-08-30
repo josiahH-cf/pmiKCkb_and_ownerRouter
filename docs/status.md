@@ -8,18 +8,19 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtfk9fln-c9af498cb9c5`, 100% traffic
-- Serving commit: `2745cdbbf0a0bf14320a6dde6c63128134f6d807`
+- Serving revision: `pmi-kc-app-rmtfp5ac4-8824eb39358b`, 100% traffic
+- Serving commit: `4a05462065bcad6433574cc7d7a6f4801b7311eb`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, S72, S75, S78, and S74 are deployed. S74 passed the canonical local gate and exact-SHA
-aggregate CI run `33300119902`; its zero-traffic candidate passed exact identity, bounded-route
-smoke, and configuration readback before promotion. The promoted revision was read back alone at
-100% with every runtime invariant preserved and S78 retained as the exact rollback target.
+S77, S59, S80, S72, S75, S78, S74, and S79 are deployed. S79 passed the canonical local gate and
+exact-SHA aggregate CI run `33307517553`; its zero-traffic candidate passed exact identity,
+bounded-route smoke, and normalized configuration equality before promotion. The promoted revision
+was read back alone at 100% with every runtime invariant preserved and S74 retained as the exact
+rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -82,8 +83,8 @@ smoke, and configuration readback before promotion. The promoted revision was re
 - Admin has versioned global/property/lease timing rules with most-specific-wins resolution.
   Unconfirmed policy displays as unset and cannot create a timer, reminder, work, draft, or send;
   client timing values and override-manager authority remain external inputs.
-- Renewal screenshot preview/store/receipt/rollback machinery exists behind the closed exact Drive
-  key; outgoing renewal Gmail MIME does not yet attach the screenshot.
+- Renewal screenshot preview/store/receipt/rollback and receipt-bound Gmail MIME/readback machinery
+  are deployed behind the closed exact Drive key; the live attachment effect remains unavailable.
 - Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal exact-
   lifecycle seams and remain closed until their official external inputs exist.
 - The four-lease proof machinery is immutable, read-only against source systems, separates process
@@ -162,6 +163,23 @@ smoke, and configuration readback before promotion. The promoted revision was re
   and the 107-page build. Exact commit/CI, candidate/configuration, promotion, and stable production
   readback passed with no provider or client-data effect.
 
+## Deployed S79 comp screenshot attachment
+
+- Only a current delivered screenshot receipt owned by the same Space and lease can resolve bytes;
+  the server binds exact Drive file identity, safe filename, MIME, size, SHA-256, and receipt identity.
+- One deterministic multipart encoder keeps the governed text body first and permits exactly one
+  JPEG, PNG, WebP, or HEIC attachment within 5 MiB. Existing text-only callers remain byte-compatible.
+- Confirmation retrieves only the exact receipt-owned Drive file, then exact Gmail draft-id raw MIME
+  readback verifies headers, RFC Message-ID, body, attachment bytes, size, and hash. Uncertainty uses
+  one-attempt reconciliation and never blind-retries or mislabels success.
+- Forged ids/URLs, arbitrary files, cross-Space/lease receipts, unsafe metadata, mismatched bytes,
+  HTML/inline/multiple attachments, and sends refuse. Rolling back Drive invalidates future previews
+  but honestly leaves any already-created Gmail draft attachment unchanged.
+- The canonical gate passed 541 unit files with one intentional skip (4,965 passing tests and four
+  skips), all 115 Firestore tests, every policy/static gate, and the 107-page build. Exact-sha CI run
+  `33307517553`, candidate/configuration equality, promotion, and stable production readback passed.
+  The Drive action and folder ids remain closed/unconfigured; no upload, draft, send, or source write ran.
+
 ## Remaining renewal stabilization implementation
 
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
@@ -169,16 +187,17 @@ smoke, and configuration readback before promotion. The promoted revision was re
 - Deployed optional AI assistance may tailor approved phrasing only; server facts, recipients,
   values, dates, terms, mandatory copy, evidence, and channel status stay locked. Review-only copy
   cannot invoke the model or create a Gmail draft.
-- The comp screenshot target is one exact receipted Gmail attachment, not a text reference or inline
-  image; the separate Drive action remains closed until independently authorized.
+- Deployed S79 binds one current same-Space/lease receipt to one ordinary image attachment, exact
+  preview identity, deterministic MIME, and exact Gmail raw readback; its separate Drive action and
+  folder configuration remain closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, S80, S72, S75, S78, and S74 are complete and deployed; S79/S81/S63 and the separately
+- S77, S59, S80, S72, S75, S78, S74, and S79 are complete and deployed; S81/S63 and the separately
   gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation
-  evidence; S80's separate deployed evidence is listed above.
+  evidence; each completed suite's separate deployed evidence is listed above.
 
 ## Remaining blockers
 

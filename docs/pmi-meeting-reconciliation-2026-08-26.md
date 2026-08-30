@@ -3,8 +3,8 @@
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`2745cdbbf0a0bf14320a6dde6c63128134f6d807` as revision
-`pmi-kc-app-rmtfk9fln-c9af498cb9c5` at 100% traffic.
+`4a05462065bcad6433574cc7d7a6f4801b7311eb` as revision
+`pmi-kc-app-rmtfp5ac4-8824eb39358b` at 100% traffic.
 
 Client handoffs:
 
@@ -207,6 +207,15 @@ Zero-traffic candidate `pmi-kc-app-rmtfk9fln-c9af498cb9c5` passed exact identity
 normalized configuration readback before promotion and stable 100% readback. Its immediate rollback
 target is the S78 revision `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`.
 
-The unit runner preserves the current full 541-file inventory while using a bounded eight-worker
+The subsequent S79 release passed 541 unit files with one intentional skip (4,965 passing tests and
+four skips), all 115 Firestore tests, every policy/static gate, and the 107-route build. Exact commit
+`4a05462065bcad6433574cc7d7a6f4801b7311eb` passed aggregate CI run
+[33307517553](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33307517553).
+Zero-traffic candidate `pmi-kc-app-rmtfp5ac4-8824eb39358b` passed exact identity, bounded-route, and
+normalized configuration readback before promotion and stable 100% readback. Its immediate rollback
+target is the S74 revision `pmi-kc-app-rmtfk9fln-c9af498cb9c5`. The Drive action and renewal-comp
+folder ids remain closed/unconfigured, so no upload, Gmail draft/message, or client effect ran.
+
+The unit runner preserves the current full 542-file inventory while using a bounded eight-worker
 thread pool in a native Linux shadow. The retired roughly 40–48-minute behavior is no longer the
 current performance claim.

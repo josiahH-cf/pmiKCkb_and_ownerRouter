@@ -68,6 +68,10 @@ the specification work or by an unconfirmed effect.
     optional constrained assistance, S77-bound template/envelope hashes, and exact channel-evidence
     states. Current copy remains review-only and refuses tailoring/Gmail creation before provider
     construction until client-approved wording and channel rules arrive.
+19. Implemented and deployed S79: one current same-Space/lease delivered receipt binds one allowlisted
+    image to immutable preview identity, deterministic multipart MIME, exact Gmail raw-draft readback,
+    and one-attempt reconciliation. Text-only callers remain compatible; arbitrary Drive refs,
+    multiple/inline attachments, sends, and live effects remain unreachable behind the closed key.
 
 ## Completed release evidence
 
@@ -123,6 +127,13 @@ the specification work or by an unconfirmed effect.
     configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
     before/after promotion to 100%. Immediate rollback target is
     `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`.
+12. S79 commit `4a05462065bcad6433574cc7d7a6f4801b7311eb` was pushed to `main`; exact-SHA
+    aggregate CI run `33307517553` passed. Zero-traffic revision
+    `pmi-kc-app-rmtfp5ac4-8824eb39358b` preserved Production+Live, managed identity, 11 Spaces,
+    closed Sheet writeback, allowance 50, three expected secret references, and closed/unconfigured
+    renewal-comp Drive state. Its normalized configuration matched the predecessor; exact candidate
+    and stable root/sign-in/Ask/Admin/version smoke passed before/after promotion to 100%. Immediate
+    rollback target is `pmi-kc-app-rmtfk9fln-c9af498cb9c5`.
 
 ## Current closure sequence
 
@@ -145,7 +156,8 @@ The contracts are frozen as follows:
 - **S74:** complete and deployed with versioned owner/tenant copy, a locked server envelope,
   constrained editable/AI phrasing, S77 hash binding, exact channel truth, canonical/CI/candidate/
   configuration/stable proof, and review-only refusal until approved wording/evidence arrives.
-- **S79:** exact receipt-bound screenshot as one unsent Gmail attachment; its Drive key stays closed.
+- **S79:** complete and deployed with receipt-bound download, one-image MIME, exact raw-draft
+  readback/reconciliation, canonical/CI/candidate/configuration/stable proof, and a closed Drive key.
 - **S81:** narrow task-oriented Admin/Connections navigation without authority/store merging.
 - **S63/S30:** four-lease source-read-only proof with exact app evidence, and separately blocked one-
   record RentVine write proof.
@@ -169,7 +181,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    shared attention source while downstream suites consume its lease links.
 7. Preserve deployed S74's versioned template/fact-lock/channel-state boundary and review-only
    provider refusal while downstream suites bind its exact envelope identity.
-8. Implement S79's receipt-bound MIME/readback path behind the still-closed Drive action.
+8. Preserve deployed S79's receipt/MIME/readback/reconciliation and text-compatibility contracts;
+   keep its Drive action closed unless separately authorized.
 9. Implement S81's narrow navigation manifest, index, and anchors without moving authority or
    provider truth.
 10. Remove S63's tracked cohort/operator literals, require secure exact-four runtime bindings, and
