@@ -7,6 +7,7 @@ import {
   buildOwnerNoticeDraftRequest,
   buildTenantNoticeDraftRequest,
 } from "@/lib/lease-renewal/notice-send-policy";
+import { TEST_OWNER_DRAFT_ATTACHMENT } from "@/tests/helpers/renewal-draft-attachment";
 
 describe("buildOwnerNoticeDraftRequest", () => {
   const draft = buildOwnerRenewalDraft({
@@ -16,7 +17,7 @@ describe("buildOwnerNoticeDraftRequest", () => {
       rangeLow: 1295,
       rangeHigh: 1395,
       specificNumber: 1325,
-      compsScreenshotRef: "x",
+      compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
     },
   });
 

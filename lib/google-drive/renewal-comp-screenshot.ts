@@ -166,6 +166,18 @@ export type RenewalCompScreenshotFolderReadOutcome =
   | RenewalCompScreenshotDriveRejection
   | RenewalCompScreenshotDriveAmbiguity;
 
+/** Exact-id media read only. It never accepts a URL, query, filename, or caller-selected range. */
+export type RenewalCompScreenshotDownloadOutcome =
+  | {
+      outcome: "downloaded";
+      httpStatus: number;
+      bytes: Uint8Array;
+      contentType?: string;
+    }
+  | { outcome: "absent"; httpStatus: 404 }
+  | RenewalCompScreenshotDriveRejection
+  | RenewalCompScreenshotDriveAmbiguity;
+
 export interface CreateReservedRenewalCompScreenshotInput {
   /** A file ID returned by reserveFileId and durably won before this method is called. */
   fileId: string;
@@ -188,6 +200,7 @@ export interface RenewalCompScreenshotDriveProvider {
     input: CreateReservedRenewalCompScreenshotInput,
   ): Promise<RenewalCompScreenshotMutationOutcome>;
   getFile(fileId: string): Promise<RenewalCompScreenshotReadOutcome>;
+  downloadFile(fileId: string): Promise<RenewalCompScreenshotDownloadOutcome>;
   trashFile(fileId: string): Promise<RenewalCompScreenshotMutationOutcome>;
 }
 
@@ -455,6 +468,67 @@ async function responseJson(response: Response): Promise<unknown | null> {
   }
 }
 
+async function boundedResponseBytes(
+  response: Response,
+  timeoutMs: number,
+): Promise<Uint8Array | null> {
+  const declared = response.headers.get("content-length");
+  if (
+    declared !== null &&
+    (!DECIMAL_INTEGER_PATTERN.test(declared) ||
+      Number(declared) > MAX_RENEWAL_COMP_SCREENSHOT_BYTES)
+  ) {
+    return null;
+  }
+  if (!response.body) return new Uint8Array();
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (true) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        void reader.cancel().catch(() => undefined);
+        return null;
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let next: ReadableStreamReadResult<Uint8Array> | null;
+      try {
+        next = await Promise.race([
+          reader.read(),
+          new Promise<null>((resolve) => {
+            timer = setTimeout(resolve, remainingMs, null);
+          }),
+        ]);
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+      if (next === null) {
+        void reader.cancel().catch(() => undefined);
+        return null;
+      }
+      if (next.done) break;
+      total += next.value.byteLength;
+      if (total > MAX_RENEWAL_COMP_SCREENSHOT_BYTES) {
+        void reader.cancel().catch(() => undefined);
+        return null;
+      }
+      chunks.push(new Uint8Array(next.value));
+    }
+  } catch {
+    return null;
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 export class GoogleDriveRenewalCompScreenshotProvider implements RenewalCompScreenshotDriveProvider {
   private readonly getAccessToken: () => Promise<string>;
   private readonly fetchImpl: RenewalCompScreenshotDriveFetch;
@@ -620,6 +694,41 @@ export class GoogleDriveRenewalCompScreenshotProvider implements RenewalCompScre
       };
     }
     return { outcome: "found", httpStatus: response.status, file };
+  }
+
+  async downloadFile(fileId: string): Promise<RenewalCompScreenshotDownloadOutcome> {
+    assertDriveId(fileId, "fileId");
+    const request = await this.authenticatedRequest(
+      buildUrl(`${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}`, {
+        alt: "media",
+        supportsAllDrives: "true",
+      }),
+      { method: "GET" },
+    );
+    if (request.outcome !== "response") return request;
+    const { response } = request;
+    if (response.status === 404) return { outcome: "absent", httpStatus: 404 };
+    if (response.status < 200 || response.status >= 300) {
+      return deterministicHttpRejection(response.status)
+        ? rejectedHttp(response.status)
+        : ambiguousHttp(response.status);
+    }
+    const bytes = await boundedResponseBytes(response, this.timeoutMs);
+    if (!bytes) {
+      return {
+        outcome: "ambiguous",
+        certainty: "unknown",
+        reason: "invalid_response",
+        httpStatus: response.status,
+      };
+    }
+    const contentType = response.headers.get("content-type")?.trim();
+    return {
+      outcome: "downloaded",
+      httpStatus: response.status,
+      ...(contentType ? { contentType } : {}),
+      bytes,
+    };
   }
 
   async trashFile(fileId: string): Promise<RenewalCompScreenshotMutationOutcome> {

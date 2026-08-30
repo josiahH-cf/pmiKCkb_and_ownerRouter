@@ -11,6 +11,7 @@ import {
   MAINTENANCE_EXECUTION_DEFINITION_MAP,
   MAINTENANCE_EXECUTION_ORDER,
 } from "@/lib/maintenance/execution/matrix";
+import { TEST_RENEWAL_ATTACHMENT_IDENTITY } from "@/tests/helpers/renewal-draft-attachment";
 
 const COPY = {
   templateContentHash: "a".repeat(64),
@@ -84,6 +85,34 @@ describe("draft-pair preview schema alignment", () => {
     });
 
     expect(action.values.cc).toBe("resident-b@residentdomain.test");
+    expect(
+      validatePreviewPayload(
+        previewSchemaFor("gmail.renewal_notice.draft_create"),
+        action.values,
+      ),
+    ).toEqual({ ok: true, errors: [] });
+  });
+
+  it("accepts the exact owner receipt identity while keeping every attachment field optional for tenant text-only drafts", () => {
+    const action = buildRenewalNoticeDraftAction({
+      workflowId: "renewal-live:lease-owner",
+      actionId: "renewal-notice-draft:owner:lease-owner",
+      channel: "owner",
+      templateRef: "owner-renewal:v1.0",
+      copy: COPY,
+      recipient: {
+        channel: "owner",
+        to: "owner@ownerdomain.test",
+        sourceRef: "rentvine:lease:lease-owner:owner:0",
+      },
+      mailbox: { email: "josiah@pmikcmetro.com", sourceRef: "app:session:user-1" },
+      subject: "Owner renewal review",
+      body: "Synthetic owner body.",
+      workflowContext: "renewal:lease-owner",
+      sourceRefs: ["rentvine:lease:lease-owner"],
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+    });
+
     expect(
       validatePreviewPayload(
         previewSchemaFor("gmail.renewal_notice.draft_create"),

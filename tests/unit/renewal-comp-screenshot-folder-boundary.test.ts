@@ -204,6 +204,11 @@ class BoundaryDriveProvider implements RenewalCompScreenshotDriveProvider {
     return { outcome: "found", httpStatus: 200, file };
   });
 
+  readonly downloadFile = vi.fn(async () => ({
+    outcome: "absent" as const,
+    httpStatus: 404 as const,
+  }));
+
   readonly trashFile = vi.fn(
     async (): Promise<RenewalCompScreenshotMutationOutcome> => ({
       outcome: "rejected",

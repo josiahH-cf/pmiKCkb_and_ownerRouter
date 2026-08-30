@@ -32,7 +32,6 @@ const ownerRequest = {
       specificNumber: 1550.25,
       rangeLow: 1450,
       rangeHigh: 1650,
-      compsScreenshotRef: "drive:comps-42",
     },
   },
 } satisfies RenewalNoticeDraftRequest;
@@ -167,13 +166,6 @@ describe("renewal notice draft shared contract", () => {
         ...ownerRequest,
         offer: { channel: "owner", market: { ...market, rangeHigh: 1700 } },
       },
-      {
-        ...ownerRequest,
-        offer: {
-          channel: "owner",
-          market: { ...market, compsScreenshotRef: "drive:comps-43" },
-        },
-      },
       tenantRequest,
       {
         ...ownerRequest,
@@ -189,6 +181,24 @@ describe("renewal notice draft shared contract", () => {
 
     for (const changed of mutations) {
       expect(isRenewalDraftPreviewCurrent(binding, changed)).toBe(false);
+    }
+  });
+
+  it("rejects every browser-supplied screenshot id, URL, or textual reference", () => {
+    for (const compsScreenshotRef of [
+      "drive:file_123",
+      "https://drive.google.com/file/d/file_123/view",
+      "browser-selected-screenshot.png",
+    ]) {
+      expect(
+        RenewalNoticeDraftRequestSchema.safeParse({
+          ...ownerRequest,
+          offer: {
+            channel: "owner",
+            market: { ...ownerRequest.offer.market, compsScreenshotRef },
+          },
+        }).success,
+      ).toBe(false);
     }
   });
 });

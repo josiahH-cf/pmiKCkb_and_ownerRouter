@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
+import { decodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import {
   GMAIL_COMPOSE_SCOPE,
   GMAIL_LABELS_SCOPE,
@@ -130,6 +131,101 @@ describe("GmailRuntimeClient.createDraft", () => {
     scopes.length = 0;
     await client.createDraft({ to: "josiah@pmikcmetro.com", subject: "s", body: "b" });
     expect(scopes).toEqual([GMAIL_COMPOSE_SCOPE]);
+  });
+
+  it("encodes the narrow one-image attachment while still calling only drafts.create", async () => {
+    const { calls, transport } = fakeTransport({
+      status: 200,
+      body: { id: "draft_attachment_1" },
+    });
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport,
+      getToken: async () => "token",
+    });
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]);
+
+    await client.createDraft({
+      to: "owner@ownerdomain.com",
+      subject: "Owner renewal review",
+      body: `${DRAFT_BANNER}\n\nSee attachment.`,
+      messageId: "<attachment-client@pmikcmetro.com>",
+      attachment: {
+        filename: "renewal-comp-client.png",
+        mimeType: "image/png",
+        bytes,
+      },
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("https://gmail.googleapis.com/gmail/v1/users/me/drafts");
+    const request = JSON.parse(calls[0].body ?? "{}") as {
+      message: { raw: string };
+    };
+    expect(decodeRawDraft(request.message.raw)).toMatchObject({
+      to: "owner@ownerdomain.com",
+      from: "josiah@pmikcmetro.com",
+      attachment: {
+        filename: "renewal-comp-client.png",
+        mimeType: "image/png",
+        sizeBytes: bytes.byteLength,
+      },
+    });
+  });
+
+  it("reads exact draft-id raw MIME and exact-RFC reconciliation uses that same readback", async () => {
+    const raw = Buffer.from(
+      "To: owner@ownerdomain.com\r\nSubject: S\r\n\r\nBody",
+    ).toString("base64url");
+    const calls: GmailHttpRequest[] = [];
+    const responses = [
+      {
+        id: "draft_raw_1",
+        message: { id: "message_raw_1", raw },
+      },
+      {
+        drafts: [{ id: "draft_raw_1", message: { id: "message_raw_1" } }],
+      },
+      {
+        id: "draft_raw_1",
+        message: { id: "message_raw_1", raw },
+      },
+    ];
+    const scopes: string[] = [];
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport: {
+        async send(request) {
+          calls.push(request);
+          return { status: 200, json: async () => responses.shift() ?? {} };
+        },
+      },
+      getToken: async (scope) => {
+        scopes.push(scope);
+        return "token";
+      },
+    });
+
+    await expect(client.getDraftById("draft_raw_1")).resolves.toEqual({
+      draftId: "draft_raw_1",
+      messageId: "message_raw_1",
+      raw,
+    });
+    await expect(
+      client.findDraftByRfcMessageId("<attachment-client@pmikcmetro.com>"),
+    ).resolves.toEqual({
+      draftId: "draft_raw_1",
+      messageId: "message_raw_1",
+      raw,
+    });
+    expect(scopes).toEqual([
+      GMAIL_READONLY_SCOPE,
+      GMAIL_READONLY_SCOPE,
+      GMAIL_READONLY_SCOPE,
+    ]);
+    expect(calls[0].url).toContain("/drafts/draft_raw_1?format=raw");
+    expect(calls[1].url).toContain("/drafts?q=rfc822msgid");
+    expect(calls[2].url).toContain("/drafts/draft_raw_1?format=raw");
   });
 
   it("uses compose for one reply send and includes Gmail/RFC threading fields", async () => {

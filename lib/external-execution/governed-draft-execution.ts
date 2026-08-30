@@ -10,12 +10,22 @@ import {
   type ExternalActionPreparationInput,
   type TrustedExternalExecutionContext,
 } from "@/lib/external-execution/s20-bridge";
-import type { ExternalActionDefinition } from "@/lib/external-execution/types";
+import {
+  ExternalExecutionError,
+  type ExternalActionDefinition,
+} from "@/lib/external-execution/types";
 import {
   LiveRenewalGmailDraftProvider,
   type RenewalDraftGmailClient,
 } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { LeaseGmailExecutor } from "@/lib/lease-renewal/execution/providers";
+import {
+  renewalDraftAttachmentFromAction,
+  sameRenewalDraftAttachmentIdentity,
+  validateResolvedRenewalDraftAttachment,
+  type RenewalDraftAttachmentIdentity,
+  type ResolvedRenewalDraftAttachment,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 import { assertAuthoritativeRenewalRecipient } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
@@ -43,6 +53,10 @@ export interface GovernedDraftRequest {
   readonly action: ExternalActionPreparationInput;
   readonly definition: Readonly<ExternalActionDefinition>;
   readonly createClient: () => RenewalDraftGmailClient;
+  /** Owner-renewal only. It must gate/reload/verify Drive before Gmail construction. */
+  readonly resolveAttachment?: (
+    expected: RenewalDraftAttachmentIdentity,
+  ) => Promise<ResolvedRenewalDraftAttachment>;
 }
 
 /**
@@ -152,6 +166,26 @@ export async function executeGovernedDraft(
   } as never);
   await assertProductionRuntimeActionExecutable(request.action.actionKey);
   assertEffectEnvironment(seams);
+  let resolvedAttachment: ResolvedRenewalDraftAttachment | undefined;
+  const expectedAttachment = renewalDraftAttachmentFromAction(request.action);
+  if (expectedAttachment) {
+    if (!request.resolveAttachment) {
+      throw new ExternalExecutionError(
+        "The exact receipt-bound comp screenshot resolver is unavailable.",
+        "blocked",
+      );
+    }
+    const resolved = validateResolvedRenewalDraftAttachment(
+      await request.resolveAttachment(expectedAttachment),
+    );
+    if (!sameRenewalDraftAttachmentIdentity(expectedAttachment, resolved)) {
+      throw new ExternalExecutionError(
+        "The resolved comp screenshot changed after the exact preview.",
+        "blocked",
+      );
+    }
+    resolvedAttachment = resolved;
+  }
   const execute = seams.execute ?? executeExternalActionWithS20;
   return execute(actor, {
     action: request.action,
@@ -159,7 +193,7 @@ export async function executeGovernedDraft(
     definition: request.definition,
     executionId: request.executionId,
     executor: new LeaseGmailExecutor(
-      new LiveRenewalGmailDraftProvider(request.createClient()),
+      new LiveRenewalGmailDraftProvider(request.createClient(), resolvedAttachment),
     ),
     trustedContext: trustedContext(request.action),
   });

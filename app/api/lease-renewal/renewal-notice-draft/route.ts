@@ -24,6 +24,12 @@ import {
 import { prepareRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 import { RenewalNoticeDraftRequestSchema } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import {
+  loadCurrentRenewalDraftCompScreenshotAttachment,
+  resolveRenewalDraftCompScreenshotAttachment,
+} from "@/lib/lease-renewal/comp-screenshot-attachment-runtime";
+import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
+import { RENEWAL_COMP_SCREENSHOT_ACTION_KEY } from "@/lib/lease-renewal/comp-screenshot-action";
 import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
 import {
   ActionNotExecutableError,
@@ -73,6 +79,10 @@ export async function POST(request: Request) {
     const rentvineClient = config.rentvineClient;
     const nowMs = Date.now();
     const channel = body.offer.channel;
+    let compScreenshotRuntime: ReturnType<typeof buildLiveCompScreenshotRuntime> | null =
+      null;
+    const getCompScreenshotRuntime = () =>
+      (compScreenshotRuntime ??= buildLiveCompScreenshotRuntime());
     let approvedSuggestion:
       | { value: number; comps: { rent: number; source: string; label?: string }[] }
       | undefined;
@@ -140,6 +150,22 @@ export async function POST(request: Request) {
           );
           return result.status === "ok" ? result.decision : null;
         },
+        async loadCompScreenshotAttachment(leaseId) {
+          const runtime = getCompScreenshotRuntime();
+          return loadCurrentRenewalDraftCompScreenshotAttachment(
+            leaseId,
+            runtime.deps.store,
+          );
+        },
+        async resolveCompScreenshotAttachment(leaseId, expected) {
+          const runtime = getCompScreenshotRuntime();
+          return resolveRenewalDraftCompScreenshotAttachment(
+            leaseId,
+            expected,
+            runtime.deps,
+            runtime.context,
+          );
+        },
         // Descriptor-bound: Demo and Live-read-only refuse here, so no provider is constructed.
         createGmailClient: (subject) =>
           createDescriptorBoundGmailRuntimeClient(
@@ -172,9 +198,12 @@ export async function POST(request: Request) {
       error instanceof ActionNotExecutableError ||
       error instanceof ActionRuntimeSuspendedError
     ) {
+      const actionKey = error.message.includes(`"${RENEWAL_COMP_SCREENSHOT_ACTION_KEY}"`)
+        ? RENEWAL_COMP_SCREENSHOT_ACTION_KEY
+        : RENEWAL_NOTICE_DRAFT_ACTION_KEY;
       return NextResponse.json(
         {
-          action_key: RENEWAL_NOTICE_DRAFT_ACTION_KEY,
+          action_key: actionKey,
           error: error.message,
           error_type: error.code,
         },

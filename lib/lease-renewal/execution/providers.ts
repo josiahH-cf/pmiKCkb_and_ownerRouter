@@ -5,13 +5,17 @@ import {
   getGovernedArtifact,
   GMAIL_MANUAL_LABEL_RULE_REF,
 } from "@/lib/gmail-hub/governed-artifacts";
-import type {
-  ExternalActionInput,
-  ExternalActionReceipt,
-  ExternalExecutor,
+import {
+  ExternalExecutionError,
+  type ExternalActionInput,
+  type ExternalActionReceipt,
+  type ExternalExecutor,
 } from "@/lib/external-execution/types";
 import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
-import { ExternalExecutionError } from "@/lib/external-execution/types";
+import {
+  renewalDraftAttachmentFromAction,
+  type RenewalDraftAttachmentIdentity,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 
 function stringValue(input: ExternalActionInput, key: string) {
   const value = input.values[key];
@@ -70,6 +74,7 @@ export interface WorkflowMessagePayload {
   threadRef?: string;
   label?: string;
   consentRef?: string;
+  attachment?: RenewalDraftAttachmentIdentity;
 }
 
 export interface WorkflowMessageReadback {
@@ -171,6 +176,21 @@ export class LeaseGmailExecutor implements ExternalExecutor {
         !/^[a-f0-9]{64}$/.test(String(input.values.copy_envelope_hash))
       ) {
         return "The renewal draft requires exact template and locked-envelope hashes.";
+      }
+      let attachment: RenewalDraftAttachmentIdentity | null;
+      try {
+        attachment = renewalDraftAttachmentFromAction(input);
+      } catch (error) {
+        return error instanceof Error
+          ? error.message
+          : "The renewal attachment identity is invalid.";
+      }
+      const templateRef = String(input.values.template_ref);
+      if (templateRef === "owner-renewal:v1.0" && !attachment) {
+        return "The owner renewal draft requires the current receipted comp screenshot attachment.";
+      }
+      if (templateRef !== "owner-renewal:v1.0" && attachment) {
+        return "Only the owner renewal draft can carry a comp screenshot attachment.";
       }
     }
     const body = String(input.values.body);
@@ -798,6 +818,7 @@ function workflowMessagePayload(
 ): WorkflowMessagePayload {
   const recipient =
     text(input, "to") ?? text(input, "recipients") ?? text(input, "recipient");
+  const attachment = renewalDraftAttachmentFromAction(input);
   return {
     operation,
     ...(text(input, "template_ref") ? { artifactRef: text(input, "template_ref") } : {}),
@@ -811,6 +832,7 @@ function workflowMessagePayload(
     ...(text(input, "thread_ref") ? { threadRef: text(input, "thread_ref") } : {}),
     ...(text(input, "suggested_label") ? { label: text(input, "suggested_label") } : {}),
     ...(text(input, "consent_ref") ? { consentRef: text(input, "consent_ref") } : {}),
+    ...(attachment ? { attachment } : {}),
   };
 }
 

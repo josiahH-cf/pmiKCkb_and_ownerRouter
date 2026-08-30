@@ -31,6 +31,14 @@ import {
 } from "@/lib/integrations/rentvine/lease-mapper";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
+  compScreenshotDraftAttachmentIdentity,
+  type CompScreenshotAttachment,
+} from "@/lib/lease-renewal/comp-screenshot-attachment";
+import type {
+  RenewalDraftAttachmentIdentity,
+  ResolvedRenewalDraftAttachment,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
+import {
   buildRenewalNoticeDraftPreview,
   type RenewalDraftPreview,
 } from "@/lib/lease-renewal/execution/renewal-draft-preview";
@@ -80,6 +88,15 @@ export interface RenewalNoticeDraftDeps {
     currentRent: number;
     currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
   } | null>;
+  /** Current delivered same-lease screenshot receipt; no browser reference participates. */
+  loadCompScreenshotAttachment?(
+    leaseId: string,
+  ): Promise<CompScreenshotAttachment | null>;
+  /** Gate, reload, and verify the current Drive bytes immediately before Gmail construction. */
+  resolveCompScreenshotAttachment?(
+    leaseId: string,
+    expected: RenewalDraftAttachmentIdentity,
+  ): Promise<ResolvedRenewalDraftAttachment>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
   /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
@@ -147,12 +164,27 @@ export async function prepareRenewalNoticeDraft(
 
   const currentRentDecision =
     (await deps.loadOwnerCurrentRentDecision?.(browserRequest.leaseId)) ?? null;
+  const compScreenshot =
+    (await deps.loadCompScreenshotAttachment?.(browserRequest.leaseId)) ?? null;
+  const attachment = compScreenshot
+    ? compScreenshotDraftAttachmentIdentity(compScreenshot)
+    : undefined;
   const ownerOffer: OwnerRenewalOffer = {
     ...browserRequest.offer,
     market: {
       ...browserRequest.offer.market,
       ...(input.serverContext?.approvedSuggestion
         ? { approvedSuggestion: input.serverContext.approvedSuggestion }
+        : {}),
+      ...(attachment
+        ? {
+            compScreenshotAttachment: {
+              filename: attachment.filename,
+              mimeType: attachment.mimeType,
+              sizeBytes: attachment.sizeBytes,
+              sha256Checksum: attachment.sha256Checksum,
+            },
+          }
         : {}),
     },
   };
@@ -168,6 +200,11 @@ export async function prepareRenewalNoticeDraft(
     copyTemplate:
       deps.resolveCopyTemplate?.("owner") ?? currentRenewalCopyTemplate("owner"),
     ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
+    ...(attachment ? { attachment } : {}),
+    sourceRefs: [
+      ...common.sourceRefs,
+      ...(attachment ? [`comp-screenshot-receipt:${attachment.receiptId}`] : []),
+    ],
   });
   return finalize(preview, browserRequest, input.mailbox, deps);
 }
@@ -196,6 +233,12 @@ async function finalize(
     action: preview.action as never,
     definition: LEASE_EXECUTION_DEFINITION_MAP.get(RENEWAL_NOTICE_DRAFT_ACTION_KEY)!,
     createClient: () => deps.createGmailClient(mailbox.email),
+    ...(preview.attachment && deps.resolveCompScreenshotAttachment
+      ? {
+          resolveAttachment: (expected: RenewalDraftAttachmentIdentity) =>
+            deps.resolveCompScreenshotAttachment!(input.leaseId, expected),
+        }
+      : {}),
   };
 
   if (input.reconcile) {
@@ -254,6 +297,7 @@ async function finalize(
       template: preview.template,
       copy: preview.copy,
       reasons: preview.reasons,
+      ...(preview.attachment ? { attachment: preview.attachment } : {}),
     };
   }
 
@@ -268,6 +312,7 @@ async function finalize(
       executionId: prepared.id,
       previewHash: prepared.preview_hash,
       template: preview.template,
+      ...(preview.attachment ? { attachment: preview.attachment } : {}),
     };
   }
 
@@ -301,6 +346,7 @@ async function finalize(
     draftId: outcome.result.providerRef,
     executionId: outcome.execution.id,
     template: preview.template,
+    ...(preview.attachment ? { attachment: preview.attachment } : {}),
   };
 }
 

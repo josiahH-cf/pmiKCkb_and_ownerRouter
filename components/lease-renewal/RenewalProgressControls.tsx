@@ -735,7 +735,7 @@ export function OwnerDecisionForm({
         setRollbackRecoveryPending(false);
         setRollbackPreview(null);
         setScreenshotStatus(
-          "Screenshot moved to Drive trash and the trashed state was verified.",
+          "Screenshot moved to Drive trash and verified. Any already-created Gmail draft keeps its embedded attachment; this only prevents future previews and drafts from using the Drive source.",
         );
       } else {
         if (response.ok && payload.status === "ambiguous") {
@@ -1104,7 +1104,8 @@ export function OwnerDecisionForm({
           <p className="muted">
             Confirm removal of {rollbackPreview.targetRef} from{" "}
             {rollbackPreview.targetLabel}. Only this exact receipted file will move to
-            Drive trash.
+            Drive trash. Any attachment already embedded in an existing Gmail draft is
+            unchanged.
           </p>
           {rollbackPreview.providerDriftedSinceReceipt ? (
             <p className="muted">

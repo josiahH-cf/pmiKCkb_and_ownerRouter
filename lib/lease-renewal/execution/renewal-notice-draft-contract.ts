@@ -54,7 +54,6 @@ const OwnerRenewalDraftMarketSchema = z
     specificNumber: positiveMoney.optional(),
     rangeLow: positiveMoney.optional(),
     rangeHigh: positiveMoney.optional(),
-    compsScreenshotRef: z.string().trim().min(1).max(500).optional(),
   })
   .strict()
   .superRefine((market, context) => {
@@ -128,6 +127,18 @@ export const RenewalNoticeDraftRecipientSchema = z
 
 const outcomeChannel = z.enum(["tenant", "owner"]);
 const executionId = RenewalDraftConfirmationSchema.shape.executionId;
+export const RenewalDraftAttachmentSummarySchema = z
+  .object({
+    label: z.string().trim().min(1).max(300),
+    filename: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/),
+    mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/heic"]),
+    sizeBytes: z
+      .number()
+      .int()
+      .positive()
+      .max(5 * 1024 * 1024),
+  })
+  .strict();
 
 export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
   z
@@ -140,6 +151,7 @@ export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
       template: RenewalCopyTemplateSummarySchema,
       copy: RenewalCopySelectionSchema,
       reasons: z.array(z.string().min(1)),
+      attachment: RenewalDraftAttachmentSummarySchema.optional(),
     })
     .strict(),
   z
@@ -159,6 +171,7 @@ export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
       executionId,
       previewHash: RenewalDraftConfirmationSchema.shape.previewHash,
       template: RenewalCopyTemplateSummarySchema,
+      attachment: RenewalDraftAttachmentSummarySchema.optional(),
     })
     .strict(),
   z
@@ -170,6 +183,7 @@ export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
       draftId: z.string().trim().min(1),
       executionId,
       template: RenewalCopyTemplateSummarySchema,
+      attachment: RenewalDraftAttachmentSummarySchema.optional(),
     })
     .strict(),
   z

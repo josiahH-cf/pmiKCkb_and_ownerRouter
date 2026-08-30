@@ -10,6 +10,10 @@ import { buildRenewalNoticeDraftPreview } from "@/lib/lease-renewal/execution/re
 import { executeRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import { RENEWAL_COPY_TEMPLATE_SOURCES } from "@/lib/lease-renewal/renewal-copy-contract";
 import { createRenewalCopyTemplate } from "@/lib/lease-renewal/renewal-copy-governance";
+import {
+  TEST_OWNER_DRAFT_ATTACHMENT,
+  TEST_RENEWAL_ATTACHMENT_IDENTITY,
+} from "@/tests/helpers/renewal-draft-attachment";
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "session:mailbox" };
 
@@ -69,7 +73,7 @@ const ownerDecision = {
     rangeLow: 1450,
     rangeHigh: 1650,
     specificNumber: 1550,
-    compsScreenshotRef: "drive://comps/cedar.png",
+    compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
   },
 };
 
@@ -164,12 +168,21 @@ describe("buildRenewalNoticeDraftPreview", () => {
       copyTemplate: approvedCopy.owner,
       lease: ownerLease,
       decision: ownerDecision,
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
     });
 
     expect(preview.status).toBe("ready");
     if (preview.status !== "ready") return;
     expect(preview.recipient.to).toBe("owner7@cedar-holdings.com");
     expect(preview.action.values.template_ref).toBe("owner-renewal:v1.0");
+    expect(preview.action.values.attachment_receipt_id).toBe(
+      TEST_RENEWAL_ATTACHMENT_IDENTITY.receiptId,
+    );
+    expect(preview.attachment).toMatchObject({
+      filename: TEST_RENEWAL_ATTACHMENT_IDENTITY.filename,
+      mimeType: "image/png",
+      sizeBytes: TEST_RENEWAL_ATTACHMENT_IDENTITY.sizeBytes,
+    });
     expect(preview.body.startsWith(`${DRAFT_BANNER}\n\n`)).toBe(true);
   });
 

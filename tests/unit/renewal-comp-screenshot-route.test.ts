@@ -116,6 +116,10 @@ function makeRuntime() {
         ? { outcome: "found" as const, httpStatus: 200, file: currentFile }
         : { outcome: "absent" as const, httpStatus: 404 as const },
     ),
+    downloadFile: vi.fn(async () => ({
+      outcome: "absent" as const,
+      httpStatus: 404 as const,
+    })),
     trashFile: vi.fn(async (fileId) => {
       if (!createdInput || !currentFile || currentFile.id !== fileId) {
         return {

@@ -195,6 +195,20 @@ class FakeDriveProvider implements RenewalCompScreenshotDriveProvider {
     },
   );
 
+  readonly downloadFile = vi.fn(async (fileId: string) => {
+    const created = [...this.createdInputs]
+      .reverse()
+      .find((input) => input.fileId === fileId);
+    return created
+      ? {
+          outcome: "downloaded" as const,
+          httpStatus: 200,
+          contentType: created.mimeType,
+          bytes: new Uint8Array(created.bytes),
+        }
+      : { outcome: "absent" as const, httpStatus: 404 as const };
+  });
+
   readonly trashFile = vi.fn(
     async (fileId: string): Promise<RenewalCompScreenshotMutationOutcome> => {
       const queued = this.trashOutcomes.shift();

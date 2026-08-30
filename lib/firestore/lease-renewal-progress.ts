@@ -64,10 +64,14 @@ export {
 } from "@/lib/firestore/lease-renewal-progress-schema";
 
 type ProgressActivityAction = LeaseRenewalProgressActivityRecord["action"];
+type ProgressScreenshotAttachment = Pick<
+  CompScreenshotAttachment,
+  "compRecordHash" | "executionId" | "receiptId" | "resultHash" | "ref"
+>;
 
 interface TransitionResolution {
   plan: RenewalProgressPlan;
-  attachment?: CompScreenshotAttachment;
+  attachment?: ProgressScreenshotAttachment;
 }
 
 /** Record (or replace) the human owner's decision; evidence, not this click, advances the process. */
@@ -275,7 +279,7 @@ async function applyTransition(
   resolve: (
     current: RenewalProgress | null,
     transaction: Transaction,
-    currentAttachment: CompScreenshotAttachment | null,
+    currentAttachment: ProgressScreenshotAttachment | null,
   ) => TransitionResolution | Promise<TransitionResolution>,
   action: ProgressActivityAction,
   db: Firestore,
@@ -426,7 +430,7 @@ function withoutCallerScreenshotRef(
 
 function progressScreenshotAttachment(
   record: LeaseRenewalProgressRecord,
-): CompScreenshotAttachment | null {
+): ProgressScreenshotAttachment | null {
   const market = record.owner_decision?.market;
   if (
     !market?.comp_screenshot_ref ||

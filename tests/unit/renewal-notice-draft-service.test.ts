@@ -26,6 +26,10 @@ import {
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 import { RENEWAL_COPY_TEMPLATE_SOURCES } from "@/lib/lease-renewal/renewal-copy-contract";
 import { createRenewalCopyTemplate } from "@/lib/lease-renewal/renewal-copy-governance";
+import {
+  TEST_COMP_SCREENSHOT_ATTACHMENT,
+  TEST_RESOLVED_RENEWAL_ATTACHMENT,
+} from "@/tests/helpers/renewal-draft-attachment";
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "app:session:u1" };
 
@@ -117,6 +121,8 @@ function deps(
           }
         : null;
     },
+    loadCompScreenshotAttachment: async () => TEST_COMP_SCREENSHOT_ATTACHMENT,
+    resolveCompScreenshotAttachment: async () => TEST_RESOLVED_RENEWAL_ATTACHMENT,
     createGmailClient: (subject): RenewalDraftGmailClient => ({
       subject,
       createDraft,
@@ -155,7 +161,6 @@ const ownerInput = (confirm?: Confirmation): RenewalNoticeDraftInput => ({
         specificNumber: 1550,
         rangeLow: 1450,
         rangeHigh: 1650,
-        compsScreenshotRef: "drive://comps/cedar.png",
       },
     },
   },

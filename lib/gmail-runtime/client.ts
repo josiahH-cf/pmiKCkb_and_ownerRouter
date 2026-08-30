@@ -161,6 +161,11 @@ export class GmailRuntimeClient {
           subject: string;
           body: string;
           messageId?: string;
+          attachment?: {
+            filename: string;
+            mimeType: string;
+            bytes: Uint8Array;
+          };
         },
   ): Promise<CreatedDraft> {
     let outgoing: GmailOutgoingMessage | undefined;
@@ -378,7 +383,7 @@ export class GmailRuntimeClient {
    */
   async findDraftByRfcMessageId(
     rfcMessageId: string,
-  ): Promise<{ draftId: string; messageId?: string } | null> {
+  ): Promise<{ draftId: string; messageId?: string; raw: string } | null> {
     const messageId = safeRfcMessageId(rfcMessageId);
     const data = await this.request(GMAIL_READONLY_SCOPE, "GET", "/drafts", {
       query: { q: `rfc822msgid:${messageId}`, maxResults: "2" },
@@ -397,10 +402,42 @@ export class GmailRuntimeClient {
     if (!isRecord(first)) return null;
     const draftId = optionalString(first.id);
     if (!draftId) return null;
-    const message = isRecord(first.message) ? first.message : {};
+    const listedMessage = isRecord(first.message) ? first.message : {};
+    const fetched = await this.getDraftById(draftId);
+    const listedMessageId = optionalString(listedMessage.id);
+    if (listedMessageId && fetched.messageId && listedMessageId !== fetched.messageId) {
+      throw new GmailRuntimeError(
+        "Gmail draft identity changed during exact RFC Message-ID lookup.",
+        409,
+        true,
+      );
+    }
+    return fetched;
+  }
+
+  /** Read back one exact unsent draft as RFC raw MIME; no list/search or attachment endpoint. */
+  async getDraftById(
+    draftId: string,
+  ): Promise<{ draftId: string; messageId?: string; raw: string }> {
+    const id = opaqueId(draftId, "draft id");
+    const data = await this.request(
+      GMAIL_READONLY_SCOPE,
+      "GET",
+      `/drafts/${encodeURIComponent(id)}`,
+      { query: { format: "raw" } },
+    );
+    if (!isRecord(data) || optionalString(data.id) !== id) {
+      throw new GmailRuntimeError("Gmail returned a different or invalid draft id.");
+    }
+    const message = isRecord(data.message) ? data.message : null;
+    const raw = message ? optionalString(message.raw) : undefined;
+    if (!message || !raw) {
+      throw new GmailRuntimeError("Gmail returned no raw MIME for the exact draft.");
+    }
     return {
-      draftId,
+      draftId: id,
       ...(optionalString(message.id) ? { messageId: optionalString(message.id) } : {}),
+      raw,
     };
   }
 

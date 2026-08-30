@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   loadLiveOwnerCurrentRentDecision: vi.fn(),
   listResolutionsForRun: vi.fn(),
   getApprovedRentSuggestion: vi.fn(),
+  loadCompScreenshotAttachment: vi.fn(),
+  resolveCompScreenshotAttachment: vi.fn(),
   firestore: undefined as unknown,
 }));
 
@@ -69,6 +71,18 @@ vi.mock("@/lib/lease-renewal/live-desk", async (importActual) => {
   };
 });
 
+vi.mock("@/lib/lease-renewal/comp-screenshot-runtime", () => ({
+  buildLiveCompScreenshotRuntime: () => ({
+    deps: { store: {} },
+    context: {},
+  }),
+}));
+
+vi.mock("@/lib/lease-renewal/comp-screenshot-attachment-runtime", () => ({
+  loadCurrentRenewalDraftCompScreenshotAttachment: mocks.loadCompScreenshotAttachment,
+  resolveRenewalDraftCompScreenshotAttachment: mocks.resolveCompScreenshotAttachment,
+}));
+
 // These route wiring tests preserve the eventual approved-copy execution branch. Production's
 // current review-only registry is exercised separately by the service/copy-publication tests; this
 // fixture exists only inside Vitest and can never be published by the application.
@@ -101,9 +115,10 @@ vi.mock("@/lib/lease-renewal/renewal-copy-governance", async (importActual) => {
   };
 });
 
-const { createDraftMock, findDraftMock } = vi.hoisted(() => ({
+const { createDraftMock, findDraftMock, getDraftByIdMock } = vi.hoisted(() => ({
   createDraftMock: vi.fn(async () => ({ draftId: "draft_owner_1" })),
   findDraftMock: vi.fn(async () => null as { draftId: string } | null),
+  getDraftByIdMock: vi.fn(),
 }));
 vi.mock("@/lib/gmail-runtime/client", () => ({
   GmailRuntimeClient: vi.fn(function (
@@ -111,6 +126,7 @@ vi.mock("@/lib/gmail-runtime/client", () => ({
       subject: string;
       createDraft: unknown;
       findDraftByRfcMessageId: unknown;
+      getDraftById: unknown;
     },
     opts: { subject: string },
   ) {
@@ -119,17 +135,24 @@ vi.mock("@/lib/gmail-runtime/client", () => ({
     this.subject = opts.subject.trim().toLowerCase();
     this.createDraft = createDraftMock;
     this.findDraftByRfcMessageId = findDraftMock;
+    this.getDraftById = getDraftByIdMock;
   }),
   GmailRuntimeError: class GmailRuntimeError extends Error {},
 }));
 
 import { POST } from "@/app/api/lease-renewal/renewal-notice-draft/route";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import {
   clearLiveLeaseCache,
   getLiveLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  TEST_COMP_SCREENSHOT_ATTACHMENT,
+  TEST_RESOLVED_RENEWAL_ATTACHMENT,
+} from "@/tests/helpers/renewal-draft-attachment";
+import { ActionNotExecutableError } from "@/lib/operations/runtime-suspension-gate";
 
 interface ClientOverrides {
   exportRows?: Record<string, unknown>[];
@@ -222,7 +245,6 @@ const ownerBody = (confirm?: Confirmation) => ({
       specificNumber: 1550,
       rangeLow: 1450,
       rangeHigh: 1650,
-      compsScreenshotRef: "drive://comps/cedar.png",
     },
   },
 });
@@ -254,6 +276,43 @@ beforeEach(() => {
         readAtIso: "2026-08-26T13:00:00.000Z",
       },
     },
+  });
+  mocks.loadCompScreenshotAttachment.mockResolvedValue(TEST_COMP_SCREENSHOT_ATTACHMENT);
+  mocks.resolveCompScreenshotAttachment.mockResolvedValue(
+    TEST_RESOLVED_RENEWAL_ATTACHMENT,
+  );
+  getDraftByIdMock.mockImplementation(async (draftId: string) => {
+    const input = (
+      createDraftMock.mock.calls as unknown as Array<
+        [
+          {
+            to: string;
+            cc?: string[];
+            subject: string;
+            body: string;
+            messageId?: string;
+            attachment?: { filename: string; mimeType: string; bytes: Uint8Array };
+          },
+        ]
+      >
+    ).at(-1)?.[0] as
+      | {
+          to: string;
+          cc?: string[];
+          subject: string;
+          body: string;
+          messageId?: string;
+          attachment?: { filename: string; mimeType: string; bytes: Uint8Array };
+        }
+      | undefined;
+    if (!input) throw new Error("No draft input was captured.");
+    return {
+      draftId,
+      raw: encodeRawDraft({
+        ...input,
+        from: "josiah@pmikcmetro.com",
+      }),
+    };
   });
 });
 
@@ -318,6 +377,12 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(payload.status).toBe("preview");
     expect(payload.channel).toBe("owner");
     expect(payload.recipient.to).toBe("owner42@cedar-holdings.com");
+    expect(payload.attachment).toEqual({
+      label: `Comp screenshot attachment: ${TEST_COMP_SCREENSHOT_ATTACHMENT.filename}`,
+      filename: TEST_COMP_SCREENSHOT_ATTACHMENT.filename,
+      mimeType: TEST_COMP_SCREENSHOT_ATTACHMENT.mimeType,
+      sizeBytes: TEST_COMP_SCREENSHOT_ATTACHMENT.sizeBytes,
+    });
     // S61: the contact join is gone — the owner channel makes no extra RentVine reads.
     expect(getProperty).not.toHaveBeenCalled();
     expect(getPortfolio).not.toHaveBeenCalled();
@@ -443,6 +508,36 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(createDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({ to: "owner42@cedar-holdings.com" }),
     );
+  });
+
+  it("reports the exact closed Drive key before Gmail construction or execution claim", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+
+    const previewed = await (await POST(req(ownerBody()))).json();
+    expect(previewed.status).toBe("preview");
+    mocks.resolveCompScreenshotAttachment.mockRejectedValueOnce(
+      new ActionNotExecutableError("google_drive.renewal_comp_screenshot.store"),
+    );
+
+    const response = await POST(
+      req(
+        ownerBody({
+          executionId: previewed.executionId,
+          previewHash: previewed.previewHash,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      action_key: "google_drive.renewal_comp_screenshot.store",
+      error_type: "action_not_production_allowed",
+    });
+    expect(mocks.resolveCompScreenshotAttachment).toHaveBeenCalledTimes(1);
+    expect(GmailRuntimeClient).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+    expect(getDraftByIdMock).not.toHaveBeenCalled();
   });
 
   it("injects the server-resolved Admin-approved comp-derived number into the owner draft (S29)", async () => {

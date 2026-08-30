@@ -16,6 +16,10 @@ import {
   buildRenewalNoticeDraftAction,
   type RenewalNoticeTemplateRef,
 } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import {
+  renewalDraftAttachmentLabel,
+  type RenewalDraftAttachmentIdentity,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 import type { OwnerDraftInput } from "@/lib/lease-renewal/owner-draft";
 import {
   resolveRenewalRecipient,
@@ -49,7 +53,11 @@ interface CommonPreviewInput {
 }
 
 export type RenewalDraftPreviewInput =
-  | (CommonPreviewInput & { channel: "owner"; decision: OwnerDraftInput })
+  | (CommonPreviewInput & {
+      channel: "owner";
+      decision: OwnerDraftInput;
+      attachment?: RenewalDraftAttachmentIdentity;
+    })
   | (CommonPreviewInput & { channel: "tenant"; decision: TenantOfferInput });
 
 export type RenewalDraftPreview =
@@ -64,6 +72,12 @@ export type RenewalDraftPreview =
       copy: RenewalCopySelection;
       /** The exact governed action to hand to executeRenewalNoticeDraft after human confirmation. */
       action: ExternalActionInput;
+      attachment?: {
+        label: string;
+        filename: string;
+        mimeType: RenewalDraftAttachmentIdentity["mimeType"];
+        sizeBytes: number;
+      };
     }
   | {
       status: "review_only";
@@ -76,6 +90,12 @@ export type RenewalDraftPreview =
       reasons: string[];
       /** Rebuilt only so a previously consumed execution can still use read-only reconciliation. */
       action: ExternalActionInput;
+      attachment?: {
+        label: string;
+        filename: string;
+        mimeType: RenewalDraftAttachmentIdentity["mimeType"];
+        sizeBytes: number;
+      };
     }
   | {
       status: "blocked";
@@ -229,7 +249,20 @@ export function buildRenewalNoticeDraftPreview(
     body: governedCopy.body,
     workflowContext: input.workflowContext,
     sourceRefs: input.sourceRefs,
+    ...(input.channel === "owner" && input.attachment
+      ? { attachment: input.attachment }
+      : {}),
   });
+
+  const attachment =
+    input.channel === "owner" && input.attachment
+      ? {
+          label: renewalDraftAttachmentLabel(input.attachment),
+          filename: input.attachment.filename,
+          mimeType: input.attachment.mimeType,
+          sizeBytes: input.attachment.sizeBytes,
+        }
+      : undefined;
 
   const commonResult = {
     channel: input.channel,
@@ -243,6 +276,7 @@ export function buildRenewalNoticeDraftPreview(
     template: governedCopy.template,
     copy: governedCopy.selection,
     action,
+    ...(attachment ? { attachment } : {}),
   };
   return governedCopy.status === "review_only"
     ? {

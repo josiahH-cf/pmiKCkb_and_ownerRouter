@@ -9,6 +9,7 @@ import {
   WORKFLOW_REPLY_POLICY_REF,
 } from "@/lib/gmail-hub/governed-artifacts";
 import { buildWorkOrderDraft } from "@/lib/maintenance/work-order-draft";
+import { TEST_OWNER_DRAFT_ATTACHMENT } from "@/tests/helpers/renewal-draft-attachment";
 
 const mailbox = {
   email: "operator@pmikcmetro.com",
@@ -68,7 +69,7 @@ describe("governed v1.0 communication artifacts", () => {
           rangeLow: 1100,
           rangeHigh: 1200,
           specificNumber: 1150,
-          compsScreenshotRef: "approved-comps:screenshot-1",
+          compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
         },
       },
     });
@@ -99,7 +100,7 @@ describe("governed v1.0 communication artifacts", () => {
           rangeLow: 1100,
           rangeHigh: 1200,
           specificNumber: 1150,
-          compsScreenshotRef: "approved-comps:screenshot-1",
+          compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
         },
       },
     });

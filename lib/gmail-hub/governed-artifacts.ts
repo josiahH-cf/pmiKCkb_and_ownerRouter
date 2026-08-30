@@ -246,7 +246,10 @@ function validateRequiredValues(input: GovernedArtifactInstanceInput) {
       requireNumber("market range low", input.values.market?.rangeLow);
       requireNumber("market range high", input.values.market?.rangeHigh);
       requireNumber("specific market number", input.values.market?.specificNumber);
-      requireText("comps screenshot", input.values.market?.compsScreenshotRef);
+      requireText(
+        "comps screenshot attachment",
+        input.values.market?.compScreenshotAttachment?.filename,
+      );
       break;
     case "tenant-renewal:v1.0":
       requireText("tenant label", input.values.tenantNameLabel);

@@ -7,6 +7,7 @@ import {
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { compScreenshotDriveFileMetadataHash } from "@/lib/lease-renewal/comp-screenshot-attachment";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import type {
   RenewalCompScreenshotDriveFile,
@@ -1821,27 +1822,7 @@ function verifyStoredDriveFile(
         "The managed Drive identity cannot prove the required trash/untrash recovery capability.",
     };
   }
-  const metadataHash = hashExecutionPreview({
-    fileId: file.id,
-    nameHash: hashCompScreenshotFilename(file.name),
-    mimeType: file.mimeType,
-    size: file.size,
-    md5Checksum: file.md5Checksum.toLowerCase(),
-    sha256Checksum: file.sha256Checksum.toLowerCase(),
-    parents: file.parents,
-    trashed: file.trashed,
-    explicitlyTrashed: file.explicitlyTrashed,
-    appProperties: file.appProperties,
-    createdTime: file.createdTime,
-    modifiedTime: file.modifiedTime,
-    version: file.version,
-    headRevisionId: file.headRevisionId,
-    isAppAuthorized: file.isAppAuthorized,
-    ownedByMe: file.ownedByMe ?? null,
-    driveId: file.driveId ?? null,
-    canTrash: file.capabilities.canTrash,
-    canUntrash: file.capabilities.canUntrash,
-  });
+  const metadataHash = compScreenshotDriveFileMetadataHash(file);
   if (providerPayloadHash !== compScreenshotProviderPayload(record).providerPayloadHash) {
     return {
       status: "mismatch",

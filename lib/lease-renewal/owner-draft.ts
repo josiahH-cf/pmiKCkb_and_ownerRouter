@@ -46,8 +46,13 @@ export interface OwnerDraftMarketInput {
   /** Comparable-rent range for justification. */
   rangeLow?: number;
   rangeHigh?: number;
-  /** A link/placeholder for the comps screenshot Dan pastes into the email (S28a: a stored drive:<id> ref). */
-  compsScreenshotRef?: string;
+  /** Server-resolved current S79 receipt identity. Browser file ids/URLs never reach this input. */
+  compScreenshotAttachment?: {
+    filename: string;
+    mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/heic";
+    sizeBytes: number;
+    sha256Checksum: string;
+  };
   /**
    * S60: attribution for the comparable range. Set ONLY from where the numbers genuinely came:
    * the provider's own label when the provider basis supplied them, or the operator-entered label
@@ -187,10 +192,6 @@ export function ownerDraftMarketFromBasis(
     }
   }
 
-  // Only a server-attached stored Drive receipt can become screenshot evidence. Historical URLs are
-  // deliberately ignored by the bounded compatibility decoder and never reach this current model.
-  const screenshotRef = market.compScreenshotRef?.trim();
-  if (screenshotRef) out.compsScreenshotRef = screenshotRef;
   return out;
 }
 
@@ -281,15 +282,17 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     missingInputs.push("specific market number (PMI rental-analysis tool)");
   }
 
-  const screenshot =
-    market.compsScreenshotRef ?? `[${NEEDS_VERIFICATION}: paste comps screenshot]`;
-  if (!market.compsScreenshotRef) {
+  const attachment = market.compScreenshotAttachment;
+  const screenshot = attachment
+    ? `Comparable rent screenshot attached: ${attachment.filename}.`
+    : `[${NEEDS_VERIFICATION}: attach receipted comps screenshot]`;
+  if (!attachment) {
     missingInputs.push("comps screenshot");
   } else {
     facts.push({
       key: "comps_screenshot",
       label: "Comparable screenshot",
-      value: market.compsScreenshotRef,
+      value: attachment.filename,
       source: "Stored screenshot receipt",
       confidence: "Verified",
     });

@@ -30,12 +30,17 @@ import {
 import { getActionExecution } from "@/lib/firestore/action-executions";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
+import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
 import {
   buildRenewalNoticeDraftAction,
   RENEWAL_NOTICE_DRAFT_ACTION_KEY,
 } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import type { LiveEffectAttentionEvent } from "@/lib/operations/live-effect-attention-log";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
+import {
+  TEST_RENEWAL_ATTACHMENT_IDENTITY,
+  TEST_RESOLVED_RENEWAL_ATTACHMENT,
+} from "@/tests/helpers/renewal-draft-attachment";
 
 /**
  * S25/S26/S38 falsification for the governed unsent-draft pair on the S20 one-attempt contract.
@@ -148,6 +153,101 @@ describe("governed draft — one attempt through the S20 ledger", () => {
     );
     // Deterministic means a re-derivation of the same action yields the same identifier.
     expect(draftAction().values.rfc_message_id).toBe(action.values.rfc_message_id);
+  });
+
+  it("refuses closed screenshot authority before Gmail construction or attempt claim (AC-S79-4)", async () => {
+    const h = harness();
+    const action = buildRenewalNoticeDraftAction({
+      workflowId: "renewal-live:lease-42",
+      actionId: "renewal-notice-draft:owner:lease-42",
+      channel: "owner",
+      templateRef: "owner-renewal:v1.0",
+      copy: COPY,
+      recipient: {
+        channel: "owner",
+        to: "owner@northend-holdings.com",
+        sourceRef: "rentvine:lease:42:owners[0].email",
+      },
+      mailbox: MAILBOX,
+      subject: "Owner renewal review",
+      body: "Comparable rent screenshot attached.",
+      workflowContext: "renewal:lease-42",
+      sourceRefs: ["rentvine:lease:42"],
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+    });
+    const request = {
+      ...h.request(action),
+      resolveAttachment: vi.fn(async () => {
+        throw new ActionNotExecutableError("google_drive.renewal_comp_screenshot.store");
+      }),
+    };
+    const prepared = await prepareGovernedDraft(actor, request, h.seams);
+
+    await expect(
+      executeGovernedDraft(
+        actor,
+        {
+          ...request,
+          executionId: prepared.id,
+          previewHash: prepared.preview_hash,
+        },
+        h.seams,
+      ),
+    ).rejects.toBeInstanceOf(ActionNotExecutableError);
+    expect(request.resolveAttachment).toHaveBeenCalledWith(
+      TEST_RENEWAL_ATTACHMENT_IDENTITY,
+    );
+    expect(h.createClient).not.toHaveBeenCalled();
+    expect(h.createDraft).not.toHaveBeenCalled();
+    await expect(
+      getActionExecution(actor, prepared.id, h.firestore),
+    ).resolves.toMatchObject({
+      state: "Ready",
+      attempt_count: 0,
+    });
+  });
+
+  it("refuses resolver byte drift before Gmail construction", async () => {
+    const h = harness();
+    const action = buildRenewalNoticeDraftAction({
+      workflowId: "renewal-live:lease-byte-drift",
+      actionId: "renewal-notice-draft:owner:lease-byte-drift",
+      channel: "owner",
+      templateRef: "owner-renewal:v1.0",
+      copy: COPY,
+      recipient: {
+        channel: "owner",
+        to: "owner@northend-holdings.com",
+        sourceRef: "rentvine:lease:byte-drift:owners[0].email",
+      },
+      mailbox: MAILBOX,
+      subject: "Owner renewal review",
+      body: "Comparable rent screenshot attached.",
+      workflowContext: "renewal:lease-byte-drift",
+      sourceRefs: ["rentvine:lease:byte-drift"],
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+    });
+    const request = {
+      ...h.request(action),
+      resolveAttachment: vi.fn(async () => ({
+        ...TEST_RESOLVED_RENEWAL_ATTACHMENT,
+        bytes: new Uint8Array(TEST_RESOLVED_RENEWAL_ATTACHMENT.bytes).fill(0),
+      })),
+    };
+    const prepared = await prepareGovernedDraft(actor, request, h.seams);
+
+    await expect(
+      executeGovernedDraft(
+        actor,
+        {
+          ...request,
+          executionId: prepared.id,
+          previewHash: prepared.preview_hash,
+        },
+        h.seams,
+      ),
+    ).rejects.toThrow(/bytes.*reviewed identity/i);
+    expect(h.createClient).not.toHaveBeenCalled();
   });
 
   it("creates exactly one draft and settles the claimed attempt", async () => {

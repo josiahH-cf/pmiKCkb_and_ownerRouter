@@ -4,6 +4,7 @@ import {
   formatUsd,
   ownerDraftMarketFromBasis,
 } from "@/lib/lease-renewal/owner-draft";
+import { TEST_OWNER_DRAFT_ATTACHMENT } from "@/tests/helpers/renewal-draft-attachment";
 
 describe("formatUsd", () => {
   it("formats whole and fractional dollars with separators", () => {
@@ -27,7 +28,7 @@ describe("buildOwnerRenewalDraft", () => {
         rangeLow: 895,
         rangeHigh: 1450,
         specificNumber: 1210,
-        compsScreenshotRef: "comps.png",
+        compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
       },
     });
 
@@ -55,7 +56,7 @@ describe("buildOwnerRenewalDraft", () => {
         rangeLow: 1000,
         rangeHigh: 1200,
         specificNumber: 1100,
-        compsScreenshotRef: "drive:fixture",
+        compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
       },
     } as const;
     const conflict = buildOwnerRenewalDraft({
@@ -154,7 +155,7 @@ describe("buildOwnerRenewalDraft", () => {
       market: {
         rangeLow: 2200,
         rangeHigh: 2500,
-        compsScreenshotRef: "comps.png",
+        compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
         approvedSuggestion: {
           value: 2350,
           comps: [

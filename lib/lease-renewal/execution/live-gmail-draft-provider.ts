@@ -18,11 +18,16 @@
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { ExternalExecutionError } from "@/lib/external-execution/types";
+import { decodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import type {
   WorkflowMessagePayload,
   WorkflowMessageProvider,
   WorkflowMessageReadback,
 } from "@/lib/lease-renewal/execution/providers";
+import {
+  sameRenewalDraftAttachmentIdentity,
+  type ResolvedRenewalDraftAttachment,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 
 /**
  * The narrow Gmail runtime surface this provider needs. `GmailRuntimeClient` satisfies it structurally;
@@ -38,7 +43,16 @@ export interface RenewalDraftGmailClient {
     body: string;
     /** Deterministic RFC Message-ID stamped so the one attempt can be reconciled by identifier. */
     messageId?: string;
+    attachment?: {
+      filename: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    };
   }): Promise<{ draftId: string; messageId?: string }>;
+  /** Exact created-id raw readback. Required only for the S79 attachment path. */
+  getDraftById?(
+    draftId: string,
+  ): Promise<{ draftId: string; messageId?: string; raw: string }>;
   /**
    * Read-only lookup of an already-created draft by its exact RFC Message-ID. Required for
    * reconciliation: without it, an attempt whose outcome was never recorded could only be resolved
@@ -46,7 +60,7 @@ export interface RenewalDraftGmailClient {
    */
   findDraftByRfcMessageId?(
     rfcMessageId: string,
-  ): Promise<{ draftId: string; messageId?: string } | null>;
+  ): Promise<{ draftId: string; messageId?: string; raw?: string } | null>;
 }
 
 type WorkflowMessageExecuteInput = WorkflowMessagePayload & {
@@ -55,7 +69,10 @@ type WorkflowMessageExecuteInput = WorkflowMessagePayload & {
 };
 
 export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
-  constructor(private readonly client: RenewalDraftGmailClient) {}
+  constructor(
+    private readonly client: RenewalDraftGmailClient,
+    private readonly resolvedAttachment?: ResolvedRenewalDraftAttachment,
+  ) {}
 
   async execute(input: WorkflowMessageExecuteInput): Promise<WorkflowMessageReadback> {
     if (input.operation !== "draft") {
@@ -89,19 +106,80 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       .map((address) => address.trim())
       .filter(Boolean);
 
+    if (
+      input.attachment &&
+      (!this.resolvedAttachment ||
+        !sameRenewalDraftAttachmentIdentity(input.attachment, this.resolvedAttachment))
+    ) {
+      throw new ExternalExecutionError(
+        "The exact reviewed screenshot bytes are unavailable or changed.",
+        "blocked",
+      );
+    }
+    if (!input.attachment && this.resolvedAttachment) {
+      throw new ExternalExecutionError(
+        "Unreviewed attachment bytes cannot be added to this draft.",
+        "blocked",
+      );
+    }
+
     const created = await this.client.createDraft({
       to: recipient,
       ...(cc.length ? { cc } : {}),
       subject,
       body,
       ...(input.expectedRfcMessageId ? { messageId: input.expectedRfcMessageId } : {}),
+      ...(this.resolvedAttachment
+        ? {
+            attachment: {
+              filename: this.resolvedAttachment.filename,
+              mimeType: this.resolvedAttachment.mimeType,
+              bytes: this.resolvedAttachment.bytes,
+            },
+          }
+        : {}),
     });
 
-    // Echo the exact reviewed payload back as the readback. A createDraft that succeeds with these
-    // fields IS faithful to them; the executor re-asserts readback == expected as a guard against a
-    // provider that silently alters the message. We strip the non-payload envelope fields.
     const { expectedRfcMessageId, idempotencyKey, ...payload } = input;
     void idempotencyKey;
+    if (input.attachment) {
+      if (!this.client.getDraftById) {
+        throw new ExternalExecutionError(
+          "Gmail created the draft but exact attachment readback is unavailable.",
+          "ambiguous",
+        );
+      }
+      try {
+        const fetched = await this.client.getDraftById(created.draftId);
+        if (
+          fetched.draftId !== created.draftId ||
+          (created.messageId !== undefined &&
+            fetched.messageId !== undefined &&
+            fetched.messageId !== created.messageId)
+        ) {
+          throw new Error("Gmail returned a different draft or message id.");
+        }
+        return {
+          providerRef: fetched.draftId,
+          ...(expectedRfcMessageId ? { rfcMessageId: expectedRfcMessageId } : {}),
+          payload: payloadFromRawDraft(
+            payload,
+            fetched.raw,
+            expectedRfcMessageId,
+            this.resolvedAttachment,
+          ),
+        };
+      } catch (error) {
+        if (error instanceof ExternalExecutionError) throw error;
+        throw new ExternalExecutionError(
+          "Gmail created the draft but its exact attachment MIME could not be verified.",
+          "ambiguous",
+        );
+      }
+    }
+
+    // Text-only compatibility stays byte- and behavior-compatible; S79's stronger MIME readback is
+    // activated only by the narrow governed attachment identity.
     return {
       providerRef: created.draftId,
       ...(expectedRfcMessageId ? { rfcMessageId: expectedRfcMessageId } : {}),
@@ -130,9 +208,21 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
     }
     const found = await this.client.findDraftByRfcMessageId(rfcMessageId);
     if (!found) return null;
-    // The unique identifier IS the evidence here. The echoed payload only satisfies the executor's
-    // equality contract; reconciliation deliberately does not pull a client message body back into
-    // the process just to re-compare it.
+    if (input.expectedPayload.attachment) {
+      if (!found.raw) {
+        throw new ExternalExecutionError(
+          "The exact draft was found, but Gmail did not return attachment MIME for reconciliation.",
+          "ambiguous",
+        );
+      }
+      return {
+        providerRef: found.draftId,
+        rfcMessageId,
+        payload: payloadFromRawDraft(input.expectedPayload, found.raw, rfcMessageId),
+      };
+    }
+    // Legacy text-only reconciliation remains identity-based for byte compatibility; attachment
+    // reconciliation can never take this path.
     return { providerRef: found.draftId, rfcMessageId, payload: input.expectedPayload };
   }
 
@@ -144,6 +234,59 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       "blocked",
     );
   }
+}
+
+function payloadFromRawDraft(
+  expected: WorkflowMessagePayload,
+  raw: string,
+  expectedRfcMessageId?: string,
+  exactBytes?: ResolvedRenewalDraftAttachment,
+): WorkflowMessagePayload {
+  const decoded = decodeRawDraft(raw);
+  const attachment = expected.attachment;
+  const expectedCc = (expected.cc ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (
+    decoded.to !== expected.recipient ||
+    decoded.subject !== expected.subject ||
+    decoded.body !== expected.body ||
+    (expected.sender !== undefined && decoded.from !== expected.sender) ||
+    decoded.cc.length !== expectedCc.length ||
+    decoded.cc.some((value, index) => value !== expectedCc[index]) ||
+    (expectedRfcMessageId !== undefined && decoded.messageId !== expectedRfcMessageId)
+  ) {
+    throw new ExternalExecutionError(
+      "The provider-returned draft headers or text did not match the exact reviewed payload.",
+      "ambiguous",
+    );
+  }
+  if (
+    !attachment ||
+    !decoded.attachment ||
+    decoded.attachment.filename !== attachment.filename ||
+    decoded.attachment.mimeType !== attachment.mimeType ||
+    decoded.attachment.sizeBytes !== attachment.sizeBytes ||
+    decoded.attachment.sha256Checksum !== attachment.sha256Checksum ||
+    (exactBytes !== undefined &&
+      !Buffer.from(decoded.attachment.bytes).equals(Buffer.from(exactBytes.bytes)))
+  ) {
+    throw new ExternalExecutionError(
+      "The provider-returned draft attachment did not match the exact reviewed receipt.",
+      "ambiguous",
+    );
+  }
+  return {
+    operation: expected.operation,
+    ...(expected.artifactRef ? { artifactRef: expected.artifactRef } : {}),
+    recipient: decoded.to,
+    ...(decoded.cc.length ? { cc: decoded.cc.join(", ") } : {}),
+    ...(decoded.from ? { sender: decoded.from } : {}),
+    subject: decoded.subject,
+    body: decoded.body,
+    attachment,
+  };
 }
 
 function requireField(value: string | undefined, label: string): string {

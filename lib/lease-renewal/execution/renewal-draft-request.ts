@@ -19,6 +19,11 @@ import {
   type RenewalDraftGmailClient,
 } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { LeaseGmailExecutor } from "@/lib/lease-renewal/execution/providers";
+import {
+  renewalDraftAttachmentActionValues,
+  validateRenewalDraftAttachmentIdentity,
+  type RenewalDraftAttachmentIdentity,
+} from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 import type { RenewalRecipientChannel } from "@/lib/lease-renewal/recipient-resolution";
 import { runProductionRuntimeGatedAction } from "@/lib/operations/runtime-suspension-gate";
 
@@ -62,6 +67,8 @@ export interface RenewalNoticeDraftActionInput {
   body: string;
   workflowContext: string;
   sourceRefs: readonly string[];
+  /** Owner channel only: exact current S79 receipt identity, with no bytes or Drive id. */
+  attachment?: RenewalDraftAttachmentIdentity;
 }
 
 /**
@@ -85,6 +92,14 @@ export function buildRenewalNoticeDraftAction(
   if (input.cc && input.cc.emails.length !== input.cc.sourceRefs.length) {
     throw new Error("Each renewal Cc recipient requires an index-aligned source ref.");
   }
+  if (input.attachment && input.channel !== "owner") {
+    throw new Error(
+      "Only the owner renewal channel can carry the comp screenshot attachment.",
+    );
+  }
+  const attachment = input.attachment
+    ? validateRenewalDraftAttachmentIdentity(input.attachment)
+    : undefined;
   if (
     !/^[a-f0-9]{64}$/.test(input.copy.templateContentHash) ||
     !/^[a-f0-9]{64}$/.test(input.copy.envelopeFingerprint)
@@ -127,8 +142,14 @@ export function buildRenewalNoticeDraftAction(
       recipient_source_ref: input.recipient.sourceRef,
       mailbox_source_ref: input.mailbox.sourceRef,
       draft_banner_present: true,
+      ...(attachment ? renewalDraftAttachmentActionValues(attachment) : {}),
     },
-    sourceRefs: [...input.sourceRefs],
+    sourceRefs: [
+      ...new Set([
+        ...input.sourceRefs,
+        ...(attachment ? [`comp-screenshot-receipt:${attachment.receiptId}`] : []),
+      ]),
+    ],
   };
 }
 

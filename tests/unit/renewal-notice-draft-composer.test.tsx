@@ -20,6 +20,13 @@ const TENANT_TEMPLATE = {
   status: "approved",
 } as const;
 
+const OWNER_TEMPLATE = {
+  ref: "owner-renewal:v1.0",
+  version: "v1.0",
+  contentHash: "d".repeat(64),
+  status: "approved",
+} as const;
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -326,12 +333,62 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
     fireEvent.change(screen.getByLabelText(/Comp range high/i), {
       target: { value: "1500" },
     });
-    fireEvent.change(screen.getByLabelText(/Comps screenshot reference/i), {
-      target: { value: "drive://comps/lease-1.png" },
-    });
-
     expect(screen.getByRole("button", { name: "Preview draft" })).toBeDisabled();
+    expect(screen.getByText(/resolved server-side.*receipted upload/i)).toBeVisible();
+    expect(screen.queryByLabelText(/Comps screenshot reference/i)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows only the server-receipted owner attachment summary in the exact preview", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        status: "preview",
+        channel: "owner",
+        recipient: {
+          to: "owner@cedar-holdings.com",
+          sourceRef: "rentvine:lease:lease-1:portfolio.owners[0].email",
+        },
+        subject: "Owner renewal review",
+        body: "Owner preview body",
+        executionId: `exec_${"3".repeat(40)}`,
+        previewHash: "4".repeat(64),
+        template: OWNER_TEMPLATE,
+        attachment: {
+          label: "Comp screenshot attachment: lease-1-comps.png",
+          filename: "lease-1-comps.png",
+          mimeType: "image/png",
+          sizeBytes: 2048,
+        },
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Owner notice" }));
+    fireEvent.change(screen.getByLabelText(/Specific market number/i), {
+      target: { value: "1600" },
+    });
+    fireEvent.change(screen.getByLabelText(/Comp range low/i), {
+      target: { value: "1500" },
+    });
+    fireEvent.change(screen.getByLabelText(/Comp range high/i), {
+      target: { value: "1700" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview draft" }));
+
+    expect(
+      await screen.findByText(
+        "Comp screenshot attachment: lease-1-comps.png · image/png · 2.0 KiB",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByLabelText(/Comps screenshot reference/i)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("checks one uncertain execution instead of offering retry-as-new", async () => {

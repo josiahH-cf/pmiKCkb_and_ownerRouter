@@ -2,16 +2,25 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
+import { encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import {
   LiveRenewalGmailDraftProvider,
   type RenewalDraftGmailClient,
 } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { LeaseGmailExecutor } from "@/lib/lease-renewal/execution/providers";
+import {
+  TEST_RENEWAL_ATTACHMENT_IDENTITY,
+  TEST_RESOLVED_RENEWAL_ATTACHMENT,
+} from "@/tests/helpers/renewal-draft-attachment";
 
 const MAILBOX = "workflow@pmikcmetro.com";
 
 function fakeClient(overrides: Partial<RenewalDraftGmailClient> = {}) {
-  const createDraft = vi.fn(async () => ({ draftId: "draft-live-1" }));
+  const createDraft = vi.fn(
+    async (): Promise<{ draftId: string; messageId?: string }> => ({
+      draftId: "draft-live-1",
+    }),
+  );
   const client: RenewalDraftGmailClient = {
     subject: MAILBOX,
     createDraft,
@@ -190,5 +199,199 @@ describe("LiveRenewalGmailDraftProvider", () => {
     expect(externalActionIdempotencyKey(draftInput)).toBe(
       externalActionIdempotencyKey({ ...draftInput }),
     );
+  });
+
+  it("creates one attachment draft and succeeds only after exact created-id raw MIME readback", async () => {
+    const rfcMessageId = "<owner-s79@pmikcmetro.com>";
+    const body = `${DRAFT_BANNER}\n\nComparable rent screenshot attached.`;
+    const raw = encodeRawDraft({
+      to: "owner@northend-holdings.com",
+      subject: "Owner renewal review",
+      body,
+      from: MAILBOX,
+      messageId: rfcMessageId,
+      attachment: {
+        filename: TEST_RESOLVED_RENEWAL_ATTACHMENT.filename,
+        mimeType: TEST_RESOLVED_RENEWAL_ATTACHMENT.mimeType,
+        bytes: TEST_RESOLVED_RENEWAL_ATTACHMENT.bytes,
+      },
+    });
+    const getDraftById = vi.fn(async () => ({
+      draftId: "draft-live-1",
+      messageId: "gmail-message-1",
+      raw,
+    }));
+    const { client, createDraft } = fakeClient({ getDraftById });
+    createDraft.mockResolvedValueOnce({
+      draftId: "draft-live-1",
+      messageId: "gmail-message-1",
+    });
+    const provider = new LiveRenewalGmailDraftProvider(
+      client,
+      TEST_RESOLVED_RENEWAL_ATTACHMENT,
+    );
+
+    const readback = await provider.execute({
+      operation: "draft",
+      artifactRef: "owner-renewal:v1.0",
+      recipient: "owner@northend-holdings.com",
+      sender: MAILBOX,
+      subject: "Owner renewal review",
+      body,
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+      expectedRfcMessageId: rfcMessageId,
+      idempotencyKey: "idem-s79",
+    });
+
+    expect(createDraft).toHaveBeenCalledWith({
+      to: "owner@northend-holdings.com",
+      subject: "Owner renewal review",
+      body,
+      messageId: rfcMessageId,
+      attachment: {
+        filename: TEST_RESOLVED_RENEWAL_ATTACHMENT.filename,
+        mimeType: "image/png",
+        bytes: TEST_RESOLVED_RENEWAL_ATTACHMENT.bytes,
+      },
+    });
+    expect(getDraftById).toHaveBeenCalledWith("draft-live-1");
+    expect(readback).toMatchObject({
+      providerRef: "draft-live-1",
+      rfcMessageId,
+      payload: { attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY },
+    });
+  });
+
+  it("marks a changed Gmail API message identity after create as ambiguous", async () => {
+    const rfcMessageId = "<owner-s79-message-id@pmikcmetro.com>";
+    const body = `${DRAFT_BANNER}\n\nComparable rent screenshot attached.`;
+    const raw = encodeRawDraft({
+      to: "owner@northend-holdings.com",
+      subject: "Owner renewal review",
+      body,
+      from: MAILBOX,
+      messageId: rfcMessageId,
+      attachment: {
+        filename: TEST_RESOLVED_RENEWAL_ATTACHMENT.filename,
+        mimeType: TEST_RESOLVED_RENEWAL_ATTACHMENT.mimeType,
+        bytes: TEST_RESOLVED_RENEWAL_ATTACHMENT.bytes,
+      },
+    });
+    const { client, createDraft } = fakeClient({
+      getDraftById: async () => ({
+        draftId: "draft-live-1",
+        messageId: "gmail-message-readback",
+        raw,
+      }),
+    });
+    createDraft.mockResolvedValueOnce({
+      draftId: "draft-live-1",
+      messageId: "gmail-message-created",
+    });
+    const provider = new LiveRenewalGmailDraftProvider(
+      client,
+      TEST_RESOLVED_RENEWAL_ATTACHMENT,
+    );
+
+    await expect(
+      provider.execute({
+        operation: "draft",
+        artifactRef: "owner-renewal:v1.0",
+        recipient: "owner@northend-holdings.com",
+        sender: MAILBOX,
+        subject: "Owner renewal review",
+        body,
+        attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+        expectedRfcMessageId: rfcMessageId,
+        idempotencyKey: "idem-s79-message-id",
+      }),
+    ).rejects.toMatchObject({ code: "ambiguous" });
+  });
+
+  it("marks post-create attachment mismatch as ambiguous instead of success", async () => {
+    const rfcMessageId = "<owner-s79-mismatch@pmikcmetro.com>";
+    const body = `${DRAFT_BANNER}\n\nComparable rent screenshot attached.`;
+    const changedBytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x09, 0x09, 0x09, 0x09,
+    ]);
+    const raw = encodeRawDraft({
+      to: "owner@northend-holdings.com",
+      subject: "Owner renewal review",
+      body,
+      from: MAILBOX,
+      messageId: rfcMessageId,
+      attachment: {
+        filename: TEST_RENEWAL_ATTACHMENT_IDENTITY.filename,
+        mimeType: "image/png",
+        bytes: changedBytes,
+      },
+    });
+    const { client } = fakeClient({
+      getDraftById: async () => ({ draftId: "draft-live-1", raw }),
+    });
+    const provider = new LiveRenewalGmailDraftProvider(
+      client,
+      TEST_RESOLVED_RENEWAL_ATTACHMENT,
+    );
+
+    await expect(
+      provider.execute({
+        operation: "draft",
+        artifactRef: "owner-renewal:v1.0",
+        recipient: "owner@northend-holdings.com",
+        sender: MAILBOX,
+        subject: "Owner renewal review",
+        body,
+        attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+        expectedRfcMessageId: rfcMessageId,
+        idempotencyKey: "idem-s79-mismatch",
+      }),
+    ).rejects.toMatchObject({ code: "ambiguous" });
+  });
+
+  it("reconciles an attachment only from decoded exact-RFC raw MIME", async () => {
+    const rfcMessageId = "<owner-s79-reconcile@pmikcmetro.com>";
+    const body = `${DRAFT_BANNER}\n\nComparable rent screenshot attached.`;
+    const raw = encodeRawDraft({
+      to: "owner@northend-holdings.com",
+      subject: "Owner renewal review",
+      body,
+      from: MAILBOX,
+      messageId: rfcMessageId,
+      attachment: {
+        filename: TEST_RENEWAL_ATTACHMENT_IDENTITY.filename,
+        mimeType: "image/png",
+        bytes: TEST_RESOLVED_RENEWAL_ATTACHMENT.bytes,
+      },
+    });
+    const { client } = fakeClient({
+      findDraftByRfcMessageId: async () => ({
+        draftId: "draft-reconciled-s79",
+        raw,
+      }),
+    });
+    const provider = new LiveRenewalGmailDraftProvider(client);
+    const expectedPayload = {
+      operation: "draft" as const,
+      artifactRef: "owner-renewal:v1.0",
+      recipient: "owner@northend-holdings.com",
+      sender: MAILBOX,
+      subject: "Owner renewal review",
+      body,
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+    };
+
+    await expect(
+      provider.reconcile({
+        actionKey: "gmail.renewal_notice.draft_create",
+        idempotencyKey: "idem-s79-reconcile",
+        expectedRfcMessageId: rfcMessageId,
+        expectedPayload,
+      }),
+    ).resolves.toMatchObject({
+      providerRef: "draft-reconciled-s79",
+      rfcMessageId,
+      payload: expectedPayload,
+    });
   });
 });

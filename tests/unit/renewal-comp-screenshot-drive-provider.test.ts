@@ -264,6 +264,94 @@ describe("GoogleDriveRenewalCompScreenshotProvider.getFolder", () => {
   });
 });
 
+describe("GoogleDriveRenewalCompScreenshotProvider.downloadFile", () => {
+  it("downloads only the exact Drive id through alt=media with a bounded byte result", async () => {
+    const fetchImpl = fetchMock(
+      async () =>
+        new Response(BYTES, {
+          status: 200,
+          headers: {
+            "content-length": String(BYTES.byteLength),
+            "content-type": "image/png",
+          },
+        }),
+    );
+
+    const result = await providerWith(fetchImpl).downloadFile(FILE_ID);
+
+    expect(result).toEqual({
+      outcome: "downloaded",
+      httpStatus: 200,
+      contentType: "image/png",
+      bytes: BYTES,
+    });
+    const [rawUrl, init] = fetchImpl.mock.calls[0]!;
+    const url = new URL(rawUrl);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `https://www.googleapis.com/drive/v3/files/${FILE_ID}`,
+    );
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      alt: "media",
+      supportsAllDrives: "true",
+    });
+    expect(init.method).toBe("GET");
+    expect(requestHeaders(init).get("authorization")).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("refuses an oversized media response without returning partial bytes", async () => {
+    const fetchImpl = fetchMock(
+      async () =>
+        new Response(new Uint8Array([1]), {
+          status: 200,
+          headers: { "content-length": String(MAX_RENEWAL_COMP_SCREENSHOT_BYTES + 1) },
+        }),
+    );
+
+    expect(await providerWith(fetchImpl).downloadFile(FILE_ID)).toEqual({
+      outcome: "ambiguous",
+      certainty: "unknown",
+      reason: "invalid_response",
+      httpStatus: 200,
+    });
+  });
+
+  it("bounds a media body that never finishes after Drive returns headers", async () => {
+    const fetchImpl = fetchMock(
+      async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start() {
+              // Intentionally never enqueue or close: the provider must stop its own body read.
+            },
+          }),
+          { status: 200, headers: { "content-type": "image/png" } },
+        ),
+    );
+    const provider = new GoogleDriveRenewalCompScreenshotProvider({
+      fetchImpl,
+      getAccessToken: async () => TOKEN,
+      timeoutMs: 10,
+    });
+
+    await expect(provider.downloadFile(FILE_ID)).resolves.toEqual({
+      outcome: "ambiguous",
+      certainty: "unknown",
+      reason: "invalid_response",
+      httpStatus: 200,
+    });
+  });
+
+  it("does not expose a URL, list, search, or caller-selected media primitive", () => {
+    const provider = providerWith(
+      fetchMock(async () => jsonResponse(404, {})),
+    ) as unknown as Record<string, unknown>;
+    expect(provider.downloadFile).toBeTypeOf("function");
+    for (const method of ["downloadUrl", "listFiles", "searchFiles", "getByUrl"]) {
+      expect(provider[method]).toBeUndefined();
+    }
+  });
+});
+
 describe("GoogleDriveRenewalCompScreenshotProvider identity seam", () => {
   it.each([
     {

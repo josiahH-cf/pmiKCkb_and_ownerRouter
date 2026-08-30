@@ -5,7 +5,7 @@ import {
   parseGmailMessage,
   parseGmailThread,
 } from "@/lib/gmail-runtime/mime";
-import { encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
+import { decodeRawDraft, encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import { GMAIL_RUNTIME_LIMITS } from "@/lib/gmail-runtime/types";
 
 const encoded = (value: string) => Buffer.from(value, "utf8").toString("base64url");
@@ -129,5 +129,102 @@ describe("encodeRawDraft Cc header (F-LEASE-6)", () => {
         body: "B",
       }),
     ).toThrow(/invalid header/i);
+  });
+});
+
+describe("receipt-bound renewal draft attachment MIME (ARCH-S79-2)", () => {
+  const attachmentBytes = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02, 0x03,
+  ]);
+
+  it("round-trips one ordinary image attachment with the governed text body first", () => {
+    const raw = encodeRawDraft({
+      to: "owner@northend-apts.com",
+      cc: ["co-owner@northend-apts.com"],
+      subject: "Renewal coming up",
+      body: "DRAFT — REVIEW BEFORE SENDING\n\nSee the attached comp screenshot.",
+      from: "workflow@pmikcmetro.com",
+      messageId: "<renewal-attachment@pmikcmetro.com>",
+      attachment: {
+        filename: "renewal-comp-exec_123.png",
+        mimeType: "image/png",
+        bytes: attachmentBytes,
+      },
+    });
+
+    const decoded = decodeRawDraft(raw);
+    expect(decoded).toMatchObject({
+      from: "workflow@pmikcmetro.com",
+      to: "owner@northend-apts.com",
+      cc: ["co-owner@northend-apts.com"],
+      subject: "Renewal coming up",
+      messageId: "<renewal-attachment@pmikcmetro.com>",
+      body: "DRAFT — REVIEW BEFORE SENDING\n\nSee the attached comp screenshot.",
+      attachment: {
+        filename: "renewal-comp-exec_123.png",
+        mimeType: "image/png",
+        sizeBytes: attachmentBytes.byteLength,
+      },
+    });
+    expect(decoded.attachment?.bytes).toEqual(attachmentBytes);
+
+    const wire = Buffer.from(raw, "base64url").toString("utf8");
+    expect(wire.indexOf('Content-Type: text/plain; charset="UTF-8"')).toBeLessThan(
+      wire.indexOf(
+        'Content-Disposition: attachment; filename="renewal-comp-exec_123.png"',
+      ),
+    );
+    expect(wire.match(/Content-Disposition: attachment/g) ?? []).toHaveLength(1);
+    expect(wire).not.toMatch(/text\/html|Content-ID|cid:/i);
+  });
+
+  it.each([
+    ["path traversal", "../secret.png", "image/png", attachmentBytes],
+    [
+      "header injection",
+      "safe.png\r\nBcc: bad@example.com",
+      "image/png",
+      attachmentBytes,
+    ],
+    ["unsupported MIME", "safe.svg", "image/svg+xml", attachmentBytes],
+    ["MIME/extension mismatch", "safe.jpg", "image/png", attachmentBytes],
+    ["empty bytes", "safe.png", "image/png", new Uint8Array()],
+    ["oversized bytes", "safe.png", "image/png", new Uint8Array(5 * 1024 * 1024 + 1)],
+  ])("refuses %s before constructing MIME", (_label, filename, mimeType, bytes) => {
+    expect(() =>
+      encodeRawDraft({
+        to: "owner@northend-apts.com",
+        subject: "Renewal",
+        body: "DRAFT — REVIEW BEFORE SENDING\n\nBody",
+        attachment: { filename, mimeType, bytes },
+      }),
+    ).toThrow();
+  });
+
+  it("keeps the legacy text-only bytes exactly unchanged", () => {
+    const input = {
+      to: "only@northend-apts.com",
+      cc: ["co@northend-apts.com"],
+      subject: "S",
+      body: "Line one\nLine two",
+      from: "workflow@pmikcmetro.com",
+      messageId: "<text-only@pmikcmetro.com>",
+    };
+    const expected = Buffer.from(
+      [
+        "From: workflow@pmikcmetro.com",
+        "To: only@northend-apts.com",
+        "Cc: co@northend-apts.com",
+        "Message-ID: <text-only@pmikcmetro.com>",
+        "Subject: S",
+        "MIME-Version: 1.0",
+        'Content-Type: text/plain; charset="UTF-8"',
+        "",
+        "Line one\nLine two",
+      ].join("\r\n"),
+      "utf8",
+    ).toString("base64url");
+
+    expect(encodeRawDraft(input)).toBe(expected);
   });
 });

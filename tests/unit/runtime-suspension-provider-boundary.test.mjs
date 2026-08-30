@@ -51,6 +51,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/gmail-hub/service.ts:runGovernedLabelEffect:this.createClient",
   "lib/gmail-hub/service.ts:sendConfirmed:this.createClient",
   "lib/gmail-hub/service.ts:watchMailbox:this.createClient",
+  "lib/lease-renewal/comp-screenshot-attachment-runtime.ts:resolveRenewalDraftCompScreenshotAttachment:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-runtime.ts:createProvider:new GoogleDriveRenewalCompScreenshotProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:commitCompScreenshotRollback:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:getProvider:deps.createProvider",
@@ -249,6 +250,7 @@ const GATED_PROVIDER_ADAPTERS = new Set([
   "lib/gmail-hub/service.ts:runGovernedLabelEffect:this.createClient",
   "lib/gmail-hub/service.ts:sendConfirmed:this.createClient",
   "lib/gmail-hub/service.ts:watchMailbox:this.createClient",
+  "lib/lease-renewal/comp-screenshot-attachment-runtime.ts:resolveRenewalDraftCompScreenshotAttachment:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:commitCompScreenshotRollback:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:getProvider:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:previewCompScreenshotRollback:deps.createProvider",
@@ -341,6 +343,13 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     {
       file: "tests/unit/gmail-hub-service.test.ts",
       marker: "S51_DYNAMIC_REFUSAL:gmail-service-watch-client",
+    },
+  ],
+  [
+    "lib/lease-renewal/comp-screenshot-attachment-runtime.ts:resolveRenewalDraftCompScreenshotAttachment:deps.createProvider",
+    {
+      file: "tests/unit/renewal-comp-screenshot-attachment.test.ts",
+      marker: "S51_DYNAMIC_REFUSAL:comp-screenshot-attachment-provider",
     },
   ],
   [
@@ -511,6 +520,7 @@ const DYNAMIC_REFUSAL_FACTORY_ASSERTIONS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-label-read-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-label-mutation-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "createClient"],
+  ["S51_DYNAMIC_REFUSAL:comp-screenshot-attachment-provider", "createProvider"],
   [
     "S51_DYNAMIC_REFUSAL:comp-screenshot-rollback-commit-provider",
     "harness.createProvider",
@@ -559,6 +569,10 @@ const DYNAMIC_REFUSAL_ENTRYPOINTS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-label-read-client", "applyThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-label-mutation-client", "restoreThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "hub.watchMailbox("],
+  [
+    "S51_DYNAMIC_REFUSAL:comp-screenshot-attachment-provider",
+    "resolveRenewalDraftCompScreenshotAttachment(",
+  ],
   [
     "S51_DYNAMIC_REFUSAL:comp-screenshot-rollback-commit-provider",
     "commitCompScreenshotRollback(",

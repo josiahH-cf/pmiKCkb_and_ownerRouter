@@ -31,7 +31,6 @@ describe("ownerDraftMarketFromBasis", () => {
       // S60: typed numbers always wear the honest operator-entered label.
       rangeSource: "Operator-entered",
       specificNumber: 1550,
-      compsScreenshotRef: "drive:abc123",
     });
   });
 
@@ -42,12 +41,12 @@ describe("ownerDraftMarketFromBasis", () => {
     expect(ownerDraftMarketFromBasis({})).toEqual({});
   });
 
-  it("uses only the stored Drive screenshot ref (S28a)", () => {
+  it("does not turn a progress-layer Drive ref into a Gmail attachment or text reference", () => {
     expect(
       ownerDraftMarketFromBasis({
         compScreenshotRef: "drive:abc123",
       }),
-    ).toEqual({ compsScreenshotRef: "drive:abc123" });
+    ).toEqual({});
   });
 
   // S60 (AC-S60-3): lookup metadata NEVER labels operator-typed numbers.
@@ -120,13 +119,14 @@ describe("buildOwnerRenewalDraft market attribution + Needs Verification (AC-S28
     expect(draft.body).not.toMatch(/\$\d[\d,]*–\$\d/);
   });
 
-  it("resolves the screenshot fact to a stored Drive ref, not a pasted string (AC-S28-4)", () => {
+  it("refuses a legacy Drive ref as current attachment evidence (AC-S79-4)", () => {
     const draft = buildOwnerRenewalDraft({
       ...base,
       market: ownerDraftMarketFromBasis({ compScreenshotRef: "drive:abc123" }),
     });
-    expect(draft.body).toContain("drive:abc123");
-    expect(draft.missingInputs).not.toContain("comps screenshot");
+    expect(draft.body).not.toContain("drive:abc123");
+    expect(draft.body).toContain("Needs Verification: attach receipted comps screenshot");
+    expect(draft.missingInputs).toContain("comps screenshot");
   });
 });
 

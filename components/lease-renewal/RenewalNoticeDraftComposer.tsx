@@ -34,6 +34,16 @@ import {
 type Channel = "tenant" | "owner";
 type OwnerDecision = "keep_same" | "increase" | "custom";
 
+function attachmentSummary(
+  attachment: NonNullable<
+    Extract<RenewalNoticeDraftOutcome, { status: "preview" }>["attachment"]
+  >,
+) {
+  const kib = attachment.sizeBytes / 1024;
+  const size = kib >= 1024 ? `${(kib / 1024).toFixed(2)} MiB` : `${kib.toFixed(1)} KiB`;
+  return `${attachment.label} · ${attachment.mimeType} · ${size}`;
+}
+
 const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
   { value: "increase", label: "Increase rent" },
   { value: "keep_same", label: "Keep the same rent" },
@@ -64,7 +74,6 @@ export function RenewalNoticeDraftComposer({
   const [specificNumber, setSpecificNumber] = useState("");
   const [rangeLow, setRangeLow] = useState("");
   const [rangeHigh, setRangeHigh] = useState("");
-  const [compsRef, setCompsRef] = useState("");
   const [copySelections, setCopySelections] = useState<{
     owner: OwnerRenewalCopySelection;
     tenant: TenantRenewalCopySelection;
@@ -92,7 +101,6 @@ export function RenewalNoticeDraftComposer({
     spec: useId(),
     low: useId(),
     high: useId(),
-    comps: useId(),
     salutation: useId(),
     ownerRequest: useId(),
     tenantRequest: useId(),
@@ -129,7 +137,6 @@ export function RenewalNoticeDraftComposer({
         specificNumber: specificNumberParsed.ok ? specificNumberParsed.value : 0,
         rangeLow: rangeLowParsed.ok ? rangeLowParsed.value : 0,
         rangeHigh: rangeHighParsed.ok ? rangeHighParsed.value : 0,
-        compsScreenshotRef: compsRef.trim(),
       },
     };
   }
@@ -552,22 +559,11 @@ export function RenewalNoticeDraftComposer({
                 />
               </Field>
             </div>
-            <Field
-              htmlFor={id.comps}
-              hint="A link/reference to the comps screenshot to attach."
-              label="Comps screenshot reference"
-              required
-            >
-              <input
-                id={id.comps}
-                onChange={(event) => {
-                  setCompsRef(event.target.value);
-                  invalidatePreview();
-                }}
-                type="text"
-                value={compsRef}
-              />
-            </Field>
+            <p className="muted">
+              The comp screenshot is resolved server-side from this lease&apos;s current
+              receipted upload. Browser-entered Drive links and file ids are never
+              accepted.
+            </p>
             <Field htmlFor={id.salutation} label="Owner-message opening">
               <textarea
                 disabled={!copyApproved || unresolvedAttempt}
@@ -663,6 +659,9 @@ export function RenewalNoticeDraftComposer({
             <p className="muted">
               To: {outcome.recipient.to} · Subject: {outcome.subject}
             </p>
+            {outcome.attachment ? (
+              <p className="muted">{attachmentSummary(outcome.attachment)}</p>
+            ) : null}
             <div className="draft-box">{outcome.body}</div>
           </div>
         ) : null}
@@ -679,6 +678,9 @@ export function RenewalNoticeDraftComposer({
             <p className="muted">
               To: {outcome.recipient.to} · Subject: {outcome.subject}
             </p>
+            {outcome.attachment ? (
+              <p className="muted">{attachmentSummary(outcome.attachment)}</p>
+            ) : null}
             <div className="draft-box">{outcome.body}</div>
           </div>
         ) : null}
@@ -691,10 +693,15 @@ export function RenewalNoticeDraftComposer({
         ) : null}
 
         {outcome?.status === "created" ? (
-          <p className="muted">
-            Unsent Gmail draft created (id {outcome.draftId}). Open Gmail to review and
-            send it to {outcome.recipient.to} yourself.
-          </p>
+          <div className="ui-stack">
+            <p className="muted">
+              Unsent Gmail draft created (id {outcome.draftId}). Open Gmail to review and
+              send it to {outcome.recipient.to} yourself.
+            </p>
+            {outcome.attachment ? (
+              <p className="muted">{attachmentSummary(outcome.attachment)}</p>
+            ) : null}
+          </div>
         ) : null}
 
         {outcome?.status === "needs_reconciliation" ? (

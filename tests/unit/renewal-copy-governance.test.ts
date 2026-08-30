@@ -10,6 +10,7 @@ import {
   currentRenewalCopyTemplate,
   prepareGovernedRenewalCopy,
 } from "@/lib/lease-renewal/renewal-copy-governance";
+import { TEST_OWNER_DRAFT_ATTACHMENT } from "@/tests/helpers/renewal-draft-attachment";
 import { buildOwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
 import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 import type { ModelProvider } from "@/lib/llm/model-provider";
@@ -34,7 +35,7 @@ const ownerRendered = buildOwnerRenewalDraft({
     rangeLow: 1450,
     rangeHigh: 1650,
     specificNumber: 1550,
-    compsScreenshotRef: "drive:synthetic-receipt",
+    compScreenshotAttachment: TEST_OWNER_DRAFT_ATTACHMENT,
   },
 });
 

@@ -22,6 +22,7 @@ import {
   RENEWAL_NOTICE_DRAFT_ACTION_KEY,
 } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
+import { TEST_RENEWAL_ATTACHMENT_IDENTITY } from "@/tests/helpers/renewal-draft-attachment";
 
 const MAILBOX = "workflow@pmikcmetro.com";
 const COPY = {
@@ -94,9 +95,28 @@ describe("buildRenewalNoticeDraftAction", () => {
         to: "owner@northend-holdings.com",
         sourceRef: "rentvine:lease:42:owner.email",
       },
+      attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
     });
     expect(action.values.template_ref).toBe("owner-renewal:v1.0");
     expect(action.values.to).toBe("owner@northend-holdings.com");
+    expect(action.values.attachment_filename).toBe(
+      TEST_RENEWAL_ATTACHMENT_IDENTITY.filename,
+    );
+    expect(action.values.attachment_receipt_id).toBe(
+      TEST_RENEWAL_ATTACHMENT_IDENTITY.receiptId,
+    );
+    expect(action.sourceRefs).toContain(
+      `comp-screenshot-receipt:${TEST_RENEWAL_ATTACHMENT_IDENTITY.receiptId}`,
+    );
+  });
+
+  it("refuses a comp screenshot attachment on the tenant channel", () => {
+    expect(() =>
+      buildRenewalNoticeDraftAction({
+        ...tenantInput,
+        attachment: TEST_RENEWAL_ATTACHMENT_IDENTITY,
+      }),
+    ).toThrow(/only the owner renewal channel/i);
   });
 
   it("rejects a channel/template mismatch", () => {

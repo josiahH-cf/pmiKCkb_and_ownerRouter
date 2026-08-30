@@ -902,6 +902,11 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
         /Confirm removal of drive:existing-file from PMI KC in-boundary Drive image folder/,
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /attachment already embedded in an existing Gmail draft is unchanged/i,
+      ),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toMatchObject({
       confirm: false,
@@ -912,6 +917,9 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     await waitFor(() =>
       expect(screen.queryByText(/drive:existing-file/)).not.toBeInTheDocument(),
     );
+    expect(
+      screen.getByText(/already-created Gmail draft keeps its embedded attachment/i),
+    ).toBeInTheDocument();
     const rollbackCommit = JSON.parse(fetchMock.mock.calls[2][1].body as string) as {
       confirm: boolean;
       leaseId: string;
