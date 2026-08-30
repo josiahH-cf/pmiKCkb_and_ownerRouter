@@ -52,12 +52,18 @@ the specification work or by an unconfirmed effect.
     rules, base-rent/charge separation, evidence-gated completion, and a six-step workspace panel.
     The expected four fail-first assertions were captured; focused, canonical, exact-SHA CI,
     candidate/configuration, promotion, and stable production gates are green.
+16. Implemented and deployed S75: one provider-free, monotonic follow-up projection now binds exact
+    lease/thread/message identity, waiting party, last verified contact, most-specific effective
+    timing policy, due/work truth, S72 evidence, and attention state across renewal surfaces. Missing
+    or unconfirmed policy, incomplete threads, and stale refreshes fail safely; refresh remains exact,
+    targeted, and read-only. App-only dismiss/reopen is audited, and a new policy identity reopens the
+    item. Client timing values remain an external input rather than a guessed implementation default.
 
 ## Completed release evidence
 
-1. The last shipped full local gate passed twice: 526 unit files passed and one skipped; 4,783 unit
-   tests passed and four skipped; all 115 Firestore tests, policy/static gates, dependency audit, and
-   the 104-page production build passed.
+1. The last shipped full local gate passed 534 unit files with one intentional skip and 4,842 unit
+   tests with four skips; all 115 Firestore tests, policy/static gates, dependency audit, and the
+   104-page production build passed.
 2. Commit `6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate CI run
    `33069769758` passed.
 3. Zero-traffic revision `pmi-kc-app-rmtbh280n-61b78ef991cc` passed exact commit/revision smoke, was
@@ -86,6 +92,13 @@ the specification work or by an unconfirmed effect.
    closed Sheet writeback, allowance 50, and three expected secret references; exact candidate and
    stable canonical-host smoke passed before/after promotion to 100%. Immediate rollback target is
    `pmi-kc-app-rmtf01asj-4b3665ad072f`.
+9. S75 commit `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` was pushed to `main`; exact-SHA
+   aggregate CI run `33291061530` passed. Zero-traffic revision
+   `pmi-kc-app-rmtf9wrzz-4c981bf57679` preserved Production+Live, managed identity, 11 Spaces,
+   closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
+   configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
+   before/after promotion to 100%. Immediate rollback target is
+   `pmi-kc-app-rmtf4s18h-3813fe5277d5`.
 
 ## Current closure sequence
 
@@ -99,7 +112,9 @@ The contracts are frozen as follows:
   stable production, and rollback-target readback proof.
 - **S72:** complete and deployed with versioned six-step process, detailed substeps/evidence,
   compatibility, branches/reopening, canonical, exact CI, candidate/configuration, and stable proof.
-- **S75:** shared waiting/last-contact/effective-timing projection with unset-safe behavior.
+- **S75:** complete and deployed with one shared exact-identity follow-up projection, unset-safe
+  most-specific timing, monotonic manual refresh, S72/attention parity, canonical/CI/candidate/config/
+  stable proof, and no client effect. Confirmed timing values remain an external policy input.
 - **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
 - **S74:** approved owner/tenant templates plus optional constrained AI phrasing and channel truth.
 - **S79:** exact receipt-bound screenshot as one unsent Gmail attachment; its Drive key stays closed.
@@ -120,7 +135,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    downstream suites consume them.
 4. Preserve deployed S80 role/Space/effect parity and its exact closed-key/send boundaries while
    downstream suites consume the matrix.
-5. Preserve deployed S72 and implement S75's shared follow-up projection.
+5. Preserve deployed S72 and S75 process/follow-up projections and their unset-safe, manual-read-only
+   boundaries.
 6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
    those projections.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.

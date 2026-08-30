@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtf4s18h-3813fe5277d5` / commit
-  `4131df973ae2593d4f75184513db4366fb56ddae` at 100% traffic.
+- Production serves `pmi-kc-app-rmtf9wrzz-4c981bf57679` / commit
+  `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -37,17 +37,23 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   migration, exact evidence projection, branch/reopening/invalidation rules, and a six-step workspace
   panel. The expected four fail-first assertions, focused/canonical gates, exact-SHA CI, candidate
   config/smoke, promotion, and stable readback are green; S80 is the captured rollback target.
+- S75 is implemented and deployed: one provider-free monotonic projection binds exact
+  lease/thread/message identity, waiting party, last verified contact, most-specific effective
+  policy, due/work truth, S72 evidence, and audited attention state across renewal surfaces. Missing
+  policy and incomplete/stale provider evidence fail safely; Gmail ingestion remains exact manual
+  read-only. Canonical, exact-SHA CI, candidate/config, promotion, and stable readback are green; S72
+  is the captured rollback target. Confirmed timing values remain external and were not guessed.
 - The screenshot path remains text-only until S79.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
-- S59 used one controlled billed RentCast read and zero writes. Delivery changed only the bounded
+- S59 used one controlled billed RentCast read and zero writes. S75 delivery changed only the bounded
   Cloud Run candidate/traffic state; no client-facing effect, action-key change, or source write ran.
 
 ## Next exact action
 
-Implement S75's shared waiting/last-contact/effective-timing projection fail-first, consuming S72's
-stable evidence ids while preserving targeted manual refresh, unset-safe timing, and the permanent
-no-autonomous-outreach boundary.
+Implement S78's canonical Live triage desk fail-first from the deployed S72 process and S75 follow-up
+projections, preserving role parity, exact routing, source/evidence truth, and every no-send/no-write
+boundary.
 
 ## Ordered continuation
 
@@ -55,8 +61,8 @@ no-autonomous-outreach boundary.
 2. S59 RentCast mapping/cache/query truth — complete and deployed.
 3. S80 role/action parity — complete and deployed.
 4. S72 six-step/substep model — complete and deployed.
-5. S75 shared follow-up projection — active.
-6. S78 canonical triage desk.
+5. S75 shared follow-up projection — complete and deployed.
+6. S78 canonical triage desk — active.
 7. S74 governed copy/AI and S79 receipt-bound attachment.
 8. S81 navigation/readiness.
 9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until

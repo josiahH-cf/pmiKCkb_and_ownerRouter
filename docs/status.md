@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtf4s18h-3813fe5277d5`, 100% traffic
-- Serving commit: `4131df973ae2593d4f75184513db4366fb56ddae`
+- Serving revision: `pmi-kc-app-rmtf9wrzz-4c981bf57679`, 100% traffic
+- Serving commit: `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, and S72 are deployed. S72 passed the canonical local gate and exact-SHA aggregate CI
-run `33285602786`; its zero-traffic candidate passed exact identity, bounded-route smoke, and
-configuration readback before promotion. The promoted revision was read back at 100% with every
-runtime invariant preserved and S80 retained as the exact rollback target.
+S77, S59, S80, S72, and S75 are deployed. S75 passed the canonical local gate and exact-SHA
+aggregate CI run `33291061530`; its zero-traffic candidate passed exact identity, bounded-route
+smoke, and configuration readback before promotion. The promoted revision was read back alone at
+100% with every runtime invariant preserved and S72 retained as the exact rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -72,10 +72,13 @@ runtime invariant preserved and S80 retained as the exact rollback target.
   provenance; provider output cannot set offered rent.
 - Renewal Gmail creation is governed, exact-ledger-backed, and unsent-draft-only. The browser,
   route, and service now share exact preview/confirm/reconcile shapes.
-- Gmail continuous watch is retired. Manual refresh fetches only linked threads and derives waiting-on/
-  last-contact from provider state; duplicate/out-of-order refreshes are idempotent.
-- Admin has versioned global/property/lease timing rules. Unconfirmed policy displays as unset and
-  cannot create a timer, reminder, work, draft, or send.
+- Gmail continuous watch is retired. Manual refresh fetches only an exact linked thread. One shared
+  provider-free projection binds lease/thread/message identity, waiting party, last verified contact,
+  effective timing policy, due/work state, and deterministic ordering across all renewal surfaces.
+  Duplicate/stale refreshes and incomplete thread history fail safely.
+- Admin has versioned global/property/lease timing rules with most-specific-wins resolution.
+  Unconfirmed policy displays as unset and cannot create a timer, reminder, work, draft, or send;
+  client timing values and override-manager authority remain external inputs.
 - Renewal screenshot preview/store/receipt/rollback machinery exists behind the closed exact Drive
   key; outgoing renewal Gmail MIME does not yet attach the screenshot.
 - Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal exact-
@@ -101,6 +104,25 @@ runtime invariant preserved and S80 retained as the exact rollback target.
   gate, the zero-vulnerability production audit, and the 104-page build. Exact commit/CI,
   candidate/configuration, promotion, and stable readback passed.
 
+## Deployed S75 follow-up truth
+
+- One provider-free projection now drives the desk, workspace, S72 evidence, and attention state from
+  exact lease/thread/message identity, waiting party, last verified contact, effective policy, and
+  due/work truth.
+- Timing resolves deterministically from global to property to lease. Missing or unconfirmed policy
+  stays visibly unset and produces no due time, work item, draft, send, or guessed default.
+- Current and Needs Verification states distinguish complete from incomplete provider evidence;
+  truncated history cannot claim contact. Timestamp and message-id ordering plus a monotonic store
+  reject duplicate/stale inputs and allow recovery after a provider 404.
+- `renewal_lease` Gmail context is pinned to the read-only mailbox action. Refresh is exact and manual;
+  there is no watch, poll, Scheduler, label, reply, draft, or send side effect.
+- App-only attention dismiss/reopen is audited. A new effective policy identity reopens the exact
+  attention item; anticipation creates owner work only from exact owner-bound due evidence.
+- Focused adversarial checks and the final canonical gate are green: 534 unit files passed with one
+  intentional skip (4,842 passing tests and four skips), all 115 Firestore tests, every policy/static
+  gate, the production-only zero-vulnerability audit, and the 104-page build. Exact commit/CI,
+  candidate/configuration, promotion, and stable production readback passed without a client effect.
+
 ## Remaining renewal stabilization implementation
 
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
@@ -111,7 +133,7 @@ runtime invariant preserved and S80 retained as the exact rollback target.
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, S80, and S72 are complete and deployed; S74/S75/S78/S79/S81/S63 and the separately gated
+- S77, S59, S80, S72, and S75 are complete and deployed; S78/S74/S79/S81/S63 and the separately gated
   S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
