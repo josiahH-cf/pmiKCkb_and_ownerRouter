@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-08-29.
+Last updated: 2026-08-30.
 
 This is a present snapshot, not a changelog. Historical implementation detail remains in Git.
 
@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtf9wrzz-4c981bf57679`, 100% traffic
-- Serving commit: `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9`
+- Serving revision: `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`, 100% traffic
+- Serving commit: `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, S72, and S75 are deployed. S75 passed the canonical local gate and exact-SHA
-aggregate CI run `33291061530`; its zero-traffic candidate passed exact identity, bounded-route
+S77, S59, S80, S72, S75, and S78 are deployed. S78 passed the canonical local gate and exact-SHA
+aggregate CI run `33294476282`; its zero-traffic candidate passed exact identity, bounded-route
 smoke, and configuration readback before promotion. The promoted revision was read back alone at
-100% with every runtime invariant preserved and S72 retained as the exact rollback target.
+100% with every runtime invariant preserved and S75 retained as the exact rollback target.
 
 ## Deployed renewal stabilization slice
 
@@ -123,6 +123,23 @@ smoke, and configuration readback before promotion. The promoted revision was re
   gate, the production-only zero-vulnerability audit, and the 104-page build. Exact commit/CI,
   candidate/configuration, promotion, and stable production readback passed without a client effect.
 
+## Deployed S78 canonical renewal desk
+
+- One canonical Live worklist now projects exact lease, property/address, authoritative owner, all
+  tenant, end-date, conflict, six-step, follow-up, retention, and next-action truth. It never promotes
+  an email, address, identifier, adjacent row, or guessed fallback into a party name.
+- Normalized search covers tenant, owner, property/address, and exact lease id. URL-backed filters and
+  sorts have explicit missing-value behavior, nulls-last rules, stable lease-id tie-breaking, and
+  deterministic round trips.
+- The default cohort begins on the first day of the current month and ends 120 days after today;
+  tracked incomplete renewals remain visible outside that window with an explicit retention reason.
+- Desk attention consumes the exact same filtered and sorted source. The legacy notices route uses
+  the Renewals read guard and redirects to the canonical desk; no Production page claims sample data.
+- Focused checks passed 16 files/138 tests. The canonical gate passed 537 unit files with one
+  intentional skip (4,885 passing tests and four skips), all 115 Firestore tests, every policy/static
+  gate, the production dependency audit, and the 106-route build. Exact commit/CI,
+  candidate/configuration, promotion, and stable production readback passed with no client effect.
+
 ## Remaining renewal stabilization implementation
 
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
@@ -133,8 +150,8 @@ smoke, and configuration readback before promotion. The promoted revision was re
   image; the separate Drive action remains closed until independently authorized.
 - S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
   Admin/Connections authority.
-- S77, S59, S80, S72, and S75 are complete and deployed; S78/S74/S79/S81/S63 and the separately gated
-  S30 effect remain in the ordered bundle.
+- S77, S59, S80, S72, S75, and S78 are complete and deployed; S74/S79/S81/S63 and the separately
+  gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation

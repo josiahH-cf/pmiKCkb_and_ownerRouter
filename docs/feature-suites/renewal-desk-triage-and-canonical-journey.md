@@ -3,8 +3,9 @@
 
 # S78 — Renewal desk triage and canonical operator journey
 
-> Status: Active; the Live desk is Admin-only, has a fixed chronological card list with limited
-> identity/work state, and coexists with a stale Editor notices surface.
+> Status: Complete and deployed on 2026-08-30. The canonical Live desk is role-consistent,
+> searchable, sortable, filterable, current-month aware, and backed by one deterministic projection;
+> the legacy notices route now enters the same canonical experience.
 
 **Goal.**
 
@@ -13,12 +14,12 @@ right lease without losing current-month or already-started incomplete work.
 
 **Current state / intended end state.**
 
-The canonical `/lease-renewal` path redirects to an Admin-only Live desk. Cards show address, end
-date, conflicts, four-step progress, and a next action, but not owner, tenant, waiting-on, last contact,
-or policy-backed due state; there is no search or operator-selected sort/filter. A separate Editor
-notices page still claims the desk uses sample data. The intended state is one role-consistent Live
-desk and workspace, with complete source-backed triage facts, stable controls, and no contradictory
-parallel product story.
+The canonical `/lease-renewal` path now enters one Live desk for Renewals-space Editors, Approvers,
+and Admins. One serializable item projects exact lease, property/address, authoritative owner, all
+tenant, end-date, conflict, six-step process, waiting-on, last-contact, timing/due, retention, and
+next-action truth. URL-backed search, sort, and filters consume that same item set as the attention
+fold. The legacy notices path performs the same read guard and redirects to the canonical desk; no
+Production surface claims that renewal work uses sample data.
 
 **Actors and entry conditions.**
 
@@ -63,8 +64,8 @@ follow-up projection, AppShell navigation, notices compatibility route, and atte
 | -------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTS.md` Production+Live, Space, and no-effect boundaries                                             | Authority                     | The desk uses real current reads, never sample fallback, and search/sort/filter remains read-only.                                                                                 |
 | Stabilization intake                                                                                     | User-approved intent evidence | It requires dense front-page visibility, current-month retention, owner/tenant search, due/waiting clarity, and clear controls; it does not authorize a whole-app visual redesign. |
-| Canonical route redirect, Live desk/page/component/model/cohort code, workspace, and legacy notices page | Verified implementation truth | The current Admin-only fixed chronological cards and contradictory sample-data claim are measured defects.                                                                         |
-| Desk/cohort/refresh/workspace/notices/role/attention tests                                               | Verification baseline         | They preserve Live read and identity behavior while new projection, deterministic URL-ordering, Editor-access, and route-consolidation checks fail first.                          |
+| Canonical route redirect, Live desk/page/component/model/cohort code, workspace, and legacy notices page | Verified implementation truth | One canonical role-consistent desk, exact identity projection, deterministic URL query state, and legacy redirect are deployed.                                                    |
+| Desk/cohort/refresh/workspace/notices/role/attention tests                                               | Verification evidence         | They preserve Live read and identity behavior and prove projection, URL ordering, Editor access, route consolidation, and shared attention-source behavior.                        |
 | S72 and S75 projection contracts                                                                         | Compatible dependency         | Missing step/due/contact values must render explicit unset/Needs Verification and cannot be guessed for sorting or display.                                                        |
 
 **Architecture outcome (deterministic, fail-first).**
@@ -97,7 +98,9 @@ follow-up projection, AppShell navigation, notices compatibility route, and atte
 earlier lease from the current month, sort by the work that is due, and understand the next action
 without opening several competing renewal pages.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Model verdict: PASS - exact-source identity fixtures, exhaustive query tables, role/route checks,
+  accessibility-oriented component assertions, focused tests, the canonical gate, exact-SHA CI,
+  candidate smoke/configuration readback, and stable production readback prove the stated outcome.
 - Human verdict: PASS | FAIL - why:
 
 **Requirement-to-outcome traceability.**
@@ -134,9 +137,9 @@ auto-completion, provider effect, automatic message, or broad navigation redesig
 
 **Dependencies / sequencing.**
 
-S78 can implement its projection/controls independently with S72/S75 fields represented as explicit
-unset states. Implement S72 and S75 before declaring the complete six-step/due experience finished;
-S80 supplies the durable authority matrix.
+S78 consumes the deployed S72 process, S75 follow-up projection, and S80 authority matrix. Missing
+source or unconfirmed timing values still use the contracts' explicit unset/Needs Verification
+states; S78 does not duplicate or weaken their truth.
 
 **Standalone delivery contract.**
 
@@ -172,7 +175,22 @@ S80 supplies the durable authority matrix.
 4. Test keyboard/screen-reader names, narrow layouts, null data, incomplete reads, and deterministic
    URLs before the canonical gate.
 
+**Implementation and release evidence.**
+
+- Fail-first checks captured the missing query module, first-of-month cohort, and canonical notices
+  behavior before implementation.
+- Focused adversarial verification passed 16 files and 138 tests. The canonical gate passed 537 unit
+  files with one intentional skip (4,885 passing tests and four skips), all 115 Firestore tests,
+  every policy/static gate, the production dependency audit, and the 106-route build.
+- Exact commit `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` passed aggregate CI run
+  `33294476282`. Zero-traffic revision `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` matched that commit,
+  preserved the reviewed runtime configuration, passed exact candidate smoke, and was promoted and
+  read back alone at 100% traffic.
+- Immediate rollback target `pmi-kc-app-rmtf9wrzz-4c981bf57679` was captured before deployment.
+  S78 changed no action grant, protected path, source record, provider state, Gmail draft/message, or
+  client-facing effect.
+
 **Deletion/merge recommendation.**
 
-Remove after the canonical Live desk is deployed, the legacy story is retired, and the durable
-worklist contract lives in the renewal product documentation and tests.
+Retain as the active S78 acceptance and release contract until the renewal stabilization suite is
+consolidated; do not recreate the retired legacy product story.

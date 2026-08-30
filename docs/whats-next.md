@@ -1,13 +1,19 @@
 # What is next
 
-Updated: 2026-08-29.
+Updated: 2026-08-30.
 
 ## Internal closure artifacts
 
-The dependency-independent product implementation, verification, commit/push/CI, zero-traffic
-deployment, promotion, and version-aware rollback/restoration rehearsal are complete. The only
-remaining internal closure artifacts are eight real owner litmus verdicts and the final editable,
-visually inspected readout deck. They are acceptance evidence, not client product decisions.
+S77, S59, S80, S72, S75, and S78 are implemented, verified, and deployed through exact-SHA CI,
+zero-traffic candidate smoke/configuration readback, promotion, and stable production readback. S74
+is the next internal slice: implement governed template/fact locks and optional constrained-AI
+behavior while approved wording and channel rules remain explicitly not ready. Then complete S79's
+receipt-bound attachment path, S81's narrow navigation, and S63's secure value-free four-case runner;
+keep S30 dry and closed until its separate external designation and protected direction exist.
+
+After those slices, internal closure still requires the editable visually inspected readout deck and
+the real owner litmus verdicts. Those are acceptance evidence, not substitutes for client product
+decisions.
 
 ## Client, owner, and provider inputs
 

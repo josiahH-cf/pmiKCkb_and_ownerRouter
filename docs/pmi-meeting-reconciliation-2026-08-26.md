@@ -1,10 +1,10 @@
-# PMI KC meeting reconciliation — present truth as of 2026-08-29
+# PMI KC meeting reconciliation — present truth as of 2026-08-30
 
 This document replaces the August 26 release snapshot with the current evidence-backed handoff. The
 original meeting time was organizer-supplied. Exact Production identity is available at
 [`/api/version`](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/version). Production serves commit
-`d2dfbcc2a865af1f92103083c2a49714c2dc3977` as revision
-`pmi-kc-app-rmtf01asj-4b3665ad072f` at 100% traffic.
+`9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` as revision
+`pmi-kc-app-rmtfd7hvu-a310a0d0db6b` at 100% traffic.
 
 Client handoffs:
 
@@ -19,10 +19,11 @@ Client handoffs:
 
 ## Direct outcome
 
-All dependency-independent product work in I01–I11 is implemented, verified, deployed, and
-rollback-proven to its allowed boundary. Final goal closure still needs the editable customer deck
-and eight real owner verdicts. External activations wait on named client, owner, source-data,
-credential, or official-provider inputs; none is disguised as internal engineering work.
+The dependency-independent I01–I11 baseline plus S77, S59, S80, S72, S75, and S78 are implemented,
+verified, deployed, and rollback-proven to their allowed boundaries. Internal renewal stabilization
+continues with S74, S79, S81, and S63 before the editable customer deck and real owner verdicts.
+External activations wait on named client, owner, source-data, credential, or official-provider
+inputs; none is disguised as internal engineering work.
 
 The deployed release includes:
 
@@ -31,12 +32,16 @@ The deployed release includes:
 3. Admin-managed rehearsal-Sheet configuration, distinct-source refusal, and a separate reversible
    copy-only proof;
 4. append-only discrepancy dispositions and source-specific correction contracts;
-5. a create-only, value-free four-lease proof packet with explicit `not evaluated` outcomes;
+5. create-only four-lease baseline/evidence machinery with explicit `not evaluated` outcomes; S63
+   still must move exact cohort bindings to secure runtime input and make output value-free;
 6. manual targeted Gmail refresh, source-backed waiting-on/last-contact state, and unset-safe
    global/property/lease follow-up policy;
 7. a fixed one-Space provisioning lifecycle and a bounded read-only operational-page builder;
 8. fail-closed Dotloop, LeadSimple, and RentVine resident-channel lifecycle seams; and
-9. production dependency overrides with zero known production advisories.
+9. production dependency overrides with zero known production advisories; and
+10. one canonical role-consistent Live renewal desk with exact-source identity, six-step/follow-up
+    truth, deterministic URL-backed query controls, current-month/tracked-incomplete retention, and
+    one legacy-route story.
 
 ## Safety and external-effect boundary
 
@@ -77,8 +82,8 @@ renewal Sheet without printing client values:
 
 These are review outcomes, not a claim that 20 RentVine records are wrong. On 2026-08-29 the owner
 selected contractual base rent as the renewal comparison/decision value, with recurring charges kept
-separate. S59 now implements that boundary beside RentCast reference evidence; S72 still must carry it
-through the six-step process. Conflict, missing, stale, expired, or ambiguous evidence remains fail-
+separate. S59 implements that boundary beside RentCast reference evidence, and S72 carries it through
+the deployed six-step process. Conflict, missing, stale, expired, or ambiguous evidence remains fail-
 closed. A disposition records authoritative source, proposed correction, reason, owner, status, and
 evidence for one exact lease/row. It cannot perform a source write without a separate approved source-
 specific transaction contract.
@@ -170,6 +175,28 @@ Zero-traffic candidate `pmi-kc-app-rmtf01asj-4b3665ad072f` passed exact identity
 configuration readback before promotion and stable 100% readback. Its immediate rollback target is
 the S59 revision `pmi-kc-app-rmtew9a2z-46a2353b6491`.
 
-The unit runner preserves the current full 529-file inventory while using a bounded eight-worker
-thread pool in a native Linux shadow. The final S80 canonical run completed Vitest in 58.40 seconds.
-The retired roughly 40–48-minute behavior is no longer the current performance claim.
+The subsequent S72 release passed 531 unit files with one intentional skip (4,818 passing tests and
+four skips), all 115 Firestore tests, every policy/static gate, the production dependency audit, and
+the 104-page build. Exact commit `4131df973ae2593d4f75184513db4366fb56ddae` passed aggregate CI run
+[33285602786](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33285602786).
+Zero-traffic candidate `pmi-kc-app-rmtf4s18h-3813fe5277d5` passed exact identity, bounded-route, and
+configuration readback before promotion and stable 100% readback.
+
+The subsequent S75 release passed 534 unit files with one intentional skip (4,842 passing tests and
+four skips), all 115 Firestore tests, every policy/static gate, the production dependency audit, and
+the 104-page build. Exact commit `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` passed aggregate CI run
+[33291061530](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33291061530).
+Zero-traffic candidate `pmi-kc-app-rmtf9wrzz-4c981bf57679` passed exact identity, bounded-route, and
+configuration readback before promotion and stable 100% readback.
+
+The subsequent S78 release passed 537 unit files with one intentional skip (4,885 passing tests and
+four skips), all 115 Firestore tests, every policy/static gate, the production dependency audit, and
+the 106-route build. Exact commit `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` passed aggregate CI run
+[33294476282](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/33294476282).
+Zero-traffic candidate `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` passed exact identity, bounded-route, and
+configuration readback before promotion and stable 100% readback. Its immediate rollback target is
+the S75 revision `pmi-kc-app-rmtf9wrzz-4c981bf57679`.
+
+The unit runner preserves the current full 538-file inventory while using a bounded eight-worker
+thread pool in a native Linux shadow. The retired roughly 40–48-minute behavior is no longer the
+current performance claim.

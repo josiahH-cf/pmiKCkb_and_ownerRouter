@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-08-29. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-08-30. Resume here after reading `AGENTS.md` and `docs/facts.md`.
 
 ## Objective
 
@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtf9wrzz-4c981bf57679` / commit
-  `1bd2e8b0446e4e11e632563a9515f0fc8343b4d9` at 100% traffic.
+- Production serves `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` / commit
+  `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -43,17 +43,23 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   policy and incomplete/stale provider evidence fail safely; Gmail ingestion remains exact manual
   read-only. Canonical, exact-SHA CI, candidate/config, promotion, and stable readback are green; S72
   is the captured rollback target. Confirmed timing values remain external and were not guessed.
+- S78 is implemented and deployed: one canonical role-consistent Live worklist projects exact
+  identity, process, follow-up, conflict, retention, and next-action truth; deterministic URL-backed
+  search/filter/sort rules cover every supported value and explicit nulls; the default window begins
+  on the first of the month and retains tracked incomplete work. The attention fold consumes the same
+  ordered source, and the legacy notices route enters the canonical desk with no sample story.
 - The screenshot path remains text-only until S79.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
-- S59 used one controlled billed RentCast read and zero writes. S75 delivery changed only the bounded
-  Cloud Run candidate/traffic state; no client-facing effect, action-key change, or source write ran.
+- S59 used one controlled billed RentCast read and zero writes. S75 and S78 delivery changed only the
+  bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change, or source
+  write ran.
 
 ## Next exact action
 
-Implement S78's canonical Live triage desk fail-first from the deployed S72 process and S75 follow-up
-projections, preserving role parity, exact routing, source/evidence truth, and every no-send/no-write
-boundary.
+Implement S74's governed owner/tenant template and optional constrained-AI boundary fail-first,
+preserving exact facts, recipients, values, dates, mandatory/forbidden copy, channel evidence, S77
+preview/confirmation, and every no-send/no-write boundary.
 
 ## Ordered continuation
 
@@ -62,8 +68,8 @@ boundary.
 3. S80 role/action parity — complete and deployed.
 4. S72 six-step/substep model — complete and deployed.
 5. S75 shared follow-up projection — complete and deployed.
-6. S78 canonical triage desk — active.
-7. S74 governed copy/AI and S79 receipt-bound attachment.
+6. S78 canonical triage desk — complete and deployed.
+7. S74 governed copy/AI — active; then S79 receipt-bound attachment.
 8. S81 navigation/readiness.
 9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
    separately authorized.

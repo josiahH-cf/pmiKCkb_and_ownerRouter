@@ -1,6 +1,6 @@
 # PMI KC current plan
 
-Updated: 2026-08-29.
+Updated: 2026-08-30.
 
 ## Outcome
 
@@ -58,6 +58,11 @@ the specification work or by an unconfirmed effect.
     or unconfirmed policy, incomplete threads, and stale refreshes fail safely; refresh remains exact,
     targeted, and read-only. App-only dismiss/reopen is audited, and a new policy identity reopens the
     item. Client timing values remain an external input rather than a guessed implementation default.
+17. Implemented and deployed S78: one canonical role-consistent Live worklist now projects exact
+    identity, process, follow-up, conflict, retention, and next-action truth; deterministic URL-backed
+    search/filter/sort controls define every missing-value and tie rule; the first-of-month/120-day
+    cohort retains tracked incomplete work; attention consumes the same ordered source; and the
+    legacy notices route redirects to the canonical desk without a sample-data story.
 
 ## Completed release evidence
 
@@ -99,6 +104,13 @@ the specification work or by an unconfirmed effect.
    configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
    before/after promotion to 100%. Immediate rollback target is
    `pmi-kc-app-rmtf4s18h-3813fe5277d5`.
+10. S78 commit `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5` was pushed to `main`; exact-SHA
+    aggregate CI run `33294476282` passed. Zero-traffic revision
+    `pmi-kc-app-rmtfd7hvu-a310a0d0db6b` preserved Production+Live, managed identity, 11 Spaces,
+    closed Sheet writeback, allowance 50, and three expected secret references. Its normalized
+    configuration matched the predecessor; exact candidate and stable canonical-host smoke passed
+    before/after promotion to 100%. Immediate rollback target is
+    `pmi-kc-app-rmtf9wrzz-4c981bf57679`.
 
 ## Current closure sequence
 
@@ -115,7 +127,9 @@ The contracts are frozen as follows:
 - **S75:** complete and deployed with one shared exact-identity follow-up projection, unset-safe
   most-specific timing, monotonic manual refresh, S72/attention parity, canonical/CI/candidate/config/
   stable proof, and no client effect. Confirmed timing values remain an external policy input.
-- **S78:** canonical searchable, sortable, filterable Live desk and role-consistent routing.
+- **S78:** complete and deployed with one exact-source canonical worklist, deterministic URL-backed
+  search/sort/filter/null/cohort rules, shared attention ordering, role-consistent routing, canonical
+  and exact-SHA CI gates, candidate/configuration/promotion/stable proof, and no client effect.
 - **S74:** approved owner/tenant templates plus optional constrained AI phrasing and channel truth.
 - **S79:** exact receipt-bound screenshot as one unsent Gmail attachment; its Drive key stays closed.
 - **S81:** narrow task-oriented Admin/Connections navigation without authority/store merging.
@@ -137,8 +151,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    downstream suites consume the matrix.
 5. Preserve deployed S72 and S75 process/follow-up projections and their unset-safe, manual-read-only
    boundaries.
-6. Implement S78's canonical desk, routing, search, sort, filter, and current-month experience from
-   those projections.
+6. Preserve deployed S78's canonical desk, exact identity/query/cohort contract, role routing, and
+   shared attention source while downstream suites consume its lease links.
 7. Implement S74's template, fact-lock, and optional-AI boundary behind approved-template readiness.
 8. Implement S79's receipt-bound MIME/readback path behind the still-closed Drive action.
 9. Implement S81's narrow navigation manifest, index, and anchors without moving authority or

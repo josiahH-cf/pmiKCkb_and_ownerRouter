@@ -92,7 +92,7 @@ not block independent suites.
 | S75   | `docs/feature-suites/renewal-follow-up-state.md`                    | Shared unset-safe projection built; live confirmed timing policy still external    |
 | S76   | `docs/feature-suites/renewal-sheet-rehearsal-copy.md`               | Admin configuration/proof seam complete; distinct copy and live proof required     |
 | S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`  | Complete and deployed; exact-confirm/reconcile contract is downstream foundation   |
-| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Active; canonical searchable role-consistent Live desk not implemented             |
+| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Complete and deployed; canonical role-consistent desk/query/route contract is live |
 | S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Active; receipt/MIME design specified; Drive action remains closed                 |
 | S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Complete and deployed; exact role/Space/effect matrix is downstream foundation     |
 | S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Approved narrow navigation/readiness scope; not implemented                        |

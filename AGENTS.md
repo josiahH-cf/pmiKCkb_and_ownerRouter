@@ -19,17 +19,16 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-08-29
+## Present production truth — 2026-08-30
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtf4s18h-3813fe5277d5`, 100% traffic.
-- Deployed code: `4131df973ae2593d4f75184513db4366fb56ddae`.
+- Serving revision: `pmi-kc-app-rmtfd7hvu-a310a0d0db6b`, 100% traffic.
+- Deployed code: `9912ef2ff27c9a73a37e71f1ad54ef754af5e8d5`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  S80 captured `pmi-kc-app-rmtew9a2z-46a2353b6491`; the current S72 release captured
-  `pmi-kc-app-rmtf01asj-4b3665ad072f` as its immediate rollback target.
+  S78 captured `pmi-kc-app-rmtf9wrzz-4c981bf57679` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
