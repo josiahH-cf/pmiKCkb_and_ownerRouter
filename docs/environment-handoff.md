@@ -10,8 +10,8 @@ Updated from live readback: 2026-08-30.
 | Region            | `us-central1`                                  |
 | Cloud Run service | `pmi-kc-app`                                   |
 | URL               | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision  | `pmi-kc-app-rmtfp5ac4-8824eb39358b`            |
-| Serving commit    | `4a05462065bcad6433574cc7d7a6f4801b7311eb`     |
+| Serving revision  | `pmi-kc-app-rmtfzwn77-8153d75d1cd5`            |
+| Serving commit    | `e661ef5653821c79c7047bc1952735f3b1ded6f5`     |
 | Traffic           | 100%                                           |
 | Descriptor        | Production + Live                              |
 | Runtime identity  | project-managed PMI KC runtime service account |
@@ -64,14 +64,14 @@ CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtfk9fln-c9af498cb9c5` from commit
-`2745cdbbf0a0bf14320a6dde6c63128134f6d807`.
+Captured predecessor: `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` from commit
+`7aa4fd439998c2c1d17d53dbb83eab79273ff0bb`.
 
 ```bash
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtfk9fln-c9af498cb9c5=100 --quiet
+  --to-revisions=pmi-kc-app-rmtfrv9zf-456d0c8fdc83=100 --quiet
 ```
 
 Forward restoration:
@@ -80,7 +80,7 @@ Forward restoration:
 CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud \
   gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtfp5ac4-8824eb39358b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtfzwn77-8153d75d1cd5=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%

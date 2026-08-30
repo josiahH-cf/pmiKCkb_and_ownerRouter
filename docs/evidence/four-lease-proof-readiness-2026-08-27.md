@@ -92,8 +92,10 @@ external even after a report is generated.
 
 ## Completion evidence
 
-S63 machinery is complete when focused/adversarial/canonical tests, CI, release readback, source/log
-redaction, and action/no-effect audits are green. S63 operational evidence is complete only when four
+S63 machinery is deployed at commit `e661ef5653821c79c7047bc1952735f3b1ded6f5` in revision
+`pmi-kc-app-rmtfzwn77-8153d75d1cd5`. Focused/adversarial/canonical tests, exact-SHA CI run
+`33321026273`, candidate and canonical smoke, normalized runtime parity, source/log redaction, and
+action/no-effect audits are green. S63 operational evidence is complete only when four
 source-current exact baselines exist, every required observation has been reviewed under the approved
 criteria, real human verdicts are recorded, and the generated report contains no unresolved result
 other than an explicitly named client-data fact. Report those two completion states separately.

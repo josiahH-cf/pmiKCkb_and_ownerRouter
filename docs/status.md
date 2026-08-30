@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtfrv9zf-456d0c8fdc83`, 100% traffic
-- Serving commit: `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb`
+- Serving revision: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`, 100% traffic
+- Serving commit: `e661ef5653821c79c7047bc1952735f3b1ded6f5`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, S72, S75, S78, S74, S79, and S81 are deployed. S81 passed the canonical local gate
-and exact-SHA aggregate CI run `33310823319`; its zero-traffic candidate passed exact identity,
+S77, S59, S80, S72, S75, S78, S74, S79, S81, and the deterministic S63 machinery are deployed. S63
+passed the canonical local gate and exact-SHA aggregate CI run `33321026273`; its zero-traffic candidate passed exact identity,
 bounded-route smoke, and normalized configuration equality before promotion. The promoted revision
-was read back alone at 100% with every runtime invariant preserved and S79 retained as the exact
+was read back alone at 100% with every runtime invariant preserved and S81 retained as the exact
 rollback target.
 
 ## Deployed renewal stabilization slice
@@ -91,10 +91,11 @@ rollback target.
   role, action, credential, or provider authority.
 - Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal exact-
   lifecycle seams and remain closed until their official external inputs exist.
-- The four-lease proof machinery is immutable, read-only against source systems, separates process
-  and number criteria, and reports missing evidence honestly. Its current scripts still track/print
-  exact case values, so S63 must move those bindings to secure runtime input and redact output before
-  the next proof.
+- The deployed four-lease proof machinery requires canonicalized secure exact-four runtime and
+  observation packets, validates each selected Sheet row's exact RentVine lease link before app-plane
+  access, keeps create-only baselines and append-only evidence, separates process/number/safety
+  verdicts, and emits no case identity or value. A fresh Live report and human verdicts remain blocked
+  because the secure packets have not been supplied; no operational proof was inferred from deployment.
 
 ## Deployed S72 six-step process
 
@@ -184,7 +185,7 @@ rollback target.
   `33307517553`, candidate/configuration equality, promotion, and stable production readback passed.
   The Drive action and folder ids remain closed/unconfigured; no upload, draft, send, or source write ran.
 
-## Remaining renewal stabilization implementation
+## Remaining renewal stabilization closure
 
 - Deployed S80 permits Editor ordinary app work and exact-confirmed unsent drafts while preserving
   stronger pricing, reconciliation, Admin configuration, exact-action, and source-write boundaries.
@@ -196,8 +197,8 @@ rollback target.
   folder configuration remain closed until independently authorized.
 - Deployed S81 keeps task-oriented navigation/readiness separate from permissions, stores, and
   Admin/Connections authority.
-- S77, S59, S80, S72, S75, S78, S74, S79, and S81 are complete and deployed; S63 and the separately
-  gated S30 effect remain in the ordered bundle.
+- S77, S59, S80, S72, S75, S78, S74, S79, S81, and S63's deterministic machinery are complete and
+  deployed. S63's fresh operational evidence/human review and the separately gated S30 seam remain.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,
   verification, and terminal-state rules. Registration alone is not implementation or activation
@@ -209,6 +210,7 @@ rollback target.
 - Client-confirmed follow-up/timing values and any later RentCast freshness/selection policy.
 - Distinct rehearsal Sheet copy and blank proof cell.
 - Exact S30 RentVine test lease/owner/field plus a separate protected key review.
+- Secure S63 exact-four runtime and observation packets plus real human review of the generated report.
 - S66 packet catalog and exact Dotloop OAuth/account/template/participant/field/signature/webhook/
   correction mappings.
 - Move-out walkthrough, exact wrong-resident lease, other named provider contracts, and real human

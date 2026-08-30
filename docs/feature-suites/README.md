@@ -95,7 +95,7 @@ not block independent suites.
 | S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`  | Complete and deployed; canonical role-consistent desk/query/route contract is live  |
 | S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`   | Complete/deployed closed-safe receipt/MIME/readback path; live Drive effect blocked |
 | S80   | `docs/feature-suites/renewal-role-and-action-governance.md`         | Complete and deployed; exact role/Space/effect matrix is downstream foundation      |
-| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Approved narrow navigation/readiness scope; not implemented                         |
+| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md` | Complete and deployed; navigation/readiness does not grant authority                |
 
 A status in this table is authoritative for planning. A suite body is the acceptance contract, not a
 historical progress log.

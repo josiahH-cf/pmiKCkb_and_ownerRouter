@@ -4,99 +4,60 @@ Last updated: 2026-08-30. Resume here after reading `AGENTS.md` and `docs/facts.
 
 ## Objective
 
-Implement and safely ship the approved renewal stabilization bundle S77–S81 plus the amended
-S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identity/cost boundary.
+Finish the approved renewal stabilization bundle through S30, then produce the final customer deck,
+run the consolidated human litmus, and adversarially verify intent-to-outcome closure without
+weakening any send, write, identity, cost, or protected-path boundary.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` / commit
-  `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb` at 100% traffic.
-- Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
-  RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
-  screenshot attachment; narrow Admin/Connections navigation.
-- S77–S81 are registered as standalone feature contracts. S59/S72/S74/S75/S30/S63 are reconciled to
-  the decisions and current safety state; the adversarial handoff pass adds authority/evidence,
-  intent traceability, standalone delivery, verification, and terminal-state contracts.
-- S77 is implemented and deployed: the UI, route, and service share one strict
-  request/outcome contract; previews bind exact confirmation and every operator input; uncertain
-  attempts retain read-only RFC Message-ID reconciliation and cannot retry as new. The canonical gate,
-  exact zero-traffic candidate smoke, configuration readback, promotion, and stable smoke are green.
-- S59 is implemented and deployed: one lease identity resolves server-side into a complete supported
-  RentVine query basis; cache identity covers every provider-shaping value; operator evidence includes
-  query/source/omission/base-rent/comparable/retrieval/cache/quota truth; property type remains omitted;
-  and provider output cannot populate the offer. Focused, live parity, canonical, CI, candidate, and
-  stable readback evidence are green.
-- S80 is implemented and deployed: one matrix covers every renewal page, API method, and rendered
-  control; Editors reach ordinary work, Approver/Admin distinctions remain, exact-action state stays
-  independent, source writes/sends remain closed, and no protected path or S64 grant changed. The
-  canonical gate, exact-SHA CI, zero-traffic candidate/configuration smoke, promotion, and stable
-  readback are green; S59 is the captured rollback target.
-- Cloud Run source uploads now exclude `.claude/`, `output/`, and local env files through the committed
-  `.gcloudignore`; the user-owned working-tree paths remain untouched.
-- S72 is implemented and deployed: immutable `renewal-v1`, legacy compatibility without live
-  migration, exact evidence projection, branch/reopening/invalidation rules, and a six-step workspace
-  panel. The expected four fail-first assertions, focused/canonical gates, exact-SHA CI, candidate
-  config/smoke, promotion, and stable readback are green; S80 is the captured rollback target.
-- S75 is implemented and deployed: one provider-free monotonic projection binds exact
-  lease/thread/message identity, waiting party, last verified contact, most-specific effective
-  policy, due/work truth, S72 evidence, and audited attention state across renewal surfaces. Missing
-  policy and incomplete/stale provider evidence fail safely; Gmail ingestion remains exact manual
-  read-only. Canonical, exact-SHA CI, candidate/config, promotion, and stable readback are green; S72
-  is the captured rollback target. Confirmed timing values remain external and were not guessed.
-- S78 is implemented and deployed: one canonical role-consistent Live worklist projects exact
-  identity, process, follow-up, conflict, retention, and next-action truth; deterministic URL-backed
-  search/filter/sort rules cover every supported value and explicit nulls; the default window begins
-  on the first of the month and retains tracked incomplete work. The attention fold consumes the same
-  ordered source, and the legacy notices route enters the canonical desk with no sample story.
-- S74 is implemented and deployed: separate versioned owner/tenant contracts, one locked server
-  fact/recipient envelope, strict editable regions, optional constrained assistance with deterministic
-  validation/fallback, S77-bound hashes, and exact channel-evidence states are green. Current copy is
-  review-only, so preview is available while tailoring/Gmail creation refuse before provider
-  construction until the client supplies approved wording and channel rules.
-- S79 is implemented and deployed behind the still-closed Drive key: one current same-Space/lease
-  receipt binds one allowlisted image to preview, deterministic multipart MIME, exact Gmail raw
-  readback, and one-attempt reconciliation. Text callers remain compatible; arbitrary Drive access,
-  multiple/inline attachments, sends, and live attachment effects remain closed.
-- S81 is implemented and deployed: one capability-validated manifest groups honest Connections
-  status, indexes existing Admin tasks with stable anchors, preserves direct-route and mutation
-  guards, and distinguishes status-only/closed states without granting credentials, actions, roles,
-  or provider effects. Canonical, exact-SHA CI, candidate/configuration, promotion, and stable
-  readback are green; S79 is the captured rollback target.
-- S63's current scripts also track/print exact case values; secure runtime designation and value-free
-  output are required before the next four-case proof.
-- S59 used one controlled billed RentCast read and zero writes. S75, S78, S74, S79, and S81 delivery
-  changed only bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change,
-  model call, Gmail draft, or source write ran.
+- Production serves `pmi-kc-app-rmtfzwn77-8153d75d1cd5` / commit
+  `e661ef5653821c79c7047bc1952735f3b1ded6f5` at 100% traffic. Exact candidate and canonical smoke,
+  normalized runtime parity, Ready state, and managed identity readback are green. Immediate rollback
+  is S81 revision `pmi-kc-app-rmtfrv9zf-456d0c8fdc83`.
+- S77, S59, S80, S72, S75, S78, S74, S79, S81, and S63 deterministic machinery are implemented,
+  verified, pushed, and deployed. S63 exact-SHA CI run `33321026273` is green.
+- S63 now uses canonicalized secure exact-four runtime/observation files, verifies the selected Sheet
+  row's exact RentVine lease link before app-plane access, freezes create-only baselines, preflights
+  append-only evidence, keeps process/number/safety verdicts independent, writes reports only under
+  gitignored `temp/test-set/`, and emits value-free terminal output.
+- No `S63_TEST_SET_RUNTIME_CONFIG_PATH` or `S63_TEST_SET_OBSERVATION_PATH` packet was supplied. No
+  fresh Live capture, report, draft, send, RentVine/Sheet/Dotloop write, or human verdict ran. This
+  blocks only S63 operational evidence, not the completed/deployed machinery.
+- No protected path changed. `.claude/settings.local.json` and `output/` remain user-owned untracked
+  files and must stay excluded from commits and Cloud Build uploads.
 
 ## Next exact action
 
-Implement S63's secure exact-four runtime cohort binding and value-free proof output fail-first,
-then run the fresh source-read-only proof only if its external cohort inputs are securely available.
+Implement S30's complete closed/fail-first one-record RentVine proof seam. Do not open the protected
+action key or perform a live mutation. The implementation must bind a secure exact target/current/
+proposed/rollback packet, immutable preview and exact confirmation, one-attempt execution,
+readback/reconciliation, rollback proof, and mandatory post-proof closed-key verification.
 
 ## Ordered continuation
 
-1. S77 canonical/release/readback proof — complete.
-2. S59 RentCast mapping/cache/query truth — complete and deployed.
-3. S80 role/action parity — complete and deployed.
-4. S72 six-step/substep model — complete and deployed.
-5. S75 shared follow-up projection — complete and deployed.
-6. S78 canonical triage desk — complete and deployed.
-7. S74 governed copy/AI — complete and deployed.
-8. S79 receipt-bound attachment and S81 navigation/readiness — complete and deployed.
-9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
-   separately authorized.
+1. Preserve all deployed S77–S81 and S63 contracts and production invariants.
+2. Implement and adversarially verify S30 without touching protected gate/Registry/auth/budget paths.
+3. Run `bash scripts/verify.sh`, scope/secret/PII/effect audits, exact-SHA CI, and zero-traffic release
+   for any S30 code slice that is independently green.
+4. Keep the S30 live proof blocked until one unmistakable client-designated record/field/value and
+   separate protected owner direction exist; never substitute another record or infer authorization.
+5. Create and visually inspect the editable 16:9 customer readout from final deployed evidence.
+6. Run the consolidated human litmus with the owner, including S63's separate process and
+   number/read-only reviews; repair failures and record only real dated verdicts.
+7. Perform the final intent-to-outcome, standalone-spec, safety, and blocker audit.
 
 ## External inputs that remain safe to wait on
 
+- S63 secure exact-four runtime and observation packets plus real human review.
+- Exact S30 test lease/owner/field/value plus separate protected gate direction.
 - Approved owner/tenant wording, mandatory/forbidden copy, and channel-evidence rules.
 - Client timing values and any future RentCast freshness/selection filter.
 - Distinct rehearsal Sheet copy and blank proof cell.
-- Exact S30 test lease/owner/field plus separate protected gate direction.
-- S66/Dotloop catalog/OAuth/mappings; other named provider contracts; real human litmus verdicts.
+- S66/Dotloop catalog/OAuth/mappings; other named provider contracts; remaining human litmus verdicts.
 
 ## Safety invariants
 
 No live RentVine write, operating-Sheet write, autonomous/app client send, action-key opening, fake
 provider/identity, guessed customer/provider value, protected-path push without exact owner direction,
-or secret/client evidence in Git. Preserve `.claude/settings.local.json`, `output/`, and unrelated
-working-tree changes as user-owned.
+or secret/client evidence in Git. Every live effect remains previewed, exact-confirmed, idempotent,
+receipted, read back, and reversible. Preserve user-owned untracked files.

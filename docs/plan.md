@@ -18,8 +18,10 @@ the specification work or by an unconfirmed effect.
 2. Corrected RentVine Registry metadata without changing `production_allowed:false`.
 3. Built auditable Admin rehearsal-Sheet configuration and saved-config proof resolution.
 4. Built discrepancy dispositions and kept correction execution source-contract closed.
-5. Built the immutable four-lease baseline/evidence/report machinery; secure runtime cohort input and
-   value-free output remain active S63 work before the next run.
+5. Built and deployed the immutable S63 four-lease baseline/evidence/report machinery with
+   canonicalized secure exact-four inputs, exact row-link identity, independent verdict families,
+   whole-batch append preflight, gitignored reports, and value-free output. Fresh operational evidence
+   and human review remain blocked on secure external packets rather than implementation work.
 6. Retired Gmail watch infrastructure; built manual refresh, source-backed follow-up truth, and S75
    versioned policy surfaces with unset-safe behavior.
 7. Completed the fixed S36 provider lifecycle and bounded S37 operational page builder.
@@ -76,6 +78,10 @@ the specification work or by an unconfirmed effect.
     indexes existing Admin controls with stable anchors and capability-matched targets. Read-only
     staff visibility, Admin mutations, closed actions, status-only RentCast verification, direct-route
     guards, active state, focus, keyboard order, and narrow layout remain independently enforced.
+21. Implemented and deployed S63's deterministic machinery at commit
+    `e661ef5653821c79c7047bc1952735f3b1ded6f5`: the canonical gate passed 5,005 unit and 115 Firestore
+    tests plus the 107-route build; exact-SHA CI run `33321026273`, zero-traffic candidate smoke,
+    normalized runtime parity, promotion, and stable readback all passed with no operational case run.
 
 ## Completed release evidence
 
@@ -146,6 +152,13 @@ the specification work or by an unconfirmed effect.
     normalized configuration matched the predecessor; exact candidate and stable root/sign-in/
     Connections/Admin/version smoke passed before/after promotion to 100%. Immediate rollback target
     is `pmi-kc-app-rmtfp5ac4-8824eb39358b`.
+14. S63 commit `e661ef5653821c79c7047bc1952735f3b1ded6f5` was pushed to `main`; exact-SHA
+    aggregate CI run `33321026273` passed. Zero-traffic revision
+    `pmi-kc-app-rmtfzwn77-8153d75d1cd5` preserved Production+Live, managed identity, 11 Spaces,
+    closed Sheet writeback, allowance 50, three expected secret references, and unconfigured
+    rehearsal/renewal-comp storage. Normalized configuration matched the predecessor; exact candidate
+    and stable root/sign-in/Ask/version smoke passed before/after promotion to 100%. Immediate
+    rollback target is `pmi-kc-app-rmtfrv9zf-456d0c8fdc83`.
 
 ## Current closure sequence
 
@@ -173,8 +186,10 @@ The contracts are frozen as follows:
 - **S81:** complete and deployed with a capability-validated task manifest, grouped honest status,
   stable Admin anchors/back-links, role/direct-route/API preservation, accessibility checks,
   canonical/CI/candidate/configuration/stable proof, and no authority/store/provider merge.
-- **S63/S30:** four-lease source-read-only proof with exact app evidence, and separately blocked one-
-  record RentVine write proof.
+- **S63:** deterministic secure exact-four machinery is complete and deployed; fresh source-read-only
+  evidence and human verdicts remain externally blocked on secure packets and review.
+- **S30:** the separately gated one-record RentVine write seam is the next implementation slice; live
+  proof remains blocked on an exact designation and protected owner direction.
 
 Each suite is independently implementable and owns separate deterministic architecture and behavior
 outcomes, one or more plain-language human litmus entries, a preservation gate, refusal/recovery behavior, and
@@ -199,9 +214,9 @@ already-correct safety facts stay in preservation rather than being rewritten as
    keep its Drive action closed unless separately authorized.
 9. Preserve deployed S81's task manifest, grouped status, anchors, capability parity, and explicit
    status-versus-authority boundary while downstream work links to renewal and Admin surfaces.
-10. Remove S63's tracked cohort/operator literals, require secure exact-four runtime bindings, and
-    make terminal output value-free before its fresh source-read-only proof after applicable S59/S72 changes;
-    keep S30 dry and closed until the exact external designation and protected owner direction exist.
+10. Preserve deployed S63 secure-input, exact-row-link, immutable evidence, independent verdict, and
+    value-free/no-effect boundaries. Implement S30 closed and fail-first; keep its live proof dry and
+    closed until the exact external designation and protected owner direction exist.
 11. For every coherent green code slice, run focused adversarial checks and `bash scripts/verify.sh`,
     audit secrets/PII/gates/config/diff, and use the authorized commit/push and zero-traffic candidate
     smoke path. Do not deploy documentation-only changes.

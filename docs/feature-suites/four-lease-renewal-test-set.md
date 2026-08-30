@@ -4,7 +4,7 @@
 # S63 — Four-lease renewal operational proof
 
 > Status: The deterministic read-only proof machinery, secure exact-four runtime contracts, and
-> value-free command boundary are implemented. Fresh operational evidence is blocked only because
+> value-free command boundary are implemented and deployed. Fresh operational evidence is blocked only because
 > no secure four-case runtime packet or observation packet is currently supplied; human review is
 > blocked until that fresh report exists.
 
