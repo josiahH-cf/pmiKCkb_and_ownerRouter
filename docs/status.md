@@ -8,18 +8,18 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtfp5ac4-8824eb39358b`, 100% traffic
-- Serving commit: `4a05462065bcad6433574cc7d7a6f4801b7311eb`
+- Serving revision: `pmi-kc-app-rmtfrv9zf-456d0c8fdc83`, 100% traffic
+- Serving commit: `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb`
 - Descriptor: Production + Live; 11 Spaces; managed runtime identity
 - Operating renewal Sheet: read source, write switch off
 - Rehearsal Sheet: not configured
 - RentVine renewal write: closed and live-unproven
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
-S77, S59, S80, S72, S75, S78, S74, and S79 are deployed. S79 passed the canonical local gate and
-exact-SHA aggregate CI run `33307517553`; its zero-traffic candidate passed exact identity,
+S77, S59, S80, S72, S75, S78, S74, S79, and S81 are deployed. S81 passed the canonical local gate
+and exact-SHA aggregate CI run `33310823319`; its zero-traffic candidate passed exact identity,
 bounded-route smoke, and normalized configuration equality before promotion. The promoted revision
-was read back alone at 100% with every runtime invariant preserved and S74 retained as the exact
+was read back alone at 100% with every runtime invariant preserved and S79 retained as the exact
 rollback target.
 
 ## Deployed renewal stabilization slice
@@ -85,6 +85,10 @@ rollback target.
   client timing values and override-manager authority remain external inputs.
 - Renewal screenshot preview/store/receipt/rollback and receipt-bound Gmail MIME/readback machinery
   are deployed behind the closed exact Drive key; the live attachment effect remains unavailable.
+- Connections now groups honest status by operator task, while Admin exposes a stable task index and
+  deep links. Non-Admins retain status-only access; RentCast generic mutation endpoints fail before
+  effects; closed Gmail sender governance is distinct from disconnected state; navigation grants no
+  role, action, credential, or provider authority.
 - Dotloop, LeadSimple, and the preferred RentVine resident channel have complete internal exact-
   lifecycle seams and remain closed until their official external inputs exist.
 - The four-lease proof machinery is immutable, read-only against source systems, separates process
@@ -190,9 +194,9 @@ rollback target.
 - Deployed S79 binds one current same-Space/lease receipt to one ordinary image attachment, exact
   preview identity, deterministic MIME, and exact Gmail raw readback; its separate Drive action and
   folder configuration remain closed until independently authorized.
-- S81 is a narrow task-oriented navigation/readiness change and cannot merge permissions, stores, or
+- Deployed S81 keeps task-oriented navigation/readiness separate from permissions, stores, and
   Admin/Connections authority.
-- S77, S59, S80, S72, S75, S78, S74, and S79 are complete and deployed; S81/S63 and the separately
+- S77, S59, S80, S72, S75, S78, S74, S79, and S81 are complete and deployed; S63 and the separately
   gated S30 effect remain in the ordered bundle.
 - S77–S81 and amended S30/S59/S63/S72/S74/S75 are registered as standalone architecture + behavior +
   human-litmus contracts with authority/evidence maps, requirement traceability, independent delivery,

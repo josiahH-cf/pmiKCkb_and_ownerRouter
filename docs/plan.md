@@ -72,10 +72,14 @@ the specification work or by an unconfirmed effect.
     image to immutable preview identity, deterministic multipart MIME, exact Gmail raw-draft readback,
     and one-attempt reconciliation. Text-only callers remain compatible; arbitrary Drive refs,
     multiple/inline attachments, sends, and live effects remain unreachable behind the closed key.
+20. Implemented and deployed S81: one validated task manifest groups honest Connections status and
+    indexes existing Admin controls with stable anchors and capability-matched targets. Read-only
+    staff visibility, Admin mutations, closed actions, status-only RentCast verification, direct-route
+    guards, active state, focus, keyboard order, and narrow layout remain independently enforced.
 
 ## Completed release evidence
 
-1. The last shipped full local gate passed 540 unit files with one intentional skip and 4,932 unit
+1. The last shipped full local gate passed 545 unit files with one intentional skip and 4,983 unit
    tests with four skips; all 115 Firestore tests, policy/static gates, dependency audit, and the
    107-page production build passed.
 2. Commit `6aea639728efcad70e3e601e7a031c2b35722e08` was pushed to `main`; aggregate CI run
@@ -134,6 +138,14 @@ the specification work or by an unconfirmed effect.
     renewal-comp Drive state. Its normalized configuration matched the predecessor; exact candidate
     and stable root/sign-in/Ask/Admin/version smoke passed before/after promotion to 100%. Immediate
     rollback target is `pmi-kc-app-rmtfk9fln-c9af498cb9c5`.
+13. S81 commit `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb` was pushed to `main`; exact-SHA
+    aggregate CI run `33310823319` passed. Zero-traffic revision
+    `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` preserved Production+Live, managed identity, 11 Spaces,
+    closed Sheet writeback, allowance 50, three expected secret references, and closed/unconfigured
+    renewal-comp Drive state. After excluding only the expected image and exact commit identity, its
+    normalized configuration matched the predecessor; exact candidate and stable root/sign-in/
+    Connections/Admin/version smoke passed before/after promotion to 100%. Immediate rollback target
+    is `pmi-kc-app-rmtfp5ac4-8824eb39358b`.
 
 ## Current closure sequence
 
@@ -158,7 +170,9 @@ The contracts are frozen as follows:
   configuration/stable proof, and review-only refusal until approved wording/evidence arrives.
 - **S79:** complete and deployed with receipt-bound download, one-image MIME, exact raw-draft
   readback/reconciliation, canonical/CI/candidate/configuration/stable proof, and a closed Drive key.
-- **S81:** narrow task-oriented Admin/Connections navigation without authority/store merging.
+- **S81:** complete and deployed with a capability-validated task manifest, grouped honest status,
+  stable Admin anchors/back-links, role/direct-route/API preservation, accessibility checks,
+  canonical/CI/candidate/configuration/stable proof, and no authority/store/provider merge.
 - **S63/S30:** four-lease source-read-only proof with exact app evidence, and separately blocked one-
   record RentVine write proof.
 
@@ -183,8 +197,8 @@ already-correct safety facts stay in preservation rather than being rewritten as
    provider refusal while downstream suites bind its exact envelope identity.
 8. Preserve deployed S79's receipt/MIME/readback/reconciliation and text-compatibility contracts;
    keep its Drive action closed unless separately authorized.
-9. Implement S81's narrow navigation manifest, index, and anchors without moving authority or
-   provider truth.
+9. Preserve deployed S81's task manifest, grouped status, anchors, capability parity, and explicit
+   status-versus-authority boundary while downstream work links to renewal and Admin surfaces.
 10. Remove S63's tracked cohort/operator literals, require secure exact-four runtime bindings, and
     make terminal output value-free before its fresh source-read-only proof after applicable S59/S72 changes;
     keep S30 dry and closed until the exact external designation and protected owner direction exist.

@@ -3,8 +3,8 @@
 
 # S81 — Task-oriented Admin and Connections navigation
 
-> Status: Implemented and canonically verified locally; production delivery is pending. The narrow
-> discoverability scope changes no permission, data ownership, action grant, or provider effect.
+> Status: Implemented, canonically verified, and deployed on 2026-08-30. The narrow discoverability
+> scope changes no permission, data ownership, action grant, or provider effect.
 
 **Goal.**
 

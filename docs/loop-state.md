@@ -9,8 +9,8 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtfp5ac4-8824eb39358b` / commit
-  `4a05462065bcad6433574cc7d7a6f4801b7311eb` at 100% traffic.
+- Production serves `pmi-kc-app-rmtfrv9zf-456d0c8fdc83` / commit
+  `7aa4fd439998c2c1d17d53dbb83eab79273ff0bb` at 100% traffic.
 - Owner decisions recorded: six top-level steps with detailed substeps; base rent as renewal rent;
   RentCast two-mile/15-request policy; Editor ordinary-work matrix; optional constrained AI; exact
   screenshot attachment; narrow Admin/Connections navigation.
@@ -57,16 +57,21 @@ S30/S59/S63/S72/S74/S75 contracts, preserving every permanent send/write/identit
   receipt binds one allowlisted image to preview, deterministic multipart MIME, exact Gmail raw
   readback, and one-attempt reconciliation. Text callers remain compatible; arbitrary Drive access,
   multiple/inline attachments, sends, and live attachment effects remain closed.
+- S81 is implemented and deployed: one capability-validated manifest groups honest Connections
+  status, indexes existing Admin tasks with stable anchors, preserves direct-route and mutation
+  guards, and distinguishes status-only/closed states without granting credentials, actions, roles,
+  or provider effects. Canonical, exact-SHA CI, candidate/configuration, promotion, and stable
+  readback are green; S79 is the captured rollback target.
 - S63's current scripts also track/print exact case values; secure runtime designation and value-free
   output are required before the next four-case proof.
-- S59 used one controlled billed RentCast read and zero writes. S75, S78, S74, and S79 delivery changed only
-  bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change, model call,
-  Gmail draft, or source write ran.
+- S59 used one controlled billed RentCast read and zero writes. S75, S78, S74, S79, and S81 delivery
+  changed only bounded Cloud Run candidate/traffic state; no client-facing effect, action-key change,
+  model call, Gmail draft, or source write ran.
 
 ## Next exact action
 
-Implement S81's task-oriented Admin/Connections manifest, index, and anchors fail-first without
-moving connection truth, mutation authority, route guards, roles, or provider ownership.
+Implement S63's secure exact-four runtime cohort binding and value-free proof output fail-first,
+then run the fresh source-read-only proof only if its external cohort inputs are securely available.
 
 ## Ordered continuation
 
@@ -77,7 +82,7 @@ moving connection truth, mutation authority, route guards, roles, or provider ow
 5. S75 shared follow-up projection — complete and deployed.
 6. S78 canonical triage desk — complete and deployed.
 7. S74 governed copy/AI — complete and deployed.
-8. S79 receipt-bound attachment — complete and deployed; S81 navigation/readiness is active.
+8. S79 receipt-bound attachment and S81 navigation/readiness — complete and deployed.
 9. S63 secure cohort/log cleanup and fresh source-read-only four-case proof; S30 stays dry/closed until
    separately authorized.
 
