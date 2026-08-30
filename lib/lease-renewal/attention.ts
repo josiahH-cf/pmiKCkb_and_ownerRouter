@@ -135,3 +135,14 @@ export function buildRenewalAttention(
     )
     .map((entry) => entry.item);
 }
+
+/**
+ * S78: derive the fold from the already filtered/sorted canonical worklist without reordering it.
+ * This keeps one URL state and one comparator authoritative for both surfaces.
+ */
+export function buildOrderedRenewalAttention(
+  orderedWorklist: readonly DeskLeaseSummary[],
+  leaseHref: (id: string) => string = sampleLeaseHref,
+): AttentionItem[] {
+  return orderedWorklist.filter(needsAttention).map((lease) => itemFor(lease, leaseHref));
+}

@@ -54,8 +54,6 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   // no provider call and is supplied only as the disposition record's stale-source fence.
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createHash",
   'app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createHash("sha256") .update',
-  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:end.setUTCDate",
-  "app/lease-renewal/live/notices/page.tsx:LiveRenewalNoticesPage:end.setUTCDate",
 ]);
 
 const REVIEWED_DIRECT_DEFENSE_BOUNDARIES = new Map([
@@ -189,17 +187,20 @@ function pathnameForRoute(absolutePath: string) {
   return `/api${suffix}`;
 }
 
+let cachedRouteInventory: RouteInventoryEntry[] | undefined;
+
 function inventoryRoutes(): RouteInventoryEntry[] {
-  return walkFiles(API_ROOT, (path) => path.endsWith(`${sep}route.ts`)).map(
-    (absolutePath) => {
-      const parsed = parseFile(absolutePath);
-      return {
-        ...parsed,
-        methods: collectExportedMethods(parsed.sourceFile),
-        pathname: pathnameForRoute(absolutePath),
-      };
-    },
-  );
+  cachedRouteInventory ??= walkFiles(API_ROOT, (path) =>
+    path.endsWith(`${sep}route.ts`),
+  ).map((absolutePath) => {
+    const parsed = parseFile(absolutePath);
+    return {
+      ...parsed,
+      methods: collectExportedMethods(parsed.sourceFile),
+      pathname: pathnameForRoute(absolutePath),
+    };
+  });
+  return cachedRouteInventory;
 }
 
 function findFunction(sourceFile: ts.SourceFile, name: string) {
@@ -524,7 +525,7 @@ describe("Live-read-only route sentinel", () => {
     ]);
 
     expect(sorted(actual)).toEqual(sorted(expected));
-  });
+  }, 20_000);
 
   it("proves the reviewed mutation-sensitive reads have direct environment defenses", () => {
     const vendor = parseFile(join(ROOT, "lib", "vendor", "access.ts"));

@@ -8,6 +8,10 @@ import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rul
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
+import {
+  buildRenewalDeskWindow,
+  parseRenewalDeskQuery,
+} from "@/lib/lease-renewal/desk-query";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 // Renewals-space Editors and up. Reads live RentVine + the renewal sheet on each render, so it is never
@@ -16,6 +20,8 @@ import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governanc
 export const dynamic = "force-dynamic";
 
 const WINDOW_DAYS = 120;
+
+type DeskSearchParams = Record<string, string | string[] | undefined>;
 
 const PANELS: Record<
   LiveDeskStatus,
@@ -37,17 +43,17 @@ const PANELS: Record<
   },
 };
 
-export default async function LiveRenewalDeskPage() {
+export default async function LiveRenewalDeskPage({
+  searchParams,
+}: Readonly<{ searchParams?: Promise<DeskSearchParams> }>) {
   await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
 
-  // The renewal window is computed here (the pure loader never calls Date.now()): leases ending on a
-  // month boundary between today and ~4 months out are the actionable batch.
+  // S78: the pure helper owns the first-of-current-month + 120-day rule. The page supplies the clock;
+  // the loader/query projection remains deterministic and provider-effect-free.
   const now = new Date();
-  const startIso = now.toISOString().slice(0, 10);
-  const end = new Date(now);
-  end.setUTCDate(end.getUTCDate() + WINDOW_DAYS);
-  const endIso = end.toISOString().slice(0, 10);
+  const window = buildRenewalDeskWindow(now.toISOString().slice(0, 10), WINDOW_DAYS);
+  const query = parseRenewalDeskQuery((await searchParams) ?? {});
 
   // The desk cards show each lease's RECORDED stage (owner decision made, tenant offer drafted, complete)
   // over the data-derived default. Only leases an operator has touched carry a record, so this is small.
@@ -68,7 +74,7 @@ export default async function LiveRenewalDeskPage() {
       listDismissedRenewalFollowUpKeys(user),
     ]);
   const outcome = await loadLiveRenewalDesk(
-    [{ startIso, endIso }],
+    [window],
     now.toISOString(),
     undefined,
     progressByLease,
@@ -87,7 +93,7 @@ export default async function LiveRenewalDeskPage() {
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalDesk role={user.role} view={outcome.view} />
+          <RenewalDesk query={query} role={user.role} view={outcome.view} />
         ) : (
           <LiveDeskPanel status={outcome.status} />
         )}

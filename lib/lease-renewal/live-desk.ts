@@ -20,10 +20,8 @@ import type { RawLease } from "@/lib/integrations/rentvine/client";
 import {
   RENTVINE_SOURCE,
   RENTVINE_SOURCE_SYSTEM,
-  leaseAddressLabel,
   leaseCurrentRent,
   leaseEndDateIso,
-  leaseTenantName,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import {
@@ -69,12 +67,15 @@ import {
   STAGE_NEXT_ACTION,
   compareLeaseEndDate,
   humanizeCohortReason,
-  type DeskLeaseSummary,
+  type DeskLeaseSummaryBase,
   type DeskReconCandidate,
   type DeskReconItem,
+  type RenewalDeskRetentionState,
   type RenewalDeskView,
   type RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
+import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
+import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
 import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {
@@ -398,14 +399,51 @@ function buildLeaseDataCheck(
   return [buildRentDeskItem(view, tables, readTimestamp), buildEndDateDeskItem(view)];
 }
 
+function inRenewalWindow(endDateIso: string, windows: readonly DateWindow[]): boolean {
+  return windows.some(
+    (window) => endDateIso >= window.startIso && endDateIso <= window.endIso,
+  );
+}
+
+function retentionFor(
+  classification: CohortLease,
+  windows: readonly DateWindow[],
+  progress: RenewalProgress | null,
+): RenewalDeskRetentionState {
+  const endDateIso = classification.endDateIso;
+  if (!endDateIso) {
+    return {
+      state: "needs_verification",
+      label: "End date needs verification; retained for review",
+    };
+  }
+  if (inRenewalWindow(endDateIso, windows)) {
+    return {
+      state: "window",
+      label: "Inside the current-month renewal window",
+    };
+  }
+  if (progress && !progress.complete) {
+    return {
+      state: "tracked_incomplete",
+      label: "Tracked incomplete renewal retained outside the active window",
+    };
+  }
+  return { state: "outside", label: "Outside the active renewal window" };
+}
+
 function toLiveSummary(
   view: RawLease,
   classification: CohortLease,
+  windows: readonly DateWindow[],
   dataCheck?: DeskReconItem[],
   progress?: RenewalProgress | null,
-): DeskLeaseSummary {
+): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
+  const identity = projectRenewalDeskIdentity(view);
+  const retention = retentionFor(classification, windows, progress ?? null);
   const isActionable = classification.disposition === "actionable";
+  const processVisible = isActionable || retention.state === "tracked_incomplete";
   const openConflicts = dataCheck
     ? dataCheck.filter((item) => item.agreement === "conflict").length
     : 0;
@@ -413,19 +451,31 @@ function toLiveSummary(
   // still on the data check while a conflict is open, otherwise ready for the owner decision. Typed as a
   // plain number (not a literal union) so the `>= 0` guarded tuple indexing matches the sample projection.
   const derivedStage = openConflicts > 0 ? 0 : 1;
-  const stageIndex: number = isActionable
+  const stageIndex: number = processVisible
     ? effectiveStageIndex(progress ?? null, derivedStage)
     : -1;
+  const step = stageIndex >= 0 ? RENEWAL_STEPS[stageIndex] : undefined;
+  const tenantLabels = identity.tenants.map((fact) => fact.label);
+  const ownerLabels = identity.owners.map((fact) => fact.label);
   return {
     id: leaseId,
-    addressLabel: leaseAddressLabel(view) ?? `Lease ${leaseId}`,
-    tenantNameLabel: leaseTenantName(view) ?? `Lease ${leaseId}`,
+    addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
+    propertyNameLabel: identity.property?.label ?? null,
+    tenantNameLabel: tenantLabels[0] ?? "Needs Verification",
+    tenantNameLabels: tenantLabels,
+    ownerNameLabels: ownerLabels,
+    identity,
     endDateIso: classification.endDateIso,
     disposition: classification.disposition,
     reason: classification.reason,
     reasonLabel: humanizeCohortReason(classification.reason),
+    retention,
+    processVersion: processVisible
+      ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
+      : null,
+    workflowStepId: step?.id ?? null,
     stageIndex,
-    stageLabel: stageIndex >= 0 ? RENEWAL_STEPS[stageIndex].label : null,
+    stageLabel: step?.label ?? null,
     nextAction: stageIndex >= 0 ? STAGE_NEXT_ACTION[stageIndex] : null,
     openConflicts,
   };
@@ -904,11 +954,21 @@ export async function loadLiveRenewalDesk(
       const progress = classification.leaseId
         ? (progressByLease?.get(classification.leaseId) ?? null)
         : null;
-      if (classification.disposition === "actionable") {
+      const initialSummary = toLiveSummary(
+        view,
+        classification,
+        windows,
+        undefined,
+        progress,
+      );
+      if (
+        classification.disposition === "actionable" ||
+        initialSummary.retention.state === "tracked_incomplete"
+      ) {
         const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
-        const summary = toLiveSummary(view, classification, dataCheck, progress);
+        const summary = toLiveSummary(view, classification, windows, dataCheck, progress);
         const leaseId = classification.leaseId ?? leaseIdOf(view);
-        if (!leaseId) return summary;
+        if (!leaseId) return withRenewalDeskQueryKeys(summary);
         const currentRentDecision = resolveOwnerCurrentRentDecision(
           view,
           dataCheck,
@@ -942,8 +1002,10 @@ export async function loadLiveRenewalDesk(
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
         });
-        return {
+        return withRenewalDeskQueryKeys({
           ...summary,
+          processVersion: process.version,
+          workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
           stageIndex: process.currentStepIndex,
           stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
           nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
@@ -954,21 +1016,23 @@ export async function loadLiveRenewalDesk(
             sources: followUpSources,
             process,
           }),
-        };
+        });
       }
-      const summary = toLiveSummary(view, classification);
+      const summary = initialSummary;
       const leaseId = classification.leaseId ?? leaseIdOf(view);
-      return leaseId
-        ? {
-            ...summary,
-            followUp: buildLiveFollowUp({
-              leaseId,
-              view,
-              readTimestamp,
-              sources: followUpSources,
-            }),
-          }
-        : summary;
+      return withRenewalDeskQueryKeys(
+        leaseId
+          ? {
+              ...summary,
+              followUp: buildLiveFollowUp({
+                leaseId,
+                view,
+                readTimestamp,
+                sources: followUpSources,
+              }),
+            }
+          : summary,
+      );
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
     // and inherited RentVine export row order, which is what the client saw as "dates need to be in
@@ -985,6 +1049,7 @@ export async function loadLiveRenewalDesk(
         readComplete: complete,
         // S58: the snapshot's age facts drive the desk's four-state currency banner.
         dataCurrency: toDeskCurrency(currency),
+        items: summaries,
         actionable: summaries.filter((s) => s.disposition === "actionable"),
         review: summaries.filter((s) => s.disposition === "review"),
         skipped: summaries.filter((s) => s.disposition === "skip"),
@@ -1053,7 +1118,7 @@ export async function loadLiveRenewalLeaseWorkspace(
     const currentRent = currentRentDecision.currentRent;
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
-    let summary = toLiveSummary(view, classification, dataCheck, progress);
+    let summary = toLiveSummary(view, classification, windows, dataCheck, progress);
 
     const processEvidence = buildLiveProcessEvidence({
       leaseId,
@@ -1094,11 +1159,14 @@ export async function loadLiveRenewalLeaseWorkspace(
     });
     summary = {
       ...summary,
+      processVersion: process.version,
+      workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
       stageIndex: process.currentStepIndex,
       stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
       nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
       followUp,
     };
+    const deskSummary = withRenewalDeskQueryKeys(summary);
 
     // Once the owner decision is RECORDED, the Tenant-offer step shows a real offer built from those
     // numbers (not a placeholder). Without a recorded decision — or a lease with no end date — it stays
@@ -1109,7 +1177,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       effectiveProgress?.ownerDecision &&
       endDateIso
         ? buildTenantOfferDraft({
-            tenantNameLabel: summary.tenantNameLabel,
+            tenantNameLabel: deskSummary.tenantNameLabel,
             leaseEndDateIso: endDateIso,
             ownerDecision: effectiveProgress.ownerDecision.decision,
             offeredRent: effectiveProgress.ownerDecision.offeredRent,
@@ -1123,7 +1191,7 @@ export async function loadLiveRenewalLeaseWorkspace(
         : null;
 
     const workspace: RenewalLeaseWorkspace = {
-      summary,
+      summary: deskSummary,
       steps: RENEWAL_STEPS,
       currentStepIndex: process.currentStepIndex,
       process,
@@ -1131,7 +1199,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       // A degenerate rentless lease has no meaningful owner draft; the Data-check reports the missing
       // rent as "Needs input" and the gated composer blocks an owner notice without a rent.
       ownerDraft: buildOwnerRenewalDraft({
-        addressLabel: summary.addressLabel,
+        addressLabel: deskSummary.addressLabel,
         currentRent,
         currentRentEvidence: currentRentDecision.currentRentEvidence,
         // Feed the recorded comp basis so the owner email shows the provider/manual range + PMI number

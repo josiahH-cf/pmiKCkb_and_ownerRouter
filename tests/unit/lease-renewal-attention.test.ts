@@ -1,24 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import { ATTENTION_LANES, ATTENTION_SEVERITIES } from "@/lib/attention/lanes";
-import { buildRenewalAttention } from "@/lib/lease-renewal/attention";
+import {
+  buildOrderedRenewalAttention,
+  buildRenewalAttention,
+} from "@/lib/lease-renewal/attention";
+import {
+  DEFAULT_RENEWAL_DESK_QUERY,
+  applyRenewalDeskQuery,
+  withRenewalDeskQueryKeys,
+} from "@/lib/lease-renewal/desk-query";
 import { getRenewalDeskView, type DeskLeaseSummary } from "@/tests/helpers/sample-desk";
 
 function summary(overrides: Partial<DeskLeaseSummary>): DeskLeaseSummary {
-  return {
-    id: "lease-x",
-    addressLabel: "1 Test St",
-    tenantNameLabel: "Test household",
-    endDateIso: "2026-09-30",
-    disposition: "actionable",
-    reason: "actionable",
-    reasonLabel: "Ready to work",
-    stageIndex: 1,
-    stageLabel: "Owner decision",
-    nextAction: "Get the owner's rent decision",
-    openConflicts: 0,
+  return withRenewalDeskQueryKeys({
+    ...getRenewalDeskView().actionable[0],
     ...overrides,
-  };
+  });
 }
 
 describe("buildRenewalAttention", () => {
@@ -71,6 +69,34 @@ describe("buildRenewalAttention", () => {
 
   it("returns an empty list when nothing is actionable", () => {
     expect(buildRenewalAttention([])).toEqual([]);
+  });
+
+  it("derives attention from the filtered canonical source without applying a second order", () => {
+    const result = applyRenewalDeskQuery(getRenewalDeskView().items, {
+      ...DEFAULT_RENEWAL_DESK_QUERY,
+      sort: "tenant",
+      direction: "desc",
+    });
+    const expectedIds = result.items
+      .filter(
+        (item) =>
+          Boolean(item.followUp?.attention) ||
+          item.openConflicts > 0 ||
+          (item.stageIndex >= 0 && item.stageIndex <= 1),
+      )
+      .map((item) => item.id);
+
+    expect(
+      buildOrderedRenewalAttention(result.items).map((item) => item.leaseId),
+    ).toEqual(expectedIds);
+
+    const filtered = applyRenewalDeskQuery(getRenewalDeskView().items, {
+      ...DEFAULT_RENEWAL_DESK_QUERY,
+      q: "Maple",
+    });
+    expect(
+      buildOrderedRenewalAttention(filtered.items).map((item) => item.leaseId),
+    ).toEqual(["lease-4821-maple-4"]);
   });
 
   // AC-S17-4: the renewal fold speaks the shared attention contract — every item carries the `renewal`

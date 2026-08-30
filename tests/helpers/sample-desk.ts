@@ -15,22 +15,25 @@
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import {
   classifyRenewalCohort,
-  type CohortDisposition,
   type CohortReason,
   type DateWindow,
   type RenewalCohort,
 } from "@/lib/lease-renewal/cohort";
+import type {
+  DeskLeaseSummary,
+  DeskLeaseSummaryBase,
+  RenewalDeskView,
+  RenewalLeaseWorkspace,
+} from "@/lib/lease-renewal/desk-model";
+import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
 import {
   buildOwnerRenewalDraft,
   type OwnerDraftInput,
-  type OwnerRenewalDraft,
 } from "@/lib/lease-renewal/owner-draft";
 import {
   buildTenantOfferDraft,
   type OwnerDecision,
-  type TenantOfferDraft,
 } from "@/lib/lease-renewal/tenant-draft";
-import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
 import {
   RENEWAL_PROCESS_VERSION,
   RENEWAL_STAGE_NEXT_ACTIONS,
@@ -38,20 +41,16 @@ import {
   buildRenewalEvidenceReference,
   projectRenewalProcess,
   type RenewalEvidenceMap,
-  type RenewalProcessProjection,
-  type RenewalTenantOutcome,
 } from "@/lib/lease-renewal/renewal-process";
 import {
   evaluateRenewalReadiness,
   type RenewalReadinessInput,
-  type RenewalReadinessResult,
 } from "@/lib/lease-renewal/renewal-readiness";
 import {
   DEFAULT_NOTICE_RULE_SET,
   buildEffectiveRuleView,
   detectNoticeStatus,
   resolveNoticeRule,
-  type EffectiveRuleView,
 } from "@/lib/lease-renewal/notice-rules";
 
 /** Deterministic reference date for the sample batch's notice status ("as of" this date). The live
@@ -103,6 +102,7 @@ interface DeskLeaseSeed {
   id: string;
   addressLabel: string;
   tenantNameLabel: string;
+  ownerNameLabels?: string[];
   /** Synthetic RentVine-shaped record fed to classifyRenewalCohort. */
   lease: RawLease;
   /** Stage index into RENEWAL_STEPS for actionable leases; -1 when not actionable. */
@@ -290,73 +290,7 @@ const SAMPLE_DESK_SEEDS: readonly DeskLeaseSeed[] = [
   },
 ];
 
-export interface DeskLeaseSummary {
-  id: string;
-  addressLabel: string;
-  tenantNameLabel: string;
-  endDateIso: string | null;
-  disposition: CohortDisposition;
-  reason: CohortReason;
-  reasonLabel: string;
-  /** Stage index into RENEWAL_STEPS, or -1 when not actionable. */
-  stageIndex: number;
-  stageLabel: string | null;
-  nextAction: string | null;
-  openConflicts: number;
-}
-
-/** S58: snapshot age facts (mirrors the live desk-model shape; samples are always fresh). */
-export interface DeskDataCurrency {
-  state: "fresh" | "stale" | "expired";
-  readAtIso: string;
-  ageMs: number;
-  refreshing: boolean;
-  lastError: boolean;
-}
-
-export interface RenewalDeskView {
-  windows: DateWindow[];
-  cohort: RenewalCohort;
-  /** S57: whether the underlying lease read returned the whole portfolio (samples always do). */
-  readComplete: boolean;
-  /** S58: the served snapshot's currency (samples render as freshly updated). */
-  dataCurrency: DeskDataCurrency;
-  actionable: DeskLeaseSummary[];
-  review: DeskLeaseSummary[];
-  skipped: DeskLeaseSummary[];
-  outOfWindow: DeskLeaseSummary[];
-}
-
-/** The operator's recorded LIVE progress, surfaced to the versioned workspace controls. */
-export interface RenewalWorkspaceLiveState {
-  leaseId: string;
-  ownerDecision: RenewalOwnerDecision | null;
-  ownerDecisionCurrent: boolean;
-  tenantOfferDraftId: string | null;
-  tenantOutcome: RenewalTenantOutcome | null;
-  processVersion: string;
-  complete: boolean;
-}
-
-export interface RenewalLeaseWorkspace {
-  summary: DeskLeaseSummary;
-  steps: typeof RENEWAL_STEPS;
-  currentStepIndex: number;
-  process: RenewalProcessProjection;
-  dataCheck: DeskReconItem[];
-  ownerDraft: OwnerRenewalDraft;
-  /** Present only once the owner has recorded a decision. */
-  tenantDraft: TenantOfferDraft | null;
-  readiness: RenewalReadinessResult;
-  /** Read-only effective notice-rule view for this lease (F2). Null when no lease-end is on file. */
-  notice: EffectiveRuleView | null;
-  /**
-   * Present only for the LIVE workspace: the operator's recorded process progress. Drives the
-   * record-owner-decision form, the composer prefill, and the mark-complete control. The sample
-   * workspace leaves this undefined (its flow is illustrative, not operator-editable).
-   */
-  live?: RenewalWorkspaceLiveState;
-}
+export type { DeskDataCurrency, DeskLeaseSummary } from "@/lib/lease-renewal/desk-model";
 
 function toSummary(
   seed: DeskLeaseSeed,
@@ -364,19 +298,48 @@ function toSummary(
 ): DeskLeaseSummary {
   const isActionable = classification.disposition === "actionable";
   const stageIndex = isActionable ? seed.stageIndex : -1;
-  return {
+  const step = stageIndex >= 0 ? RENEWAL_STEPS[stageIndex] : undefined;
+  const tenants = [
+    { label: seed.tenantNameLabel, sourceRef: `sample:${seed.id}:tenant` },
+  ];
+  const owners = (seed.ownerNameLabels ?? []).map((label, index) => ({
+    label,
+    sourceRef: `sample:${seed.id}:owner:${index}`,
+  }));
+  const base: DeskLeaseSummaryBase = {
     id: seed.id,
     addressLabel: seed.addressLabel,
+    propertyNameLabel: null,
     tenantNameLabel: seed.tenantNameLabel,
+    tenantNameLabels: tenants.map((fact) => fact.label),
+    ownerNameLabels: owners.map((fact) => fact.label),
+    identity: {
+      address: { label: seed.addressLabel, sourceRef: `sample:${seed.id}:address` },
+      property: null,
+      tenants,
+      owners,
+    },
     endDateIso: classification.endDateIso,
     disposition: classification.disposition,
     reason: classification.reason,
     reasonLabel: REASON_LABEL[classification.reason],
+    retention:
+      classification.endDateIso === null
+        ? {
+            state: "needs_verification",
+            label: "End date needs verification; retained for review",
+          }
+        : classification.disposition === "out_of_window"
+          ? { state: "outside", label: "Outside the active renewal window" }
+          : { state: "window", label: "Inside the current-month renewal window" },
+    processVersion: isActionable ? RENEWAL_PROCESS_VERSION : null,
+    workflowStepId: step?.id ?? null,
     stageIndex,
-    stageLabel: stageIndex >= 0 ? RENEWAL_STEPS[stageIndex].label : null,
+    stageLabel: step?.label ?? null,
     nextAction: stageIndex >= 0 ? STAGE_NEXT_ACTION[stageIndex] : null,
     openConflicts: seed.dataCheck.filter((item) => item.agreement === "conflict").length,
   };
+  return withRenewalDeskQueryKeys(base);
 }
 
 /** The Renewal Desk: classify the sample batch and bucket it by disposition (pure, deterministic). */
@@ -398,6 +361,7 @@ export function getRenewalDeskView(): RenewalDeskView {
       refreshing: false,
       lastError: false,
     },
+    items: summaries,
     actionable: summaries.filter((s) => s.disposition === "actionable"),
     review: summaries.filter((s) => s.disposition === "review"),
     skipped: summaries.filter((s) => s.disposition === "skip"),

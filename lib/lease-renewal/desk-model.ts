@@ -59,20 +59,74 @@ export interface DeskReconItem {
   candidates: DeskReconCandidate[];
 }
 
-export interface DeskLeaseSummary {
+/** Exact source-backed display fact. The ref identifies the lease and measured field path. */
+export interface DeskIdentityFact {
+  label: string;
+  sourceRef: string;
+}
+
+export interface RenewalDeskIdentity {
+  address: DeskIdentityFact | null;
+  property: DeskIdentityFact | null;
+  tenants: DeskIdentityFact[];
+  owners: DeskIdentityFact[];
+}
+
+export type RenewalDeskRetentionState =
+  | { state: "window"; label: string }
+  | { state: "needs_verification"; label: string }
+  | { state: "tracked_incomplete"; label: string }
+  | { state: "outside"; label: string };
+
+export type RenewalDeskWaitingKey =
+  | NonNullable<RenewalFollowUpProjection["waiting"]["party"]>
+  | "not_waiting"
+  | "needs_verification";
+
+/** Precomputed, serializable keys. Only exact source/progress/follow-up facts enter this index. */
+export interface RenewalDeskQueryKeys {
+  normalizedLeaseId: string;
+  normalizedSearchText: string;
+  endDateIso: string | null;
+  endMonth: string | null;
+  ownerLabels: string[];
+  normalizedOwners: string[];
+  tenantLabels: string[];
+  normalizedTenants: string[];
+  workflowStepId: string | null;
+  workflowStepIndex: number | null;
+  waitingOn: RenewalDeskWaitingKey;
+  dueState: RenewalFollowUpProjection["due"]["state"];
+  dueAtIso: string | null;
+  /** Null means source conflicts were not evaluated; it never masquerades as zero. */
+  sourceConflictCount: number | null;
+}
+
+export interface DeskLeaseSummaryBase {
   id: string;
   addressLabel: string;
+  propertyNameLabel: string | null;
   tenantNameLabel: string;
+  tenantNameLabels: string[];
+  ownerNameLabels: string[];
+  identity: RenewalDeskIdentity;
   endDateIso: string | null;
   disposition: CohortDisposition;
   reason: CohortReason;
   reasonLabel: string;
+  retention: RenewalDeskRetentionState;
+  processVersion: string | null;
+  workflowStepId: string | null;
   stageIndex: number;
   stageLabel: string | null;
   nextAction: string | null;
   openConflicts: number;
   /** S75: one source-backed contact/policy projection on canonical Live cards. */
   followUp?: RenewalFollowUpProjection;
+}
+
+export interface DeskLeaseSummary extends DeskLeaseSummaryBase {
+  queryKeys: RenewalDeskQueryKeys;
 }
 
 /**
@@ -121,6 +175,8 @@ export interface RenewalDeskView {
   readComplete: boolean;
   /** S58: the served snapshot's currency. */
   dataCurrency: DeskDataCurrency;
+  /** S78: the one complete serialized source consumed by controls, list, and attention fold. */
+  items: DeskLeaseSummary[];
   actionable: DeskLeaseSummary[];
   review: DeskLeaseSummary[];
   skipped: DeskLeaseSummary[];

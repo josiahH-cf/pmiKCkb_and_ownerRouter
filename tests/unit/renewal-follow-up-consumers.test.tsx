@@ -13,6 +13,7 @@ import type {
   RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
@@ -101,11 +102,19 @@ const followUp: RenewalFollowUpProjection = {
 describe("S75 shared follow-up consumers", () => {
   it("renders the exact same waiting/contact/policy/due projection on desk and attention", () => {
     const sample = getRenewalDeskView();
+    const injectFollowUp = (lease: RenewalDeskView["items"][number]) => {
+      if (lease.id !== followUp.leaseId) return lease;
+      return withRenewalDeskQueryKeys({
+        ...lease,
+        stageIndex: 4,
+        openConflicts: 0,
+        followUp,
+      });
+    };
     const view = {
       ...sample,
-      actionable: sample.actionable.map((lease, index) =>
-        index === 0 ? { ...lease, stageIndex: 4, openConflicts: 0, followUp } : lease,
-      ),
+      items: sample.items.map(injectFollowUp),
+      actionable: sample.actionable.map(injectFollowUp),
     } as RenewalDeskView;
 
     render(<RenewalDesk view={view} />);

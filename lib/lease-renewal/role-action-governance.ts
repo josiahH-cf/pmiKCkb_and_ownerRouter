@@ -480,7 +480,7 @@ export const RENEWAL_ROUTE_INVENTORY = [
   {
     kind: "page",
     source: "app/lease-renewal/live/notices/page.tsx",
-    capability: "draft_create",
+    capability: "read_workspace",
   },
   {
     kind: "page",

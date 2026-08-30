@@ -19,7 +19,7 @@ const PAGE_EXPECTATIONS = [
   ["app/lease-renewal/live/page.tsx", "read_workspace"],
   ["app/lease-renewal/live/desk/page.tsx", "read_workspace"],
   ["app/lease-renewal/live/desk/lease/[leaseId]/page.tsx", "read_workspace"],
-  ["app/lease-renewal/live/notices/page.tsx", "draft_create"],
+  ["app/lease-renewal/live/notices/page.tsx", "read_workspace"],
   ["app/lease-renewal/property/[propertyKey]/page.tsx", "read_workspace"],
   ["app/lease-renewal/runs/page.tsx", "read_workspace"],
   ["app/lease-renewal/runs/[runId]/page.tsx", "read_workspace"],

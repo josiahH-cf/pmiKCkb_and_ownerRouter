@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 import { formatSnapshotAge, RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
+import { DEFAULT_RENEWAL_DESK_QUERY } from "@/lib/lease-renewal/desk-query";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
@@ -21,7 +22,31 @@ afterEach(() => {
 });
 
 describe("RenewalDesk", () => {
-  it("renders the Live queue and the collapsed dispositions from an injected test view", () => {
+  it("renders labeled URL-backed triage controls and complete scan-first identity facts", () => {
+    render(<RenewalDesk view={getRenewalDeskView()} />);
+
+    expect(
+      screen.getByRole("form", { name: "Renewal worklist controls" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Search renewals")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sort renewals")).toBeInTheDocument();
+    expect(screen.getByLabelText("End date filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("End month filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Due state filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Owner filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tenant filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Workflow step filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Waiting on filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Source conflict filter")).toBeInTheDocument();
+
+    expect(screen.getAllByText("Lease ID").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tenant").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Owner").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Current step").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Renewal worklist" })).toBeInTheDocument();
+  });
+
+  it("renders every active disposition in one canonical Live worklist", () => {
     render(<RenewalDesk view={getRenewalDeskView()} />);
 
     expect(
@@ -36,16 +61,19 @@ describe("RenewalDesk", () => {
     // The conflict lease surfaces a one-click "Resolve conflicts" next action at the top.
     expect(screen.getByRole("link", { name: "Resolve conflicts" })).toBeInTheDocument();
 
-    // Actionable leases still appear as cards with an Open link.
-    expect(screen.getAllByRole("link", { name: "Open" })).toHaveLength(3);
+    // Actionable, skipped, and review leases share one worklist. Link names remain unique for
+    // assistive technology even when every visible action reads "Open".
+    expect(screen.getAllByRole("link", { name: /Open lease/ })).toHaveLength(6);
 
     // The conflict lease shows a humanized source-conflict pill, not severity jargon.
     expect(screen.getByText("1 source conflict")).toBeInTheDocument();
 
-    // Skipped / review / out-of-window are demoted into collapsed groups.
-    expect(screen.getByText("Skipped (2)")).toBeInTheDocument();
-    expect(screen.getByText("Needs review (1)")).toBeInTheDocument();
-    expect(screen.getByText("Out of window (1)")).toBeInTheDocument();
+    // Non-actionable states remain explicit rather than disappearing into a separate queue.
+    expect(screen.getByText("Off-cycle end date")).toBeInTheDocument();
+    expect(screen.getByText("Month-to-month")).toBeInTheDocument();
+    expect(screen.getByText("Program lease")).toBeInTheDocument();
+    // Untracked outside-window work is absent from the default active scope.
+    expect(screen.queryByText("12 Elm Ct, Unit 9")).not.toBeInTheDocument();
     expect(screen.getByText("Data diagnostics")).toBeInTheDocument();
 
     // A complete read renders as a normal desk: no incomplete-read notice, no partial labels.
@@ -68,6 +96,42 @@ describe("RenewalDesk", () => {
     expect(
       screen.queryByText(/leases in your current renewal window/),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows untracked outside-window rows only when the operator selects all scope", () => {
+    render(
+      <RenewalDesk
+        view={getRenewalDeskView()}
+        query={{ ...DEFAULT_RENEWAL_DESK_QUERY, scope: "all" }}
+      />,
+    );
+
+    expect(screen.getByText("12 Elm Ct, Unit 9")).toBeInTheDocument();
+    expect(screen.getByText("Outside this window")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Open lease/ })).toHaveLength(7);
+  });
+
+  it("keeps valid URL selections visible when the current read no longer contains them", () => {
+    render(
+      <RenewalDesk
+        view={getRenewalDeskView()}
+        query={{
+          ...DEFAULT_RENEWAL_DESK_QUERY,
+          endDate: "2027-01-31",
+          month: "2027-01",
+          owner: "Former Owner",
+          tenant: "Former Tenant",
+          step: "retired-step",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("End date filter")).toHaveValue("2027-01-31");
+    expect(screen.getByLabelText("End month filter")).toHaveValue("2027-01");
+    expect(screen.getByLabelText("Owner filter")).toHaveValue("Former Owner");
+    expect(screen.getByLabelText("Tenant filter")).toHaveValue("Former Tenant");
+    expect(screen.getByLabelText("Workflow step filter")).toHaveValue("retired-step");
+    expect(screen.getByText("No matching renewals")).toBeInTheDocument();
   });
 });
 
@@ -124,7 +188,7 @@ describe("RenewalDesk data currency", () => {
     expect(screen.queryByText(UPDATED)).not.toBeInTheDocument();
     expect(screen.queryByText(TOO_OLD)).not.toBeInTheDocument();
     // The desk still shows its rows — a provider failure never renders an empty portfolio.
-    expect(screen.getAllByRole("link", { name: "Open" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Open lease/ }).length).toBeGreaterThan(0);
   });
 
   it("renders exactly the too-old state when the snapshot is expired", () => {

@@ -11,6 +11,10 @@ import {
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
 import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
+import {
+  DEFAULT_RENEWAL_DESK_QUERY,
+  applyRenewalDeskQuery,
+} from "@/lib/lease-renewal/desk-query";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 import { DEFAULT_NOTICE_RULE_VALUES } from "@/lib/lease-renewal/notice-rules";
 import type { WorkflowCommunicationLink } from "@/lib/gmail-hub/workflow-context";
@@ -34,7 +38,16 @@ const EXPORT_ROWS = [
       leaseID: 4821,
       endDate: "2026-08-31",
       leaseType: "Fixed Term",
-      tenants: [{ name: "Jordan Maple" }],
+      tenants: [{ name: "Jordan Maple" }, { name: "Riley Maple" }],
+    },
+    property: {
+      name: "Maple Court",
+      streetNumber: "4821",
+      streetName: "Maple Ct",
+      address2: "Unit 4",
+    },
+    portfolio: {
+      owners: [{ companyName: "Maple Holdings LLC" }, { name: "Avery Owner" }],
     },
     unit: { rent: "1250.00" },
   },
@@ -143,6 +156,67 @@ describe("loadLiveRenewalDesk", () => {
     ]);
     expect(result.view.skipped.map((s) => s.id)).toEqual(["7003"]);
     expect(result.view.outOfWindow.map((s) => s.id)).toEqual(["8004"]);
+
+    const identity = result.view.items.find((summary) => summary.id === "4821");
+    expect(identity).toMatchObject({
+      addressLabel: "4821 Maple Ct Unit 4",
+      propertyNameLabel: "Maple Court",
+      tenantNameLabels: ["Jordan Maple", "Riley Maple"],
+      ownerNameLabels: ["Maple Holdings LLC", "Avery Owner"],
+      queryKeys: {
+        ownerLabels: ["Maple Holdings LLC", "Avery Owner"],
+        tenantLabels: ["Jordan Maple", "Riley Maple"],
+      },
+    });
+  });
+
+  it("retains a tracked incomplete renewal outside the date window in the default worklist", async () => {
+    const withoutProgress = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+    );
+    if (withoutProgress.status !== "ok") throw new Error(withoutProgress.status);
+    expect(
+      applyRenewalDeskQuery(
+        withoutProgress.view.items,
+        DEFAULT_RENEWAL_DESK_QUERY,
+      ).items.map((item) => item.id),
+    ).not.toContain("8004");
+
+    const progress: RenewalProgress = {
+      leaseId: "8004",
+      processVersion: RENEWAL_PROCESS_VERSION,
+      stageIndex: RENEWAL_STAGE.owner,
+      ownerDecision: null,
+      ownerDecisionRevision: 0,
+      tenantOfferDraftId: null,
+      tenantOutcome: null,
+      evidence: {},
+      complete: false,
+    };
+    const tracked = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+      new Map([["8004", progress]]),
+    );
+    if (tracked.status !== "ok") throw new Error(tracked.status);
+
+    const item = tracked.view.items.find((summary) => summary.id === "8004");
+    expect(item).toMatchObject({
+      retention: {
+        state: "tracked_incomplete",
+        label: "Tracked incomplete renewal retained outside the active window",
+      },
+      processVersion: RENEWAL_PROCESS_VERSION,
+    });
+    expect(item?.workflowStepId).not.toBeNull();
+    expect(
+      applyRenewalDeskQuery(tracked.view.items, DEFAULT_RENEWAL_DESK_QUERY).items.map(
+        (summary) => summary.id,
+      ),
+    ).toContain("8004");
   });
 
   it("counts open conflicts from the REAL reconciliation, not a fabricated value", async () => {

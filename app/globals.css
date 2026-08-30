@@ -1793,6 +1793,101 @@ button {
   padding: 0;
 }
 
+/* S78: dense, URL-backed renewal triage. The same ordered facts stack on narrow screens; no field is
+   hidden by a breakpoint, and every native control retains the shared 44px target/focus treatment. */
+.renewal-desk-controls {
+  align-items: end;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
+.renewal-desk-control {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.renewal-desk-control input,
+.renewal-desk-control select {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  min-height: 44px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.renewal-desk-search {
+  grid-column: span 2;
+}
+
+.renewal-desk-control-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.renewal-desk-control-actions a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
+
+.renewal-worklist {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.renewal-worklist > li,
+.renewal-worklist-card,
+.renewal-worklist-card > * {
+  min-width: 0;
+}
+
+.renewal-fact-grid {
+  display: grid;
+  gap: var(--space-2) var(--space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.renewal-fact-grid > div {
+  min-width: 0;
+}
+
+.renewal-fact-grid dt,
+.renewal-fact-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.renewal-fact-grid dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.renewal-retention-reason {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .renewal-desk-search {
+    grid-column: span 1;
+  }
+
+  .renewal-fact-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Metric cards — summary numbers (counts) on a quiet surface */
 .ui-metric-grid {
   display: grid;
