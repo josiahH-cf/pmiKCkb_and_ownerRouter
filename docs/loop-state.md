@@ -29,15 +29,18 @@ without weakening any send, write, identity, cost, or protected-path boundary.
   PowerPoint-rendered slides were visually inspected; PDF has ten 16:9 pages.
 - Consolidated human litmus and final intent-to-outcome/standalone dual-model audit are complete. Every
   human verdict remains blank.
+- The complete documentation/artifact handoff is pushed at
+  `10dbdb007810aa9e38b0a524e1e15d983c98a7b6`; exact-SHA aggregate CI run `33335914690` passed every
+  lane. It was not deployed because it changes no served asset.
 - No protected path changed. `.claude/settings.local.json` and `output/` remain user-owned untracked
   files and must stay excluded from commits and Cloud Build uploads.
 
 ## Next exact action
 
-Run final documentation/artifact formatting, context/active-path/spec/copy/redaction/static checks,
-audit the complete diff and binaries for stale truth/secrets/PII/protected paths, then commit/push the
-green documentation/artifact slice and confirm exact-SHA aggregate CI. Do not deploy
-documentation-only changes.
+Obtain the S63 secure exact-four runtime and observation packets outside Git, then have the real
+reviewer perform and record separate process and number/safety verdicts in the consolidated human
+litmus. If those exact inputs are unavailable, remain `BLOCKED`; do not invent packets, substitute
+leases, fill human verdicts with model evidence, or advance to an unrelated live effect.
 
 ## After internal delivery
 

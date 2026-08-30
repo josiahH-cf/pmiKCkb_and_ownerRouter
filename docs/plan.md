@@ -56,13 +56,16 @@ verification/terminal-state contract.
 
 ## Current closure sequence
 
-1. Run formatting, active-path/context/spec-traceability/copy/redaction/static gates against the final
-   documentation and artifacts.
-2. Audit the diff, protected paths, secrets/PII, client values, binary artifacts, stale production
-   identity, and user-owned untracked paths.
-3. Commit and push only a green documentation/artifact slice; do not deploy it because it changes no
-   served asset.
-4. Confirm exact-SHA aggregate CI and update the resume state to external acceptance only.
+1. Internal closure is complete: formatting, active-path/context/spec-traceability/copy/redaction,
+   static, binary, protected-path, secrets/PII, and stale-truth checks passed.
+2. The documentation/artifact slice is pushed at
+   `10dbdb007810aa9e38b0a524e1e15d983c98a7b6`; exact-SHA aggregate CI run `33335914690` passed. It was
+   not deployed because it changes no served asset.
+3. Resume only at external acceptance: first obtain the S63 secure exact-four packets and real human
+   process and number/safety verdicts; repair and rerun any observed FAIL.
+4. Keep S30 separately blocked unless the exact secure designation and explicit protected one-key
+   owner direction are both supplied. Never treat S63 evidence or a matching provider state as that
+   authority.
 
 No live RentVine record, operating Sheet cell, or client-facing message may be changed while this
 documentation/artifact closure runs.
@@ -83,7 +86,7 @@ documentation/artifact closure runs.
 
 ## Completion rule
 
-Internal requested implementation is complete when the final documentation/artifact slice is green,
-pushed, and exact-SHA CI passes. Operational S63/S30 acceptance and human verdicts remain separately
+Internal requested implementation is complete: the final documentation/artifact slice is green,
+pushed, and exact-SHA CI passed. Operational S63/S30 acceptance and human verdicts remain separately
 `BLOCKED` until their named external inputs/authority exist. Deployment, model evidence, or source
 read success never fills a human verdict or grants a provider effect.

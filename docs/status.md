@@ -71,6 +71,8 @@ See `docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md`.
 - Production dependency audit: zero vulnerabilities. The complete development tree still reports six
   advisories (four moderate, two high), which are not production dependencies.
 - Exact-SHA aggregate CI run `33330420327`: passed.
+- Documentation/artifact closure commit `10dbdb007810aa9e38b0a524e1e15d983c98a7b6`: exact-SHA
+  aggregate CI run `33335914690` passed; no deployment was performed because no served asset changed.
 - Candidate/stable smoke, normalized configuration parity, traffic/Ready/runtime identity, and exact
   action readback: passed.
 - Protected paths changed: none.
