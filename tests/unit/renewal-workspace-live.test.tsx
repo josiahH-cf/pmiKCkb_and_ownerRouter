@@ -23,10 +23,12 @@ describe("RenewalWorkspace live mode", () => {
 
     // The live, gated draft composer is present (the only send path).
     expect(screen.getByText(/Composes an unsent Gmail draft/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Preview draft" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Create Gmail draft" }),
+      screen.getByRole("button", { name: "Preview review-only copy" }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Tenant copy v1\.0: Review only/)).toBeInTheDocument();
+    expect(screen.getByText(/review-only preview cannot create/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
 
     // The sample "Prepare ... email" buttons (which post to the sample draft routes) are gone.
     expect(

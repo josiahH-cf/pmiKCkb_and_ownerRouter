@@ -24,6 +24,10 @@ import {
 import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 const MAILBOX = "workflow@pmikcmetro.com";
+const COPY = {
+  templateContentHash: "a".repeat(64),
+  envelopeFingerprint: "b".repeat(64),
+};
 
 function fakeClient() {
   const createDraft = vi.fn(async () => ({ draftId: "draft-assembled-1" }));
@@ -36,6 +40,7 @@ const tenantInput = {
   actionId: "draft-1",
   channel: "tenant" as const,
   templateRef: "tenant-renewal:v1.0" as const,
+  copy: COPY,
   recipient: {
     channel: "tenant" as const,
     to: "resident@northend-apts.com",
@@ -58,6 +63,8 @@ describe("buildRenewalNoticeDraftAction", () => {
       rfc_message_id: deterministicDraftRfcMessageId(action, MAILBOX),
       workflow_context: "renewal:lease-42",
       template_ref: "tenant-renewal:v1.0",
+      copy_template_hash: COPY.templateContentHash,
+      copy_envelope_hash: COPY.envelopeFingerprint,
       from: MAILBOX,
       to: "resident@northend-apts.com",
       subject: "Your lease renewal",
@@ -96,6 +103,15 @@ describe("buildRenewalNoticeDraftAction", () => {
     expect(() =>
       buildRenewalNoticeDraftAction({ ...tenantInput, channel: "owner" }),
     ).toThrow(/owner channel requires template owner-renewal/i);
+  });
+
+  it("rejects a missing or malformed locked-copy identity", () => {
+    expect(() =>
+      buildRenewalNoticeDraftAction({
+        ...tenantInput,
+        copy: { ...COPY, envelopeFingerprint: "browser-value" },
+      }),
+    ).toThrow(/template and fact-envelope hashes/i);
   });
 
   it("refuses an owner recipient on a tenant notice (anti-misattribution)", () => {

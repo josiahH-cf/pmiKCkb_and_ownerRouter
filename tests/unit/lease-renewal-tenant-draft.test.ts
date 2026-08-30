@@ -46,26 +46,18 @@ describe("buildTenantOfferDraft", () => {
     expect(draft.channels.text.body).not.toContain("We've also emailed and messaged you");
   });
 
-  it("claims both other channels only when both receipts exist", () => {
+  it("never turns caller-supplied receipt strings into a cross-channel delivery claim", () => {
     const delivered = buildTenantOfferDraft({
       tenantNameLabel: "T",
       leaseEndDateIso: "2026-08-31",
       ownerDecision: "keep_same",
       offeredRent: 1250,
       channelReceipts: { email: "gmail-message-1", portal_chat: "portal-1" },
+    } as Parameters<typeof buildTenantOfferDraft>[0] & {
+      channelReceipts: { email: string; portal_chat: string };
     });
-    expect(delivered.channels.text.body).toContain(
-      "We've also emailed and messaged you the details.",
-    );
-
-    const emailOnly = buildTenantOfferDraft({
-      tenantNameLabel: "T",
-      leaseEndDateIso: "2026-08-31",
-      ownerDecision: "keep_same",
-      offeredRent: 1250,
-      channelReceipts: { email: "gmail-message-1" },
-    });
-    expect(emailOnly.channels.text.body).not.toContain("also emailed");
+    expect(delivered.channels.text.body).not.toContain("also emailed");
+    expect(delivered.channels.text.body).not.toContain("messaged you");
   });
 
   it("never authorizes a send", () => {

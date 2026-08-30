@@ -51,6 +51,7 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/packet-truth/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/packet-truth/route.ts", "POST", "save_packet_truth"],
   ["app/api/lease-renewal/refresh/route.ts", "POST", "refresh_source_facts"],
+  ["app/api/lease-renewal/renewal-copy-assist/route.ts", "POST", "tailor_copy"],
   ["app/api/lease-renewal/renewal-notice-draft/route.ts", "POST", "draft_create"],
   ["app/api/lease-renewal/renewal-progress/route.ts", "POST", "save_renewal_progress"],
   ["app/api/lease-renewal/rent-suggestion/route.ts", "GET", "read_workspace"],
@@ -79,6 +80,7 @@ describe("S80 renewal role and action governance", () => {
       "save_packet_truth",
       "refresh_source_facts",
       "save_renewal_progress",
+      "tailor_copy",
     ] as const) {
       expect(
         evaluateRenewalAuthority(capability, {

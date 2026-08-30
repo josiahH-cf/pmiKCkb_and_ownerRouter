@@ -1,8 +1,15 @@
 import { z } from "zod";
 
+import {
+  RenewalCopySelectionSchema,
+  RenewalCopyTemplateSummarySchema,
+  renewalCopyChannelForRef,
+} from "@/lib/lease-renewal/renewal-copy-contract";
+
 // Browser-safe, shared contract for the renewal draft surface. The browser, route, and service all
-// consume this file; server-only authority (mailbox, recipient, live facts, approved suggestions,
-// template selection, and provider construction) deliberately does not appear in the request.
+// consume this file. The request may identify only the current server-matched template version and
+// supply allowlisted prose-region choices; publication authority, mailbox, recipient, live facts,
+// approved copy sources, and provider construction remain server-only.
 
 const positiveMoney = z.number().finite().positive();
 const chargeMoney = z.number().finite().nonnegative();
@@ -80,6 +87,7 @@ export const RenewalNoticeDraftRequestSchema = z
   .object({
     leaseId: z.string().trim().min(1).max(120),
     offer: RenewalNoticeDraftOfferSchema,
+    copy: RenewalCopySelectionSchema.optional(),
     // Preview omits both fields. Create carries exact confirmation. Read-only recovery carries only
     // the consumed execution identity. A boolean is invalid and no request may do both operations.
     confirm: RenewalDraftConfirmationSchema.optional(),
@@ -92,6 +100,16 @@ export const RenewalNoticeDraftRequestSchema = z
         code: "custom",
         message: "A draft request cannot confirm and reconcile at the same time.",
         path: ["reconcile"],
+      });
+    }
+    if (
+      request.copy &&
+      renewalCopyChannelForRef(request.copy.templateRef) !== request.offer.channel
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Owner and tenant renewal copy cannot cross channels.",
+        path: ["copy"],
       });
     }
   });
@@ -114,6 +132,18 @@ const executionId = RenewalDraftConfirmationSchema.shape.executionId;
 export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
   z
     .object({
+      status: z.literal("review_only"),
+      channel: outcomeChannel,
+      recipient: RenewalNoticeDraftRecipientSchema,
+      subject: z.string(),
+      body: z.string(),
+      template: RenewalCopyTemplateSummarySchema,
+      copy: RenewalCopySelectionSchema,
+      reasons: z.array(z.string().min(1)),
+    })
+    .strict(),
+  z
+    .object({
       status: z.literal("blocked"),
       channel: outcomeChannel,
       reasons: z.array(z.string().min(1)),
@@ -128,6 +158,7 @@ export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
       body: z.string(),
       executionId,
       previewHash: RenewalDraftConfirmationSchema.shape.previewHash,
+      template: RenewalCopyTemplateSummarySchema,
     })
     .strict(),
   z
@@ -138,6 +169,7 @@ export const RenewalNoticeDraftOutcomeSchema = z.discriminatedUnion("status", [
       subject: z.string(),
       draftId: z.string().trim().min(1),
       executionId,
+      template: RenewalCopyTemplateSummarySchema,
     })
     .strict(),
   z
@@ -172,9 +204,15 @@ export type RenewalNoticeDraftPreviewOutcome = Extract<
  * or security hash; the server-owned preview hash remains the exact-confirmation boundary.
  */
 export function renewalDraftInputFingerprint(
-  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer" | "copy">,
 ): string {
-  return JSON.stringify(canonicalize({ leaseId: request.leaseId, offer: request.offer }));
+  return JSON.stringify(
+    canonicalize({
+      leaseId: request.leaseId,
+      offer: request.offer,
+      copy: request.copy ?? null,
+    }),
+  );
 }
 
 export interface RenewalDraftPreviewBinding {
@@ -184,7 +222,7 @@ export interface RenewalDraftPreviewBinding {
 }
 
 export function bindRenewalDraftPreview(
-  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer" | "copy">,
   outcome: RenewalNoticeDraftPreviewOutcome,
 ): RenewalDraftPreviewBinding {
   return {
@@ -196,7 +234,7 @@ export function bindRenewalDraftPreview(
 
 export function isRenewalDraftPreviewCurrent(
   binding: RenewalDraftPreviewBinding | null,
-  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer">,
+  request: Pick<RenewalNoticeDraftRequest, "leaseId" | "offer" | "copy">,
 ): binding is RenewalDraftPreviewBinding {
   return (
     binding !== null && binding.inputFingerprint === renewalDraftInputFingerprint(request)

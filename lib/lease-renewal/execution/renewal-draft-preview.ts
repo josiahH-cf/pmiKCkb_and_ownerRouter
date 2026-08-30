@@ -23,6 +23,11 @@ import {
   type RenewalRecipientFieldMap,
 } from "@/lib/lease-renewal/recipient-resolution";
 import type { TenantOfferInput } from "@/lib/lease-renewal/tenant-draft";
+import {
+  prepareGovernedRenewalCopy,
+  type RenewalCopyTemplateDefinition,
+} from "@/lib/lease-renewal/renewal-copy-governance";
+import type { RenewalCopySelection } from "@/lib/lease-renewal/renewal-copy-contract";
 
 const TEMPLATE_FOR_CHANNEL: Record<RenewalRecipientChannel, RenewalNoticeTemplateRef> = {
   owner: "owner-renewal:v1.0",
@@ -39,6 +44,8 @@ interface CommonPreviewInput {
   workflowContext: string;
   sourceRefs: readonly string[];
   recipientFieldMap?: RenewalRecipientFieldMap;
+  copyTemplate: RenewalCopyTemplateDefinition;
+  copySelection?: RenewalCopySelection;
 }
 
 export type RenewalDraftPreviewInput =
@@ -53,7 +60,21 @@ export type RenewalDraftPreview =
       subject: string;
       /** The composed body, with the review-before-sending banner applied. */
       body: string;
+      template: ReturnType<typeof prepareGovernedRenewalCopy>["template"];
+      copy: RenewalCopySelection;
       /** The exact governed action to hand to executeRenewalNoticeDraft after human confirmation. */
+      action: ExternalActionInput;
+    }
+  | {
+      status: "review_only";
+      channel: RenewalRecipientChannel;
+      recipient: { to: string; sourceRef: string; cc?: string[] };
+      subject: string;
+      body: string;
+      template: ReturnType<typeof prepareGovernedRenewalCopy>["template"];
+      copy: RenewalCopySelection;
+      reasons: string[];
+      /** Rebuilt only so a previously consumed execution can still use read-only reconciliation. */
       action: ExternalActionInput;
     }
   | {
@@ -147,15 +168,10 @@ export function buildRenewalNoticeDraftPreview(
   }
 
   const rendered = instance.rendered;
-  let subject: string;
-  let body: string;
-  if (rendered.kind === "owner_renewal_email") {
-    subject = rendered.subject;
-    body = rendered.body;
-  } else if (rendered.kind === "tenant_renewal_offer") {
-    subject = rendered.channels.email.subject ?? "Your lease renewal";
-    body = rendered.channels.email.body;
-  } else {
+  if (
+    rendered.kind !== "owner_renewal_email" &&
+    rendered.kind !== "tenant_renewal_offer"
+  ) {
     return {
       status: "blocked",
       channel: input.channel,
@@ -164,36 +180,75 @@ export function buildRenewalNoticeDraftPreview(
   }
 
   const ccEmails = resolution.cc ?? [];
+  const ccSourceRefs = resolution.ccSourceRefs ?? [];
+  const governedCopy = prepareGovernedRenewalCopy({
+    template: input.copyTemplate,
+    rendered,
+    recipient: {
+      to: resolution.to,
+      sourceRef: resolution.recipientSourceRef,
+      ...(ccEmails.length
+        ? {
+            cc: ccEmails.map((to, index) => ({
+              to,
+              sourceRef: ccSourceRefs[index] ?? "",
+            })),
+          }
+        : {}),
+    },
+    workflowId: input.workflowId,
+    workflowContext: input.workflowContext,
+    sourceRefs: input.sourceRefs,
+    ...(input.copySelection ? { selection: input.copySelection } : {}),
+  });
+  if (governedCopy.status === "blocked") {
+    return {
+      status: "blocked",
+      channel: input.channel,
+      reasons: governedCopy.reasons,
+    };
+  }
+
   const action = buildRenewalNoticeDraftAction({
     workflowId: input.workflowId,
     actionId: input.actionId,
     channel: input.channel,
     templateRef: TEMPLATE_FOR_CHANNEL[input.channel],
+    copy: {
+      templateContentHash: governedCopy.template.contentHash,
+      envelopeFingerprint: governedCopy.envelope.fingerprint,
+    },
     recipient: {
       channel: input.channel,
       to: resolution.to,
       sourceRef: resolution.recipientSourceRef,
     },
-    ...(ccEmails.length
-      ? { cc: { emails: ccEmails, sourceRefs: resolution.ccSourceRefs ?? [] } }
-      : {}),
+    ...(ccEmails.length ? { cc: { emails: ccEmails, sourceRefs: ccSourceRefs } } : {}),
     mailbox: input.mailbox,
-    subject,
-    body,
+    subject: governedCopy.subject,
+    body: governedCopy.body,
     workflowContext: input.workflowContext,
     sourceRefs: input.sourceRefs,
   });
 
-  return {
-    status: "ready",
+  const commonResult = {
     channel: input.channel,
     recipient: {
       to: resolution.to,
       sourceRef: resolution.recipientSourceRef,
       ...(ccEmails.length ? { cc: ccEmails } : {}),
     },
-    subject,
+    subject: governedCopy.subject,
     body: String(action.values.body),
+    template: governedCopy.template,
+    copy: governedCopy.selection,
     action,
   };
+  return governedCopy.status === "review_only"
+    ? {
+        ...commonResult,
+        status: "review_only",
+        reasons: governedCopy.reasons,
+      }
+    : { ...commonResult, status: "ready" };
 }

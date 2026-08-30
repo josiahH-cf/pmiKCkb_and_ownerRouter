@@ -94,6 +94,8 @@ describe("Lease Gmail executor", () => {
         actionKey: "gmail.renewal_notice.draft_create",
         values: {
           ...base.values,
+          copy_template_hash: "a".repeat(64),
+          copy_envelope_hash: "b".repeat(64),
           body: "Unbannered draft body",
           draft_banner_present: true,
         },
@@ -105,6 +107,8 @@ describe("Lease Gmail executor", () => {
         actionKey: "gmail.renewal_notice.draft_create",
         values: {
           ...base.values,
+          copy_template_hash: "a".repeat(64),
+          copy_envelope_hash: "b".repeat(64),
           body: `${DRAFT_BANNER}\n\nSynthetic draft`,
           draft_banner_present: true,
         },

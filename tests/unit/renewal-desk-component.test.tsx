@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -239,7 +239,11 @@ describe("RenewalWorkspace", () => {
     expect(screen.queryByText(/read-authoritative/)).toBeNull();
 
     // Tenant offer: email is shown first; switching to the text channel reveals the short nudge.
-    expect(screen.getByText(/we'll get the documents out/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("tabpanel", { name: "Email" })).getByText(
+        /we'll get the documents out/,
+      ),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Text" }));
     expect(
       screen.queryByText(/emailed and messaged you the details/),

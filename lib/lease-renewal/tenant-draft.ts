@@ -36,8 +36,6 @@ export interface TenantOfferInput {
   };
   /** Link to the Google info-gathering form. */
   infoFormUrl?: string;
-  /** Receipts proving the corresponding channels actually succeeded. */
-  channelReceipts?: { email?: string; portal_chat?: string };
 }
 
 export const TENANT_RENEWAL_V1_BASE_COPY = Object.freeze({
@@ -57,9 +55,8 @@ export const TENANT_RENEWAL_V1_BASE_COPY = Object.freeze({
   ]),
   text: Object.freeze([
     "Hi {{tenant_name}}, your lease ends {{lease_end_date}}. Renewal rent would be {{offered_rent}}.",
-    "Please reply to let us know if you plan to stay or leave.{{channel_success}}",
+    "Please reply to let us know if you plan to stay or leave.",
   ]),
-  bothChannelSuccess: " We've also emailed and messaged you the details.",
 });
 
 export interface TenantOfferDraft {
@@ -89,10 +86,24 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
 
   const facts: DraftFact[] = [
     {
+      key: "tenant_name",
+      label: "Tenant",
+      value: input.tenantNameLabel,
+      source: "Rentvine (read-authoritative)",
+      confidence: "Verified",
+    },
+    {
       key: "lease_end_date",
       label: "Lease end date",
       value: input.leaseEndDateIso,
       source: "Rentvine (read-authoritative)",
+      confidence: "Verified",
+    },
+    {
+      key: "owner_decision",
+      label: "Owner decision",
+      value: input.ownerDecision,
+      source: "Owner decision",
       confidence: "Verified",
     },
     {
@@ -103,11 +114,35 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
       confidence: "Verified",
     },
   ];
+  if (input.charges?.rbp !== undefined) {
+    facts.push({
+      key: "charge_rbp",
+      label: "Resident benefit package",
+      value: formatUsd(input.charges.rbp),
+      source: "Renewal offer",
+      confidence: "Verified",
+    });
+  }
+  if (input.charges?.insurance !== undefined) {
+    facts.push({
+      key: "charge_insurance",
+      label: "Insurance",
+      value: formatUsd(input.charges.insurance),
+      source: "Renewal offer",
+      confidence: "Verified",
+    });
+  }
+  if (input.infoFormUrl) {
+    facts.push({
+      key: "info_form_url",
+      label: "Renewal information form",
+      value: input.infoFormUrl,
+      source: "Approved renewal workflow configuration",
+      confidence: "Verified",
+    });
+  }
 
   // Email + portal chat get the full message; the text is a short nudge that points back to it.
-  const bothChannelsSucceeded = Boolean(
-    input.channelReceipts?.email && input.channelReceipts.portal_chat,
-  );
   const replacements = {
     tenant_name: input.tenantNameLabel,
     // LR-04: the tenant-facing subject/body render a human date ("Aug 31, 2026"), not the raw ISO. The
@@ -116,9 +151,6 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
     offered_rent: offered,
     charges_line: charges ?? "",
     form_ask: formAsk ? `\n${formAsk}` : "",
-    channel_success: bothChannelsSucceeded
-      ? TENANT_RENEWAL_V1_BASE_COPY.bothChannelSuccess
-      : "",
   };
   const fullBody = TENANT_RENEWAL_V1_BASE_COPY.fullBody
     .map((line) => renderBaseCopy(line, replacements))

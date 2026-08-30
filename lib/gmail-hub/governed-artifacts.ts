@@ -40,6 +40,9 @@ export interface GovernedArtifactDefinition {
   contentHash: string;
   allowedContext: string;
   requiredValues: readonly string[];
+  /** Client-copy publication is separate from governance registration. */
+  clientPublicationStatus: "review_only" | "approved";
+  /** Governance registration date; not evidence that renewal wording is client-approved. */
   approvedAt: "2026-07-14";
 }
 
@@ -58,6 +61,7 @@ const artifactSources = {
       "comps screenshot",
     ],
     copy: OWNER_RENEWAL_V1_BASE_COPY,
+    clientPublicationStatus: "review_only",
   },
   "tenant-renewal:v1.0": {
     purpose: "renewal_tenant",
@@ -71,6 +75,7 @@ const artifactSources = {
       "owner-approved offered rent",
     ],
     copy: TENANT_RENEWAL_V1_BASE_COPY,
+    clientPublicationStatus: "review_only",
   },
   "maintenance-owner:v1.0": {
     purpose: "maintenance_owner",
@@ -85,6 +90,7 @@ const artifactSources = {
       "priority",
     ],
     copy: MAINTENANCE_OWNER_V1_BASE_COPY,
+    clientPublicationStatus: "approved",
   },
 } as const;
 
@@ -100,6 +106,7 @@ export const GOVERNED_ARTIFACT_REGISTRY: readonly GovernedArtifactDefinition[] =
         contentHash: sha256(canonicalJson(source.copy)),
         allowedContext: source.allowedContext,
         requiredValues: Object.freeze([...source.requiredValues]),
+        clientPublicationStatus: source.clientPublicationStatus,
         approvedAt: "2026-07-14" as const,
       });
     }),
@@ -137,7 +144,7 @@ export function getGovernedArtifact(ref: string): GovernedArtifactDefinition {
   return artifact;
 }
 
-/** Canonical approved base copy for the reply model and audit evidence; never includes live values. */
+/** Canonical registered base copy for model/audit evidence; never includes live values. */
 export function getGovernedArtifactBaseCopy(ref: GovernedArtifactRef): string {
   getGovernedArtifact(ref);
   return canonicalJson(artifactSources[ref].copy);
@@ -181,7 +188,11 @@ export function isApprovedWorkflowReplyTemplate(
     return false;
   }
   try {
-    return getGovernedArtifact(context.templateRef).purpose === context.purpose;
+    const artifact = getGovernedArtifact(context.templateRef);
+    return (
+      artifact.clientPublicationStatus === "approved" &&
+      artifact.purpose === context.purpose
+    );
   } catch {
     return false;
   }

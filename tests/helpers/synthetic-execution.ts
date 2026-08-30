@@ -219,6 +219,10 @@ function syntheticValues(
         rfc_message_id: "<synthetic-renewal-draft@pmikcmetro.com>",
         workflow_context: `renewal:${a.leaseRef}`,
         template_ref: "tenant-renewal:v1.0",
+        copy_template_hash: sha256("synthetic:tenant-renewal:v1.0"),
+        copy_envelope_hash: sha256(
+          `synthetic:${a.leaseWorkflow}:${a.leaseRef}:${actionId}`,
+        ),
         from: a.internalMailbox,
         to: a.tenantEmail,
         subject: tenantEmail.subject ?? "Synthetic renewal",

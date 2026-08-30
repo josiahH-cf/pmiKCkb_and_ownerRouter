@@ -6,6 +6,7 @@ export type RenewalEffectKind =
   | "app_owned_write"
   | "app_owned_approval"
   | "provider_read"
+  | "model_assistance"
   | "external_draft"
   | "external_write"
   | "external_rollback"
@@ -187,6 +188,18 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to create an unsent renewal draft.",
     safeNextAction:
       "Keep the preview unchanged or ask an Admin to review exact action readiness.",
+  },
+  tailor_copy: {
+    label: "Tailor approved renewal copy without changing locked facts",
+    roleCapability: "edit",
+    effect: "model_assistance",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "read_only",
+    roleDeniedReason: "Editor access is required to tailor renewal copy.",
+    safeNextAction:
+      "Keep the deterministic approved wording or ask an Admin to review your role.",
   },
   screenshot_store: {
     label: "Store one exact-confirmed comp screenshot",
@@ -447,6 +460,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     ],
   },
   {
+    control: "Request constrained renewal-copy assistance",
+    source: "components/lease-renewal/RenewalNoticeDraftComposer.tsx",
+    capability: "tailor_copy",
+    enforcementSources: ["app/api/lease-renewal/renewal-copy-assist/route.ts"],
+  },
+  {
     control: "Preview and create unsent Gmail draft",
     source: "components/lease-renewal/RenewalNoticeDraftComposer.tsx",
     capability: "draft_create",
@@ -573,6 +592,12 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/refresh/route.ts",
     method: "POST",
     capability: "refresh_source_facts",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/renewal-copy-assist/route.ts",
+    method: "POST",
+    capability: "tailor_copy",
   },
   {
     kind: "api",

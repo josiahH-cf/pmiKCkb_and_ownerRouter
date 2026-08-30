@@ -69,6 +69,38 @@ vi.mock("@/lib/lease-renewal/live-desk", async (importActual) => {
   };
 });
 
+// These route wiring tests preserve the eventual approved-copy execution branch. Production's
+// current review-only registry is exercised separately by the service/copy-publication tests; this
+// fixture exists only inside Vitest and can never be published by the application.
+vi.mock("@/lib/lease-renewal/renewal-copy-governance", async (importActual) => {
+  const actual =
+    await importActual<typeof import("@/lib/lease-renewal/renewal-copy-governance")>();
+  const { RENEWAL_COPY_TEMPLATE_SOURCES } =
+    await import("@/lib/lease-renewal/renewal-copy-contract");
+  const approved = {
+    owner: actual.createRenewalCopyTemplate({
+      source: RENEWAL_COPY_TEMPLATE_SOURCES.owner,
+      publication: {
+        status: "approved",
+        approvedAtIso: "2026-08-30T00:00:00.000Z",
+        evidenceRef: "client-approval:route-fixture-owner",
+      },
+    }),
+    tenant: actual.createRenewalCopyTemplate({
+      source: RENEWAL_COPY_TEMPLATE_SOURCES.tenant,
+      publication: {
+        status: "approved",
+        approvedAtIso: "2026-08-30T00:00:00.000Z",
+        evidenceRef: "client-approval:route-fixture-tenant",
+      },
+    }),
+  };
+  return {
+    ...actual,
+    currentRenewalCopyTemplate: (channel: "owner" | "tenant") => approved[channel],
+  };
+});
+
 const { createDraftMock, findDraftMock } = vi.hoisted(() => ({
   createDraftMock: vi.fn(async () => ({ draftId: "draft_owner_1" })),
   findDraftMock: vi.fn(async () => null as { draftId: string } | null),

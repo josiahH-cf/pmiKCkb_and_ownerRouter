@@ -8,8 +8,29 @@ import { DRAFT_BANNER } from "@/lib/constants";
 import { type RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { buildRenewalNoticeDraftPreview } from "@/lib/lease-renewal/execution/renewal-draft-preview";
 import { executeRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import { RENEWAL_COPY_TEMPLATE_SOURCES } from "@/lib/lease-renewal/renewal-copy-contract";
+import { createRenewalCopyTemplate } from "@/lib/lease-renewal/renewal-copy-governance";
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "session:mailbox" };
+
+const approvedCopy = {
+  owner: createRenewalCopyTemplate({
+    source: RENEWAL_COPY_TEMPLATE_SOURCES.owner,
+    publication: {
+      status: "approved",
+      approvedAtIso: "2026-08-30T00:00:00.000Z",
+      evidenceRef: "client-approval:unit-owner",
+    },
+  }),
+  tenant: createRenewalCopyTemplate({
+    source: RENEWAL_COPY_TEMPLATE_SOURCES.tenant,
+    publication: {
+      status: "approved",
+      approvedAtIso: "2026-08-30T00:00:00.000Z",
+      evidenceRef: "client-approval:unit-tenant",
+    },
+  }),
+};
 
 const common = {
   mailbox: MAILBOX,
@@ -57,6 +78,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
       lease: tenantLease,
       decision: tenantDecision,
     });
@@ -71,9 +93,38 @@ describe("buildRenewalNoticeDraftPreview", () => {
     expect(preview.body.startsWith(`${DRAFT_BANNER}\n\n`)).toBe(true);
     expect(preview.action.actionKey).toBe("gmail.renewal_notice.draft_create");
     expect(preview.action.values.template_ref).toBe("tenant-renewal:v1.0");
+    expect(preview.action.values.copy_template_hash).toBe(
+      approvedCopy.tenant.contentHash,
+    );
+    expect(preview.action.values.copy_envelope_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(preview.action.values.to).toBe("tenant7@northend-apts.com");
     expect(preview.action.values.recipient_source_ref).toBe(
       "rentvine:lease:7:tenants[0].email",
+    );
+  });
+
+  it("changes the locked envelope hash when a non-visible decision fact changes", () => {
+    const increase = buildRenewalNoticeDraftPreview({
+      ...common,
+      channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
+      lease: tenantLease,
+      decision: tenantDecision,
+    });
+    const custom = buildRenewalNoticeDraftPreview({
+      ...common,
+      channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
+      lease: tenantLease,
+      decision: { ...tenantDecision, ownerDecision: "custom" },
+    });
+
+    expect(increase.status).toBe("ready");
+    expect(custom.status).toBe("ready");
+    if (increase.status !== "ready" || custom.status !== "ready") return;
+    expect(custom.body).toBe(increase.body);
+    expect(custom.action.values.copy_envelope_hash).not.toBe(
+      increase.action.values.copy_envelope_hash,
     );
   });
 
@@ -81,6 +132,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
       lease: {
         leaseID: 7,
         tenants: [
@@ -109,6 +161,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "owner",
+      copyTemplate: approvedCopy.owner,
       lease: ownerLease,
       decision: ownerDecision,
     });
@@ -124,6 +177,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
       lease: { leaseID: 7, tenants: [{ name: "No Email" }] },
       decision: tenantDecision,
     });
@@ -136,6 +190,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "owner",
+      copyTemplate: approvedCopy.owner,
       lease: ownerLease,
       // Missing the market range/specific number/comps screenshot the owner notice requires.
       decision: { addressLabel: "200 Cedar Ct", currentRent: 1400 },
@@ -154,6 +209,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,
       channel: "tenant",
+      copyTemplate: approvedCopy.tenant,
       lease: tenantLease,
       decision: tenantDecision,
     });

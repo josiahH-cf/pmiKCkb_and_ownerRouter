@@ -6,6 +6,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
 import { RenewalNoticeDraftRequestSchema } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
+import { defaultRenewalCopySelection } from "@/lib/lease-renewal/renewal-copy-contract";
+
+const APPROVED_READINESS = {
+  owner: { status: "approved" as const, reason: "Approved fixture." },
+  tenant: { status: "approved" as const, reason: "Approved fixture." },
+};
+
+const TENANT_TEMPLATE = {
+  ref: "tenant-renewal:v1.0",
+  version: "v1.0",
+  contentHash: "c".repeat(64),
+  status: "approved",
+} as const;
 
 afterEach(() => {
   cleanup();
@@ -13,6 +26,45 @@ afterEach(() => {
 });
 
 describe("RenewalNoticeDraftComposer currency boundary", () => {
+  it("labels current wording review-only and cannot create or request assistance", async () => {
+    const selection = defaultRenewalCopySelection("tenant");
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        status: "review_only",
+        channel: "tenant",
+        recipient: {
+          to: "tenant@northend-apts.com",
+          sourceRef: "rentvine:lease:lease-1:tenants[0].email",
+        },
+        subject: "Review-only subject",
+        body: "Review-only body",
+        template: { ...TENANT_TEMPLATE, status: "review_only" },
+        copy: selection,
+        reasons: ["Client-approved wording is required."],
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+
+    expect(screen.getByText(/Tenant copy v1.0: Review only/i)).toBeVisible();
+    expect(screen.getByLabelText("Tenant response request")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Request clearer phrasing" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/Offered rent/i), {
+      target: { value: "1500" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview review-only copy" }));
+
+    expect(await screen.findByText(/No execution was prepared/i)).toBeVisible();
+    expect(screen.getByText("Review-only body")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("emits preview omission and exact-object confirmation that parse at the route boundary", async () => {
     const executionId = `exec_${"a".repeat(40)}`;
     const previewHash = "b".repeat(64);
@@ -33,6 +85,7 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
               body: "Preview body",
               executionId,
               previewHash,
+              template: TENANT_TEMPLATE,
             }),
           }
         : {
@@ -47,11 +100,17 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
               subject: "Preview",
               draftId: "draft-1",
               executionId,
+              template: TENANT_TEMPLATE,
             }),
           };
     });
     vi.stubGlobal("fetch", fetchMock);
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/Offered rent/i), {
       target: { value: "$1,500.25" },
@@ -96,10 +155,16 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
           body: "Preview body",
           executionId: `exec_${"1".repeat(40)}`,
           previewHash: "2".repeat(64),
+          template: TENANT_TEMPLATE,
         }),
       });
     vi.stubGlobal("fetch", fetchMock);
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/Offered rent/i), {
       target: { value: "$1,500.25" },
@@ -114,12 +179,25 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
         ownerDecision: "increase",
         offeredRent: 1500.25,
       },
+      copy: {
+        templateRef: "tenant-renewal:v1.0",
+        templateVersion: "v1.0",
+        editableRegions: {
+          response_request:
+            "Please let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.",
+        },
+      },
     });
   });
 
   it("keeps preview disabled for malformed grouping", () => {
     vi.stubGlobal("fetch", vi.fn());
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
     fireEvent.change(screen.getByLabelText(/Offered rent/i), {
       target: { value: "1,50" },
     });
@@ -140,10 +218,16 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
         body: "Preview body",
         executionId: `exec_${"c".repeat(40)}`,
         previewHash: "d".repeat(64),
+        template: TENANT_TEMPLATE,
       }),
     }));
     vi.stubGlobal("fetch", fetchMock);
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/Offered rent/i), {
       target: { value: "1500" },
@@ -160,10 +244,77 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("invalidates the exact preview when assisted prose changes", async () => {
+    const executionId = `exec_${"8".repeat(40)}`;
+    const previewHash = "9".repeat(64);
+    const tailored = defaultRenewalCopySelection("tenant");
+    tailored.editableRegions.response_request =
+      "Please reply when convenient so the renewal team can continue.";
+    const fetchMock = vi.fn(async (url: string) =>
+      url.endsWith("renewal-copy-assist")
+        ? {
+            ok: true,
+            json: async () => ({
+              status: "ready",
+              template: TENANT_TEMPLATE,
+              selection: tailored,
+              usedModel: true,
+              refusedBeforeModel: false,
+              errors: [],
+            }),
+          }
+        : {
+            ok: true,
+            json: async () => ({
+              status: "preview",
+              channel: "tenant",
+              recipient: {
+                to: "tenant@northend-apts.com",
+                sourceRef: "rentvine:lease:lease-1:tenants[0].email",
+              },
+              subject: "Preview",
+              body: "Preview body",
+              executionId,
+              previewHash,
+              template: TENANT_TEMPLATE,
+            }),
+          },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Offered rent/i), {
+      target: { value: "1500" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview draft" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeEnabled(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Request clearer phrasing" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Tenant response request")).toHaveValue(
+        tailored.editableRegions.response_request,
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
+    expect(screen.getByText(/preview the full draft again/i)).toBeVisible();
+  });
+
   it("refuses an inverted owner comp range before any request", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Owner notice" }));
     fireEvent.change(screen.getByLabelText(/Specific market number/i), {
@@ -203,6 +354,7 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
             body: "Preview body",
             executionId,
             previewHash,
+            template: TENANT_TEMPLATE,
           }),
         };
       }
@@ -223,7 +375,12 @@ describe("RenewalNoticeDraftComposer currency boundary", () => {
       };
     });
     vi.stubGlobal("fetch", fetchMock);
-    render(<RenewalNoticeDraftComposer leaseId="lease-1" />);
+    render(
+      <RenewalNoticeDraftComposer
+        leaseId="lease-1"
+        templateReadiness={APPROVED_READINESS}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText(/Offered rent/i), {
       target: { value: "1500" },

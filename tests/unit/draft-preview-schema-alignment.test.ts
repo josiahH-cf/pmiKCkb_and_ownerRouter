@@ -12,6 +12,11 @@ import {
   MAINTENANCE_EXECUTION_ORDER,
 } from "@/lib/maintenance/execution/matrix";
 
+const COPY = {
+  templateContentHash: "a".repeat(64),
+  envelopeFingerprint: "b".repeat(64),
+};
+
 /**
  * The draft pair's preview contracts must accept exactly what their builders emit.
  *
@@ -34,6 +39,7 @@ describe("draft-pair preview schema alignment", () => {
       actionId: "renewal-notice-draft:tenant:lease-1",
       channel: "tenant",
       templateRef: "tenant-renewal:v1.0",
+      copy: COPY,
       recipient: {
         channel: "tenant",
         to: "resident@residentdomain.test",
@@ -60,6 +66,7 @@ describe("draft-pair preview schema alignment", () => {
       actionId: "renewal-notice-draft:tenant:lease-2",
       channel: "tenant",
       templateRef: "tenant-renewal:v1.0",
+      copy: COPY,
       recipient: {
         channel: "tenant",
         to: "resident-a@residentdomain.test",

@@ -201,6 +201,10 @@ async function runDry(dependencies: RenewalDraftSmokeDependencies): Promise<void
     actionId: "dry-1",
     channel: "tenant",
     templateRef: "tenant-renewal:v1.0",
+    copy: {
+      templateContentHash: "a".repeat(64),
+      envelopeFingerprint: "b".repeat(64),
+    },
     recipient: {
       channel: "tenant",
       to: resolution.to,
@@ -311,6 +315,10 @@ async function runLive(
     actionId: "smoke-1",
     channel: "tenant",
     templateRef: "tenant-renewal:v1.0",
+    copy: {
+      templateContentHash: "a".repeat(64),
+      envelopeFingerprint: "b".repeat(64),
+    },
     recipient: {
       channel: "tenant",
       to: draftTo,

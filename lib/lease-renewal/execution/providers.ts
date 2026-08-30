@@ -159,6 +159,20 @@ export class LeaseGmailExecutor implements ExternalExecutor {
     } catch {
       return "An exact approved S24 artifact is required.";
     }
+    if (input.actionKey === "gmail.renewal_notice.draft_create") {
+      const copyMissing = stringBlocker(
+        input,
+        "copy_template_hash",
+        "copy_envelope_hash",
+      );
+      if (copyMissing) return copyMissing;
+      if (
+        !/^[a-f0-9]{64}$/.test(String(input.values.copy_template_hash)) ||
+        !/^[a-f0-9]{64}$/.test(String(input.values.copy_envelope_hash))
+      ) {
+        return "The renewal draft requires exact template and locked-envelope hashes.";
+      }
+    }
     const body = String(input.values.body);
     if (body.length > 20_000) return "The governed message body is too large.";
     if (operation === "sms" && body.length > 1_600) {

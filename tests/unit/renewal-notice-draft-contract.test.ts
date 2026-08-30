@@ -6,12 +6,14 @@ import {
   isRenewalDraftPreviewCurrent,
   type RenewalNoticeDraftRequest,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
+import { defaultRenewalCopySelection } from "@/lib/lease-renewal/renewal-copy-contract";
 
 const EXECUTION_ID = `exec_${"a".repeat(40)}`;
 const PREVIEW_HASH = "b".repeat(64);
 
 const tenantRequest = {
   leaseId: "lease-42",
+  copy: defaultRenewalCopySelection("tenant"),
   offer: {
     channel: "tenant",
     ownerDecision: "increase",
@@ -23,6 +25,7 @@ const tenantRequest = {
 
 const ownerRequest = {
   leaseId: "lease-42",
+  copy: defaultRenewalCopySelection("owner"),
   offer: {
     channel: "owner",
     market: {
@@ -45,6 +48,12 @@ const preview = {
   body: "Preview body",
   executionId: EXECUTION_ID,
   previewHash: PREVIEW_HASH,
+  template: {
+    ref: "tenant-renewal:v1.0" as const,
+    version: "v1.0" as const,
+    contentHash: "c".repeat(64),
+    status: "approved" as const,
+  },
 };
 
 describe("renewal notice draft shared contract", () => {
@@ -121,6 +130,15 @@ describe("renewal notice draft shared contract", () => {
         },
       },
       ownerRequest,
+      {
+        ...tenantRequest,
+        copy: {
+          ...tenantRequest.copy,
+          editableRegions: {
+            response_request: "Please reply when convenient.",
+          },
+        },
+      },
     ];
 
     for (const changed of mutations) {
@@ -157,6 +175,16 @@ describe("renewal notice draft shared contract", () => {
         },
       },
       tenantRequest,
+      {
+        ...ownerRequest,
+        copy: {
+          ...ownerRequest.copy,
+          editableRegions: {
+            ...ownerRequest.copy.editableRegions,
+            owner_request: "Please share your direction when convenient.",
+          },
+        },
+      },
     ];
 
     for (const changed of mutations) {

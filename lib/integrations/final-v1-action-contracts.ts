@@ -23,6 +23,8 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("rfc_message_id", "Draft RFC Message-ID", "reference"),
     f("workflow_context", "Workflow context", "reference"),
     f("template_ref", "Approved artifact", "reference"),
+    f("copy_template_hash", "Approved copy version hash", "reference"),
+    f("copy_envelope_hash", "Locked copy envelope hash", "reference"),
     f("from", "From", "string", "Gmail"),
     f("to", "Recipient", "string"),
     // Optional F-LEASE-6 co-tenant Cc. `buildRenewalNoticeDraftAction` emits these only on a

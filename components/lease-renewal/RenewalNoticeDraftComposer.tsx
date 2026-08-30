@@ -14,6 +14,16 @@ import {
   type RenewalNoticeDraftOutcome,
   type RenewalNoticeDraftRequest,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
+import {
+  CURRENT_RENEWAL_COPY_PUBLICATION,
+  RENEWAL_COPY_TEMPLATE_SOURCES,
+  RenewalCopyAssistOutcomeSchema,
+  defaultRenewalCopySelection,
+  type OwnerRenewalCopySelection,
+  type RenewalCopySelection,
+  type RenewalCopyPublicationStatus,
+  type TenantRenewalCopySelection,
+} from "@/lib/lease-renewal/renewal-copy-contract";
 
 // Compose an UNSENT renewal-notice Gmail draft for one lease, in two steps: Preview, then Create.
 // The recipient and lease facts come from the LIVE RentVine record (server-side, never from this form);
@@ -33,10 +43,16 @@ const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
 export function RenewalNoticeDraftComposer({
   leaseId,
   initialOffer = null,
+  templateReadiness,
 }: Readonly<{
   leaseId: string;
   /** Prefill the tenant-offer inputs from the recorded owner decision (live workspace). */
   initialOffer?: { decision: OwnerDecision; offeredRent: number } | null;
+  /** Display/control projection only. The server independently resolves publication before any model or draft work. */
+  templateReadiness?: Record<
+    Channel,
+    { status: RenewalCopyPublicationStatus; reason?: string }
+  >;
 }>) {
   const [channel, setChannel] = useState<Channel>("tenant");
   const [ownerDecision, setOwnerDecision] = useState<OwnerDecision>(
@@ -49,14 +65,24 @@ export function RenewalNoticeDraftComposer({
   const [rangeLow, setRangeLow] = useState("");
   const [rangeHigh, setRangeHigh] = useState("");
   const [compsRef, setCompsRef] = useState("");
-  const [pending, setPending] = useState<null | "preview" | "create" | "reconcile">(null);
+  const [copySelections, setCopySelections] = useState<{
+    owner: OwnerRenewalCopySelection;
+    tenant: TenantRenewalCopySelection;
+  }>(() => ({
+    owner: defaultRenewalCopySelection("owner"),
+    tenant: defaultRenewalCopySelection("tenant"),
+  }));
+  const [copyNotice, setCopyNotice] = useState("");
+  const [pending, setPending] = useState<
+    null | "assist" | "preview" | "create" | "reconcile"
+  >(null);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
   const [previewBinding, setPreviewBinding] = useState<RenewalDraftPreviewBinding | null>(
     null,
   );
   const [reconciliationRequest, setReconciliationRequest] = useState<Pick<
     RenewalNoticeDraftRequest,
-    "leaseId" | "offer"
+    "leaseId" | "offer" | "copy"
   > | null>(null);
   const [error, setError] = useState("");
 
@@ -67,12 +93,27 @@ export function RenewalNoticeDraftComposer({
     low: useId(),
     high: useId(),
     comps: useId(),
+    salutation: useId(),
+    ownerRequest: useId(),
+    tenantRequest: useId(),
   };
 
   const offeredRentParsed = parseCurrencyInput(offeredRent);
   const specificNumberParsed = parseCurrencyInput(specificNumber);
   const rangeLowParsed = parseCurrencyInput(rangeLow);
   const rangeHighParsed = parseCurrencyInput(rangeHigh);
+  const copySelection: RenewalCopySelection = copySelections[channel];
+  const copySource = RENEWAL_COPY_TEMPLATE_SOURCES[channel];
+  const copyPublication =
+    templateReadiness?.[channel] ?? CURRENT_RENEWAL_COPY_PUBLICATION[channel];
+  const copyApproved = copyPublication.status === "approved";
+  const copyStatusLabel =
+    copyPublication.status === "approved"
+      ? "Approved"
+      : copyPublication.status === "retired"
+        ? "Retired"
+        : "Review only";
+  const copyPublicationReason = "reason" in copyPublication ? copyPublication.reason : "";
 
   function buildOffer(): RenewalNoticeDraftOffer {
     if (channel === "tenant") {
@@ -96,6 +137,7 @@ export function RenewalNoticeDraftComposer({
   const currentRequestResult = RenewalNoticeDraftRequestSchema.safeParse({
     leaseId,
     offer: buildOffer(),
+    copy: copySelection,
   });
   const currentRequest = currentRequestResult.success ? currentRequestResult.data : null;
   const formReady = currentRequest !== null;
@@ -137,6 +179,85 @@ export function RenewalNoticeDraftComposer({
         : null,
     );
     setError("");
+    setCopyNotice("");
+  }
+
+  function updateTenantCopy(value: string) {
+    setCopySelections((current) => ({
+      ...current,
+      tenant: {
+        ...current.tenant,
+        editableRegions: {
+          ...current.tenant.editableRegions,
+          response_request: value,
+        },
+      },
+    }));
+    invalidatePreview();
+  }
+
+  function updateOwnerCopy(region: "salutation" | "owner_request", value: string) {
+    setCopySelections((current) => ({
+      ...current,
+      owner: {
+        ...current.owner,
+        editableRegions: { ...current.owner.editableRegions, [region]: value },
+      },
+    }));
+    invalidatePreview();
+  }
+
+  async function requestCopyAssistance() {
+    if (!copyApproved || unresolvedAttempt) return;
+    setPending("assist");
+    setError("");
+    setCopyNotice("");
+    try {
+      const response = await fetch("/api/lease-renewal/renewal-copy-assist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          templateRef: copySelection.templateRef,
+          templateVersion: copySelection.templateVersion,
+        }),
+      });
+      const raw = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(
+          raw && typeof raw === "object" && typeof raw.error === "string"
+            ? raw.error
+            : "Copy assistance is unavailable.",
+        );
+        return;
+      }
+      const parsed = RenewalCopyAssistOutcomeSchema.safeParse(raw);
+      if (!parsed.success) {
+        setError("Copy assistance returned an invalid result.");
+        return;
+      }
+      if (parsed.data.status === "refused") {
+        setError(parsed.data.errors.join(" "));
+        return;
+      }
+      const next = parsed.data.selection;
+      setCopySelections((current) =>
+        next.templateRef === "owner-renewal:v1.0"
+          ? { ...current, owner: next }
+          : { ...current, tenant: next },
+      );
+      setPreviewBinding(null);
+      setOutcome(null);
+      setCopyNotice(
+        parsed.data.usedModel
+          ? "Assisted prose is ready. Review it and preview the full draft again."
+          : (parsed.data.errors[0] ??
+              "The current approved deterministic prose was kept. Preview it again."),
+      );
+    } catch {
+      setError("Could not reach copy assistance. The current prose was not changed.");
+    } finally {
+      setPending(null);
+    }
   }
 
   async function previewDraft() {
@@ -198,6 +319,7 @@ export function RenewalNoticeDraftComposer({
     const attemptRequest = {
       leaseId: parsed.data.leaseId,
       offer: parsed.data.offer,
+      ...(parsed.data.copy ? { copy: parsed.data.copy } : {}),
     };
     const executionId = previewBinding.executionId;
     setPending("create");
@@ -304,6 +426,13 @@ export function RenewalNoticeDraftComposer({
             recipient comes from RentVine; you enter the offer. You review and send it
             yourself in Gmail.
           </p>
+          <p className="muted" role="status">
+            <strong>
+              {channel === "owner" ? "Owner" : "Tenant"} copy {copySource.version}:
+              {` ${copyStatusLabel}.`}
+            </strong>{" "}
+            {copyPublicationReason}
+          </p>
         </div>
 
         <div className="ui-row" role="group" aria-label="Recipient channel">
@@ -359,6 +488,19 @@ export function RenewalNoticeDraftComposer({
                 placeholder="$1,500"
                 type="text"
                 value={offeredRent}
+              />
+            </Field>
+            <Field
+              htmlFor={id.tenantRequest}
+              hint="Only general phrasing is editable. Names, recipients, rent, dates, terms, evidence, and channel status stay server-locked."
+              label="Tenant response request"
+            >
+              <textarea
+                disabled={!copyApproved || unresolvedAttempt}
+                id={id.tenantRequest}
+                onChange={(event) => updateTenantCopy(event.target.value)}
+                rows={4}
+                value={copySelections.tenant.editableRegions.response_request}
               />
             </Field>
           </>
@@ -426,16 +568,50 @@ export function RenewalNoticeDraftComposer({
                 value={compsRef}
               />
             </Field>
+            <Field htmlFor={id.salutation} label="Owner-message opening">
+              <textarea
+                disabled={!copyApproved || unresolvedAttempt}
+                id={id.salutation}
+                onChange={(event) => updateOwnerCopy("salutation", event.target.value)}
+                rows={2}
+                value={copySelections.owner.editableRegions.salutation}
+              />
+            </Field>
+            <Field
+              htmlFor={id.ownerRequest}
+              hint="Only general phrasing is editable. Recipients, property, rent, comps, terms, evidence, and channel status stay server-locked."
+              label="Owner decision request"
+            >
+              <textarea
+                disabled={!copyApproved || unresolvedAttempt}
+                id={id.ownerRequest}
+                onChange={(event) => updateOwnerCopy("owner_request", event.target.value)}
+                rows={5}
+                value={copySelections.owner.editableRegions.owner_request}
+              />
+            </Field>
           </>
         )}
 
         <div className="ui-row">
           <Button
+            disabled={!copyApproved || pending !== null || unresolvedAttempt}
+            onClick={() => void requestCopyAssistance()}
+            type="button"
+            variant="secondary"
+          >
+            {pending === "assist" ? "Tailoring…" : "Request clearer phrasing"}
+          </Button>
+          <Button
             disabled={!formReady || pending !== null || unresolvedAttempt}
             onClick={() => void previewDraft()}
             type="button"
           >
-            {pending === "preview" ? "Previewing…" : "Preview draft"}
+            {pending === "preview"
+              ? "Previewing…"
+              : copyApproved
+                ? "Preview draft"
+                : "Preview review-only copy"}
           </Button>
           <Button
             disabled={!canCreate || pending !== null}
@@ -446,6 +622,15 @@ export function RenewalNoticeDraftComposer({
             {pending === "create" ? "Creating…" : "Create Gmail draft"}
           </Button>
         </div>
+
+        {!copyApproved ? (
+          <p className="muted">
+            Manual tailoring and AI assistance stay unavailable until the client approves
+            this exact copy version. A review-only preview cannot create a Gmail draft.
+          </p>
+        ) : null}
+
+        {copyNotice ? <p className="muted">{copyNotice}</p> : null}
 
         {error ? <p className="muted">{error}</p> : null}
 
@@ -462,10 +647,34 @@ export function RenewalNoticeDraftComposer({
           </div>
         ) : null}
 
+        {outcome?.status === "review_only" ? (
+          <div className="ui-stack">
+            <p className="muted">
+              Review-only {outcome.template.ref}. No execution was prepared and no Gmail
+              draft can be created until client-approved wording is published.
+            </p>
+            <ul>
+              {outcome.reasons.map((reason) => (
+                <li className="muted" key={reason}>
+                  {reason}
+                </li>
+              ))}
+            </ul>
+            <p className="muted">
+              To: {outcome.recipient.to} · Subject: {outcome.subject}
+            </p>
+            <div className="draft-box">{outcome.body}</div>
+          </div>
+        ) : null}
+
         {outcome?.status === "preview" && previewIsCurrent ? (
           <div className="ui-stack">
             <p className="muted">
               Preview only. Review it, then choose “Create Gmail draft”.
+            </p>
+            <p className="muted">
+              Approved template: {outcome.template.ref} (
+              {outcome.template.contentHash.slice(0, 12)}…)
             </p>
             <p className="muted">
               To: {outcome.recipient.to} · Subject: {outcome.subject}

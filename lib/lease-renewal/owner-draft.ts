@@ -283,7 +283,17 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
 
   const screenshot =
     market.compsScreenshotRef ?? `[${NEEDS_VERIFICATION}: paste comps screenshot]`;
-  if (!market.compsScreenshotRef) missingInputs.push("comps screenshot");
+  if (!market.compsScreenshotRef) {
+    missingInputs.push("comps screenshot");
+  } else {
+    facts.push({
+      key: "comps_screenshot",
+      label: "Comparable screenshot",
+      value: market.compsScreenshotRef,
+      source: "Stored screenshot receipt",
+      confidence: "Verified",
+    });
+  }
 
   const rangeLine = hasRange
     ? `I'm seeing comparable rents ranging from ${formatUsd(market.rangeLow!)} to ${formatUsd(market.rangeHigh!)}.`

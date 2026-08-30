@@ -23,6 +23,8 @@ function fakeClient(overrides: Partial<RenewalDraftGmailClient> = {}) {
 const draftValues = {
   workflow_context: "renewal:lease-live-1",
   template_ref: "tenant-renewal:v1.0",
+  copy_template_hash: "a".repeat(64),
+  copy_envelope_hash: "b".repeat(64),
   from: MAILBOX,
   to: "resident@example.invalid",
   subject: "Your lease renewal",

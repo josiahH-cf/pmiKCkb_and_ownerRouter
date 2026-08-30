@@ -22,7 +22,7 @@ const recipient = {
 };
 
 describe("governed v1.0 communication artifacts", () => {
-  it("exposes exactly three immutable, hashed, approved base artifacts", () => {
+  it("separates immutable governance registration from client-copy publication", () => {
     expect(GOVERNED_ARTIFACT_REGISTRY.map((item) => item.ref)).toEqual(
       GOVERNED_ARTIFACT_REFS,
     );
@@ -36,6 +36,15 @@ describe("governed v1.0 communication artifacts", () => {
       expect(Object.isFrozen(artifact)).toBe(true);
       expect(Object.isFrozen(artifact.requiredValues)).toBe(true);
     }
+    expect(getGovernedArtifact("owner-renewal:v1.0").clientPublicationStatus).toBe(
+      "review_only",
+    );
+    expect(getGovernedArtifact("tenant-renewal:v1.0").clientPublicationStatus).toBe(
+      "review_only",
+    );
+    expect(getGovernedArtifact("maintenance-owner:v1.0").clientPublicationStatus).toBe(
+      "approved",
+    );
     expect(() => getGovernedArtifact("owner-renewal:v2")).toThrow(
       /Unknown or unversioned/,
     );

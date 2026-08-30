@@ -42,6 +42,11 @@ export interface RenewalNoticeDraftActionInput {
   actionId: string;
   channel: RenewalRecipientChannel;
   templateRef: RenewalNoticeTemplateRef;
+  /** Exact server-built S74 copy identities; both are bound into the S20 preview hash. */
+  copy: {
+    templateContentHash: string;
+    envelopeFingerprint: string;
+  };
   /** The VERIFIED recipient from resolveRenewalRecipient — a Needs-Verification result must not reach here.
    *  `channel` is carried so the assembly refuses an owner recipient on a tenant notice (and vice-versa). */
   recipient: { channel: RenewalRecipientChannel; to: string; sourceRef: string };
@@ -80,6 +85,12 @@ export function buildRenewalNoticeDraftAction(
   if (input.cc && input.cc.emails.length !== input.cc.sourceRefs.length) {
     throw new Error("Each renewal Cc recipient requires an index-aligned source ref.");
   }
+  if (
+    !/^[a-f0-9]{64}$/.test(input.copy.templateContentHash) ||
+    !/^[a-f0-9]{64}$/.test(input.copy.envelopeFingerprint)
+  ) {
+    throw new Error("Renewal copy requires exact template and fact-envelope hashes.");
+  }
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
@@ -101,6 +112,8 @@ export function buildRenewalNoticeDraftAction(
       rfc_message_id: deterministicDraftRfcMessageId(identity, input.mailbox.email),
       workflow_context: input.workflowContext,
       template_ref: input.templateRef,
+      copy_template_hash: input.copy.templateContentHash,
+      copy_envelope_hash: input.copy.envelopeFingerprint,
       from: input.mailbox.email,
       to: input.recipient.to,
       ...(cc

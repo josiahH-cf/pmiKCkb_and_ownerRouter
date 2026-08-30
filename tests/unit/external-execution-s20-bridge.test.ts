@@ -112,6 +112,8 @@ const draftValues = {
   rfc_message_id: "<synthetic-renewal-draft-1@pmikcmetro.com>",
   workflow_context: "synthetic:workflow:renewal-draft-1",
   template_ref: "tenant-renewal:v1.0",
+  copy_template_hash: "a".repeat(64),
+  copy_envelope_hash: "b".repeat(64),
   from: "synthetic-leasing@pmikcmetro.com",
   to: "synthetic-tenant@example.invalid",
   subject: "Synthetic renewal draft",

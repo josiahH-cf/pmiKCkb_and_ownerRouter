@@ -45,6 +45,10 @@ import { FakeFirestore } from "@/tests/helpers/fake-firestore";
  */
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "app:session:u1" };
+const COPY = {
+  templateContentHash: "a".repeat(64),
+  envelopeFingerprint: "b".repeat(64),
+};
 const actor: AuthenticatedUser = {
   uid: "u1",
   email: MAILBOX.email,
@@ -58,6 +62,7 @@ function draftAction(overrides: { body?: string } = {}) {
     actionId: "renewal-notice-draft:tenant:lease-42",
     channel: "tenant",
     templateRef: "tenant-renewal:v1.0",
+    copy: COPY,
     recipient: {
       channel: "tenant",
       to: "resident@northend-apts.com",
@@ -434,6 +439,7 @@ describe("governed draft — refusals before any provider construction", () => {
       actionId: "renewal-notice-draft:tenant:lease-99",
       channel: "tenant",
       templateRef: "tenant-renewal:v1.0",
+      copy: COPY,
       recipient: {
         channel: "tenant",
         to: "resident@example.invalid",

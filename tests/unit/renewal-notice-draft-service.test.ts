@@ -24,8 +24,29 @@ import {
   type RenewalNoticeDraftDeps,
   type RenewalNoticeDraftInput,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
+import { RENEWAL_COPY_TEMPLATE_SOURCES } from "@/lib/lease-renewal/renewal-copy-contract";
+import { createRenewalCopyTemplate } from "@/lib/lease-renewal/renewal-copy-governance";
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "app:session:u1" };
+
+const approvedCopy = {
+  owner: createRenewalCopyTemplate({
+    source: RENEWAL_COPY_TEMPLATE_SOURCES.owner,
+    publication: {
+      status: "approved",
+      approvedAtIso: "2026-08-30T00:00:00.000Z",
+      evidenceRef: "client-approval:unit-owner",
+    },
+  }),
+  tenant: createRenewalCopyTemplate({
+    source: RENEWAL_COPY_TEMPLATE_SOURCES.tenant,
+    publication: {
+      status: "approved",
+      approvedAtIso: "2026-08-30T00:00:00.000Z",
+      evidenceRef: "client-approval:unit-tenant",
+    },
+  }),
+};
 
 const tenantLease: RawLease = {
   leaseID: 42,
@@ -102,6 +123,7 @@ function deps(
       findDraftByRfcMessageId: findDraft,
     }),
     actor,
+    resolveCopyTemplate: (channel) => approvedCopy[channel],
     seams: s20Seams(db),
   };
   return { d, createDraft, findDraft, db };
@@ -140,6 +162,26 @@ const ownerInput = (confirm?: Confirmation): RenewalNoticeDraftInput => ({
 });
 
 describe("prepareRenewalNoticeDraft", () => {
+  it("renders current production wording as review-only and creates no execution or Gmail draft", async () => {
+    const { d, createDraft, db } = deps(tenantLease);
+    delete d.resolveCopyTemplate;
+
+    const outcome = await prepareRenewalNoticeDraft(d, tenantInput());
+
+    expect(outcome).toMatchObject({
+      status: "review_only",
+      channel: "tenant",
+      template: { status: "review_only", ref: "tenant-renewal:v1.0" },
+    });
+    if (outcome.status !== "review_only") return;
+    expect(outcome.body).toContain("$1,550");
+    expect(outcome.reasons.join(" ")).toMatch(/client-approved wording/i);
+    expect(createDraft).not.toHaveBeenCalled();
+    expect([...db.store.keys()].some((key) => key.includes("external_action"))).toBe(
+      false,
+    );
+  });
+
   it("previews a tenant draft from live facts + operator offer without touching Gmail", async () => {
     const { d, createDraft } = deps(tenantLease);
     const outcome = await prepareRenewalNoticeDraft(d, tenantInput());
@@ -178,6 +220,52 @@ describe("prepareRenewalNoticeDraft", () => {
     expect(createDraft).toHaveBeenCalledWith(
       expect.objectContaining({ to: "tenant42@northend-apts.com" }),
     );
+  });
+
+  it("rejects exact confirmation when a locked decision fact changes without changing visible prose", async () => {
+    const { d, createDraft } = deps(tenantLease);
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    if (prepared.status !== "preview") throw new Error("Expected preview.");
+
+    await expect(
+      prepareRenewalNoticeDraft(d, {
+        ...tenantInput({
+          executionId: prepared.executionId,
+          previewHash: prepared.previewHash,
+        }),
+        request: {
+          ...tenantInput({
+            executionId: prepared.executionId,
+            previewHash: prepared.previewHash,
+          }).request,
+          offer: {
+            channel: "tenant",
+            ownerDecision: "custom",
+            offeredRent: 1550,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
+  it("blocks an exact confirmation when the template is no longer client-approved", async () => {
+    const { d, createDraft } = deps(tenantLease);
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    expect(prepared.status).toBe("preview");
+    if (prepared.status !== "preview") return;
+
+    delete d.resolveCopyTemplate;
+    const outcome = await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
+
+    expect(outcome).toMatchObject({ status: "review_only", channel: "tenant" });
+    expect(createDraft).not.toHaveBeenCalled();
   });
 
   it("reconciles one uncertain attempt by exact Message-ID without drafting again", async () => {
@@ -233,6 +321,41 @@ describe("prepareRenewalNoticeDraft", () => {
       resolution: "created",
       duplicate: true,
       executionId: prepared.executionId,
+    });
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(findDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps read-only reconciliation available after copy publication closes", async () => {
+    const { d, createDraft, findDraft } = deps(tenantLease, {
+      createDraft: async () => {
+        throw new Error("gmail timeout");
+      },
+      findDraft: async () => ({ draftId: "draft-recovered-after-close" }),
+    });
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    if (prepared.status !== "preview") throw new Error("Expected preview.");
+    await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
+
+    delete d.resolveCopyTemplate;
+    const reconciled = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(),
+      request: {
+        ...tenantInput().request,
+        reconcile: { executionId: prepared.executionId },
+      },
+    });
+
+    expect(reconciled).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      draftId: "draft-recovered-after-close",
     });
     expect(createDraft).toHaveBeenCalledTimes(1);
     expect(findDraft).toHaveBeenCalledTimes(1);

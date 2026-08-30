@@ -45,6 +45,11 @@ import type {
   OwnerDraftMarketInput,
 } from "@/lib/lease-renewal/owner-draft";
 import type { TenantOfferInput } from "@/lib/lease-renewal/tenant-draft";
+import {
+  currentRenewalCopyTemplate,
+  type RenewalCopyTemplateDefinition,
+} from "@/lib/lease-renewal/renewal-copy-governance";
+import type { RenewalCopyChannel } from "@/lib/lease-renewal/renewal-copy-contract";
 
 export interface RenewalNoticeMailbox {
   email: string;
@@ -79,6 +84,8 @@ export interface RenewalNoticeDraftDeps {
   createGmailClient(subject: string): RenewalDraftGmailClient;
   /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
   actor: AuthenticatedUser;
+  /** Production uses the current review-only/approved registry; tests may inject an approved fixture. */
+  resolveCopyTemplate?(channel: RenewalCopyChannel): RenewalCopyTemplateDefinition;
   /** Test-only S20/environment seams; production omits them. */
   seams?: GovernedDraftSeams;
 }
@@ -131,6 +138,9 @@ export async function prepareRenewalNoticeDraft(
       channel: "tenant",
       lease,
       decision: decision.decision,
+      copyTemplate:
+        deps.resolveCopyTemplate?.("tenant") ?? currentRenewalCopyTemplate("tenant"),
+      ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
     });
     return finalize(preview, browserRequest, input.mailbox, deps);
   }
@@ -155,6 +165,9 @@ export async function prepareRenewalNoticeDraft(
     channel: "owner",
     lease,
     decision: decision.decision,
+    copyTemplate:
+      deps.resolveCopyTemplate?.("owner") ?? currentRenewalCopyTemplate("owner"),
+    ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
   });
   return finalize(preview, browserRequest, input.mailbox, deps);
 }
@@ -231,6 +244,19 @@ async function finalize(
     }
   }
 
+  if (preview.status === "review_only") {
+    return {
+      status: "review_only",
+      channel,
+      recipient: preview.recipient,
+      subject: preview.subject,
+      body: preview.body,
+      template: preview.template,
+      copy: preview.copy,
+      reasons: preview.reasons,
+    };
+  }
+
   if (!input.confirm) {
     const prepared = await prepareGovernedDraft(deps.actor, governedRequest, deps.seams);
     return {
@@ -241,6 +267,7 @@ async function finalize(
       body: preview.body,
       executionId: prepared.id,
       previewHash: prepared.preview_hash,
+      template: preview.template,
     };
   }
 
@@ -273,6 +300,7 @@ async function finalize(
     subject: preview.subject,
     draftId: outcome.result.providerRef,
     executionId: outcome.execution.id,
+    template: preview.template,
   };
 }
 
