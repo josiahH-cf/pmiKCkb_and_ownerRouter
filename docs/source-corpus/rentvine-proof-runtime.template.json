@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "s30-runtime-v1",
+  "scope": "renewals",
+  "proofRef": "REPLACE_WITH_NEW_S30_PREFIXED_UUID",
+  "account": "pmikcmetro",
+  "actor": {
+    "uid": "REQUIRED_MANAGED_ADMIN_UID",
+    "email": "REQUIRED_MANAGED_ADMIN_EMAIL",
+    "hd": "pmikcmetro.com",
+    "role": "Admin",
+    "scopes": ["renewals"]
+  },
+  "authority": {
+    "clientDesignationRef": "TBD",
+    "protectedGateDirectionRef": "TBD",
+    "endpointEvidenceRef": "TBD",
+    "mappingEvidenceRef": "TBD",
+    "backupEvidenceRef": "TBD",
+    "authorizationExpiresAt": "REQUIRED_EXACT_ISO_TIMESTAMP"
+  },
+  "target": {
+    "leaseId": "REQUIRED_POSITIVE_INTEGER_ID",
+    "identityField": "REQUIRED_OBSERVED_IDENTITY_FIELD",
+    "field": "endDate",
+    "expectedStartDate": "REQUIRED_YYYY_MM_DD",
+    "expectedEndDate": "REQUIRED_YYYY_MM_DD_OR_NULL",
+    "proposedEndDate": "REQUIRED_DIFFERENT_YYYY_MM_DD",
+    "rollbackEndDate": "MUST_EXACTLY_EQUAL_EXPECTED_END_DATE"
+  }
+}

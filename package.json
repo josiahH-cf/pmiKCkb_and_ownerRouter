@@ -83,6 +83,7 @@
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
     "smoke:sheet-write": "tsx scripts/smoke-sheet-write.ts",
     "prove:rehearsal-sheet": "node --import tsx scripts/prove-rehearsal-sheet-write.ts",
+    "prove:rentvine-renewal": "node --import tsx scripts/prove-rentvine-renewal-write.ts",
     "smoke:renewal-review": "tsx scripts/smoke-renewal-review.ts",
     "diagnose:current-rent": "node --import tsx scripts/diagnose-current-rent-truth.ts",
     "smoke:gmail-draft-live": "tsx scripts/smoke-gmail-draft-live.ts",

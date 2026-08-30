@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "s30-confirmation-v1",
+  "proofRef": "COPY_EXACT_PROOF_REF_FROM_REVIEW_PACKET",
+  "phase": "COPY_EXACT_FORWARD_OR_ROLLBACK_PHASE",
+  "executionId": "COPY_EXACT_EXECUTION_ID_FROM_REVIEW_PACKET",
+  "previewHash": "COPY_EXACT_64_HEX_PREVIEW_HASH_FROM_REVIEW_PACKET",
+  "actor": {
+    "uid": "COPY_EXACT_MANAGED_ADMIN_UID",
+    "email": "COPY_EXACT_MANAGED_ADMIN_EMAIL"
+  },
+  "confirmedAt": "REQUIRED_EXACT_ISO_TIMESTAMP"
+}

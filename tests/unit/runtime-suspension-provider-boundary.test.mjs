@@ -62,6 +62,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new GoogleSheetsApiReader",
   "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new RentVineClient",
   "lib/lease-renewal/live-config.ts:buildLiveRentVineConfig:new RentVineClient",
+  "lib/lease-renewal/rentvine-proof-service.ts:execute:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:commitCorrection:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:commitWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:createWriter:new GoogleSheetsApiWriter",
@@ -90,6 +91,10 @@ const EXPECTED_BOUNDARIES = [
   "scripts/ensure-maintenance-drive-folder.ts:main:new GoogleDriveClient",
   "scripts/import-agent-search-documents.mjs:ensureDataStore:dataStoreClient.createDataStore",
   "scripts/prove-rehearsal-sheet-write.ts:main:new GoogleSheetsApiWriter",
+  "scripts/prove-rentvine-renewal-write.ts:createWriter:new RentVineWriteClient",
+  "scripts/prove-rentvine-renewal-write.ts:getLease:new RentVineClient",
+  "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreExternalExecutionStore",
+  "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreRentVineProofCloseoutStore",
   "scripts/smoke-gmail-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-gmail-draft-live.ts:runGmailDraftSmoke:dependencies.createGmailClient",
   "scripts/smoke-renewal-draft-live.ts:createDiagnosticProvider:new LiveRenewalGmailDraftProvider",
@@ -206,6 +211,9 @@ const LAZY_SCRIPT_PROVIDER_FACTORIES = new Set([
   "scripts/smoke-renewal-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-renewal-draft-live.ts:createRentVineClient:new RentVineClient",
   "scripts/smoke-sheet-write.ts:createWriter:new GoogleSheetsApiWriter",
+  // The S30 script passes this closure into the proof service. Only execute/rollback invokes it,
+  // after exact confirmation, one-attempt claim, fresh-state reread, and the second runtime gate.
+  "scripts/prove-rentvine-renewal-write.ts:createWriter:new RentVineWriteClient",
 ]);
 
 const EXACT_CONFIRMED_SCRIPT_PROVIDER_FACTORIES = new Set([
@@ -220,11 +228,19 @@ const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
   "scripts/capture-test-set-baseline.ts:main:new GoogleSheetsApiReader",
   "scripts/capture-test-set-baseline.ts:main:new RentVineClient",
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
+  "scripts/prove-rentvine-renewal-write.ts:getLease:new RentVineClient",
   "scripts/smoke-renewal-review.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new RentVineClient",
   "scripts/smoke-rentcast-comp.ts:main:new RentCastMarketCompProvider",
   "scripts/smoke-rentvine-read.ts:main:new RentVineClient",
   "scripts/smoke-sheet-read.ts:main:new GoogleSheetsApiReader",
+]);
+
+// These Admin-SDK stores persist bodyless one-attempt/closeout evidence. They have no provider
+// transport, and the Firestore catch-all denies every browser read/write to their collections.
+const PROOF_LEDGER_SCRIPT_BOUNDARIES = new Set([
+  "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreExternalExecutionStore",
+  "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreRentVineProofCloseoutStore",
 ]);
 
 const OWNER_PROVISIONING_SCRIPT_BOUNDARIES = new Set([
@@ -255,6 +271,7 @@ const GATED_PROVIDER_ADAPTERS = new Set([
   "lib/lease-renewal/comp-screenshot-service.ts:getProvider:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:previewCompScreenshotRollback:deps.createProvider",
   "lib/lease-renewal/execution/renewal-draft-request.ts:executeRenewalNoticeDraft:createClient",
+  "lib/lease-renewal/rentvine-proof-service.ts:execute:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:commitCorrection:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:commitWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:previewCorrection:deps.createWriter",
@@ -378,6 +395,13 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     {
       file: "tests/unit/renewal-draft-request.test.ts",
       marker: "S51_DYNAMIC_REFUSAL:renewal-draft-request-client",
+    },
+  ],
+  [
+    "lib/lease-renewal/rentvine-proof-service.ts:execute:this.dependencies.createWriter",
+    {
+      file: "tests/unit/rentvine-proof-service.test.ts",
+      marker: "S51_DYNAMIC_REFUSAL:rentvine-proof-writer",
     },
   ],
   [
@@ -531,6 +555,7 @@ const DYNAMIC_REFUSAL_FACTORY_ASSERTIONS = new Map([
     "harness.createProvider",
   ],
   ["S51_DYNAMIC_REFUSAL:renewal-draft-request-client", "createClient"],
+  ["S51_DYNAMIC_REFUSAL:rentvine-proof-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:sheet-commit-correction-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:sheet-commit-writeback-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:sheet-preview-correction-writer", "h.createWriter"],
@@ -583,6 +608,7 @@ const DYNAMIC_REFUSAL_ENTRYPOINTS = new Map([
     "previewCompScreenshotRollback(",
   ],
   ["S51_DYNAMIC_REFUSAL:renewal-draft-request-client", "executeRenewalNoticeDraft("],
+  ["S51_DYNAMIC_REFUSAL:rentvine-proof-writer", "h.service.execute("],
   ["S51_DYNAMIC_REFUSAL:sheet-commit-correction-writer", "prepareOrCommitWriteback("],
   ["S51_DYNAMIC_REFUSAL:sheet-commit-writeback-writer", "prepareOrCommitWriteback("],
   ["S51_DYNAMIC_REFUSAL:sheet-preview-correction-writer", "prepareOrCommitWriteback("],
@@ -1051,6 +1077,7 @@ describe("runtime suspension provider-construction boundary", () => {
       ...LAZY_SCRIPT_PROVIDER_FACTORIES,
       ...EXACT_CONFIRMED_SCRIPT_PROVIDER_FACTORIES,
       ...READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES,
+      ...PROOF_LEDGER_SCRIPT_BOUNDARIES,
       ...OWNER_PROVISIONING_SCRIPT_BOUNDARIES,
       ...EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES,
       ...GATED_PROVIDER_ADAPTERS,
