@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-08-30.
+Last updated: 2026-08-31.
 
 This is a present snapshot, not a changelog. Historical implementation detail remains in Git.
 
@@ -23,6 +23,28 @@ Its normalized runtime configuration matched the predecessor after excluding onl
 and `APP_COMMIT_SHA` identity. Promotion and stable canonical smoke/readback proved the exact revision
 at 100% with the managed service account and all invariants preserved. The S30 action was reread
 non-executable after promotion.
+
+## Audited UI/UX and Dashboard initiative
+
+- S82-S96 are complete implementation specifications and are not deployed behavior.
+- `docs/feature-suites/README.md` is their single canonical queue. The first executable suite is S96,
+  which closes the UX-005 connector-disconnect hazard before visual expansion.
+- The queue then uses S85/S86 for visual and interaction foundations, S83 for access and authority
+  relocation, S84 for primary navigation, S82 for renewal desk/workspace changes, S88-S94 for the
+  bounded Dashboard assistant, S95 for atomic Dashboard cutover, and S87 for final product-wide
+  content reconciliation.
+- S94 executes once against strict S93-slot fixtures before S93; the later S93/S94 join is a
+  verification gate only. S95 consumes S87's specified manifest while S87 implementation remains
+  last, so the dependency graph is acyclic.
+- The audit added exact privacy, URL-state, request-intent, notice/filter, citation/narration-size,
+  cancellation, token, idempotency, compatibility, confirmation, recovery, and migration contracts.
+- No P1-P3 priority is asserted because no task-frequency evidence is available. The audit HTML is
+  repository evidence, not authenticated usability research or production certification.
+- No production feature, cloud resource, action key, role, provider record, Sheet cell, draft, or
+  client communication changed during this documentation-only audit.
+- Documentation readiness uses two non-deploying commits: the complete specification closure must pass
+  exact-SHA CI, then a pointer-only arming commit must record that evidence, point to S96, and pass its
+  own exact-SHA CI. Until both are green, Gate 0 is pending rather than an implementation blocker.
 
 ## Renewal stabilization bundle
 

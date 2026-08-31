@@ -1,6 +1,6 @@
 # PMI KC current product contract
 
-Updated: 2026-08-29.
+Updated: 2026-08-31.
 
 ## Application
 
@@ -53,15 +53,20 @@ closed.
 
 ## Current acceptance
 
-The production release at commit `4131df973ae2593d4f75184513db4366fb56ddae` passed 531 unit files
-with one intentional file skip (4,818 tests and four skips), 25 Firestore files/115 tests, every
-static/policy gate, a zero-vulnerability production audit, and the 104-page build. Exact-SHA aggregate
-CI run `33285602786` passed. Zero-traffic revision `pmi-kc-app-rmtf4s18h-3813fe5277d5` then passed
-exact identity, bounded-route, and configuration readback before promotion and stable 100% traffic
-readback. S80 revision `pmi-kc-app-rmtf01asj-4b3665ad072f` is the captured rollback target; the
-earlier predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
+The production release at commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` passed 559 unit files
+with one intentional file skip (5,064 tests and four skips), 26 Firestore files/119 tests, every
+static/policy gate, a zero-vulnerability production audit, and the 107-route build. Exact-SHA
+aggregate CI run `33330420327` passed. Zero-traffic revision
+`pmi-kc-app-rmtg73suu-fe8734d35330` then passed exact identity, bounded-route, and configuration
+readback before promotion and stable 100% traffic readback. Revision
+`pmi-kc-app-rmtfzwn77-8153d75d1cd5` is the immediate rollback target; the earlier predecessor chain
+retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
-Use `docs/plan.md`, `docs/client-checklist.md`, and `docs/feature-suites/README.md`. Historical
-V1/Demo specifications are not part of this contract. S72 is deployed; S75 is the next active suite.
+Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo
+specifications are not part of this contract. S82-S96 are audited desired-state contracts, not
+deployed behavior. After their documentation-readiness gate is committed and exact-SHA CI is green,
+S96 is the first executable suite; its UX-005 closure precedes visual expansion. The existing S63/
+S30 external acceptance and client/provider inputs remain parallel named checks rather than the next
+implementation task.

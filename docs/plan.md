@@ -1,92 +1,100 @@
 # PMI KC current plan
 
-Updated: 2026-08-30.
+Updated: 2026-08-31.
 
 ## Outcome
 
-Close the approved renewal stabilization bundle through independently verifiable implementation,
-safe production release, customer-readable evidence, consolidated human acceptance, and exact
-external blockers without weakening any send, write, identity, cost, or protected-path boundary.
+Execute the audited S82-S96 UI/UX and Dashboard assistant initiative from one fresh-context queue,
+closing the destructive connector-disconnect defect before visual expansion and preserving every
+current send, write, identity, privacy, cost, and protected-path boundary.
 
 ## Completed implementation
 
-| Order | Suite | Delivered standalone outcome                                                                                                                                                              |
-| ----: | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|     1 | S77   | Shared draft preview/exact-confirm/one-attempt/reconcile contract across browser, route, service, ledger, and composer.                                                                   |
-|     2 | S59   | Server-owned RentVine-to-RentCast query, cache, quota, and source/comparable evidence with base-rent/reference separation.                                                                |
-|     3 | S80   | Exhaustive role/Space/effect matrix for renewal pages, APIs, and controls; ordinary Editor work remains separate from stronger approvals and exact actions.                               |
-|     4 | S72   | Immutable six-step `renewal-v1` with detailed evidence/substeps, branches, reopening, legacy compatibility, and no provider-effect authority.                                             |
-|     5 | S75   | Exact-identity waiting/contact/due projection with most-specific unset-safe timing and manual linked-thread read refresh.                                                                 |
-|     6 | S78   | Canonical role-consistent Live desk with exact identity, deterministic URL query rules, cohort/retention, progress, follow-up, and next-action truth.                                     |
-|     7 | S74   | Versioned owner/tenant copy, locked server facts/recipients, allowlisted prose, deterministic fallback, exact hash binding, and honest channel states; currently review-only.             |
-|     8 | S79   | One current same-Space/lease receipt-bound image, deterministic MIME, exact raw-draft readback, and one-attempt reconciliation behind a closed Drive action.                              |
-|     9 | S81   | Capability-validated task-oriented Connections/Admin manifest and stable navigation without authority, store, credential, or provider-effect merge.                                       |
-|    10 | S63   | Secure exact-four source-read-only capture/baseline/evidence/report machinery with exact row/lease linkage, independent process/number/safety verdicts, and value-free output.            |
-|    11 | S30   | Secure managed-actor one-lease `endDate` proof runner with temporal freshness barriers, at-most-one forward/rollback, exact readback/reconciliation, and mandatory closed-state closeout. |
+The deployed baseline already includes S77, S59, S80, S72, S75, S78, S74, S79, S81, S63's
+source-read-only proof machinery, and S30's closed one-lease proof runner. Those suites remain current
+implementation truth and are prerequisites to preserve; they are not re-enqueued by this plan.
 
-All eleven suites contain a standalone goal, dual architecture/behavior model, human litmus,
-requirement traceability, preservation set, explicit dependencies/non-goals, and deterministic
-verification/terminal-state contract.
+S82-S96 are audited specifications only. None of their desired behavior is current production truth
+until its own implementation, verification, release, and readback gates pass.
 
 ## Completed release evidence
 
 - Commit: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`
 - Zero-traffic revision: `pmi-kc-app-rmtg73suu-fe8734d35330`; exact candidate smoke passed before
-  promotion, and the same revision now serves 100% traffic.
-- Exact-SHA aggregate CI run: `33330420327`, passed
+  promotion, and the same revision serves 100% traffic.
+- Exact-SHA aggregate CI run: `33330420327`, passed.
 - Canonical gate: 559 unit files passed plus one intentional skip; 5,064 tests passed plus four
-  skips; 26 Firestore files/119 tests; policy/static gates; 107-route build; production audit zero
-- Candidate/config/promotion/stable proof: passed
-- Immediate version-aware predecessor: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`
-- Post-release S30 action: non-executable
-- S30 implementation/release client/provider effects: zero
+  skips; 26 Firestore files/119 tests; policy/static gates; 107-route build; production audit zero.
+- Immediate version-aware predecessor: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`.
+- The earlier rollback rehearsal verified predecessor promotion, bounded smoke, exact restoration,
+  and repeat smoke.
+- No S63 or S30 live provider effect has run; the exact S30 action remains non-executable.
+- The prior customer artifact remains an editable 16:9, 8–10 slide customer readout delivered as 10
+  slides, and the consolidated acceptance artifact retains the eight-row human litmus.
 
-## Delivered closure artifacts
+## Active specified initiative
 
-1. S30 standalone contract corrected to one exact lease `endDate`, with recurring-charge proof
-   explicitly unreachable until exact readback is verified.
-2. S30 bodyless readiness packet with the complete future secure forward/rollback/closeout sequence.
-3. An editable 16:9, 8–10 slide customer readout delivered at 10 slides with a matching PDF; every
-   PowerPoint-rendered slide was visually inspected and PDF page count/dimensions were verified.
-4. Consolidated human litmus preserving the original eight-row human litmus and adding every suite,
-   including separate S63 process and number/safety entries.
-5. Adversarial intent-to-outcome audit proving standalone dual-model coverage and recording the S30
-   temporal-freshness/suspension corrections, provider limitations, preservation gates, and exact
-   external blockers.
+The one canonical manifest is `docs/feature-suites/README.md`. It includes each approved suite once,
+states prerequisites and join gates, and is the only execution-order authority for S82-S96.
+
+Canonical product decision: Close UX-005 before visual expansion. Then use S83 for access and
+authority relocation, S84 for primary navigation, and S82 for renewal desk/workspace changes. No
+P1-P3 score is assigned without task-frequency evidence.
 
 ## Current closure sequence
 
-1. Internal closure is complete: formatting, active-path/context/spec-traceability/copy/redaction,
-   static, binary, protected-path, secrets/PII, and stale-truth checks passed.
-2. The documentation/artifact slice is pushed at
-   `10dbdb007810aa9e38b0a524e1e15d983c98a7b6`; exact-SHA aggregate CI run `33335914690` passed. It was
-   not deployed because it changes no served asset.
-3. Resume only at external acceptance: first obtain the S63 secure exact-four packets and real human
-   process and number/safety verdicts; repair and rerun any observed FAIL.
-4. Keep S30 separately blocked unless the exact secure designation and explicit protected one-key
-   owner direction are both supplied. Never treat S63 evidence or a matching provider state as that
-   authority.
+1. Commit and push the audited specifications, audit evidence, and current planning/resume artifacts.
+   Require the local documentation gates and exact-SHA aggregate CI to pass. Do not deploy this
+   documentation-only slice.
+2. After that exact-SHA readback, make and push one pointer-only arming commit that records the
+   specification closure evidence; updates exactly `docs/feature-suites/README.md`,
+   `docs/loop-state.md`, this file, `docs/status.md`, and `docs/whats-next.md`; marks Gate 0 complete;
+   removes every active instruction to repeat it; and points the clean runner to S96. Require
+   documentation gates and exact-SHA CI green for that HEAD; do not deploy it. The exact armed action
+   is `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.`
+3. Implement S96 — safe connector disconnect and reconciliation.
+4. Implement S85 — global theme and visual system.
+5. Implement S86 — action feedback, help, and safe recovery, preserving S96.
+6. Implement S83 — capability-guided Admin access requests and approvals.
+7. Implement S84 — navbar dropdown navigation.
+8. Implement S82 — table-first renewal desk and guided lease workspace.
+9. Implement S88, then S89 — deterministic assistant foundation followed by privacy, observability,
+   cancellation, and cost controls.
+10. Implement S90 and S91 — Work/approval/access and renewal adapters.
+11. Implement S92 — knowledge adapter and bounded grounded narration.
+12. Implement S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures,
+    with no UI exposure.
+13. Implement S93 once against the real S94 contract, then pass the single S93/S94 integration gate.
+14. Implement S95 — atomic minimal Dashboard composition and relocation.
+15. Implement S87 last — six-cohort product-wide content hierarchy reconciliation and final
+    end-to-end verification.
+
+Default to serialization. The sole optional parallel group is bounded S90 and S91 domain work in
+isolated worktrees after S82, S83, S88, and S89 are green, with one integration owner and serialized
+shared registry/schema edits and delivery. No dependent starts after a failed prerequisite.
+
+For each code suite: freeze current-baseline and fail-first evidence; run focused adversarial and
+preservation tests, `bash scripts/verify.sh`, and `npm run test:e2e:core`; audit secrets, PII,
+protected paths, runtime configuration, effects, and diff; commit/push only a green slice; require
+exact-SHA aggregate CI; and release served code through the existing zero-traffic candidate, exact
+smoke, promotion, readback, and version-aware rollback contract. Reconcile the suite status, facts,
+status, plan, and loop state before advancing.
 
 No live RentVine record, operating Sheet cell, or client-facing message may be changed while this
 documentation/artifact closure runs.
 
-## External acceptance sequence
+## Parallel external acceptance
 
-1. Owner runs every consolidated human litmus row and records a dated observation; repair/rerun each
-   FAIL.
-2. Client/operator supplies S63 secure exact-four runtime/observation packets and performs separate
-   process and number/safety review.
-3. Client/owner separately supplies the S30 exact lease/date/actor/evidence packet and explicit
-   protected one-key direction before any live proof. Execute at most one forward, exact readback,
-   separately confirmed rollback/restoration, restore/read back closed, and close out.
-4. Client approves owner/tenant copy, mandatory/forbidden language, editable regions, channel evidence,
-   timing values, and override authority.
-5. Client/Admin supplies the distinct rehearsal Sheet/blank cell; client/provider supplies S66 and
-   other exact official provider contracts when those effects enter scope.
+The existing S63 secure-packet/human-review, S30 exact designation/protected direction, client copy,
+timing, rehearsal-Sheet, provider-contract, official-brand, live-vault, and human-litmus evidence may
+arrive in parallel. Each missing input blocks only its named proof or conformance check. It does not
+preempt the fail-closed S82-S96 implementation queue and must never be guessed.
 
 ## Completion rule
 
-Internal requested implementation is complete: the final documentation/artifact slice is green,
-pushed, and exact-SHA CI passed. Operational S63/S30 acceptance and human verdicts remain separately
-`BLOCKED` until their named external inputs/authority exist. Deployment, model evidence, or source
-read success never fills a human verdict or grants a provider effect.
+The documentation gate completes only after both the specification closure commit and its pointer-only
+arming commit are pushed and each exact SHA has green aggregate CI. Each implementation suite then terminates only as `ALL_GATES_GREEN`,
+`BUDGET_EXHAUSTED` when the user supplied an explicit budget, or `BLOCKED` on one exact unavailable
+input or authority after independent work is complete. The initiative completes only after S87 and
+the final end-to-end gate are green and all current truth documents match deployed readback. A model,
+test fixture, or matching provider state never supplies human evidence or grants an external effect.

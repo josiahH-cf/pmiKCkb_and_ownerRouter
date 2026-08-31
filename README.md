@@ -5,8 +5,8 @@ communications, maintenance, approvals, and staff work.
 
 Production: [pmi-kc-app](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app)
 
-Current deployed code is commit `13569183da57c419ac0da279dde5a6d6a0b0da14` on Cloud Run revision
-`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`. Production is explicit Live-only. Local rehearsal may use live
+Current deployed code is commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` on Cloud Run revision
+`pmi-kc-app-rmtg73suu-fe8734d35330`. Production is explicit Live-only. Local rehearsal may use live
 reads but refuses persistence and provider effects.
 
 ## Start here

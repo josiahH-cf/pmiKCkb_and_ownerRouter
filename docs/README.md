@@ -64,8 +64,10 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 
 ## Active feature contracts
 
-Use `docs/feature-suites/README.md`. Completed suites were removed from the active tree; code,
-tests, current facts, and Git history are their evidence.
+Use `docs/feature-suites/README.md`. It is the sole queue for the specified-but-unimplemented S82-S96
+initiative; after its documentation-readiness gate, S96 is the first executable suite. Completed
+suites were removed from the active tree; code, tests, current facts, and Git history are their
+evidence.
 
 ## Current meeting package
 
@@ -85,6 +87,8 @@ tests, current facts, and Git history are their evidence.
 
 ## Current evidence and templates
 
+- `docs/evidence/ui-ux-audit-2026-08-31.html` — self-contained source-evidenced UI/UX audit
+  workbench with matrices, findings, recommendations, reviewer decisions, and generated handoff.
 - `docs/evidence/gmail-dwd-grant-2026-07.md`
 - `docs/evidence/gmail-production-activation-2026-07-13.md`
 - `docs/evidence/s66-artifact-field-participant-gap-ledger-2026-08-10.md`

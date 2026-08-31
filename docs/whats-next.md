@@ -1,49 +1,50 @@
 # What is next
 
-Updated: 2026-08-30.
+Updated: 2026-08-31.
 
-## Internal bundle status
+## Immediate action
 
-The requested renewal stabilization implementation is complete to every authorized seam:
+Complete the documentation-readiness gate for the audited S82-S96 initiative:
 
-- S77, S59, S80, S72, S75, S78, S74, S79, S81, S63 machinery, and the S30 closed proof runner are
-  implemented, verified, pushed, and deployed.
-- The current production identity is commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` /
-  revision `pmi-kc-app-rmtg73suu-fe8734d35330` at 100% traffic.
-- The editable 10-slide customer readout and matching inspected PDF are in `docs/evidence/`.
-- The consolidated human litmus now covers the original eight checks, every suite, separate S63
-  process and number/safety reviews, and S30.
-- The final intent-to-outcome audit confirms every suite has a standalone goal, dual architecture and
-  behavior model, human litmus, preservation set, traceability, dependencies/non-goals, and delivery
-  contract.
+1. Validate and explicitly stage only the specifications, audit evidence, indexes, and current
+   planning/resume files.
+2. Preserve `.claude/settings.local.json` and `output/` as untracked user-owned content.
+3. Commit and push the documentation-only slice, require exact-SHA aggregate CI green, and do not
+   deploy it.
+4. After that readback, create a pointer-only arming commit updating exactly
+   `docs/feature-suites/README.md`, `docs/loop-state.md`, `docs/plan.md`, `docs/status.md`, and this
+   file. Record the closure SHA/CI, mark Gate 0 complete, remove every active instruction to repeat it,
+   and change the clean-context next action to `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.` Run documentation gates, push, and require exact-
+   SHA aggregate CI green for the arming HEAD; do not deploy it.
+5. Begin S96 only after the arming HEAD is green. Never repeat Gate 0 from that armed checkout. S96
+   closes UX-005 before any visual expansion.
 
-No hidden internal implementation slice remains in this requested bundle. Green deployed machinery is
-kept distinct from external operational evidence.
+## Implementation sequence
 
-## Exact next acceptance actions
+Use only the canonical queue in `docs/feature-suites/README.md`: S96, S85, S86, S83, S84, S82,
+S88, S89, S90, S91, S92, S94, S93, the S93/S94 integration verification gate, S95, and S87. Each
+suite executes once. S83 owns access/authority relocation, S84 primary navigation, S82 renewal desk/
+workspace behavior, and S87 the final six-cohort reconciliation.
 
-1. **Run the owner litmus.** Walk the deployed renewal journey and record a dated observation for every
-   row. Repair and rerun any genuine FAIL. Never fill a human verdict from model evidence.
-2. **Run S63 only after secure inputs arrive.** Supply the exact-four runtime and observation packets,
-   run the source-read-only report, and review process and number/safety verdicts separately.
-3. **Review S30 only as a separate protected decision.** Supply one exact secure lease/date/actor/
-   evidence packet and explicit one-key direction. The only proof shape is one lease `endDate`;
-   recurring-charge proof is unsupported. Run forward/readback, separately confirmed rollback/
-   restoration, then restore/read back the exact action closed and close out.
-4. **Publish client policy.** Approve owner/tenant wording, mandatory/forbidden copy, editable regions,
-   channel-evidence rules, timing values, and override authority.
-5. **Provide remaining exact seams.** Share a distinct rehearsal Sheet and blank cell; provide the S66
-   packet catalog and official Dotloop/provider OAuth/account/template/participant/field/signature/
-   webhook/correction mappings when those capabilities are in scope.
+The desired S82-S96 behavior is specified but not deployed. Continue to describe the current
+application using live readback and implemented facts until each exact suite passes its delivery and
+release gates.
 
-## Safe state while waiting
+## Safe state while advancing
 
-- S63 remains source-read-only with no report or human verdict inferred.
-- S30 remains non-executable; no target is substituted, no writer is constructed, and no ambiguous
-  effect is retried or presented as causality.
-- S74 remains review-only; unset copy/timing does not invoke model/Gmail or create due work.
-- The operating Sheet stays read-only; the rehearsal proof refuses without a distinct copy.
-- Direct client-send keys remain closed; governed initiation ends in an unsent Gmail draft and a
-  person sends from Gmail.
+- Queries never grant access, start workflows, create generic approvals, send client communication,
+  or write RentVine/the operating Sheet.
+- S94's only V1 write is one reviewed, human-confirmed renewal-to-self My Work task with exact
+  idempotency and readback; production exposure waits for both dedicated secrets.
+- S96 can complete its code/readback gates without destroying a live credential; live-vault proof is
+  separate evidence.
+- S89 establishes the privacy-safe Ask rollback floor before assistant exposure.
+- S95 changes `/` and `/ask` together only after complete S93/S94 integration and destination parity.
+- Official-brand sign-off and task-frequency priority scores are not inferred.
 
-Every missing external input blocks only its named capability. The rest of PMI KC remains usable.
+## Parallel external acceptance
+
+S63 secure packets/human verdicts, S30 designation/protected direction, client-approved copy and
+timing, official brand evidence, a live-vault proof, a distinct rehearsal Sheet, and exact provider
+contracts remain separate. Their absence blocks only the named capability or proof and does not
+redirect the current implementation queue.
