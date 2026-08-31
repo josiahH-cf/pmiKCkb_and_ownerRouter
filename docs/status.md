@@ -42,9 +42,10 @@ non-executable after promotion.
   repository evidence, not authenticated usability research or production certification.
 - No production feature, cloud resource, action key, role, provider record, Sheet cell, draft, or
   client communication changed during this documentation-only audit.
-- Documentation readiness uses two non-deploying commits: the complete specification closure must pass
-  exact-SHA CI, then a pointer-only arming commit must record that evidence, point to S96, and pass its
-  own exact-SHA CI. Until both are green, Gate 0 is pending rather than an implementation blocker.
+- Documentation Gate 0 is complete. Specification closure
+  `081fa90071170054e53a2182a68466fbccf4ebf4` passed local canonical verification and exact-SHA
+  aggregate CI run `33425658400`; the pointer-only handoff armed S96 without a deployment. Do not
+  repeat the audit or readiness gate.
 
 ## Renewal stabilization bundle
 
@@ -95,6 +96,8 @@ See `docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md`.
 - Exact-SHA aggregate CI run `33330420327`: passed.
 - Documentation/artifact closure commit `10dbdb007810aa9e38b0a524e1e15d983c98a7b6`: exact-SHA
   aggregate CI run `33335914690` passed; no deployment was performed because no served asset changed.
+- Audited S82-S96 specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
+  exact-SHA aggregate CI run `33425658400` passed all lanes; no deployment was performed.
 - Candidate/stable smoke, normalized configuration parity, traffic/Ready/runtime identity, and exact
   action readback: passed.
 - Protected paths changed: none.

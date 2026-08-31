@@ -4,20 +4,14 @@ Updated: 2026-08-31.
 
 ## Immediate action
 
-Complete the documentation-readiness gate for the audited S82-S96 initiative:
+Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation
+baseline, and materialize the named fail-first inertness/reconciliation tests before implementation;
+do not begin S85.
 
-1. Validate and explicitly stage only the specifications, audit evidence, indexes, and current
-   planning/resume files.
-2. Preserve `.claude/settings.local.json` and `output/` as untracked user-owned content.
-3. Commit and push the documentation-only slice, require exact-SHA aggregate CI green, and do not
-   deploy it.
-4. After that readback, create a pointer-only arming commit updating exactly
-   `docs/feature-suites/README.md`, `docs/loop-state.md`, `docs/plan.md`, `docs/status.md`, and this
-   file. Record the closure SHA/CI, mark Gate 0 complete, remove every active instruction to repeat it,
-   and change the clean-context next action to `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.` Run documentation gates, push, and require exact-
-   SHA aggregate CI green for the arming HEAD; do not deploy it.
-5. Begin S96 only after the arming HEAD is green. Never repeat Gate 0 from that armed checkout. S96
-   closes UX-005 before any visual expansion.
+Documentation Gate 0 is complete through specification closure
+`081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the
+pointer-only queue handoff. Do not repeat the audit or readiness gate. Preserve
+`.claude/settings.local.json` and `output/` as untracked user-owned content.
 
 ## Implementation sequence
 

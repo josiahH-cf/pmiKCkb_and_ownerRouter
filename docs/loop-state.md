@@ -17,6 +17,9 @@ weakening any existing effect boundary.
   implemented and deployed. Exact-SHA CI run `33330420327` is green.
 - S82-S96 are audited, mutually reconciled specifications, not implementation. Their sole queue is
   `docs/feature-suites/README.md`.
+- Documentation Gate 0 is complete. Specification closure
+  `081fa90071170054e53a2182a68466fbccf4ebf4` passed local canonical verification and exact-SHA
+  aggregate CI run `33425658400`; the pointer-only handoff armed S96 without a deployment.
 - S96 solely owns connector disconnect/reconciliation and is the first executable suite. S86 consumes
   and preserves it; no other suite may invent a second disconnect lifecycle or vault contract.
 - The queue uses S83 for access/authority relocation, S84 for primary navigation, and S82 for renewal
@@ -32,35 +35,28 @@ weakening any existing effect boundary.
 
 ## Next exact action
 
-Finish Gate 0 in two documentation-only commits. First validate and explicitly stage only the audited
-S82-S96 specifications, `docs/evidence/ui-ux-audit-2026-08-31.html`, and reconciled indexes/planning/
-resume files; commit and push; require exact-SHA aggregate CI green; do not deploy. Then make the
-pointer-only arming commit required by the canonical manifest: record the first commit SHA/CI
-readback; update exactly `docs/feature-suites/README.md`, this file, `docs/plan.md`, `docs/status.md`,
-and `docs/whats-next.md`; mark Gate 0 complete; remove every active instruction to repeat it; and
-change this section to: `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.` Run the documentation gates, push, require exact-SHA CI green for
-that arming HEAD, and do not deploy. A fresh runner must not begin S96 before the arming HEAD is green
-and must not repeat Gate 0 afterward.
+Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation
+baseline, and materialize the named fail-first inertness/reconciliation tests before implementation;
+do not begin S85.
 
 ## Canonical queue
 
-1. Documentation readiness gate
-2. S96
-3. S85
-4. S86
-5. S83
-6. S84
-7. S82
-8. S88
-9. S89
-10. S90
-11. S91
-12. S92
-13. S94
-14. S93
-15. S93/S94 integration verification gate
-16. S95
-17. S87 and final end-to-end verification
+1. S96
+2. S85
+3. S86
+4. S83
+5. S84
+6. S82
+7. S88
+8. S89
+9. S90
+10. S91
+11. S92
+12. S94
+13. S93
+14. S93/S94 integration verification gate
+15. S95
+16. S87 and final end-to-end verification
 
 Advance only after the preceding suite's complete delivery gate in the manifest. Default to serial
 execution in the shared checkout; use only the manifest's explicitly safe isolated-worktree

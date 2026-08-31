@@ -14,41 +14,32 @@ Approved direction, preserved verbatim: **Close UX-005 before visual expansion. 
 access and authority relocation, S84 for primary navigation, and S82 for renewal desk/workspace
 changes. No P1–P3 score is assigned without task-frequency evidence.**
 
-| Order | Suite / gate                                                | Prerequisites                        | Exact completion gate before advancing                                                                                                               |
-| ----: | ----------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-|     0 | Documentation readiness gate                                | Current baseline inspected           | Audited specs/plan/resume artifacts committed and pushed; local documentation gates and exact-SHA CI green; no feature implementation or deployment. |
-|     1 | S96 — Safe connector disconnect and reconciliation          | Gate 0                               | `ALL_GATES_GREEN`, served first-click inertness/readback green, and no live credential destroy required.                                             |
-|     2 | S85 — Global theme and visual system                        | S96                                  | Technical implementation `ALL_GATES_GREEN`; separate `brand_conformance: BLOCKED` is recorded without claiming official brand.                       |
-|     3 | S86 — Action feedback, help, and safe recovery              | S85, S96                             | Shared interaction gates green and the complete S96 preservation suite still green.                                                                  |
-|     4 | S83 — Capability-guided Admin access requests and approvals | S86                                  | Catalog/request/Admin-lane/apply/readback gates green; no self-grant or generic queue mirror.                                                        |
-|     5 | S84 — Navbar dropdown navigation                            | S83, S85, S86                        | Actor/Space, disclosure, terminology, utility-preservation, responsive, and route gates green.                                                       |
-|     6 | S82 — Table-first renewal desk and guided lease workspace   | S83, S84, S85, S86                   | Projection/query/privacy/link/workspace/compatibility gates green, including opaque party keys and bounded date ranges.                              |
-|     7 | S88 — Deterministic assistant query foundation              | S82/S83 route contracts available    | Strict registry, public/private carrier, filter/notice/result, zero-write, and preservation gates green.                                             |
-|     8 | S89 — Assistant privacy, observability, and cost controls   | S88                                  | Privacy-safe Ask baseline deployed and established as the rollback floor; budgets/cancellation/evaluations green.                                    |
-|     9 | S90 — Assistant Work, approval, and access adapters         | S83, S88, S89                        | Actor/source/availability/link/no-effect matrices green.                                                                                             |
-|    10 | S91 — Assistant renewal query adapter                       | S82, S88, S89                        | Canonical date/range/blocker/party-link/cancellation/source matrices green.                                                                          |
-|    11 | S92 — Assistant knowledge and grounded narration            | S88-S91                              | Knowledge adapter, minimized input, bounded citation/narration, deterministic fallback, and no-action gates green.                                   |
-|    12 | S94 — Assistant human-confirmed action proposals            | S88, S89, S91                        | Backend/projector/token/Review/Confirm/readback gates green against strict S93-slot fixtures; no UI exposure yet.                                    |
-|    13 | S93 — Dashboard assistant streaming and linked results      | S85, S86, S88-S92, S94               | Complete stream/UI implemented once against real S94; atomic finalization, correction bounds, accessibility, and preservation green.                 |
-|    14 | S93/S94 integration verification gate                       | S93, S94                             | Candidate, Review, Confirm, cancellation, receipt, refusal, response-loss, terminal-size, and accessibility integration green; no suite re-executes. |
-|    15 | S95 — Minimal Dashboard composition and relocation          | Gate 14, S84, S87 specified manifest | Atomic `/`/`/ask` cutover, destination parity, no eager legacy reads, and non-destructive coverage compatibility green.                              |
-|    16 | S87 — Product-wide content hierarchy and decluttering       | S82-S86 and S88-S96 implemented      | Six ordered cohorts, exact CB authority, all preservation/state/route/accessibility gates, and final end-to-end verification green.                  |
+| Order | Suite / gate                                                | Prerequisites                        | Exact completion gate before advancing                                                                                                                         |
+| ----: | ----------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     0 | Documentation readiness gate — **COMPLETE**                 | Current baseline inspected           | Closure `081fa90071170054e53a2182a68466fbccf4ebf4` passed aggregate CI `33425658400`; pointer-only handoff armed S96; no feature implementation or deployment. |
+|     1 | S96 — Safe connector disconnect and reconciliation          | Gate 0                               | `ALL_GATES_GREEN`, served first-click inertness/readback green, and no live credential destroy required.                                                       |
+|     2 | S85 — Global theme and visual system                        | S96                                  | Technical implementation `ALL_GATES_GREEN`; separate `brand_conformance: BLOCKED` is recorded without claiming official brand.                                 |
+|     3 | S86 — Action feedback, help, and safe recovery              | S85, S96                             | Shared interaction gates green and the complete S96 preservation suite still green.                                                                            |
+|     4 | S83 — Capability-guided Admin access requests and approvals | S86                                  | Catalog/request/Admin-lane/apply/readback gates green; no self-grant or generic queue mirror.                                                                  |
+|     5 | S84 — Navbar dropdown navigation                            | S83, S85, S86                        | Actor/Space, disclosure, terminology, utility-preservation, responsive, and route gates green.                                                                 |
+|     6 | S82 — Table-first renewal desk and guided lease workspace   | S83, S84, S85, S86                   | Projection/query/privacy/link/workspace/compatibility gates green, including opaque party keys and bounded date ranges.                                        |
+|     7 | S88 — Deterministic assistant query foundation              | S82/S83 route contracts available    | Strict registry, public/private carrier, filter/notice/result, zero-write, and preservation gates green.                                                       |
+|     8 | S89 — Assistant privacy, observability, and cost controls   | S88                                  | Privacy-safe Ask baseline deployed and established as the rollback floor; budgets/cancellation/evaluations green.                                              |
+|     9 | S90 — Assistant Work, approval, and access adapters         | S83, S88, S89                        | Actor/source/availability/link/no-effect matrices green.                                                                                                       |
+|    10 | S91 — Assistant renewal query adapter                       | S82, S88, S89                        | Canonical date/range/blocker/party-link/cancellation/source matrices green.                                                                                    |
+|    11 | S92 — Assistant knowledge and grounded narration            | S88-S91                              | Knowledge adapter, minimized input, bounded citation/narration, deterministic fallback, and no-action gates green.                                             |
+|    12 | S94 — Assistant human-confirmed action proposals            | S88, S89, S91                        | Backend/projector/token/Review/Confirm/readback gates green against strict S93-slot fixtures; no UI exposure yet.                                              |
+|    13 | S93 — Dashboard assistant streaming and linked results      | S85, S86, S88-S92, S94               | Complete stream/UI implemented once against real S94; atomic finalization, correction bounds, accessibility, and preservation green.                           |
+|    14 | S93/S94 integration verification gate                       | S93, S94                             | Candidate, Review, Confirm, cancellation, receipt, refusal, response-loss, terminal-size, and accessibility integration green; no suite re-executes.           |
+|    15 | S95 — Minimal Dashboard composition and relocation          | Gate 14, S84, S87 specified manifest | Atomic `/`/`/ask` cutover, destination parity, no eager legacy reads, and non-destructive coverage compatibility green.                                        |
+|    16 | S87 — Product-wide content hierarchy and decluttering       | S82-S86 and S88-S96 implemented      | Six ordered cohorts, exact CB authority, all preservation/state/route/accessibility gates, and final end-to-end verification green.                            |
 
-Gate 0 is intentionally a two-commit documentation closure so a clean checkout cannot repeat the
-audit or start S96 before the audited artifacts are durable:
-
-1. Commit and push the complete specification/evidence/index/planning set, run the local documentation
-   and canonical verification gates, and require exact-SHA aggregate CI green for that specification
-   closure commit.
-2. After that CI readback, make one pointer-only arming commit that updates exactly this manifest,
-   `docs/loop-state.md`, `docs/plan.md`, `docs/status.md`, and `docs/whats-next.md`: record the
-   specification closure SHA/CI evidence, mark Gate 0 complete, remove every active instruction to
-   repeat it, and make this the next exact action: `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.` Re-run the documentation gates, push, and require
-   exact-SHA aggregate CI green for the arming HEAD.
-
-Neither commit deploys. Until step 2's exact-SHA CI is green, Gate 0 remains incomplete and a fresh
-runner stops at this gate. Once it is green, Gate 0 executes no more; the clean-context runner begins
-S96 from the then-current `docs/loop-state.md`.
+Gate 0 completed once through the audited specification closure
+`081fa90071170054e53a2182a68466fbccf4ebf4`, whose local canonical verification and exact-SHA
+aggregate CI run `33425658400` passed, followed by the pointer-only queue handoff. Neither step
+deployed or changed a production feature. Do not repeat the audit or documentation-readiness gate.
+From a green checkout of the armed queue, begin S96 from `docs/loop-state.md`; do not begin S85 until
+S96 reaches its completion gate.
 
 Default execution is serialized because suites update shared registries, shell components, and
 governance docs. The sole optional parallel group is bounded S90 and S91 domain work in isolated

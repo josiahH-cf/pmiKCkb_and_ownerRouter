@@ -41,32 +41,30 @@ Canonical product decision: Close UX-005 before visual expansion. Then use S83 f
 authority relocation, S84 for primary navigation, and S82 for renewal desk/workspace changes. No
 P1-P3 score is assigned without task-frequency evidence.
 
-## Current closure sequence
+## Armed execution sequence
 
-1. Commit and push the audited specifications, audit evidence, and current planning/resume artifacts.
-   Require the local documentation gates and exact-SHA aggregate CI to pass. Do not deploy this
-   documentation-only slice.
-2. After that exact-SHA readback, make and push one pointer-only arming commit that records the
-   specification closure evidence; updates exactly `docs/feature-suites/README.md`,
-   `docs/loop-state.md`, this file, `docs/status.md`, and `docs/whats-next.md`; marks Gate 0 complete;
-   removes every active instruction to repeat it; and points the clean runner to S96. Require
-   documentation gates and exact-SHA CI green for that HEAD; do not deploy it. The exact armed action
-   is `Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation baseline, and materialize the named fail-first inertness/reconciliation tests before implementation; do not begin S85.`
-3. Implement S96 — safe connector disconnect and reconciliation.
-4. Implement S85 — global theme and visual system.
-5. Implement S86 — action feedback, help, and safe recovery, preserving S96.
-6. Implement S83 — capability-guided Admin access requests and approvals.
-7. Implement S84 — navbar dropdown navigation.
-8. Implement S82 — table-first renewal desk and guided lease workspace.
-9. Implement S88, then S89 — deterministic assistant foundation followed by privacy, observability,
+Documentation Gate 0 is complete. The audited specification closure
+`081fa90071170054e53a2182a68466fbccf4ebf4` passed local canonical verification and exact-SHA
+aggregate CI run `33425658400`; the pointer-only handoff armed the queue without a deployment. Do not
+repeat that gate.
+
+1. Implement S96 — safe connector disconnect and reconciliation. Begin by re-verifying connector
+   component/route/store/vault/setup/auth truth, freezing the preservation baseline, and
+   materializing the named fail-first inertness/reconciliation tests. Do not begin S85.
+2. Implement S85 — global theme and visual system.
+3. Implement S86 — action feedback, help, and safe recovery, preserving S96.
+4. Implement S83 — capability-guided Admin access requests and approvals.
+5. Implement S84 — navbar dropdown navigation.
+6. Implement S82 — table-first renewal desk and guided lease workspace.
+7. Implement S88, then S89 — deterministic assistant foundation followed by privacy, observability,
    cancellation, and cost controls.
-10. Implement S90 and S91 — Work/approval/access and renewal adapters.
-11. Implement S92 — knowledge adapter and bounded grounded narration.
-12. Implement S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures,
+8. Implement S90 and S91 — Work/approval/access and renewal adapters.
+9. Implement S92 — knowledge adapter and bounded grounded narration.
+10. Implement S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures,
     with no UI exposure.
-13. Implement S93 once against the real S94 contract, then pass the single S93/S94 integration gate.
-14. Implement S95 — atomic minimal Dashboard composition and relocation.
-15. Implement S87 last — six-cohort product-wide content hierarchy reconciliation and final
+11. Implement S93 once against the real S94 contract, then pass the single S93/S94 integration gate.
+12. Implement S95 — atomic minimal Dashboard composition and relocation.
+13. Implement S87 last — six-cohort product-wide content hierarchy reconciliation and final
     end-to-end verification.
 
 Default to serialization. The sole optional parallel group is bounded S90 and S91 domain work in
@@ -80,8 +78,8 @@ exact-SHA aggregate CI; and release served code through the existing zero-traffi
 smoke, promotion, readback, and version-aware rollback contract. Reconcile the suite status, facts,
 status, plan, and loop state before advancing.
 
-No live RentVine record, operating Sheet cell, or client-facing message may be changed while this
-documentation/artifact closure runs.
+No live RentVine record, operating Sheet cell, or client-facing message may be changed outside the
+exact authority and delivery contract of an implementing suite.
 
 ## Parallel external acceptance
 
@@ -92,8 +90,8 @@ preempt the fail-closed S82-S96 implementation queue and must never be guessed.
 
 ## Completion rule
 
-The documentation gate completes only after both the specification closure commit and its pointer-only
-arming commit are pushed and each exact SHA has green aggregate CI. Each implementation suite then terminates only as `ALL_GATES_GREEN`,
+Documentation Gate 0 is complete and must not be re-enqueued. Each implementation suite terminates
+only as `ALL_GATES_GREEN`,
 `BUDGET_EXHAUSTED` when the user supplied an explicit budget, or `BLOCKED` on one exact unavailable
 input or authority after independent work is complete. The initiative completes only after S87 and
 the final end-to-end gate are green and all current truth documents match deployed readback. A model,
