@@ -41,7 +41,7 @@ Canonical product decision: Close UX-005 before visual expansion. Then use S83 f
 authority relocation, S84 for primary navigation, and S82 for renewal desk/workspace changes. No
 P1-P3 score is assigned without task-frequency evidence.
 
-## Armed execution sequence
+## Current closure sequence
 
 Documentation Gate 0 is complete. The audited specification closure
 `081fa90071170054e53a2182a68466fbccf4ebf4` passed local canonical verification and exact-SHA
