@@ -116,7 +116,10 @@ See `docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md`.
 - Console, 11 Spaces, processes, approvals, Admin, Maintenance, feedback, resident intake, Vendor
   boundaries, and work accountability.
 
-## Exact external blockers
+## Outstanding external acceptance inputs
+
+These inputs block only their named proof, conformance check, or separately gated provider effect;
+none blocks the fail-closed S82-S96 implementation queue.
 
 1. S63 secure exact-four runtime and observation packets plus owner review.
 2. S30 exact one-lease/date designation plus separate protected one-key direction.

@@ -172,9 +172,12 @@ primary navigation landmark. Visual spacing may adapt, but that semantic order d
 - Only one navbar dropdown is open. Opening another group closes the previous group. S84 registers
   its navbar layer with S86's cross-family transient coordinator; that coordinator handles mutual
   exclusion with Notifications and Appearance without changing their content or behavior.
-- Escape closes the open dropdown and returns focus to its trigger when focus was inside. If Escape
-  was used while the pointer still hovers the trigger, that trigger remains suppressed until the
-  pointer leaves and re-enters or the user deliberately activates it.
+- Any close not caused by the pointer leaving both trigger and panel suppresses hover-only reopening
+  while the pointer remains in that trigger/panel region. This includes trigger toggle, Escape,
+  keyboard focus-out, opening another group, and S86 coordinator closure by another transient layer.
+  The suppression clears only when the pointer leaves and re-enters; a deliberate click, pen/touch
+  activation, Enter, or Space may still reopen the group immediately. Escape returns focus to the
+  trigger when focus was inside. Route change and sign-out reset/unmount the transient state.
 - Clicking outside the primary navigation, moving keyboard focus out of the disclosure, selecting a
   destination, signing out, or completing a route change closes transient navigation state.
 - A visual hover/focus response begins immediately; the 350 ms delay applies only to revealing the
@@ -412,8 +415,9 @@ and every external action refusal remain green separately.
   URLs remain independently denied when unauthorized.
 - **AC-S84-3** — Click/tap/Enter/Space open immediately; fine-pointer hover does not open at 349 ms
   and does at 350 ms; leave closes after 250 ms; trigger-to-panel crossing cancels close; coarse
-  pointer does not hover-open; only one navbar panel remains and S86 receives accurate open/close
-  registration.
+  pointer does not hover-open; trigger/Escape/focus-out/another-layer closure cannot hover-reopen
+  until pointer exit/re-entry, while deliberate activation can reopen immediately; only one navbar
+  panel remains and S86 receives accurate open/close registration.
 - **AC-S84-4** — Tab order, Down/Up Arrow entry, Escape focus return and hover suppression,
   `aria-expanded`, `aria-controls`, nested lists, link names/descriptions, `aria-current`, and current
   parent markers pass without `menu`/`menubar`/`menuitem` roles or a desktop focus trap.

@@ -155,9 +155,12 @@ tests. S95 retires it as follows:
 - Notifications renders no Space Coverage heading, all-clear copy, rows, count, family toggle,
   threshold, or snooze control, and its full loader skips the coverage resolver/read;
 - NotificationMenu's served family catalog omits Space Coverage;
-- a legacy direct `/api/ask/app-state?query=coverage` request returns HTTP 410 with public type
-  `RetiredAppStateQuery` and exact message `Space coverage is no longer a user-facing query.` It
-  performs no process-definition/connector read;
+- after the existing authentication guard, a legacy direct
+  `/api/ask/app-state?query=coverage` request returns HTTP 410, header
+  `Cache-Control: no-store`, and exactly
+  `{ "type": "RetiredAppStateQuery", "message": "Space coverage is no longer a user-facing query." }`.
+  It performs no process-definition/connector read. Other unknown query values retain their existing
+  HTTP 400 behavior;
 - S88's intent registry and S90/S91 adapters do not map any assistant question to a coverage query;
 - legacy stored `space_coverage` mute and `coverage` snooze values remain decode-compatible so an old
   preference document cannot break the rest of Notifications. They are ignored and omitted from
@@ -182,13 +185,23 @@ Firestore snapshot before normalization. It contains no uid or unrelated prefere
 The public GET omits this carrier. PATCH runs in one transaction, rereads the raw current document,
 parses only active submitted keys, and writes active map members through exact field paths so the
 deprecated `coverage` members are neither overwritten nor deleted. For array fields it combines the
-new canonical active subsequence with the captured deprecated occurrences in their preserved relative
-order; the active API can neither add nor remove a deprecated occurrence. The transaction rejects an
+new canonical active subsequence first, followed by every captured deprecated occurrence in its
+original raw relative order; duplicate deprecated occurrences are preserved exactly. This ordering
+is the canonical rollback-compatible write regardless of whether deprecated entries were before,
+between, or after active entries in the prior raw array. The active API can neither add nor remove a
+deprecated occurrence. The transaction rejects an
 oversize/unsupported deprecated raw type without modifying the document and shows a bounded preference
 error; it never silently strips the value. Immediate raw readback must equal the prewrite deprecated
 carrier and the requested active values before success. This seam is compatibility state only—never
 served, rendered, counted, logged, or accepted from the client—and is deleted only by the later
 authorized migration named above.
+
+`Canonical active subsequence` is not a registry sort. For a submitted array, it is the validated
+active values in client-submitted order after only the deduplication already owned by that field
+(`muted_families` keeps first occurrence; `digest_lanes` preserves its current duplicate/order
+behavior). For an omitted optional array, it is the current raw active sequence in original relative
+order after the field's existing validation; no omission reorders it. The deprecated occurrences are
+then appended as declared above.
 
 This does not remove the concept of whether one actual Internal Process is configured. `/spaces`
 continues to read process definitions and connector presence, call `computeSpaceCardState`, and show
@@ -399,12 +412,17 @@ setup.
   process definitions, decision gather, connection/coverage state, connector presence, renewal desk,
   anticipation, or a substitute dashboard summary; AppShell Notification behavior remains green.
 - **AC-S95-4** — `ARCH-S95-4` producer-to-renderer tests prove no coverage signal/family/preference/
-  count/assistant result survives; legacy endpoint returns exact 410 and zero Firestore/provider/
-  process/connector reads.
+  count/assistant result survives; after authentication, the legacy endpoint returns only the exact
+  410 JSON/no-store contract with zero Firestore/provider/process/connector reads, while every other
+  unknown query retains the existing 400 behavior.
 - **AC-S95-5** — `ARCH-S95-4/6` legacy preference fixtures containing only or mixed
   `space_coverage`/`coverage`, duplicates, malformed dates, and current keys decode without blanking
-  Notifications, never serve the retired keys, and preserve them byte-for-byte on authorized saves
-  without a destructive migration.
+  Notifications, never serve the retired keys, and preserve them byte-for-byte on authorized saves.
+  Before/between/after and duplicate fixtures prove each saved array is the canonical active
+  subsequence followed by all captured deprecated occurrences in original raw relative order; the
+  active subsequence preserves submitted order/current field-specific deduplication or omitted raw
+  order exactly, the client cannot add/remove deprecated occurrences, and no destructive migration
+  occurs.
 - **AC-S95-6** — `BEH-S95-5/6` Internal Process state fixtures prove needs-process,
   connections-needed, ready, reference, unavailable, role/Space filtering, and full-card navigation
   remain byte-equivalent apart from S84 visible aliases.

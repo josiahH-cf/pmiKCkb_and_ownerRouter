@@ -262,23 +262,60 @@ query/model call or changes canonical completeness.
 
 ### Bodyless telemetry
 
-Emit one best-effort structured Cloud Run log event per terminal request and optional phase events
-only where required for latency measurement. The allow-listed `AssistantTelemetryEventV1` contains:
+V1 emits exactly one best-effort structured Cloud Run log event per request that obtained an S88
+query context: the terminal `closed` event. It emits no phase events; the one closed record carries
+all stage durations needed for latency measurement. Media/body/schema/auth failures obtain no query
+context and emit no assistant event.
 
-- fixed marker and schema/event version;
-- random S88 `query_id` from the post-schema server context and route version, with no actor/session/
-  conversation identity; media/body/schema/auth failures emit no assistant event, while rate/
-  concurrency refusals use this id without pretending the coordinator ran;
-- allow-listed intent or `none`, terminal state, five-state aggregate completeness (`complete`,
-  `partial`, `unavailable`, `not_applicable`, or `not_evaluated`), adapter ids/versions and four-state
-  outcomes;
-- total and stage durations, timeout/cancellation/rate/concurrency outcome, and stable error code;
-- narration outcome (`not_applicable`, `model_completed`, `deterministic_no_model`,
-  `deterministic_skipped_rate`, `deterministic_skipped_capacity`,
-  `deterministic_input_too_large`, `deterministic_cancelled`, `deterministic_timed_out`,
-  `deterministic_invalid`, or `deterministic_failed`), configured allow-listed model key only when a
-  call began, and numeric input/output token usage only when actually reported; and
-- deployment environment/version fields already safe for production diagnostics.
+`AssistantTelemetryEventV1` is one closed object with exactly these fields; no field is omitted and
+no unknown field is accepted by schema snapshots:
+
+```text
+schema_version: "assistant-telemetry-event-v1"
+event_name: "closed"
+query_id: exact random opaque S88 context id
+request_schema_version: "assistant-query-v1"
+intent: one registered S88 intent key | "none"
+terminal_state: "answered" | "clarification_required" | "unsupported" | "denied" |
+                "unavailable" | "refused" | "error"
+completeness: "complete" | "partial" | "unavailable" | "not_applicable" | "not_evaluated"
+adapter_outcomes: [{ adapter_id: exact registered versioned id,
+                     state: "complete" | "partial" | "unavailable" | "not_applicable" }]
+durations_ms: { routing: nonnegative safe integer | null,
+                reading: nonnegative safe integer | null,
+                narrating: nonnegative safe integer | null,
+                finalizing: nonnegative safe integer | null,
+                total: nonnegative safe integer }
+timed_out: boolean
+cancelled: boolean
+rate_outcome: "admitted" | "refused" | "not_evaluated"
+concurrency_outcome: "admitted" | "refused" | "not_evaluated"
+stable_error_code: "assistant_request_rate_limited" |
+                   "assistant_query_capacity_exhausted" |
+                   "assistant_timeout" | "assistant_cancelled" |
+                   "assistant_stream_interrupted" | "assistant_unexpected" | null
+narration_outcome: "not_applicable" | "model_completed" | "deterministic_no_model" |
+                   "deterministic_skipped_rate" | "deterministic_skipped_capacity" |
+                   "deterministic_input_too_large" | "deterministic_cancelled" |
+                   "deterministic_timed_out" | "deterministic_invalid" |
+                   "deterministic_failed"
+model_key: configured allow-listed model key | null
+input_tokens: nonnegative safe integer | null
+output_tokens: nonnegative safe integer | null
+environment_kind: "production" | "demo"
+data_context: "live" | "live_readonly" | "demo"
+service: sanitized `/api/version` service value
+revision: sanitized `/api/version` revision value
+commit: sanitized `/api/version` 40-character lowercase commit
+```
+
+`adapter_outcomes` is in registered adapter order and contains no count, source, filter, record, or
+route value. A stage duration is non-null only when that stage began; `total` covers context creation
+through closure. `model_key` is non-null only when a model call began. Token fields are non-null only
+when the configured provider actually reported each value; unavailable usage is `null`, never zero or
+estimated. Deployment fields come only from the validated environment descriptor and bodyless version
+projection; an invalid or missing value fails the rollout telemetry gate instead of accepting
+arbitrary environment text.
 
 It never contains uid, email, role/Space claim values, IP/user-agent, question, answer, narration,
 item/group values, counts of customer/business records, filters/dates, ids, links, citations/excerpts,
@@ -286,15 +323,18 @@ source/provider payload, task/approval/request reason, messages, stack traces, p
 or raw errors. Error mapping happens before emission. Metric/log labels use finite allowlists so
 customer text cannot create high-cardinality labels.
 
-The one exception to `ids` is the random per-request S88 `query_id` explicitly listed above. It is
-not derived from or reusable as an actor, session, conversation, source, record, route, candidate,
-proposal, execution, or provider id. Every stable, business, source, actor, and action id/hash remains
-forbidden.
+The one request-local id exception is the random S88 `query_id` explicitly listed above. It is not
+derived from or reusable as an actor, session, conversation, source, record, route, candidate,
+proposal, execution, or provider id. Only the exact registered adapter/model keys and sanitized
+deployment service/revision/commit fields declared in the closed schema are additionally permitted;
+every business, source, actor, action, and route id/hash remains forbidden.
 
-For a request that reaches S88, the terminal telemetry `terminal_state`, `completeness`, and intent
-mirror the validated public result. The two refusals that happen after query-context creation but
-before S88 are telemetry-only outcomes; they do not manufacture an S88 result. Their values are
-frozen as follows:
+For a request that reaches an S88 terminal result, telemetry `terminal_state`, `completeness`, and
+intent mirror the validated public result. A post-admission timeout, cancellation, interruption, or
+unexpected failure without a result uses `terminal_state=error`, `completeness=not_evaluated`, the
+matching stable error code, and only stage durations/outcomes that actually began. The two refusals
+that happen after query-context creation but before S88 are telemetry-only outcomes; they do not
+manufacture an S88 result. Their values are frozen as follows:
 
 | Refusal boundary                     | HTTP result | `intent` | telemetry `terminal_state` | `completeness`  | `rate_outcome` | `concurrency_outcome` | `stable_error_code`                  | adapters/model/narration       |
 | ------------------------------------ | ----------- | -------- | -------------------------- | --------------- | -------------- | --------------------- | ------------------------------------ | ------------------------------ |
@@ -302,10 +342,10 @@ frozen as follows:
 | Four-query coordinator is full       | `503`       | `none`   | `refused`                  | `not_evaluated` | `admitted`     | `refused`             | `assistant_query_capacity_exhausted` | none / none / `not_applicable` |
 
 `refused` is an `AssistantTelemetryEventV1` terminal value only and is never accepted as an
-`AssistantQueryResultV1.terminal_state`. For these two rows, adapter ids/outcomes and stage
-durations are empty, cancellation and timeout are false, no model key or usage field is present,
-and one `closed` event uses the single S88 context id. Schema/media/auth failures create no context
-and no assistant event. An admitted coordinator run uses `rate_outcome: admitted` and
+`AssistantQueryResultV1.terminal_state`. For these two rows, `adapter_outcomes=[]`, all four stage
+durations are `null`, cancellation and timeout are false, model key and token fields are `null`, and
+one `closed` event uses the single S88 context id. Schema/media/auth failures create no context and no
+assistant event. An admitted coordinator run uses `rate_outcome: admitted` and
 `concurrency_outcome: admitted`; phases that were never evaluated use the exact
 `not_evaluated` value. No other error code or terminal/completeness pairing represents either
 pre-coordinator refusal.
@@ -313,14 +353,19 @@ pre-coordinator refusal.
 The sink is non-authoritative and best effort: telemetry failure neither changes the user result nor
 causes a retry. New assistant queries never call `FirestoreAskLogWriter` or create a Firestore query/
 transcript record. Before the Dashboard may reuse legacy knowledge answering, the direct Ask path
-must stop creating new body-bearing `ask_logs` and emit the same bodyless outcome contract instead;
-its response compatibility may remain unchanged.
+must stop creating new body-bearing `ask_logs`. Because legacy `/api/ask` creates no S88 context and
+does not run the S88 intent/adapter/result contract, it emits no `AssistantTelemetryEventV1` and must
+not fabricate that schema's query id, request version, intent, completeness, adapter, or narration
+fields. S89 adds no separate legacy per-request event schema. Its response, retrieval, correction/
+capture, and UI compatibility remain unchanged; current assistant telemetry begins only on the S88
+query path that owns the closed schema above.
 
 Historical `ask_logs` are not deleted, rewritten, copied, or reclassified by this suite. Such a
 destructive retention/rules change requires exact owner direction and a separate backup/readback
-plan. `lib/admin/observability.ts` may not present the historical collection as current assistant
-activity after writes stop; it must either label the old window `Legacy Ask` with its last event time
-or consume bodyless log-based aggregate metrics. No UI may expose raw telemetry events to non-Admins.
+plan. Retain the existing Firestore-derived Admin observability card/window, relabel it exactly
+`Legacy Ask`, show its last-event time, and stop presenting it as current assistant activity after
+writes stop. New assistant telemetry remains exclusively in Cloud Logging/Monitoring; S89 adds no
+in-app log aggregation path. No UI may expose raw telemetry events to non-Admins.
 
 Use Cloud Run structured logging and the project's existing logging retention as read back before
 rollout; do not create a parallel Firestore telemetry collection or change log retention under this
@@ -364,10 +409,10 @@ Roll out in this order:
 1. land bodyless event schema/redaction tests, request/concurrency/deadline utilities, provider
    abort/usage seam, and the complete synthetic evaluation corpus with no UI exposure;
 2. create and promote a privacy-compatibility baseline that changes the legacy direct Ask route only
-   enough to stop new body-bearing `ask_logs` and emit the bodyless outcome contract, while preserving
-   its response, retrieval, correction/capture, and UI behavior. Smoke the exact revision, read back
-   zero new body-bearing records, and record that promoted privacy-safe revision as the minimum legal
-   rollback floor. Do not expose the new assistant in this release; and
+   enough to stop new body-bearing `ask_logs`, while preserving its response, retrieval, correction/
+   capture, and UI behavior and emitting no falsely labelled S88 telemetry. Smoke the exact revision,
+   read back zero new body-bearing records, and record that promoted privacy-safe revision as the
+   minimum legal rollback floor. Do not expose the new assistant in this release; and
 3. close S89 after its exact promoted privacy baseline, runtime/budget/logging readback, bodyless-
    metric proof, and zero product/provider-write proof are recorded. S89 neither re-lands S88 nor
    implements or exposes S92, S93, S94, or S95.
@@ -459,8 +504,9 @@ created.
   bucket, four active queries, two active narrators, three-adapter fan-out, 10/20/30/50-second stage/
   total limits, permit cleanup, cancellation propagation, and no automatic retry.
 - **ARCH-S89-5** — One allow-listed `AssistantTelemetryEventV1` emits bodyless structured Cloud Run
-  diagnostics and metrics without actor/content/business-value fields; new assistant and migrated
-  legacy Ask paths create no body-bearing Ask log.
+  diagnostics and metrics for S88-context queries without actor/content/business-value fields. New
+  assistant queries and migrated legacy Ask calls create no body-bearing Ask log; legacy Ask creates
+  no falsely labelled S88 event.
 - **ARCH-S89-6** — One synthetic evaluation and rollout gate maps every intent, actor/scope, source
   state, route, prompt/output attack, limit, timeout, cancellation, telemetry, model fallback, and
   no-effect invariant to fail-first evidence before exposure.
@@ -526,15 +572,15 @@ links, customer values, or model prompt from routine telemetry.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                   | Architecture outcome | Behavior outcome | Human litmus                   | Deterministic evidence / falsification                                                                                                                                                              |
-| --------------------------------------------- | -------------------- | ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session-only transcript and clear             | `ARCH-S89-1`         | `BEH-S89-1`      | Use and clear                  | Browser/storage/network spies prove in-memory turns, clear/focus, new-tab retention, and no reload/unmount/sign-out/restart restoration or history submission.                                      |
-| Prompt/data minimization and injection safety | `ARCH-S89-2/3`       | `BEH-S89-2`      | Keep working without model     | Seeded sensitive-field/property tests, 32 KiB/20-item bounds, untrusted-text attacks, unknown refs/facts/links/actions, and invalid output all refuse narration while preserving S88.               |
-| Bounded one-call model use                    | `ARCH-S89-3/4`       | `BEH-S89-2/3`    | Keep working without model     | Provider spies prove ≤1 Dashboard narration call, ≤1,024 tokens, temperature ≤0.2, configured provider only, reported/missing usage truth, abort/deadline, and no retry/failover.                   |
-| Rate/concurrency/time/deadline control        | `ARCH-S89-4`         | `BEH-S89-3/4`    | Stop an in-flight question     | Fake-clock/semaphore tests prove 15/0.5 bucket, 4/2/3 caps, 10/20/30/50-second precedence, Retry-After, capacity fallback, abort, late-result discard, and permit cleanup.                          |
-| Bodyless useful telemetry                     | `ARCH-S89-5`         | `BEH-S89-5`      | Diagnose without conversations | Exact event-schema snapshots and canary-secret/PII scans reject every forbidden field/value, cap label cardinality, tolerate sink failure, and produce declared counters/timing/token aggregates.   |
-| Stop new body-bearing Ask logs                | `ARCH-S89-5`         | `BEH-S89-1/5`    | Use and clear; Diagnose        | Firestore/log spies prove new assistant and migrated legacy calls create no question/answer/draft/citation/user record; historical records remain untouched and are not labelled current.           |
-| Comprehensive safe rollout                    | `ARCH-S89-6`         | `BEH-S89-6`      | All                            | Synthetic matrix, ten-request load rehearsal, zero-effect spies, canonical gate, budget/capacity/config readback, exact candidate/post-promotion smoke, and rollback proof are independently green. |
+| Requirement                                   | Architecture outcome | Behavior outcome | Human litmus                   | Deterministic evidence / falsification                                                                                                                                                                                          |
+| --------------------------------------------- | -------------------- | ---------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session-only transcript and clear             | `ARCH-S89-1`         | `BEH-S89-1`      | Use and clear                  | Browser/storage/network spies prove in-memory turns, clear/focus, new-tab retention, and no reload/unmount/sign-out/restart restoration or history submission.                                                                  |
+| Prompt/data minimization and injection safety | `ARCH-S89-2/3`       | `BEH-S89-2`      | Keep working without model     | Seeded sensitive-field/property tests, 32 KiB/20-item bounds, untrusted-text attacks, unknown refs/facts/links/actions, and invalid output all refuse narration while preserving S88.                                           |
+| Bounded one-call model use                    | `ARCH-S89-3/4`       | `BEH-S89-2/3`    | Keep working without model     | Provider spies prove ≤1 Dashboard narration call, ≤1,024 tokens, temperature ≤0.2, configured provider only, reported/missing usage truth, abort/deadline, and no retry/failover.                                               |
+| Rate/concurrency/time/deadline control        | `ARCH-S89-4`         | `BEH-S89-3/4`    | Stop an in-flight question     | Fake-clock/semaphore tests prove 15/0.5 bucket, 4/2/3 caps, 10/20/30/50-second precedence, Retry-After, capacity fallback, abort, late-result discard, and permit cleanup.                                                      |
+| Bodyless useful telemetry                     | `ARCH-S89-5`         | `BEH-S89-5`      | Diagnose without conversations | Exact event-schema snapshots and canary-secret/PII scans reject every forbidden field/value, cap label cardinality, tolerate sink failure, and produce declared counters/timing/token aggregates.                               |
+| Stop new body-bearing Ask logs                | `ARCH-S89-5`         | `BEH-S89-1/5`    | Use and clear; Diagnose        | Firestore/log spies prove new assistant and migrated legacy calls create no question/answer/draft/citation/user record; legacy calls create no S88 telemetry; historical records remain untouched and are not labelled current. |
+| Comprehensive safe rollout                    | `ARCH-S89-6`         | `BEH-S89-6`      | All                            | Synthetic matrix, ten-request load rehearsal, zero-effect spies, canonical gate, budget/capacity/config readback, exact candidate/post-promotion smoke, and rollback proof are independently green.                             |
 
 **Preservation set.**
 
@@ -577,13 +623,17 @@ historical `ask_logs` unchanged; secrets/PII gates; and canonical verification r
   silently complete result.
 - **AC-S89-6** — `ARCH-S89-5` rejects uid/email/role/scope/IP/user-agent/question/answer/item/count/
   filter/date/link/citation/excerpt/reason/message/prompt/provider payload/raw error/stack/secret and
-  every id/hash except the random S88 `query_id` in any telemetry key or value; dynamic labels outside
-  finite enums fail schema validation. Media/body/schema/auth failures prove that no context or event
-  exists; both post-context admission refusals prove exactly one bodyless `closed` event with the
-  frozen `refused`/`not_evaluated` projection and no source/model fields.
+  every business/source/actor/action/route id or hash; only the random S88 `query_id`, registered
+  adapter/model keys, and sanitized deployment fields are allowed. Dynamic labels outside finite
+  enums fail schema validation. Media/body/schema/auth failures prove that no context or event
+  exists; every context-bearing request proves exactly one bodyless `closed` event and zero phase
+  events, while both post-context admission refusals use the frozen `refused`/`not_evaluated`
+  projection with empty adapter outcomes and null model/token fields.
 - **AC-S89-7** — `ARCH-S89-5` proves telemetry outage cannot alter, delay, retry, or fail a query;
   `FirestoreAskLogWriter` is unreachable from the new route, new body-bearing legacy writes stop before
-  reuse, and no historical deletion/rule mutation occurs.
+  reuse, legacy calls emit no fabricated `AssistantTelemetryEventV1`, the existing Admin card reads
+  exactly `Legacy Ask` with its last-event time, no new in-app log aggregation path exists, and no
+  historical deletion/rule mutation occurs.
 - **AC-S89-8** — `ARCH-S89-6` rejects live/provider/customer fixtures, snapshot updates without
   reviewed expectations, missing actor/scope/source-state/route/model/cancel cases, or a passing KB
   corpus offered as operational evidence.
@@ -618,8 +668,8 @@ gates pass.
 - **Deliverable now:** Complete transcript/privacy policy helpers, narration-fact schema/minimizer,
   provider abort/usage/output seam, admission/semaphore/deadline controller, bodyless event schema/
   sink, log-based metric definitions, synthetic eval corpus/runner, load/privacy/effect tests, legacy-
-  log stop, rollout/readback checklist, and current documentation. Fake S88 data makes the slice fully
-  testable before a live UI or model call.
+  log stop with explicit no-S88-event behavior, rollout/readback checklist, and current documentation.
+  Fake S88 data makes the slice fully testable before a live UI or model call.
 - **Consumes:** the queued green S88 request/result envelopes and no-write contract, current Cloud
   Logging retention, and provider usage metadata. S92/S93 are intentionally absent during S89
   delivery and later consume these controls; strict fake downstream fixtures prove the seam without

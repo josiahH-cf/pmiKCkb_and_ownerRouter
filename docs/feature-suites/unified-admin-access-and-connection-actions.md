@@ -278,9 +278,9 @@ The requester confirms that exact server-issued preview. A denied first-party su
 this versioned `/admin/access` preselection query contract:
 
 | Key          | Accepted value and bound                                                                                                                                                               | Canonical/default rule                                                            |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------- | ------- | ------------------ | ----------- | ----------- | ----------------------------------------------------- |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `v`          | exact literal `1`                                                                                                                                                                      | required whenever any preselection key is emitted; the plain page omits the query |
-| `capability` | exactly one current catalog capability key from `read                                                                                                                                  | edit                                                                              | sendEmail | approve | resolvePlaceholder | manageAdmin | softDelete` | required for preselection and emitted first after `v` |
+| `capability` | exactly one current catalog capability key from `read`, `edit`, `sendEmail`, `approve`, `resolvePlaceholder`, `manageAdmin`, or `softDelete`                                           | required for preselection and emitted first after `v`                             |
 | `space`      | one exact current named Space id, 1 through 128 ASCII characters, accepted only when that catalog capability is Space-scoped and the actor may request that exact named Space          | optional; omitted for global capability intent and never represents `All spaces`  |
 | `return_to`  | one once-decoded relative same-origin route, 1 through 32,768 UTF-8 bytes, accepted only by S83's shared first-party return registry and its destination-specific path/query validator | optional; has no fragment; emitted after `space`; never navigated automatically   |
 
@@ -505,14 +505,16 @@ cannot be proved. Failure variants contain no request or attempt fields; success
 and do not masquerade as this union. Unknown keys or a status/message/commit-state/HTTP mismatch fails
 strict validation and, after Submit dispatch, enters `submission_unknown` as specified above.
 
-After authentication and strict body validation, Submit loads the retained attempt and consults the
-durable creation-attempt index before applying preview expiry or rebuilding current access. A matching
-index with `resolution_kind=created` returns `replayed`; one with
+After authentication and strict body validation, Submit consults the durable creation-attempt index
+first using the authenticated requester plus the command's exact `attempt_id` and `preview_hash`; it
+does not require the disposable preview attempt to still exist for an indexed replay. A matching index
+with `resolution_kind=created` returns `replayed`; one with
 `resolution_kind=existing_request` returns `existing_request`, even when the preview has since expired
 or the referenced request has changed lifecycle state. A colliding requester, identity, or preview
 hash returns `idempotency_conflict`.
-Only when no committed index exists does the server reread current claims/catalog, rebuild the strict
-preview from the server-retained intent/reason, and constant-time compare the hash. Expiry or any
+Only when no committed index exists does the server load the retained preview attempt, reread current
+claims/catalog, rebuild the strict preview from its server-retained intent/reason, and constant-time
+compare the hash. A missing unindexed attempt, expiry, or any
 catalog/current-claim/target/delta/reason mismatch then returns `stale_preview`, creates nothing, and
 requires an explicitly reviewed fresh preview. Thus response loss after commit cannot be mistaken for
 an expired uncommitted preview, and the durable request remains byte-bound to what the user confirmed
@@ -521,11 +523,20 @@ even though the separate normalized-intent identity intentionally excludes reaso
 The preview store retains at most one unexpired open attempt per requester and idempotency identity;
 an identical preview reuses it, while a changed preview invalidates it before issuing one replacement.
 It retains at most 20 open attempts per requester across independent identities, evicting the oldest
-unused preview as expired, and deletes unused attempts at the 15-minute expiry. If an active request
-already exists for the identity, Preview returns that request's safe current receipt and issues no
-new attempt. A created request stores exactly one `creation_attempt_id`; a unique server index is
-retained under the referenced request's existing retention policy, not as an unbounded array on the
-request. The strict `AccessRequestAttemptIndexV1` contains exactly, in order: schema version
+unused preview as expired. Every attempt persists its exact server-issued `expires_at` and becomes
+unusable at that instant; an expired document never counts as open and can never authorize Submit,
+even when physical cleanup has not deleted it yet. Physical deletion is asynchronous housekeeping,
+not an authorization boundary or V1 completion gate. A replacement Preview deletes the exact unused
+attempt it invalidates; a committed Submit deletes its now-indexed preview attempt after the atomic
+request/index transaction; and each Preview performs one bounded oldest-first cleanup of at most 20
+expired unused attempts for that requester. Cleanup failure cannot extend validity or turn an expired
+attempt into an open attempt; it returns the bounded store-degraded state only when the requested new
+preview itself cannot be stored safely. V1 adds no native TTL policy, Scheduler job, or new retention
+service. If an active request already exists for the identity, Preview returns that request's safe
+current receipt and issues no new attempt. A created request stores exactly one
+`creation_attempt_id`; a unique server index is retained under the referenced request's existing
+retention policy, not as an unbounded array on the request. The strict
+`AccessRequestAttemptIndexV1` contains exactly, in order: schema version
 `access-request-attempt-index-v1`; canonical UUID-v4 `attempt_id`; exact requester uid; exact
 `access-intent-v1:*` identity; lowercase 64-character `preview_hash`; `resolution_kind` as
 `created|existing_request`; opaque request id; positive safe-integer request version at resolution;

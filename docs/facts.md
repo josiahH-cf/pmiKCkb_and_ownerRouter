@@ -50,6 +50,9 @@ the provenance source; this ledger does not preserve obsolete rules as prose.
 
 ## Open Questions
 
+None of these questions blocks the canonical S82-S96 implementation queue. Each safe state is the
+required fail-closed behavior until its named external input arrives.
+
 | id                 | exact input                                                                                                        | safe state until supplied                            | owner           |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | --------------- |
 | Q-COMP-POLICY      | Whether to add a future freshness threshold or selection/rejection rule beyond provider order                      | No hidden filter or freshness claim; reference-only  | Client/Admin    |

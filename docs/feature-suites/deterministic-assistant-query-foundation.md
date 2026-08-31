@@ -129,8 +129,9 @@ schema, safe recovery, test corpus, and documentation.
 The matcher operates on a normalized matching copy of the question and retains the original only for
 the in-memory transcript. Normalization is exact: Unicode NFC; Unicode case fold; trim; collapse every
 run of Unicode whitespace to one ASCII space; and tokenize letters/numbers while treating other
-punctuation as boundaries. Apostrophe variants normalize `I'm` to tokens `i am`. The router does not
-stem, embed, fuzzy-match, spell-correct, or call a model.
+punctuation as boundaries. Before punctuation tokenization, straight/curly apostrophe variants of
+`I'm` normalize to tokens `i am`, and `what's` normalizes to tokens `what is`; no other contraction is
+expanded implicitly. The router does not stem, embed, fuzzy-match, spell-correct, or call a model.
 
 The closed V1 matcher manifest is the following exact list. Each `|` below separates literal
 alternatives inside code, not document-table columns:
@@ -143,8 +144,10 @@ renewals` and one blocker term from `block | blocked | blocking | blocker | bloc
   S91 date and quoted owner/tenant modifier. A renewal subject wins over Work blocker routing.
 - **`work.blocked`:** one work subject from `work | task | tasks | my work | my tasks | work assigned
 to me | tasks assigned to me` and one blocker term from `block | blocked | blocking | blocker |
-blockers | stopping`; or one of the three exact long forms named below. Renewal subjects route to
-  `renewal.blocked`; approval/access subjects at the same boundary require clarification.
+blockers | stopping`; or one exact normalized token sequence from `what is blocking me`, `what tasks
+are currently blocked and what information is needed to unblock them`, or `what tasks are blocked and
+what is needed to unblock them`. Renewal subjects route to `renewal.blocked`; approval/access subjects
+  at the same boundary require clarification.
 - **`work.today`:** one work subject plus `today | daily`, including exact `what should i work on
 today`, `show my daily work`, and `what is my work today`. A blocker term routes to `work.blocked`;
   the attention composite is handled first.
@@ -174,8 +177,8 @@ phrase. Possessive names, unknown labels, extra domain subjects, or required ter
 manifest do not become a match. Punctuation/case/filler variants that preserve the grammar route
 identically. Registry fixtures include every required phrase, competing directional phrase,
 exclusion, and one-token addition/removal at each material boundary. The golden corpus explicitly
-contains every example utterance named in the Dashboard feature notes and S90/S91—including the two
-long-form blocked-work questions—so a broad category fixture cannot hide a rejected product example.
+contains every example utterance named in the Dashboard feature notes and S90/S91—including all
+three exact blocked-work forms above—so a broad category fixture cannot hide a rejected product example.
 Adding a synonym requires a manifest, owner, and golden-test change rather than an ad hoc regex.
 
 The only V1 customer-label modifier is a terminal clause exactly `for owner "<label>"` or `for
@@ -800,7 +803,9 @@ verification remain green as separate gates.
   tasks, approvals, access requests, drafts/messages/labels, source writes, or action receipts.
 - **AC-S88-6** — `BEH-S88-1/2/3` run the required work, blocked, approval, next-month renewal, access,
   ambiguity, unsupported, verified-empty, partial, and unavailable fixtures without any model and
-  validate exact filter/as-of/count/completeness/recovery presentation data. Contract tests accept
+  validate exact filter/as-of/count/completeness/recovery presentation data. Golden matcher fixtures
+  accept each of the three exact `work.blocked` forms and reject their material one-token/domain
+  neighbors rather than relying on a broad blocker regex. Contract tests accept
   only the registered `AssistantAppliedFilterV1` key/type/order/label tuples and exact
   `AssistantNoticeV1` code/kind/message/recovery pairings; they reject raw questions, customer/staff
   labels, stable ids, URLs, unknown notice copy, missing required recovery, and foreign route refs.

@@ -525,8 +525,10 @@ S94 binding, and explicit S82-absent rollback compatibility state can then land.
 completion consumes S82 rather than reimplementing it and must prove complete blocked-renewal behavior. S92 narration follows
 deterministic parity. S93 renders links/states. S94 may consume only the private current verified
 bindings declared here. S95 may remove the duplicate Dashboard anticipated/live panels once the
-current guarded canonical renewal route and this adapter are reachable; that relocation does not wait
-for S82, while complete blocker answers remain partial until S82 exists.
+current guarded canonical renewal route and this adapter are reachable. Under the canonical queue,
+S95 relocation occurs only after S82 and S91 are green. S82-absent behavior remains a rollback-
+compatibility fixture only; it cannot satisfy S91 or S95 completion and never authorizes a second
+renewal worklist or partial desired-state release.
 
 **Standalone delivery contract.**
 

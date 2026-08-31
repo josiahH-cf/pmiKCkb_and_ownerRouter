@@ -413,8 +413,9 @@ Review performs, in order:
    authorized provider reads but no provider write/effect;
 6. require a verified current source id/action version, calculate the canonical preview fingerprint,
    and repeat the exact retained-assistant-task plus unrelated-current-task lookup described above;
-7. derive all other task fields and the server execution identity from the retained normalized human
-   fields; and
+7. derive the task-editable fields from the retained normalized human input, while deriving the
+   server execution identity only from the authenticated actor and exact action kind, source type,
+   source id, and current source action version declared below; and
 8. return one exact `ready` `AssistantActionReviewResponseV1`, whose strict
    `AssistantActionReviewV1` contains the sealed confirmation token, without persistence.
 

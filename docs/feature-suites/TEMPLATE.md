@@ -62,7 +62,9 @@ Name affected surfaces, stores, providers, gates, and documentation.
 file, function, class, or schema names.
 
 - Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Human verdict: PASS | FAIL - why; when no human observer is present, use the manifest's exact
+  `Human verdict: NOT RUN — no human observer` value and continue unless the owner explicitly made
+  that verdict a completion gate.
 
 **Requirement-to-outcome traceability.**
 

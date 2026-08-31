@@ -82,15 +82,21 @@ canonical lowercase UUID `generation_id` and one positive integer `revision`; th
 is `g:<generation_id>:<revision>`. Every accepted lifecycle transition increments `revision` exactly
 once. Fresh setup after revocation creates a new `generation_id` with `revision=1`.
 
-A current legacy connected record is projected as `legacy:<updatedAt>` using its exact stored ISO
-timestamp. A start transaction accepts that token only while the record is still legacy connected
-and `updatedAt` is byte-identical, then materializes the versioned lifecycle. A stale legacy token is
-refused. A legacy pending record that still holds one opaque reference but has no operation id is
-projected as `legacy_pending` with `recovery_available=true`; it cannot use normal start or recover.
-The Admin-only `adopt_legacy` mode binds one new operation id to that exact unchanged legacy pending
-version transactionally and then follows the normal recovery path. A legacy pending record without
-an opaque reference, exact version, or safely classifiable state remains `recovery_available=false`
-and names manual Admin investigation; no route guesses or reconstructs a credential.
+Both a current legacy connected record and a safely classifiable legacy pending record use projected
+token `legacy:<updatedAt>`, where `updatedAt` is the exact byte-identical stored ISO timestamp; their
+lifecycle state and request mode distinguish the two cases. A start transaction accepts that token
+only while the record is still legacy connected and `updatedAt` is unchanged, then materializes the
+versioned lifecycle with a fresh canonical `generation_id` at `revision=1`. A stale legacy token is
+refused. A legacy pending record that still holds one
+opaque reference but has no operation id is projected as `legacy_pending` with
+`recovery_available=true`; it cannot use normal start or recover. The Admin-only `adopt_legacy` mode
+accepts only its projected legacy token and transactionally requires pending status, opaque reference,
+and `updatedAt` all to remain unchanged before binding one new operation id and following the normal
+recovery path. Adoption also creates a fresh canonical `generation_id` at `revision=1`; the verified
+pending-to-revoked completion is the next accepted transition and produces `revision=2`. A legacy
+pending record without an opaque reference, exact timestamp/token, or safely classifiable state
+remains `recovery_available=false` and names manual Admin investigation; no route guesses or
+reconstructs a credential.
 
 The server-only active record is exactly one of:
 
@@ -169,8 +175,10 @@ test requirement, new connector types, new action keys, or broad Admin visual re
   Undo because destroyed credential material cannot be reconstructed.
 - Decision: legacy pending records are adopted only through the exact Admin-only transition above;
   malformed/unrecoverable legacy state remains a truthful manual blocker.
-- Assumption: the current connection/audit retention authority can retain redacted revocation
-  receipts. If live readback disproves that assumption, only the durable receipt store is `BLOCKED`;
+- Decision: a redacted revocation receipt is required server-only app audit evidence under the
+  router's existing receipt/readback authority. It uses the current connection/audit retention
+  policy and adds no new deletion schedule. If implementation readback proves the current store
+  cannot retain that bounded receipt, only the exact durable receipt-store dependency is `BLOCKED`;
   the non-mutating preview and fail-closed route work still proceeds.
 
 **Cross-product impacts.**
@@ -271,9 +279,13 @@ new id, or call a no-op vault successful.
 S96 consumes only current Admin/catalog/setup/connection-store/vault contracts and has no S82-S95
 prerequisite. It is the first executable suite after the documentation readiness gate. S85 visual
 expansion and S86 interaction migration cannot begin until S96 reports `ALL_GATES_GREEN`, is delivered
-through the project release path, and exact deployed readback proves first activation is inert. S86
-then preserves S96 rather than reimplementing its lifecycle; S83 and S87 may compose its state without
-changing ownership.
+through the project release path, and the candidate satisfies the served first-click proof below. If
+a genuine connected record is visible to an authorized Admin, first activation on that candidate must
+be observed as inert. If no legitimate connected record exists, never create or modify one for proof;
+record that no live target exists and satisfy the served gate with the exact candidate artifact's
+browser/component inertness evidence plus candidate version, normalized configuration, and route
+readback. S86 then preserves S96 rather than reimplementing its lifecycle; S83 and S87 may compose its
+state without changing ownership.
 
 **Standalone delivery contract.**
 
@@ -300,7 +312,10 @@ changing ownership.
    PII, exact action gates, protected paths, runtime configuration, effect order, and scope before any
    authorized delivery.
 4. For served code, use the existing zero-traffic candidate, exact-commit smoke, promotion, readback,
-   and predecessor rollback contract. Do not run a live destroy to prove the local implementation.
+   and predecessor rollback contract. When a genuine connected record exists, observe that its first
+   candidate activation opens only the inert preview. When none exists, record that state and combine
+   exact-artifact browser/component first-activation evidence with candidate version/config/route
+   readback. Never create a fake/live connection or run a credential destroy for this proof.
 5. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only if a future
    user supplies an explicit budget; or `BLOCKED` only for one exact unavailable input/authority after
    every independent fail-closed path is complete. Record the live vault/Admin proof separately.

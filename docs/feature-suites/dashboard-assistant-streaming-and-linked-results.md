@@ -520,9 +520,17 @@ normalized Space/question/kind/note converges on the same durable record and ret
 when query-local citation refs changed; that replay again surfaces the exact terminal state and the
 dismissed revision path when applicable. A deterministic hash
 conflict means the addressed record does not safely match this filing. It keeps the form pinned,
-offers the existing `Report Issue` control with route/context metadata only, and prohibits another
-File/status attempt from that form; after reporting, explicit Cancel may release the local form but
-does not claim no prior record or recommend a fresh identity. It never overwrites the existing record.
+offers `Report issue`, and prohibits another File/status attempt from that form. `Report issue` uses
+one shared client trigger contract owned by the already-mounted global feedback reporter; it focuses
+and opens that existing dialog rather than rendering a second reporter or calling its endpoint. The
+shared trigger passes only the invoking control as the focus-return/stable-element source. The
+reporter continues to derive the current pathname and its existing allow-listed element identity
+(`tag`, `role`, `type`, `id`, and `testId` only); it receives no question, answer, correction body,
+token, hash, citation, customer value, or prefilled description. Closing the reporter returns focus
+to the invoking `Report issue` control. Where the global reporter is intentionally unavailable under
+the existing environment boundary, the conflict remains pinned and no substitute write/control is
+invented. After reporting, explicit Cancel may release the local form but does not claim no prior
+record or recommend a fresh identity. It never overwrites the existing record.
 This intentional correction
 persistence is separate from S94's action tray and one-task contract.
 
@@ -916,7 +924,10 @@ status`, no second Proposed record, no actor/reviewer identity in the response, 
   revision filing can create a new Proposed record, while Cancel writes nothing and releases it. A 21st
   terminal exchange evicts the oldest unpinned result while the sole open/unknown correction remains
   pinned; Cancel releases it, the 20-result ceiling never grows, and Clear/other correction controls
-  cannot silently discard its input.
+  cannot silently discard its input. Deterministic-hash-conflict fixtures prove `Report issue`
+  activates the one mounted global reporter, passes only stable invoking-element identity, sends no
+  correction/query/customer data, creates no second reporter, and returns focus to its S93 trigger;
+  an intentionally unavailable reporter leaves the conflict pinned with zero fallback write.
 
 **Forbidden actions / hard gates.**
 
@@ -1009,9 +1020,10 @@ integrated destination gates required for S93 `ALL_GATES_GREEN`.
    before any authorized delivery.
 4. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only when an
    explicit budget exists; or `BLOCKED` only for an exact unavailable external input/authority after
-   all independent fail-closed work is complete. No live provider write or deployment proof is
-   required; the query transport remains read-only and the preserved correction write is proven with
-   injected-store/focused endpoint tests.
+   all independent fail-closed work is complete. No live provider write is required; the query
+   transport remains read-only and the preserved correction write is proven with injected-store/
+   focused endpoint tests. Served S93 code still follows the manifest's zero-traffic candidate,
+   exact-revision smoke, promotion, stable readback, and predecessor rollback contract.
 
 **Ordered prompt sequence.**
 
