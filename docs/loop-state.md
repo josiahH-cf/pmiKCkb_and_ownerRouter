@@ -10,9 +10,9 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtimspsj-ee9bbf50108f` / commit
-  `72f926d96aead0b5b6826494713203672a18a40a` at 100% traffic. Immediate rollback is
-  `pmi-kc-app-rmtiii4il-dcf1708c88b8`.
+- Production serves `pmi-kc-app-rmtiwwud5-993818fec846` / commit
+  `796879d6e95834a749b8f11f998ff5c76e6d0459` at 100% traffic. Immediate rollback is
+  `pmi-kc-app-rmtimspsj-ee9bbf50108f`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
 - S96 is `ALL_GATES_GREEN` and deployed. Focused/canonical/core-E2E checks and exact-SHA CI passed;
@@ -30,20 +30,28 @@ effect beyond the owner-authorized keys and suite contracts.
   CI `33506372579`, zero-traffic candidate, normalized configuration, exact promotion, and repeated
   stable readback passed. No store, provider, role, permission, action-key, credential, client-data,
   draft, or message effect ran.
+- S83 is `ALL_GATES_GREEN` and deployed. Focused 27-file/175-test access coverage, 583 unit files
+  with one intentional file skip/5,301 passing tests/four skips, 26 Firestore files/119 tests, 31
+  core E2E tests, policy/build gates, exact-SHA CI `33533250900`, zero-traffic candidate
+  `pmi-kc-app-rmtiwwud5-993818fec846`, normalized configuration, exact promotion, repeated canonical
+  route/version readback, and Action Registry mirror readback passed. No role, claim, request,
+  provider, credential, client-data, draft, or message effect ran.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
-  the S96, S85, and S86 releases used the prior proven non-persistent ADC token bridge without
+  the S96, S85, S86, and S83 releases used the prior proven non-persistent ADC token bridge without
   printing or writing a token.
-- The remaining S36, S82-S84, S87-S95, and S97-S100 suites are specified desired-state contracts,
+- The remaining S36, S82, S84, S87-S95, and S97-S100 suites are specified desired-state contracts,
   not implementation. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
   protected activation/live proof contracts; it performed no feature, cloud, provider, key, role,
   Sheet, draft, or deployment effect.
-- S96 solely owns connector disconnect/reconciliation; S86 preserved it and now supplies the shared
-  interaction/transient foundation consumed by S83 and later suites.
-- The committed execution Registry remains 41 keys/seven open; the older Firestore Admin mirror is
-  22/six. It cannot grant execution and must be reconciled before S83 is delivered.
+- S96 solely owns connector disconnect/reconciliation; S86 preserved it and supplies the shared
+  interaction/transient foundation. S83 consumes those contracts and now supplies the all-staff
+  access destination, Admin-only access-review lane, and role-aware queue reachability used by S84.
+- The committed execution Registry and its non-authoritative Firestore Admin display mirror both
+  read back at 41 keys/seven open with no malformed entry. Neither S83 nor the mirror grants action
+  execution.
 - S97 removes obsolete multi-record proof machinery and consumes S30's safety primitives. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
@@ -55,20 +63,21 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S83. Re-read its complete contract plus current committed execution Registry, Firestore Admin
-mirror, claims/session refresh, requester history, approval queue, Admin navigation, and supported
-connection-check behavior. Freeze fail-first catalog/request/apply/readback and S86 interaction
-preservation evidence; reconcile the 22/six display mirror to the authoritative 41/seven catalog;
-then implement the bounded capability-guided access workflow without self-grant, generic queue
-mirroring, action-key changes, provider effects, or client messages.
+Begin S84. Re-read its complete contract plus the deployed AppShell/PrimaryNav, S81 destinations,
+S83 role-aware Admin/access and Approval Queue reachability, S85 Appearance utility, S86 transient
+coordination, notification menu, environment badge, role badge, and sign-out behavior. Freeze fail-
+first desktop/mobile disclosure, actor-filtering, exact copy/icon/terminology, active-state,
+keyboard/touch/focus, and utility-preservation evidence. Implement exactly My Work, Operations, and
+Admin disclosure groups without renaming routes, widening direct guards, changing access counts,
+adding provider effects, or removing top-level utilities.
 
 ## Canonical queue
 
 1. S96 — COMPLETE
 2. S85 — COMPLETE
 3. S86 — COMPLETE
-4. S83 — ACTIVE
-5. S84
+4. S83 — COMPLETE
+5. S84 — ACTIVE
 6. S82
 7. S97
 8. S98

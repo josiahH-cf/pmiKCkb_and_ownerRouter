@@ -23,12 +23,12 @@ the current code and live service. Date-stamped history is not authority.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtimspsj-ee9bbf50108f`, 100% traffic.
-- Deployed code: `72f926d96aead0b5b6826494713203672a18a40a`.
+- Serving revision: `pmi-kc-app-rmtiwwud5-993818fec846`, 100% traffic.
+- Deployed code: `796879d6e95834a749b8f11f998ff5c76e6d0459`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtiii4il-dcf1708c88b8` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtimspsj-ee9bbf50108f` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -41,6 +41,10 @@ the current code and live service. Date-stamped history is not authority.
 - S86's shared action/link/icon/help/busy/notice/dialog/page-state and transient-layer system is
   deployed. Its migrated consequential actions use exact cancel-first in-app confirmation and
   returned-state feedback without widening routes, permissions, action keys, or provider effects.
+- S83's capability-guided access-request workflow is deployed. Every managed staff user can inspect
+  and request additive role/Space access; only a different current Admin can deny or exact-confirm
+  application, and Firebase directory readback is required before a request becomes applied. The
+  Firestore Admin mirror matches the authoritative 41-key/seven-open registry.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source. Its write-back runtime switch is off.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is

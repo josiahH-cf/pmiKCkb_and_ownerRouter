@@ -11,14 +11,14 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `72f926d96aead0b5b6826494713203672a18a40a` as revision
-`pmi-kc-app-rmtimspsj-ee9bbf50108f` at 100% traffic. It remains Production + Live with eleven
+Production serves commit `796879d6e95834a749b8f11f998ff5c76e6d0459` as revision
+`pmi-kc-app-rmtiwwud5-993818fec846` at 100% traffic. It remains Production + Live with eleven
 Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
 and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
 Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
 
 The current code also retains obsolete multi-record proof and copy-only Sheet paths. They are not
-active guidance: S97 and S98 own their tested removal. The remaining S36, S82-S84, S87-S95, and
+active guidance: S97 and S98 own their tested removal. The remaining S36, S82, S84, S87-S95, and
 S97-S100 contracts are specified desired state, not deployed behavior, until each suite completes
 implementation, verification, release, effect proof where required, and readback.
 
@@ -33,9 +33,11 @@ zero-traffic candidate, normalized-config, promotion, and stable readback passed
 contextual help, honest busy/result feedback, cancel-first in-app confirmations, shell transient
 coordination, and notification failure/retry behavior passed focused and S96-preservation suites,
 canonical verification, real-browser coverage, exact-SHA CI, exact candidate/promotion, and stable
-readback without widening any effect. S83 is active. The Firestore Admin registry mirror drift
-(22/six versus the authoritative committed 41/seven) must be reconciled before S83 delivery and
-cannot grant execution meanwhile.
+readback without widening any effect. S83 is also `ALL_GATES_GREEN` and deployed: its capability-
+guided access center, additive role/Space request lifecycle, Admin-only review/apply/reconcile lane,
+guarded-surface handoffs, renewal-authority relocation, and connection feedback passed focused,
+canonical, core-E2E, exact-SHA CI, candidate/configuration, promotion, stable-route, and registry-
+mirror readback gates without applying a role or running a provider effect. S84 is active.
 
 ## Authority and closed decisions
 
@@ -81,10 +83,11 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 4 implementation. Re-read S83 and current committed/Firestore access
-catalog, requester, approval, claim-application, Admin-navigation, and connection-check truth;
-reconcile the non-authoritative Firestore Admin registry mirror; then implement its capability-guided
-request-to-approval workflow without self-granting, generic queue mirroring, or provider authority.
+The active position is step 5 implementation. Re-read S84 and the deployed S81/S83/S85/S86 shell,
+route, role/Space, Appearance, transient-layer, access-count, and utility truth. Freeze fail-first
+desktop/mobile disclosure, actor-filtering, terminology, navigation, accessibility, and preservation
+evidence; then implement exactly the three descriptive navigation groups without renaming routes,
+widening direct guards, changing provider behavior, or removing top-level utilities.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

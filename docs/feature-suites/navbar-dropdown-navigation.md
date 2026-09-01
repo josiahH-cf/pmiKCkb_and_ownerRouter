@@ -4,8 +4,8 @@
 # S84 — Task-grouped navbar dropdown navigation
 
 > Status: Specified and not implemented. The deployed AppShell, route guards, Space filtering,
-> notification menu, S81 task destinations, and the specified S83 access and S85 Appearance
-> contracts are the starting truth.
+> notification menu, S81 task destinations, S83 access workflow, S85 Appearance system, and S86
+> interaction/transient contracts are the starting truth.
 
 **Goal.**
 
@@ -453,7 +453,7 @@ that dependency but do not push it without the required direction.
 
 **Dependencies / sequencing.**
 
-S84 consumes the deployed S81 route/anchor ownership, the specified S83 role-aware Admin/access-
+S84 consumes the deployed S81 route/anchor ownership, the deployed S83 role-aware Admin/access-
 queue contract, S85 Appearance/theme roles, and S86 Icon/transient-layer behavior. Close S96, then
 implement S85, S86, and S83 before S84. Dashboard/Internal Processes terminology, the base
 manifest, desktop disclosure, and mobile presentation can be developed behind fail-first tests, but

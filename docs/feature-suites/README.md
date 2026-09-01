@@ -56,7 +56,12 @@ official assets exist. S86 is implemented and deployed through exact candidate
 `72f926d96aead0b5b6826494713203672a18a40a`; focused interaction and S96-preservation tests,
 canonical verification, core E2E, real-browser theme/viewport/accessibility smoke, exact-SHA CI
 `33506372579`, normalized configuration, promotion, and repeated stable readback passed without a
-store, provider, role, permission, action-key, or client-message effect. Resume S83 from
+store, provider, role, permission, action-key, or client-message effect. S83 is implemented and
+deployed through exact candidate `pmi-kc-app-rmtiwwud5-993818fec846` at commit
+`796879d6e95834a749b8f11f998ff5c76e6d0459`; focused access coverage, canonical verification, core
+E2E, exact-SHA CI `33533250900`, normalized configuration, exact promotion, repeated route/version
+readback, and the 41-key/seven-open Registry mirror readback passed without a role, claim, request,
+provider, credential, client-data, draft, or message effect. Resume S84 from
 `docs/loop-state.md`.
 
 Default execution is serialized because suites update shared registries, shell components, and
@@ -321,49 +326,49 @@ ships closed, then uses the router's exact per-key proof-window authority, close
 and applies final activation only after its applicable proof and remaining gates. Missing runtime data
 stops only that exact effect after all independent work is complete.
 
-| Suite | Contract                                                                   | Present status                                                                                 |
-| ----- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| S30   | `docs/feature-suites/rentvine-write-activation.md`                         | Closed proof runner deployed; S97 consumes its safety primitives and owns the final product    |
-| S31   | `docs/feature-suites/gmail-watch-inbound.md`                               | Continuous watch retired; manual refresh and follow-up integration complete                    |
-| S34   | `docs/feature-suites/dotloop-esign-activation.md`                          | Internal lifecycle complete; OAuth/catalog/exact provider mappings required                    |
-| S35   | `docs/feature-suites/leadsimple-activation.md`                             | Internal lifecycle complete; selected account contract and credential required                 |
-| S36   | `docs/feature-suites/space-self-provisioning.md`                           | Hardened temporary lifecycle specified; implementation update and authorized pilot remain      |
-| S37   | `docs/feature-suites/nocode-page-builder.md`                               | Bounded operational-process builder complete and deployed                                      |
-| S47   | `docs/feature-suites/resident-maintenance-intake.md`                       | Tokenized app intake usable; S100 owns the selected provider sync/draft workflow               |
-| S51   | `docs/feature-suites/production-operational-readiness.md`                  | Current production operating contract                                                          |
-| S52   | `docs/feature-suites/production-cost-governance.md`                        | Complete and live-verified                                                                     |
-| S53   | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`          | Current per-key activation contract                                                            |
-| S54   | `docs/feature-suites/verification-and-ci-parity.md`                        | Complete; canonical gate current                                                               |
-| S56   | `docs/feature-suites/production-live-only-test-lane-retirement.md`         | Complete; current environment contract                                                         |
-| S59   | `docs/feature-suites/rentcast-live-activation.md`                          | Complete and deployed; query/evidence/reference-only contract is preserved                     |
-| S64   | `docs/feature-suites/per-person-approval-authority.md`                     | Specified but NOT authorized                                                                   |
-| S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`           | Truth machinery built; approved catalog/provider mapping required                              |
-| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`         | Complete and deployed; exact six-step/evidence/compatibility model                             |
-| S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`               | Complete/deployed review-only boundary; approved wording/channel evidence remains              |
-| S75   | `docs/feature-suites/renewal-follow-up-state.md`                           | Shared unset-safe projection built; live confirmed timing policy still external                |
-| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`         | Complete and deployed; exact-confirm/reconcile contract is downstream foundation               |
-| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`         | Complete and deployed; canonical role-consistent desk/query/route contract is live             |
-| S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`          | Complete/deployed closed-safe receipt/MIME/readback path; live Drive effect blocked            |
-| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`                | Complete and deployed; exact role/Space/effect matrix is downstream foundation                 |
-| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md`        | Complete and deployed; navigation/readiness does not grant authority                           |
-| S82   | `docs/feature-suites/guided-renewal-desk-and-workspace.md`                 | Specified; table-first desk, persistence, and guided workspace are not implemented             |
-| S83   | `docs/feature-suites/unified-admin-access-and-connection-actions.md`       | Specified; capability-guided Admin access workflow and connection UX are not implemented       |
-| S84   | `docs/feature-suites/navbar-dropdown-navigation.md`                        | Specified; grouped descriptive navbar dropdowns and visible terminology are not implemented    |
-| S85   | `docs/feature-suites/global-theme-and-visual-system.md`                    | Complete and deployed; technical theme system is live, official brand conformance remains open |
-| S86   | `docs/feature-suites/action-feedback-help-and-safe-recovery.md`            | Complete and deployed; shared interaction, contextual-help, and safe-recovery system is live   |
-| S87   | `docs/feature-suites/content-hierarchy-and-surface-decluttering.md`        | Specified; task-first content hierarchy and product-wide decluttering are not implemented      |
-| S88   | `docs/feature-suites/deterministic-assistant-query-foundation.md`          | Specified; deterministic assistant query/evidence/link foundation is not implemented           |
-| S89   | `docs/feature-suites/assistant-privacy-observability-and-cost-controls.md` | Specified; assistant privacy, telemetry, cost, and evaluation controls are not implemented     |
-| S90   | `docs/feature-suites/assistant-work-approval-and-access-adapters.md`       | Specified; work, approval, submitted-request, and access adapters are not implemented          |
-| S91   | `docs/feature-suites/assistant-renewal-query-adapter.md`                   | Specified; canonical upcoming/blocked renewal adapter is not implemented                       |
-| S92   | `docs/feature-suites/assistant-knowledge-and-grounded-narration.md`        | Specified; grounded knowledge adapter and mandatory answered narration are not implemented     |
-| S93   | `docs/feature-suites/dashboard-assistant-streaming-and-linked-results.md`  | Specified; streamed assistant conversation and linked result UX are not implemented            |
-| S94   | `docs/feature-suites/assistant-human-confirmed-action-proposals.md`        | Specified; one human-confirmed renewal-to-self task action is not implemented                  |
-| S95   | `docs/feature-suites/minimal-dashboard-composition-and-relocation.md`      | Specified; minimal Dashboard cutover and capability relocation are not implemented             |
-| S97   | `docs/feature-suites/governed-rentvine-renewal-writeback.md`               | Specified; exact renewal-date/recurring-charge writeback and bounded proof are not implemented |
-| S98   | `docs/feature-suites/operating-renewal-sheet-writeback.md`                 | Specified; exact operating-Sheet append/update and temporary-row proof are not implemented     |
-| S99   | `docs/feature-suites/rentvine-maintenance-work-order-writeback.md`         | Specified; official work-order read/create/status writeback is not implemented                 |
-| S100  | `docs/feature-suites/rentvine-work-order-chat-sync.md`                     | Specified; manual inbound sync and resident unsent-draft workflow are not implemented          |
+| Suite | Contract                                                                   | Present status                                                                                  |
+| ----- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| S30   | `docs/feature-suites/rentvine-write-activation.md`                         | Closed proof runner deployed; S97 consumes its safety primitives and owns the final product     |
+| S31   | `docs/feature-suites/gmail-watch-inbound.md`                               | Continuous watch retired; manual refresh and follow-up integration complete                     |
+| S34   | `docs/feature-suites/dotloop-esign-activation.md`                          | Internal lifecycle complete; OAuth/catalog/exact provider mappings required                     |
+| S35   | `docs/feature-suites/leadsimple-activation.md`                             | Internal lifecycle complete; selected account contract and credential required                  |
+| S36   | `docs/feature-suites/space-self-provisioning.md`                           | Hardened temporary lifecycle specified; implementation update and authorized pilot remain       |
+| S37   | `docs/feature-suites/nocode-page-builder.md`                               | Bounded operational-process builder complete and deployed                                       |
+| S47   | `docs/feature-suites/resident-maintenance-intake.md`                       | Tokenized app intake usable; S100 owns the selected provider sync/draft workflow                |
+| S51   | `docs/feature-suites/production-operational-readiness.md`                  | Current production operating contract                                                           |
+| S52   | `docs/feature-suites/production-cost-governance.md`                        | Complete and live-verified                                                                      |
+| S53   | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`          | Current per-key activation contract                                                             |
+| S54   | `docs/feature-suites/verification-and-ci-parity.md`                        | Complete; canonical gate current                                                                |
+| S56   | `docs/feature-suites/production-live-only-test-lane-retirement.md`         | Complete; current environment contract                                                          |
+| S59   | `docs/feature-suites/rentcast-live-activation.md`                          | Complete and deployed; query/evidence/reference-only contract is preserved                      |
+| S64   | `docs/feature-suites/per-person-approval-authority.md`                     | Specified but NOT authorized                                                                    |
+| S66   | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`           | Truth machinery built; approved catalog/provider mapping required                               |
+| S72   | `docs/feature-suites/renewal-step-model-and-workspace-defaults.md`         | Complete and deployed; exact six-step/evidence/compatibility model                              |
+| S74   | `docs/feature-suites/tenant-offer-copy-and-channel-truth.md`               | Complete/deployed review-only boundary; approved wording/channel evidence remains               |
+| S75   | `docs/feature-suites/renewal-follow-up-state.md`                           | Shared unset-safe projection built; live confirmed timing policy still external                 |
+| S77   | `docs/feature-suites/renewal-draft-preview-confirm-reliability.md`         | Complete and deployed; exact-confirm/reconcile contract is downstream foundation                |
+| S78   | `docs/feature-suites/renewal-desk-triage-and-canonical-journey.md`         | Complete and deployed; canonical role-consistent desk/query/route contract is live              |
+| S79   | `docs/feature-suites/renewal-comp-screenshot-gmail-attachment.md`          | Complete/deployed closed-safe receipt/MIME/readback path; live Drive effect blocked             |
+| S80   | `docs/feature-suites/renewal-role-and-action-governance.md`                | Complete and deployed; exact role/Space/effect matrix is downstream foundation                  |
+| S81   | `docs/feature-suites/task-oriented-admin-connections-navigation.md`        | Complete and deployed; navigation/readiness does not grant authority                            |
+| S82   | `docs/feature-suites/guided-renewal-desk-and-workspace.md`                 | Specified; table-first desk, persistence, and guided workspace are not implemented              |
+| S83   | `docs/feature-suites/unified-admin-access-and-connection-actions.md`       | Complete and deployed; capability-guided access, Admin review, and connection feedback are live |
+| S84   | `docs/feature-suites/navbar-dropdown-navigation.md`                        | Specified; grouped descriptive navbar dropdowns and visible terminology are not implemented     |
+| S85   | `docs/feature-suites/global-theme-and-visual-system.md`                    | Complete and deployed; technical theme system is live, official brand conformance remains open  |
+| S86   | `docs/feature-suites/action-feedback-help-and-safe-recovery.md`            | Complete and deployed; shared interaction, contextual-help, and safe-recovery system is live    |
+| S87   | `docs/feature-suites/content-hierarchy-and-surface-decluttering.md`        | Specified; task-first content hierarchy and product-wide decluttering are not implemented       |
+| S88   | `docs/feature-suites/deterministic-assistant-query-foundation.md`          | Specified; deterministic assistant query/evidence/link foundation is not implemented            |
+| S89   | `docs/feature-suites/assistant-privacy-observability-and-cost-controls.md` | Specified; assistant privacy, telemetry, cost, and evaluation controls are not implemented      |
+| S90   | `docs/feature-suites/assistant-work-approval-and-access-adapters.md`       | Specified; work, approval, submitted-request, and access adapters are not implemented           |
+| S91   | `docs/feature-suites/assistant-renewal-query-adapter.md`                   | Specified; canonical upcoming/blocked renewal adapter is not implemented                        |
+| S92   | `docs/feature-suites/assistant-knowledge-and-grounded-narration.md`        | Specified; grounded knowledge adapter and mandatory answered narration are not implemented      |
+| S93   | `docs/feature-suites/dashboard-assistant-streaming-and-linked-results.md`  | Specified; streamed assistant conversation and linked result UX are not implemented             |
+| S94   | `docs/feature-suites/assistant-human-confirmed-action-proposals.md`        | Specified; one human-confirmed renewal-to-self task action is not implemented                   |
+| S95   | `docs/feature-suites/minimal-dashboard-composition-and-relocation.md`      | Specified; minimal Dashboard cutover and capability relocation are not implemented              |
+| S97   | `docs/feature-suites/governed-rentvine-renewal-writeback.md`               | Specified; exact renewal-date/recurring-charge writeback and bounded proof are not implemented  |
+| S98   | `docs/feature-suites/operating-renewal-sheet-writeback.md`                 | Specified; exact operating-Sheet append/update and temporary-row proof are not implemented      |
+| S99   | `docs/feature-suites/rentvine-maintenance-work-order-writeback.md`         | Specified; official work-order read/create/status writeback is not implemented                  |
+| S100  | `docs/feature-suites/rentvine-work-order-chat-sync.md`                     | Specified; manual inbound sync and resident unsent-draft workflow are not implemented           |
 
 A status in this table is authoritative for planning. A suite body is the acceptance contract, not a
 historical progress log.

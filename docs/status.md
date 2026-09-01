@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtimspsj-ee9bbf50108f`, 100% traffic
-- Serving commit: `72f926d96aead0b5b6826494713203672a18a40a`
-- Immediate rollback: `pmi-kc-app-rmtiii4il-dcf1708c88b8`
+- Serving revision: `pmi-kc-app-rmtiwwud5-993818fec846`, 100% traffic
+- Serving commit: `796879d6e95834a749b8f11f998ff5c76e6d0459`
+- Immediate rollback: `pmi-kc-app-rmtimspsj-ee9bbf50108f`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -19,10 +19,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
 The serving candidate passed exact identity, normalized-config, bounded route, promotion, and stable
-readback gates. The committed execution Registry has seven open and 34 closed keys. Its older
-Firestore Admin mirror has 22 records/six open; that display drift cannot grant execution and must be
-reconciled before the S83 Admin cutover. None of the new S97-S100 exact keys is executable or
-deployed yet.
+readback gates. The committed execution Registry and its Firestore Admin display mirror both read
+back as 41 exact keys, seven open and 34 closed; the mirror cannot grant execution. None of the new
+S97-S100 exact keys is executable or deployed yet.
 
 ## S85 technical delivery
 
@@ -53,6 +52,23 @@ viewport/zoom/accessibility smoke, exact-SHA CI, zero-traffic candidate, normali
 exact promotion, and repeated stable readback passed. No route, role, permission, action key, store,
 provider, credential, client-data, draft, or message effect was added or run.
 
+## S83 delivery
+
+S83 is `ALL_GATES_GREEN` and deployed. Every managed staff user can open `/admin/access`, understand
+current-session role/capability/Space access, preview and submit one additive request, track durable
+history, and follow an exact missing-role or missing-Space handoff. A different current Admin reviews
+requests in the Access lane and must exact-confirm one additive claim plan; only Firebase directory
+readback marks it applied, and refreshed authentication remains required before new access is usable.
+Renewal authority no longer renders in the renewal workspace. Supported connection checks retain
+their read-only server boundaries and now expose truthful pending/pass/fail feedback.
+
+The focused 27-file/175-test suite, full 583-file unit run with one intentional file skip and 5,301
+passing tests/four skips, 26 Firestore files/119 tests, 31 core E2E tests, policy/static gates, and
+111-route production build passed. Exact-SHA CI `33533250900`, candidate identity/configuration,
+S83 route checks, exact promotion, repeated canonical readback, and the reconciled 41-key/seven-open
+Firestore mirror passed. Release caused no role, claim, request, source, provider, credential,
+client-data, draft, or message effect.
+
 ## Implemented product baseline
 
 - Complete RentVine and operating-Sheet reads, source reconciliation, exact dispositions, current-
@@ -76,12 +92,15 @@ provider, credential, client-data, draft, or message effect was added or run.
   cross-product visual-state foundation are deployed. Official brand conformance remains separate.
 - S86's shared interactions, contextual help, honest async feedback, exact in-app confirmation,
   notification recovery, page-state primitives, and transient-layer coordination are deployed.
+- S83's all-staff access center, per-user additive role/Space requests, Admin-only review/apply/
+  reconcile lane, guarded-surface request handoffs, renewal-authority relocation, and connection
+  feedback are deployed.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, and S86 are complete and
-deployed; S83 is active. The queue then runs S84 navigation and S82 renewal UI before the owner-
-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, and S83 are
+complete and deployed; S84 is active. The queue then runs S82 renewal UI before the owner-authorized
+source effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -112,10 +131,10 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33506372579`: passed.
-- Canonical serving gate: 570 unit files plus one intentional skip; 5,223 tests plus four skips; 26
-  Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; real Chromium theme
-  matrix; 107-route production build.
+- Current serving exact-SHA aggregate CI run `33533250900`: passed.
+- Canonical serving gate: 583 unit files plus one intentional skip; 5,301 tests plus four skips; 26
+  Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; 111-route production
+  build.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
   aggregate CI run `33425658400` passed; no deployment was performed.
 - S96 commit `32a2d836a730ae7751e4d6964897d48430da9f15`: focused adversarial tests,
@@ -136,6 +155,11 @@ deferred to later separately grounded work.
   exact-SHA CI `33506372579`; zero-traffic candidate `pmi-kc-app-rmtimspsj-ee9bbf50108f`;
   normalized predecessor parity; exact promotion; and two stable version, traffic, Ready, identity,
   Space-map, secret-reference, write-switch, and bounded-route readbacks.
+- S83 commit `796879d6e95834a749b8f11f998ff5c76e6d0459`: focused 27-file/175-test access
+  suite; canonical verification; core E2E; exact-SHA CI `33533250900`; zero-traffic candidate
+  `pmi-kc-app-rmtiwwud5-993818fec846`; normalized predecessor parity; exact promotion; two stable
+  version/route passes; Ready/traffic/identity/Space-map/secret-reference/write-switch readback; and
+  independent Action Registry mirror readback at 41 keys/seven open with no malformed entry.
 
 ## Remaining runtime evidence
 

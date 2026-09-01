@@ -58,21 +58,22 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `72f926d96aead0b5b6826494713203672a18a40a` passed 570 unit files
-with one intentional file skip (5,223 tests and four skips), 26 Firestore files/119 tests, every
-static/policy gate, core E2E, a real Chromium theme matrix, and the 107-route build. Exact-SHA
-aggregate CI run `33506372579` passed. Zero-traffic revision
-`pmi-kc-app-rmtimspsj-ee9bbf50108f` then passed exact identity, bounded-route, and normalized-
-configuration readback before promotion and repeated stable 100% traffic readback. Revision
-`pmi-kc-app-rmtiii4il-dcf1708c88b8` is the immediate rollback target; the earlier
+The production release at commit `796879d6e95834a749b8f11f998ff5c76e6d0459` passed 583 unit files
+with one intentional file skip (5,301 tests and four skips), 26 Firestore files/119 tests, every
+static/policy gate, core E2E, and the 111-route build. Exact-SHA aggregate CI run `33533250900`
+passed. Zero-traffic revision `pmi-kc-app-rmtiwwud5-993818fec846` then passed exact identity,
+bounded-route, normalized-configuration, and role/access preservation readback before promotion and
+repeated stable 100% traffic readback. The Firestore Admin mirror independently matched the
+authoritative 41-key/seven-open Registry. Revision `pmi-kc-app-rmtimspsj-ee9bbf50108f` is the
+immediate rollback target; the earlier
 predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. The remaining S36, S82-S84, S87-S95,
-and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, and S86 are
-complete and deployed; S83 is the active suite. S97 later consumes S30's safety primitives and
+superseded proof specifications are not part of this contract. The remaining S36, S82, S84,
+S87-S95, and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, S86, and
+S83 are complete and deployed; S84 is the active suite. S97 later consumes S30's safety primitives and
 replaces the proof-only route with the exact renewal product contract. All product decisions are
 closed; missing fresh provider values or managed sessions are fail-closed runtime inputs, not
 permission to invent them.

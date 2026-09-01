@@ -3,9 +3,11 @@
 
 # S83 — Capability-guided Admin access requests and approvals
 
-> Status: Specified and not implemented. Existing Firebase role/Space claims, S80 authority,
-> Admin-only claim mutation, the current Approval Queue shell, S81 connection navigation, and the
-> specified S85/S86 visual-feedback contracts are the starting truth.
+> Status: Complete and deployed. Commit `796879d6e95834a749b8f11f998ff5c76e6d0459`, exact-SHA CI
+> `33533250900`, zero-traffic candidate `pmi-kc-app-rmtiwwud5-993818fec846`, normalized runtime
+> parity, exact promotion, repeated canonical readback, and the 41-key/seven-open Firestore mirror
+> readback passed. No role, claim, request, provider, credential, client-data, draft, or message
+> effect ran during release.
 
 **Goal.**
 
