@@ -24,8 +24,8 @@ describe("plan.md present-truth freshness", () => {
   });
 
   it("pins current production, the exact effect boundary, canonical endpoints, and terminal rule", () => {
-    expect(plan).toContain("72f926d96aead0b5b6826494713203672a18a40a");
-    expect(plan).toContain("pmi-kc-app-rmtimspsj-ee9bbf50108f");
+    expect(plan).toContain("796879d6e95834a749b8f11f998ff5c76e6d0459");
+    expect(plan).toContain("pmi-kc-app-rmtiwwud5-993818fec846");
     expect(plan).toContain("No RentVine renewal write");
     expect(plan).toContain("Maintenance provider mutation");
     expect(plan).toContain("bounded temporary proof window");
