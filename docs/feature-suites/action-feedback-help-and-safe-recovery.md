@@ -3,10 +3,13 @@
 
 # S86 — Self-descriptive actions, honest feedback, contextual help, and safe recovery
 
-> Status: Specified and not implemented. S96 is the sole prerequisite owner of UX-005 connector
-> disconnect safety. Existing focus/live-region examples, exact-confirm contracts, connection
-> authority, and provider gates remain authoritative; other action styling, busy feedback, help,
-> popover behavior, and destructive-action presentation remain inconsistent.
+> Status: `ALL_GATES_GREEN` and deployed on 2026-09-01 through commit
+> `72f926d96aead0b5b6826494713203672a18a40a` and exact revision
+> `pmi-kc-app-rmtimspsj-ee9bbf50108f`. Shared interaction/contextual-help/transient-layer gates,
+> complete S96 preservation, canonical verification, core E2E, real-browser theme/viewport/
+> accessibility smoke, exact-SHA CI `33506372579`, normalized configuration, exact promotion, and
+> repeated stable readback passed. No route, permission, action key, store/provider effect, role,
+> credential, or client message was added.
 
 **Goal.**
 

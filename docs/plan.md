@@ -11,16 +11,16 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `353a0a9de81459d5271dcff0e6c2bae3d11cc188` as revision
-`pmi-kc-app-rmtiii4il-dcf1708c88b8` at 100% traffic. It remains Production + Live with eleven
+Production serves commit `72f926d96aead0b5b6826494713203672a18a40a` as revision
+`pmi-kc-app-rmtimspsj-ee9bbf50108f` at 100% traffic. It remains Production + Live with eleven
 Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
 and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
 Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
 
 The current code also retains obsolete multi-record proof and copy-only Sheet paths. They are not
-active guidance: S97 and S98 own their tested removal. S36 and S82-S100 are specified desired state,
-not deployed behavior, until each suite completes implementation, verification, release, effect
-proof where required, and readback.
+active guidance: S97 and S98 own their tested removal. The remaining S36, S82-S84, S87-S95, and
+S97-S100 contracts are specified desired state, not deployed behavior, until each suite completes
+implementation, verification, release, effect proof where required, and readback.
 
 S96 is `ALL_GATES_GREEN` and deployed. Its focused, canonical, core-E2E, exact-SHA CI, zero-traffic
 candidate, normalized-config, bounded-route, exact promotion, and stable readback gates passed. The
@@ -28,9 +28,14 @@ live connector collection was empty, so the specified no-target proof made no cr
 effect. S85's technical implementation is `ALL_GATES_GREEN` and deployed: focused tests, the real
 Chromium matrix, full unit/Firestore/core-E2E gates, policy checks, production build, exact-SHA CI,
 zero-traffic candidate, normalized-config, promotion, and stable readback passed. Its separate
-`brand_conformance` gate remains blocked on approved official PMI assets. S86 is active. The
-Firestore Admin registry mirror drift (22/six versus the authoritative committed 41/seven) must be
-reconciled before S83 delivery and cannot grant execution meanwhile.
+`brand_conformance` gate remains blocked on approved official PMI assets. S86 is also
+`ALL_GATES_GREEN` and deployed: shared interaction primitives, exact action inventory, accessible
+contextual help, honest busy/result feedback, cancel-first in-app confirmations, shell transient
+coordination, and notification failure/retry behavior passed focused and S96-preservation suites,
+canonical verification, real-browser coverage, exact-SHA CI, exact candidate/promotion, and stable
+readback without widening any effect. S83 is active. The Firestore Admin registry mirror drift
+(22/six versus the authoritative committed 41/seven) must be reconciled before S83 delivery and
+cannot grant execution meanwhile.
 
 ## Authority and closed decisions
 
@@ -76,10 +81,10 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 3 implementation. Re-read S86 and current interaction/disclosure/error
-truth, freeze its fail-first and S96/S85 preservation evidence, then implement its shared action
-feedback, help, progress, notice, dialog, and safe-recovery contracts without widening any route,
-permission, action key, or provider effect.
+The active position is step 4 implementation. Re-read S83 and current committed/Firestore access
+catalog, requester, approval, claim-application, Admin-navigation, and connection-check truth;
+reconcile the non-authoritative Firestore Admin registry mirror; then implement its capability-guided
+request-to-approval workflow without self-granting, generic queue mirroring, or provider authority.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

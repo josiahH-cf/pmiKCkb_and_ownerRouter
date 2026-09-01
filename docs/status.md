@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtiii4il-dcf1708c88b8`, 100% traffic
-- Serving commit: `353a0a9de81459d5271dcff0e6c2bae3d11cc188`
-- Immediate rollback: `pmi-kc-app-rmtic5vib-8774cfecd0c8`
+- Serving revision: `pmi-kc-app-rmtimspsj-ee9bbf50108f`, 100% traffic
+- Serving commit: `72f926d96aead0b5b6826494713203672a18a40a`
+- Immediate rollback: `pmi-kc-app-rmtiii4il-dcf1708c88b8`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -38,6 +38,21 @@ Official `brand_conformance` remains blocked on an approved PMI color/logo/type 
 contrast revalidation. The deployed technical system uses explicitly provisional orange, black, and
 white source values and does not represent them as official PMI assets.
 
+## S86 delivery
+
+S86 is `ALL_GATES_GREEN` and deployed. The app now has shared semantic Button, ActionLink, Icon,
+IconButton, InfoTip, BusyIndicator, Progress, Notice/Alert, ConfirmationDialog, and PageState
+primitives plus one cross-family transient-layer coordinator. Migrated role/scope, publication,
+approval, connector, Maintenance, template, Appearance, and notification actions show exact targets,
+cancel-first confirmation where consequential, truthful pending/result/error/retry state, and focus-
+safe keyboard/touch behavior. Notification count, polling, destinations, S96 disconnect lifecycle,
+and all existing server/store/provider contracts remain unchanged.
+
+Focused interaction and S96-preservation suites, the canonical gate, core E2E, real Chromium theme/
+viewport/zoom/accessibility smoke, exact-SHA CI, zero-traffic candidate, normalized configuration,
+exact promotion, and repeated stable readback passed. No route, role, permission, action key, store,
+provider, credential, client-data, draft, or message effect was added or run.
+
 ## Implemented product baseline
 
 - Complete RentVine and operating-Sheet reads, source reconciliation, exact dispositions, current-
@@ -59,12 +74,14 @@ white source values and does not represent them as official PMI assets.
   specified exact-artifact/no-target proof and made no credential or vault effect.
 - S85's semantic Light/Dark theme, prepaint resolver, accessible Appearance controls, and
   cross-product visual-state foundation are deployed. Official brand conformance remains separate.
+- S86's shared interactions, contextual help, honest async feedback, exact in-app confirmation,
+  notification recovery, page-state primitives, and transient-layer coordination are deployed.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96 and S85 are complete and
-deployed; S86 is active. The queue then runs S83 access requests, S84 navigation, and S82 renewal UI
-before the owner-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, and S86 are complete and
+deployed; S83 is active. The queue then runs S84 navigation and S82 renewal UI before the owner-
+authorized source effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -95,8 +112,8 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33496148515`: passed.
-- Canonical serving gate: 564 unit files plus one intentional skip; 5,186 tests plus four skips; 26
+- Current serving exact-SHA aggregate CI run `33506372579`: passed.
+- Canonical serving gate: 570 unit files plus one intentional skip; 5,223 tests plus four skips; 26
   Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; real Chromium theme
   matrix; 107-route production build.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
@@ -113,6 +130,12 @@ deferred to later separately grounded work.
   and representative-route smoke; exact-SHA CI `33496148515`; zero-traffic candidate
   `pmi-kc-app-rmtiii4il-dcf1708c88b8`; normalized predecessor parity; exact promotion; repeated
   stable version, theme-markup, traffic, identity, Space-map, secret-reference, and runtime readback.
+- S86 commit `72f926d96aead0b5b6826494713203672a18a40a`: focused 15-file/105-test
+  interaction suite; complete 13-file/89-test S96 preservation suite; canonical gate; core E2E;
+  real Chromium theme, 320px, 200%-equivalent, forced-color, reduced-motion, print, and route smoke;
+  exact-SHA CI `33506372579`; zero-traffic candidate `pmi-kc-app-rmtimspsj-ee9bbf50108f`;
+  normalized predecessor parity; exact promotion; and two stable version, traffic, Ready, identity,
+  Space-map, secret-reference, write-switch, and bounded-route readbacks.
 
 ## Remaining runtime evidence
 

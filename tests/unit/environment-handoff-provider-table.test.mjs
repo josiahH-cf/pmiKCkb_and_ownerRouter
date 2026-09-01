@@ -25,10 +25,10 @@ const CURRENT_PROVIDERS = [
 
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
+    expect(handoff).toContain("pmi-kc-app-rmtimspsj-ee9bbf50108f");
+    expect(handoff).toContain("72f926d96aead0b5b6826494713203672a18a40a");
     expect(handoff).toContain("pmi-kc-app-rmtiii4il-dcf1708c88b8");
     expect(handoff).toContain("353a0a9de81459d5271dcff0e6c2bae3d11cc188");
-    expect(handoff).toContain("pmi-kc-app-rmtic5vib-8774cfecd0c8");
-    expect(handoff).toContain("fb32194b5a15be11fd1e7e2dff7192d62dd947fc");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");

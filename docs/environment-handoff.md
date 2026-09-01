@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtiii4il-dcf1708c88b8`            |
-| Serving commit            | `353a0a9de81459d5271dcff0e6c2bae3d11cc188`     |
+| Serving revision          | `pmi-kc-app-rmtimspsj-ee9bbf50108f`            |
+| Serving commit            | `72f926d96aead0b5b6826494713203672a18a40a`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -32,7 +32,7 @@ Secret names are bound through Secret Manager. Values never belong in this file.
   from source uploads.
 - On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
   `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
-- The S96 release used a short-lived ADC token only in a task-specific shell variable passed through
+- The S96, S85, and S86 releases used a short-lived ADC token only in a task-specific shell variable passed through
   `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
   only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
   Authentication dialogs must never be automated.
@@ -62,8 +62,9 @@ npm run release -- --environment=production --execute \
 ```
 
 Smoke the returned tag URL with exact tag, service, revision, and 40-character commit. Compare the
-candidate's normalized configuration to the captured predecessor, allowing only the reviewed image
-and `APP_COMMIT_SHA` identity differences. Then:
+candidate's normalized runtime spec to the captured predecessor, allowing only the reviewed image
+and `APP_COMMIT_SHA` identity differences; inspect provider-generated per-build provenance metadata
+separately. Then:
 
 ```bash
 npm run release -- --environment=production --promote \
@@ -80,13 +81,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtic5vib-8774cfecd0c8` from commit
-`fb32194b5a15be11fd1e7e2dff7192d62dd947fc`.
+Captured predecessor: `pmi-kc-app-rmtiii4il-dcf1708c88b8` from commit
+`353a0a9de81459d5271dcff0e6c2bae3d11cc188`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtic5vib-8774cfecd0c8=100 --quiet
+  --to-revisions=pmi-kc-app-rmtiii4il-dcf1708c88b8=100 --quiet
 ```
 
 Forward restoration:
@@ -94,7 +95,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtiii4il-dcf1708c88b8=100 --quiet
+  --to-revisions=pmi-kc-app-rmtimspsj-ee9bbf50108f=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -124,6 +125,18 @@ The S85 release captured `pmi-kc-app-rmtic5vib-8774cfecd0c8`, passed exact-SHA C
 and `APP_COMMIT_SHA`, promoted only that revision, and passed repeated stable version, theme-markup,
 traffic, identity, Space-map, secret-reference, and runtime-state readback. No store, provider,
 action-key, client-data, credential, or message effect occurred.
+
+The S86 release captured `pmi-kc-app-rmtiii4il-dcf1708c88b8`, passed focused interaction and S96-
+preservation suites, the canonical gate, core E2E, the real Chromium theme/viewport/accessibility
+matrix, and exact-SHA CI run `33506372579`. Zero-traffic candidate
+`pmi-kc-app-rmtimspsj-ee9bbf50108f` matched exact commit
+`72f926d96aead0b5b6826494713203672a18a40a`, bounded routes, and the predecessor runtime spec after
+excluding only image and `APP_COMMIT_SHA`; its provider-generated build id/source metadata was
+reviewed separately. Only that revision was promoted. Two stable readbacks proved Ready/100%
+traffic, exact version, managed identity, Production + Live, eleven matching Space maps, three
+expected secret references, allowance 50, closed Sheet/Space write switches, and healthy bounded
+routes. No store, provider, action-key, role, permission, client-data, credential, draft, or message
+effect occurred.
 
 ## Configuration invariants
 
