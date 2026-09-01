@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtic5vib-8774cfecd0c8`            |
-| Serving commit            | `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`     |
+| Serving revision          | `pmi-kc-app-rmtiii4il-dcf1708c88b8`            |
+| Serving commit            | `353a0a9de81459d5271dcff0e6c2bae3d11cc188`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -80,13 +80,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtg73suu-fe8734d35330` from commit
-`1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`.
+Captured predecessor: `pmi-kc-app-rmtic5vib-8774cfecd0c8` from commit
+`fb32194b5a15be11fd1e7e2dff7192d62dd947fc`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtg73suu-fe8734d35330=100 --quiet
+  --to-revisions=pmi-kc-app-rmtic5vib-8774cfecd0c8=100 --quiet
 ```
 
 Forward restoration:
@@ -94,7 +94,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtic5vib-8774cfecd0c8=100 --quiet
+  --to-revisions=pmi-kc-app-rmtiii4il-dcf1708c88b8=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -117,6 +117,13 @@ bounded routes on zero-traffic candidate `pmi-kc-app-rmtic5vib-8774cfecd0c8`, ma
 runtime configuration, promoted only that revision, and passed stable traffic/configuration/action
 readback. Production had no connector records; no credential, vault, provider, or client-data effect
 occurred.
+
+The S85 release captured `pmi-kc-app-rmtic5vib-8774cfecd0c8`, passed exact-SHA CI run
+`33496148515`, proved exact commit/revision and bounded routes on zero-traffic candidate
+`pmi-kc-app-rmtiii4il-dcf1708c88b8`, matched the predecessor runtime spec after excluding only image
+and `APP_COMMIT_SHA`, promoted only that revision, and passed repeated stable version, theme-markup,
+traffic, identity, Space-map, secret-reference, and runtime-state readback. No store, provider,
+action-key, client-data, credential, or message effect occurred.
 
 ## Configuration invariants
 

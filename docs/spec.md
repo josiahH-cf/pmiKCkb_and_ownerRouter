@@ -58,20 +58,20 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `fb32194b5a15be11fd1e7e2dff7192d62dd947fc` passed 558 unit files
-with one intentional file skip (5,170 tests and four skips), 26 Firestore files/119 tests, every
-static/policy gate, a zero-vulnerability production audit, and the 107-route build. Exact-SHA
-aggregate CI runs `33466388696` and `33466942670` passed. Zero-traffic revision
-`pmi-kc-app-rmtic5vib-8774cfecd0c8` then passed exact identity, bounded-route, and configuration
-readback before promotion and stable 100% traffic readback. Revision
-`pmi-kc-app-rmtg73suu-fe8734d35330` is the immediate rollback target; the earlier predecessor chain
-retains its recorded version-aware rollback/restoration rehearsal.
+The production release at commit `353a0a9de81459d5271dcff0e6c2bae3d11cc188` passed 564 unit files
+with one intentional file skip (5,186 tests and four skips), 26 Firestore files/119 tests, every
+static/policy gate, core E2E, a real Chromium theme matrix, and the 107-route build. Exact-SHA
+aggregate CI run `33496148515` passed. Zero-traffic revision
+`pmi-kc-app-rmtiii4il-dcf1708c88b8` then passed exact identity, bounded-route, theme-markup, and
+normalized-configuration readback before promotion and repeated stable 100% traffic readback.
+Revision `pmi-kc-app-rmtic5vib-8774cfecd0c8` is the immediate rollback target; the earlier
+predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
 superseded proof specifications are not part of this contract. S36 and S82-S100 are desired-state
-contracts, not deployed behavior. S96 is complete and deployed; S85 is the active suite. S97 later
+contracts, not deployed behavior. S96 and S85 are complete and deployed; S86 is the active suite. S97 later
 consumes S30's safety primitives and replaces the proof-only
 route with the exact renewal product contract. All product decisions are closed; missing fresh
 provider values or managed sessions are fail-closed runtime inputs, not permission to invent them.

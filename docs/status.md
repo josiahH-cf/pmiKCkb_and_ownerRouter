@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtic5vib-8774cfecd0c8`, 100% traffic
-- Serving commit: `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`
-- Immediate rollback: `pmi-kc-app-rmtg73suu-fe8734d35330`
+- Serving revision: `pmi-kc-app-rmtiii4il-dcf1708c88b8`, 100% traffic
+- Serving commit: `353a0a9de81459d5271dcff0e6c2bae3d11cc188`
+- Immediate rollback: `pmi-kc-app-rmtic5vib-8774cfecd0c8`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -24,20 +24,19 @@ Firestore Admin mirror has 22 records/six open; that display drift cannot grant 
 reconciled before the S83 Admin cutover. None of the new S97-S100 exact keys is executable or
 deployed yet.
 
-## Current ship candidate, not production
+## S85 technical delivery
 
-S85's technical implementation is `ALL_GATES_GREEN` locally. The candidate resolves a device-local
-System/Light/Dark preference before paint, exposes an accessible Appearance disclosure across staff,
-public sign-in, and Vendor chrome, replaces themeable aliases/literals with complete semantic roles,
-and records all 29 audited experiences in the five-cohort migration ledger. Its focused 21-test set,
-real Chromium cold-load/3-by-3 viewport/accessibility/print/representative-route matrix, full 5,186-
-test unit corpus, 31-test core E2E run, 119-test Firestore run, policy gates, and 107-route production
-build passed. No production, store, provider, role, route, action-key, or client-message effect has
-occurred. Exact-SHA CI and zero-traffic release proof remain before deployment.
+S85's technical implementation is `ALL_GATES_GREEN` and deployed. Production resolves a
+device-local System/Light/Dark preference before paint, exposes an accessible Appearance disclosure
+across staff, public sign-in, and Vendor chrome, replaces themeable aliases/literals with complete
+semantic roles, and records all 29 audited experiences in the five-cohort migration ledger. Focused,
+real Chromium, full unit, Firestore, core E2E, policy, build, exact-SHA CI, zero-traffic candidate,
+normalized-config, promotion, and stable canonical readback gates passed. No store, provider, role,
+route, action-key, credential, client-data, or client-message effect occurred.
 
 Official `brand_conformance` remains blocked on an approved PMI color/logo/type asset package and
-contrast revalidation. The technical candidate uses explicitly provisional orange, black, and white
-source values and does not represent them as official PMI assets.
+contrast revalidation. The deployed technical system uses explicitly provisional orange, black, and
+white source values and does not represent them as official PMI assets.
 
 ## Implemented product baseline
 
@@ -58,13 +57,14 @@ source values and does not represent them as official PMI assets.
   redacted receipt, verifiable vault outcome, response-loss recovery, and setup-generation safety are
   deployed. Live readback found no connector records, so candidate first-click safety used the
   specified exact-artifact/no-target proof and made no credential or vault effect.
+- S85's semantic Light/Dark theme, prepaint resolver, accessible Appearance controls, and
+  cross-product visual-state foundation are deployed. Official brand conformance remains separate.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96 is complete. S85 remains the
-active delivery until its exact-SHA CI and zero-traffic candidate/promotion/readback gates pass; S86
-is next. The queue then runs S83 access requests, S84 navigation, and S82 renewal UI before the
-owner-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96 and S85 are complete and
+deployed; S86 is active. The queue then runs S83 access requests, S84 navigation, and S82 renewal UI
+before the owner-authorized source effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -95,9 +95,10 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33466942670`: passed.
-- Canonical serving gate: 558 unit files plus one intentional skip; 5,170 tests plus four skips; 26
-  Firestore files/119 tests; policy/static gates; 107-route production build; production audit zero.
+- Current serving exact-SHA aggregate CI run `33496148515`: passed.
+- Canonical serving gate: 564 unit files plus one intentional skip; 5,186 tests plus four skips; 26
+  Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; real Chromium theme
+  matrix; 107-route production build.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
   aggregate CI run `33425658400` passed; no deployment was performed.
 - S96 commit `32a2d836a730ae7751e4d6964897d48430da9f15`: focused adversarial tests,
@@ -107,10 +108,11 @@ deferred to later separately grounded work.
   `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`, bounded routes, and predecessor runtime configuration;
   it was promoted and passed stable identity/configuration readback. The live connector collection
   was empty. No vault, connector, provider, Sheet, Gmail, role, or client-data effect occurred.
-- S85 local candidate: 564 unit files passed plus one intentional skip; 5,186 tests passed plus four
-  skips; 26 Firestore files/119 tests; 31 runnable core E2E tests; focused 21-test theme suite; real
+- S85 commit `353a0a9de81459d5271dcff0e6c2bae3d11cc188`: focused 21-test theme suite; real
   Chromium cold-load, persistence, viewport, zoom-equivalent, forced-color, reduced-motion, print,
-  and representative-route smoke; policy/static gates; 107-route production build.
+  and representative-route smoke; exact-SHA CI `33496148515`; zero-traffic candidate
+  `pmi-kc-app-rmtiii4il-dcf1708c88b8`; normalized predecessor parity; exact promotion; repeated
+  stable version, theme-markup, traffic, identity, Space-map, secret-reference, and runtime readback.
 
 ## Remaining runtime evidence
 

@@ -10,20 +10,20 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtic5vib-8774cfecd0c8` / commit
-  `fb32194b5a15be11fd1e7e2dff7192d62dd947fc` at 100% traffic. Immediate rollback is
-  `pmi-kc-app-rmtg73suu-fe8734d35330`.
+- Production serves `pmi-kc-app-rmtiii4il-dcf1708c88b8` / commit
+  `353a0a9de81459d5271dcff0e6c2bae3d11cc188` at 100% traffic. Immediate rollback is
+  `pmi-kc-app-rmtic5vib-8774cfecd0c8`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
 - S96 is `ALL_GATES_GREEN` and deployed. Focused/canonical/core-E2E checks and exact-SHA CI passed;
   the zero-traffic candidate matched exact version and normalized predecessor configuration, bounded
   routes passed, and exact promotion/stable readback passed. Production had zero connector records,
   so the specified no-target first-click proof ran with no credential or vault effect.
-- S85's technical candidate is locally `ALL_GATES_GREEN`. Its focused 21-test suite, real Chromium
-  cold-load/persistence/3-by-3 viewport/zoom/accessibility/print/route matrix, 5,186-test unit corpus,
-  31 runnable core E2E tests, 119 Firestore tests, policy gates, and 107-route build passed. It has not
-  been committed, run through exact-SHA CI, or deployed yet. `brand_conformance` remains separately
-  blocked on approved official PMI assets; the candidate labels its visual source values provisional.
+- S85's technical implementation is `ALL_GATES_GREEN` and deployed. Its focused 21-test suite, real
+  Chromium cold-load/persistence/3-by-3 viewport/zoom/accessibility/print/route matrix, full unit,
+  Firestore, core E2E, policy, build, exact-SHA CI `33496148515`, zero-traffic candidate, normalized-
+  config, exact-promotion, and stable-readback gates passed. `brand_conformance` remains separately
+  blocked on approved official PMI assets; deployed source values are explicitly provisional.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
   the S96 release used the prior proven non-persistent ADC token bridge without printing or writing a
   token.
@@ -47,16 +47,16 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Commit and push the audited S85 candidate without `.claude/settings.local.json` or `output/`; require
-exact-SHA aggregate CI; deploy the exact commit as a zero-traffic candidate while preserving the
-current Production+Live runtime configuration; smoke exact identity and bounded routes; promote the
-exact revision; and reconcile stable readback before beginning S86.
+Begin S86. Re-read its complete contract and current shared UI/action/disclosure/error truth; preserve
+the complete S96 connector and S85 theme/browser suites; freeze fail-first feedback/help/recovery
+evidence; and implement the bounded shared interaction foundation without any store, permission,
+action-key, provider, or client-message widening.
 
 ## Canonical queue
 
 1. S96 — COMPLETE
-2. S85 — LOCAL GATES GREEN; RELEASE PENDING
-3. S86
+2. S85 — COMPLETE
+3. S86 — ACTIVE
 4. S83
 5. S84
 6. S82
