@@ -3,13 +3,38 @@
 // configuration only); Phase-2b will pass the result of a live read-only verification probe.
 
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
-import type { ConnectorConnectionStatus } from "@/lib/connections/connector-connection";
+import {
+  connectorRecordVersion,
+  isSafeLegacyConnectorRecord,
+  isSafeVersionedConnectedRecord,
+  isSafeVersionedPendingRecord,
+  isSafeVersionedRevokedRecord,
+  type ConnectorConnectionRecord,
+  type ConnectorConnectionStatus,
+  type ConnectorDestroyOutcome,
+} from "@/lib/connections/connector-connection";
 
 export type ConnectionState = "connected" | "action" | "none" | "closed";
 
 /** The connection facts the classifier and card care about (status only, never a secretRef). */
 export interface ConnectorConnectionView {
   status: ConnectorConnectionStatus;
+  disconnect?: ConnectorDisconnectView;
+}
+
+export interface ConnectorDisconnectView {
+  state:
+    | "connected"
+    | "revocation_pending"
+    | "legacy_pending"
+    | "revoked"
+    | "manual_blocker";
+  record_version: string | null;
+  operation_id?: string;
+  requested_at?: string;
+  completed_at?: string;
+  destroy_outcome?: ConnectorDestroyOutcome;
+  recovery_available: boolean;
 }
 
 export interface ConnectorStatus {
@@ -66,6 +91,24 @@ export function classifyConnector(
         "This capability is intentionally closed and has no connection setup step.",
     };
   }
+  // Lifecycle state outranks the short-lived read-only verification cache. A stale passed probe
+  // must never make a pending or completed credential revocation look connected.
+  if (connection?.status === "revocation_pending") {
+    return {
+      ...base,
+      state: "action",
+      label: "Disconnecting",
+      detail: "Finishing the disconnect.",
+    };
+  }
+  if (connection?.status === "revoked") {
+    return {
+      ...base,
+      state: "none",
+      label: "Disconnected",
+      detail: "Credential removal was verified. Reconnect to restore access.",
+    };
+  }
   if (verified) {
     return {
       ...base,
@@ -80,14 +123,6 @@ export function classifyConnector(
       state: "connected",
       label: "Connected",
       detail: "Set up by an Admin.",
-    };
-  }
-  if (connection?.status === "revocation_pending") {
-    return {
-      ...base,
-      state: "action",
-      label: "Disconnecting",
-      detail: "Finishing the disconnect.",
     };
   }
   if (requiredCount === 0) {
@@ -179,4 +214,74 @@ export function buildConnectionView(
     };
   });
   return { items, summary: summarizeConnections(items.map((item) => item.status)) };
+}
+
+/** Admin projection for S96. The non-Admin branch deliberately contains only ordinary status. */
+export function projectConnectorConnection(
+  record: ConnectorConnectionRecord,
+  canManage: boolean,
+): ConnectorConnectionView {
+  const status: ConnectorConnectionStatus = record.status;
+  if (!canManage) return { status };
+
+  const recordVersion = connectorRecordVersion(record);
+  if (record.status === "connected") {
+    return {
+      status,
+      disconnect: {
+        state: "connected",
+        record_version: recordVersion,
+        recovery_available:
+          recordVersion !== null &&
+          (isSafeVersionedConnectedRecord(record) ||
+            isSafeLegacyConnectorRecord(record, "connected")),
+      },
+    };
+  }
+  if (record.status === "revocation_pending") {
+    if (isSafeVersionedPendingRecord(record)) {
+      return {
+        status,
+        disconnect: {
+          state: "revocation_pending",
+          record_version: recordVersion,
+          operation_id: record.operationId,
+          requested_at: record.requestedAt,
+          recovery_available: true,
+        },
+      };
+    }
+    return {
+      status,
+      disconnect: {
+        state: recordVersion?.startsWith("g:") ? "revocation_pending" : "legacy_pending",
+        record_version: recordVersion,
+        recovery_available:
+          recordVersion !== null &&
+          isSafeLegacyConnectorRecord(record, "revocation_pending"),
+      },
+    };
+  }
+  if (!isSafeVersionedRevokedRecord(record)) {
+    return {
+      status,
+      disconnect: {
+        state: "manual_blocker",
+        record_version: recordVersion,
+        recovery_available: false,
+      },
+    };
+  }
+  return {
+    status,
+    disconnect: {
+      state: "revoked",
+      record_version: recordVersion,
+      operation_id: record.operationId,
+      requested_at: record.requestedAt,
+      completed_at: record.completedAt,
+      destroy_outcome: record.destroyOutcome,
+      recovery_available: false,
+    },
+  };
 }

@@ -9,9 +9,19 @@ export type StoreSecretResult =
   | { ok: true; secretRef: string }
   | { ok: false; reason: "not_configured" };
 
+export type DestroySecretResult =
+  | { ok: true; outcome: "destroyed" | "already_absent" }
+  | { ok: false; reason: "not_configured" };
+
+export type ConnectorVaultCapability = "configured" | "not_configured";
+
 export interface ConnectorSecretVault {
+  capability(): Promise<ConnectorVaultCapability>;
   storeSecret(input: { connectorId: string; secret: string }): Promise<StoreSecretResult>;
-  destroySecret(secretRef: string): Promise<void>;
+  destroySecret(input: {
+    secretRef: string;
+    operationId: string;
+  }): Promise<DestroySecretResult>;
 }
 
 // Honest default: no secure storage is configured. The interface's secret argument is deliberately
@@ -19,12 +29,17 @@ export interface ConnectorSecretVault {
 // logged, echoed, or persisted. It immediately reports that storage is not configured so no connection
 // record is ever created.
 export class NotConfiguredConnectorSecretVault implements ConnectorSecretVault {
+  async capability(): Promise<ConnectorVaultCapability> {
+    return "not_configured";
+  }
+
   async storeSecret(): Promise<StoreSecretResult> {
     return { ok: false, reason: "not_configured" };
   }
 
-  async destroySecret(): Promise<void> {
-    // No stored secret exists, so there is nothing to destroy.
+  async destroySecret(): Promise<DestroySecretResult> {
+    // Refuse rather than pretending an unconfigured boundary proved destruction.
+    return { ok: false, reason: "not_configured" };
   }
 }
 

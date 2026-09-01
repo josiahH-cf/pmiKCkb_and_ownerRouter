@@ -3,7 +3,10 @@ import { ConnectionCenter } from "@/components/connections/ConnectionCenter";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import type { ConnectorConnectionView } from "@/lib/connections/connection-status";
-import { buildConnectionView } from "@/lib/connections/connection-status";
+import {
+  buildConnectionView,
+  projectConnectorConnection,
+} from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import {
   getVerifiedConnectorIds,
@@ -16,15 +19,16 @@ import { getConnectorConnectionStore } from "@/lib/firestore/connector-connectio
 // SEE the truth; only Admins get the setup wizard and the fresh-verify button (decision 6 / D5).
 export default async function ConnectionsPage() {
   const user = await requirePageCapability("read");
+  const canManage = can(user.role, "manageAdmin");
   const verifiedIds = await getVerifiedConnectorIds();
-  const connections = await loadConnectorConnections();
+  const connections = await loadConnectorConnections(canManage);
   const view = buildConnectionView(readConnectorPresence(), verifiedIds, connections);
 
   return (
     <AppShell user={user}>
       <section className="content">
         <ConnectionCenter
-          canManage={can(user.role, "manageAdmin")}
+          canManage={canManage}
           verifiableIds={LIVE_VERIFIABLE_CONNECTOR_IDS}
           view={view}
         />
@@ -35,11 +39,16 @@ export default async function ConnectionsPage() {
 
 // Load the app-held connection records (status only) keyed by connectorId. Any read failure degrades
 // to an empty map so the page still renders configuration-only status.
-async function loadConnectorConnections(): Promise<Map<string, ConnectorConnectionView>> {
+async function loadConnectorConnections(
+  canManage: boolean,
+): Promise<Map<string, ConnectorConnectionView>> {
   try {
     const records = await getConnectorConnectionStore().listConnections();
     return new Map(
-      records.map((record) => [record.connectorId, { status: record.status }]),
+      records.map((record) => [
+        record.connectorId,
+        projectConnectorConnection(record, canManage),
+      ]),
     );
   } catch {
     return new Map();

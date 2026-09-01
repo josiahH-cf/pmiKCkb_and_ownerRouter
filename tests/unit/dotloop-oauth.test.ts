@@ -85,6 +85,7 @@ describe("beginDotloopConnect", () => {
 describe("Dotloop token exchanger + revoke seams", () => {
   it("refuses to exchange a code with no live exchanger wired (never fabricates a token)", async () => {
     const vault: ConnectorSecretVault = {
+      capability: vi.fn().mockResolvedValue("not_configured"),
       storeSecret: vi.fn(),
       destroySecret: vi.fn(),
     };
@@ -98,10 +99,21 @@ describe("Dotloop token exchanger + revoke seams", () => {
   });
 
   it("revoke destroys the stored secret ref through the vault", async () => {
-    const destroySecret = vi.fn().mockResolvedValue(undefined);
-    const vault: ConnectorSecretVault = { storeSecret: vi.fn(), destroySecret };
-    await revokeDotloopConnection({ secretRef: "opaque-ref", vault });
-    expect(destroySecret).toHaveBeenCalledWith("opaque-ref");
+    const destroySecret = vi.fn().mockResolvedValue({ ok: true, outcome: "destroyed" });
+    const vault: ConnectorSecretVault = {
+      capability: vi.fn().mockResolvedValue("configured"),
+      storeSecret: vi.fn(),
+      destroySecret,
+    };
+    await revokeDotloopConnection({
+      secretRef: "opaque-ref",
+      operationId: "11111111-1111-4111-8111-111111111111",
+      vault,
+    });
+    expect(destroySecret).toHaveBeenCalledWith({
+      secretRef: "opaque-ref",
+      operationId: "11111111-1111-4111-8111-111111111111",
+    });
   });
 });
 

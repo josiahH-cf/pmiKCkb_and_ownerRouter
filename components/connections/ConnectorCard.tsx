@@ -23,7 +23,6 @@ export function ConnectorCard({
   verifiable,
 }: Readonly<{ item: ConnectorView; canManage: boolean; verifiable: boolean }>) {
   const { def, status, connection } = item;
-  const connected = connection?.status === "connected";
   const setupAvailable = status.state !== "closed";
   const managementAvailable = setupAvailable && allowsAppManagedConnection(def);
   const contract = def.healthCheckRef
@@ -60,7 +59,7 @@ export function ConnectorCard({
           {canManage && managementAvailable ? (
             <>
               <ConnectorSetupActions
-                connected={connected}
+                connection={connection}
                 connectorId={def.id}
                 connectorName={def.name}
                 method={def.method}

@@ -11,6 +11,7 @@ import {
   resolveConnectorSecretVault,
   type ConnectorSecretVault,
 } from "@/lib/connections/connector-secret-vault";
+import { CANONICAL_UUID } from "@/lib/connections/connector-connection";
 
 export const DOTLOOP_OAUTH_AUTHORIZE_URL = "https://auth.dotloop.com/oauth/authorize";
 export const DOTLOOP_OAUTH_TOKEN_URL = "https://auth.dotloop.com/oauth/token";
@@ -95,7 +96,11 @@ export interface DotloopTokenExchanger {
     config: DotloopOAuthConfig;
     vault: ConnectorSecretVault;
   }): Promise<DotloopTokenSet>;
-  revoke(input: { secretRef: string; vault: ConnectorSecretVault }): Promise<void>;
+  revoke(input: {
+    secretRef: string;
+    operationId: string;
+    vault: ConnectorSecretVault;
+  }): Promise<void>;
 }
 
 /**
@@ -114,9 +119,16 @@ export class NotConnectedDotloopTokenExchanger implements DotloopTokenExchanger 
     );
   }
 
-  async revoke(input: { secretRef: string; vault: ConnectorSecretVault }): Promise<void> {
-    // Best-effort: destroy any stored secret ref. There is no live Dotloop revoke call yet.
-    await input.vault.destroySecret(input.secretRef);
+  async revoke(input: {
+    secretRef: string;
+    operationId: string;
+    vault: ConnectorSecretVault;
+  }): Promise<void> {
+    const result = await input.vault.destroySecret({
+      secretRef: input.secretRef,
+      operationId: input.operationId,
+    });
+    if (!result.ok) throw new Error("Secure credential removal is not configured.");
   }
 }
 
@@ -157,10 +169,18 @@ export function beginDotloopConnect(input: {
 /** Revoke the Dotloop connection (revoke hook): destroy the stored token ref via the vault seam. */
 export async function revokeDotloopConnection(input: {
   secretRef: string;
+  operationId: string;
   exchanger?: DotloopTokenExchanger;
   vault?: ConnectorSecretVault;
 }): Promise<void> {
+  if (!CANONICAL_UUID.test(input.operationId)) {
+    throw new Error("Dotloop revocation requires a canonical operation id.");
+  }
   const exchanger = input.exchanger ?? resolveDotloopTokenExchanger();
   const vault = input.vault ?? resolveConnectorSecretVault();
-  await exchanger.revoke({ secretRef: input.secretRef, vault });
+  await exchanger.revoke({
+    secretRef: input.secretRef,
+    operationId: input.operationId,
+    vault,
+  });
 }

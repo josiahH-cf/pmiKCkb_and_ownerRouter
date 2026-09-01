@@ -9,7 +9,9 @@ import { CONNECTORS } from "@/lib/connections/connector-catalog";
 import {
   buildConnectionView,
   classifyConnector,
+  projectConnectorConnection,
 } from "@/lib/connections/connection-status";
+import type { ConnectorConnectionRecord } from "@/lib/connections/connector-connection";
 
 const rentvine = CONNECTORS.find((connector) => connector.id === "rentvine")!;
 const configuredPresence = {
@@ -32,6 +34,11 @@ describe("classifyConnector with a connection record", () => {
     });
     expect(status.state).toBe("action");
     expect(status.label).toBe("Disconnecting");
+    expect(
+      classifyConnector(rentvine, configuredPresence, true, {
+        status: "revocation_pending",
+      }),
+    ).toEqual(status);
   });
 
   it("lets a passed live-verified verdict win over a connected record", () => {
@@ -39,13 +46,16 @@ describe("classifyConnector with a connection record", () => {
     expect(status.detail).toBe("Verified and ready.");
   });
 
-  it("falls through to configuration-only status for a revoked record", () => {
+  it("keeps a revoked lifecycle visibly disconnected even with configured or verified sources", () => {
     const withRecord = classifyConnector(rentvine, configuredPresence, false, {
       status: "revoked",
     });
-    const withoutRecord = classifyConnector(rentvine, configuredPresence);
-    expect(withRecord).toEqual(withoutRecord);
-    expect(withRecord.label).toBe("Ready to verify");
+    const verified = classifyConnector(rentvine, configuredPresence, true, {
+      status: "revoked",
+    });
+    expect(withRecord.label).toBe("Disconnected");
+    expect(verified).toEqual(withRecord);
+    expect(withRecord.state).toBe("none");
   });
 
   it("is byte-identical to the no-record path when no connection is passed", () => {
@@ -76,5 +86,92 @@ describe("buildConnectionView with connection records", () => {
     for (const item of view.items) {
       expect(item.connection).toBeUndefined();
     }
+  });
+});
+
+describe("S96 connector lifecycle projection", () => {
+  const connectedRecord: ConnectorConnectionRecord = {
+    connectorId: "rentvine",
+    method: "api_key",
+    status: "connected",
+    secretRef: "test-only-vault-handle",
+    connectedByUid: "admin-1",
+    connectedAt: "2026-08-31T10:00:00.000Z",
+    updatedAt: "2026-08-31T10:00:00.000Z",
+    generationId: "22222222-2222-4222-8222-222222222222",
+    revision: 1,
+  };
+
+  it("gives an Admin only the bounded versioned disconnect projection", () => {
+    const view = projectConnectorConnection(connectedRecord, true);
+    expect(view).toEqual({
+      status: "connected",
+      disconnect: {
+        state: "connected",
+        record_version: "g:22222222-2222-4222-8222-222222222222:1",
+        recovery_available: true,
+      },
+    });
+    expect(JSON.stringify(view)).not.toContain(connectedRecord.secretRef);
+  });
+
+  it("omits version, operation, receipt, and recovery from a non-Admin projection", () => {
+    expect(projectConnectorConnection(connectedRecord, false)).toEqual({
+      status: "connected",
+    });
+  });
+
+  it("classifies only a safely recoverable legacy pending record as adoptable", () => {
+    const legacy: ConnectorConnectionRecord = {
+      connectorId: "rentvine",
+      method: "api_key",
+      status: "revocation_pending",
+      secretRef: "test-only-vault-handle",
+      connectedByUid: "admin-1",
+      connectedAt: "2026-08-30T10:00:00.000Z",
+      updatedAt: "2026-08-31T10:00:00.000Z",
+    };
+    expect(projectConnectorConnection(legacy, true).disconnect).toMatchObject({
+      state: "legacy_pending",
+      record_version: "legacy:2026-08-31T10:00:00.000Z",
+      recovery_available: true,
+    });
+    const malformed = { ...legacy, updatedAt: "not-an-iso-time" };
+    expect(
+      projectConnectorConnection(malformed as ConnectorConnectionRecord, true).disconnect,
+    ).toMatchObject({ record_version: null, recovery_available: false });
+  });
+
+  it("fails closed for malformed versioned pending and revoked records", () => {
+    const malformedPending = {
+      ...connectedRecord,
+      status: "revocation_pending",
+      revision: 2,
+      requestedByUid: "admin-1",
+      requestedAt: "2026-08-31T11:00:00.000Z",
+      updatedAt: "2026-08-31T11:00:00.000Z",
+    } as unknown as ConnectorConnectionRecord;
+    expect(projectConnectorConnection(malformedPending, true).disconnect).toMatchObject({
+      state: "revocation_pending",
+      recovery_available: false,
+    });
+
+    const malformedRevoked = {
+      connectorId: "rentvine",
+      method: "api_key",
+      status: "revoked",
+      generationId: "22222222-2222-4222-8222-222222222222",
+      revision: 3,
+      operationId: "11111111-1111-4111-8111-111111111111",
+      requestedByUid: "admin-1",
+      requestedAt: "2026-08-31T11:00:00.000Z",
+      completedAt: "not-an-iso-time",
+      destroyOutcome: "destroyed",
+      updatedAt: "2026-08-31T12:00:00.000Z",
+    } as unknown as ConnectorConnectionRecord;
+    expect(projectConnectorConnection(malformedRevoked, true).disconnect).toMatchObject({
+      state: "manual_blocker",
+      recovery_available: false,
+    });
   });
 });

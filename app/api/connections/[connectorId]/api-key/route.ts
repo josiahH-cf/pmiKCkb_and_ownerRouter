@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -60,15 +61,25 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const now = new Date().toISOString();
-    await getConnectorConnectionStore().saveConnection({
-      connectorId,
-      method: "api_key",
-      status: "connected",
-      secretRef: result.secretRef,
-      connectedByUid: user.uid,
-      connectedAt: now,
-      updatedAt: now,
-    });
+    const generationId = randomUUID();
+    try {
+      await getConnectorConnectionStore().createConnectedConnection({
+        connectorId,
+        method: "api_key",
+        secretRef: result.secretRef,
+        connectedByUid: user.uid,
+        connectedAt: now,
+        generationId,
+      });
+    } catch (error) {
+      // A concurrent setup/revocation transition must not strand the newly stored credential. This
+      // cleanup is scoped to the just-created opaque reference and never changes lifecycle state.
+      await resolveConnectorSecretVault().destroySecret({
+        secretRef: result.secretRef,
+        operationId: generationId,
+      });
+      throw error;
+    }
 
     return NextResponse.json({ connectorId, stored: true, status: "connected" });
   } catch (error) {

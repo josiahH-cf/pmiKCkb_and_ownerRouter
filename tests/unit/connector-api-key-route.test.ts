@@ -1,19 +1,15 @@
-// Admin-only "Add your API key" route: Admin-guarded, connector-shape-checked, and honest when no
-// secure vault is wired. The raw key never reaches the store; only an opaque secretRef is persisted.
-
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  capability: vi.fn(),
   storeSecret: vi.fn(),
   destroySecret: vi.fn(),
-  saveConnection: vi.fn(),
-  getConnection: vi.fn(),
-  listConnections: vi.fn(),
-  deleteConnection: vi.fn(),
+  createConnectedConnection: vi.fn(),
 }));
 
 vi.mock("@/lib/connections/connector-secret-vault", () => ({
   resolveConnectorSecretVault: () => ({
+    capability: mocks.capability,
     storeSecret: mocks.storeSecret,
     destroySecret: mocks.destroySecret,
   }),
@@ -21,17 +17,14 @@ vi.mock("@/lib/connections/connector-secret-vault", () => ({
 
 vi.mock("@/lib/firestore/connector-connections", () => ({
   getConnectorConnectionStore: () => ({
-    getConnection: mocks.getConnection,
-    listConnections: mocks.listConnections,
-    saveConnection: mocks.saveConnection,
-    deleteConnection: mocks.deleteConnection,
+    createConnectedConnection: mocks.createConnectedConnection,
   }),
 }));
 
 import { POST } from "@/app/api/connections/[connectorId]/api-key/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 
-const SECRET = "super-secret-key-value";
+const SECRET = "test-only-secret-value";
 
 function setRole(role: "Admin" | "Editor") {
   setAuthResolverForTest(() => ({
@@ -60,89 +53,65 @@ afterEach(() => {
 });
 
 describe("POST /api/connections/[connectorId]/api-key", () => {
-  it("is Admin-only — an Editor gets 403 and nothing is stored", async () => {
+  it("refuses non-Admin, unknown, wrong-method, status-only, and malformed requests before storage", async () => {
     setRole("Editor");
-
-    const response = await POST(request({ api_key: SECRET }), ctx("rentvine"));
-
-    expect(response.status).toBe(403);
-    expect(mocks.storeSecret).not.toHaveBeenCalled();
-    expect(mocks.saveConnection).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 for an unknown connector", async () => {
+    expect((await POST(request({ api_key: SECRET }), ctx("rentvine"))).status).toBe(403);
     setRole("Admin");
-
-    const response = await POST(request({ api_key: SECRET }), ctx("nope"));
-
-    expect(response.status).toBe(404);
+    expect((await POST(request({ api_key: SECRET }), ctx("nope"))).status).toBe(404);
+    expect((await POST(request({ api_key: SECRET }), ctx("dotloop"))).status).toBe(400);
+    expect((await POST(request({ api_key: SECRET }), ctx("rentcast"))).status).toBe(400);
+    expect((await POST(request({}), ctx("rentvine"))).status).toBe(400);
     expect(mocks.storeSecret).not.toHaveBeenCalled();
+    expect(mocks.createConnectedConnection).not.toHaveBeenCalled();
   });
 
-  it("returns 400 for a connector that does not use an API key", async () => {
-    setRole("Admin");
-
-    const response = await POST(request({ api_key: SECRET }), ctx("dotloop"));
-
-    expect(response.status).toBe(400);
-    expect(mocks.storeSecret).not.toHaveBeenCalled();
-  });
-
-  it("refuses the status-only RentCast card before vault or connection-store access", async () => {
-    setRole("Admin");
-
-    const response = await POST(request({ api_key: SECRET }), ctx("rentcast"));
-
-    expect(response.status).toBe(400);
-    expect(mocks.storeSecret).not.toHaveBeenCalled();
-    expect(mocks.saveConnection).not.toHaveBeenCalled();
-  });
-
-  it("returns 400 for a malformed body", async () => {
-    setRole("Admin");
-
-    const response = await POST(request({}), ctx("rentvine"));
-
-    expect(response.status).toBe(400);
-    expect(mocks.storeSecret).not.toHaveBeenCalled();
-  });
-
-  it("stays honest when no secure vault is wired: stored:false and no record written", async () => {
+  it("stays honest when secure storage is unavailable", async () => {
     setRole("Admin");
     mocks.storeSecret.mockResolvedValue({ ok: false, reason: "not_configured" });
-
     const response = await POST(request({ api_key: SECRET }), ctx("rentvine"));
-
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       connectorId: "rentvine",
       stored: false,
       status: "storage_not_configured",
     });
-    expect(mocks.saveConnection).not.toHaveBeenCalled();
+    expect(mocks.createConnectedConnection).not.toHaveBeenCalled();
   });
 
-  it("writes a connected record referencing only an opaque secretRef when the vault stores it", async () => {
+  it("creates a versioned connection using only the opaque handle", async () => {
     setRole("Admin");
-    mocks.storeSecret.mockResolvedValue({ ok: true, secretRef: "vault://rentvine/abc" });
-
-    const response = await POST(request({ api_key: SECRET }), ctx("rentvine"));
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      connectorId: "rentvine",
-      stored: true,
-      status: "connected",
+    mocks.storeSecret.mockResolvedValue({
+      ok: true,
+      secretRef: "test-only-vault-handle",
     });
-    expect(mocks.saveConnection).toHaveBeenCalledTimes(1);
-
-    const saved = mocks.saveConnection.mock.calls[0][0];
-    expect(saved.connectorId).toBe("rentvine");
-    expect(saved.method).toBe("api_key");
-    expect(saved.status).toBe("connected");
-    expect(saved.secretRef).toBe("vault://rentvine/abc");
-    expect(saved.connectedByUid).toBe("admin-1");
-    // The raw key is never persisted anywhere on the record.
+    mocks.createConnectedConnection.mockResolvedValue({});
+    const response = await POST(request({ api_key: SECRET }), ctx("rentvine"));
+    expect(response.status).toBe(200);
+    const saved = mocks.createConnectedConnection.mock.calls[0][0];
+    expect(saved).toMatchObject({
+      connectorId: "rentvine",
+      method: "api_key",
+      secretRef: "test-only-vault-handle",
+      connectedByUid: "admin-1",
+    });
+    expect(saved.generationId).toMatch(/^[0-9a-f-]{36}$/);
     expect(JSON.stringify(saved)).not.toContain(SECRET);
+  });
+
+  it("cleans up the just-stored handle when lifecycle creation loses a race", async () => {
+    setRole("Admin");
+    mocks.storeSecret.mockResolvedValue({
+      ok: true,
+      secretRef: "test-only-vault-handle",
+    });
+    mocks.createConnectedConnection.mockRejectedValue(new Error("conflict"));
+    mocks.destroySecret.mockResolvedValue({ ok: true, outcome: "destroyed" });
+    await expect(POST(request({ api_key: SECRET }), ctx("rentvine"))).rejects.toThrow(
+      "conflict",
+    );
+    expect(mocks.destroySecret).toHaveBeenCalledWith({
+      secretRef: "test-only-vault-handle",
+      operationId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
   });
 });
