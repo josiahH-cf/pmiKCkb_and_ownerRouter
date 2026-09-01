@@ -25,16 +25,10 @@ const CURRENT_PROVIDERS = [
 
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
-    expect(handoff).toContain("pmi-kc-app-rmtew9a2z-46a2353b6491");
-    expect(handoff).toContain("64031f8ee028f09930660060c8f5f627ca5ccde1");
-    // The immediately preceding S77 release remains the exact rollback target.
-    expect(handoff).toContain("pmi-kc-app-rmtep3ke9-9d3ecafb0c2e");
-    expect(handoff).toContain("2d7903d42dce9dbfad49338b959e467f6c333ccc");
-    expect(handoff).toContain("pmi-kc-app-rmtbh280n-61b78ef991cc");
-    expect(handoff).toContain("pmi-kc-app-rmtafuqbg-4e2e4ffe0f48");
-    expect(handoff).toContain(
-      "The 2026-08-27 rehearsal switched the predecessor to 100%",
-    );
+    expect(handoff).toContain("pmi-kc-app-rmtg73suu-fe8734d35330");
+    expect(handoff).toContain("1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c");
+    expect(handoff).toContain("pmi-kc-app-rmtfzwn77-8153d75d1cd5");
+    expect(handoff).toContain("e661ef5653821c79c7047bc1952735f3b1ded6f5");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");
@@ -52,10 +46,10 @@ describe("current provider and environment documentation", () => {
 
   it("records the live read/write boundaries without resurrecting old blockers", () => {
     expect(normalizedIntegrations).toContain(
-      "RentVine | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Renewal dry-preview only; write key closed",
+      "RentVine | Complete lease reads; current work-order list reads; authoritative lease/unit/portfolio data | Current renewal/work-order writes closed; exact S97/S99/S100 operations specified",
     );
     expect(normalizedIntegrations).toContain(
-      "Google Sheets | Operating renewal read source | Operating write off; distinct rehearsal-copy proof pending",
+      "Google Sheets | Operating renewal read source | Current write switch off; exact S98 append/update specified",
     );
     expect(normalizedIntegrations).toContain(
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",
@@ -68,12 +62,11 @@ describe("current provider and environment documentation", () => {
   });
 
   it("routes only genuine provider/client inputs to the current checklist", () => {
-    expect(checklist).toContain(
-      "RentCast radius, comp count, freshness/selection policy",
-    );
-    expect(checklist).toContain("Distinct verbatim Sheet copy");
-    expect(checklist).toContain("One unmistakable RentVine test lease/owner");
-    expect(checklist).toContain("protected gate separately");
+    expect(checklist).toContain("RentCast keeps provider order");
+    expect(checklist).toContain("S98 may append one temporary source-backed proof row");
+    expect(checklist).toContain("sole S97 RentVine property/lease target");
+    expect(checklist).toContain("bounded protected proof window");
+    expect(checklist).toContain("final activation");
     expect(checklist).not.toContain("active API plan");
     expect(checklist).not.toContain("Q-RENTCAST-ACCOUNT-403");
   });

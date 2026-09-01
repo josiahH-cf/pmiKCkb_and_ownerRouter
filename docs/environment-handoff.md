@@ -1,26 +1,26 @@
 # Environment and release handoff
 
-Updated from live readback: 2026-08-30.
+Updated from live readback and approved target contracts: 2026-08-31.
 
 ## Production
 
-| Item                | Value                                          |
-| ------------------- | ---------------------------------------------- |
-| Project             | `pmi-kc-kb-prod`                               |
-| Region              | `us-central1`                                  |
-| Cloud Run service   | `pmi-kc-app`                                   |
-| URL                 | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision    | `pmi-kc-app-rmtg73suu-fe8734d35330`            |
-| Serving commit      | `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`     |
-| Traffic             | 100%                                           |
-| Descriptor          | Production + Live                              |
-| Runtime identity    | project-managed PMI KC runtime service account |
-| Spaces              | 11                                             |
-| Sheet write-back    | false                                          |
-| Rehearsal Sheet     | not configured                                 |
-| RentCast            | selected; allowance 50                         |
-| S30 RentVine action | non-executable                                 |
-| Demo flags          | false                                          |
+| Item                      | Value                                          |
+| ------------------------- | ---------------------------------------------- |
+| Project                   | `pmi-kc-kb-prod`                               |
+| Region                    | `us-central1`                                  |
+| Cloud Run service         | `pmi-kc-app`                                   |
+| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
+| Serving revision          | `pmi-kc-app-rmtg73suu-fe8734d35330`            |
+| Serving commit            | `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`     |
+| Traffic                   | 100%                                           |
+| Descriptor                | Production + Live                              |
+| Runtime identity          | project-managed PMI KC runtime service account |
+| Spaces                    | 11                                             |
+| Sheet write-back          | false                                          |
+| Legacy copy-only Sheet id | not configured                                 |
+| RentCast                  | selected; allowance 50                         |
+| S30 RentVine action       | non-executable                                 |
+| Demo flags                | false                                          |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
@@ -70,10 +70,13 @@ npm run release -- --environment=production --promote \
   --candidate-revision=<exact> --budget-confirmed --allow-multiple-spaces
 ```
 
-After promotion, read back traffic, Ready state, service account, Production+Live descriptor, 11 Space
-maps, three expected secret references, allowance 50, closed Sheet writeback, unconfigured
-rehearsal/renewal-comp storage, bounded routes, and `/api/version`. For an S30-bearing release, also
-reread `rentvine.lease.renewal_writeback` as non-executable.
+After promotion, read back traffic, Ready state, service account, Production+Live descriptor, exact
+Space maps, expected secret references, allowance 50, the suite-owned Sheet/action/runtime state,
+bounded routes, and `/api/version`. Before S98 activation, Sheet writeback remains false. S98 removes
+the legacy copy-only setting and may enable only the exact operating actions after its temporary-row
+proof. S97/S99/S100 releases read back every named exact key and confirm every broad/unlisted key
+remains closed. S36 additionally proves its temporary store/object absent, eleven predecessor stores
+unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
@@ -105,8 +108,8 @@ lineage then included S77 revision `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` from comm
 `d2dfbcc2a865af1f92103083c2a49714c2dc3977`. These identities are retained as verified provenance,
 not current traffic instructions.
 
-The S30 release did not repeat that traffic movement; it captured the immediately preceding S63
-revision above, proved normalized candidate/predecessor parity, promoted the exact candidate, and
+The S30 release did not repeat that traffic movement; it captured its immediate predecessor, proved
+normalized candidate/predecessor parity, promoted the exact candidate, and
 passed stable smoke/readback. No client-data or provider effect occurred.
 
 ## Configuration invariants
@@ -117,10 +120,12 @@ A routine release preserves:
 - managed runtime service account;
 - eleven Space maps;
 - existing Secret Manager bindings;
-- operating Sheet write-back false;
+- current operating-Sheet action/runtime state (false until the S98 activation gate changes and
+  reads it back);
 - local/Demo auth false;
 - RentCast provider and allowance 50;
-- unconfigured rehearsal Sheet and renewal-comp storage unless separately authorized; and
+- no legacy copy-only Sheet setting after S98; renewal-comp storage unchanged unless separately
+  authorized; and
 - canonical HTTPS base URL.
 
 A difference requires explicit review; do not let stale local state replace current production

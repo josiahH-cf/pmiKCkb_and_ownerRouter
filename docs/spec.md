@@ -47,9 +47,14 @@ or cause provider effects.
 
 ## External effects
 
-Every effect is exact-key gated and follows preview, confirm, idempotency, receipt, readback, and
-rollback. Direct notice sends are out of scope. RentVine and operating-Sheet writes are currently
-closed.
+Every effect is exact-key gated and follows preview, exact confirmation, one bounded attempt or
+provider idempotency, receipt, readback, ambiguity recovery, and separate reversal/correction. S100's
+manual chat sync is the sole specified non-reversible stateful-read exception: its explicit warning
+states that RentVine marks retrieved manager messages read and documents no unread restoration.
+RentVine renewal and Maintenance writes, operating-Sheet writes, manual resident chat sync, and the
+resident-reply Gmail draft are approved desired behavior under S97-S100 but remain closed and
+undeployed today. Direct notice sends, generic/bulk provider calls, vendor assignment, RentVine chat
+posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
@@ -64,9 +69,9 @@ retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
-Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo
-specifications are not part of this contract. S82-S96 are audited desired-state contracts, not
-deployed behavior. After their documentation-readiness gate is committed and exact-SHA CI is green,
-S96 is the first executable suite; its UX-005 closure precedes visual expansion. The existing S63/
-S30 external acceptance and client/provider inputs remain parallel named checks rather than the next
-implementation task.
+Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
+superseded proof specifications are not part of this contract. S36 and S82-S100 are desired-state
+contracts, not deployed behavior. S96 remains the first executable suite; its UX-005 closure
+precedes visual expansion. S97 then consumes S30's safety primitives and replaces the proof-only
+route with the exact renewal product contract. All product decisions are closed; missing fresh
+provider values or managed sessions are fail-closed runtime inputs, not permission to invent them.

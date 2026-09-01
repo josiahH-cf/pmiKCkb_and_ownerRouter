@@ -1,103 +1,86 @@
-# S30 one-lease RentVine proof readiness - 2026-08-30
+# S30 one-lease RentVine proof readiness — current contract
 
-This packet records implementation readiness without naming a lease, person, date value, credential,
-or provider body. It is not live-write authorization.
+This packet records the current closed implementation and the owner-set execution contract without
+placing a lease identifier, customer value, credential, provider body, or confirmation secret in
+Git. It authorizes no effect by itself. S97 is the canonical target specification.
 
-## Deployed boundary
+## Current deployed boundary
 
-- Commit: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`
-- Revision: `pmi-kc-app-rmtg73suu-fe8734d35330`, 100% traffic
-- Exact action: `rentvine.lease.renewal_writeback`, reread non-executable after promotion
-- Rollback target: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`
-- CI: aggregate exact-SHA run `33330420327`, passed
-- Canonical gate: 559 unit files passed plus one intentional skip; 5,064 tests passed plus four
-  skips; 26 Firestore files/119 tests; 107-route build; production dependency audit zero
-- Live effects: none. No proof packet, writer construction, RentVine mutation, rollback, client-data
-  write, Gmail draft/message, or action-key change occurred.
+- Deployed commit: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`.
+- Serving revision: `pmi-kc-app-rmtg73suu-fe8734d35330`, receiving 100% of traffic.
+- Legacy proof key: `rentvine.lease.renewal_writeback`, read back non-executable after deployment.
+- Current proof shape: update only one exact existing lease `endDate`, then restore the captured
+  original value through the same provider route.
+- Current live-effect verdict: no RentVine proof write or rollback has run.
 
-## Exact supported proof
+## Settled owner direction
 
-The runner supports one operation shape only: update the `endDate` of one exact existing lease through
-the documented lease-update POST, then restore the captured prior value through the same shape.
+- The sole proof target is owner-designated and must enter the runner through a fresh secure runtime
+  packet. Its URL and provider identifiers do not belong in tracked documentation.
+- The forward proof value is the fresh provider-read `endDate` plus one calendar day. The rollback
+  value is the exact captured original `endDate`.
+- The owner authorizes the protected gate work needed to implement and prove S97. The runner must not
+  ask again whether RentVine renewal writeback is intended or whether the target may be used.
+- The legacy broad key stays closed and is retired. S97 reuses its safety primitives but every live
+  proof and normal product effect runs only under the corresponding narrow exact key.
+- Each of S97's three exact keys requires its own serial proof window, close/readback, and separately
+  qualified activation; no broad or sibling proof supplies that evidence.
 
-The separate recurring-charge write client is not reachable from this proof. It cannot become
-reachable until the provider's exact recurring-charge readback contract is independently verified.
-No generic request, custom path/body, second record, create/delete charge, status change, or bulk
-operation is accepted.
+These are final product decisions, not claims that the current code, registry seed, or production
+readback already provides the S97 target state.
 
-## Inputs still required outside Git
+## Runtime inputs, not open product questions
 
-The owner/client must supply all of the following through a secure channel:
+At execution time the runner must resolve and read back:
 
-1. one unmistakable existing lease and its observed identity field;
-2. exact current start/end dates, one proposed end date, and rollback equal to the original end date;
-3. one enabled managed `pmikcmetro.com` Firebase Admin with Renewals scope;
-4. bodyless references for client designation, endpoint/mapping evidence, backup, and a separately
-   explicit protected gate direction;
-5. an exact authorization expiry; and
-6. fresh provider account/state readback at execution time.
+1. the owner-designated target from the fresh secure prompt or gitignored runtime packet;
+2. the managed `pmikcmetro.com` actor with the required renewal permission;
+3. the current provider account, lease identity, and current lease dates;
+4. the exact preview hash and phase-specific confirmation;
+5. current registry, suspension, environment, and provider-credential state; and
+6. the forward and rollback receipts plus final provider readback.
 
-Copy the invalid templates into a new gitignored `temp/s30/<opaque-proof-ref>/` directory and fill
-them there. Never edit the tracked templates into executable packets. Set:
+Missing or conflicting runtime evidence is a fail-closed execution condition. It is not a reason to
+reopen the product decision, choose another lease, guess a value, or write identifying data to Git.
 
-- `S30_RENTVINE_PROOF_RUNTIME_CONFIG_PATH` to the secure runtime packet; and
-- `S30_RENTVINE_PROOF_CONFIRMATION_PATH` to the phase-specific confirmation packet only after
-  reviewing the generated packet.
+## Mandatory S97 proof sequence
 
-The command surface is:
+1. Implement S97's exact keys, writer boundaries, durable operation record, preview, confirmation,
+   reconciliation, readback, and rollback behavior while every relevant production key is closed.
+2. Read the target and fresh current provider state through the verified RentVine account.
+3. Generate an exact preview for `endDate = original endDate + 1 calendar day`; include the captured
+   original value as the only rollback target.
+4. Review and apply the protected one-key proof-window patch for
+   `rentvine.lease.renewal_dates.update`, deploy it through the standard zero-traffic candidate path,
+   and read back only that exact key as executable while the broad key remains closed.
+5. Create a fresh phase-specific confirmation and issue exactly one forward provider attempt.
+6. Require a completed bodyless receipt and exact provider readback of the proposed date. A timeout
+   or ambiguous response enters reconciliation and must never trigger a blind retry.
+7. Generate and confirm a separate rollback preview, then issue exactly one rollback attempt.
+8. Require exact readback of the original date. Any failure to restore it is an incident and cannot
+   be reported as success.
+9. Close and read back the date key as non-executable and confirm the broad key remains closed.
+10. In separate one-key windows, prove recurring-charge create with exact source-backed,
+    staff-confirmed terms plus receipt-bound deletion/absence, and prove recurring-charge update with
+    an exact reversible delta plus restoration. Close/read back each key before the next window.
+11. Activate only each narrow S97 key whose own implementation, tests, live proof, reversal, closeout,
+    deployment, and readback gates pass.
 
-```bash
-npm run prove:rentvine-renewal -- preview
-npm run prove:rentvine-renewal -- status
-npm run prove:rentvine-renewal -- execute
-npm run prove:rentvine-renewal -- reconcile
-npm run prove:rentvine-renewal -- rollback-preview
-npm run prove:rentvine-renewal -- rollback
-npm run prove:rentvine-renewal -- rollback-reconcile
-npm run prove:rentvine-renewal -- closeout
-```
+The existing `prove:rentvine-renewal` commands remain implementation truth until S97 replaces or
+retires them. The implementation runner must inspect current code before deciding which command or
+route fulfills each phase.
 
-Terminal output contains only opaque refs, hashes, states, and allowlisted refusal codes. Review
-packets stay under gitignored `temp/`; no client values or provider bodies enter Git.
+## Evidence boundary
 
-## Mandatory live sequence
+RentVine provides neither atomic compare-and-set nor a provider idempotency token at this seam. The
+application therefore claims one durable attempt and never retries an ambiguous response. Later
+matching readback proves observed provider state, not certain causality. Receipts and tracked output
+must contain only opaque references, hashes, states, timestamps, and allowlisted refusal codes.
 
-1. Read back the exact managed actor, production descriptor, account, committed seed, live action,
-   runtime suspension, endpoint/mapping evidence, and current lease state.
-2. Run `preview` while the key is closed. Review the one-lease before/proposed/rollback object and
-   generated forward execution id/hash. Do not execute.
-3. Obtain a separate exact owner direction for the protected one-key patch. Review and apply only that
-   patch, then read back the exact action executable. This suite and packet do not grant that
-   direction.
-4. Create a fresh exact forward confirmation. Run `execute` once. The service rereads source and
-   revalidates actor/action/runtime/confirmation after each provider read immediately before writer
-   construction.
-5. Require a completed bodyless forward receipt and exact observed provider readback. On timeout or
-   ambiguity, stop. After the bounded running window, `reconcile` may observe state but cannot retry
-   or claim causality.
-6. Run `rollback-preview`, review a new rollback id/hash, create a new rollback confirmation, and
-   run `rollback` once.
-7. Require the original value's exact readback. On ambiguity, stop and use
-   `rollback-reconcile`; never issue another write.
-8. Restore the protected exact key to closed and read it back non-executable.
-9. Run `closeout`. It must refuse unless forward and rollback outcomes exist, the committed seed is
-   false, and live action readback is non-executable.
+## Readiness verdict
 
-Failure to prove the original value restored or the exact action closed is an incident. It is never
-reported as completion.
-
-## Provider limitation and consequence
-
-The verified RentVine seam provides no atomic compare-and-set and no provider idempotency token. The
-application therefore claims one durable attempt and never retries an ambiguous response. A later
-matching readback proves only observed provider state; it cannot prove that this application caused
-the state. A live reviewer must accept that evidence boundary explicitly and must not substitute a
-second mutation for missing causality.
-
-## Current verdict
-
-- Closed implementation: **ALL_GATES_GREEN**
-- Production gate/readback: **PASS - non-executable**
-- Live forward/rollback proof: **BLOCKED** on the exact secure designation and separate protected
-  owner direction
-- Human litmus: blank until the owner performs it
+- Product target and direction: **SETTLED**.
+- Current implementation and legacy production key: **CLOSED**.
+- S97 implementation, protected gate patch, deploy, live forward proof, rollback, and successor-key
+  activation: **NOT YET EXECUTED**.
+- Open product questions: **NONE**.

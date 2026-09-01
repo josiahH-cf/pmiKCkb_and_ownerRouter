@@ -67,8 +67,8 @@ approved.
 
 **Cross-product impacts.**
 
-RentVine export mapping/cache, renewal workspace/desk, market-comp API/provider/cache/quota, S63
-four-lease proof, S72 owner-decision step, S79 evidence attachment, owner-draft facts, Admin usage, and
+RentVine export mapping/cache, renewal workspace/desk, market-comp API/provider/cache/quota, S72
+owner-decision step, S79 evidence attachment, S97 proposal evidence, owner-draft facts, Admin usage, and
 cost controls.
 
 **Authority and evidence map.**
@@ -167,8 +167,8 @@ as approved offer, allowance increase, provider mutation, or system-of-record wr
 **Dependencies / sequencing.**
 
 S59 is independently implementable before desk/process work. S78 consumes the richer projection,
-S72 consumes the verified base-rent/reference evidence, S79 consumes screenshot evidence, and S63
-proves case-level results. None may weaken S59's reference-only boundary.
+S72 consumes the verified base-rent/reference evidence, S79 consumes screenshot evidence, and S97
+consumes source-backed proposal facts. None may weaken S59's reference-only boundary.
 
 **Standalone delivery contract.**
 

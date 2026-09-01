@@ -153,7 +153,7 @@ states; S78 does not duplicate or weaken their truth.
   be `BLOCKED` under S80/AGENTS review rules, while all projection/UI/route work and a review-ready
   protected patch proceed.
 - **Produces for downstream suites:** one serialized desk item/query contract and canonical lease URL
-  used by attention, S63 review, and task-oriented navigation.
+  used by attention, S82/S97 source-action handoff, and task-oriented navigation.
 
 **Verification and delivery contract.**
 

@@ -14,7 +14,14 @@ import { describe, expect, it } from "vitest";
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const SUITES_DIR = join(root, "docs", "feature-suites");
 const SENTINEL = "<!-- spec-shape: overhaul-v1 -->";
-const HANDOFF_SENTINEL = "<!-- feature-handoff: renewal-stabilization-v2 -->";
+const HANDOFF_SENTINEL = /^<!-- feature-handoff: [a-z0-9-]+ -->$/m;
+const STRICT_HANDOFF_BUNDLES = new Set([
+  "renewal-stabilization-v2",
+  "source-of-truth-writeback-v1",
+  "maintenance-provider-sync-v1",
+  "maintenance-intake-v1",
+  "temporary-space-pilot-v2",
+]);
 const EXCLUDED = new Set(["README.md", "TEMPLATE.md"]);
 
 // The exact bold-inline section headings an overhaul spec must contain.
@@ -49,20 +56,6 @@ const HANDOFF_REQUIRED_SECTIONS = [
   "**Verification and delivery contract.**",
 ];
 
-const RENEWAL_HANDOFF_SPECS = [
-  "renewal-draft-preview-confirm-reliability.md",
-  "rentcast-live-activation.md",
-  "renewal-role-and-action-governance.md",
-  "renewal-step-model-and-workspace-defaults.md",
-  "renewal-follow-up-state.md",
-  "renewal-desk-triage-and-canonical-journey.md",
-  "tenant-offer-copy-and-channel-truth.md",
-  "renewal-comp-screenshot-gmail-attachment.md",
-  "task-oriented-admin-connections-navigation.md",
-  "four-lease-renewal-test-set.md",
-  "rentvine-write-activation.md",
-];
-
 function overhaulSpecs() {
   return readdirSync(SUITES_DIR)
     .filter((name) => name.endsWith(".md") && !EXCLUDED.has(name))
@@ -71,7 +64,10 @@ function overhaulSpecs() {
 }
 
 function handoffSpecs() {
-  return overhaulSpecs().filter((file) => file.text.includes(HANDOFF_SENTINEL));
+  return overhaulSpecs().filter((file) => {
+    const bundle = file.text.match(/^<!-- feature-handoff: ([a-z0-9-]+) -->$/m)?.[1];
+    return bundle !== undefined && STRICT_HANDOFF_BUNDLES.has(bundle);
+  });
 }
 
 describe("overhaul feature-suite spec shape", () => {
@@ -117,21 +113,21 @@ describe("overhaul feature-suite spec shape", () => {
   }
 });
 
-describe("renewal stabilization standalone handoff shape", () => {
+describe("strict standalone feature handoff shape", () => {
   const specs = handoffSpecs();
   const readme = readFileSync(join(SUITES_DIR, "README.md"), "utf8");
 
-  it("contains exactly the registered renewal stabilization bundle", () => {
-    expect(specs.map((spec) => spec.name).sort()).toEqual(
-      [...RENEWAL_HANDOFF_SPECS].sort(),
-    );
-    expect(readme).toContain("## Renewal stabilization implementation bundle");
+  it("finds registered standalone handoff specifications", () => {
+    expect(specs.length).toBeGreaterThan(0);
+    for (const spec of specs) {
+      expect(readme).toContain(`docs/feature-suites/${spec.name}`);
+    }
   });
 
   for (const spec of specs) {
     describe(spec.name, () => {
       it("contains every standalone handoff section", () => {
-        expect(spec.text.split(/\r?\n/)[1]).toBe(HANDOFF_SENTINEL);
+        expect(spec.text.split(/\r?\n/)[1]).toMatch(HANDOFF_SENTINEL);
         for (const section of HANDOFF_REQUIRED_SECTIONS) {
           expect(
             spec.text.includes(section),

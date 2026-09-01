@@ -4,8 +4,9 @@
 # S30 - one-lease RentVine renewal-write proof
 
 > Status: The closed/fail-first proof runner is implemented, verified, pushed, and deployed at
-> commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`. Production remains non-executable. No client target,
-> protected gate direction, provider write, or live proof has been supplied or performed.
+> commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`. Production remains non-executable. The owner has now
+> designated the sole target outside Git and authorized S97's temporary exact-key proof window; no secure
+> packet, provider write, or live proof has yet been performed.
 
 **Goal.**
 
@@ -19,10 +20,12 @@ mandatory closed-key closeout.
 The implementation is complete to the external seam. The only executable proof shape is the
 documented lease-update POST for one exact lease `endDate`. The existing recurring-charge client is
 not part of S30 execution because no verified exact recurring-charge readback contract exists. The
-action `rentvine.lease.renewal_writeback` is still non-executable. A live proof remains blocked until
-the owner separately provides the secure exact designation and explicitly directs the protected
-closed-to-open review. The proof must end with rollback and a readback that the exact action is
-closed; it never authorizes leaving the key open.
+action `rentvine.lease.renewal_writeback` is still non-executable. S97 now owns the proof: it resolves
+the sole owner-designated target from secure execution context, derives the temporary proposed date
+as exactly one calendar day after the fresh current `endDate`, binds rollback to the exact current
+date, and migrates these safety primitives into S97's exact
+`rentvine.lease.renewal_dates.update` proof window. The broad action remains closed throughout and is
+retired; it cannot grant or prove the successor action.
 
 **Actors and entry conditions.**
 
@@ -70,10 +73,11 @@ authority inferred from S72 process completion.
 
 **Open questions & assumptions.**
 
-The client/owner must still provide one exact lease/current/proposed/rollback designation through the
-secure packet, identify the managed Admin, and separately direct the protected key review. Provider
-account and mapping evidence must be reread at that time. Until all prerequisites exist, only the
-invalid templates, deterministic fixtures, and closed-key refusals may run.
+No product or authority question remains. The designated target URL is supplied only in the fresh
+execution instruction; S97 resolves its exact lease/account/current value and managed Admin at
+runtime, generates the secure packet outside Git, and stops on any drift or ambiguity without
+substitution. Until those runtime reads and the reviewed proof window exist, only deterministic
+fixtures and closed-key refusals run.
 
 **Cross-product impacts.**
 
@@ -90,7 +94,7 @@ client checklist. It does not change any of those systems' broader authority.
 | Live action readback and `docs/facts.md`                                                 | Present truth            | The action is non-executable and no live proof exists; bound credentials and successful reads do not grant write authority.                                                                                       |
 | `rentvine-proof-*`, execution/closeout stores, and proof CLI                             | Implementation truth     | They implement only the secure one-lease `endDate` lifecycle and bodyless outputs.                                                                                                                                |
 | S30 unit, Firestore, inventory, suspension, and provider-boundary tests                  | Deterministic evidence   | They prove fail-before-construction behavior, exact binding, temporal freshness, at-most-one calls, ambiguity handling, rollback, and no generic/second-record seam.                                              |
-| Exact client designation and protected owner direction                                   | External authority/input | Their absence blocks only the live effect. They may never be inferred from meeting prose or committed to Git.                                                                                                     |
+| Owner-designated secure target and 2026-08-31 protected proof direction                  | Product/effect authority | S97 may use them only for one one-day forward/readback/rollback proof under the exact date key while the broad key remains closed; target values never enter Git.                                                 |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -127,15 +131,17 @@ client checklist. It does not change any of those systems' broader authority.
 
 ### Prove and reverse one exact lease end-date update
 
-**If this was built correctly:** After the owner separately authorizes one unmistakable lease and
-exact date pair, the operator sees the exact before/change/rollback, confirms the forward step once,
+**If this was built correctly:** Using only the owner-designated lease under S97, the operator sees
+the fresh exact before value, one-day temporary change, and rollback, confirms the forward step once,
 sees its receipt and provider readback, separately confirms rollback, sees the original date restored,
 and sees the exact action closed. No other record, field, or operation is selectable.
 
 - Model verdict: PASS - The closed-gate implementation and deterministic provider fixtures satisfy
   `ARCH-S30-1..4` and `BEH-S30-1..5`; production action readback is non-executable. The live-effect
-  portion is `NOT EVALUATED` because its exact target and protected direction were not supplied.
-- Human verdict (YYYY-MM-DD, owner): PASS | FAIL - observation:
+  portion is `NOT EVALUATED` because S97 has not yet generated/confirmed the secure runtime packet or
+  run the proof.
+- Human verdict: PASS | FAIL - why; when no human observer is present, use
+  `Human verdict: NOT RUN — no human observer`.
 
 **Requirement-to-outcome traceability.**
 
@@ -150,7 +156,7 @@ and sees the exact action closed. No other record, field, or operation is select
 
 The seven-open/34-closed action inventory, exact account/managed identity, provider method/path/field
 allowlists, runtime suspension, existing read-only renewal paths, secret/PII redaction, operating-Sheet
-and send prohibitions, S63 read-only machinery, and all protected files remain a separate green gate.
+and send prohibitions, current read-only renewal behavior, and all protected files remain a separate green gate.
 
 **Adversarial acceptance checks.**
 
@@ -175,10 +181,10 @@ write; client send; client values in Git/output; or claim that observed final st
 
 **Dependencies / sequencing.**
 
-The closed implementation is independently complete and deployed. A live proof is terminally blocked
-until the external exact packet, managed actor, fresh provider/account evidence, and protected owner
-direction all exist. Any missing or ambiguous stage stops; it never skips forward. S72 and S63 can
-supply reviewed intent or evidence, but neither can grant the exact S30 action or substitute for the
+The closed implementation is independently complete and deployed. S97 owns its live use and must
+generate the exact packet, prove the managed actor and fresh provider/account state, and open only the
+reviewed temporary proof window. Any missing or ambiguous runtime stage stops; it never skips forward. S72 can supply
+reviewed intent or evidence, but it cannot grant the exact S30 action or substitute for the
 fresh S30 reads.
 
 **Standalone delivery contract.**
@@ -189,9 +195,9 @@ fresh S30 reads.
   closed/suspended/mismatch refusal codes; and deterministic tests.
 - **Consumes but does not assume:** S72 may offer reviewed intent, while S30 independently re-reads
   actor, action, account, lease state, confirmation, and rollback evidence.
-- **Externally blocked effect:** the live portion of AC-S30-2/3/5 and the human litmus remain blocked
-  until the exact designation and separate protected direction exist. Missing any prerequisite
-  forbids writer construction.
+- **Externally blocked effect:** the live portion of AC-S30-2/3/5 waits only on S97's fresh target/
+  actor/account/confirmation reads. Missing any runtime prerequisite forbids writer construction;
+  owner designation and protected proof authority are already recorded.
 - **Produces for downstream operation:** a safe proof command, secure templates, bodyless durable
   evidence, explicit recovery/incident states, and mandatory closed-state closeout. It produces no
   general write authority and no recurring-charge proof.
@@ -231,13 +237,15 @@ fresh S30 reads.
 
 1. Re-read authority, production action state, managed actor requirements, exact provider mapping,
    and the one-lease `endDate` boundary; define the fail-first falsification before any effect.
-2. Validate the secure designation and phase packet outside Git, then produce the exact dry preview
-   and re-read actor, account, runtime suspension, and closed/open action state.
-3. Only after separate protected owner direction, review and verify the one-key patch; repeat the
-   source/action/confirmation freshness checks immediately before writer construction.
+2. S97 resolves the owner-designated target and validates the secure phase packet outside Git, then
+   produces the exact dry preview and rereads actor, account, runtime suspension, the exact date key,
+   and the still-closed broad action.
+3. Under S97's recorded protected proof direction, review and verify the temporary patch for only
+   `rentvine.lease.renewal_dates.update`; repeat source/action/confirmation freshness checks
+   immediately before writer construction.
 4. Claim and attempt the forward effect at most once, read back and reconcile without retry, then use
    a new preview and confirmation to claim and attempt the exact rollback at most once.
-5. Require original-value restoration plus committed-seed and live-action non-executable readback;
+5. Require original-value restoration plus exact date-key closeout and broad-key non-executable readback;
    otherwise stop as ambiguous/incident and never claim completion.
 6. Run focused adversarial tests, the canonical gate, scope/secret/PII/protected-path audit, exact-SHA
    CI, and the human litmus; record only the deterministic terminal state justified by evidence.
@@ -245,5 +253,6 @@ fresh S30 reads.
 **Deletion/merge recommendation.**
 
 Remove only after the one-record live proof and rollback are complete, the exact action is restored
-and read back closed, the owner has recorded the human litmus, and the durable operating/incident
-contract is represented in current code, tests, facts, and provider documentation.
+and read back closed, and the durable operating/incident contract is represented in current code,
+tests, facts, and provider documentation. A missing human observer is recorded as `NOT RUN` and does
+not retain this proof-only suite.

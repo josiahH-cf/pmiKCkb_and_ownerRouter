@@ -14,7 +14,9 @@ The committed seed is the action authority. Runtime config and provider construc
 
 **Open questions & assumptions.**
 
-Each future activation supplies its own endpoint, mapping, identity, evidence, rollback, and owner direction when the protected path requires it.
+No product authority question remains for S97-S100. Each exact suite supplies and tests its endpoint,
+mapping, identity, proof, receipt/readback, and reversal before using the owner-authorized protected
+activation. Every other future key still requires its own exact owner direction.
 
 **Cross-product impacts.**
 
@@ -24,7 +26,9 @@ Every provider, Admin Connections, migration readiness, release config, and acti
 
 - **AC-S53-1** — Seed, runtime allowlists, Admin readiness, and tests agree on the exact key set.
 - **AC-S53-2** — A closed key refuses before provider construction even when credentials/runtime flags exist.
-- **AC-S53-3** — Generic/direct notice sends, RentVine renewal write, and operating-Sheet write remain closed.
+- **AC-S53-3** — Generic/direct notice sends and broad legacy RentVine/Sheet keys remain closed; only
+  the exact S97-S100 keys may change after their own closed implementation, proof, protected patch,
+  release, and readback gates.
 
 **Forbidden actions / hard gates.**
 

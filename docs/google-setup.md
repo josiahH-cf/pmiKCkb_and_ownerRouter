@@ -1,6 +1,6 @@
 # Google and Firebase operations
 
-Updated: 2026-08-26.
+Updated: 2026-08-31.
 
 The production project, Firebase application, Firestore, Cloud Run service, managed runtime identity,
 APIs, Secret Manager bindings, and budget controls already exist. This is an operations checklist,
@@ -31,8 +31,12 @@ runtime service account, secrets, and write gates. Never use old demo-service co
 
 ## Sheets and Drive
 
-The operating renewal Sheet is a read source. DWD identifiers are non-secret; customer Sheet
-contents are sensitive. A write proof uses only a distinct rehearsal copy.
+The operating renewal Sheet is currently a read source and its write switch remains off. S98 owns
+the approved transition to exact row append and supported-field update; its proof uses one temporary
+real source-backed row in the operating table, not a copy. The row is visibly and machine-marked,
+excluded from projections, read back, separately deleted, and proven absent before closeout. DWD
+identifiers are non-secret; customer Sheet contents and proof values are sensitive and never enter
+Git/logs. The legacy copy-only configuration is removed by S98 rather than used as a fallback.
 
 ## Gmail
 

@@ -1,6 +1,6 @@
 # Product record retention
 
-Updated: 2026-08-26.
+Updated: 2026-08-31.
 
 ## Principles
 
@@ -19,3 +19,11 @@ tasks/sessions use their owning store contracts. Work-accountability records use
 contract in `docs/work-accountability-data-contract.md`.
 
 Native TTL or scheduled cleanup is optional unless a specific record contract says otherwise.
+
+## Specified future record
+
+S100 specifies `rentvine_work_order_chat_messages` under the existing
+`communications-retention:v1.0` `workflow_link` class: 365 days from immutable first successful
+local import, with existing legal-hold and confirmed cleanup behavior. Duplicate sync, view, mapping
+review, and draft creation do not refresh that anchor. This is a target contract, not a claim that
+the collection or writer exists in current production.

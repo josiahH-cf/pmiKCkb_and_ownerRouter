@@ -58,7 +58,7 @@ connector readiness, migration, users/roles, timing/pricing rules, suspensions, 
 | Current `/connections`, `/admin`, AppShell, connection-state/verification projections, Admin panels/routes, and role guards | Verified implementation truth | Read-only status and Admin mutations are correctly separated, but the long Admin surface and connector grouping are not task-oriented.              |
 | Connection status/center/verification, Admin route/panel, role/direct-URL, AppShell, and accessibility tests                | Verification baseline         | Existing authorization/status truth is preservation; manifest target/capability and task-flow tests must fail first.                                |
 | Stabilization intake request to verify access and simplify Admin/Connections                                                | Intent evidence only          | It supports discoverability/readiness improvements, not credential setup by the UI, auth-provider redesign, or a whole-app navigation rewrite.      |
-| S59/S75/S76 and other connector/action readiness projections                                                                | Compatible dependency         | Navigation links to their present honest state; incomplete/closed status is not relabeled healthy or disconnected.                                  |
+| S59/S75/S98 and other connector/action readiness projections                                                                | Compatible dependency         | Navigation links to their present honest state; incomplete/closed status is not relabeled healthy or disconnected.                                  |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -75,7 +75,7 @@ connector readiness, migration, users/roles, timing/pricing rules, suspensions, 
 
 - **BEH-S81-1** — A non-Admin can identify renewal/Gmail/Drive/RentCast status and the appropriate safe
   next step but cannot see or invoke Admin mutations.
-- **BEH-S81-2** — An Admin can reach people, suspension, renewal policy, rehearsal Sheet, connection,
+- **BEH-S81-2** — An Admin can reach people, suspension, renewal policy, operating-Sheet connection,
   migration, and publishing controls from the task index and return without losing context.
 - **BEH-S81-3** — Missing/unverified/closed/suspended/healthy states remain distinct; the navigation
   never labels credentials as authorization or a closed action as disconnected.
@@ -128,7 +128,7 @@ call, action activation, whole-app redesign, or protected auth/Rules push.
 
 **Dependencies / sequencing.**
 
-Can be implemented independently after recording S80's matrix. It may link to S59/S75/S76 readiness
+Can be implemented independently after recording S80's matrix. It may link to S59/S75/S98 readiness
 but must render accurate current state when those suites remain incomplete or closed.
 
 **Standalone delivery contract.**

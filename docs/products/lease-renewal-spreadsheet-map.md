@@ -1,6 +1,6 @@
 # Renewal Sheet semantic map
 
-Updated: 2026-08-26.
+Updated: 2026-08-31.
 
 This is a sanitized connector contract. The operating spreadsheet is a client source of truth and
 contains sensitive operational data. Raw rows, credentials, names, addresses, and values never enter
@@ -34,9 +34,18 @@ workbook must not be exported into the repository.
 - Current rent may represent different semantics across sources; disagreement is not automatically a
   RentVine error.
 - A resolution binds to the exact lease, row, and source versions.
-- Operating Sheet writes remain off.
+- Operating Sheet writes remain off in current production. S98 owns the exact target contract:
+  source-backed row append and one supported-field expected-value update.
 
-## Rehearsal
+## Approved writeback target
 
-A verbatim copy may be configured separately. It must have a different id. The only approved proof is
-one blank cell: compare-and-set synthetic marker, readback, exact clear, final blank readback.
+S98 resolves the live schema and authoritative row identity server-side. An append sets only fresh
+source-backed or exact human-confirmed fields; an update changes only one supported field when the
+exact anchored row/header/current value still match. `renewal_date` is never silently inferred from
+RentVine `endDate`.
+
+The one authorized proof appends a temporary real-data row at the logical end, places a visible test
+marker plus an opaque cell note, excludes that exact marker from downstream projections, reads the
+row back, separately updates its blank `current_rent` from the fresh source, then separately deletes
+only the unchanged marked row and proves final absence. No copy-only Sheet, fake identity/value,
+arbitrary range, bulk update, formula overwrite, or blind retry is used.

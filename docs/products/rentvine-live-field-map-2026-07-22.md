@@ -27,5 +27,7 @@ emails, rents, balances, or raw provider responses.
 
 ## Write state
 
-The two relevant documented POST contracts are implemented only in the separate restricted write
-client. Production renewal write remains closed and live-unproven.
+The currently deployed restricted client contains partial lease/recurring-charge POST support, but
+production renewal write remains closed and live-unproven. S97 specifies the complete exact renewal-
+date and recurring-charge create/update contracts, readbacks, receipts, ambiguity recovery,
+reversal, one-record proof, and protected activation. No generic provider request is authorized.

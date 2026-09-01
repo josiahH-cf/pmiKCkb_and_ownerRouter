@@ -1,6 +1,6 @@
 # Production capacity and pilot
 
-Updated: 2026-08-26.
+Updated: 2026-08-31.
 
 Production is already live. New external effects still roll out as bounded pilots.
 
@@ -35,9 +35,19 @@ Neither trigger authorizes automatic scaling.
 ## Current pilots/proofs
 
 - RentCast reference reads are live under allowance 50.
-- Four-lease renewal machinery exists; process/number validation remains an operational proof.
-- Rehearsal Sheet proof waits on a distinct copy.
-- RentVine write proof waits on one designated test lease/owner and a reviewed gate activation.
+- S97 specifies one owner-designated lease `endDate` proof, exact rollback, retirement of the old
+  multi-record machinery, and later activation of only its three exact renewal keys.
+- S98 specifies one temporary source-backed row at the end of the operating renewal Sheet, exact
+  readback and deletion, and retirement of the copy-only rehearsal path.
+- S99/S100 specify exact Maintenance work-order effects, one manual mark-read-aware chat sync, and an
+  unsent resident-reply Gmail draft. Fake work orders, automatic sync, provider chat posts, and sends
+  are not proof substitutes.
+- S36 specifies one temporary source-copy/Store lifecycle that must finish with both temporary
+  resources absent, the original source intact, eleven Stores restored, and its runtime flag false.
+
+These S97-S100/S36 contracts are authorized targets, not current production capability. Their live
+effects remain unavailable until each closed implementation, bounded proof, protected activation,
+release, and readback gate passes.
 
 Do not turn “pilot” into permission for broad writes or a simultaneous all-record cutover.
 

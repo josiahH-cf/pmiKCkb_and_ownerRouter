@@ -62,7 +62,7 @@ change requires a new process version and explicit migration decision.
 **Cross-product impacts.**
 
 Renewal desk/workspace/progress schema, S59 comps, S74 drafts, S75 follow-up, S77 exact confirmation,
-S78 triage, S63 proof, S66 packet snapshots, S34 Dotloop, work/attention/reporting, source writes, and
+S78 triage, S97/S98 source effects, S66 packet snapshots, S34 Dotloop, work/attention/reporting, and
 current product/facts documentation.
 
 **Authority and evidence map.**
@@ -190,7 +190,7 @@ the whole bundle; S78 then projects the model into the canonical desk.
   write authority may leave named operational substeps `BLOCKED`; they do not block the six-step model
   or permit simulated production completion.
 - **Produces for downstream suites:** stable process/step/substep ids, version pin, state/evidence and
-  invalidation contracts, branch outcomes, and desk/work-item projection consumed by S75/S78/S63.
+  invalidation contracts, branch outcomes, and desk/work-item projection consumed by S75/S78/S82/S97.
 
 **Verification and delivery contract.**
 

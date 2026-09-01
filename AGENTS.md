@@ -35,7 +35,6 @@ the current code and live service. Date-stamped history is not authority.
 - Local rehearsal is explicit Demo + Live-read-only and must refuse every persistence/provider effect.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source. Its write-back runtime switch is off.
-- No rehearsal Sheet is configured. A distinct copy is required before the copy-only proof can run.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
   open.
 - RentVine read credentials are Secret Manager-bound. The S30 proof runner can target only one exact
@@ -77,7 +76,11 @@ Every cloud mutation must be read back. Record verified non-secret outcomes in `
 - No autonomous, scheduled, bulk, or model-triggered client-facing send.
 - Renewal and maintenance initiation ends with an unsent Gmail draft; a person sends from Gmail.
 - Every live system-of-record write is human-initiated, exact-previewed, exact-confirmed,
-  idempotent, receipted, read back, and reversible.
+  idempotent or at-most-once, receipted, read back, and reversible/correctable. The sole specified
+  exception is S100's manual RentVine chat GET: the official provider marks retrieved manager
+  messages read and documents no unread restoration. It therefore requires an explicit consequence
+  warning and confirmation, one bounded page, honest ambiguous-state reporting, and no claim of
+  rollback.
 - No sample, synthetic, or test identity/data may become a live draft, send, provider write, or
   production record.
 - Secrets, tokens, credentials, client exports, Gmail bodies, customer values, and raw evidence never
@@ -87,7 +90,8 @@ Every cloud mutation must be read back. Record verified non-secret outcomes in `
 - Do not guess provider endpoints, record identifiers, mappings, recipient addresses, policy, or
   customer values.
 - Destructive production data work requires backup, dry-run, exact target, and rollback.
-- Every live effect must be bounded and reversible.
+- Every live effect must be bounded and reversible/correctable, except the explicitly warned and
+  confirmed S100 manager-read marker described above.
 
 ## Action authority
 
@@ -112,6 +116,37 @@ The other 34 keys are closed. In particular:
 
 A runtime flag never outranks the committed per-key gate.
 
+### Owner-authorized activation program — specified, not current
+
+The owner directed on 2026-08-31 that the application graduate from read-only provider posture to
+human-confirmed source-of-truth updates. That direction authorizes a future runner to prepare,
+review, test, push, release, and read back two protected changes for each exact S97-S100 key: a
+bounded temporary proof window after the suite's closed implementation and deterministic gates pass,
+followed by close/readback; and final activation only after that key's applicable live proof and all
+remaining suite gates pass. It does not make any key executable now and is not a generic
+method/path/body, bulk, autonomous, or send grant.
+
+- S97: `rentvine.lease.renewal_dates.update`,
+  `rentvine.lease.recurring_charge.create`, and
+  `rentvine.lease.recurring_charge.update`.
+- S98: `google_sheets.renewal_checklist.row_append` and
+  `google_sheets.renewal_checklist.field_update`.
+- S99: `rentvine.work_order.read`, `rentvine.work_order.create`, and
+  `rentvine.work_order.update_status`.
+- S100: `rentvine.work_order.chat.sync` and
+  `gmail.maintenance_resident_reply.draft_create`.
+
+The broad `rentvine.lease.renewal_writeback` and
+`google_sheets.renewal_checklist.writeback` compatibility keys remain closed and are retired rather
+than activated as product or proof actions. S97-S100 proof windows use only the exact new key under
+proof plus its suite's required runtime switch; each is closed and read back before another key's
+window or the final activation patch. Receipt-bound reversal under a create/append key is allowed only
+when that suite explicitly defines the exact inverse operation; it is not general delete authority.
+`rentvine.work_order.assign_vendor`, RentVine chat posting, attachment upload, direct Gmail sends, and
+every unlisted provider key remain closed. S36 separately authorizes one temporary, bounded Space
+provision/import/readback/retirement pilot under its exact lifecycle; it is not Action Registry
+category authority.
+
 ## Protected paths
 
 Prepare and surface, but do not push without explicit owner direction:
@@ -123,9 +158,11 @@ Prepare and surface, but do not push without explicit owner direction:
 - `scripts/check-budget-guard.mjs`
 - `infra/budget-guardrail/**`
 
-The owner-directed closure and documentation reconciliation authorize present-truth edits to this
-router and `docs/facts.md`. They do not authorize a new action key, identity, safety exception, cost
-change, or client effect.
+The owner-directed 2026-08-31 documentation reconciliation authorizes present-truth edits to this
+router and `docs/facts.md`. The activation program above is also explicit owner direction for its
+future exact protected-path proof-window and final-activation patches at the gates stated above. It
+does not authorize a new identity, safety exception, cost change, premature key opening, or any
+effect outside those suite contracts.
 
 ## Cost and cloud controls
 
@@ -140,15 +177,29 @@ Preserve the runtime service account, eleven-Space configuration, secret binding
 descriptor, and closed Sheet-write switch unless the requested change explicitly targets one of
 them.
 
-## Rehearsal and live-write policy
+## Live-write proof policy
 
-- The operating Sheet id and rehearsal Sheet id must be different.
-- The rehearsal proof is dry by default and may touch only one blank cell in the distinct copy using
-  compare-and-set, exact readback, exact clear, and final blank proof.
-- Do not substitute the operating Sheet when the copy is absent.
-- A RentVine write proof requires one unmistakable client-designated test lease/owner, an exact
-  preview, a closed-to-open reviewed gate change, provider readback, receipt, and rollback.
-- Until those prerequisites exist, show dry previews and discrepancy examples only.
+- Production remains Live-only. Do not create a fake person, lease, work order, provider record, or
+  customer value for a proof.
+- S97 may use only the one unmistakable owner-designated ended lease supplied through secure
+  execution context. Its proof is one temporary one-calendar-day `endDate` change, exact readback,
+  separately confirmed rollback, and exact final restoration. If the target or state drifts, stop;
+  never substitute another record.
+- S98 may append one temporary row at the end of the operating `Renewals` table using fresh real
+  source values. Mark it visibly and in a cell note as a writeback proof, exclude it from every
+  downstream projection, read it back, separately set its blank `current_rent` to the fresh source-
+  backed value through the exact field-update key, then separately delete only that unchanged marked
+  row and prove final absence. The retired rehearsal-copy route is not a prerequisite or fallback.
+- S99 live effects require one staff-selected real work order or an exact staff-confirmed creation
+  proposal; S100 synchronization is manually initiated and discloses that the official read marks
+  manager messages read. Missing or ambiguous mappings fail only the exact action.
+- S36 may copy one already-approved source object byte-for-byte into its isolated temporary prefix,
+  provision/import/read back one temporary store, retire it, delete only that copied object, and
+  prove the original eleven-store/config state restored.
+- Every proof and normal write remains exact-previewed, exact-confirmed, at-most-once where the
+  provider lacks idempotency, receipted, read back, reversible or separately correctable, and bounded
+  by its exact key and suite. S100's disclosed manager-read marker is the one non-reversible stateful-
+  read exception above. Until a suite's prerequisites pass, its effects remain unavailable.
 
 ## Documentation hygiene
 
@@ -193,9 +244,7 @@ changes unless they alter a served asset.
 - Provider/action model: `docs/integration-architecture.md`
 - Environment/release: `docs/environment-handoff.md`
 - Security/engineering: `docs/engineering.md`
-- Client actions: `docs/client-checklist.md`
-- Meeting walkthrough: `docs/pmi-kc-client-action-center-2026-08-26.html`
-- Presenter agenda: `docs/pmi-kc-meeting-agenda-2026-08-26.html`
+- Client/runtime inputs: `docs/client-checklist.md`
 
 ## Per-runner pointers
 

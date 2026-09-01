@@ -286,31 +286,31 @@ the existing `/admin` route, anchors, and dedicated routes; no new route is infe
 panel is an accessible Disclosure whose summary exposes its title and current count/state. If a row
 below says attention-expanded, unavailable/read-error counts as attention and remains visible.
 
-| Current panel or card                                                                                           | Exact group / destination                                                                | Default presentation                                                                                                            |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `AdminTaskIndex`                                                                                                | Start of `/admin`                                                                        | Visible and first; one concise task link per existing destination/anchor.                                                       |
-| Access card                                                                                                     | People and Access; `/admin/access`, `/admin/users`, `/admin/team-work`, `/admin/vendors` | Visible compact link group. S83 request status and `/admin/users` management stay separate.                                     |
-| Domain card                                                                                                     | People and Access; `#admin-people-access`                                                | Collapsed `Domain and sign-in scope`; summary shows the configured domain, with no credential detail.                           |
-| `RuntimeSuspensionAdminPanel`                                                                                   | Activity and Logs; `#admin-runtime-suspensions`                                          | Attention-expanded when any suspension exists or state is unavailable; otherwise collapsed.                                     |
-| Observability, Ask Volume, Approval Queue, Notification Failures, Top Spaces, Source States, Space Setup Health | Activity and Logs; `#admin-activity-logs`                                                | One collapsed `Usage and system health` disclosure. Summary reports available/degraded; existing metric contents remain intact. |
-| `ApprovalQueueAdminPanel`                                                                                       | Activity and Logs; `#admin-approval-notifications`                                       | Attention-expanded when health is unavailable/degraded or failures are nonzero; otherwise collapsed.                            |
-| `SupportReportsPanel`                                                                                           | Activity and Logs; `#admin-support-reports`                                              | Attention-expanded when new/follow-up counts are nonzero or state is unavailable; otherwise collapsed.                          |
-| `AdminActivityLogPanel`                                                                                         | Activity and Logs; `#admin-activity-log`                                                 | Collapsed `Admin activity`; current entries and unavailable state remain reachable.                                             |
-| `KbCorrectionsPanel`                                                                                            | App Info and Readiness; `#admin-kb-corrections`                                          | Attention-expanded when proposed corrections exist or state is unavailable; otherwise collapsed.                                |
-| `ModelConfigPanel`                                                                                              | App Info and Readiness; `#admin-model-config`                                            | Collapsed `Model configuration`.                                                                                                |
-| `RenewalRehearsalSheetPanel`                                                                                    | App Info and Readiness; `#admin-renewal-rehearsal-sheet`                                 | Collapsed `Renewal rehearsal Sheet`; its operating-versus-rehearsal safety truth stays inside.                                  |
-| Approval Label and Indexing cards                                                                               | App Info and Readiness; `#admin-app-readiness`                                           | Merge into collapsed `Retrieval and approval configuration`; preserve the governance/config values.                             |
-| Migration Readiness card                                                                                        | App Info and Readiness; `/admin/migration`                                               | Visible compact task link with current readiness state when available.                                                          |
-| Spaces request card                                                                                             | App Info and Readiness; `/admin/spaces/request`                                          | Visible compact task link with current availability/refusal state.                                                              |
-| `ReindexPanel`                                                                                                  | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Re-index sources`.                                                                                                   |
-| `TransactionalDestinationPanel`                                                                                 | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Transactional notice destination`.                                                                                   |
-| `NoticeRulesAdminPanel`                                                                                         | App Info and Readiness; `#admin-renewal-notice-rules`                                    | Collapsed `Renewal notice rules`; unavailable state appears in the summary.                                                     |
-| Renewal connection status                                                                                       | Connections; `/connections#connection-task-renewal-data`                                 | Visible compact task link using S81's existing destination and current source-backed state when available.                      |
-| `OperationalPageBuilderPanel`                                                                                   | App Info and Readiness; `#admin-content-builder`                                         | Collapsed `Operational page builder`.                                                                                           |
-| `OwnerPolicyRulesAdminPanel`                                                                                    | App Info and Readiness; `#admin-owner-pricing-rules`                                     | Collapsed `Owner pricing rules`.                                                                                                |
-| Workflow Communications card                                                                                    | App Info and Readiness; `/admin/gmail-inbox-zero`                                        | Visible compact task link with current governance/connection state when available.                                              |
-| `CommunicationsRetentionAdminPanel`                                                                             | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Communications retention`.                                                                                           |
-| `PublicationPolicyAdminPanel`                                                                                   | App Info and Readiness; `#admin-publication-policies`                                    | Collapsed `Publication policies`; unavailable state appears in the summary.                                                     |
+| Current panel or card                                                                                           | Exact group / destination                                                                | Default presentation                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AdminTaskIndex`                                                                                                | Start of `/admin`                                                                        | Visible and first; one concise task link per existing destination/anchor.                                                                                |
+| Access card                                                                                                     | People and Access; `/admin/access`, `/admin/users`, `/admin/team-work`, `/admin/vendors` | Visible compact link group. S83 request status and `/admin/users` management stay separate.                                                              |
+| Domain card                                                                                                     | People and Access; `#admin-people-access`                                                | Collapsed `Domain and sign-in scope`; summary shows the configured domain, with no credential detail.                                                    |
+| `RuntimeSuspensionAdminPanel`                                                                                   | Activity and Logs; `#admin-runtime-suspensions`                                          | Attention-expanded when any suspension exists or state is unavailable; otherwise collapsed.                                                              |
+| Observability, Ask Volume, Approval Queue, Notification Failures, Top Spaces, Source States, Space Setup Health | Activity and Logs; `#admin-activity-logs`                                                | One collapsed `Usage and system health` disclosure. Summary reports available/degraded; existing metric contents remain intact.                          |
+| `ApprovalQueueAdminPanel`                                                                                       | Activity and Logs; `#admin-approval-notifications`                                       | Attention-expanded when health is unavailable/degraded or failures are nonzero; otherwise collapsed.                                                     |
+| `SupportReportsPanel`                                                                                           | Activity and Logs; `#admin-support-reports`                                              | Attention-expanded when new/follow-up counts are nonzero or state is unavailable; otherwise collapsed.                                                   |
+| `AdminActivityLogPanel`                                                                                         | Activity and Logs; `#admin-activity-log`                                                 | Collapsed `Admin activity`; current entries and unavailable state remain reachable.                                                                      |
+| `KbCorrectionsPanel`                                                                                            | App Info and Readiness; `#admin-kb-corrections`                                          | Attention-expanded when proposed corrections exist or state is unavailable; otherwise collapsed.                                                         |
+| `ModelConfigPanel`                                                                                              | App Info and Readiness; `#admin-model-config`                                            | Collapsed `Model configuration`.                                                                                                                         |
+| Legacy `RenewalRehearsalSheetPanel`                                                                             | Removed by S98; no replacement Admin destination                                         | Must be absent after S98, including its route/anchor/configuration copy and controls. Operating write status remains at the S81 Connections destination. |
+| Approval Label and Indexing cards                                                                               | App Info and Readiness; `#admin-app-readiness`                                           | Merge into collapsed `Retrieval and approval configuration`; preserve the governance/config values.                                                      |
+| Migration Readiness card                                                                                        | App Info and Readiness; `/admin/migration`                                               | Visible compact task link with current readiness state when available.                                                                                   |
+| Spaces request card                                                                                             | App Info and Readiness; `/admin/spaces/request`                                          | Visible compact task link with current availability/refusal state.                                                                                       |
+| `ReindexPanel`                                                                                                  | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Re-index sources`.                                                                                                                            |
+| `TransactionalDestinationPanel`                                                                                 | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Transactional notice destination`.                                                                                                            |
+| `NoticeRulesAdminPanel`                                                                                         | App Info and Readiness; `#admin-renewal-notice-rules`                                    | Collapsed `Renewal notice rules`; unavailable state appears in the summary.                                                                              |
+| Renewal connection status                                                                                       | Connections; `/connections#connection-task-renewal-data`                                 | Visible compact task link using S81's existing destination and current source-backed state when available.                                               |
+| `OperationalPageBuilderPanel`                                                                                   | App Info and Readiness; `#admin-content-builder`                                         | Collapsed `Operational page builder`.                                                                                                                    |
+| `OwnerPolicyRulesAdminPanel`                                                                                    | App Info and Readiness; `#admin-owner-pricing-rules`                                     | Collapsed `Owner pricing rules`.                                                                                                                         |
+| Workflow Communications card                                                                                    | App Info and Readiness; `/admin/gmail-inbox-zero`                                        | Visible compact task link with current governance/connection state when available.                                                                       |
+| `CommunicationsRetentionAdminPanel`                                                                             | App Info and Readiness; `#admin-app-readiness`                                           | Collapsed `Communications retention`.                                                                                                                    |
+| `PublicationPolicyAdminPanel`                                                                                   | App Info and Readiness; `#admin-publication-policies`                                    | Collapsed `Publication policies`; unavailable state appears in the summary.                                                                              |
 
 All current controls remain in the mapped panel. Keyboard navigation, focus restoration, and direct
 anchor entry open/focus the addressed disclosure without opening unrelated panels. The task index
@@ -322,6 +322,11 @@ status unavailable`, not an empty map interpreted as disconnected. Grouped acces
 buttons use S83 destinations. A connection link navigates; an actual supported read check uses S83
 business behavior and S86 feedback. S87 owns only the card hierarchy: provider powers, setup notes,
 action-key independence, and diagnostics sit in one labelled `Connection details` disclosure.
+
+S97-S100 are implemented before S87. Their delivered source-action, receipt, reconciliation, and
+manual-sync/draft surfaces remain with their owning renewal or Maintenance workflow and follow S86's
+shared feedback hierarchy; S87 may remove duplicate explanatory copy but cannot move, merge, hide, or
+relabel an exact effect, confirmation, ambiguity, reversal, or mark-read disclosure.
 
 ### Empty, unavailable, and recovery states
 
@@ -409,19 +414,19 @@ errors, and recovery solely to meet a percentage.
 
 All 29 audited current experiences, S83's new SF-30, and six renewal aliases; page headers, panels, cards, disclosures,
 empty/error states, Admin task index, connection cards, vendor shell/session control, terminology,
-voice contract, S82-S86, S96, and S88-S95 composition, snapshots/accessibility tests, and the audit
+voice contract, S36, S82-S100 composition, snapshots/accessibility tests, and the audit
 workbench. No provider, source, action, role, or production data change.
 
 **Authority and evidence map.**
 
-| Input                                                      | Classification                   | Use and limitation                                                                                                               |
-| ---------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Router, committed routes/components/tests, `docs/facts.md` | Authority / implementation truth | Establish current surfaces, guards, states, actions, safety boundaries, and terminology compatibility.                           |
-| `docs/evidence/ui-ux-audit-2026-08-31.html`                | Audit evidence                   | Supports density/duplication/state gaps; contains no live-user frequency or production-render claim.                             |
-| 2026-08-31 long-term UI/UX note                            | Intent evidence                  | Requires less persistent prose and more obvious actions; does not override accessibility or safety meaning.                      |
-| S82, S83, S84, S85, S86, and S96                           | Active ownership/dependencies    | Own renewal, access/checks, navbar, theme, interaction, and connector-disconnect contracts; S87 composes rather than duplicates. |
-| `docs/voice-and-audience.md`                               | Current product writing contract | Governs plain-language labels, source truth, errors, and recovery.                                                               |
-| Usage analytics and authenticated moderated observation    | Missing evidence                 | Required before any claim that a feature is rarely used or a broad migration improves first-click success.                       |
+| Input                                                      | Classification                   | Use and limitation                                                                                                                                                                         |
+| ---------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Router, committed routes/components/tests, `docs/facts.md` | Authority / implementation truth | Establish current surfaces, guards, states, actions, safety boundaries, and terminology compatibility.                                                                                     |
+| `docs/evidence/ui-ux-audit-2026-08-31.html`                | Audit evidence                   | Supports density/duplication/state gaps; contains no live-user frequency or production-render claim.                                                                                       |
+| 2026-08-31 long-term UI/UX note                            | Intent evidence                  | Requires less persistent prose and more obvious actions; does not override accessibility or safety meaning.                                                                                |
+| S36 and S82-S100                                           | Active ownership/dependencies    | Own Space pilot, renewal/source effects, Maintenance/resident sync, access, navbar, theme, interaction, assistant/Dashboard, and connector contracts; S87 composes rather than duplicates. |
+| `docs/voice-and-audience.md`                               | Current product writing contract | Governs plain-language labels, source truth, errors, and recovery.                                                                                                                         |
+| Usage analytics and authenticated moderated observation    | Missing evidence                 | Required before any claim that a feature is rarely used or a broad migration improves first-click success.                                                                                 |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -500,7 +505,8 @@ the user is allowed to take.
 Keep all current reachable capability, route guards, role/Space filtering, source freshness and
 degradation truth, environment badges, exact confirmation, error recovery, unsent-draft and human-
 send boundaries, action gates, S82 table/workspace, S83 access/check flows, S84 navigation, S85
-themes, S86 interaction safety, notification counts/destinations, Admin subroutes, vendor assignment
+themes, S86 interaction safety, S97-S100 exact effect/receipt/reconciliation/mark-read/draft meaning,
+S36 closeout evidence, notification counts/destinations, Admin subroutes, vendor assignment
 guards, and no-secrets/PII rules. Content-reduction results never average away a preservation failure.
 
 **Adversarial acceptance checks.**
@@ -539,7 +545,7 @@ guards, and no-secrets/PII rules. Content-reduction results never average away a
 Do not mechanically delete all paragraphs; hide essential meaning; remove a capability based on
 assumed frequency; invent analytics, routes, source facts, provider details, roles, actions, reviewers,
 or official brand copy; expose raw evidence/PII/secrets; turn Communications into a general inbox;
-send client communication; write RentVine/operating Sheet; bypass S82-S86, S96, or S88-S95 ownership; or
+send client communication; execute a RentVine/Sheet/cloud effect; bypass S36 or S82-S100 ownership; or
 edit protected auth/action-gate/budget paths without explicit owner direction.
 
 **Dependencies / sequencing.**
@@ -549,7 +555,7 @@ make S85/S86 presentation prerequisites for those product migrations. S87 implem
 the canonical unattended queue so every owner contract is concrete before content is removed. Its
 six cohorts remain separately reversible and ordered: public/vendor; Dashboard/My Work; Internal
 Processes/processes/runs; Maintenance/Communications/Notifications; Connections/Admin/Approval;
-renewal conformance. S87-wide `ALL_GATES_GREEN` requires S96, every owning S82-S86 contract, the
+renewal conformance. S87-wide `ALL_GATES_GREEN` requires S36, every owning S82-S100 contract, the
 S88-S95 SF-06 result, and all six cohorts. Do not hold safe copy classification on unavailable
 analytics; usage-based claims remain unmade.
 
@@ -558,9 +564,9 @@ analytics; usage-based claims remain unmade.
 - **Deliverable now:** complete content/surface/state manifests, six bounded migration cohorts,
   explicit empty/recovery behavior, Admin/Connections organization, vendor shell/sign-out, and
   accessibility/theme/preservation checks can be specified without provider writes or usage
-  analytics. The full suite reaches `ALL_GATES_GREEN` only after S82-S86, S96, the applicable S88-S95
+  analytics. The full suite reaches `ALL_GATES_GREEN` only after S36, S82-S100, the applicable S88-S95
   Dashboard contracts, and every cohort pass their deterministic gates.
-- **Consumes:** S82-S86, S96, and S88-S95 for SF-06. A cohort whose required owner is absent remains current
+- **Consumes:** S36 and S82-S100, including S88-S95 for SF-06. A cohort whose required owner is absent remains current
   and fail-closed while unrelated cohorts proceed; moved content never points to a guessed route.
 - **Externally blocked effect:** claims that usage, task time, first-click success, or user preference
   improved require separately gathered analytics/moderated evidence. They do not block structural
@@ -588,7 +594,7 @@ analytics; usage-based claims remain unmade.
 
 **Ordered prompt sequence.**
 
-1. Re-verify route/surface/state/action inventory and active S82-S86/S96/S88-S95 ownership.
+1. Re-verify route/surface/state/action inventory and active S36/S82-S100 ownership.
 2. Freeze and classify every persistent explanatory block, primary outcome, task region/action state,
    and applicable state truth/copy/recovery; add fail-first manifest/preservation checks.
 3. Implement shared hierarchy/state composition without deleting product copy.

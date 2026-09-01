@@ -1,69 +1,57 @@
-# Client, owner, and provider actions
+# Client, owner, and provider execution inputs
 
-Updated: 2026-08-30.
+Updated: 2026-08-31.
 
-The application is internally complete to each boundary below. Missing input blocks only the named
-capability; it is not an unfinished engineering dependency.
+All product-scope and authority questions for the canonical queue are closed. This file lists only
+fresh runtime evidence that an implementing runner must resolve and validate; none is permission to
+guess, substitute a record, or stop unrelated closed-safe work.
 
-## Decisions recorded on 2026-08-29
+## Recorded owner decisions
 
-- S72 carries the approved six-step process with detailed substeps, roles, evidence, branches, and
-  reopening rules.
-- Contractual base rent is the renewal comparison/decision value; recurring charges stay separate.
-- RentCast requests a two-mile maximum radius and 15 comparables, preserves provider order, applies
-  no hidden freshness/selection filter, and remains reference-only.
-- RentCast radius, comp count, freshness/selection policy: the first two are approved above; any
-  future freshness or selection rule stays unset until explicitly approved and versioned.
-- Renewals-space Editors may perform ordinary app-owned work and exact-confirm unsent drafts; stronger
-  approval/Admin/action/write boundaries remain separate.
+- Production is Live-only. Use real source-backed values; never create a fake person, lease, work
+  order, message, or customer value.
+- The app is intended to update in-scope systems of record under the exact S97-S100 contracts.
+- The owner authorizes each exact S97-S100 key's bounded protected proof window after closed
+  implementation/deterministic gates, mandatory close/readback, and final activation after its
+  applicable live proof and remaining suite gates; no broad or sibling key inherits that authority.
+- The secure execution prompt designates the sole S97 RentVine property/lease target. S97 may perform
+  the specified temporary one-day `endDate` proof and exact rollback only on that target.
+- S98 may append one temporary source-backed proof row at the end of the operating renewal Sheet,
+  label/note/isolate it as a test, read it back, separately update its blank `current_rent` from the
+  fresh source, then separately delete it and prove final absence.
+- S99 includes staff-confirmed RentVine work-order creation and status update. S100 includes manual
+  authenticated inbound work-order-chat synchronization and only an unsent Gmail resident-reply
+  draft in the signed-in user's connected mailbox.
+- S36 runs one temporary provision/import/query/readback/retirement pilot and restores the original
+  eleven-store/config baseline.
+- Dotloop and LeadSimple are deferred until after the current RentVine activation work and require
+  later separately grounded scopes.
 
-| Priority | Owner                 | Exact input required                                                                                                                                                 | Completed seam waiting on it                                                             | Next action                                                                                                                                  |
-| -------: | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-|        1 | Client/Admin          | Distinct verbatim Sheet copy, managed sharing, blank cell                                                                                                            | Admin URL/id save plus copy-only CAS/read/clear proof                                    | Save the copy in Admin, dry-run, then confirm once.                                                                                          |
-|        2 | Client/owner          | One unmistakable RentVine test lease/owner, exact current/proposed/rollback `endDate`, managed Admin, secure evidence refs, and separate protected one-key direction | Deployed S30 secure one-attempt forward/rollback/readback/closeout runner; action closed | Review `docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md`; supply the secure packet and direct the protected gate separately. |
-|        3 | Client/operator       | S63 exact-four runtime packet, observation packet, and real reviewer                                                                                                 | Deployed source-read-only capture/baseline/evidence/report machinery                     | Supply secure packets, run the report, then record process and number/safety verdicts separately.                                            |
-|        4 | Client process expert | Move-out deposit-disposition walkthrough and date                                                                                                                    | Report acknowledged and current workflow kept non-invented                               | Complete walkthrough, then disposition the report.                                                                                           |
-|        5 | Client                | Exact lease behind wrong-resident report                                                                                                                             | Address/lease identity remains fail-closed                                               | Identify and verify that one lease.                                                                                                          |
-|        6 | Client                | Approved owner/tenant wording, locked copy, and channel-evidence rules                                                                                               | Versioned templates, constrained AI, editable drafts, honest status                      | Approve exact copy and contacted/sent evidence.                                                                                              |
-|        7 | Client/Admin          | Waiting-on timing values and override authority                                                                                                                      | Source-backed contact state plus versioned global/property/lease rules                   | Enter client-confirmed values in Admin.                                                                                                      |
-|        8 | Client/Admin          | Any future RentCast freshness or selection/rejection rule beyond provider order                                                                                      | Transparent two-mile/15-request reference search                                         | Leave unset or approve an explicit versioned rule.                                                                                           |
-|        9 | Owner/client          | Exact end-of-September commitment                                                                                                                                    | Scope remains unasserted                                                                 | Record the agreed deliverable and evidence.                                                                                                  |
-|       10 | Client/provider       | Approved S66 artifacts, fields, participants, signatures, and form rules                                                                                             | Immutable packet truth and exact Dotloop binding                                         | Publish the approved catalog.                                                                                                                |
-|       11 | Provider/client       | Dotloop OAuth plus exact account/profile/template/webhook/correction mappings                                                                                        | Preview/confirm/idempotency/readback/receipt/reconcile/rollback lifecycle                | Configure one official adapter and prove one packet.                                                                                         |
-|       12 | Provider/client       | One LeadSimple action, official account contract, credential, and mappings                                                                                           | CAS/readback/idempotency/receipt/reconcile/rollback lifecycle                            | Configure and prove only that action.                                                                                                        |
-|       13 | RentVine/client       | Invitation/reply/webhook/auth/identity/correction/rollback contract                                                                                                  | Verified-resident channel lifecycle; app intake remains usable                           | Configure the official adapter; keep the provider channel closed until then.                                                                 |
-|       14 | Owner                 | One saved Space request, first JSONL object in its isolated prefix, and approval ref                                                                                 | Fixed official Discovery Engine lifecycle and isolated retirement                        | Review the packet, then enable one bounded pilot attempt.                                                                                    |
-|       15 | Owner                 | Explicit S64 authority decision                                                                                                                                      | No S64 implementation or implied authority                                               | Keep current role rules unless separately authorized.                                                                                        |
+## Runtime evidence by suite
 
-## Live support state
+| Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S97   | Managed Admin/Renewals actor, exact account and designated lease from the secure target URL plus matching operating-Sheet row; date-key one-day delta and rollback; source-backed staff-confirmed create terms; one existing charge with a supported reversible update delta; fresh before reads, phase previews/confirmations, and current exact key/config state | Use one serial window per exact key. Stop on any target/state/actor/key/value drift; never choose another lease or invent charge terms; each reversal and key closeout must read back exactly.                       |
+| S98   | Managed Admin/Renewals actor, operating workbook/tab/schema/header hash, fresh tenant and current-rent source values, exact temporary marker/note, downstream exclusion, surrounding-row baseline                                                                                                                                                                  | Use serial append, field-update, and append-owned reversal windows. Stop on murky headers/protection/formula/validation/identity drift; delete only the unchanged receipted row and prove stable-key/marker absence. |
+| S99   | Managed staff actor, current RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal                                                                                                                                                                            | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; rollback/correction must use the exact receipted work order                                                           |
+| S100  | Managed signed-in user, exact provider account/work-order/message identities, disclosed mark-read effect, verified resident-email mapping, connected Gmail mailbox                                                                                                                                                                                                 | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send                                                                                          |
+| S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                                                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                |
 
-- Work details: resolved after the deployed location/material behavior was verified.
-- Connections: acknowledged; completed portions were separated from Dotloop/LeadSimple external inputs.
-- Move-out: acknowledged and intentionally unresolved until the client walkthrough.
-- Reporter display uses the managed-user directory lookup; the UI does not infer a person's name from
-  an unverified identifier.
+## Existing policy inputs
 
-## What the team can use now
+- Renewal follow-up timing remains intentionally unset. No due time, reminder, task, draft, or send
+  may be derived from a guessed schedule.
+- RentCast keeps provider order and remains reference-only; no extra freshness/selection rule exists.
+- Renewal/maintenance initiation ends with an unsent Gmail draft. A person edits and sends from
+  Gmail; direct application send keys remain closed.
+- Real human litmus observations are recorded as `NOT RUN — no human observer` when nobody is
+  present; a runner or model never impersonates a reviewer.
 
-- Complete RentVine and operating-Sheet reads, renewal reconciliation, RentCast reference comps, and
-  lease-specific workspaces.
-- Governed Gmail workflow reads, labels, replies, and unsent renewal/maintenance drafts where the
-  exact key is open; a person sends from Gmail.
-- Manual Workflow Communications refresh with source-backed waiting-on/last-contact.
-- Console, 11 Spaces, processes, approvals, Admin, Maintenance, feedback, tokenized resident intake,
-  Vendor boundaries, work accountability, and the bounded operational-page builder after deployment.
+## Delivery rule
 
-## Rehearsal-copy proof
-
-1. Make and share a verbatim copy; never reuse the operating workbook.
-2. Paste its URL/id into Admin. Saving performs no Sheet API call.
-3. Choose one blank sacrificial cell and run the dry proof to obtain the exact confirmation token.
-4. Confirm once: blank → synthetic marker → readback → exact clear → final blank.
-5. Retain only the bodyless receipt; if final blank cannot be proven, treat the result as ambiguous.
-
-## Safety statement
-
-No live RentVine or operating-Sheet write is authorized by this checklist. S30 supports only one
-lease `endDate`; recurring-charge proof remains unreachable until exact readback is verified. No app
-path autonomously sends a client notice. No test identity, credential, or client evidence belongs in
-Git.
+Every provider/cloud/config mutation is human-initiated where the suite requires it, exact-previewed,
+exact-confirmed, bounded to one target, claimed before the provider call, receipted, read back, and
+separately reversible/correctable. S100's warned and confirmed manager-read marker is the sole
+non-reversible stateful-read exception because RentVine documents no unread restoration. Unknown
+provider outcome means reconciliation without blind retry.
+Customer values, raw evidence, secrets, and mailbox bodies never enter Git or ordinary logs.
