@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-08-31. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-09-01. Resume here after reading `AGENTS.md` and `docs/facts.md`.
 
 ## Objective
 
@@ -10,26 +10,27 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtg73suu-fe8734d35330` / commit
-  `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` at 100% traffic. Immediate rollback is
-  `pmi-kc-app-rmtfzwn77-8153d75d1cd5`.
+- Production serves `pmi-kc-app-rmtic5vib-8774cfecd0c8` / commit
+  `fb32194b5a15be11fd1e7e2dff7192d62dd947fc` at 100% traffic. Immediate rollback is
+  `pmi-kc-app-rmtg73suu-fe8734d35330`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
-- S96 is implemented and pushed on `main` at `32a2d836a730ae7751e4d6964897d48430da9f15`.
-  Focused adversarial tests, the canonical gate, core E2E, and exact-SHA aggregate CI run
-  `33466388696` passed. Production has not received that commit, so S96 is not delivered and S85
-  must not begin.
-- Both the configured gcloud CLI refresh credential and ADC now fail with managed-account
-  reauthentication errors. No alternate deployment identity is configured. No candidate, traffic,
-  connector, vault, provider, or production effect occurred.
+- S96 is `ALL_GATES_GREEN` and deployed. Focused/canonical/core-E2E checks and exact-SHA CI passed;
+  the zero-traffic candidate matched exact version and normalized predecessor configuration, bounded
+  routes passed, and exact promotion/stable readback passed. Production had zero connector records,
+  so the specified no-target first-click proof ran with no credential or vault effect.
+- ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
+  the S96 release used the prior proven non-persistent ADC token bridge without printing or writing a
+  token.
 - S36 and S82-S100 are specified desired-state contracts, not implementation. Their sole queue and
   completion gates are in `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
   protected activation/live proof contracts; it performed no feature, cloud, provider, key, role,
   Sheet, draft, or deployment effect.
-- S96 remains first and solely owns connector disconnect/reconciliation until its exact candidate,
-  promotion, and production readback gates pass. S86 must preserve it.
+- S96 solely owns connector disconnect/reconciliation and is now the preservation baseline for S86.
+- The committed execution Registry remains 41 keys/seven open; the older Firestore Admin mirror is
+  22/six. It cannot grant execution and must be reconciled before S83 is delivered.
 - S97 removes obsolete multi-record proof machinery and consumes S30's safety primitives. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
@@ -41,15 +42,14 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-After a person interactively reauthenticates both gcloud CLI and ADC as the managed
-`josiah@pmikcmetro.com` account, rerun identity/ADC/release-plan preflights. Release exact commit
-`32a2d836a730ae7751e4d6964897d48430da9f15` through a zero-traffic candidate, prove exact version,
-normalized configuration, bounded routes, and served first-click inertness, promote/read back the
-exact revision, reconcile current docs, and only then begin S85.
+Begin S85. Re-read its contract and current global CSS/theme/shell/component truth, freeze fail-first
+theme/token/contrast/persistence/compatibility evidence, implement the semantic Light/Dark visual
+system without claiming unverified official branding, and deliver through the full suite gate before
+S86 begins.
 
 ## Canonical queue
 
-1. S96
+1. S96 — COMPLETE
 2. S85
 3. S86
 4. S83

@@ -19,20 +19,23 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-08-30
+## Present production truth — 2026-09-01
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtg73suu-fe8734d35330`, 100% traffic.
-- Deployed code: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`.
+- Serving revision: `pmi-kc-app-rmtic5vib-8774cfecd0c8`, 100% traffic.
+- Deployed code: `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtfzwn77-8153d75d1cd5` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtg73suu-fe8734d35330` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
 - Local rehearsal is explicit Demo + Live-read-only and must refuse every persistence/provider effect.
+- S96 connector disconnect/reconciliation is deployed. Production currently has no
+  `connector_connections` records, so its served inertness gate used the specified no-target path and
+  no credential or vault effect ran.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source. Its write-back runtime switch is off.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is

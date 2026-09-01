@@ -64,10 +64,9 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 
 ## Active feature contracts
 
-Use `docs/feature-suites/README.md`. It is the sole queue for the specified-but-unimplemented S36 and
-S82-S100 initiative; S96 is the first executable suite. Completed
-suites were removed from the active tree; code, tests, current facts, and Git history are their
-evidence.
+Use `docs/feature-suites/README.md`. It is the sole queue for the S36 and S82-S100 initiative. S96 is
+complete and deployed; S85 is the active suite. Completed suite narratives are removed once current
+code, tests, and facts own their contract; Git history retains provenance.
 
 ## Current evidence and templates
 

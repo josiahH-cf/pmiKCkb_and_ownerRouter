@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback and approved target contracts: 2026-08-31.
+Updated from live readback and approved target contracts: 2026-09-01.
 
 ## Production
 
@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-08-31.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtg73suu-fe8734d35330`            |
-| Serving commit            | `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`     |
+| Serving revision          | `pmi-kc-app-rmtic5vib-8774cfecd0c8`            |
+| Serving commit            | `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -30,13 +30,12 @@ Secret names are bound through Secret Manager. Values never belong in this file.
 - Keep `GOOGLE_APPLICATION_CREDENTIALS` unset.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
   from source uploads.
-- The configured gcloud account remains labeled `josiah@pmikcmetro.com`, but on 2026-08-31 both its
-  default CLI refresh credential and ADC failed refresh with interactive reauthentication errors.
-  Labels and cached account metadata do not prove a usable identity.
-- No alternate service-account, impersonation, workload-identity, access-token, or deploy-workflow
-  credential is configured. A person must interactively reauthenticate both gcloud CLI and ADC as
-  the managed account, after which both preflights and selected-principal readback must pass before a
-  cloud mutation. Authentication dialogs must not be automated.
+- On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
+  `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
+- The S96 release used a short-lived ADC token only in a task-specific shell variable passed through
+  `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
+  only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
+  Authentication dialogs must never be automated.
 - The Windows Cloud SDK profile at `/mnt/c/Users/josia/AppData/Roaming/gcloud` had no active account
   when last inspected. Do not mutate authentication merely to satisfy a local label; use managed
   identity and read back the selected principal before a cloud mutation.
@@ -51,8 +50,9 @@ npm run release -- --environment=production --plan-only --budget-confirmed --all
 
 The bare `preflight:production` command is not the authoritative release projection: the release
 wrapper injects the explicit descriptor and evaluates the exact replacing runtime map. Never bypass a
-release-wrapper refusal. Current release work must stop until both managed credential paths are
-interactively reauthenticated and read back. Never persist an access token.
+release-wrapper refusal. If default gcloud refresh is stale but ADC is fresh and read back as the
+managed account, use only the non-persistent token bridge above. Never print or persist an access
+token.
 
 ## Release
 
@@ -80,13 +80,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtfzwn77-8153d75d1cd5` from commit
-`e661ef5653821c79c7047bc1952735f3b1ded6f5`.
+Captured predecessor: `pmi-kc-app-rmtg73suu-fe8734d35330` from commit
+`1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtfzwn77-8153d75d1cd5=100 --quiet
+  --to-revisions=pmi-kc-app-rmtg73suu-fe8734d35330=100 --quiet
 ```
 
 Forward restoration:
@@ -94,7 +94,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtg73suu-fe8734d35330=100 --quiet
+  --to-revisions=pmi-kc-app-rmtic5vib-8774cfecd0c8=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -111,6 +111,12 @@ not current traffic instructions.
 The S30 release did not repeat that traffic movement; it captured its immediate predecessor, proved
 normalized candidate/predecessor parity, promoted the exact candidate, and
 passed stable smoke/readback. No client-data or provider effect occurred.
+
+The S96 release captured `pmi-kc-app-rmtg73suu-fe8734d35330`, proved exact commit/revision and
+bounded routes on zero-traffic candidate `pmi-kc-app-rmtic5vib-8774cfecd0c8`, matched normalized
+runtime configuration, promoted only that revision, and passed stable traffic/configuration/action
+readback. Production had no connector records; no credential, vault, provider, or client-data effect
+occurred.
 
 ## Configuration invariants
 

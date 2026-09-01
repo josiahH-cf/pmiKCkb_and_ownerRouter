@@ -1,6 +1,6 @@
 # PMI KC current plan
 
-Updated: 2026-08-31.
+Updated: 2026-09-01.
 
 ## Outcome
 
@@ -11,8 +11,8 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` as revision
-`pmi-kc-app-rmtg73suu-fe8734d35330` at 100% traffic. It remains Production + Live with eleven
+Production serves commit `fb32194b5a15be11fd1e7e2dff7192d62dd947fc` as revision
+`pmi-kc-app-rmtic5vib-8774cfecd0c8` at 100% traffic. It remains Production + Live with eleven
 Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
 and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
 Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
@@ -22,11 +22,11 @@ active guidance: S97 and S98 own their tested removal. S36 and S82-S100 are spec
 not deployed behavior, until each suite completes implementation, verification, release, effect
 proof where required, and readback.
 
-S96 is implemented and pushed at `32a2d836a730ae7751e4d6964897d48430da9f15`; its focused,
-canonical, core-E2E, and exact-SHA CI gates are green. It is not deployed. Both gcloud CLI and ADC
-refresh credentials require interactive managed-account reauthentication, no alternate deployment
-identity is configured, and S85 remains gated until S96 candidate, promotion, and production
-readback complete.
+S96 is `ALL_GATES_GREEN` and deployed. Its focused, canonical, core-E2E, exact-SHA CI, zero-traffic
+candidate, normalized-config, bounded-route, exact promotion, and stable readback gates passed. The
+live connector collection was empty, so the specified no-target proof made no credential or vault
+effect. S85 is now active. The Firestore Admin registry mirror drift (22/six versus the authoritative
+committed 41/seven) must be reconciled before S83 delivery and cannot grant execution meanwhile.
 
 ## Authority and closed decisions
 
@@ -72,11 +72,9 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 1 release. After a person reauthenticates both managed gcloud credential
-paths, rerun the identity, ADC, and release-plan preflights; release exact S96 commit
-`32a2d836a730ae7751e4d6964897d48430da9f15` through zero traffic; prove candidate identity,
-configuration parity, bounded routes, and served first-click inertness; then promote and read back
-the exact revision before advancing to step 2.
+The active position is step 2 implementation. Re-read S85 and current visual-system truth, freeze its
+fail-first and preservation evidence, implement the semantic theme/token foundation, and deliver its
+technical gates without presenting brand conformance as approved.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

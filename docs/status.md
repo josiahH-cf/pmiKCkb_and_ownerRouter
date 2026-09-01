@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-08-31.
+Last updated: 2026-09-01.
 
 This is a present snapshot, not a changelog. Historical implementation detail remains in Git.
 
@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtg73suu-fe8734d35330`, 100% traffic
-- Serving commit: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`
-- Immediate rollback: `pmi-kc-app-rmtfzwn77-8153d75d1cd5`
+- Serving revision: `pmi-kc-app-rmtic5vib-8774cfecd0c8`, 100% traffic
+- Serving commit: `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`
+- Immediate rollback: `pmi-kc-app-rmtg73suu-fe8734d35330`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -19,8 +19,10 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
 The serving candidate passed exact identity, normalized-config, bounded route, promotion, and stable
-readback gates. The Action Registry currently has seven open and 34 closed keys. None of the new
-S97-S100 exact keys is executable or deployed yet.
+readback gates. The committed execution Registry has seven open and 34 closed keys. Its older
+Firestore Admin mirror has 22 records/six open; that display drift cannot grant execution and must be
+reconciled before the S83 Admin cutover. None of the new S97-S100 exact keys is executable or
+deployed yet.
 
 ## Implemented product baseline
 
@@ -39,15 +41,14 @@ S97-S100 exact keys is executable or deployed yet.
   removal and they are not active planning authority.
 - S96's cancel-first connector dialog, strict request contract, versioned lifecycle, immutable
   redacted receipt, verifiable vault outcome, response-loss recovery, and setup-generation safety are
-  implemented on `main` at `32a2d836a730ae7751e4d6964897d48430da9f15`. They are not production
-  behavior until the pending release and readback complete.
+  deployed. Live readback found no connector records, so candidate first-click safety used the
+  specified exact-artifact/no-target proof and made no credential or vault effect.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96 connector safety is implemented
-and awaits release; S85 remains gated. The queue then runs S85/S86 visual/interaction foundations,
-S83 access requests, S84 navigation, and S82 renewal UI before the owner-authorized source effects
-and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96 is complete and the active
+suite is S85. The queue then runs S86 interaction foundations, S83 access requests, S84 navigation,
+and S82 renewal UI before the owner-authorized source effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -78,23 +79,22 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33330420327`: passed.
-- Canonical serving gate: 559 unit files plus one intentional skip; 5,064 tests plus four skips; 26
+- Current serving exact-SHA aggregate CI run `33466942670`: passed.
+- Canonical serving gate: 558 unit files plus one intentional skip; 5,170 tests plus four skips; 26
   Firestore files/119 tests; policy/static gates; 107-route production build; production audit zero.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
   aggregate CI run `33425658400` passed; no deployment was performed.
 - S96 commit `32a2d836a730ae7751e4d6964897d48430da9f15`: focused adversarial tests,
   canonical verification, core E2E, and exact-SHA aggregate CI run `33466388696` passed. Its only
   protected-path change is the explicitly authorized server-only receipt rule in `firestore.rules`.
-- The production release is waiting on interactive managed-account reauthentication: both default
-  gcloud and ADC refresh currently fail, and no alternate deployment identity is configured. No
-  candidate, traffic, vault, connector, provider, Sheet, Gmail, role, or production-feature effect
-  occurred.
+- Exact candidate `pmi-kc-app-rmtic5vib-8774cfecd0c8` matched serving commit
+  `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`, bounded routes, and predecessor runtime configuration;
+  it was promoted and passed stable identity/configuration readback. The live connector collection
+  was empty. No vault, connector, provider, Sheet, Gmail, role, or client-data effect occurred.
 
 ## Remaining runtime evidence
 
-There are no unresolved product questions. Interactive gcloud CLI and ADC reauthentication is the
-current release input. Fresh provider ids/catalogs/values, managed sessions, confirmation hashes,
-signed-in mailbox/resident mapping, and the deterministic S36 source packet are later runtime inputs.
-If unavailable or stale, the implementing runner completes all independent closed-safe work and
-blocks only the exact release or live effect; it never guesses or substitutes.
+There are no unresolved product questions. Fresh provider ids/catalogs/values, managed sessions,
+confirmation hashes, signed-in mailbox/resident mapping, and the deterministic S36 source packet are
+later runtime inputs. If unavailable or stale, the implementing runner completes all independent
+closed-safe work and blocks only the exact release or live effect; it never guesses or substitutes.

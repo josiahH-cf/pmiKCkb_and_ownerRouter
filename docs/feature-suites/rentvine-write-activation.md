@@ -3,8 +3,9 @@
 
 # S30 - one-lease RentVine renewal-write proof
 
-> Status: The closed/fail-first proof runner is implemented, verified, pushed, and deployed at
-> commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`. Production remains non-executable. The owner has now
+> Status: The closed/fail-first proof runner was first deployed at commit
+> `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` and remains deployed in current commit
+> `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`. Production remains non-executable. The owner has now
 > designated the sole target outside Git and authorized S97's temporary exact-key proof window; no secure
 > packet, provider write, or live proof has yet been performed.
 
@@ -227,9 +228,9 @@ fresh S30 reads.
   repair.
 - Canonical gate: 559 unit files passed with one intentional skip; 5,064 tests passed with four
   skips; 26 Firestore files/119 tests; 107-route build; production audit zero vulnerabilities.
-- Commit/CI/release: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`; aggregate run
-  `33330420327`; revision `pmi-kc-app-rmtg73suu-fe8734d35330` at 100%; rollback target
-  `pmi-kc-app-rmtfzwn77-8153d75d1cd5`; exact action reread non-executable.
+- Original commit/CI/release: `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c`; aggregate run
+  `33330420327`; revision `pmi-kc-app-rmtg73suu-fe8734d35330`. Current production carries the same
+  closed behavior in `pmi-kc-app-rmtic5vib-8774cfecd0c8`; the exact action reread non-executable.
 - No S30 secure proof packet, writer construction, provider mutation, rollback, or client-data effect
   occurred during implementation or release.
 
