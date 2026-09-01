@@ -36,8 +36,27 @@ import {
 import { NeedsDecisionInboxPanel } from "./NeedsDecisionInboxPanel";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
 import { WritebackQueuePanel } from "./WritebackQueuePanel";
+import { ConfirmationDialog } from "@/components/ui";
 
 type QueueView = "all" | "renewals" | "writeback";
+
+type QueueRequestBody = Record<string, boolean | string | string[]>;
+
+type PendingHighRiskApproval =
+  | {
+      kind: "single";
+      item: ApprovalQueueItemRecord;
+      reason: string;
+      requestBody: QueueRequestBody;
+    }
+  | {
+      kind: "bulk";
+      selectedCount: number;
+      highRiskCount: number;
+      itemIds: string[];
+      reason: string;
+      requestBody: QueueRequestBody;
+    };
 
 export function ApprovalQueue({
   currentUser,
@@ -94,6 +113,10 @@ export function ApprovalQueue({
   const [bulkRequiredApproverUid, setBulkRequiredApproverUid] = useState("");
   const [bulkResult, setBulkResult] = useState<BulkQueueResult | null>(null);
   const [selectedBulkIds, setSelectedBulkIds] = useState<Set<string>>(new Set());
+  const [pendingHighRisk, setPendingHighRisk] = useState<PendingHighRiskApproval | null>(
+    null,
+  );
+  const [highRiskConfirmationError, setHighRiskConfirmationError] = useState("");
   const initialSelectedItemIdRef = useRef(initialSelectedItemId);
 
   // Next.js can preserve this client component while a same-page `?item_id=` link streams new
@@ -241,37 +264,46 @@ export function ApprovalQueue({
     }
   }
 
-  async function transitionSelectedItem(input: Record<string, boolean | string>) {
+  function transitionSelectedItem(input: Record<string, boolean | string>) {
     if (!selectedItem) {
       return;
     }
 
-    const requestBody = { ...input };
-
-    if (
-      input.action === "approve" &&
-      selectedItem.risk === "High" &&
-      !window.confirm("This is a High-risk approval. Approve this queue item?")
-    ) {
+    const requestBody: QueueRequestBody = { ...input };
+    if (input.action === "approve" && selectedItem.risk === "High") {
+      const enteredReason = typeof input.reason === "string" ? input.reason.trim() : "";
+      if (!enteredReason) {
+        setMessage("High-risk approval requires a reason.");
+        return;
+      }
+      requestBody.reason = enteredReason;
+      requestBody.confirm_high_risk = true;
+      setHighRiskConfirmationError("");
+      setPendingHighRisk({
+        kind: "single",
+        item: { ...selectedItem },
+        reason: enteredReason,
+        requestBody,
+      });
       return;
     }
 
-    if (input.action === "approve" && selectedItem.risk === "High") {
-      requestBody.confirm_high_risk = true;
-    }
+    void dispatchItemTransition(selectedItem.id, requestBody);
+  }
 
-    setBusyAction(String(input.action ?? "action"));
+  async function dispatchItemTransition(
+    itemId: string,
+    requestBody: QueueRequestBody,
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
+    setBusyAction(String(requestBody.action ?? "action"));
     setMessage("Saving queue item.");
 
     try {
-      const response = await fetch(
-        `/api/approval-queue/${encodeURIComponent(selectedItem.id)}`,
-        {
-          body: JSON.stringify(requestBody),
-          headers: { "Content-Type": "application/json" },
-          method: "PATCH",
-        },
-      );
+      const response = await fetch(`/api/approval-queue/${encodeURIComponent(itemId)}`, {
+        body: JSON.stringify(requestBody),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
       const payload = await readJsonResponse<QueueDetail>(response);
 
       setDetailsById((current) => ({ ...current, [payload.item.id]: payload }));
@@ -280,8 +312,11 @@ export function ApprovalQueue({
       setReason("");
       setSnoozeUntil("");
       setMessage("Queue item updated.");
+      return { ok: true };
     } catch (error) {
-      setMessage(readErrorMessage(error));
+      const errorMessage = readErrorMessage(error);
+      setMessage(errorMessage);
+      return { ok: false, message: errorMessage };
     } finally {
       setBusyAction(null);
     }
@@ -399,7 +434,7 @@ export function ApprovalQueue({
     setBulkResult(null);
   }
 
-  async function submitBulkAction() {
+  function submitBulkAction() {
     const itemIds = items
       .filter((item) => selectedBulkIds.has(item.id))
       .map((item) => item.id);
@@ -429,7 +464,7 @@ export function ApprovalQueue({
 
     if (
       bulkAction === "approve" &&
-      bulkPreview.linkedHighRiskApprovals > 0 &&
+      bulkPreview.highRiskApprovals > 0 &&
       !bulkReason.trim()
     ) {
       setMessage("High-risk bulk approval requires a reason.");
@@ -437,17 +472,7 @@ export function ApprovalQueue({
     }
 
     const highRiskApprovalCount = bulkPreview.highRiskApprovals;
-    if (
-      bulkAction === "approve" &&
-      highRiskApprovalCount > 0 &&
-      !window.confirm(
-        `This bulk approval includes ${highRiskApprovalCount} High-risk item(s). Approve them?`,
-      )
-    ) {
-      return;
-    }
-
-    const body: Record<string, boolean | string | string[]> = {
+    const body: QueueRequestBody = {
       action: bulkAction,
       item_ids: itemIds,
     };
@@ -466,9 +491,26 @@ export function ApprovalQueue({
     }
     if (bulkAction === "approve" && highRiskApprovalCount > 0) {
       body.confirm_high_risk = true;
+      setHighRiskConfirmationError("");
+      setPendingHighRisk({
+        kind: "bulk",
+        selectedCount: itemIds.length,
+        highRiskCount: highRiskApprovalCount,
+        itemIds: [...itemIds],
+        reason: bulkReason.trim(),
+        requestBody: body,
+      });
+      return;
     }
 
-    setBusyAction(`bulk-${bulkAction}`);
+    void dispatchBulkAction(body, itemIds);
+  }
+
+  async function dispatchBulkAction(
+    body: QueueRequestBody,
+    itemIds: readonly string[],
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
+    setBusyAction(`bulk-${String(body.action ?? "action")}`);
     setMessage("Saving selected queue items.");
 
     try {
@@ -509,10 +551,28 @@ export function ApprovalQueue({
       setMessage(
         `Bulk action finished: ${payload.summary.updated} updated, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`,
       );
+      return { ok: true };
     } catch (error) {
-      setMessage(readErrorMessage(error));
+      const errorMessage = readErrorMessage(error);
+      setMessage(errorMessage);
+      return { ok: false, message: errorMessage };
     } finally {
       setBusyAction(null);
+    }
+  }
+
+  async function confirmHighRiskApproval() {
+    const pending = pendingHighRisk;
+    if (!pending || busyAction) return;
+    setHighRiskConfirmationError("");
+    const result =
+      pending.kind === "single"
+        ? await dispatchItemTransition(pending.item.id, pending.requestBody)
+        : await dispatchBulkAction(pending.requestBody, pending.itemIds);
+    if (result.ok) {
+      setPendingHighRisk(null);
+    } else {
+      setHighRiskConfirmationError(`${result.message} Review the target and try again.`);
     }
   }
 
@@ -588,6 +648,53 @@ export function ApprovalQueue({
           </>
         ) : null}
       </details>
+      <ConfirmationDialog
+        busy={busyAction !== null}
+        busyLabel={
+          pendingHighRisk?.kind === "bulk"
+            ? "Approving selected items"
+            : "Approving High-risk item"
+        }
+        confirmLabel={
+          pendingHighRisk?.kind === "bulk"
+            ? "Approve selected items"
+            : "Approve High-risk item"
+        }
+        error={highRiskConfirmationError}
+        onCancel={() => {
+          setPendingHighRisk(null);
+          setHighRiskConfirmationError("");
+        }}
+        onConfirm={() => void confirmHighRiskApproval()}
+        open={pendingHighRisk !== null}
+        title="Confirm High-risk approval"
+      >
+        {pendingHighRisk?.kind === "single" ? (
+          <dl className="ui-confirmation-summary">
+            <dt>Queue item</dt>
+            <dd>{pendingHighRisk.item.action_needed}</dd>
+            <dt>Item ID</dt>
+            <dd>{pendingHighRisk.item.id}</dd>
+            <dt>Risk</dt>
+            <dd>{pendingHighRisk.item.risk}</dd>
+            <dt>Action</dt>
+            <dd>Approve</dd>
+            <dt>Reason</dt>
+            <dd>{pendingHighRisk.reason}</dd>
+          </dl>
+        ) : pendingHighRisk?.kind === "bulk" ? (
+          <dl className="ui-confirmation-summary">
+            <dt>Selected items</dt>
+            <dd>{pendingHighRisk.selectedCount}</dd>
+            <dt>High-risk items</dt>
+            <dd>{pendingHighRisk.highRiskCount}</dd>
+            <dt>Action</dt>
+            <dd>Approve</dd>
+            <dt>Reason</dt>
+            <dd>{pendingHighRisk.reason}</dd>
+          </dl>
+        ) : null}
+      </ConfirmationDialog>
     </div>
   );
 
@@ -602,7 +709,14 @@ export function ApprovalQueue({
           setFilters={setFilters}
         />
 
-        <p className="muted queue-status-message">{message}</p>
+        <p
+          aria-atomic="true"
+          aria-live="polite"
+          className="muted queue-status-message"
+          role="status"
+        >
+          {message}
+        </p>
 
         {listError ? (
           <QueueUnavailableState listError={listError} />
@@ -649,7 +763,10 @@ export function ApprovalQueue({
                 busyAction={busyAction}
                 loadingDetailId={loadingDetailId}
                 onApprove={() => {
-                  if (selectedItem?.action_execution_id) {
+                  if (
+                    selectedItem?.action_execution_id ||
+                    selectedItem?.risk === "High"
+                  ) {
                     startAction("approve");
                     return;
                   }

@@ -43,12 +43,7 @@ export function AppShell({
   return (
     <div className="page">
       <header className="topbar">
-        <Link
-          className="brand"
-          href="/"
-          aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
-          title={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
-        >
+        <Link className="brand" href="/" aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}>
           <PmiWordmark variant="inline" />
         </Link>
         {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own

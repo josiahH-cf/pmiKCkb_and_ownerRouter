@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { InfoTip } from "@/components/ui";
 import type { ApprovalQueueActionAvailability } from "@/lib/approval/queue";
 import type {
   ApprovalQueueActivityRecord,
@@ -128,11 +129,16 @@ export function QueueDetailPanel({
                 legacyNonLiveRecord || busyAction !== null || !actionAvailability?.approve
               }
               onClick={onApprove}
-              title={actionAvailability?.approveReason}
               type="button"
             >
               {selectedItem.action_execution_id ? "Approve for execution" : "Approve"}
             </button>
+            {!actionAvailability?.approve && actionAvailability?.approveReason ? (
+              <InfoTip
+                content={actionAvailability.approveReason}
+                label="Approve availability"
+              />
+            ) : null}
             <button
               className="secondary-button compact-button"
               disabled={
@@ -151,11 +157,16 @@ export function QueueDetailPanel({
                 legacyNonLiveRecord || busyAction !== null || !actionAvailability?.deny
               }
               onClick={() => onStartAction("deny")}
-              title={actionAvailability?.denyReason}
               type="button"
             >
               Deny
             </button>
+            {!actionAvailability?.deny && actionAvailability?.denyReason ? (
+              <InfoTip
+                content={actionAvailability.denyReason}
+                label="Deny availability"
+              />
+            ) : null}
             <button
               className="secondary-button compact-button"
               disabled={

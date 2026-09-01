@@ -10,7 +10,11 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { registerAppearanceClose } from "@/lib/ui/appearance-coordinator";
+import {
+  activateTransientLayer,
+  dismissTransientLayerDescendants,
+  registerTransientLayer,
+} from "@/lib/ui/transient-layer";
 import {
   THEME_SETTINGS,
   THEME_STORAGE_KEY,
@@ -29,6 +33,7 @@ const THEME_SETTING_CHANGE_EVENT = "pmi:theme-setting-change";
 
 export function Appearance() {
   const panelId = useId();
+  const layerId = `appearance:${panelId}`;
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const radioRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -45,7 +50,15 @@ export function Appearance() {
     readNotHydrated,
   );
 
-  useEffect(() => registerAppearanceClose(() => setIsOpen(false)), []);
+  useEffect(
+    () =>
+      registerTransientLayer({
+        id: layerId,
+        family: "appearance",
+        close: () => setIsOpen(false),
+      }),
+    [layerId],
+  );
 
   useEffect(() => {
     if (!controllerReady) return;
@@ -75,6 +88,7 @@ export function Appearance() {
         !panelRef.current?.contains(target) &&
         !triggerRef.current?.contains(target)
       ) {
+        dismissTransientLayerDescendants(layerId);
         setIsOpen(false);
       }
     };
@@ -85,6 +99,7 @@ export function Appearance() {
         !panelRef.current?.contains(target) &&
         !triggerRef.current?.contains(target)
       ) {
+        dismissTransientLayerDescendants(layerId);
         setIsOpen(false);
       }
     };
@@ -94,7 +109,7 @@ export function Appearance() {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("focusin", onFocusIn);
     };
-  }, [isOpen, setting]);
+  }, [isOpen, layerId, setting]);
 
   function choose(next: ThemeSetting) {
     const media = readDeviceTheme();
@@ -109,6 +124,7 @@ export function Appearance() {
   }
 
   function closeAndReturnFocus() {
+    dismissTransientLayerDescendants(layerId);
     setIsOpen(false);
     triggerRef.current?.focus();
   }
@@ -146,6 +162,7 @@ export function Appearance() {
       !panelRef.current?.contains(next) &&
       !triggerRef.current?.contains(next)
     ) {
+      dismissTransientLayerDescendants(layerId);
       setIsOpen(false);
     }
   }
@@ -160,6 +177,11 @@ export function Appearance() {
         disabled={!controllerReady}
         onClick={() => {
           const next = !isOpen;
+          if (next) {
+            activateTransientLayer({ id: layerId, family: "appearance" });
+          } else {
+            dismissTransientLayerDescendants(layerId);
+          }
           setIsOpen(next);
           if (!next) triggerRef.current?.focus();
         }}

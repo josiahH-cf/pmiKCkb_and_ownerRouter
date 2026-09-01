@@ -1,4 +1,5 @@
 import type { EnvironmentDescriptorResult } from "@/lib/environment/descriptor";
+import { InfoTip } from "@/components/ui";
 
 /**
  * S40 AC-S40-7 — the unambiguous environment/context label.
@@ -49,9 +50,9 @@ export function EnvironmentBadge({
     <span
       className="environment-badge"
       data-context={descriptor.ok ? descriptor.descriptor.dataContext : "unconfirmed"}
-      title={label.detail}
     >
       <span className="environment-badge-text">{label.text}</span>
+      <InfoTip content={label.detail} label={label.text} />
     </span>
   );
 }

@@ -1,5 +1,6 @@
 @import "../styles/theme.css";
 @import "../styles/tokens.css";
+@import "../styles/interactions.css";
 
 * {
   box-sizing: border-box;
@@ -13,8 +14,19 @@ body {
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+  color: var(--action-link);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--action-link-hover);
+  text-decoration-thickness: 0.13em;
+}
+
+a:active {
+  color: var(--action-primary-active);
 }
 
 button,
@@ -962,6 +974,10 @@ textarea:disabled {
   right: 0;
   top: calc(100% + 10px);
   z-index: 10;
+}
+
+.notification-popover[hidden] {
+  display: none;
 }
 
 .notification-popover-header {

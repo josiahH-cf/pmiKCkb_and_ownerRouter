@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
+import { Button, ConfirmationDialog } from "@/components/ui";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 
 // Staff triage for the public tokenized intake (2d). Lists what the unauthenticated ingress captured and
@@ -23,6 +24,11 @@ export function UnverifiedIntakeReview({
     initialIntake.filter((record) => record.data_mode === "live"),
   );
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [pendingDismiss, setPendingDismiss] = useState<UnverifiedIntakeRecord | null>(
+    null,
+  );
+  const [dismissReason, setDismissReason] = useState("");
+  const [dismissError, setDismissError] = useState("");
   const [status, setStatus] = useState("");
   // Optional per-row unit confirmation before promotion (slice 2a). Absence keeps the default
   // Needs-Verification promote unchanged.
@@ -39,7 +45,11 @@ export function UnverifiedIntakeReview({
     );
   }
 
-  async function act(intakeId: string, action: "promote" | "dismiss", body?: unknown) {
+  async function act(
+    intakeId: string,
+    action: "promote" | "dismiss",
+    body?: unknown,
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
     setPendingId(intakeId);
     setStatus("");
     try {
@@ -59,25 +69,41 @@ export function UnverifiedIntakeReview({
             ? "Promoted to a Live app ticket (unit needs verification; no provider effect was created)."
             : "Dismissed.",
         );
+        return { ok: true };
       } else {
-        setStatus(payload.error ?? "Could not update the intake.");
+        const message = payload.error ?? "Could not update the intake. Try again.";
+        setStatus(message);
+        return { ok: false, message };
       }
     } catch {
-      setStatus("Network error. Please try again.");
+      const message = "Could not reach the intake service. Try again.";
+      setStatus(message);
+      return { ok: false, message };
     } finally {
       setPendingId(null);
     }
   }
 
-  function dismiss(intakeId: string) {
-    const reason = window.prompt("Why is this intake being dismissed?")?.trim();
-    if (!reason) {
-      setStatus("A reason is required to dismiss an intake.");
-      return;
-    }
+  function requestDismiss(intakeId: string) {
     const row = intake.find((candidate) => candidate.id === intakeId);
     if (!row) return;
-    void act(intakeId, "dismiss", { reason });
+    setPendingDismiss(row);
+    setDismissReason("");
+    setDismissError("");
+  }
+
+  async function confirmDismiss() {
+    const row = pendingDismiss;
+    const reason = dismissReason.trim();
+    if (!row || pendingId || !reason) return;
+    setDismissError("");
+    const result = await act(row.id, "dismiss", { reason });
+    if (result.ok) {
+      setPendingDismiss(null);
+      setDismissReason("");
+    } else {
+      setDismissError(result.message);
+    }
   }
 
   return (
@@ -119,11 +145,12 @@ export function UnverifiedIntakeReview({
             }
           />
           <div className="ui-row">
-            <button
-              type="button"
+            <Button
+              busy={pendingId === row.id && pendingDismiss?.id !== row.id}
+              busyLabel="Promoting to Live app ticket"
               disabled={pendingId === row.id}
               onClick={() =>
-                act(
+                void act(
                   row.id,
                   "promote",
                   selectedUnits[row.id] ? { unit: selectedUnits[row.id] } : undefined,
@@ -131,19 +158,59 @@ export function UnverifiedIntakeReview({
               }
             >
               Promote to Live app ticket
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
+            </Button>
+            <Button
               disabled={pendingId === row.id}
-              onClick={() => dismiss(row.id)}
+              onClick={() => requestDismiss(row.id)}
+              variant="secondary"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </article>
       ))}
-      {status ? <p className="muted">{status}</p> : null}
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {status}
+      </p>
+      <ConfirmationDialog
+        busy={pendingId === pendingDismiss?.id}
+        busyLabel="Dismissing intake"
+        confirmDisabled={dismissReason.trim().length === 0}
+        confirmLabel="Dismiss intake"
+        confirmVariant="destructive"
+        description="This removes the report from the unverified intake queue. No provider record is changed."
+        error={dismissError}
+        onCancel={() => {
+          setPendingDismiss(null);
+          setDismissReason("");
+          setDismissError("");
+        }}
+        onConfirm={() => void confirmDismiss()}
+        open={pendingDismiss !== null}
+        title="Dismiss unverified intake"
+      >
+        {pendingDismiss ? (
+          <>
+            <dl className="ui-confirmation-summary">
+              <dt>Intake</dt>
+              <dd>{pendingDismiss.summary}</dd>
+              <dt>Property</dt>
+              <dd>{pendingDismiss.property_key}</dd>
+            </dl>
+            <label htmlFor="maintenance-intake-dismiss-reason">
+              Reason
+              <textarea
+                disabled={pendingId === pendingDismiss.id}
+                id="maintenance-intake-dismiss-reason"
+                onChange={(event) => setDismissReason(event.target.value)}
+                required
+                rows={3}
+                value={dismissReason}
+              />
+            </label>
+          </>
+        ) : null}
+      </ConfirmationDialog>
     </section>
   );
 }

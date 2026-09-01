@@ -145,6 +145,14 @@ describe("Space detail template editor (F-TMPL-1)", () => {
     await openEditor(user);
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(
+      fetchMock.mock.calls.find(([, init]) => init?.method === "DELETE"),
+    ).toBeUndefined();
+    const dialog = screen.getByRole("dialog", { name: "Retire template" });
+    expect(dialog).toHaveTextContent("Owner Renewal Follow-Up");
+    expect(dialog).toHaveTextContent("Lease Renewals");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Retire template" }));
     await waitFor(() => {
       const del = fetchMock.mock.calls.find(([, init]) => init?.method === "DELETE");
       expect(del).toBeTruthy();
@@ -153,6 +161,20 @@ describe("Space detail template editor (F-TMPL-1)", () => {
     await waitFor(() =>
       expect(screen.queryByText("Owner Renewal Follow-Up")).not.toBeInTheDocument(),
     );
+  });
+
+  it("does not retire a template when the dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    renderClient({ canSoftDelete: true });
+    await openEditor(user);
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      fetchMock.mock.calls.find(([, init]) => init?.method === "DELETE"),
+    ).toBeUndefined();
+    expect(screen.getByText("Owner Renewal Follow-Up")).toBeVisible();
   });
 
   it("disables Delete for a user without softDelete capability", async () => {

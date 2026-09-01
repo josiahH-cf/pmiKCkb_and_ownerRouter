@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
@@ -139,5 +139,62 @@ describe("MaintenanceQueue status pills + history", () => {
     fireEvent(details, new Event("toggle"));
     fireEvent(details, new Event("toggle"));
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the exact ticket transition and reason before closing", async () => {
+    const closed = ticket({ status: "Closed", closed_reason: "resolved" });
+    const fetchMock = vi.fn(async () => Response.json({ ticket: closed }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MaintenanceQueue initialTickets={[ticket()]} />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
+      target: { value: "Closed" },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Close maintenance ticket" });
+    expect(dialog).toHaveTextContent("Kitchen leak");
+    expect(dialog).toHaveTextContent("t1");
+    expect(dialog).toHaveTextContent("Current status");
+    expect(dialog).toHaveTextContent("Open");
+    expect(dialog).toHaveTextContent("Next status");
+    expect(dialog).toHaveTextContent("Closed");
+    expect(screen.getByRole("button", { name: "Close ticket" })).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
+      target: { value: "work completed" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Close ticket" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith("/api/maintenance/tickets/t1", {
+      body: JSON.stringify({ op: "status", status: "Closed", reason: "work completed" }),
+      headers: { "content-type": "application/json" },
+      method: "PATCH",
+    });
+    expect(await screen.findByText("Ticket updated to Closed.")).toBeVisible();
+  });
+
+  it("keeps a reopen inert until its exact confirmation", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ ticket: ticket({ status: "Open" }) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <MaintenanceQueue
+        initialTickets={[ticket({ status: "Closed", closed_reason: "resolved" })]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reopen ticket" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Reopen maintenance ticket" });
+    expect(dialog).toHaveTextContent("Closed");
+    expect(dialog).toHaveTextContent("Open");
+    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
+      target: { value: "issue returned" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

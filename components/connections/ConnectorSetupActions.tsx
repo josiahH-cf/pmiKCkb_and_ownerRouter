@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui";
+import { Button, ConfirmationDialog } from "@/components/ui";
 import type { ConnectMethod } from "@/lib/connections/connector-catalog";
 import type {
   ConnectorConnectionView,
@@ -125,8 +125,14 @@ function ConnectorOAuthSetup({
   return (
     <div className="ui-stack-tight">
       {mayConnect ? (
-        <Button disabled={busy} onClick={connect} type="button" variant="secondary">
-          {busy ? "Connecting…" : `Connect with ${connectorName}`}
+        <Button
+          busy={busy}
+          busyLabel={`Connecting with ${connectorName}`}
+          onClick={connect}
+          type="button"
+          variant="secondary"
+        >
+          Connect with {connectorName}
         </Button>
       ) : null}
       <ConnectorDisconnectControl
@@ -135,7 +141,9 @@ function ConnectorOAuthSetup({
         connectorName={connectorName}
         method={method}
       />
-      {message ? <p className="muted">{message}</p> : null}
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {message ?? ""}
+      </p>
     </div>
   );
 }
@@ -201,21 +209,13 @@ function ConnectorDisconnectButton({
 }>) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [operationId, setOperationId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const requiredPhrase = `Disconnect ${connectorName}`;
-  const titleId = `connector-disconnect-title-${connectorId}`;
-  const descriptionId = `connector-disconnect-description-${connectorId}`;
   const phraseId = `connector-disconnect-phrase-${connectorId}`;
-
-  useEffect(() => {
-    if (open) cancelRef.current?.focus();
-  }, [open]);
 
   function showDialog() {
     setPhrase("");
@@ -228,7 +228,6 @@ function ConnectorDisconnectButton({
     if (busy) return;
     setOpen(false);
     setPhrase("");
-    queueMicrotask(() => triggerRef.current?.focus());
   }
 
   async function submit() {
@@ -273,30 +272,6 @@ function ConnectorDisconnectButton({
     }
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape" && !busy) {
-      event.preventDefault();
-      closeDialog();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) ?? [],
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
   const pending = disconnect.state !== "connected";
   return (
     <div className="ui-stack-tight">
@@ -305,63 +280,46 @@ function ConnectorDisconnectButton({
           Disconnecting: needs recovery.
         </p>
       ) : null}
-      <button
-        className="secondary-button"
-        disabled={busy}
-        onClick={showDialog}
-        ref={triggerRef}
-        type="button"
-      >
+      <Button disabled={busy} onClick={showDialog} ref={triggerRef} variant="secondary">
         {pending ? "Retry disconnect" : "Disconnect"}
-      </button>
-      {message ? <p className="muted">{message}</p> : null}
-      {open ? (
-        <div className="ui-dialog-backdrop">
-          <div
-            aria-describedby={descriptionId}
-            aria-labelledby={titleId}
-            aria-modal="true"
-            className="panel ui-confirmation-dialog"
-            onKeyDown={handleKeyDown}
-            ref={dialogRef}
-            role="dialog"
-          >
-            <h2 id={titleId}>Disconnect {connectorName}</h2>
-            <p id={descriptionId}>
-              This removes the stored {method === "oauth" ? "OAuth" : "API key"}
-              connection credentials. Work that depends on {connectorName} may stop.
-            </p>
-            <p>
-              <a href={`/connections#connector-${connectorId}`}>
-                Review connection setup
-              </a>
-            </p>
-            <label htmlFor={phraseId}>
-              Type <strong>{requiredPhrase}</strong> exactly
-            </label>
-            <input
-              autoComplete="off"
-              id={phraseId}
-              onChange={(event) => setPhrase(event.target.value)}
-              spellCheck={false}
-              value={phrase}
-            />
-            {message ? <p role="alert">{message}</p> : null}
-            <div className="field-row">
-              <button disabled={busy} onClick={closeDialog} ref={cancelRef} type="button">
-                Cancel
-              </button>
-              <Button
-                disabled={busy || phrase !== requiredPhrase}
-                onClick={submit}
-                type="button"
-              >
-                {busy ? "Disconnecting…" : "Confirm disconnect"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </Button>
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {open ? "" : (message ?? "")}
+      </p>
+      <ConfirmationDialog
+        busy={busy}
+        busyLabel={`Disconnecting ${connectorName}`}
+        confirmDisabled={phrase !== requiredPhrase}
+        confirmLabel="Confirm disconnect"
+        confirmVariant="destructive"
+        description={
+          <p>
+            This removes the stored {method === "oauth" ? "OAuth" : "API key"}
+            connection credentials. Work that depends on {connectorName} may stop.
+          </p>
+        }
+        error={open ? message : null}
+        onCancel={closeDialog}
+        onConfirm={() => void submit()}
+        open={open}
+        title={`Disconnect ${connectorName}`}
+        triggerRef={triggerRef}
+      >
+        <p>
+          <a href={`/connections#connector-${connectorId}`}>Review connection setup</a>
+        </p>
+        <label htmlFor={phraseId}>
+          Type <strong>{requiredPhrase}</strong> exactly
+        </label>
+        <input
+          autoComplete="off"
+          disabled={busy}
+          id={phraseId}
+          onChange={(event) => setPhrase(event.target.value)}
+          spellCheck={false}
+          value={phrase}
+        />
+      </ConfirmationDialog>
     </div>
   );
 }

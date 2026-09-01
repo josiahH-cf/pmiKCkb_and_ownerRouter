@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button, ConfirmationDialog } from "@/components/ui";
 import { resolveStoredDataMode } from "@/lib/data-mode";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
 
@@ -18,6 +19,11 @@ export function PublicationPolicyAdminPanel({
     unavailableNote ?? "Publication trust policies loaded.",
   );
   const [busy, setBusy] = useState(false);
+  const [pendingDisable, setPendingDisable] = useState<PublicationPolicyRecord | null>(
+    null,
+  );
+  const [disableReason, setDisableReason] = useState("");
+  const [disableError, setDisableError] = useState("");
   const [form, setForm] = useState({
     connectorId: "",
     reason: "",
@@ -62,10 +68,18 @@ export function PublicationPolicyAdminPanel({
     }
   }
 
-  async function disablePolicy(policy: PublicationPolicyRecord) {
-    const reason = window.prompt("Reason for disabling this publication policy?");
-    if (!reason) return;
+  function requestDisable(policy: PublicationPolicyRecord) {
+    setPendingDisable(policy);
+    setDisableReason("");
+    setDisableError("");
+  }
+
+  async function disablePolicy() {
+    const policy = pendingDisable;
+    const reason = disableReason.trim();
+    if (!policy || busy || !reason) return;
     setBusy(true);
+    setDisableError("");
     try {
       const response = await fetch(`/api/admin/publication-policies/${policy.id}`, {
         body: JSON.stringify({ enabled: false, reason }),
@@ -77,8 +91,10 @@ export function PublicationPolicyAdminPanel({
         current.map((item) => (item.id === policy.id ? payload.policy : item)),
       );
       setMessage("Publication policy disabled and audited.");
+      setPendingDisable(null);
+      setDisableReason("");
     } catch (error) {
-      setMessage(readError(error));
+      setDisableError(`${readError(error)} Try again or cancel without changing it.`);
     } finally {
       setBusy(false);
     }
@@ -96,7 +112,9 @@ export function PublicationPolicyAdminPanel({
   return (
     <article className="panel">
       <h2>Trusted Publication Policies</h2>
-      <p className="muted">{message}</p>
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {message}
+      </p>
       <p className="muted">
         The connector and root define this space&rsquo;s authority boundary. Existing
         policies may only be tightened; widening requires a new audited policy.
@@ -114,14 +132,13 @@ export function PublicationPolicyAdminPanel({
               {policy.sensitivityCeiling} · scanner {policy.scannerKey}
             </p>
             {policy.enabled ? (
-              <button
-                className="secondary-button"
+              <Button
                 disabled={busy}
-                onClick={() => void disablePolicy(policy)}
-                type="button"
+                onClick={() => requestDisable(policy)}
+                variant="secondary"
               >
                 Disable
-              </button>
+              </Button>
             ) : null}
           </div>
         ))}
@@ -190,14 +207,53 @@ export function PublicationPolicyAdminPanel({
           value={form.reason}
         />
       </label>
-      <button
-        className="primary-button"
+      <Button
+        busy={busy && pendingDisable === null}
+        busyLabel="Creating policy"
         disabled={busy || form.spaces.length === 0}
         onClick={() => void createPolicy()}
-        type="button"
       >
         Create policy
-      </button>
+      </Button>
+      <ConfirmationDialog
+        busy={busy}
+        busyLabel="Disabling policy"
+        confirmDisabled={disableReason.trim().length === 0}
+        confirmLabel="Disable policy"
+        confirmVariant="destructive"
+        description="Disabling this policy stops new publication through this exact connector and root."
+        error={disableError}
+        onCancel={() => {
+          setPendingDisable(null);
+          setDisableReason("");
+          setDisableError("");
+        }}
+        onConfirm={() => void disablePolicy()}
+        open={pendingDisable !== null}
+        title="Disable publication policy"
+      >
+        {pendingDisable ? (
+          <>
+            <dl className="ui-confirmation-summary">
+              <dt>Policy</dt>
+              <dd>
+                {pendingDisable.connectorId} / {pendingDisable.rootId}
+              </dd>
+            </dl>
+            <label htmlFor="publication-policy-disable-reason">
+              Reason
+              <textarea
+                disabled={busy}
+                id="publication-policy-disable-reason"
+                onChange={(event) => setDisableReason(event.target.value)}
+                required
+                rows={3}
+                value={disableReason}
+              />
+            </label>
+          </>
+        ) : null}
+      </ConfirmationDialog>
     </article>
   );
 }

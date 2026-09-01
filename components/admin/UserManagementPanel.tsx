@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button, ConfirmationDialog } from "@/components/ui";
 import type { AppUser } from "@/lib/admin/users";
 import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 
@@ -20,6 +21,20 @@ interface ScopeDraft {
   reason: string;
 }
 
+type PendingUserChange =
+  | {
+      kind: "role";
+      user: AppUser;
+      proposedRole: string;
+      reason: string;
+    }
+  | {
+      kind: "scopes";
+      user: AppUser;
+      proposedScopes: readonly SpaceScope[] | undefined;
+      reason: string;
+    };
+
 // Roster + per-user role and orthogonal space-scope changes. Missing scopes means All spaces; an
 // explicit non-empty set only narrows surfaces and never changes the user's role capability tier.
 export function UserManagementPanel({
@@ -30,6 +45,8 @@ export function UserManagementPanel({
   const [roleDrafts, setRoleDrafts] = useState<Record<string, RoleDraft>>({});
   const [scopeDrafts, setScopeDrafts] = useState<Record<string, ScopeDraft>>({});
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [pendingChange, setPendingChange] = useState<PendingUserChange | null>(null);
+  const [confirmationError, setConfirmationError] = useState("");
   const [status, setStatus] = useState("");
 
   if (unavailableNote) {
@@ -81,7 +98,7 @@ export function UserManagementPanel({
     }));
   }
 
-  async function saveRole(user: AppUser) {
+  function saveRole(user: AppUser) {
     const current = roleDraftFor(user);
     if (current.role === user.role) {
       setStatus("Pick a different role before saving.");
@@ -91,23 +108,25 @@ export function UserManagementPanel({
       setStatus("Add a short reason for the change.");
       return;
     }
-    const grantsOrRemovesAdmin = current.role === "Admin" || user.role === "Admin";
-    if (
-      grantsOrRemovesAdmin &&
-      !window.confirm(
-        `Change ${user.email} from ${user.role} to ${current.role}? Admin can approve work and manage users.`,
-      )
-    ) {
-      return;
-    }
+    setConfirmationError("");
+    setPendingChange({
+      kind: "role",
+      user,
+      proposedRole: current.role,
+      reason: current.reason.trim(),
+    });
+  }
 
+  async function commitRoleChange(change: Extract<PendingUserChange, { kind: "role" }>) {
+    const { user, proposedRole, reason } = change;
     setPendingKey(`${user.uid}:role`);
     setStatus("");
+    setConfirmationError("");
     try {
       const response = await fetch(`/api/admin/users/${encodeURIComponent(user.uid)}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ role: current.role, reason: current.reason.trim() }),
+        body: JSON.stringify({ role: proposedRole, reason }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         user?: AppUser;
@@ -121,15 +140,18 @@ export function UserManagementPanel({
           [user.uid]: { role: updated.role, reason: "" },
         }));
         setStatus(`${updated.email} is now ${updated.role}. They re-sign-in to refresh.`);
+        setPendingChange(null);
       } else {
-        setStatus(payload.error ?? "Could not change the role.");
+        setConfirmationError(payload.error ?? "Could not change the role. Try again.");
       }
+    } catch {
+      setConfirmationError("Could not reach the user service. Try again.");
     } finally {
       setPendingKey(null);
     }
   }
 
-  async function saveScopes(user: AppUser) {
+  function saveScopes(user: AppUser) {
     const current = scopeDraftFor(user);
     if (!user.scopeClaimInvalid && sameScopes(current.scopes, user.scopes)) {
       setStatus("Pick different space access before saving.");
@@ -144,8 +166,22 @@ export function UserManagementPanel({
       return;
     }
 
+    setConfirmationError("");
+    setPendingChange({
+      kind: "scopes",
+      user,
+      proposedScopes: current.scopes ? [...current.scopes] : undefined,
+      reason: current.reason.trim(),
+    });
+  }
+
+  async function commitScopeChange(
+    change: Extract<PendingUserChange, { kind: "scopes" }>,
+  ) {
+    const { user, proposedScopes, reason } = change;
     setPendingKey(`${user.uid}:scopes`);
     setStatus("");
+    setConfirmationError("");
     try {
       const response = await fetch(
         `/api/admin/users/${encodeURIComponent(user.uid)}/scopes`,
@@ -154,8 +190,8 @@ export function UserManagementPanel({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             // null deliberately means clear the custom claim (the All spaces wildcard).
-            scopes: current.scopes ?? null,
-            reason: current.reason.trim(),
+            scopes: proposedScopes ?? null,
+            reason,
           }),
         },
       );
@@ -179,11 +215,25 @@ export function UserManagementPanel({
         setStatus(
           `${updated.email} now has access to ${access}. They re-sign-in to refresh.`,
         );
+        setPendingChange(null);
       } else {
-        setStatus(payload.error ?? "Could not change space access.");
+        setConfirmationError(
+          payload.error ?? "Could not change space access. Try again.",
+        );
       }
+    } catch {
+      setConfirmationError("Could not reach the user service. Try again.");
     } finally {
       setPendingKey(null);
+    }
+  }
+
+  function confirmPendingChange() {
+    if (!pendingChange || pendingKey) return;
+    if (pendingChange.kind === "role") {
+      void commitRoleChange(pendingChange);
+    } else {
+      void commitScopeChange(pendingChange);
     }
   }
 
@@ -236,14 +286,15 @@ export function UserManagementPanel({
                   type="text"
                   value={roleDraft.reason}
                 />
-                <button
-                  className="secondary-button"
+                <Button
+                  busy={pendingKey === `${user.uid}:role`}
+                  busyLabel="Saving role"
                   disabled={userPending || roleDraft.role === user.role}
                   onClick={() => saveRole(user)}
-                  type="button"
+                  variant="secondary"
                 >
-                  {pendingKey === `${user.uid}:role` ? "Saving" : "Save role"}
-                </button>
+                  Save role
+                </Button>
               </div>
               <div className="admin-user-row">
                 <div className="admin-user-id">
@@ -301,26 +352,91 @@ export function UserManagementPanel({
                   type="text"
                   value={scopeDraft.reason}
                 />
-                <button
-                  className="secondary-button"
+                <Button
+                  busy={pendingKey === `${user.uid}:scopes`}
+                  busyLabel="Saving space access"
                   disabled={
                     userPending ||
                     (!user.scopeClaimInvalid &&
                       sameScopes(scopeDraft.scopes, user.scopes))
                   }
                   onClick={() => saveScopes(user)}
-                  type="button"
+                  variant="secondary"
                 >
-                  {pendingKey === `${user.uid}:scopes` ? "Saving" : "Save space access"}
-                </button>
+                  Save space access
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
-      {status ? <p className="muted">{status}</p> : null}
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {status}
+      </p>
+      <ConfirmationDialog
+        busy={pendingKey !== null}
+        busyLabel={
+          pendingChange?.kind === "role" ? "Changing role" : "Changing Space access"
+        }
+        confirmLabel={
+          pendingChange?.kind === "role"
+            ? "Confirm role change"
+            : "Confirm Space access change"
+        }
+        error={confirmationError}
+        onCancel={() => {
+          setPendingChange(null);
+          setConfirmationError("");
+        }}
+        onConfirm={confirmPendingChange}
+        open={pendingChange !== null}
+        title={
+          pendingChange?.kind === "role"
+            ? "Confirm role change"
+            : "Confirm Space access change"
+        }
+      >
+        {pendingChange ? (
+          <dl className="ui-confirmation-summary">
+            <dt>User</dt>
+            <dd>{pendingChange.user.email}</dd>
+            {pendingChange.kind === "role" ? (
+              <>
+                <dt>Current role</dt>
+                <dd>{pendingChange.user.role}</dd>
+                <dt>Proposed role</dt>
+                <dd>{pendingChange.proposedRole}</dd>
+                {pendingChange.user.role === "Admin" ||
+                pendingChange.proposedRole === "Admin" ? (
+                  <>
+                    <dt>Admin access</dt>
+                    <dd>Admins can approve work and manage users.</dd>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <dt>Current Spaces</dt>
+                <dd>
+                  {pendingChange.user.scopeClaimInvalid
+                    ? "Invalid configured access"
+                    : formatScopes(pendingChange.user.scopes)}
+                </dd>
+                <dt>Proposed Spaces</dt>
+                <dd>{formatScopes(pendingChange.proposedScopes)}</dd>
+              </>
+            )}
+            <dt>Reason</dt>
+            <dd>{pendingChange.reason}</dd>
+          </dl>
+        ) : null}
+      </ConfirmationDialog>
     </article>
   );
+}
+
+function formatScopes(scopes: readonly SpaceScope[] | undefined) {
+  return scopes ? scopes.map((scope) => SCOPE_LABELS[scope]).join(" and ") : "All spaces";
 }
 
 function sameScopes(

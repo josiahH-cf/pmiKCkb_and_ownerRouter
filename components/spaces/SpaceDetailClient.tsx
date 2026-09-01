@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Button, ConfirmationDialog } from "@/components/ui";
 import type {
   ChangeLogRecord,
   PlaceholderRecord,
@@ -98,6 +99,9 @@ export function SpaceDetailClient({
   const [templateDraftBody, setTemplateDraftBody] = useState("");
   const [message, setMessage] = useState("Loading editable records.");
   const [isBusy, setIsBusy] = useState(false);
+  const [pendingTemplateRetirement, setPendingTemplateRetirement] =
+    useState<EditableTemplate | null>(null);
+  const [templateRetirementError, setTemplateRetirementError] = useState("");
   const currentSop = sops[0] ?? null;
   const canMutate = canEdit && !readOnly && !isBusy;
   const canDelete = canSoftDelete && !readOnly && !isBusy;
@@ -434,20 +438,28 @@ export function SpaceDetailClient({
     });
   }
 
+  function requestTemplateRetirement() {
+    if (!selectedTemplate || !canDelete) return;
+    setPendingTemplateRetirement({ ...selectedTemplate });
+    setTemplateRetirementError("");
+  }
+
   async function softDeleteTemplateRecord() {
-    if (!selectedTemplate || !canDelete) {
-      return;
-    }
-    const removedId = selectedTemplate.id;
+    if (!pendingTemplateRetirement || isBusy) return;
+    const removedId = pendingTemplateRetirement.id;
 
     if (mode !== "api") {
       setTemplates((records) => records.filter((record) => record.id !== removedId));
       setSelectedTemplateId(null);
+      setPendingTemplateRetirement(null);
       setMessage("Removed template from local demo records.");
       return;
     }
 
-    await runMutation(async () => {
+    setIsBusy(true);
+    setMessage("Retiring template.");
+    setTemplateRetirementError("");
+    try {
       await fetchEditable<{ ok?: boolean }>(`/api/templates/${removedId}`, {
         body: JSON.stringify({ note: `Retired from ${spaceName} Space.` }),
         method: "DELETE",
@@ -455,8 +467,15 @@ export function SpaceDetailClient({
 
       setTemplates((records) => records.filter((record) => record.id !== removedId));
       setSelectedTemplateId(null);
+      setPendingTemplateRetirement(null);
       setMessage("Retired template through editable API.");
-    });
+    } catch (error) {
+      const errorMessage = readErrorMessage(error);
+      setMessage(errorMessage);
+      setTemplateRetirementError(`${errorMessage} Try again or cancel.`);
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   async function createDemoPlaceholder() {
@@ -541,7 +560,9 @@ export function SpaceDetailClient({
             <span className="review-pill">{reviewCount} in review</span>
           ) : null}
         </div>
-        <p className="muted">{message}</p>
+        <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+          {message}
+        </p>
 
         {currentSop ? (
           <>
@@ -685,14 +706,13 @@ export function SpaceDetailClient({
                 >
                   Mark Approved
                 </button>
-                <button
-                  className="secondary-button"
+                <Button
                   disabled={!canDelete}
-                  onClick={softDeleteTemplateRecord}
-                  type="button"
+                  onClick={requestTemplateRetirement}
+                  variant="destructive"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -785,6 +805,30 @@ export function SpaceDetailClient({
           )}
         </section>
       </aside>
+      <ConfirmationDialog
+        busy={isBusy}
+        busyLabel="Retiring template"
+        confirmLabel="Retire template"
+        confirmVariant="destructive"
+        description="This retires the template from the Space. No restore control is available here."
+        error={templateRetirementError}
+        onCancel={() => {
+          setPendingTemplateRetirement(null);
+          setTemplateRetirementError("");
+        }}
+        onConfirm={() => void softDeleteTemplateRecord()}
+        open={pendingTemplateRetirement !== null}
+        title="Retire template"
+      >
+        {pendingTemplateRetirement ? (
+          <dl className="ui-confirmation-summary">
+            <dt>Template</dt>
+            <dd>{pendingTemplateRetirement.name}</dd>
+            <dt>Space</dt>
+            <dd>{spaceName}</dd>
+          </dl>
+        ) : null}
+      </ConfirmationDialog>
     </div>
   );
 }

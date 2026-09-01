@@ -56,6 +56,19 @@ describe("UserManagementPanel space-scope editor", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save space access" }));
 
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", {
+      name: "Confirm Space access change",
+    });
+    expect(dialog).toHaveTextContent("worker@pmikcmetro.com");
+    expect(dialog).toHaveTextContent("Current Spaces");
+    expect(dialog).toHaveTextContent("All spaces");
+    expect(dialog).toHaveTextContent("Proposed Spaces");
+    expect(dialog).toHaveTextContent("Maintenance");
+    expect(dialog).toHaveTextContent("maintenance sub-user");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Confirm Space access change" }));
+
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u1/scopes", {
       method: "PATCH",
@@ -93,6 +106,8 @@ describe("UserManagementPanel space-scope editor", () => {
       "restore all spaces",
     );
     await user.click(screen.getByRole("button", { name: "Save space access" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm Space access change" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, requestInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -116,6 +131,16 @@ describe("UserManagementPanel space-scope editor", () => {
       "approve renewals",
     );
     await user.click(screen.getByRole("button", { name: "Save role" }));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Confirm role change" });
+    expect(dialog).toHaveTextContent("worker@pmikcmetro.com");
+    expect(dialog).toHaveTextContent("Current role");
+    expect(dialog).toHaveTextContent("Editor");
+    expect(dialog).toHaveTextContent("Proposed role");
+    expect(dialog).toHaveTextContent("Approver");
+    expect(dialog).toHaveTextContent("approve renewals");
+    await user.click(screen.getByRole("button", { name: "Confirm role change" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u1", {
@@ -169,6 +194,27 @@ describe("UserManagementPanel space-scope editor", () => {
       }),
     ).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Save space access" })).toBeEnabled();
+  });
+
+  it("keeps an authority change inert when the user cancels", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<UserManagementPanel initialUsers={[WILDCARD_USER]} />);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "Admin");
+    await user.type(
+      screen.getByRole("textbox", { name: "Reason for changing worker@pmikcmetro.com" }),
+      "temporary administration",
+    );
+    await user.click(screen.getByRole("button", { name: "Save role" }));
+
+    expect(screen.getByRole("dialog", { name: "Confirm role change" })).toHaveTextContent(
+      "Admins can approve work and manage users.",
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
 

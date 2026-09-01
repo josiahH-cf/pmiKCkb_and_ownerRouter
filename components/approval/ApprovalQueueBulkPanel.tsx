@@ -117,7 +117,7 @@ export function QueueBulkPanel({
           </label>
         ) : null}
         {requiresBulkReason(bulkAction) ||
-        (bulkAction === "approve" && bulkPreview.linkedHighRiskApprovals > 0) ? (
+        (bulkAction === "approve" && bulkPreview.highRiskApprovals > 0) ? (
           <label className="queue-bulk-reason">
             Reason
             <textarea

@@ -114,17 +114,43 @@ describe("UnverifiedIntakeReview", () => {
     expect(screen.getByText("No unverified intake right now.")).toBeVisible();
   });
 
-  it("requires a reason to dismiss (cancels when the prompt is empty)", async () => {
+  it("names the intake and requires a reason before dismissing", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    vi.stubGlobal("prompt", () => "");
 
     render(<UnverifiedIntakeReview initialIntake={[intake()]} />);
     fireEvent.click(screen.getByText("Dismiss"));
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("A reason is required to dismiss an intake."),
-    ).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Dismiss unverified intake" });
+    expect(dialog).toHaveTextContent("Water heater leaking");
+    expect(dialog).toHaveTextContent("prop-1");
+    expect(screen.getByRole("button", { name: "Dismiss intake" })).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
+      target: { value: "duplicate report" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss intake" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/maintenance/intake/i1/dismiss",
+        expect.objectContaining({
+          body: JSON.stringify({ reason: "duplicate report" }),
+          method: "POST",
+        }),
+      ),
+    );
+  });
+
+  it("does not dismiss when the confirmation is cancelled", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<UnverifiedIntakeReview initialIntake={[intake()]} />);
+
+    fireEvent.click(screen.getByText("Dismiss"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import { MaintenanceOwnerNoticeDraftComposer } from "@/components/maintenance/MaintenanceOwnerNoticeDraftComposer";
+import { ConfirmationDialog } from "@/components/ui";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
   MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
@@ -21,6 +22,12 @@ const STATUS_PILL: Record<MaintenanceTicketStatus, string> = {
   Scheduled: "Scheduled",
   Closed: "Completed",
 };
+
+interface PendingTicketTransition {
+  ticket: MaintenanceTicketRecord;
+  kind: "close" | "reopen";
+  nextStatus: MaintenanceTicketStatus;
+}
 
 export function MaintenanceQueue({
   initialTickets,
@@ -46,6 +53,10 @@ export function MaintenanceQueue({
   );
   const [tickets, setTickets] = useState(liveInitialTickets);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [pendingTransition, setPendingTransition] =
+    useState<PendingTicketTransition | null>(null);
+  const [transitionReason, setTransitionReason] = useState("");
+  const [transitionError, setTransitionError] = useState("");
   const [status, setStatus] = useState("");
   const [assignedToMe, setAssignedToMe] = useState(false);
 
@@ -66,7 +77,10 @@ export function MaintenanceQueue({
     );
   }
 
-  async function patch(ticketId: string, body: Record<string, unknown>) {
+  async function patch(
+    ticketId: string,
+    body: Record<string, unknown>,
+  ): Promise<boolean> {
     setPendingId(ticketId);
     setStatus("");
     try {
@@ -87,11 +101,19 @@ export function MaintenanceQueue({
         setTickets((previous) =>
           previous.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
         );
+        setStatus(
+          body.op === "status" || body.op === "reopen"
+            ? `Ticket updated to ${updated.status}.`
+            : "Ticket updated.",
+        );
+        return true;
       } else {
         setStatus(payload.error ?? "Could not update the ticket.");
+        return false;
       }
     } catch {
       setStatus("Could not reach the ticket service.");
+      return false;
     } finally {
       setPendingId(null);
     }
@@ -99,24 +121,38 @@ export function MaintenanceQueue({
 
   function changeStatus(ticket: MaintenanceTicketRecord, next: MaintenanceTicketStatus) {
     if (next === ticket.status) return;
-    let reason: string | undefined;
     if (next === "Closed") {
-      reason = window.prompt("Reason for closing this ticket?")?.trim() || undefined;
-      if (!reason) {
-        setStatus("A reason is required to close a ticket.");
-        return;
-      }
+      setPendingTransition({ ticket, kind: "close", nextStatus: "Closed" });
+      setTransitionReason("");
+      setTransitionError("");
+      return;
     }
-    void patch(ticket.id, { op: "status", status: next, reason });
+    void patch(ticket.id, { op: "status", status: next });
   }
 
   function reopen(ticket: MaintenanceTicketRecord) {
-    const reason = window.prompt("Reason for reopening this ticket?")?.trim();
-    if (!reason) {
-      setStatus("A reason is required to reopen a ticket.");
-      return;
+    setPendingTransition({ ticket, kind: "reopen", nextStatus: "Open" });
+    setTransitionReason("");
+    setTransitionError("");
+  }
+
+  async function confirmTransition() {
+    const transition = pendingTransition;
+    const reason = transitionReason.trim();
+    if (!transition || pendingId || !reason) return;
+    setTransitionError("");
+    const saved = await patch(
+      transition.ticket.id,
+      transition.kind === "close"
+        ? { op: "status", status: transition.nextStatus, reason }
+        : { op: "reopen", reason },
+    );
+    if (saved) {
+      setPendingTransition(null);
+      setTransitionReason("");
+    } else {
+      setTransitionError("The ticket was not changed. Review the message and try again.");
     }
-    void patch(ticket.id, { op: "reopen", reason });
   }
 
   function assign(ticket: MaintenanceTicketRecord, assigneeUid: string | null) {
@@ -194,7 +230,60 @@ export function MaintenanceQueue({
           ))}
         </details>
       ) : null}
-      {status ? <p className="muted">{status}</p> : null}
+      <p aria-atomic="true" aria-live="polite" className="muted" role="status">
+        {status}
+      </p>
+      <ConfirmationDialog
+        busy={pendingId === pendingTransition?.ticket.id}
+        busyLabel={
+          pendingTransition?.kind === "reopen" ? "Reopening ticket" : "Closing ticket"
+        }
+        confirmDisabled={transitionReason.trim().length === 0}
+        confirmLabel={
+          pendingTransition?.kind === "reopen" ? "Reopen ticket" : "Close ticket"
+        }
+        confirmVariant={pendingTransition?.kind === "reopen" ? "primary" : "destructive"}
+        description="This changes the ticket's tracked lifecycle state in PMI."
+        error={transitionError}
+        onCancel={() => {
+          setPendingTransition(null);
+          setTransitionReason("");
+          setTransitionError("");
+        }}
+        onConfirm={() => void confirmTransition()}
+        open={pendingTransition !== null}
+        title={
+          pendingTransition?.kind === "reopen"
+            ? "Reopen maintenance ticket"
+            : "Close maintenance ticket"
+        }
+      >
+        {pendingTransition ? (
+          <>
+            <dl className="ui-confirmation-summary">
+              <dt>Ticket</dt>
+              <dd>{pendingTransition.ticket.summary}</dd>
+              <dt>Ticket ID</dt>
+              <dd>{pendingTransition.ticket.id}</dd>
+              <dt>Current status</dt>
+              <dd>{pendingTransition.ticket.status}</dd>
+              <dt>Next status</dt>
+              <dd>{pendingTransition.nextStatus}</dd>
+            </dl>
+            <label htmlFor="maintenance-ticket-transition-reason">
+              Reason
+              <textarea
+                disabled={pendingId === pendingTransition.ticket.id}
+                id="maintenance-ticket-transition-reason"
+                onChange={(event) => setTransitionReason(event.target.value)}
+                required
+                rows={3}
+                value={transitionReason}
+              />
+            </label>
+          </>
+        ) : null}
+      </ConfirmationDialog>
     </section>
   );
 }

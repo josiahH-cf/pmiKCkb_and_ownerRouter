@@ -234,6 +234,23 @@ describe("ApprovalQueue bulk UI", () => {
     expect(screen.queryByRole("heading", { name: "Approve first item" })).toBeNull();
   });
 
+  it("gives a keyboard-accessible reason beside an unavailable approval", async () => {
+    const user = userEvent.setup();
+    renderQueue({
+      currentUser: { role: "Editor", uid: "editor-2" },
+      initialSelectedItemId: "item-1",
+      items: [queueItem({ id: "item-1" })],
+    });
+
+    const approve = screen.getByRole("button", { name: "Approve" });
+    expect(approve).toBeDisabled();
+    expect(approve).not.toHaveAttribute("title");
+    await user.click(screen.getByRole("button", { name: "About Approve availability" }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Approver or Admin role is required.",
+    );
+  });
+
   it("caps Select visible at the 50-item bulk limit and keeps execute visibly guarded", async () => {
     const user = userEvent.setup();
     renderQueue({
@@ -304,7 +321,6 @@ describe("ApprovalQueue bulk UI", () => {
       throw new Error(`Unexpected fetch: ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     renderQueue({
       items: [
@@ -320,13 +336,23 @@ describe("ApprovalQueue bulk UI", () => {
 
     await user.click(screen.getByText("Other views"));
     await user.click(screen.getByLabelText("Select visible"));
+    await user.type(screen.getByRole("textbox", { name: "Reason" }), "reviewed batch");
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
+
+    expect(
+      fetchMock.mock.calls.find(([url]) => String(url) === "/api/approval-queue/bulk"),
+    ).toBeUndefined();
+    const dialog = screen.getByRole("dialog", { name: "Confirm High-risk approval" });
+    expect(dialog).toHaveTextContent("Selected items");
+    expect(dialog).toHaveTextContent("2");
+    expect(dialog).toHaveTextContent("High-risk items");
+    expect(dialog).toHaveTextContent("1");
+    expect(dialog).toHaveTextContent("reviewed batch");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Approve selected items" }));
 
     await waitFor(() =>
       expect(screen.getAllByText(/1 updated, 1 skipped, 0 failed/)).toHaveLength(2),
-    );
-    expect(window.confirm).toHaveBeenCalledWith(
-      "This bulk approval includes 1 High-risk item(s). Approve them?",
     );
 
     const bulkCall = fetchMock.mock.calls.find(
@@ -337,6 +363,7 @@ describe("ApprovalQueue bulk UI", () => {
       action: "approve",
       confirm_high_risk: true,
       item_ids: ["item-1", "item-2"],
+      reason: "reviewed batch",
     });
   });
 
@@ -344,18 +371,55 @@ describe("ApprovalQueue bulk UI", () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
 
     renderQueue({ items: [queueItem({ risk: "High" })] });
 
     await user.click(screen.getByText("Other views"));
     await user.click(screen.getByLabelText("Select visible"));
+    await user.type(screen.getByRole("textbox", { name: "Reason" }), "reviewed item");
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      "This bulk approval includes 1 High-risk item(s). Approve them?",
-    );
+    expect(
+      screen.getByRole("dialog", { name: "Confirm High-risk approval" }),
+    ).toHaveTextContent("reviewed item");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("freezes the exact item and reason before an individual High-risk approval", async () => {
+    const user = userEvent.setup();
+    const approved = queueItem({ id: "item-1", status: "Approved", risk: "High" });
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ item: approved, activity: [activityEntry()] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderQueue({
+      initialSelectedItemId: "item-1",
+      items: [queueItem({ id: "item-1", risk: "High" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    await user.type(screen.getByRole("textbox", { name: "Reason" }), "evidence reviewed");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Confirm High-risk approval" });
+    expect(dialog).toHaveTextContent("Approve item-1");
+    expect(dialog).toHaveTextContent("item-1");
+    expect(dialog).toHaveTextContent("High");
+    expect(dialog).toHaveTextContent("evidence reviewed");
+    await user.click(screen.getByRole("button", { name: "Approve High-risk item" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith("/api/approval-queue/item-1", {
+      body: JSON.stringify({
+        action: "approve",
+        reason: "evidence reviewed",
+        confirm_high_risk: true,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
   });
 });
 

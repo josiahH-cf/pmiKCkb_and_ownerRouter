@@ -2,6 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -99,5 +100,18 @@ describe("environment badge rendering", () => {
         .closest(".environment-badge")
         ?.getAttribute("data-context"),
     ).toBe("unconfirmed");
+  });
+
+  it("exposes the detail from a focusable help control instead of native title", async () => {
+    const user = userEvent.setup();
+    render(<EnvironmentBadge descriptor={ok("demo", "live_readonly")} />);
+
+    const badge = screen.getByText("Live data, read only").closest(".environment-badge");
+    expect(badge).not.toHaveAttribute("title");
+    const help = screen.getByRole("button", { name: "About Live data, read only" });
+    await user.click(help);
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "You are seeing real records. Nothing you do here changes them.",
+    );
   });
 });

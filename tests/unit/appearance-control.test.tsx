@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Appearance } from "@/components/layout/Appearance";
+import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { THEME_STORAGE_KEY } from "@/lib/ui/theme";
 
 type MediaListener = (event: MediaQueryListEvent) => void;
@@ -163,5 +164,34 @@ describe("S85 Appearance disclosure", () => {
     expect(screen.getByLabelText("Unsent input")).toHaveValue("Keep this");
     expect(screen.getByRole("status")).toHaveTextContent(/could not save/i);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("coordinates Appearance and Notifications as mutually exclusive root layers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ notifications: [], families: [], unreadTotal: 0 }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <>
+        <NotificationMenu navigate={() => undefined} />
+        <Appearance />
+      </>,
+    );
+
+    const appearance = screen.getByRole("button", { name: /Appearance/ });
+    const notifications = await screen.findByRole("button", { name: "Notifications" });
+    await user.click(appearance);
+    expect(appearance).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(notifications);
+    expect(appearance).toHaveAttribute("aria-expanded", "false");
+    expect(notifications).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(appearance);
+    expect(appearance).toHaveAttribute("aria-expanded", "true");
+    expect(notifications).toHaveAttribute("aria-expanded", "false");
   });
 });

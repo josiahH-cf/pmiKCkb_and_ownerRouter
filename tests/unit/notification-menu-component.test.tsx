@@ -269,6 +269,105 @@ describe("NotificationMenu", () => {
       "open",
     );
   });
+
+  it("moves focus deliberately, closes on Escape, and closes on an outside action", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({ notifications: [approvalUnified()], families: familyViews() }),
+      ),
+    );
+    render(
+      <>
+        <NotificationMenu navigate={() => undefined} />
+        <button type="button">Outside action</button>
+      </>,
+    );
+
+    const trigger = await screen.findByRole("button", {
+      name: /Notifications, 1 unread/,
+    });
+    await user.click(trigger);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toHaveFocus(),
+    );
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Outside action" }));
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "Outside action" })).toHaveFocus();
+  });
+
+  it("surfaces a failed mark-all response and retries only when asked", async () => {
+    const user = userEvent.setup();
+    let markAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/notifications/mark-all-read") && init?.method === "POST") {
+        markAttempts += 1;
+        return markAttempts === 1
+          ? jsonResponse({ error: "Mark all failed." }, 503)
+          : jsonResponse({ ok: true, marked: 1 });
+      }
+      if (url.includes("/api/notifications?")) {
+        return jsonResponse({
+          notifications: [approvalUnified()],
+          families: familyViews(),
+        });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<NotificationMenu navigate={() => undefined} />);
+
+    await user.click(
+      await screen.findByRole("button", { name: /Notifications, 1 unread/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Mark all read" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Mark all failed.");
+    expect(markAttempts).toBe(1);
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(markAttempts).toBe(2));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "All notifications marked read.",
+    );
+  });
+
+  it("keeps a failed mute unchanged and exposes an explicit retry", async () => {
+    const user = userEvent.setup();
+    let preferenceAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/notifications/preferences") && init?.method === "PATCH") {
+        preferenceAttempts += 1;
+        return preferenceAttempts === 1
+          ? jsonResponse({ error: "Preference update failed." }, 500)
+          : jsonResponse({ preferences: { muted_families: ["maintenance_tickets"] } });
+      }
+      if (url.includes("/api/notifications?")) {
+        return jsonResponse({ notifications: [], families: familyViews() });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<NotificationMenu navigate={() => undefined} />);
+
+    await user.click(await screen.findByRole("button", { name: "Notifications" }));
+    const checkbox = screen.getByRole("checkbox", { name: "Maintenance tickets" });
+    await user.click(checkbox);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Preference update failed.",
+    );
+    expect(checkbox).toBeChecked();
+    expect(preferenceAttempts).toBe(1);
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(preferenceAttempts).toBe(2));
+  });
 });
 
 function approvalUnified(
@@ -343,9 +442,9 @@ function familyViews(): NotificationFamilyView[] {
   ];
 }
 
-function jsonResponse(payload: unknown) {
+function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
