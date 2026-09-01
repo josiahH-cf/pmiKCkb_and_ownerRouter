@@ -7,9 +7,11 @@ import { requireCapability } from "@/lib/auth/session";
 import { verifyConnectorNow } from "@/lib/connections/verification";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
-const VerifyConnectionInputSchema = z.object({
-  connector_id: z.string().min(1),
-});
+const VerifyConnectionInputSchema = z
+  .object({
+    connector_id: z.string().min(1),
+  })
+  .strict();
 
 // Admin "Verify connection" (S13 D5): re-runs one connector's read-only live probe fresh and folds
 // the verdict into the shared 10-minute cache. Read-only — verifies, never writes; only the boolean

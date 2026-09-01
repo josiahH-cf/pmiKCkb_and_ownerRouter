@@ -16,8 +16,8 @@ import {
   Stepper,
   Tabs,
 } from "@/components/ui";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
-import { RenewalAuthorityPanel } from "@/components/lease-renewal/RenewalAuthorityPanel";
 import { RenewalProcessPanel } from "@/components/lease-renewal/RenewalProcessPanel";
 import { RenewalTenantOutcomeControl } from "@/components/lease-renewal/RenewalTenantOutcomeControl";
 import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowUpStatus";
@@ -77,8 +77,6 @@ export function RenewalWorkspace({
         title={summary.addressLabel}
       />
 
-      <RenewalAuthorityPanel role={role} />
-
       <Stepper currentIndex={workspace.currentStepIndex} steps={workspace.steps} />
 
       <RenewalProcessPanel process={workspace.process} />
@@ -118,6 +116,12 @@ export function RenewalWorkspace({
       {workspace.followUp ? (
         <Card title="Waiting and follow-up truth">
           <RenewalFollowUpStatus projection={workspace.followUp} />
+          {!can(role, "edit") ? (
+            <p className="muted">
+              Updating renewal follow-up state requires Editor access in Renewals.{" "}
+              <RequestAccessLink surface="renewal_workspace.edit" />
+            </p>
+          ) : null}
           <RenewalFollowUpAttentionControl
             canEdit={can(role, "edit")}
             projection={workspace.followUp}

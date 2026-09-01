@@ -72,7 +72,9 @@ describe("S81 task-oriented Admin and Connections navigation contract", () => {
   it("keeps the manifest's advertised capability equal to each destination guard", () => {
     for (const link of TASK_NAVIGATION_LINKS) {
       const target = new URL(link.href, "https://app.invalid");
-      const expected = target.pathname === "/connections" ? "read" : "manageAdmin";
+      const expected = ["/admin/access", "/connections"].includes(target.pathname)
+        ? "read"
+        : "manageAdmin";
       expect(link.requiredCapability, link.id).toBe(expected);
     }
     expect(ADMIN_TASK_GROUPS).toHaveLength(5);

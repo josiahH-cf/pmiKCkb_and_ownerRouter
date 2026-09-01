@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 import { Button, ConfirmationDialog } from "@/components/ui";
+import { ACCESS_CAPABILITIES, capabilityCatalogEntry } from "@/lib/access/catalog";
 import type { AppUser } from "@/lib/admin/users";
+import { can } from "@/lib/auth/roles";
 import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
+import {
+  RENEWAL_GOVERNANCE_MATRIX,
+  renewalRoleCapability,
+  type RenewalCapabilityKey,
+} from "@/lib/lease-renewal/role-action-governance";
 
 const ROLE_OPTIONS = ["Editor", "Approver", "Admin"] as const;
 const SCOPE_LABELS = {
   renewals: "Renewals",
   maintenance: "Maintenance",
 } as const satisfies Readonly<Record<SpaceScope, string>>;
+
+const RENEWAL_AUTHORITY_SUMMARY = [
+  "save_renewal_progress",
+  "resolve_reconciliation",
+  "approve_pricing_suggestion",
+  "manage_renewal_configuration",
+] as const satisfies readonly RenewalCapabilityKey[];
 
 interface RoleDraft {
   role: string;
@@ -250,8 +264,55 @@ export function UserManagementPanel({
           const scopeDraft = scopeDraftFor(user);
           const allSpaces = scopeDraft.scopes === undefined;
           const userPending = pendingKey?.startsWith(`${user.uid}:`) ?? false;
+          const capabilities = ACCESS_CAPABILITIES.filter((capability) =>
+            can(user.role, capability),
+          ).map((capability) => capabilityCatalogEntry(capability).label);
+          const hasRenewalsSpace =
+            !user.scopeClaimInvalid &&
+            (user.scopes === undefined || user.scopes.includes("renewals"));
+          const renewalAuthority = hasRenewalsSpace
+            ? RENEWAL_AUTHORITY_SUMMARY.filter((key) =>
+                can(user.role, renewalRoleCapability(key)),
+              ).map((key) => RENEWAL_GOVERNANCE_MATRIX[key].label)
+            : [];
           return (
-            <div key={user.uid}>
+            <section
+              aria-label={`Effective access for ${user.email}`}
+              className="admin-user-record"
+              key={user.uid}
+            >
+              <dl className="admin-user-access-summary">
+                <div>
+                  <dt>Individual role</dt>
+                  <dd>{user.role}</dd>
+                </div>
+                <div>
+                  <dt>Inherited capabilities</dt>
+                  <dd>{capabilities.join(", ")}</dd>
+                </div>
+                <div>
+                  <dt>Spaces</dt>
+                  <dd>
+                    {user.scopeClaimInvalid
+                      ? "Unavailable: invalid Space claim"
+                      : formatScopes(user.scopes)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Derived renewal authority</dt>
+                  <dd>
+                    {user.scopeClaimInvalid
+                      ? "Unavailable: invalid Space claim"
+                      : hasRenewalsSpace
+                        ? renewalAuthority.join(", ")
+                        : "None: no Renewals Space access"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="muted admin-user-authority-note">
+                Renewal authority reflects this role and Space only. Exact action keys,
+                provider readiness, quotas, and confirmation remain separate checks.
+              </p>
               <div className="admin-user-row">
                 <div className="admin-user-id">
                   <strong>{user.email}</strong>
@@ -366,7 +427,7 @@ export function UserManagementPanel({
                   Save space access
                 </Button>
               </div>
-            </div>
+            </section>
           );
         })}
       </div>

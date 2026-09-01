@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { ProcessDefinitionListClient } from "@/components/workflows/ProcessDefinitionListClient";
 import { can } from "@/lib/auth/roles";
 import { requirePageCapability } from "@/lib/auth/page-guards";
@@ -42,6 +43,12 @@ export default async function ProcessesPage() {
     <AppShell user={user}>
       <section className="content">
         <h1 className="section-title">Processes</h1>
+        {!can(user.role, "edit") ? (
+          <p className="muted">
+            Creating or updating an internal process requires Editor access.{" "}
+            <RequestAccessLink surface="processes.edit" />
+          </p>
+        ) : null}
         <ProcessDefinitionListClient
           availableSpaces={launchSpaces.filter(
             (space) =>

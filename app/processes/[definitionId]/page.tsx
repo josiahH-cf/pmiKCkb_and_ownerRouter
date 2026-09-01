@@ -49,7 +49,6 @@ export default async function ProcessDefinitionPage({
         ) : (
           <ProcessDefinitionDetailClient
             canEdit={can(user.role, "edit")}
-            canManageAdmin={can(user.role, "manageAdmin")}
             initialDefinition={definition}
             initialRuns={runs}
           />

@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture";
 import { MaintenanceExecutionReadiness } from "@/components/maintenance/MaintenanceExecutionReadiness";
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
@@ -69,7 +70,12 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
         </p>
         {can(user.role, "edit") ? (
           <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
-        ) : null}
+        ) : (
+          <p className="muted">
+            Creating and updating maintenance work requires Editor access in Maintenance.{" "}
+            <RequestAccessLink surface="maintenance.edit" />
+          </p>
+        )}
         <UnverifiedIntakeReview
           initialIntake={intake}
           unavailableNote={intakeUnavailableNote}

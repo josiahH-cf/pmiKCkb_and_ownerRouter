@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Button, ConfirmationDialog } from "@/components/ui";
 import type {
   ChangeLogRecord,
@@ -563,6 +564,12 @@ export function SpaceDetailClient({
         <p aria-atomic="true" aria-live="polite" className="muted" role="status">
           {message}
         </p>
+        {!canEdit && !readOnly ? (
+          <p className="muted">
+            Creating or updating this Space requires Editor access.{" "}
+            <RequestAccessLink surface="spaces.edit" />
+          </p>
+        ) : null}
 
         {currentSop ? (
           <>
@@ -595,6 +602,12 @@ export function SpaceDetailClient({
                 Mark Approved
               </button>
             </div>
+            {!canApprove && canEdit ? (
+              <p className="muted">
+                Marking app work approved requires Approver access.{" "}
+                <RequestAccessLink surface="spaces.approve" />
+              </p>
+            ) : null}
           </>
         ) : (
           <button
@@ -714,6 +727,12 @@ export function SpaceDetailClient({
                   Delete
                 </Button>
               </div>
+              {!canSoftDelete && canEdit ? (
+                <p className="muted">
+                  Removing eligible app records requires Admin access.{" "}
+                  <RequestAccessLink surface="spaces.soft_delete" />
+                </p>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -784,6 +803,14 @@ export function SpaceDetailClient({
               )}
             </article>
           ))}
+          {!canApprove &&
+          canEdit &&
+          placeholders.some((item) => item.status !== "Resolved") ? (
+            <p className="muted">
+              Resolving verified placeholders requires Approver access.{" "}
+              <RequestAccessLink surface="verified_placeholders.resolve" />
+            </p>
+          ) : null}
         </section>
 
         <section className="panel">

@@ -44,7 +44,6 @@ describe("workflow components", () => {
     render(
       <ProcessDefinitionDetailClient
         canEdit
-        canManageAdmin
         initialDefinition={definition()}
         initialRuns={[]}
       />,

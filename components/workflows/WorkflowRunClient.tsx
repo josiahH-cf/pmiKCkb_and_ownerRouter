@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import type {
   ProcessDefinitionStep,
   WorkflowRunRecord,
@@ -126,6 +127,12 @@ export function WorkflowRunClient({
 
       <aside className="panel">
         <h2>Outcome</h2>
+        {!canEdit && !isClosed ? (
+          <p className="muted">
+            Updating this workflow run requires Editor access.{" "}
+            <RequestAccessLink surface="workflow_run.edit" />
+          </p>
+        ) : null}
         <p className="muted">
           Checklist: {initialSteps.length - incompleteSteps.length} of{" "}
           {initialSteps.length} complete. Every step must be Checked or Skipped with a

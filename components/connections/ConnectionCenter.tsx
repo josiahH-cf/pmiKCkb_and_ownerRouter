@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Metric, ModeChip, PageHeader } from "@/components/ui";
 import { ConnectorCard } from "@/components/connections/ConnectorCard";
 import type { ConnectionCenterView } from "@/lib/connections/connection-status";
@@ -29,7 +30,11 @@ export function ConnectionCenter({
             <ModeChip>Read-only checks</ModeChip>
             {canManage ? (
               <Link href="/admin#admin-task-index">Open Admin task index</Link>
-            ) : null}
+            ) : (
+              <RequestAccessLink surface="connections.manage">
+                Request connection-management access
+              </RequestAccessLink>
+            )}
           </>
         }
         subtitle="Review source-backed setup and read-only verification by task. Connection status does not grant action authority."

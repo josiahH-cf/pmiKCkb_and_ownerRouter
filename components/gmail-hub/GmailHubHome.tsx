@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { AnticipatoryDraftComposer } from "@/components/gmail-hub/AnticipatoryDraftComposer";
 import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
@@ -58,6 +59,13 @@ export function GmailHubHome({
       </div>
 
       <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
+
+      {!canManageAdmin ? (
+        <p className="muted">
+          Admin recovery tools require application administration access.{" "}
+          <RequestAccessLink surface="communications.admin_tools" />
+        </p>
+      ) : null}
 
       {canManageAdmin ? (
         <section className="ui-stack" aria-label="Admin fallback tools">

@@ -67,6 +67,7 @@ import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
 import { resolveRenewalSheetBindings } from "@/lib/lease-renewal/rehearsal-sheet";
 import { launchSpaces } from "@/lib/spaces";
+import { listAdminAccessRequests } from "@/lib/access/request-service";
 
 // Admin is re-sectioned (console overhaul Slice D) into three clearly-labeled areas so the operator
 // knows what the tab is for: People & Access (who can use the app), Activity & Logs (usage +
@@ -116,6 +117,7 @@ export default async function AdminPage() {
   };
   let runtimeSuspensionNote: string | undefined;
   let reindexRequests: ReindexRequest[] = [];
+  let accessRequestPendingCount: number | null = null;
 
   // These panels are independent. Resolve them concurrently so an unavailable Firestore session
   // costs one bounded dependency wait instead of serially multiplying that wait across Admin.
@@ -239,6 +241,13 @@ export default async function AdminPage() {
       .catch(() => {
         // The re-index control still stages new requests; the recent list is just empty this session.
       }),
+    listAdminAccessRequests(user, { state: "pending", limit: 1 })
+      .then((result) => {
+        accessRequestPendingCount = result.pending_count;
+      })
+      .catch(() => {
+        accessRequestPendingCount = null;
+      }),
   ]);
   const hasMetrics = Boolean(observability);
 
@@ -263,6 +272,16 @@ export default async function AdminPage() {
                 Anyone who signs in with a {config.allowedHostedDomain} Google account
                 starts as an Editor. Promote a teammate to Approver or Admin to let them
                 approve work.
+              </p>
+              <p>
+                <Link href="/admin/access">Open My access and request access</Link>
+              </p>
+              <p>
+                <Link href="/approval-queue?view=access">
+                  {accessRequestPendingCount === null
+                    ? "Review access requests (count unavailable)"
+                    : `Review access requests (${accessRequestPendingCount} pending)`}
+                </Link>
               </p>
               <p>
                 <Link href="/admin/users">Manage users and roles</Link>

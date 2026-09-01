@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Button, Field, StatusPill } from "@/components/ui";
 import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 
@@ -215,7 +216,10 @@ export function RentSuggestionApproval({
           {error ? <p className="muted">{error}</p> : null}
         </div>
       ) : (
-        <p className="muted">Only an Admin can approve this number.</p>
+        <p className="muted">
+          Only an Admin can approve this number.{" "}
+          <RequestAccessLink surface="renewals.manage" />
+        </p>
       )}
     </div>
   );

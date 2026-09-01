@@ -13,6 +13,7 @@
 // send, no system-of-record write), and every other row stays a deep link.
 
 import Link from "next/link";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { ConsoleApproveButton } from "@/components/console/ConsoleApproveButton";
 import type { AttentionLane } from "@/lib/attention/lanes";
 import { StatusDot } from "@/components/ui";
@@ -85,6 +86,12 @@ export function ConsoleActionDeck({
                 <Link className="text-link" href={card.seeAllHref}>
                   {card.count > preview.length ? `See all ${card.count}` : "Open"}
                 </Link>
+                {!canApprove && card.lane === "decision" ? (
+                  <p className="muted">
+                    Approving eligible app work requires Approver access.{" "}
+                    <RequestAccessLink surface="console.approve" />
+                  </p>
+                ) : null}
               </>
             )}
           </section>

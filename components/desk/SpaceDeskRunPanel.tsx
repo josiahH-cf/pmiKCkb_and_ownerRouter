@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Card, StatusPill } from "@/components/ui";
 import type {
   ProcessDefinitionStep,
@@ -121,7 +122,10 @@ export function SpaceDeskRunPanel({
             {pending === "__start__" ? "Starting…" : "Start run"}
           </button>
         ) : (
-          <p className="muted">You have read-only access to this Space.</p>
+          <p className="muted">
+            You have read-only access to this Space.{" "}
+            <RequestAccessLink surface="spaces.edit" />
+          </p>
         )}
         {error ? <p className="form-error">{error}</p> : null}
       </Card>
@@ -133,6 +137,12 @@ export function SpaceDeskRunPanel({
       {error ? <p className="form-error">{error}</p> : null}
       {isTerminal ? (
         <p className="muted">This run is closed. Its checklist is read-only.</p>
+      ) : null}
+      {!canEdit && !isTerminal ? (
+        <p className="muted">
+          Updating this checklist requires Editor access.{" "}
+          <RequestAccessLink surface="spaces.edit" />
+        </p>
       ) : null}
       <ul className="ui-rows">
         {steps.map((step) => {

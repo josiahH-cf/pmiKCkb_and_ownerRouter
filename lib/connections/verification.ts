@@ -137,15 +137,20 @@ export async function verifyConnectorNow(
   const def = LIVE_PROBES.find((probe) => probe.connectorId === connectorId);
   if (!def) return { supported: false, verified: false };
 
-  // Refresh the baseline first (no-op when cached), then overlay this connector's fresh verdict,
-  // keeping the baseline's expiry so the other verdicts age on their own clock.
-  const baseline = new Set(await getVerifiedConnectorIds(env, now));
+  // A deliberate connector check must run exactly one probe. Reuse other connector verdicts only
+  // while the shared cache is still valid; a cold or expired cache starts empty instead of fanning
+  // out through getVerifiedConnectorIds before checking the selected connector.
+  const validCache = cache && cache.expiresAt > now ? cache : null;
+  const baseline = new Set(validCache?.ids ?? []);
   const verified = await probeOne(def, env);
   if (verified) {
     baseline.add(connectorId);
   } else {
     baseline.delete(connectorId);
   }
-  cache = { ids: baseline, expiresAt: cache?.expiresAt ?? now + VERIFICATION_TTL_MS };
+  cache = {
+    ids: baseline,
+    expiresAt: validCache?.expiresAt ?? now + VERIFICATION_TTL_MS,
+  };
   return { supported: true, verified };
 }

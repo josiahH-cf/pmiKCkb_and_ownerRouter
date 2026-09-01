@@ -108,6 +108,23 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
     description: "Manage who can use the app and which existing role they hold.",
     links: [
       {
+        id: "admin-my-access",
+        label: "My access and requests",
+        description:
+          "Review current session access or request an additive role or Space bundle.",
+        href: "/admin/access",
+        requiredCapability: "read",
+        surface: "admin",
+      },
+      {
+        id: "admin-access-requests",
+        label: "Review access requests",
+        description: "Open the Admin-only global access request pool.",
+        href: "/approval-queue?view=access",
+        requiredCapability: "manageAdmin",
+        surface: "admin",
+      },
+      {
         id: "admin-manage-users",
         label: "Manage users and roles",
         description: "Review managed users and role assignments.",

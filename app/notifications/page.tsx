@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { AppShell } from "@/components/layout/AppShell";
 import { ATTENTION_LANE_META, type AttentionLane } from "@/lib/attention/lanes";
 import { requirePageCapability } from "@/lib/auth/page-guards";
@@ -44,7 +45,15 @@ export default async function NotificationsPage() {
             <Link href={feed.review.href}>{feed.review.label}</Link>
             <p className="muted">{feed.review.detail}</p>
           </section>
-        ) : null}
+        ) : (
+          <section className="panel" aria-label="Feedback review access">
+            <h2>{ATTENTION_LANE_META.support.label}</h2>
+            <p className="muted">
+              Reviewing staff feedback requires Admin access.{" "}
+              <RequestAccessLink surface="notifications.manage" />
+            </p>
+          </section>
+        )}
 
         {isAdmin ? (
           <section className="panel" aria-label="Feedback">

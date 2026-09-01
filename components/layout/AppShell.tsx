@@ -39,6 +39,18 @@ export function AppShell({
   const environment = resolveEnvironmentDescriptor();
   const mutationControlsVisible =
     environment.ok && allowsMutation(environment.descriptor);
+  const canManageAdmin = can(user.role, "manageAdmin");
+  const hasRenewals = hasSpaceAccess(user, "renewals");
+  const visibleNavItems = navItems
+    .filter((item) => {
+      if (item.label === "Approval Queue") return hasRenewals || canManageAdmin;
+      return item.scope === undefined || hasSpaceAccess(user, item.scope);
+    })
+    .map((item) =>
+      item.label === "Approval Queue" && canManageAdmin && !hasRenewals
+        ? { ...item, href: "/approval-queue?view=access" }
+        : item,
+    );
 
   return (
     <div className="page">
@@ -52,14 +64,13 @@ export function AppShell({
         <nav className="nav" aria-label="Primary">
           <PrimaryNav
             items={[
-              ...navItems.filter(
-                (item) => item.scope === undefined || hasSpaceAccess(user, item.scope),
-              ),
+              ...visibleNavItems,
               // Every role sees connection status read-only (S13 D5); Admins manage from the same page.
               { href: "/connections", label: "Connections" },
-              ...(can(user.role, "manageAdmin")
-                ? [{ href: "/admin", label: "Admin" }]
-                : []),
+              {
+                href: canManageAdmin ? "/admin" : "/admin/access",
+                label: "Admin",
+              },
             ]}
           />
           <NotificationMenu />

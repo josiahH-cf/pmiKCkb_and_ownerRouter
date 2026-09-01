@@ -40,7 +40,7 @@ describe("AppShell space-scoped navigation", () => {
     expect(screen.queryByRole("button", { name: "Feedback" })).toBeNull();
   });
 
-  it("hides the renewals-only Approval Queue from a maintenance-only principal", () => {
+  it("hides the renewals queue but exposes self-service Admin access to a maintenance-only principal", () => {
     render(
       <AppShell
         user={
@@ -61,7 +61,32 @@ describe("AppShell space-scoped navigation", () => {
     expect(screen.getByRole("link", { name: "Spaces" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Connections" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Approval Queue" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
+      "href",
+      "/admin/access",
+    );
+  });
+
+  it("lets an Admin without Renewals scope reach only the global access lane", () => {
+    render(
+      <AppShell
+        user={{
+          uid: "scoped-admin",
+          email: "scoped-admin@pmikcmetro.com",
+          hd: "pmikcmetro.com",
+          role: "Admin",
+          scopes: ["maintenance"],
+        }}
+      >
+        <main>Maintenance Admin</main>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("link", { name: "Approval Queue" })).toHaveAttribute(
+      "href",
+      "/approval-queue?view=access",
+    );
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
   });
 
   it("preserves every existing nav item for a wildcard Admin", () => {

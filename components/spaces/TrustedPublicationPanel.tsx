@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { SOURCE_STATES } from "@/lib/constants";
 import type { SourceState } from "@/lib/source-state";
 
@@ -79,6 +80,12 @@ export function TrustedPublicationPanel({
         </div>
         <span className="review-pill">Checked and versioned</span>
       </div>
+      {!canEdit ? (
+        <p className="muted">
+          Publishing approved sources requires Editor access.{" "}
+          <RequestAccessLink surface="spaces.edit" />
+        </p>
+      ) : null}
       <p className="muted">{message}</p>
       <div className="workflow-two-column-fields">
         <label>

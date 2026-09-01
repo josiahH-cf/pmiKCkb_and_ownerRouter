@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import type {
   ExternalActionReadiness,
   ProcessDefinitionActionReference,
@@ -22,7 +23,6 @@ const READINESS_VALUES: ExternalActionReadiness[] = [
 
 interface ProcessDefinitionDetailClientProps {
   canEdit: boolean;
-  canManageAdmin: boolean;
   initialDefinition: ProcessDefinitionRecord;
   initialRuns: WorkflowRunRecord[];
 }
@@ -127,6 +127,13 @@ export function ProcessDefinitionDetailClient({
             {definition.status}
           </span>
         </div>
+
+        {!canEdit ? (
+          <p className="muted">
+            Editing, publishing, or starting this process requires Editor access.{" "}
+            <RequestAccessLink surface="process_definition.edit" />
+          </p>
+        ) : null}
 
         <fieldset disabled={!canMutate}>
           <div className="workflow-two-column-fields">

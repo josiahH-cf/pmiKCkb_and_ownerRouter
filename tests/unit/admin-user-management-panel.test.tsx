@@ -23,6 +23,44 @@ afterEach(() => {
 });
 
 describe("UserManagementPanel space-scope editor", () => {
+  it("shows each user's role-derived capabilities, Spaces, and renewal authority", () => {
+    render(
+      <UserManagementPanel
+        initialUsers={[
+          WILDCARD_USER,
+          {
+            ...WILDCARD_USER,
+            uid: "u2",
+            email: "approver@pmikcmetro.com",
+            role: "Approver",
+            scopes: ["maintenance"],
+          },
+        ]}
+      />,
+    );
+
+    const editor = screen.getByRole("region", {
+      name: "Effective access for worker@pmikcmetro.com",
+    });
+    expect(editor).toHaveTextContent("Individual roleEditor");
+    expect(editor).toHaveTextContent(
+      "Inherited capabilitiesView app work, Create and update app work, Use governed workflow communications",
+    );
+    expect(editor).toHaveTextContent("SpacesAll spaces");
+    expect(editor).toHaveTextContent(
+      "Derived renewal authorityRecord owner direction and app-owned renewal progress",
+    );
+    expect(editor).not.toHaveTextContent("Resolve a renewal source reconciliation");
+
+    const approver = screen.getByRole("region", {
+      name: "Effective access for approver@pmikcmetro.com",
+    });
+    expect(approver).toHaveTextContent("SpacesMaintenance");
+    expect(approver).toHaveTextContent(
+      "Derived renewal authorityNone: no Renewals Space access",
+    );
+  });
+
   it("shows the All spaces wildcard, then submits a maintenance-only claim", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async () =>

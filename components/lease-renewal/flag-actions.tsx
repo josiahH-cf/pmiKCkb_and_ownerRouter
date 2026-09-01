@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import type {
   RenewalFlagView,
   RenewalWritebackApprovalActivityView,
@@ -263,10 +264,16 @@ export function FlagResolveForm({
             ) : null}
           </div>
         ) : (
-          <p className="muted">An Admin must resolve High and Blocked flags.</p>
+          <p className="muted">
+            An Admin must resolve High and Blocked flags.{" "}
+            <RequestAccessLink surface="renewals.manage" />
+          </p>
         )
       ) : (
-        <p className="muted">Approver or Admin access is required to resolve flags.</p>
+        <p className="muted">
+          Approver or Admin access is required to resolve flags.{" "}
+          <RequestAccessLink surface="renewals.resolve_reconciliation" />
+        </p>
       )}
     </>
   );

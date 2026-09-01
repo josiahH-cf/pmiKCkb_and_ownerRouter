@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
+import { AccessRequestsLane } from "@/components/approval/AccessRequestsLane";
 import { DecisionMetricsCard } from "@/components/approval/DecisionMetricsCard";
 import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
 import {
@@ -32,18 +33,71 @@ import {
   buildLeaseRenewalDecisionProjections,
   LIVE_RENEWAL_DECISION_RUN_ID,
 } from "@/lib/lease-renewal/decision-projection";
+import {
+  getAdminAccessRequestDetail,
+  listAdminAccessRequests,
+} from "@/lib/access/request-service";
 
 export default async function ApprovalQueuePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ item_id?: string }>;
+  searchParams?: Promise<{ item_id?: string; view?: string }>;
 }) {
+  const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams?.view === "access") {
+    const admin = await requirePageCapability("manageAdmin");
+    let accessItems: Awaited<ReturnType<typeof listAdminAccessRequests>>["items"] = [];
+    let pendingCount = 0;
+    let nextCursor: string | null = null;
+    let accessError: string | undefined;
+    let initialAccessDetail: Awaited<
+      ReturnType<typeof getAdminAccessRequestDetail>
+    > | null = null;
+    try {
+      const result = await listAdminAccessRequests(admin, {
+        state: "pending",
+        limit: 50,
+      });
+      accessItems = result.items;
+      pendingCount = result.pending_count;
+      nextCursor = result.next_cursor;
+      if (result.items[0]) {
+        try {
+          initialAccessDetail = await getAdminAccessRequestDetail(
+            admin,
+            result.items[0].id,
+          );
+        } catch {
+          initialAccessDetail = null;
+        }
+      }
+    } catch {
+      accessError =
+        "Access requests are unavailable right now. No request is treated as absent or approved; retry before making an access decision.";
+    }
+    return (
+      <AppShell user={admin}>
+        <section className="content ui-stack">
+          <h1 className="section-title">Approval Queue</h1>
+          <AccessRequestsLane
+            initialError={accessError}
+            initialDetail={initialAccessDetail}
+            initialItems={accessItems}
+            initialNextCursor={nextCursor}
+            initialPendingCount={pendingCount}
+            referenceTime={new Date().toISOString()}
+          />
+        </section>
+      </AppShell>
+    );
+  }
+
   await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   let initialActivity: ApprovalQueueActivityRecord[] = [];
   let items: ApprovalQueueItemRecord[] = [];
   let initialError: string | undefined;
-  const requestedItemId = (await searchParams)?.item_id?.trim();
+  const requestedItemId = resolvedSearchParams?.item_id?.trim();
   let initialSelectedItemId: string | undefined;
 
   try {

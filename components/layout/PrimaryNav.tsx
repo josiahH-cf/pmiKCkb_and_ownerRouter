@@ -18,12 +18,13 @@ function isActive(pathname: string | null, item: PrimaryNavItem): boolean {
   if (!pathname) {
     return false;
   }
-  if (pathname === item.href || item.alsoActiveOn?.includes(pathname)) {
+  const itemPath = item.href.split("?", 1)[0] || item.href;
+  if (pathname === itemPath || item.alsoActiveOn?.includes(pathname)) {
     return true;
   }
   // A sub-route marks its parent active (e.g. /lease-renewal/live -> "Lease Renewal"), but "/" never
   // matches everything.
-  return item.href !== "/" && pathname.startsWith(`${item.href}/`);
+  return itemPath !== "/" && pathname.startsWith(`${itemPath}/`);
 }
 
 export function PrimaryNav({ items }: Readonly<{ items: readonly PrimaryNavItem[] }>) {

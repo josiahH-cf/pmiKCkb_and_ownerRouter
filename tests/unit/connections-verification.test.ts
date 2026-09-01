@@ -6,12 +6,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
   buildLiveRentVineConfig,
   buildLiveRenewalConfig,
+  rentvineProbe,
+  sheetsProbe,
+  rentcastProbe,
   rentvineOk,
   sheetsOk,
   rentcastOk,
 } = vi.hoisted(() => ({
   buildLiveRentVineConfig: vi.fn(),
   buildLiveRenewalConfig: vi.fn(),
+  rentvineProbe: vi.fn(async () => ({ ok: true, detail: "counts-only" })),
+  sheetsProbe: vi.fn(async () => ({ ok: true, detail: "counts-only" })),
+  rentcastProbe: vi.fn(async () => ({ ok: true, detail: "counts-only" })),
   rentvineOk: { value: true },
   sheetsOk: { value: true },
   rentcastOk: { value: true },
@@ -25,17 +31,26 @@ vi.mock("@/lib/lease-renewal/live-config", () => ({
 // failing live probe without any network.
 vi.mock("@/lib/integrations/rentvine/health-probe", () => ({
   createRentVineHealthCheckTransport: () => ({
-    probe: async () => ({ ok: rentvineOk.value, detail: "counts-only" }),
+    probe: async () => {
+      const result = await rentvineProbe();
+      return { ...result, ok: rentvineOk.value };
+    },
   }),
 }));
 vi.mock("@/lib/google-sheets/health-probe", () => ({
   createGoogleSheetsHealthCheckTransport: () => ({
-    probe: async () => ({ ok: sheetsOk.value, detail: "counts-only" }),
+    probe: async () => {
+      const result = await sheetsProbe();
+      return { ...result, ok: sheetsOk.value };
+    },
   }),
 }));
 vi.mock("@/lib/lease-renewal/providers/rentcast-health-probe", () => ({
   createRentcastHealthCheckTransport: () => ({
-    probe: async () => ({ ok: rentcastOk.value, detail: "counts-only" }),
+    probe: async () => {
+      const result = await rentcastProbe();
+      return { ...result, ok: rentcastOk.value };
+    },
   }),
 }));
 
@@ -119,6 +134,16 @@ describe("getVerifiedConnectorIds", () => {
 });
 
 describe("verifyConnectorNow", () => {
+  it("runs only the selected connector when the shared cache is cold", async () => {
+    const result = await verifyConnectorNow("rentvine", {}, T0);
+
+    expect(result).toEqual({ supported: true, verified: true });
+    expect(buildLiveRentVineConfig).toHaveBeenCalledTimes(1);
+    expect(rentvineProbe).toHaveBeenCalled();
+    expect(sheetsProbe).not.toHaveBeenCalled();
+    expect(rentcastProbe).not.toHaveBeenCalled();
+  });
+
   it("re-runs one probe fresh and folds the verdict into the cached set", async () => {
     await getVerifiedConnectorIds({}, T0); // cache: both verified
 

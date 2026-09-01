@@ -76,7 +76,7 @@ describe("ConnectionCenter", () => {
     expect(within(rentcast as HTMLElement).getByText("Ready to verify")).toBeVisible();
     expect(
       within(rentcast as HTMLElement).getByRole("button", {
-        name: "Verify connection",
+        name: "Check RentCast connection",
       }),
     ).toBeVisible();
     expect(within(rentcast as HTMLElement).queryByText("Set up RentCast")).toBeNull();
@@ -143,7 +143,9 @@ describe("ConnectionCenter", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: "Verify connection" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Check .* connection$/ })).toHaveLength(
+      2,
+    );
   });
 
   it("is read-only for non-Admins: status visible, no setup or verify affordance (D5)", () => {
@@ -160,7 +162,7 @@ describe("ConnectionCenter", () => {
     expect(screen.getByText("Ready to verify")).toBeInTheDocument();
     expect(screen.queryByText(/^Set up /)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Verify connection" }),
+      screen.queryByRole("button", { name: /^Check .* connection$/ }),
     ).not.toBeInTheDocument();
     expect(
       screen.getAllByText("An Admin connects and verifies this.").length,

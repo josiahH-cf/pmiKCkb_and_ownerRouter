@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { Button, Disclosure, Field } from "@/components/ui";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
+import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import {
   FlagResolveForm,
   WritebackApprovalControl,
@@ -417,7 +418,10 @@ export function RenewalDeciderCard({
             {skipping ? "Saving..." : "Skip"}
           </button>
         ) : (
-          <span className="muted">Editor access is required to save skip progress.</span>
+          <span className="muted">
+            Editor access is required to save skip progress.{" "}
+            <RequestAccessLink surface="renewals.save_progress" />
+          </span>
         )}
       </div>
 

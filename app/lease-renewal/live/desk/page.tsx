@@ -93,7 +93,7 @@ export default async function LiveRenewalDeskPage({
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalDesk query={query} role={user.role} view={outcome.view} />
+          <RenewalDesk query={query} view={outcome.view} />
         ) : (
           <LiveDeskPanel status={outcome.status} />
         )}

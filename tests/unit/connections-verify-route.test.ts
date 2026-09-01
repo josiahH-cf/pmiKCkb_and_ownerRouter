@@ -76,4 +76,15 @@ describe("POST /api/connections/verify", () => {
     expect(response.status).toBe(400);
     expect(verifyConnectorNow).not.toHaveBeenCalled();
   });
+
+  it("rejects caller-selected implementation fields without running a probe", async () => {
+    setRole("Admin");
+
+    const response = await POST(
+      request({ connector_id: "rentvine", implementation: "caller-selected" }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(verifyConnectorNow).not.toHaveBeenCalled();
+  });
 });
