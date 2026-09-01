@@ -3,9 +3,13 @@
 
 # S84 — Task-grouped navbar dropdown navigation
 
-> Status: Specified and not implemented. The deployed AppShell, route guards, Space filtering,
-> notification menu, S81 task destinations, S83 access workflow, S85 Appearance system, and S86
-> interaction/transient contracts are the starting truth.
+> Status: Complete and deployed on 2026-09-01 through commit
+> `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`, exact-SHA CI `33562996950`, zero-traffic candidate
+> `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, bounded candidate smoke, normalized runtime parity excluding
+> only image and exact `APP_COMMIT_SHA`, exact promotion, and repeated canonical readback. Focused
+> manifest/interaction/terminology suites, the real-Chromium desktop/touch/keyboard/320px/zoom/
+> forced-colors/reduced-motion matrix, canonical verification, and core E2E passed. No provider,
+> role, store, client-data, draft, message, Action Registry, or protected-path effect ran.
 
 **Goal.**
 

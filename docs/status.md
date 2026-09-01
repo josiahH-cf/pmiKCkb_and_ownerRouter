@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtiwwud5-993818fec846`, 100% traffic
-- Serving commit: `796879d6e95834a749b8f11f998ff5c76e6d0459`
-- Immediate rollback: `pmi-kc-app-rmtimspsj-ee9bbf50108f`
+- Serving revision: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, 100% traffic
+- Serving commit: `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`
+- Immediate rollback: `pmi-kc-app-rmtiwwud5-993818fec846`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -69,6 +69,26 @@ S83 route checks, exact promotion, repeated canonical readback, and the reconcil
 Firestore mirror passed. Release caused no role, claim, request, source, provider, credential,
 client-data, draft, or message effect.
 
+## S84 delivery
+
+S84 is `ALL_GATES_GREEN` and deployed. The primary navbar now renders exactly three actor-filtered
+disclosure groups — My Work, Operations, and Admin — from one typed navigation manifest. Every
+destination is a full-row link with a unique local icon, exact title/subtext, group-coded non-status
+treatment, and visible hover/focus/current feedback; click, tap, and keyboard activation are
+immediate while fine-pointer hover opens after a 350 ms intent delay. Narrow layouts use one Menu
+disclosure with one-at-a-time accordions. Visible navigation and landing terminology is now
+Dashboard and Internal Processes over unchanged `/`, `/ask`, and `/spaces` routes, direct-route
+guards, internal Console/Space contracts, and persisted provenance values. The navbar registers
+with S86's transient coordinator and reuses S83's authoritative pending access-request count for
+Admin badge display; notifications, Appearance, the role chip, sign out, wordmark, and environment
+badge remain top-level.
+
+Dedicated manifest/interaction/terminology suites, the real-Chromium desktop/touch/keyboard/320px/
+zoom/forced-colors/reduced-motion matrix, the full canonical gate, 31 core E2E tests, exact-SHA CI
+`33562996950`, zero-traffic candidate identity/configuration proof, exact promotion, and repeated
+stable readback passed. Release caused no provider, role, store, client-data, draft, message,
+Action Registry, or protected-path effect.
+
 ## Implemented product baseline
 
 - Complete RentVine and operating-Sheet reads, source reconciliation, exact dispositions, current-
@@ -79,8 +99,9 @@ client-data, draft, or message effect.
   key and published copy permit; a person sends from Gmail.
 - Manual linked-thread refresh and source-backed waiting/contact state; no continuous Gmail watch,
   Scheduler, autonomous follow-up, or model-triggered send.
-- Console, eleven Spaces, processes, approvals, Admin, Maintenance, feedback, tokenized resident
-  intake, Vendor boundaries, and work accountability.
+- The Dashboard home surface, eleven Spaces presented as Internal Processes, processes, approvals,
+  Admin, Maintenance, feedback, tokenized resident intake, Vendor boundaries, and work
+  accountability.
 - S30's one-attempt/readback/rollback safety primitives are deployed behind a closed key. Current
   code still contains obsolete multi-record proof and copy-only Sheet paths; S97/S98 own their tested
   removal and they are not active planning authority.
@@ -95,12 +116,15 @@ client-data, draft, or message effect.
 - S83's all-staff access center, per-user additive role/Space requests, Admin-only review/apply/
   reconcile lane, guarded-surface request handoffs, renewal-authority relocation, and connection
   feedback are deployed.
+- S84's actor-filtered three-group navbar disclosure navigation, descriptive destination rows, nine
+  local glyphs, responsive Menu/accordion behavior, and Dashboard/Internal Processes terminology are
+  deployed over unchanged routes and guards.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, and S83 are
-complete and deployed; S84 is active. The queue then runs S82 renewal UI before the owner-authorized
-source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, and S84 are
+complete and deployed; S82 is active. The queue then runs the owner-authorized source effects and
+bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -131,10 +155,10 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33533250900`: passed.
-- Canonical serving gate: 583 unit files plus one intentional skip; 5,301 tests plus four skips; 26
-  Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; 111-route production
-  build.
+- Current serving exact-SHA aggregate CI run `33562996950`: passed.
+- Canonical serving gate: 586 unit files plus one intentional skip; 5,323 tests plus four skips; 26
+  Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; and the complete
+  production build.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
   aggregate CI run `33425658400` passed; no deployment was performed.
 - S96 commit `32a2d836a730ae7751e4d6964897d48430da9f15`: focused adversarial tests,
@@ -160,6 +184,12 @@ deferred to later separately grounded work.
   `pmi-kc-app-rmtiwwud5-993818fec846`; normalized predecessor parity; exact promotion; two stable
   version/route passes; Ready/traffic/identity/Space-map/secret-reference/write-switch readback; and
   independent Action Registry mirror readback at 41 keys/seven open with no malformed entry.
+- S84 commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`: dedicated manifest/interaction/terminology
+  suites; the real-Chromium desktop/touch/keyboard/320px/zoom/forced-colors/reduced-motion matrix;
+  canonical verification; core E2E; exact-SHA CI `33562996950`; zero-traffic candidate
+  `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`; bounded candidate smoke on the exact tag URL; normalized
+  predecessor parity excluding only image and exact `APP_COMMIT_SHA`; exact promotion; and two
+  stable canonical traffic/version/route readback passes.
 
 ## Remaining runtime evidence
 

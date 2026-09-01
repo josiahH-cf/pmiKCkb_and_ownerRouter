@@ -4,11 +4,11 @@ Updated: 2026-09-01.
 
 ## Immediate action
 
-Begin S84. Re-verify the deployed AppShell/PrimaryNav, S81 destinations, S83 role-aware Admin/access
-and Approval Queue reachability, S85 Appearance utility, S86 transient coordination, notification
-menu, environment badge, role badge, and sign-out truth. Freeze the named desktop/mobile disclosure,
-actor-filtering, terminology, active-state, keyboard/touch/focus, and utility-preservation tests
-before implementation; do not begin S82.
+Begin S82. Re-verify the deployed S72/S75/S78/S80 renewal projection/query/authority truth, S81
+Connections anchors, S83 access handoffs, S84 navigation, and S85/S86 presentation/interaction
+primitives. Freeze the named table/projection/query/deskView/destination/copy and preservation
+tests before implementation; the party-filter derivation key must be Secret Manager-bound and read
+back before owner/tenant shortcut exposure, and its absence fails only those shortcuts closed.
 
 Documentation Gate 0 is complete through specification closure
 `081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the
@@ -23,8 +23,8 @@ the S93/S94 integration gate, S95, and S87. Each suite executes once. S83 owns a
 navigation, S82 renewal UI, S97-S100 exact source effects, S36 its temporary cloud lifecycle, and S87
 the final six-cohort reconciliation.
 
-The desired S36, S82, S84, and S87-S100 behavior is specified but not deployed. S96, S85, S86, and
-S83 are complete and deployed. Continue to describe the current application using live readback and
+The desired S36, S82, and S87-S100 behavior is specified but not deployed. S96, S85, S86, S83, and
+S84 are complete and deployed. Continue to describe the current application using live readback and
 implemented facts until each remaining suite passes its delivery and release gates.
 
 ## Safe state while advancing

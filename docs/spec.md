@@ -1,21 +1,24 @@
 # PMI KC current product contract
 
-Updated: 2026-08-31.
+Updated: 2026-09-01.
 
 ## Application
 
-PMI KC is one authenticated operations application with Console, Ask, Spaces, processes, approvals,
-Lease Renewal, Maintenance, Workflow Communications, Admin, feedback, Vendor/resident seams, and
-staff work.
+PMI KC is one authenticated operations application with the Dashboard (the Console/Ask surface),
+My Work, Internal Processes (the Spaces collection), processes, approvals, Lease Renewal,
+Maintenance, Workflow Communications, Admin, feedback, Vendor/resident seams, and staff work.
+Primary navigation renders three actor-filtered disclosure groups — My Work, Operations, and Admin —
+with descriptive destination rows; routes and internal Console/Space contracts are unchanged.
 
 Production contains Live data only. Local rehearsal can inspect bounded live reads but cannot persist
 or cause provider effects.
 
-## Console and knowledge
+## Dashboard and knowledge
 
-- Console summarizes bodyless operational state and attention.
+- The Dashboard (internally the Console surface) summarizes bodyless operational state and
+  attention.
 - Ask answers from approved sources and visibly reports missing support.
-- Spaces organize approved sources and process definitions.
+- Internal Processes (internally Spaces) organize approved sources and process definitions.
 - Workflow Communications compatibility does not appear as an unbacked normal Space.
 - Admin exposes connection state, action gates, support reports, people/access, and operational setup.
 
@@ -58,22 +61,21 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `796879d6e95834a749b8f11f998ff5c76e6d0459` passed 583 unit files
-with one intentional file skip (5,301 tests and four skips), 26 Firestore files/119 tests, every
-static/policy gate, core E2E, and the 111-route build. Exact-SHA aggregate CI run `33533250900`
-passed. Zero-traffic revision `pmi-kc-app-rmtiwwud5-993818fec846` then passed exact identity,
-bounded-route, normalized-configuration, and role/access preservation readback before promotion and
-repeated stable 100% traffic readback. The Firestore Admin mirror independently matched the
-authoritative 41-key/seven-open Registry. Revision `pmi-kc-app-rmtimspsj-ee9bbf50108f` is the
-immediate rollback target; the earlier
+The production release at commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12` passed 586 unit files
+with one intentional file skip (5,323 tests and four skips), 26 Firestore files/119 tests, every
+static/policy gate, core E2E, and the complete production build. Exact-SHA aggregate CI run
+`33562996950` passed. Zero-traffic revision `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` then passed exact
+identity, bounded-route, and normalized-configuration readback before promotion and repeated stable
+100% traffic readback. The committed Action Registry remains 41 keys with seven open. Revision
+`pmi-kc-app-rmtiwwud5-993818fec846` is the immediate rollback target; the earlier
 predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. The remaining S36, S82, S84,
-S87-S95, and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, S86, and
-S83 are complete and deployed; S84 is the active suite. S97 later consumes S30's safety primitives and
-replaces the proof-only route with the exact renewal product contract. All product decisions are
+superseded proof specifications are not part of this contract. The remaining S36, S82,
+S87-S95, and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, S86, S83,
+and S84 are complete and deployed; S82 is the active suite. S97 later consumes S30's safety primitives
+and replaces the proof-only route with the exact renewal product contract. All product decisions are
 closed; missing fresh provider values or managed sessions are fail-closed runtime inputs, not
 permission to invent them.

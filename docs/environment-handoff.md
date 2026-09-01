@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtiwwud5-993818fec846`            |
-| Serving commit            | `796879d6e95834a749b8f11f998ff5c76e6d0459`     |
+| Serving revision          | `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`            |
+| Serving commit            | `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -32,7 +32,7 @@ Secret names are bound through Secret Manager. Values never belong in this file.
   from source uploads.
 - On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
   `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
-- The S96, S85, S86, and S83 releases used a short-lived ADC token only in a task-specific shell variable passed through
+- The S96, S85, S86, S83, and S84 releases used a short-lived ADC token only in a task-specific shell variable passed through
   `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
   only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
   Authentication dialogs must never be automated.
@@ -81,13 +81,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtimspsj-ee9bbf50108f` from commit
-`72f926d96aead0b5b6826494713203672a18a40a`.
+Captured predecessor: `pmi-kc-app-rmtiwwud5-993818fec846` from commit
+`796879d6e95834a749b8f11f998ff5c76e6d0459`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtimspsj-ee9bbf50108f=100 --quiet
+  --to-revisions=pmi-kc-app-rmtiwwud5-993818fec846=100 --quiet
 ```
 
 Forward restoration:
@@ -95,7 +95,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtiwwud5-993818fec846=100 --quiet
+  --to-revisions=pmi-kc-app-rmtj7bhzf-61f4736bdb6b=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -149,6 +149,18 @@ Cloud Run/Firestore readback proved Ready/100% traffic, exact version, managed i
 Live, eleven matching Space maps, three expected secret references, allowance 50, closed Sheet/Space
 write switches, and the reconciled 41-key/seven-open Action Registry mirror. No role, claim, access
 request, provider, credential, client-data, draft, or message effect occurred.
+
+The S84 release captured `pmi-kc-app-rmtiwwud5-993818fec846`, passed focused navigation
+manifest/interaction/terminology suites, the real-Chromium responsive/accessibility matrix, the
+canonical gate, core E2E, and exact-SHA CI run `33562996950`. Zero-traffic candidate
+`pmi-kc-app-rmtj7bhzf-61f4736bdb6b` passed the bounded read-only smoke at its exact tag URL with the
+exact commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`, and its normalized runtime configuration
+equalled the predecessor after excluding only image and exact `APP_COMMIT_SHA` — eleven Space maps,
+three expected secret references, the closed Sheet write switch, Production + Live, and the managed
+runtime identity all preserved. Only that revision was promoted. Two stable canonical passes proved
+Ready/100% traffic on the exact revision, exact version identity, and healthy bounded routes. No
+provider, role, store, client-data, draft, message, Action Registry, or protected-path effect
+occurred.
 
 ## Configuration invariants
 

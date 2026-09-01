@@ -65,8 +65,8 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 ## Active feature contracts
 
 Use `docs/feature-suites/README.md`. It is the sole queue for the S36 and S82-S100 initiative. S96,
-S85, S86, and S83 are complete and deployed; S84 is the active suite. Completed suite narratives are
-removed once current code, tests, and facts own their contract; Git history retains provenance.
+S85, S86, S83, and S84 are complete and deployed; S82 is the active suite. Completed suite narratives
+are removed once current code, tests, and facts own their contract; Git history retains provenance.
 
 ## Current evidence and templates
 

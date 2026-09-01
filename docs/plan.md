@@ -11,14 +11,14 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `796879d6e95834a749b8f11f998ff5c76e6d0459` as revision
-`pmi-kc-app-rmtiwwud5-993818fec846` at 100% traffic. It remains Production + Live with eleven
+Production serves commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12` as revision
+`pmi-kc-app-rmtj7bhzf-61f4736bdb6b` at 100% traffic. It remains Production + Live with eleven
 Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
 and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
 Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
 
 The current code also retains obsolete multi-record proof and copy-only Sheet paths. They are not
-active guidance: S97 and S98 own their tested removal. The remaining S36, S82, S84, S87-S95, and
+active guidance: S97 and S98 own their tested removal. The remaining S36, S82, S87-S95, and
 S97-S100 contracts are specified desired state, not deployed behavior, until each suite completes
 implementation, verification, release, effect proof where required, and readback.
 
@@ -37,7 +37,12 @@ readback without widening any effect. S83 is also `ALL_GATES_GREEN` and deployed
 guided access center, additive role/Space request lifecycle, Admin-only review/apply/reconcile lane,
 guarded-surface handoffs, renewal-authority relocation, and connection feedback passed focused,
 canonical, core-E2E, exact-SHA CI, candidate/configuration, promotion, stable-route, and registry-
-mirror readback gates without applying a role or running a provider effect. S84 is active.
+mirror readback gates without applying a role or running a provider effect. S84 is also
+`ALL_GATES_GREEN` and deployed: its actor-filtered three-group disclosure navbar, descriptive
+destination rows, local glyphs, S83 count reuse, S86 transient registration, responsive
+Menu/accordion behavior, and Dashboard/Internal Processes terminology passed focused, real-browser,
+canonical, core-E2E, exact-SHA CI, candidate/configuration, exact-promotion, and repeated stable-
+readback gates over unchanged routes and guards. S82 is active.
 
 ## Authority and closed decisions
 
@@ -83,11 +88,13 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 5 implementation. Re-read S84 and the deployed S81/S83/S85/S86 shell,
-route, role/Space, Appearance, transient-layer, access-count, and utility truth. Freeze fail-first
-desktop/mobile disclosure, actor-filtering, terminology, navigation, accessibility, and preservation
-evidence; then implement exactly the three descriptive navigation groups without renaming routes,
-widening direct guards, changing provider behavior, or removing top-level utilities.
+The active position is step 6 implementation. Re-read S82 and the deployed S72/S75/S78/S80/S81/S83
+and S84/S85/S86 desk, process, follow-up, query, authority, navigation, and presentation truth.
+Freeze fail-first table/projection/query/deskView/destination/copy and preservation evidence; then
+implement the enriched shared projection, semantic table with column-owned sort/filter controls,
+canonical v2 URL and opaque party-filter contract, persistent desk-view return flow, guided
+six-phase workspace, and bounded content cleanup without adding provider calls, source writes,
+authority changes, or guessed links.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed
