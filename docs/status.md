@@ -37,12 +37,17 @@ S97-S100 exact keys is executable or deployed yet.
 - S30's one-attempt/readback/rollback safety primitives are deployed behind a closed key. Current
   code still contains obsolete multi-record proof and copy-only Sheet paths; S97/S98 own their tested
   removal and they are not active planning authority.
+- S96's cancel-first connector dialog, strict request contract, versioned lifecycle, immutable
+  redacted receipt, verifiable vault outcome, response-loss recovery, and setup-generation safety are
+  implemented on `main` at `32a2d836a730ae7751e4d6964897d48430da9f15`. They are not production
+  behavior until the pending release and readback complete.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. It starts with S96 connector
-safety, then S85/S86 visual/interaction foundations, S83 access requests, S84 navigation, and S82
-renewal UI. It next delivers the owner-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96 connector safety is implemented
+and awaits release; S85 remains gated. The queue then runs S85/S86 visual/interaction foundations,
+S83 access requests, S84 navigation, and S82 renewal UI before the owner-authorized source effects
+and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -78,13 +83,18 @@ deferred to later separately grounded work.
   Firestore files/119 tests; policy/static gates; 107-route production build; production audit zero.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
   aggregate CI run `33425658400` passed; no deployment was performed.
-- Protected paths changed by the current documentation round: none.
-- Provider, Sheet, Gmail, cloud-resource, role, and production-feature effects from the current
-  documentation round: none.
+- S96 commit `32a2d836a730ae7751e4d6964897d48430da9f15`: focused adversarial tests,
+  canonical verification, core E2E, and exact-SHA aggregate CI run `33466388696` passed. Its only
+  protected-path change is the explicitly authorized server-only receipt rule in `firestore.rules`.
+- The production release is waiting on interactive managed-account reauthentication: both default
+  gcloud and ADC refresh currently fail, and no alternate deployment identity is configured. No
+  candidate, traffic, vault, connector, provider, Sheet, Gmail, role, or production-feature effect
+  occurred.
 
 ## Remaining runtime evidence
 
-There are no unresolved product questions. Fresh provider ids/catalogs/values, managed sessions,
-confirmation hashes, signed-in mailbox/resident mapping, and the deterministic S36 source packet are
-runtime inputs. If unavailable or stale, the implementing runner completes all independent closed-
-safe work and blocks only the exact live effect; it never guesses or substitutes.
+There are no unresolved product questions. Interactive gcloud CLI and ADC reauthentication is the
+current release input. Fresh provider ids/catalogs/values, managed sessions, confirmation hashes,
+signed-in mailbox/resident mapping, and the deterministic S36 source packet are later runtime inputs.
+If unavailable or stale, the implementing runner completes all independent closed-safe work and
+blocks only the exact release or live effect; it never guesses or substitutes.

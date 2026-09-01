@@ -15,13 +15,21 @@ effect beyond the owner-authorized keys and suite contracts.
   `pmi-kc-app-rmtfzwn77-8153d75d1cd5`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
+- S96 is implemented and pushed on `main` at `32a2d836a730ae7751e4d6964897d48430da9f15`.
+  Focused adversarial tests, the canonical gate, core E2E, and exact-SHA aggregate CI run
+  `33466388696` passed. Production has not received that commit, so S96 is not delivered and S85
+  must not begin.
+- Both the configured gcloud CLI refresh credential and ADC now fail with managed-account
+  reauthentication errors. No alternate deployment identity is configured. No candidate, traffic,
+  connector, vault, provider, or production effect occurred.
 - S36 and S82-S100 are specified desired-state contracts, not implementation. Their sole queue and
   completion gates are in `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
   protected activation/live proof contracts; it performed no feature, cloud, provider, key, role,
   Sheet, draft, or deployment effect.
-- S96 remains first and solely owns connector disconnect/reconciliation. S86 must preserve it.
+- S96 remains first and solely owns connector disconnect/reconciliation until its exact candidate,
+  promotion, and production readback gates pass. S86 must preserve it.
 - S97 removes obsolete multi-record proof machinery and consumes S30's safety primitives. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
@@ -33,9 +41,11 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Re-verify S96 connector component/route/store/vault/setup/auth truth, freeze its preservation
-baseline, and materialize the named fail-first inertness/reconciliation tests before implementation;
-do not begin S85.
+After a person interactively reauthenticates both gcloud CLI and ADC as the managed
+`josiah@pmikcmetro.com` account, rerun identity/ADC/release-plan preflights. Release exact commit
+`32a2d836a730ae7751e4d6964897d48430da9f15` through a zero-traffic candidate, prove exact version,
+normalized configuration, bounded routes, and served first-click inertness, promote/read back the
+exact revision, reconcile current docs, and only then begin S85.
 
 ## Canonical queue
 
@@ -73,7 +83,8 @@ only the manifest's explicitly safe isolated-worktree S90/S91 parallelism.
   catalogs. S100 maps exact official messages and resident email at runtime. S36 deterministically
   derives its saved request and copied source packet from current approved state.
 - Missing credentials, actor sessions, identifiers, catalogs, or fresh values block only the exact
-  live effect after every independent closed-state deliverable is green. They are never guessed.
+  release or live effect after every independent closed-state deliverable is green. They are never
+  guessed. Interactive authentication is always performed by a person, never automated.
 
 ## Safety invariants
 

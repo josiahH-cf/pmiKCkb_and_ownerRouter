@@ -3,9 +3,12 @@
 
 # S96 — Safe connector disconnect and reconciliation
 
-> Status: Specified and not implemented. The deployed Admin connector control still dispatches its
-> destructive request on first activation; S96 is the first executable suite and the sole owner of
-> closing audit finding UX-005 before any visual-expansion suite begins.
+> Status: Implemented and pushed on `main` at `32a2d836a730ae7751e4d6964897d48430da9f15`;
+> focused adversarial tests, canonical verification, core E2E, and exact-SHA aggregate CI run
+> `33466388696` passed. Production still serves the predecessor behavior because both managed gcloud
+> credential paths require interactive reauthentication. No candidate, traffic, connector, vault, or
+> production effect occurred. S96 remains the active gate and S85 must not begin until candidate,
+> promotion, and production readback close UX-005 in served code.
 
 **Goal.**
 

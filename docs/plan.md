@@ -22,6 +22,12 @@ active guidance: S97 and S98 own their tested removal. S36 and S82-S100 are spec
 not deployed behavior, until each suite completes implementation, verification, release, effect
 proof where required, and readback.
 
+S96 is implemented and pushed at `32a2d836a730ae7751e4d6964897d48430da9f15`; its focused,
+canonical, core-E2E, and exact-SHA CI gates are green. It is not deployed. Both gcloud CLI and ADC
+refresh credentials require interactive managed-account reauthentication, no alternate deployment
+identity is configured, and S85 remains gated until S96 candidate, promotion, and production
+readback complete.
+
 ## Authority and closed decisions
 
 - Production is Live-only. The secure owner instruction names the sole S97 lease target; never commit
@@ -65,6 +71,12 @@ The only executable order is in `docs/feature-suites/README.md`:
 16. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
+
+The active position is step 1 release. After a person reauthenticates both managed gcloud credential
+paths, rerun the identity, ADC, and release-plan preflights; release exact S96 commit
+`32a2d836a730ae7751e4d6964897d48430da9f15` through zero traffic; prove candidate identity,
+configuration parity, bounded routes, and served first-click inertness; then promote and read back
+the exact revision before advancing to step 2.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

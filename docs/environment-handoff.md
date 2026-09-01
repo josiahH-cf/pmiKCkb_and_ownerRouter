@@ -30,13 +30,13 @@ Secret names are bound through Secret Manager. Values never belong in this file.
 - Keep `GOOGLE_APPLICATION_CREDENTIALS` unset.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
   from source uploads.
-- The 2026-08-30 identity preflight resolved both configured gcloud and ADC identities to the managed
-  `josiah@pmikcmetro.com` account.
-- ADC refresh is healthy. The default gcloud CLI refresh token became stale during the long run, so
-  live release commands used a non-persistent ADC access-token bridge through
-  `CLOUDSDK_AUTH_ACCESS_TOKEN`. The token was neither printed nor written. Do not describe the
-  default CLI refresh credential as healthy until an interactive managed-account reauthentication is
-  completed and read back.
+- The configured gcloud account remains labeled `josiah@pmikcmetro.com`, but on 2026-08-31 both its
+  default CLI refresh credential and ADC failed refresh with interactive reauthentication errors.
+  Labels and cached account metadata do not prove a usable identity.
+- No alternate service-account, impersonation, workload-identity, access-token, or deploy-workflow
+  credential is configured. A person must interactively reauthenticate both gcloud CLI and ADC as
+  the managed account, after which both preflights and selected-principal readback must pass before a
+  cloud mutation. Authentication dialogs must not be automated.
 - The Windows Cloud SDK profile at `/mnt/c/Users/josia/AppData/Roaming/gcloud` had no active account
   when last inspected. Do not mutate authentication merely to satisfy a local label; use managed
   identity and read back the selected principal before a cloud mutation.
@@ -51,8 +51,8 @@ npm run release -- --environment=production --plan-only --budget-confirmed --all
 
 The bare `preflight:production` command is not the authoritative release projection: the release
 wrapper injects the explicit descriptor and evaluates the exact replacing runtime map. Never bypass a
-release-wrapper refusal. If gcloud refresh remains stale, reauthenticate the managed account or use a
-non-persistent healthy managed credential; never persist an access token.
+release-wrapper refusal. Current release work must stop until both managed credential paths are
+interactively reauthenticated and read back. Never persist an access token.
 
 ## Release
 
