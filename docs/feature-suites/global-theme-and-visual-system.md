@@ -364,8 +364,9 @@ After a separate refresh, Dark is selected again; ordinary application draft per
 unchanged. Choosing Use device setting follows the device theme. Statuses, links, inputs, focus, and
 dialogs are as clear in either palette, and no color suggests that an unfinished check succeeded.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Model verdict: PASS - focused interaction tests and the real Chromium cold-load, persistence,
+  viewport, zoom-equivalent, forced-color, reduced-motion, and print matrix passed.
+- Human verdict: NOT RUN — no human observer
 
 ### Recognize the product without a fabricated brand claim
 
@@ -373,8 +374,9 @@ dialogs are as clear in either palette, and no color suggests that an unfinished
 success, warning, blocked, and reference colors keep their functional meanings. Documentation and UI
 never call a provisional value, font, supporting color, or icon “official PMI.”
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Model verdict: PASS - the source-token/literal audit and rendered theme checks keep provisional
+  product values separate from functional status meaning and make no official-brand claim.
+- Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 

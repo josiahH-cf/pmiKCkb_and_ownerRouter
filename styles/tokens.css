@@ -1,95 +1,8 @@
-:root {
-  /* =====================================================================
-     PMI PROVISIONAL BRAND TOKENS  —  *** NOT OFFICIAL PMI VALUES ***
-     ---------------------------------------------------------------------
-     Brand pack identity = black / orange / white
-     (docs/brand_pack/PMI_app_brand_pack_llm_context.md).
-     Official PMI HEX / RGB / CMYK / PMS values are NOT specified in the
-     available source. The values below are ACCESSIBLE PRODUCT PLACEHOLDERS
-     chosen for WCAG contrast — they are NOT brand-accurate PMI colors and
-     must NOT be published or cited as official PMI colors.
-     RELEASE BLOCKER: replace every --pmi-* value with official PMI tokens
-     once obtained. This block is the ONLY place provisional brand hex lives;
-     everything below points back at it.
-     ===================================================================== */
-  --pmi-black: #141414; /* provisional — brand black field (hero/topbar) */
-  --pmi-white: #ffffff; /* provisional — brand white */
-  --pmi-orange: #c2410c; /* provisional — AA as text on white (~5.9:1) */
-  --pmi-orange-bright: #ea580c; /* provisional — on DARK / large / UI only (fails as normal text on white) */
-  --pmi-orange-100: #fdece2; /* provisional — pale orange accent surface */
-  /* Dark-surface orange (tagline / dot / topbar accents), aliased so it can be tuned independently
-     when official values land. NEVER use --pmi-orange-bright as on-white text/icon (3.56:1 fails
-     AA); use --color-accent-500 (--pmi-orange, ~5.18:1) for any on-white orange text or fill. */
-  --pmi-orange-on-dark: var(--pmi-orange-bright);
-
-  /* Semantic aliases — components consume THESE. Navy/gold removed; the
-     names persist as a stable indirection layer over the provisional brand. */
-  --color-primary-900: var(--pmi-black);
-  --color-primary-700: #2b2b2b; /* near-black affordances (buttons/links) on white */
-  --color-primary-500: #4a4a4a; /* neutral mid for borders / selected-row edge */
-  --color-primary-100: #ededed; /* neutral pale for selected-row tint */
-
-  --color-accent-700: var(--pmi-orange);
-  --color-accent-500: var(--pmi-orange);
-  --color-accent-100: var(--pmi-orange-100);
-
-  /* Source-state semantic colors — FUNCTIONAL status, independent of brand.
-     Green/amber/red kept for usability; the two that previously borrowed the
-     brand navy/gold now own independent hex so status never reads as brand. */
-  --state-verified: #2f855a;
-  --state-partial: #b7791f; /* decoupled from old gold accent → amber caution */
-  --state-placeholder: #4a4a4a; /* decoupled from old navy primary → neutral slate */
-  --state-conflict: #b7791f;
-  --state-no-source: #9b2c2c;
-  --state-reference: #6b46c1; /* read-only reference — purple, clearly not a green/amber/red to-do */
-
-  /* Neutrals */
-  --color-bg: #ffffff;
-  --color-surface: #f7fafc;
-  --color-border: #e2e8f0;
-  --color-text: #1a202c;
-  --color-text-muted: #4a5568;
-
-  /* Typography — official PMI typeface NOT specified in the available source.
-     System stack retained as a labeled, non-brand usability fallback. */
-  --font-sans:
-    system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
-  --font-heading: var(--font-sans);
-
-  /* Connection / connector status — semantic, reuses the FUNCTIONAL state colors so a
-     connector's health reads in the same green/amber/red language as the rest of the app.
-     Part of the swappable brand layer: change the source token, every connector dot follows. */
-  --status-connected: var(--state-verified); /* live + verified */
-  --status-action: var(--state-partial); /* needs attention / action required */
-  --status-none: var(--color-text-muted); /* not connected / idle */
-
-  /* Shared UI tokens consumed by components/ui/* primitives (new surfaces only; existing
-     bespoke classes keep their literals). Centralized so radius/shadow stay consistent. */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-pill: 999px;
-  --shadow-floating: 0 18px 38px rgb(20 20 20 / 0.18);
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-
-  /* Required-field + guided-input tokens (FDS-1). --color-required is ALWAYS paired with a
-     non-color cue (asterisk glyph + a .sr-only "(required)") so a required field never signals
-     by color alone (POUR / baseline principle 14). --font-size-min is the legibility floor the
-     later tiny-text purge (LFW-2) raises sub-floor sizes up to; --field-hint-size is the guided
-     example/hint size. New surfaces consume these; existing bespoke classes keep their literals. */
-  --color-required: #9b2c2c; /* independent literal (validated ~7:1 on white) so a functional
-     status-red retune never silently moves the required/error affordance; shares the "unmet" red
-     with --state-no-source today but is deliberately decoupled. */
-  --font-size-min: 0.8rem;
-  --field-hint-size: var(--font-size-min);
-}
-
+/* Component and layout rules consume the semantic manifest in theme.css. */
 .topbar {
   align-items: center;
-  background: var(--color-primary-900);
-  color: #ffffff;
+  background: var(--topbar-surface);
+  color: var(--topbar-text);
   display: flex;
   gap: 24px;
   justify-content: space-between;
@@ -102,9 +15,9 @@
    widths both place it without overlapping the nav. Renders only outside ordinary live Production. */
 .environment-badge {
   align-items: center;
-  background: var(--pmi-orange-bright, #ff8a2b);
+  background: var(--topbar-accent);
   border-radius: 999px;
-  color: #1a1a1a;
+  color: var(--topbar-surface);
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 0.8125rem;
@@ -118,8 +31,8 @@
 /* An unconfirmed environment is the loudest state: silence means ordinary Production, so an
    unknown one must not be quieter than a known non-production one. */
 .environment-badge[data-context="unconfirmed"] {
-  background: #ffd166;
-  box-shadow: 0 0 0 2px #b45309;
+  background: var(--state-caution-surface);
+  box-shadow: 0 0 0 2px var(--state-caution-border);
 }
 
 @media (max-width: 640px) {
@@ -145,7 +58,7 @@
 
 .nav a {
   align-items: center;
-  color: #ffffff;
+  color: var(--topbar-text);
   display: inline-flex;
   font-size: 0.95rem;
   min-height: 44px;
@@ -154,22 +67,25 @@
 
 .nav-button {
   background: transparent;
-  border: 1px solid rgb(255 255 255 / 0.7);
+  border: 1px solid var(--topbar-border);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--topbar-text);
   min-height: 44px;
   padding: 6px 12px;
 }
 
 .nav-button:disabled {
-  cursor: wait;
-  opacity: 0.72;
+  background: var(--action-disabled-fill);
+  border-color: var(--action-disabled-border);
+  color: var(--action-disabled-text);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .user-role {
-  background: rgb(255 255 255 / 0.16);
+  background: var(--topbar-utility-surface);
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--topbar-text);
   font-size: 0.85rem;
   font-weight: 700;
   padding: 5px 10px;
@@ -190,7 +106,7 @@
    by the .field / .field-label primitive (FDS-3), NOT this grid rule: forcing display:grid on a
    label that has inline children (text + a required asterisk) would stack them onto two lines. */
 .select-field {
-  color: var(--color-text);
+  color: var(--ui-text);
   display: grid;
   font-weight: 650;
   gap: 8px;
@@ -198,10 +114,10 @@
 
 .ask-form textarea,
 .ask-form select {
-  background: #ffffff;
-  border: 1px solid var(--color-border);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
   border-radius: 8px;
-  color: var(--color-text);
+  color: var(--ui-text);
   min-width: 0;
   padding: 10px 12px;
 }
@@ -213,49 +129,76 @@
 }
 
 .primary-button {
-  background: var(--color-primary-700);
-  border: 1px solid var(--color-primary-700);
+  background: var(--action-primary);
+  border: 1px solid var(--action-primary);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--action-primary-foreground);
   font-weight: 700;
   min-height: 44px;
   padding: 10px 16px;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
+}
+
+.primary-button:active:not(:disabled) {
+  background: var(--action-primary-active);
+  border-color: var(--action-primary-active);
 }
 
 .primary-button:disabled {
-  background: var(--color-text-muted);
-  border-color: var(--color-text-muted);
-  cursor: wait;
+  background: var(--action-disabled-fill);
+  border-color: var(--action-disabled-border);
+  color: var(--action-disabled-text);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .secondary-button {
-  background: #ffffff;
-  border: 1px solid var(--color-primary-700);
+  background: var(--action-secondary-fill);
+  border: 1px solid var(--action-secondary-border);
   border-radius: 8px;
-  color: var(--color-primary-700);
+  color: var(--action-secondary-text);
   font-weight: 700;
   min-height: 44px;
   padding: 10px 16px;
 }
 
+.secondary-button:hover:not(:disabled) {
+  background: var(--action-secondary-hover);
+}
+
+.secondary-button:active:not(:disabled) {
+  background: var(--action-secondary-active);
+}
+
 .secondary-button:disabled {
-  cursor: wait;
-  opacity: 0.72;
+  background: var(--action-disabled-fill);
+  border-color: var(--action-disabled-border);
+  color: var(--action-disabled-text);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 /* The single contrast-validated orange key action (sign-in brand moment; later the live Connect).
-   Keyed to --color-accent-500 = --pmi-orange (~5.18–5.9:1 on white); NEVER --pmi-orange-bright.
+   Keyed to --ui-border-interactive = --pmi-orange (~5.18–5.9:1 on white); NEVER --topbar-accent.
    Disabled state still falls back to the muted .primary-button:disabled rule (higher specificity). */
 .primary-button--accent {
-  background: var(--color-accent-500);
-  border-color: var(--color-accent-500);
-  color: var(--pmi-white);
+  background: var(--action-primary);
+  border-color: var(--action-primary);
+  color: var(--action-primary-foreground);
 }
 
-.primary-button--accent:hover,
-.primary-button--accent:active {
-  background: var(--color-primary-700);
-  border-color: var(--color-primary-700);
+.primary-button--accent:hover:not(:disabled) {
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
+}
+
+.primary-button--accent:active:not(:disabled) {
+  background: var(--action-primary-active);
+  border-color: var(--action-primary-active);
 }
 
 /* Prominent next-right-action (FDS-2). Composes with .primary-button / .secondary-button to
@@ -276,23 +219,23 @@
 }
 
 .field-label {
-  color: var(--color-text);
+  color: var(--ui-text);
   font-weight: 650;
 }
 
 .field-required {
-  color: var(--color-required);
+  color: var(--field-required-text);
   margin-left: 2px;
 }
 
 .field-hint {
-  color: var(--color-text-muted);
+  color: var(--ui-text-muted);
   font-size: var(--field-hint-size);
   line-height: 1.35;
 }
 
 .field-error {
-  color: var(--color-required);
+  color: var(--field-required-text);
   font-size: var(--field-hint-size);
   font-weight: 650;
   line-height: 1.35;
@@ -305,10 +248,10 @@
 }
 
 .auth-message {
-  background: #fff5f5;
-  border-left: 6px solid var(--state-no-source);
+  background: var(--state-error-surface);
+  border-left: 6px solid var(--state-error-border);
   border-radius: 6px;
-  color: var(--color-text);
+  color: var(--ui-text);
   margin: 0;
   padding: 10px 12px;
 }
@@ -323,14 +266,14 @@
 }
 
 .source-list a {
-  color: var(--color-primary-700);
+  color: var(--action-link);
   font-weight: 700;
   text-decoration: underline;
 }
 
 .draft-box {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--ui-canvas);
+  border: 1px solid var(--ui-border);
   border-radius: 8px;
   overflow-wrap: anywhere;
   overflow-x: auto;
@@ -339,7 +282,7 @@
 }
 
 .capture-panel {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--ui-border);
   display: grid;
   gap: 12px;
   margin-top: 18px;
@@ -347,7 +290,7 @@
 }
 
 .source-banner {
-  border-left: 6px solid var(--state-no-source);
+  border-left: 6px solid var(--state-error-border);
   border-radius: 6px;
   font-weight: 750;
   margin-bottom: 16px;
@@ -355,28 +298,30 @@
 }
 
 .source-banner[data-state="Verified Source"] {
-  border-left-color: var(--state-verified);
-  background: #edf7f1;
+  border-left-color: var(--state-verified-border);
+  background: var(--state-verified-surface);
 }
 
 .source-banner[data-state="Partial Source"] {
-  border-left-color: var(--state-partial);
-  background: #fff7e6; /* neutral pale amber — a status banner must not read as brand orange */
+  border-left-color: var(--state-caution-border);
+  background: var(
+    --state-caution-surface
+  ); /* neutral pale amber — a status banner must not read as brand orange */
 }
 
 .source-banner[data-state="Open Placeholder"] {
-  border-left-color: var(--state-placeholder);
-  background: var(--color-primary-100);
+  border-left-color: var(--state-neutral-border);
+  background: var(--ui-selected-surface);
 }
 
 .source-banner[data-state="Conflict Found"] {
-  border-left-color: var(--state-conflict);
-  background: #fff7e6;
+  border-left-color: var(--state-caution-border);
+  background: var(--state-caution-surface);
 }
 
 .source-banner[data-state="No Reliable Source Found"] {
-  border-left-color: var(--state-no-source);
-  background: #fff5f5;
+  border-left-color: var(--state-error-border);
+  background: var(--state-error-surface);
 }
 
 /* PMI brand lockup — source-safe TYPOGRAPHIC treatment of the visible wordmark
@@ -399,7 +344,7 @@
 }
 
 .pmi-lockup .pmi-wordmark {
-  color: var(--pmi-white);
+  color: var(--brand-on-hero);
   font-size: clamp(2.4rem, 8vw, 3.25rem);
 }
 
@@ -408,11 +353,11 @@
 }
 
 .pmi-dot {
-  color: var(--pmi-orange-on-dark);
+  color: var(--topbar-accent);
 }
 
 .pmi-tagline {
-  color: var(--pmi-orange-on-dark);
+  color: var(--topbar-accent);
   font-size: 0.95rem;
   font-weight: 650;
   letter-spacing: 0.04em;
@@ -420,7 +365,120 @@
   text-transform: lowercase;
 }
 
+.appearance {
+  color: var(--topbar-text);
+  position: relative;
+}
+
+.appearance-trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--topbar-border);
+  border-radius: var(--radius-md);
+  color: inherit;
+  display: inline-flex;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.appearance-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.appearance-panel {
+  background: var(--ui-overlay);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-overlay);
+  color: var(--ui-text);
+  display: grid;
+  gap: var(--space-3);
+  min-width: min(260px, calc(100vw - 32px));
+  padding: var(--space-3);
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 950;
+}
+
+.appearance-options {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.appearance-option {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  padding: var(--space-2);
+}
+
+.appearance-option:hover {
+  background: var(--action-tertiary-hover);
+}
+
+.appearance-option:has(input:checked) {
+  background: var(--ui-selected-surface);
+  border-color: var(--ui-border-interactive);
+  color: var(--ui-selected-text);
+  font-weight: 700;
+}
+
+.appearance-option input {
+  accent-color: var(--ui-focus);
+  min-height: 1rem;
+  width: 1rem;
+}
+
+.appearance-warning {
+  color: var(--state-caution-text);
+  font-size: var(--font-size-min);
+  margin: 0;
+}
+
+.public-appearance,
+.vendor-appearance {
+  display: flex;
+  justify-content: flex-end;
+  left: auto;
+  padding: var(--space-3);
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.public-appearance .appearance {
+  color: var(--brand-on-hero);
+}
+
+.vendor-appearance .appearance {
+  color: var(--ui-text);
+}
+
+.vendor-theme-shell {
+  min-height: 100vh;
+  position: relative;
+}
+
 @media (max-width: 760px) {
+  .appearance-panel {
+    left: var(--space-4);
+    max-height: calc(100dvh - 88px);
+    min-width: 0;
+    overflow-y: auto;
+    position: fixed;
+    right: var(--space-4);
+    top: 72px;
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;

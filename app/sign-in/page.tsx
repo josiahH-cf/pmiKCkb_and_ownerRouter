@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignInPanel } from "@/components/auth/SignInPanel";
+import { Appearance } from "@/components/layout/Appearance";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { PRODUCT_NAME } from "@/lib/constants";
@@ -27,6 +28,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="auth-page">
+      <div className="public-appearance">
+        <Appearance />
+      </div>
       <PmiWordmark variant="hero" />
       <section className="auth-panel">
         <p className="auth-product-name">{PRODUCT_NAME}</p>

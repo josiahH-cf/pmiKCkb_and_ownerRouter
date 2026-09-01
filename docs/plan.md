@@ -25,8 +25,12 @@ proof where required, and readback.
 S96 is `ALL_GATES_GREEN` and deployed. Its focused, canonical, core-E2E, exact-SHA CI, zero-traffic
 candidate, normalized-config, bounded-route, exact promotion, and stable readback gates passed. The
 live connector collection was empty, so the specified no-target proof made no credential or vault
-effect. S85 is now active. The Firestore Admin registry mirror drift (22/six versus the authoritative
-committed 41/seven) must be reconciled before S83 delivery and cannot grant execution meanwhile.
+effect. S85's technical candidate is locally `ALL_GATES_GREEN`: focused tests, the real Chromium
+matrix, full unit/Firestore/core-E2E gates, policy checks, and the production build passed. S85 remains
+active until exact-SHA CI and zero-traffic candidate/promotion/readback complete; production has not
+changed. Its separate `brand_conformance` gate remains blocked on approved official PMI assets. The
+Firestore Admin registry mirror drift (22/six versus the authoritative committed 41/seven) must be
+reconciled before S83 delivery and cannot grant execution meanwhile.
 
 ## Authority and closed decisions
 
@@ -72,9 +76,10 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 2 implementation. Re-read S85 and current visual-system truth, freeze its
-fail-first and preservation evidence, implement the semantic theme/token foundation, and deliver its
-technical gates without presenting brand conformance as approved.
+The active position is step 2 delivery. Commit and push the green S85 candidate, require exact-SHA
+aggregate CI, then deploy it through the existing zero-traffic candidate, normalized-config,
+bounded-route, exact-promotion, and stable-readback contract. Reconcile present docs to the deployed
+revision before beginning S86. Never present the separate official-brand dependency as satisfied.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

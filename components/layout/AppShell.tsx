@@ -3,6 +3,7 @@ import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EnvironmentBadge } from "@/components/layout/EnvironmentBadge";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
+import { Appearance } from "@/components/layout/Appearance";
 import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
@@ -67,6 +68,7 @@ export function AppShell({
             ]}
           />
           <NotificationMenu />
+          <Appearance />
           <span className="user-role">{user.role}</span>
           <SignOutButton />
         </nav>

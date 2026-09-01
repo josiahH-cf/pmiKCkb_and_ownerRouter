@@ -19,6 +19,11 @@ effect beyond the owner-authorized keys and suite contracts.
   the zero-traffic candidate matched exact version and normalized predecessor configuration, bounded
   routes passed, and exact promotion/stable readback passed. Production had zero connector records,
   so the specified no-target first-click proof ran with no credential or vault effect.
+- S85's technical candidate is locally `ALL_GATES_GREEN`. Its focused 21-test suite, real Chromium
+  cold-load/persistence/3-by-3 viewport/zoom/accessibility/print/route matrix, 5,186-test unit corpus,
+  31 runnable core E2E tests, 119 Firestore tests, policy gates, and 107-route build passed. It has not
+  been committed, run through exact-SHA CI, or deployed yet. `brand_conformance` remains separately
+  blocked on approved official PMI assets; the candidate labels its visual source values provisional.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
   the S96 release used the prior proven non-persistent ADC token bridge without printing or writing a
   token.
@@ -42,15 +47,15 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S85. Re-read its contract and current global CSS/theme/shell/component truth, freeze fail-first
-theme/token/contrast/persistence/compatibility evidence, implement the semantic Light/Dark visual
-system without claiming unverified official branding, and deliver through the full suite gate before
-S86 begins.
+Commit and push the audited S85 candidate without `.claude/settings.local.json` or `output/`; require
+exact-SHA aggregate CI; deploy the exact commit as a zero-traffic candidate while preserving the
+current Production+Live runtime configuration; smoke exact identity and bounded routes; promote the
+exact revision; and reconcile stable readback before beginning S86.
 
 ## Canonical queue
 
 1. S96 — COMPLETE
-2. S85
+2. S85 — LOCAL GATES GREEN; RELEASE PENDING
 3. S86
 4. S83
 5. S84

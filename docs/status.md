@@ -24,6 +24,21 @@ Firestore Admin mirror has 22 records/six open; that display drift cannot grant 
 reconciled before the S83 Admin cutover. None of the new S97-S100 exact keys is executable or
 deployed yet.
 
+## Current ship candidate, not production
+
+S85's technical implementation is `ALL_GATES_GREEN` locally. The candidate resolves a device-local
+System/Light/Dark preference before paint, exposes an accessible Appearance disclosure across staff,
+public sign-in, and Vendor chrome, replaces themeable aliases/literals with complete semantic roles,
+and records all 29 audited experiences in the five-cohort migration ledger. Its focused 21-test set,
+real Chromium cold-load/3-by-3 viewport/accessibility/print/representative-route matrix, full 5,186-
+test unit corpus, 31-test core E2E run, 119-test Firestore run, policy gates, and 107-route production
+build passed. No production, store, provider, role, route, action-key, or client-message effect has
+occurred. Exact-SHA CI and zero-traffic release proof remain before deployment.
+
+Official `brand_conformance` remains blocked on an approved PMI color/logo/type asset package and
+contrast revalidation. The technical candidate uses explicitly provisional orange, black, and white
+source values and does not represent them as official PMI assets.
+
 ## Implemented product baseline
 
 - Complete RentVine and operating-Sheet reads, source reconciliation, exact dispositions, current-
@@ -46,9 +61,10 @@ deployed yet.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96 is complete and the active
-suite is S85. The queue then runs S86 interaction foundations, S83 access requests, S84 navigation,
-and S82 renewal UI before the owner-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96 is complete. S85 remains the
+active delivery until its exact-SHA CI and zero-traffic candidate/promotion/readback gates pass; S86
+is next. The queue then runs S83 access requests, S84 navigation, and S82 renewal UI before the
+owner-authorized source effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -91,6 +107,10 @@ deferred to later separately grounded work.
   `fb32194b5a15be11fd1e7e2dff7192d62dd947fc`, bounded routes, and predecessor runtime configuration;
   it was promoted and passed stable identity/configuration readback. The live connector collection
   was empty. No vault, connector, provider, Sheet, Gmail, role, or client-data effect occurred.
+- S85 local candidate: 564 unit files passed plus one intentional skip; 5,186 tests passed plus four
+  skips; 26 Firestore files/119 tests; 31 runnable core E2E tests; focused 21-test theme suite; real
+  Chromium cold-load, persistence, viewport, zoom-equivalent, forced-color, reduced-motion, print,
+  and representative-route smoke; policy/static gates; 107-route production build.
 
 ## Remaining runtime evidence
 
