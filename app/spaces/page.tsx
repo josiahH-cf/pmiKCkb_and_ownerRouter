@@ -51,7 +51,7 @@ export default async function SpacesPage() {
   return (
     <AppShell user={user}>
       <section className="content">
-        <h1 className="section-title">Spaces</h1>
+        <h1 className="section-title">Internal Processes</h1>
         <div className="grid three">
           {visibleSpaces.map((space) => {
             const state = computeSpaceCardState(

@@ -67,7 +67,7 @@ import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
 import { resolveRenewalSheetBindings } from "@/lib/lease-renewal/rehearsal-sheet";
 import { launchSpaces } from "@/lib/spaces";
-import { listAdminAccessRequests } from "@/lib/access/request-service";
+import { readPrimaryNavigationProjection } from "@/lib/navigation/primary-navigation-projection";
 
 // Admin is re-sectioned (console overhaul Slice D) into three clearly-labeled areas so the operator
 // knows what the tab is for: People & Access (who can use the app), Activity & Logs (usage +
@@ -241,9 +241,9 @@ export default async function AdminPage() {
       .catch(() => {
         // The re-index control still stages new requests; the recent list is just empty this session.
       }),
-    listAdminAccessRequests(user, { state: "pending", limit: 1 })
-      .then((result) => {
-        accessRequestPendingCount = result.pending_count;
+    readPrimaryNavigationProjection(user)
+      .then((projection) => {
+        accessRequestPendingCount = projection.pendingAccessRequestCount ?? null;
       })
       .catch(() => {
         accessRequestPendingCount = null;
@@ -252,7 +252,12 @@ export default async function AdminPage() {
   const hasMetrics = Boolean(observability);
 
   return (
-    <AppShell user={user}>
+    <AppShell
+      navigationProjection={{
+        pendingAccessRequestCount: accessRequestPendingCount,
+      }}
+      user={user}
+    >
       <section className="content">
         <h1 className="section-title">Admin</h1>
         <AdminTaskIndex />

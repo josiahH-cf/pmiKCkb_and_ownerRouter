@@ -36,11 +36,19 @@ effect beyond the owner-authorized keys and suite contracts.
   `pmi-kc-app-rmtiwwud5-993818fec846`, normalized configuration, exact promotion, repeated canonical
   route/version readback, and Action Registry mirror readback passed. No role, claim, request,
   provider, credential, client-data, draft, or message effect ran.
+- S84 is implemented and committed on `main` as an unreleased candidate; production still serves the
+  S83 commit until the S84 release gates pass. The exact three-group actor-aware navigation, renamed
+  visible Dashboard/Internal Processes surfaces, local icon set, responsive disclosure behavior, and
+  preservation coverage are in the committed tree. Dedicated 28-test coverage, the real-Chromium
+  desktop/touch/keyboard/320px/zoom/forced-colors/reduced-motion matrix, full unit, Firestore, and
+  core E2E suites, and the final canonical verifier plus format/diff/security audits passed on the
+  exact committed tree before commit.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
   the S96, S85, S86, and S83 releases used the prior proven non-persistent ADC token bridge without
   printing or writing a token.
-- The remaining S36, S82, S84, S87-S95, and S97-S100 suites are specified desired-state contracts,
-  not implementation. Their sole queue and completion gates are in
+- The remaining S36, S82, S87-S95, and S97-S100 suites are specified desired-state contracts, not
+  implementation. S84 remains active until its exact-SHA CI, release, live readback, and
+  documentation gates pass. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
@@ -63,13 +71,16 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S84. Re-read its complete contract plus the deployed AppShell/PrimaryNav, S81 destinations,
-S83 role-aware Admin/access and Approval Queue reachability, S85 Appearance utility, S86 transient
-coordination, notification menu, environment badge, role badge, and sign-out behavior. Freeze fail-
-first desktop/mobile disclosure, actor-filtering, exact copy/icon/terminology, active-state,
-keyboard/touch/focus, and utility-preservation evidence. Implement exactly My Work, Operations, and
-Admin disclosure groups without renaming routes, widening direct guards, changing access counts,
-adding provider effects, or removing top-level utilities.
+Complete S84 delivery from the committed candidate. Require exact-SHA aggregate CI on the pushed
+commit; run release preflight (managed identity, fresh ADC, budget, predecessor capture) without
+automating any interactive authentication; deploy the exact commit as a zero-traffic Cloud Run
+candidate; smoke the exact commit/revision/tag URL and bounded routes; compare normalized
+predecessor configuration excluding only the image and exact `APP_COMMIT_SHA`; promote the exact
+revision; and repeat canonical version/route readback. Exclude user-owned
+`.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts from every commit and
+Cloud Build upload. Only then reconcile facts/status/plan/feature-suite index/loop state in a docs
+receipt commit and advance to S82. S84 performs no provider, role, store, client-data, draft,
+message, Action Registry, or protected-path effect.
 
 ## Canonical queue
 

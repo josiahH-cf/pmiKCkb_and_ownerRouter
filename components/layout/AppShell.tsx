@@ -4,53 +4,36 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EnvironmentBadge } from "@/components/layout/EnvironmentBadge";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { Appearance } from "@/components/layout/Appearance";
-import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav";
+import { PrimaryNav } from "@/components/layout/PrimaryNav";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
-import { can } from "@/lib/auth/roles";
 import {
   allowsMutation,
   resolveEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
-import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
-import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { PMI_WORDMARK, PRODUCT_NAME } from "@/lib/constants";
+import {
+  resolvePrimaryNavigation,
+  type PrimaryNavigationProjection,
+} from "@/lib/navigation/primary-navigation";
+import { readPrimaryNavigationProjection } from "@/lib/navigation/primary-navigation-projection";
 
-// Processes is no longer a standalone nav tab (A-IA-V2): each process is surfaced alongside its Space
-// (Spaces ⊇ Processes). The /processes routes + the process-definition engine are preserved and still
-// deep-linked (e.g. from the Renewal Desk and each Space's Process sub-tab).
-//
-// FTU-7: the built operator desks (Lease Renewal, Maintenance) are surfaced directly in the nav,
-// scope-filtered, so a single-scope user reaches their daily work in one click instead of via Spaces.
-// FTU-8: the Console entry also reads active on the home route "/" (both render the ConsoleView).
-const navItems: readonly (PrimaryNavItem & { scope?: SpaceScope })[] = [
-  { href: "/ask", label: "Console", alsoActiveOn: ["/"] },
-  { href: "/work", label: "My work" },
-  { href: "/spaces", label: "Spaces" },
-  { href: "/lease-renewal", label: "Lease Renewal", scope: "renewals" },
-  { href: "/maintenance", label: "Maintenance", scope: "maintenance" },
-  { href: "/approval-queue", label: "Approval Queue", scope: "renewals" },
-  { href: "/gmail-hub", label: "Communications" },
-];
-
-export function AppShell({
+export async function AppShell({
   children,
   user,
-}: Readonly<{ children: React.ReactNode; user: AuthenticatedUser }>) {
+  navigationProjection,
+}: Readonly<{
+  children: React.ReactNode;
+  user: AuthenticatedUser;
+  navigationProjection?: PrimaryNavigationProjection;
+}>) {
   const environment = resolveEnvironmentDescriptor();
   const mutationControlsVisible =
     environment.ok && allowsMutation(environment.descriptor);
-  const canManageAdmin = can(user.role, "manageAdmin");
-  const hasRenewals = hasSpaceAccess(user, "renewals");
-  const visibleNavItems = navItems
-    .filter((item) => {
-      if (item.label === "Approval Queue") return hasRenewals || canManageAdmin;
-      return item.scope === undefined || hasSpaceAccess(user, item.scope);
-    })
-    .map((item) =>
-      item.label === "Approval Queue" && canManageAdmin && !hasRenewals
-        ? { ...item, href: "/approval-queue?view=access" }
-        : item,
-    );
+  const resolvedNavigationProjection =
+    navigationProjection ?? (await readPrimaryNavigationProjection(user));
+  const navigationGroups = resolvePrimaryNavigation(user, resolvedNavigationProjection);
 
   return (
     <div className="page">
@@ -61,23 +44,13 @@ export function AppShell({
         {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
             wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
         <EnvironmentBadge descriptor={environment} />
-        <nav className="nav" aria-label="Primary">
-          <PrimaryNav
-            items={[
-              ...visibleNavItems,
-              // Every role sees connection status read-only (S13 D5); Admins manage from the same page.
-              { href: "/connections", label: "Connections" },
-              {
-                href: canManageAdmin ? "/admin" : "/admin/access",
-                label: "Admin",
-              },
-            ]}
-          />
-          <NotificationMenu />
-          <Appearance />
-          <span className="user-role">{user.role}</span>
-          <SignOutButton />
+        <nav className="primary-navigation" aria-label="Primary">
+          <PrimaryNav groups={navigationGroups} />
         </nav>
+        <NotificationMenu />
+        <Appearance />
+        <span className="user-role">{user.role}</span>
+        <SignOutButton />
       </header>
       {children}
       {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}

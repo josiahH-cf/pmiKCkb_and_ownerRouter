@@ -5,7 +5,10 @@ const eslintConfig = [
   {
     ignores: [
       ".next/**",
-      "temp/e2e/.next/**",
+      ".next-dev/**",
+      // Local-only scratch and user-owned output; gitignored, absent in CI, never product code.
+      "temp/**",
+      "output/**",
       "coverage/**",
       "node_modules/**",
       "docs/spec.md",

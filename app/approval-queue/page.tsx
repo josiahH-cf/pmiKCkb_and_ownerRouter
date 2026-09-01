@@ -76,7 +76,12 @@ export default async function ApprovalQueuePage({
         "Access requests are unavailable right now. No request is treated as absent or approved; retry before making an access decision.";
     }
     return (
-      <AppShell user={admin}>
+      <AppShell
+        navigationProjection={{
+          pendingAccessRequestCount: accessError ? null : pendingCount,
+        }}
+        user={admin}
+      >
         <section className="content ui-stack">
           <h1 className="section-title">Approval Queue</h1>
           <AccessRequestsLane

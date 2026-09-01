@@ -50,7 +50,7 @@ describe("auth guards", () => {
 
     const ask = await client.getHtml("/ask");
     expect(ask.response.status).toBe(200);
-    expect(ask.html).toContain("Console");
+    expect(ask.html).toContain("Dashboard");
 
     const admin = await client.getHtml("/admin");
     expect(admin.response.status).toBe(200);

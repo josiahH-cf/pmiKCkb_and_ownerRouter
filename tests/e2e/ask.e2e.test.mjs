@@ -53,15 +53,15 @@ describe("ask flow (demo mode)", () => {
     const { response, html } = await client.getHtml("/ask");
 
     expect(response.status).toBe(200);
-    expect(html).toContain("Console");
+    expect(html).toContain("Dashboard");
   });
 
-  it("serves the Console at the home route (Console-as-home)", async () => {
-    // A-IA-V2: the home route `/` is now the Console (the launcher was retired). Both `/` and `/ask`
-    // render the same ConsoleView.
+  it("serves the Dashboard at the home route", async () => {
+    // A-IA-V2: the home route `/` is the Dashboard (the launcher was retired). Both `/` and `/ask`
+    // render the same dashboard view.
     const { response, html } = await client.getHtml("/");
 
     expect(response.status).toBe(200);
-    expect(html).toContain("Console");
+    expect(html).toContain("Dashboard");
   });
 });

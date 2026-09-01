@@ -79,7 +79,7 @@ describe("ConsoleView", () => {
     render(await ConsoleView({ user: adminUser as never }));
 
     expect(
-      screen.getByRole("heading", { name: "Console", level: 1 }),
+      screen.getByRole("heading", { name: "Dashboard", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Question/)).toBeInTheDocument();
     // SEU-2 (§A.1): the explanatory intro paragraph is gone; the surface is self-descriptive.

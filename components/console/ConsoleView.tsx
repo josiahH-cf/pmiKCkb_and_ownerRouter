@@ -215,7 +215,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
 
   return (
     <section className="content console">
-      <h1 className="section-title">Console</h1>
+      <h1 className="section-title">Dashboard</h1>
       {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action.
           FTU-1/FTU-6: a single plain-language purpose line orients a first-time user without
           bringing back the old multi-line intro. */}

@@ -104,14 +104,6 @@ textarea:disabled {
   outline-color: var(--topbar-accent);
 }
 
-/* FTU-2: the active top-nav item is marked with aria-current and reads bold + underlined so a user
-   always knows where they are. Emphasis only, so it composes with the base nav link color. */
-.nav a[aria-current="page"] {
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 .page {
   min-height: 100vh;
 }
@@ -2277,8 +2269,8 @@ textarea:disabled {
 
 /* Tier T — laptop / tablet */
 @media (max-width: 1024px) {
-  .nav {
-    gap: var(--space-2) var(--space-3);
+  .primary-nav-desktop-groups {
+    gap: 0;
   }
 }
 
@@ -2310,8 +2302,7 @@ textarea:disabled {
     padding-right: var(--space-4);
   }
 
-  .nav {
-    gap: var(--space-2);
+  .primary-navigation {
     width: 100%;
   }
 

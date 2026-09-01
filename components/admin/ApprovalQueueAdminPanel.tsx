@@ -132,7 +132,7 @@ export function ApprovalQueueAdminPanel({
         <h3>Queue Email Settings</h3>
         <p className="muted">
           Historical preferences are shown for audit. Gmail delivery is hard-disabled;
-          configuration cannot activate the legacy sender. Console notifications stay on.
+          configuration cannot activate the legacy sender. In-app notifications stay on.
         </p>
         <div className="queue-settings-list">
           {settings.map((setting) => (

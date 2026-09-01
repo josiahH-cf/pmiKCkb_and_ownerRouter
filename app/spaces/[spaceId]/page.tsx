@@ -172,7 +172,7 @@ export default async function SpaceDetailPage({
     <AppShell user={user}>
       <section className="content">
         <Link className="back-link" href="/spaces">
-          Back to Spaces
+          Back to Internal Processes
         </Link>
         <div className="section-heading-row">
           <div>
