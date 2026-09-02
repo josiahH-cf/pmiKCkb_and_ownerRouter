@@ -1679,11 +1679,13 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Manually confirmed GET /chat/messages for one server-bound Work Order chat: chatObjectTypeID=1, the exact bound work-order id, one confirmed positive page, pageSize=20. The documented read marks retrieved messages read for the manager role, so this is a consequential stateful read; there is no rollback and never an automatic retry, poll, or second page.",
     product_lane: "Maintenance Intake",
-    readiness: "Needs Permission",
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "Official List Chat Messages documents Basic Auth, the bare-array dotted-key row shape, integer pagination headers, sender roles 1 (manager) and 2 (tenant), attachment metadata, and automatic manager-role read marking. It does not authorize polling, POST /chat/messages, attachment download, or app-side mapping.",
-    required_permissions: ["Rentvine chat read permission for the managed account"],
+    required_permissions: [
+      "ACTIVATED 2026-09-02 after its passed bounded live proof on TEST work order 1731: one exactly confirmed consequential page read with the disclosed manager read-marker, honest post-dispatch ambiguity on the undocumented live pagination shape, then a fresh deliberate attempt succeeding with exact zero counts and durable receipt chat:1731:page:1.",
+    ],
     event_ingestion_mode: "None",
     preview_schema_note:
       "Show the exact app ticket, server-bound work order, the one confirmed page, the fixed page size, and the irreversible manager read-marker consequence before dispatch.",
@@ -1731,7 +1733,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "None. The provider may have marked retrieved messages read for managers; the app discloses that uncertainty and relies on (account, messageID) deduplication for any later deliberate re-sync.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "gmail.maintenance_resident_reply.draft_create",

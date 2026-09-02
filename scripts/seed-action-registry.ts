@@ -61,6 +61,11 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "rentvine.work_order.read",
   "rentvine.work_order.create",
   "rentvine.work_order.update_status",
+  // S100 activation (2026-09-02): the exact chat-sync key passed its bounded live proof on TEST
+  // work order 1731 (one confirmed consequential page read, honest ambiguity, fresh deliberate
+  // attempt with exact zero counts and durable receipt). The resident-reply draft key stays
+  // closed: its live proof is BLOCKED until a mapped resident with a verified email exists.
+  "rentvine.work_order.chat.sync",
 ]);
 
 export function parseSeedActionRegistryArgs(

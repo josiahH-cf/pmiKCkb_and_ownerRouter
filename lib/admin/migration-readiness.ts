@@ -194,6 +194,9 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "rentvine.work_order.read",
   "rentvine.work_order.create",
   "rentvine.work_order.update_status",
+  // S100 activation (2026-09-02): chat-sync proven live on TEST work order 1731; the paired
+  // resident-reply draft key stays closed (live proof BLOCKED pending a mapped resident).
+  "rentvine.work_order.chat.sync",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

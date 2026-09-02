@@ -168,6 +168,9 @@ describe("Action Registry seed catalog", () => {
       "rentvine.work_order.read",
       "rentvine.work_order.create",
       "rentvine.work_order.update_status",
+      // S100 activation (2026-09-02): chat-sync proven live on TEST work order 1731; the
+      // resident-reply draft key stays closed until its own proof.
+      "rentvine.work_order.chat.sync",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);

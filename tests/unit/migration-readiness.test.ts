@@ -233,6 +233,8 @@ describe("buildMigrationReadinessReport", () => {
       "rentvine.lease.recurring_charge.update",
       "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
+      // S100 activation (2026-09-02): chat-sync proven live; resident draft stays closed.
+      "rentvine.work_order.chat.sync",
     ]);
     expect(report.rollup.blockers.join(" ")).not.toMatch(/governance violation/);
     expect(
@@ -542,6 +544,8 @@ describe("buildMigrationReadinessReport", () => {
       "rentvine.lease.recurring_charge.update",
       "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
+      // S100 activation (2026-09-02): chat-sync proven live; resident draft stays closed.
+      "rentvine.work_order.chat.sync",
     ]);
     expect(report.rollup.ok).toBe(false);
     expect(report.owner_actions.length).toBeGreaterThan(0);

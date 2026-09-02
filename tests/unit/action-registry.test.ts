@@ -72,6 +72,7 @@ describe("Action Registry repository", () => {
       "rentvine.lease.recurring_charge.update",
       "rentvine.lease.renewal_dates.update",
       // S99 activation (2026-09-02): proven exact work-order keys.
+      "rentvine.work_order.chat.sync",
       "rentvine.work_order.create",
       "rentvine.work_order.read",
       "rentvine.work_order.update_status",
