@@ -9,7 +9,6 @@ export const MAINTENANCE_EXECUTION_ACTIONS = [
   "vendor.gmail.health",
   "google_drive.maintenance_photo.store",
   "rentvine.work_order.create",
-  "rentvine.work_order.assign_vendor",
   "rentvine.work_order.update_status",
   "gmail.maintenance_owner_notice.send",
   "gmail.thread.reply",
@@ -21,7 +20,9 @@ export const MAINTENANCE_EXECUTION_ACTIONS = [
   "leadsimple.task.create",
   "quickbooks.bill.create_draft",
   // Appended, never inserted: the definitions below bind by array index, so inserting a key
-  // mid-array would silently rebind every later definition to the wrong action.
+  // mid-array would silently rebind every later definition to the wrong action. S99 (reviewed)
+  // removed `rentvine.work_order.assign_vendor` here and re-cut every later index: the app never
+  // assigns a Vendor through the work-order feature, so no matrix row may make it reachable.
   "gmail.maintenance_owner_notice.draft_create",
 ] as const;
 
@@ -35,7 +36,6 @@ export const MAINTENANCE_EXECUTION_ORDER: readonly MaintenanceExecutionActionKey
   "vendor.gmail.health",
   "google_drive.maintenance_photo.store",
   "rentvine.work_order.create",
-  "rentvine.work_order.assign_vendor",
   "gmail.maintenance_owner_notice.draft_create",
   "gmail.maintenance_owner_notice.send",
   "gmail.thread.reply",
@@ -75,48 +75,45 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
   // Vendor actors still need the S22 assigned-ticket authority check at execution time.
   def(MAINTENANCE_EXECUTION_ACTIONS[6], "Drive photos", "Medium", []),
   def(MAINTENANCE_EXECUTION_ACTIONS[7], "Rentvine create", "High", []),
-  def(MAINTENANCE_EXECUTION_ACTIONS[8], "Rentvine lifecycle", "High", [
+  // S99: a status update targets one work order selected from a fresh exact read. It has no
+  // create dependency (most updated work orders were never app-created) and the retired
+  // assign-vendor step no longer exists to depend on.
+  def(MAINTENANCE_EXECUTION_ACTIONS[8], "Rentvine lifecycle", "High", []),
+  def(MAINTENANCE_EXECUTION_ACTIONS[9], "Owner email", "Medium", [
     MAINTENANCE_EXECUTION_ACTIONS[7],
-    MAINTENANCE_EXECUTION_ACTIONS[2],
-  ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[9], "Rentvine lifecycle", "High", [
-    MAINTENANCE_EXECUTION_ACTIONS[8],
   ]),
   def(MAINTENANCE_EXECUTION_ACTIONS[10], "Owner email", "Medium", [
-    MAINTENANCE_EXECUTION_ACTIONS[7],
+    MAINTENANCE_EXECUTION_ACTIONS[9],
   ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[11], "Owner email", "Medium", [
-    MAINTENANCE_EXECUTION_ACTIONS[10],
-  ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[12], "Vendor email", "Low", [
+  def(MAINTENANCE_EXECUTION_ACTIONS[11], "Vendor email", "Low", [
     MAINTENANCE_EXECUTION_ACTIONS[3],
     MAINTENANCE_EXECUTION_ACTIONS[2],
+  ]),
+  def(MAINTENANCE_EXECUTION_ACTIONS[12], "Vendor email", "Medium", [
+    MAINTENANCE_EXECUTION_ACTIONS[11],
   ]),
   def(MAINTENANCE_EXECUTION_ACTIONS[13], "Vendor email", "Medium", [
     MAINTENANCE_EXECUTION_ACTIONS[12],
   ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[14], "Vendor email", "Medium", [
+  def(MAINTENANCE_EXECUTION_ACTIONS[14], "Vendor email", "Low", [
     MAINTENANCE_EXECUTION_ACTIONS[13],
   ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[15], "Vendor email", "Low", [
-    MAINTENANCE_EXECUTION_ACTIONS[14],
-  ]),
   def(
-    MAINTENANCE_EXECUTION_ACTIONS[16],
+    MAINTENANCE_EXECUTION_ACTIONS[15],
     "LeadSimple",
     "High",
     [MAINTENANCE_EXECUTION_ACTIONS[7]],
     "vendor_required",
   ),
   def(
-    MAINTENANCE_EXECUTION_ACTIONS[17],
+    MAINTENANCE_EXECUTION_ACTIONS[16],
     "LeadSimple",
     "High",
-    [MAINTENANCE_EXECUTION_ACTIONS[16]],
+    [MAINTENANCE_EXECUTION_ACTIONS[15]],
     "vendor_required",
   ),
-  def(MAINTENANCE_EXECUTION_ACTIONS[18], "QuickBooks", "High", [
-    MAINTENANCE_EXECUTION_ACTIONS[9],
+  def(MAINTENANCE_EXECUTION_ACTIONS[17], "QuickBooks", "High", [
+    MAINTENANCE_EXECUTION_ACTIONS[8],
   ]),
   // No dependency. The owner-notice draft is composed from a persisted app ticket plus an
   // authoritatively resolved owner recipient, both enforced by the route. Depending on
@@ -125,7 +122,7 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
   // Risk is Medium to match the server policy for `workflow_draft`; the S20 bridge refuses a
   // definition whose risk disagrees with `EXECUTION_ACTION_POLICIES`.
   def(
-    MAINTENANCE_EXECUTION_ACTIONS[19],
+    MAINTENANCE_EXECUTION_ACTIONS[18],
     "Owner email",
     "Medium",
     [],

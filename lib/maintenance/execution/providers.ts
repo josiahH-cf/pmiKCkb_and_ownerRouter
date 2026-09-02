@@ -12,6 +12,15 @@ import {
   type WorkflowMessageProvider,
 } from "@/lib/lease-renewal/execution/providers";
 import { isProductionRuntime } from "@/lib/environment/descriptor";
+import type {
+  RentVineWorkOrderReader,
+  RentVineWorkOrderWriter,
+} from "@/lib/integrations/rentvine/work-order-client";
+import {
+  WORK_ORDER_CREATE_SAFE_PRIMARY_GROUPS,
+  WORK_ORDER_PRIORITY_IDS,
+  type WorkOrderProjection,
+} from "@/lib/integrations/rentvine/work-order-contract";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
 import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 
@@ -246,105 +255,137 @@ function photoMatches(
   );
 }
 
-export interface RentvineWorkOrderState {
-  workOrderRef: string;
-  status: string;
-  vendorRef?: string;
-  propertyUnitRef?: string;
-  vendorTradeRef?: string;
-  descriptionHash?: string;
-  priority?: string;
+// S99: the synthetic work-order provider (assumed compare-and-set, hard-coded English status
+// matrix, Vendor-assignment branch) is retired. The executor below speaks only the official
+// account-pinned operations through the concrete S99 clients; RentVine documents no idempotency
+// and no conditional write, so any post-dispatch uncertainty is ambiguous and never retried.
+
+export interface WorkOrderExecutionClients {
+  reader: Pick<
+    RentVineWorkOrderReader,
+    | "getWorkOrder"
+    | "getWorkOrderStatus"
+    | "listWorkOrdersBounded"
+    | "listWorkOrderStatuses"
+    | "listVendorTrades"
+    | "getVendorTrade"
+  >;
+  writer: Pick<RentVineWorkOrderWriter, "createWorkOrder" | "updateWorkOrderStatus">;
 }
 
-export interface RentvineWorkOrderProvider {
-  create(input: {
-    propertyUnitRef: string;
-    vendorTradeRef: string;
-    description: string;
-    priority: string;
-    expectedStatus: string;
-    idempotencyKey: string;
-  }): Promise<{ workOrderRef: string }>;
-  assignVendor(input: {
-    workOrderRef: string;
-    expectedStatus: string;
-    expectedVendorRef: string;
-    vendorRef: string;
-    reason: string;
-    idempotencyKey: string;
-  }): Promise<{ workOrderRef: string; applied: boolean }>;
-  updateStatus(input: {
-    workOrderRef: string;
-    expectedStatus: string;
-    targetStatus: string;
-    idempotencyKey: string;
-  }): Promise<{ workOrderRef: string; applied: boolean }>;
-  read(workOrderRef: string): Promise<RentvineWorkOrderState | null>;
-  reconcile(idempotencyKey: string): Promise<RentvineWorkOrderState | null>;
+const CREATE_FIXED_LITERALS: ReadonlyArray<readonly [string, unknown]> = [
+  ["owner_approved", false],
+  ["shared_with_tenant", "0"],
+  ["shared_with_owner", false],
+  ["send_vendor_notification", false],
+  ["send_email", false],
+];
+
+const STATUS_FIXED_LITERALS: ReadonlyArray<readonly [string, unknown]> = [
+  ["send_vendor_notification", false],
+  ["send_review", false],
+];
+
+function decimalBlocker(input: ExternalActionInput, key: string): string | null {
+  const current = input.values[key];
+  if (typeof current !== "string" || !/^[1-9][0-9]*$/.test(current)) {
+    return `Authoritative ${key} must be a canonical positive decimal string.`;
+  }
+  return null;
 }
 
-const RENTVINE_STATUSES = new Set(["Open", "Waiting on Vendor", "Scheduled", "Closed"]);
-const ALLOWED_TRANSITIONS = new Set([
-  "Open->Waiting on Vendor",
-  "Waiting on Vendor->Scheduled",
-  "Scheduled->Closed",
-  "Open->Closed",
-]);
+function literalBlocker(
+  input: ExternalActionInput,
+  literals: ReadonlyArray<readonly [string, unknown]>,
+): string | null {
+  for (const [key, expected] of literals) {
+    if (input.values[key] !== expected) {
+      return `Preview field ${key} must be the exact literal ${JSON.stringify(expected)}.`;
+    }
+  }
+  return null;
+}
 
-export class RentvineWorkOrderExecutor implements ExternalExecutor {
-  constructor(private readonly provider: RentvineWorkOrderProvider) {}
+function trackedFieldsMatch(before: WorkOrderProjection, after: WorkOrderProjection) {
+  return (
+    before.workOrderId === after.workOrderId &&
+    before.propertyId === after.propertyId &&
+    before.unitId === after.unitId &&
+    before.priorityId === after.priorityId &&
+    before.description === after.description &&
+    before.isOwnerApproved === after.isOwnerApproved &&
+    before.isVacant === after.isVacant &&
+    before.isSharedWithTenant === after.isSharedWithTenant &&
+    before.isSharedWithOwner === after.isSharedWithOwner &&
+    before.vendorTradeId === after.vendorTradeId &&
+    before.vendorContactId === after.vendorContactId &&
+    before.assignedToUserId === after.assignedToUserId
+  );
+}
+
+function createdOrderMatchesPreview(
+  input: ExternalActionInput,
+  observed: WorkOrderProjection,
+) {
+  return (
+    observed.propertyId === input.values.property_id &&
+    observed.unitId === input.values.unit_id &&
+    observed.description === String(input.values.description).trim() &&
+    observed.priorityId === input.values.priority_id &&
+    observed.workOrderStatusId === input.values.work_order_status_id &&
+    observed.isVacant === (input.values.is_vacant === true ? "1" : "0") &&
+    observed.isOwnerApproved === "0" &&
+    observed.isSharedWithTenant === "0" &&
+    observed.isSharedWithOwner === "0" &&
+    (input.values.vendor_trade_id === undefined
+      ? true
+      : observed.vendorTradeId === input.values.vendor_trade_id)
+  );
+}
+
+/**
+ * Official-contract executor for the two exact S99 write keys. Every mutating call performs its
+ * own fresh pre-write reads, exactly one POST, and a separate detail readback; drift before the
+ * POST is a definitive provider refusal, and uncertainty after it is ambiguous, never retried.
+ */
+export class RentVineWorkOrderWriteExecutor implements ExternalExecutor {
+  constructor(private readonly clients: () => WorkOrderExecutionClients) {}
 
   validate(input: ExternalActionInput) {
     switch (input.actionKey) {
       case "rentvine.work_order.create": {
         const blocker = firstBlocker(
-          stringBlocker(input, "property_unit"),
-          stringBlocker(input, "vendor_trade"),
+          stringBlocker(input, "ticket_ref"),
+          decimalBlocker(input, "property_id"),
+          decimalBlocker(input, "unit_id"),
           stringBlocker(input, "description"),
-          stringBlocker(input, "priority"),
-          stringBlocker(input, "expected_status"),
+          decimalBlocker(input, "priority_id"),
+          decimalBlocker(input, "work_order_status_id"),
+          literalBlocker(input, CREATE_FIXED_LITERALS),
+          input.values.vendor_trade_id === undefined
+            ? null
+            : decimalBlocker(input, "vendor_trade_id"),
         );
         if (blocker) return blocker;
-        return RENTVINE_STATUSES.has(String(input.values.expected_status))
-          ? null
-          : "Unknown Rentvine resulting status.";
-      }
-      case "rentvine.work_order.assign_vendor": {
-        const blocker = firstBlocker(
-          stringBlocker(input, "work_order_id"),
-          stringBlocker(input, "current_vendor"),
-          stringBlocker(input, "target_vendor"),
-          stringBlocker(input, "current_status"),
-          stringBlocker(input, "reason"),
-        );
-        if (blocker) return blocker;
-        if (!RENTVINE_STATUSES.has(String(input.values.current_status))) {
-          return "Unknown Rentvine current status.";
+        if (!WORK_ORDER_PRIORITY_IDS.includes(input.values.priority_id as never)) {
+          return "priority_id must be the documented 1, 2, or 3.";
         }
-        return String(input.values.current_vendor) === String(input.values.target_vendor)
-          ? "Rentvine target Vendor must differ from the current Vendor."
-          : null;
+        if (typeof input.values.is_vacant !== "boolean") {
+          return "Preview field is_vacant must be an explicit boolean.";
+        }
+        return null;
       }
       case "rentvine.work_order.update_status": {
         const blocker = firstBlocker(
-          stringBlocker(input, "work_order_id"),
-          stringBlocker(input, "current_status"),
-          stringBlocker(input, "target_status"),
+          decimalBlocker(input, "work_order_id"),
+          decimalBlocker(input, "current_status_id"),
+          decimalBlocker(input, "target_status_id"),
+          literalBlocker(input, STATUS_FIXED_LITERALS),
         );
         if (blocker) return blocker;
-        const transition = `${input.values.current_status}->${input.values.target_status}`;
-        if (!ALLOWED_TRANSITIONS.has(transition)) {
-          return "Rentvine work-order transition is not allowed.";
-        }
-        if (
-          input.values.target_status === "Closed" &&
-          (input.values.completion_evidence !== true ||
-            input.values.financial_checks_passed !== true ||
-            input.values.owner_checks_passed !== true)
-        ) {
-          return "Completion evidence and configured financial/owner checks are required before close.";
-        }
-        return null;
+        return input.values.current_status_id === input.values.target_status_id
+          ? "The target status must differ from the current status."
+          : null;
       }
       default:
         return "Rentvine work-order executor received the wrong action key.";
@@ -353,152 +394,112 @@ export class RentvineWorkOrderExecutor implements ExternalExecutor {
 
   async execute(input: ExternalActionInput) {
     assertValid(this.validate(input));
-    switch (input.actionKey) {
-      case "rentvine.work_order.create":
-        return this.create(input);
-      case "rentvine.work_order.assign_vendor":
-        return this.assign(input);
-      case "rentvine.work_order.update_status":
-        return this.updateStatus(input);
-      default:
-        throw new ExternalExecutionError("Unsupported Rentvine action.", "blocked");
-    }
+    return input.actionKey === "rentvine.work_order.create"
+      ? this.create(input)
+      : this.updateStatus(input);
   }
 
   async reconcile(input: ExternalActionInput) {
     assertValid(this.validate(input));
-    const observed = await this.provider.reconcile(idempotencyKey(input));
-    return observed && rentvineOutcomeMatches(input, observed)
-      ? receipt(input, observed.workOrderRef, observed, true)
-      : null;
+    const { reader } = this.clients();
+    if (input.actionKey === "rentvine.work_order.create") {
+      // Read-only candidate observation: report a receipt only when exactly one live work order
+      // matches every reviewed field; zero or many candidates stay unresolved without causality.
+      const listed = await reader.listWorkOrdersBounded({
+        propertyID: Number(value(input, "property_id")),
+        unitID: Number(value(input, "unit_id")),
+      });
+      if (!listed.complete) return null;
+      const candidates = listed.rows.filter((row) =>
+        createdOrderMatchesPreview(input, row),
+      );
+      if (candidates.length !== 1) return null;
+      const detail = await reader.getWorkOrder(Number(candidates[0].workOrderId));
+      if (!createdOrderMatchesPreview(input, detail.workOrder)) return null;
+      return receipt(input, detail.workOrder.workOrderId, detail.workOrder, true);
+    }
+    const observed = await reader.getWorkOrder(Number(value(input, "work_order_id")));
+    if (
+      observed.workOrder.workOrderId !== input.values.work_order_id ||
+      observed.workOrder.workOrderStatusId !== input.values.target_status_id
+    ) {
+      return null;
+    }
+    return receipt(input, observed.workOrder.workOrderId, observed.workOrder, true);
   }
 
   private async create(input: ExternalActionInput) {
-    const result = await this.provider.create({
-      propertyUnitRef: value(input, "property_unit"),
-      vendorTradeRef: value(input, "vendor_trade"),
-      description: value(input, "description"),
-      priority: value(input, "priority"),
-      expectedStatus: value(input, "expected_status"),
-      idempotencyKey: idempotencyKey(input),
-    });
-    return this.readAfterWrite(input, result.workOrderRef);
-  }
-
-  private async assign(input: ExternalActionInput) {
-    const workOrderRef = value(input, "work_order_id");
-    const current = await this.provider.read(workOrderRef);
-    if (!current) {
-      throw new ExternalExecutionError("Rentvine work order was not found.", "blocked");
-    }
-    const expectedVendor = value(input, "current_vendor");
-    if (
-      current.status !== value(input, "current_status") ||
-      (current.vendorRef ?? "unassigned") !== expectedVendor
-    ) {
-      throw new ExternalExecutionError("Rentvine work-order state drifted.", "provider");
-    }
-    const result = await this.provider.assignVendor({
-      workOrderRef,
-      expectedStatus: value(input, "current_status"),
-      expectedVendorRef: expectedVendor,
-      vendorRef: value(input, "target_vendor"),
-      reason: value(input, "reason"),
-      idempotencyKey: idempotencyKey(input),
-    });
-    if (!result.applied) {
+    const { reader, writer } = this.clients();
+    // Fresh catalog revalidation precedes the one POST: the initial status must still exist and
+    // still group as Pending or Open, and any selected trade must still exist by detail read.
+    const status = await reader.getWorkOrderStatus(
+      Number(value(input, "work_order_status_id")),
+    );
+    if (!WORK_ORDER_CREATE_SAFE_PRIMARY_GROUPS.has(status.primaryWorkOrderStatusId)) {
       throw new ExternalExecutionError(
-        "Rentvine work order changed before the conditional assignment.",
+        "The initial status no longer groups as Pending or Open.",
         "provider",
       );
     }
-    if (result.workOrderRef !== workOrderRef) {
+    const created = await writer.createWorkOrder({
+      propertyID: value(input, "property_id"),
+      unitID: value(input, "unit_id"),
+      description: value(input, "description"),
+      priorityID: value(input, "priority_id"),
+      workOrderStatusID: value(input, "work_order_status_id"),
+      isVacant: input.values.is_vacant === true,
+      ...(input.values.vendor_trade_id === undefined
+        ? {}
+        : { vendorTradeID: value(input, "vendor_trade_id") }),
+    });
+    const createdId = created.workOrder.workOrderId;
+    const readback = await reader.getWorkOrder(Number(createdId));
+    if (
+      readback.workOrder.workOrderId !== createdId ||
+      !createdOrderMatchesPreview(input, created.workOrder) ||
+      !createdOrderMatchesPreview(input, readback.workOrder)
+    ) {
       throw new ExternalExecutionError(
-        "Rentvine assignment returned a different work order.",
+        "The created work order requires reconciliation.",
         "ambiguous",
       );
     }
-    return this.readAfterWrite(input, workOrderRef);
+    return receipt(input, createdId, readback.workOrder);
   }
 
   private async updateStatus(input: ExternalActionInput) {
-    const workOrderRef = value(input, "work_order_id");
-    const current = await this.provider.read(workOrderRef);
-    if (!current) {
-      throw new ExternalExecutionError("Rentvine work order was not found.", "blocked");
-    }
-    if (current.status !== value(input, "current_status")) {
-      throw new ExternalExecutionError("Rentvine work-order state drifted.", "provider");
-    }
-    const result = await this.provider.updateStatus({
-      workOrderRef,
-      expectedStatus: value(input, "current_status"),
-      targetStatus: value(input, "target_status"),
-      idempotencyKey: idempotencyKey(input),
-    });
-    if (!result.applied) {
+    const { reader, writer } = this.clients();
+    const workOrderId = Number(value(input, "work_order_id"));
+    const before = await reader.getWorkOrder(workOrderId);
+    if (before.workOrder.workOrderStatusId !== input.values.current_status_id) {
       throw new ExternalExecutionError(
-        "Rentvine work order changed before the conditional status update.",
+        "The work-order status drifted before the update.",
         "provider",
       );
     }
-    if (result.workOrderRef !== workOrderRef) {
-      throw new ExternalExecutionError(
-        "Rentvine status update returned a different work order.",
-        "ambiguous",
-      );
-    }
-    return this.readAfterWrite(input, workOrderRef);
-  }
-
-  private async readAfterWrite(input: ExternalActionInput, workOrderRef: string) {
-    if (!workOrderRef.trim()) {
-      throw new ExternalExecutionError(
-        "Rentvine returned no stable work-order reference.",
-        "ambiguous",
-      );
-    }
-    const observed = await this.provider.read(workOrderRef);
     if (
-      !observed ||
-      observed.workOrderRef !== workOrderRef ||
-      !rentvineOutcomeMatches(input, observed)
+      before.workOrder.isSharedWithTenant !== "0" ||
+      before.workOrder.isSharedWithOwner !== "0"
     ) {
       throw new ExternalExecutionError(
-        "Rentvine result requires reconciliation.",
+        "Status update is unavailable for a shared work order.",
+        "provider",
+      );
+    }
+    // The target must still exist in the live catalog by its own detail read.
+    await reader.getWorkOrderStatus(Number(value(input, "target_status_id")));
+    await writer.updateWorkOrderStatus(workOrderId, value(input, "target_status_id"));
+    const after = await reader.getWorkOrder(workOrderId);
+    if (
+      after.workOrder.workOrderStatusId !== input.values.target_status_id ||
+      !trackedFieldsMatch(before.workOrder, after.workOrder)
+    ) {
+      throw new ExternalExecutionError(
+        "The status update requires reconciliation.",
         "ambiguous",
       );
     }
-    return receipt(input, workOrderRef, observed);
-  }
-}
-
-function rentvineOutcomeMatches(
-  input: ExternalActionInput,
-  observed: RentvineWorkOrderState,
-) {
-  switch (input.actionKey) {
-    case "rentvine.work_order.create":
-      return (
-        observed.status === input.values.expected_status &&
-        observed.propertyUnitRef === input.values.property_unit &&
-        observed.vendorTradeRef === input.values.vendor_trade &&
-        observed.priority === input.values.priority &&
-        observed.descriptionHash === sha256(String(input.values.description).trim())
-      );
-    case "rentvine.work_order.assign_vendor":
-      return (
-        observed.workOrderRef === input.values.work_order_id &&
-        observed.status === input.values.current_status &&
-        observed.vendorRef === input.values.target_vendor
-      );
-    case "rentvine.work_order.update_status":
-      return (
-        observed.workOrderRef === input.values.work_order_id &&
-        observed.status === input.values.target_status
-      );
-    default:
-      return false;
+    return receipt(input, after.workOrder.workOrderId, after.workOrder);
   }
 }
 

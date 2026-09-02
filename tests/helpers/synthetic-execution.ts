@@ -25,14 +25,17 @@ import {
   MaintenanceOwnerEmailExecutor,
   MaintenancePhotoExecutor,
   QuickBooksDraftBillExecutor,
-  RentvineWorkOrderExecutor,
+  RentVineWorkOrderWriteExecutor,
   VendorLifecycleExecutor,
   VendorMailboxExecutor,
   type LeadSimpleProcessState,
   type LeadSimpleTaskState,
   type QuickBooksDraftBillState,
-  type RentvineWorkOrderState,
 } from "@/lib/maintenance/execution/providers";
+import {
+  RentVineWorkOrderReader,
+  RentVineWorkOrderWriter,
+} from "@/lib/integrations/rentvine/work-order-client";
 import { buildWorkOrderDraft } from "@/lib/maintenance/work-order-draft";
 import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
@@ -434,29 +437,29 @@ function syntheticValues(
         append_only: true,
       };
     case "rentvine.work_order.create":
+      // S99: the preview mirrors the official create wire body exactly; ids are synthetic
+      // decimals served by the fake HTTP transport, never live records.
       return {
-        property_unit: a.unitRef,
-        vendor_trade: "trade-plumbing-synthetic",
+        ticket_ref: a.maintenanceWorkflow,
+        property_id: "9001",
+        unit_id: "9002",
         description: "Synthetic kitchen sink leak",
-        priority: "Normal",
-        expected_status: "Open",
-      };
-    case "rentvine.work_order.assign_vendor":
-      return {
-        work_order_id: a.workOrderRef,
-        current_vendor: "unassigned",
-        target_vendor: a.vendorRef,
-        current_status: "Open",
-        reason: "Synthetic approved Vendor assignment.",
+        priority_id: "2",
+        work_order_status_id: "9101",
+        is_vacant: false,
+        owner_approved: false,
+        shared_with_tenant: "0",
+        shared_with_owner: false,
+        send_vendor_notification: false,
+        send_email: false,
       };
     case "rentvine.work_order.update_status":
       return {
-        work_order_id: a.workOrderRef,
-        current_status: "Open",
-        target_status: "Closed",
-        completion_evidence: true,
-        financial_checks_passed: true,
-        owner_checks_passed: true,
+        work_order_id: "9005",
+        current_status_id: "9101",
+        target_status_id: "9102",
+        send_vendor_notification: false,
+        send_review: false,
       };
     case "gmail.maintenance_owner_notice.draft_create":
       return {
@@ -691,59 +694,114 @@ export function createSyntheticExecutorHarness() {
     reconcile: async () => null,
   };
 
-  let workOrder: RentvineWorkOrderState | null = null;
-  const workOrderProvider = {
-    create: async (input: {
-      propertyUnitRef: string;
-      vendorTradeRef: string;
-      description: string;
-      priority: string;
-      expectedStatus: string;
-    }) => {
-      called("rentvine.work_order_create");
-      workOrder = {
-        workOrderRef: SYNTHETIC_V1_ALIASES.workOrderRef,
-        status: input.expectedStatus,
-        propertyUnitRef: input.propertyUnitRef,
-        vendorTradeRef: input.vendorTradeRef,
-        descriptionHash: sha256(input.description),
-        priority: input.priority,
-      };
-      return { workOrderRef: workOrder.workOrderRef };
-    },
-    assignVendor: async (input: {
-      workOrderRef: string;
-      expectedStatus: string;
-      expectedVendorRef: string;
-      vendorRef: string;
-    }) => {
-      called("rentvine.work_order_assign");
-      const applied = Boolean(
-        workOrder &&
-        workOrder.workOrderRef === input.workOrderRef &&
-        workOrder.status === input.expectedStatus &&
-        (workOrder.vendorRef ?? "unassigned") === input.expectedVendorRef,
-      );
-      if (applied && workOrder) workOrder = { ...workOrder, vendorRef: input.vendorRef };
-      return { workOrderRef: input.workOrderRef, applied };
-    },
-    updateStatus: async (input: {
-      workOrderRef: string;
-      expectedStatus: string;
-      targetStatus: string;
-    }) => {
-      called("rentvine.work_order_status");
-      const applied = Boolean(
-        workOrder &&
-        workOrder.workOrderRef === input.workOrderRef &&
-        workOrder.status === input.expectedStatus,
-      );
-      if (applied && workOrder) workOrder = { ...workOrder, status: input.targetStatus };
-      return { workOrderRef: input.workOrderRef, applied };
-    },
-    read: async () => workOrder,
-    reconcile: async () => null,
+  // S99: the fake work-order seam is the HTTP transport, pinned to the official operation
+  // envelopes; the concrete reader/writer codecs run in full. No CAS or idempotency is faked.
+  const workOrderRecord: Record<string, unknown> = {
+    workOrderID: "9005",
+    workOrderNumber: SYNTHETIC_V1_ALIASES.workOrderRef,
+    propertyID: "9001",
+    unitID: "9002",
+    workOrderStatusID: "9101",
+    primaryWorkOrderStatusID: "2",
+    priorityID: "2",
+    description: "Synthetic kitchen sink leak",
+    isOwnerApproved: "0",
+    isVacant: "0",
+    isSharedWithTenant: "0",
+    isSharedWithOwner: "0",
   };
+  let workOrderCreated = false;
+  const workOrderStatuses: Record<string, { name: string; primary: string }> = {
+    "9101": { name: "Open", primary: "2" },
+    "9102": { name: "Completed", primary: "3" },
+  };
+  const workOrderTransport = {
+    async send(request: { method: string; url: string; body?: string }) {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const respond = (status: number, body: unknown) => ({
+        status,
+        headers: {} as Record<string, string>,
+        text: async () => JSON.stringify(body),
+        json: async () => body,
+      });
+      const statusMatch = /\/maintenance\/work-order\/statuses\/(\d+)$/.exec(path);
+      if (request.method === "GET" && statusMatch) {
+        const entry = workOrderStatuses[statusMatch[1]];
+        if (!entry) return respond(400, { error: "Unknown status." });
+        return respond(200, {
+          workOrderStatus: {
+            workOrderStatusID: statusMatch[1],
+            primaryWorkOrderStatusID: entry.primary,
+            name: entry.name,
+            isSystemStatus: "1",
+          },
+        });
+      }
+      if (request.method === "GET" && path.endsWith("/maintenance/work-order/statuses")) {
+        return respond(
+          200,
+          Object.entries(workOrderStatuses).map(([id, entry]) => ({
+            workOrderStatus: {
+              workOrderStatusID: id,
+              primaryWorkOrderStatusID: entry.primary,
+              name: entry.name,
+              isSystemStatus: "1",
+            },
+          })),
+        );
+      }
+      const detailMatch = /\/maintenance\/work-orders\/(\d+)$/.exec(path);
+      if (request.method === "GET" && detailMatch) {
+        if (!workOrderCreated || detailMatch[1] !== "9005") {
+          return respond(400, { error: "Unknown work order." });
+        }
+        return respond(200, {
+          workOrder: { ...workOrderRecord },
+          schedulingStatusID: null,
+        });
+      }
+      if (request.method === "GET" && path.endsWith("/maintenance/work-orders")) {
+        return respond(
+          200,
+          workOrderCreated ? [{ workOrder: { ...workOrderRecord }, contact: null }] : [],
+        );
+      }
+      if (request.method === "POST" && path.endsWith("/maintenance/work-orders")) {
+        called("rentvine.work_order_create");
+        const body = JSON.parse(request.body ?? "{}") as Record<string, unknown>;
+        workOrderCreated = true;
+        workOrderRecord["propertyID"] = body["propertyID"];
+        workOrderRecord["unitID"] = body["unitID"];
+        workOrderRecord["description"] = body["description"];
+        workOrderRecord["priorityID"] = body["priorityID"];
+        workOrderRecord["workOrderStatusID"] = body["workOrderStatusID"];
+        workOrderRecord["isVacant"] = body["isVacant"] === true ? "1" : "0";
+        return respond(200, {
+          workOrder: { ...workOrderRecord },
+          schedulingStatusID: null,
+        });
+      }
+      if (request.method === "POST" && detailMatch) {
+        called("rentvine.work_order_status");
+        const body = JSON.parse(request.body ?? "{}") as Record<string, unknown>;
+        workOrderRecord["workOrderStatusID"] = body["workOrderStatusID"];
+        const target = workOrderStatuses[String(body["workOrderStatusID"])];
+        workOrderRecord["primaryWorkOrderStatusID"] = target ? target.primary : "2";
+        return respond(200, { workOrder: { ...workOrderRecord } });
+      }
+      return respond(400, { error: `Unexpected fake work-order request ${path}` });
+    },
+  };
+  const workOrderConfig = {
+    baseUrl: "https://pmikcmetro.rentvine.com/api/manager",
+    apiKey: "synthetic-key",
+    apiSecret: "synthetic-secret",
+  };
+  const workOrderClients = () => ({
+    reader: new RentVineWorkOrderReader(workOrderConfig, workOrderTransport),
+    writer: new RentVineWorkOrderWriter(workOrderConfig, workOrderTransport),
+  });
 
   let processState: LeadSimpleProcessState = {
     processRef: SYNTHETIC_V1_ALIASES.processRef,
@@ -1013,7 +1071,7 @@ export function createSyntheticExecutorHarness() {
     // supplies one exact, non-routable callback so it exercises the production validator.
     expectedRedirectUri: SYNTHETIC_VENDOR_OAUTH_REDIRECT_URI,
   });
-  const rentvineWorkOrder = new RentvineWorkOrderExecutor(workOrderProvider);
+  const rentvineWorkOrder = new RentVineWorkOrderWriteExecutor(workOrderClients);
   const leadSimple = new LeadSimpleMaintenanceExecutor(leadSimpleProvider);
   const maintenanceExecutors = new Map<string, ExternalExecutor>([
     ["vendor.account.invite", lifecycle],
@@ -1028,7 +1086,6 @@ export function createSyntheticExecutorHarness() {
     ["vendor.gmail.label.apply", vendorMailbox],
     ["google_drive.maintenance_photo.store", new MaintenancePhotoExecutor(photoProvider)],
     ["rentvine.work_order.create", rentvineWorkOrder],
-    ["rentvine.work_order.assign_vendor", rentvineWorkOrder],
     ["rentvine.work_order.update_status", rentvineWorkOrder],
     // The draft uses the plain governed message executor, exactly as the production path does:
     // MaintenanceOwnerEmailExecutor is the SEND-shaped validator (it requires `recipients` and

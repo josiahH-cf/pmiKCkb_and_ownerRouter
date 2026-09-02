@@ -152,11 +152,18 @@ describe("action execution service", () => {
   it("requires a resolved Admin approval route before preparing High work", async () => {
     const highRegistry = openRegistryAction("rentvine.work_order.create");
     const highPreview = {
+      ticket_ref: "fixture-ticket-1",
+      property_id: "9001",
+      unit_id: "9002",
       description: "Fixture-only repair",
-      expected_status: "New",
-      priority: "Normal",
-      property_unit: "fixture-property",
-      vendor_trade: "fixture-vendor",
+      priority_id: "2",
+      work_order_status_id: "9101",
+      is_vacant: false,
+      owner_approved: false,
+      shared_with_tenant: "0",
+      shared_with_owner: false,
+      send_vendor_notification: false,
+      send_email: false,
     };
 
     await expect(

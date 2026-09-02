@@ -102,11 +102,18 @@ const sendValues = {
   workflow_context: "synthetic:workflow:renewal-1",
 };
 const workOrderValues = {
+  ticket_ref: "synthetic:ticket:101",
+  property_id: "9001",
+  unit_id: "9002",
   description: "Synthetic kitchen sink repair.",
-  expected_status: "New",
-  priority: "Normal",
-  property_unit: "synthetic:property-unit:101",
-  vendor_trade: "synthetic:vendor-trade:plumbing",
+  priority_id: "2",
+  work_order_status_id: "9101",
+  is_vacant: false,
+  owner_approved: false,
+  shared_with_tenant: "0",
+  shared_with_owner: false,
+  send_vendor_notification: false,
+  send_email: false,
 };
 const draftValues = {
   rfc_message_id: "<synthetic-renewal-draft-1@pmikcmetro.com>",

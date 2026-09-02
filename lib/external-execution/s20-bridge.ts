@@ -506,7 +506,7 @@ function hashExternalValues(action: ExternalActionPreparationInput) {
   return hashExecutionPreview({ ...action.values });
 }
 
-function expectedExternalS20ExecutionId(action: ExternalActionPreparationInput) {
+export function expectedExternalS20ExecutionId(action: ExternalActionPreparationInput) {
   const idempotencyHash = createHash("sha256")
     .update(
       `${EXTERNAL_ACTION_IDEMPOTENCY_PRINCIPAL}\u0000${action.actionKey}\u0000${externalActionIdempotencyKey(action)}`,

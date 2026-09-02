@@ -254,27 +254,30 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("sensitivity_scan_passed", "Sensitivity scan passed", "boolean"),
     f("append_only", "Append only", "boolean"),
   ],
+  // S99: the create/update previews mirror the official wire body exactly; the synthetic
+  // composite fields, hard-coded transition booleans, and Vendor-assignment overlay are retired
+  // with the synthetic executor. The assign-vendor key has no matrix row and no preview overlay.
   "rentvine.work_order.create": [
-    f("property_unit", "Property / unit", "reference", "Rentvine"),
-    f("vendor_trade", "Vendor / trade", "reference", "Rentvine"),
+    f("ticket_ref", "App ticket", "reference"),
+    f("property_id", "Property", "reference", "Rentvine"),
+    f("unit_id", "Unit", "reference", "Rentvine"),
     f("description", "Work description", "string"),
-    f("priority", "Priority", "enum"),
-    f("expected_status", "Resulting status", "enum", "Rentvine"),
-  ],
-  "rentvine.work_order.assign_vendor": [
-    f("work_order_id", "Work order", "reference", "Rentvine"),
-    f("current_vendor", "Current Vendor", "reference", "Rentvine"),
-    f("target_vendor", "Target Vendor", "reference", "Rentvine"),
-    f("current_status", "Current status", "enum", "Rentvine"),
-    f("reason", "Assignment reason", "string"),
+    f("priority_id", "Priority", "enum", "Rentvine"),
+    f("work_order_status_id", "Initial status", "reference", "Rentvine"),
+    f("is_vacant", "Unit is vacant", "boolean"),
+    f("vendor_trade_id", "Maintenance category", "reference", "Rentvine", false),
+    f("owner_approved", "Owner approved", "boolean"),
+    f("shared_with_tenant", "Resident Portal share", "string", "Rentvine"),
+    f("shared_with_owner", "Owner Portal share", "boolean", "Rentvine"),
+    f("send_vendor_notification", "Vendor notification", "boolean", "Rentvine"),
+    f("send_email", "Email notification", "boolean", "Rentvine"),
   ],
   "rentvine.work_order.update_status": [
     f("work_order_id", "Work order", "reference", "Rentvine"),
-    f("current_status", "Current status", "enum", "Rentvine"),
-    f("target_status", "Target status", "enum", "Rentvine"),
-    f("completion_evidence", "Completion evidence present", "boolean"),
-    f("financial_checks_passed", "Financial checks passed", "boolean"),
-    f("owner_checks_passed", "Owner checks passed", "boolean"),
+    f("current_status_id", "Current status", "reference", "Rentvine"),
+    f("target_status_id", "Target status", "reference", "Rentvine"),
+    f("send_vendor_notification", "Vendor notification", "boolean", "Rentvine"),
+    f("send_review", "Completion review request", "boolean", "Rentvine"),
   ],
   // The unsent owner-notice draft. Distinct from the send contract below: the draft addresses `to`
   // and carries the review banner, and has no RFC Message-ID because nothing has been sent. This

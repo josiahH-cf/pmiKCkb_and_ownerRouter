@@ -121,8 +121,10 @@ export function createMockMaintenanceChain(): MockMaintenanceChain {
 
         assertValidPayload("rentvine.work_order.update_status", {
           work_order_id: id,
-          current_status: workOrder.status,
-          target_status: targetStatus,
+          current_status_id: workOrder.status,
+          target_status_id: targetStatus,
+          send_vendor_notification: false,
+          send_review: false,
         });
         workOrder.status = targetStatus;
         events.push({

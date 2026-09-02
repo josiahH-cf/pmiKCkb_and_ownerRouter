@@ -90,11 +90,18 @@ describe("mock maintenance work-order chain", () => {
     const chain = createMockMaintenanceChain();
 
     const workOrder = chain.rentvine.createWorkOrder({
-      property_unit: "prop-12/unit-3",
-      vendor_trade: "vendor-9/plumbing",
+      ticket_ref: "mock-ticket-12",
+      property_id: "9001",
+      unit_id: "9002",
       description: "Kitchen sink leaking under the basin.",
-      priority: "High",
-      expected_status: "Open",
+      priority_id: "3",
+      work_order_status_id: "9101",
+      is_vacant: false,
+      owner_approved: false,
+      shared_with_tenant: "0",
+      shared_with_owner: false,
+      send_vendor_notification: false,
+      send_email: false,
     });
     expect(workOrder.status).toBe("Open");
 
@@ -141,8 +148,8 @@ describe("mock maintenance work-order chain", () => {
 
     expect(() =>
       chain.rentvine.createWorkOrder({
-        property_unit: "prop-12/unit-3",
-        description: "Missing vendor and priority.",
+        property_id: "9001",
+        description: "Missing ticket, unit, status, and fixed flags.",
         unexpected_key: true,
       }),
     ).toThrow(/Invalid rentvine\.work_order\.create payload/);

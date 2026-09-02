@@ -12,6 +12,7 @@ const REVIEWED_PROVIDER_MODULE_SUFFIXES = [
   "/lib/google-sheets/read-client",
   "/lib/google-sheets/write-client",
   "/lib/integrations/rentvine/client",
+  "/lib/integrations/rentvine/work-order-client",
   "/lib/lease-renewal/market-comp-provider",
   "/lib/maintenance/image-store",
   "/lib/vendor/live-lifecycle-provider",
@@ -80,6 +81,8 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/live.ts:reader:new RentVineClient",
+  "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderReader",
+  "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderWriter",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
   "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
@@ -206,6 +209,10 @@ const LAZY_PROVIDER_FACTORIES = new Set([
   "lib/lease-renewal/execution/renewal-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/lease-renewal/sheet-writeback-service.ts:createWriter:new GoogleSheetsApiWriter",
   "lib/lease-renewal/sheet-writeback/live.ts:createWriter:new GoogleSheetsApiWriter",
+  // S99: pure construction behind the route's exact per-key committed-seed gate; the
+  // closed-route suite proves refusal with zero transport calls while all keys are closed.
+  "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderReader",
+  "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderWriter",
   "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-adapters.ts:constructor:new GmailRuntimeClient",

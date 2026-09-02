@@ -145,8 +145,8 @@ describe("Maintenance fake-provider E2E", () => {
     );
     await expect(orchestrator.execute(input, prepared.previewHash)).rejects.toBeDefined();
     expect(create.execute).toHaveBeenCalledTimes(1);
-    const assign = action("rentvine.work_order.assign_vendor", 1);
-    const blocked = await orchestrator.prepare(assign, [...store.records.values()]);
+    const send = action("gmail.maintenance_owner_notice.send", 1);
+    const blocked = await orchestrator.prepare(send, [...store.records.values()]);
     expect(blocked.state).toBe("blocked");
   });
 });

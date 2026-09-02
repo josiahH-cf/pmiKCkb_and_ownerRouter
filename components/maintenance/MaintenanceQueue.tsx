@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import { MaintenanceOwnerNoticeDraftComposer } from "@/components/maintenance/MaintenanceOwnerNoticeDraftComposer";
+import { RentvineWorkOrderPanel } from "@/components/maintenance/RentvineWorkOrderPanel";
 import { ConfirmationDialog } from "@/components/ui";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
@@ -429,6 +430,15 @@ function TicketCard({
         </p>
       </section>
       {canEdit ? <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} /> : null}
+      <details>
+        <summary>RentVine work order</summary>
+        <RentvineWorkOrderPanel
+          canEdit={canEdit}
+          hasVerifiedUnit={Boolean(ticket.unit)}
+          initialLink={null}
+          ticketId={ticket.id}
+        />
+      </details>
       <WorkflowCommunicationPanel
         canLink
         entityId={ticket.id}
