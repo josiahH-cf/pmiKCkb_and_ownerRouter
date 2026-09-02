@@ -30,7 +30,7 @@ describe("buildMaintenanceProcessTemplate", () => {
     // metadata only and still grants no execution authority.
     for (const ref of refs) {
       expect(typeof ref.readiness).toBe("string");
-      expect(ref.readiness.length).toBeGreaterThan(0);
+      expect(ref.readiness ?? "").not.toBe("");
     }
   });
 });

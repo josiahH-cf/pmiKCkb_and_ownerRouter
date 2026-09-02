@@ -6,6 +6,7 @@
 // Firestore import — reuses the spine's normalizeDefinitionFields so step/action ids cannot drift);
 // the writer stamps ISO created_at/updated_at and preserves created_at on a forced update.
 
+import { EXECUTABLE_ALLOWLIST } from "@/lib/admin/migration-readiness";
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import type { ProcessDefinitionRecord } from "@/lib/firestore/types";
 import { normalizeDefinitionFields } from "@/lib/firestore/workflows";
@@ -46,16 +47,23 @@ export function buildLeaseRenewalDefinitionRecord(
   };
 }
 
-/** Governance guard: the renewal definition must seed as a non-executable Draft. Refuse to write if
- *  any action reference is 'Approved for Execution' (the readiness that could gate a real write). */
+/** Governance guard: the definition seeds as a non-executable Draft. An 'Approved for Execution'
+ *  reference is acceptable only for a key on the durable owner-sanctioned executable allow-list
+ *  (each backed by its passed per-key bounded live proof); any other executable reference is a
+ *  surprise flip and refuses the seed. References grant no execution authority either way. */
 export function assertNoExecutableReferences(record: SeedableDefinition): void {
   const executable = record.action_references.filter(
-    (reference) => reference.readiness === "Approved for Execution",
+    (reference) =>
+      reference.readiness === "Approved for Execution" &&
+      !(
+        reference.action_registry_key !== undefined &&
+        EXECUTABLE_ALLOWLIST.has(reference.action_registry_key)
+      ),
   );
   if (executable.length > 0) {
     throw new Error(
-      `Refusing to seed: ${executable.length} action reference(s) are 'Approved for Execution'. ` +
-        "The Lease Renewal definition seeds as a non-executable Draft; executable actions require an approved per-action spec.",
+      `Refusing to seed: ${executable.length} action reference(s) are 'Approved for Execution' outside the sanctioned allow-list. ` +
+        "The definition seeds as a non-executable Draft; executable actions require an approved per-action spec.",
     );
   }
 }

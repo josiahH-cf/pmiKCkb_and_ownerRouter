@@ -168,7 +168,7 @@ const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 // owner grant (F-SEND-AUTHORIZED): draft-into-Gmail, human sends, sample data still preview-only. The
 // maintenance owner-notice DRAFT was authorized 2026-07-22 (Slice 6) once the owner email was confirmed
 // at portfolio.owners[].email (25/25); draft-only, its paired .send stays gated.
-const EXECUTABLE_ALLOWLIST = new Set<string>([
+export const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.thread.reply",
   "gmail.label.apply",
