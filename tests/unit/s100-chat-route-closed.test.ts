@@ -15,6 +15,15 @@ vi.mock("@/lib/auth/session", async (importActual) => ({
   requireCapabilityInSpace: vi.fn(async () => mocks.user),
 }));
 
+// The production-bound suspension reader would hang without Firestore in the unit env; an
+// immediate throw exercises the same fail-closed unreadable path deterministically.
+vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
+  ...(await importActual<typeof import("@/lib/firestore/runtime-action-suspensions")>()),
+  readRuntimeActionSuspension: vi.fn(async () => {
+    throw new Error("suspension store unreadable in unit env");
+  }),
+}));
+
 vi.mock("@/lib/environment/descriptor", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/environment/descriptor")>()),
   requireEnvironmentDescriptor: () => ({
@@ -63,14 +72,27 @@ describe("S100 chat routes against the committed seed (all keys closed)", () => 
   });
 
   it("refuses sync preview and mapping rerun with the production gate and zero provider work", async () => {
-    for (const body of [
-      { operation: "preview_sync", ticketId: "ticket-9" },
-      { operation: "rerun_mapping", messageId: 501 },
-    ]) {
-      const response = await chatPost(request(body));
+    const { ACTION_REGISTRY_SEED } =
+      await import("@/lib/integrations/action-registry-seed");
+    // With a key closed the committed seed refuses; an executable key (bounded window or durable
+    // activation) passes the seed term and the fail-closed suspension read refuses instead.
+    const expected = (key: string) =>
+      ACTION_REGISTRY_SEED.some(
+        (entry) => entry.key === key && entry.production_allowed === true,
+      )
+        ? "action_runtime_suspended"
+        : "action_not_production_allowed";
+    for (const [body, key] of [
+      [
+        { operation: "preview_sync", ticketId: "ticket-9" },
+        "rentvine.work_order.chat.sync",
+      ],
+      [{ operation: "rerun_mapping", messageId: 501 }, "rentvine.work_order.read"],
+    ] as const) {
+      const response = await chatPost(request(body as Record<string, unknown>));
       expect(response.status, JSON.stringify(body)).toBe(409);
       const payload = (await response.json()) as { error_type: string };
-      expect(payload.error_type).toBe("action_not_production_allowed");
+      expect(payload.error_type, JSON.stringify(body)).toBe(expected(key));
     }
     expect(mocks.transportCalls).toBe(0);
   });
