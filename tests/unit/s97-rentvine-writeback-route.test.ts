@@ -71,9 +71,7 @@ vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
 // The production-bound suspension reader would hang without Firestore in the unit env; an
 // immediate throw exercises the same fail-closed unreadable path deterministically.
 vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
-  ...(await importActual<
-    typeof import("@/lib/firestore/runtime-action-suspensions")
-  >()),
+  ...(await importActual<typeof import("@/lib/firestore/runtime-action-suspensions")>()),
   readRuntimeActionSuspension: vi.fn(async () => {
     throw new Error("suspension store unreadable in unit env");
   }),
