@@ -675,10 +675,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "One exact-cell server-side find/replace (matchEntireCell, single GridRange) that replaces one supported checklist cell only while the exact anchored row, resolved header, and expected current value still match; zero occurrences means collaborator drift and nothing changed.",
     product_lane: "Lease Renewal Agent",
-    // Bounded S98 correction proof window (owner grant 2026-09-02, designated lease 115/property
-    // 84 only): restore the receipted prior blank through the same primitive; closed on proof
-    // completion by the paired close commit.
-    readiness: "Approved for Execution",
+    readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
       "The official Sheets findReplace subrequest is scoped to one grid cell and returns occurrencesChanged, giving a provider-side compare-and-set: 1 means the exact expected value was replaced, 0 means drift with no change. The supported-field allowlist is exactly the 19-field Renewals semantic schema; murky/missing/duplicate headers, protected or merged targets, formulas, ambiguous row identity, and type mismatch refuse before the call. A correction restores the exact receipted prior value under a new confirmation through the same primitive.",
@@ -692,7 +689,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "A separately previewed and confirmed correction compare-and-sets the exact receipted prior value back into the same cell and requires exact readback.",
     connection_health_check_ref: "health.google_sheets.api",
-    production_allowed: true,
+    production_allowed: false,
   },
   {
     key: "gmail.mailbox.read",
@@ -1839,9 +1836,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
-  "google_sheets.renewal_checklist.field_update",
-];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {
