@@ -156,7 +156,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Read work-order state from Rentvine for read-only verification of the maintenance chain.",
     product_lane: "PMI KC KB",
-    readiness: "Needs Connection",
+    // Reopened inside the S99 create proof window: the governed create requires its own fresh
+    // catalog/mapping reads under this exact key; closed again by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "Official GET /maintenance/work-orders (list rows are { workOrder, contact } wrappers), /maintenance/work-orders/{workOrderID} ({ workOrder, schedulingStatusID }), /maintenance/work-order/statuses, and /maintenance/vendor-trades document the consumed read envelopes. Lists page explicitly at the documented pageSize 15 with a 20-page cap and explicit completeness; no webhooks exist.",
@@ -190,7 +192,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     ],
     rollback_note: "Read-only; nothing to roll back.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.work_order.update_status",
@@ -1840,6 +1842,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  */
 export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
   "rentvine.work_order.create",
+  "rentvine.work_order.read",
 ];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
