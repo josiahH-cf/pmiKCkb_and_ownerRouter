@@ -154,7 +154,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Read work-order state from Rentvine for read-only verification of the maintenance chain.",
     product_lane: "PMI KC KB",
-    readiness: "Needs Connection",
+    // Bounded S99 proof window (owner grant 2026-09-02, designated property 84 only); closed on
+    // proof completion by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "Official GET /maintenance/work-orders (list rows are { workOrder, contact } wrappers), /maintenance/work-orders/{workOrderID} ({ workOrder, schedulingStatusID }), /maintenance/work-order/statuses, and /maintenance/vendor-trades document the consumed read envelopes. Lists page explicitly at the documented pageSize 15 with a 20-page cap and explicit completeness; no webhooks exist.",
@@ -188,7 +190,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     ],
     rollback_note: "Read-only; nothing to roll back.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.work_order.update_status",
@@ -1836,7 +1838,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
+  "rentvine.work_order.read",
+];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {

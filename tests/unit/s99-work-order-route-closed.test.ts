@@ -13,6 +13,15 @@ vi.mock("@/lib/auth/session", async (importActual) => ({
   requireCapabilityInSpace: vi.fn(async () => mocks.user),
 }));
 
+// The production-bound suspension reader would hang without Firestore in the unit env; an
+// immediate throw exercises the same fail-closed unreadable path deterministically.
+vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
+  ...(await importActual<typeof import("@/lib/firestore/runtime-action-suspensions")>()),
+  readRuntimeActionSuspension: vi.fn(async () => {
+    throw new Error("suspension store unreadable in unit env");
+  }),
+}));
+
 vi.mock("@/lib/environment/descriptor", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/environment/descriptor")>()),
   requireEnvironmentDescriptor: () => ({
@@ -63,22 +72,40 @@ describe("S99 work-order route against the committed seed (all keys closed)", ()
   });
 
   it("refuses reads and proposals with the production gate and zero transport calls", async () => {
-    for (const body of [
-      { operation: "read", ticketId: "ticket-9" },
-      { operation: "read", workOrderId: "9005" },
-      {
-        operation: "propose_create",
-        ticketId: "ticket-9",
-        priorityId: "2",
-        workOrderStatusId: "9101",
-        isVacant: false,
-      },
-      { operation: "propose_status", workOrderId: "9005", targetStatusId: "9102" },
-    ]) {
-      const response = await post(body);
+    const { ACTION_REGISTRY_SEED } =
+      await import("@/lib/integrations/action-registry-seed");
+    // With a key closed the committed seed refuses; inside its bounded proof window the seed
+    // term passes and the fail-closed runtime-suspension read (unreadable in unit env) refuses
+    // instead. Every path stays a pre-transport refusal either way.
+    const expected = (key: string) =>
+      ACTION_REGISTRY_SEED.some(
+        (entry) => entry.key === key && entry.production_allowed === true,
+      )
+        ? "action_runtime_suspended"
+        : "action_not_production_allowed";
+    for (const [body, key] of [
+      [{ operation: "read", ticketId: "ticket-9" }, "rentvine.work_order.read"],
+      [{ operation: "read", workOrderId: "9005" }, "rentvine.work_order.read"],
+      // Both proposals repeat the read gate first for their fresh catalog/detail reads.
+      [
+        {
+          operation: "propose_create",
+          ticketId: "ticket-9",
+          priorityId: "2",
+          workOrderStatusId: "9101",
+          isVacant: false,
+        },
+        "rentvine.work_order.read",
+      ],
+      [
+        { operation: "propose_status", workOrderId: "9005", targetStatusId: "9102" },
+        "rentvine.work_order.read",
+      ],
+    ] as const) {
+      const response = await post(body as Record<string, unknown>);
       expect(response.status, JSON.stringify(body)).toBe(409);
       const payload = (await response.json()) as { error_type: string };
-      expect(payload.error_type).toBe("action_not_production_allowed");
+      expect(payload.error_type, JSON.stringify(body)).toBe(expected(key));
     }
     expect(mocks.transportCalls).toBe(0);
   });
