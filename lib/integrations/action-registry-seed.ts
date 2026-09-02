@@ -1036,7 +1036,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "POST /leases/{leaseID}/recurring-charges/{chargeID} with only changed official fields (system-of-record update).",
     product_lane: "Lease Renewal Agent",
-    readiness: "Needs Permission",
+    // Bounded S97 proof window (owner grant 2026-09-02, designated lease only); closed on proof
+    // completion by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "The official RentVine contract documents POST /leases/{leaseID}/recurring-charges/{chargeID} returning an HTTP 200 {recurringCharge} wrapper with optional nullable previousCharge. The S97 body permits only changed accountID, amount, description, dayDue, frequency, startDate, and/or endDate with the same string wire formats as create; it must be nonempty and null values are rejected. Because the provider documents no clear value, V1 rejects both dated-to-open-ended and open-ended-to-dated endDate transitions: neither has a supported exact inverse. Execution requires an independent exact detail GET where every changed field matches and every omitted field equals the fresh pre-read; the exact prior changed fields are the reversal input.",
@@ -1049,7 +1051,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "A separately previewed and confirmed reversal POSTs the exact receipted prior changed fields back to the same charge and requires exact readback; a change without a supported exact inverse is refused at proposal time.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "google_drive.maintenance_photo.store",
@@ -1539,7 +1541,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
+  "rentvine.lease.recurring_charge.update",
+];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {
