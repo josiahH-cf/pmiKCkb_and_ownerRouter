@@ -366,7 +366,11 @@ describe("Lease-renewal checklist registry entries", () => {
     for (const e of renewalEntries) {
       expect(e.target_system, e.key).toBe("Google Sheets");
       expect(e.product_lane, e.key).toBe("Lease Renewal Agent");
-      expect(e.production_allowed, e.key).toBe(false);
+      // Closed outside a bounded owner proof window; the reviewed window list is the one
+      // committed exception, and the paired close commit restores the closed pin.
+      expect(e.production_allowed, e.key).toBe(
+        OWNER_PROOF_WINDOW_OPEN_KEYS.includes(e.key),
+      );
       expect(() => CreateActionRegistryInputSchema.parse(e)).not.toThrow();
     }
     // The two S98 write keys share the catalog's one Sheets health contract (the DWD-backed
@@ -406,7 +410,9 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(retired.documented_evidence).toContain("cannot grant, prove, or inherit");
 
     const append = entry("google_sheets.renewal_checklist.row_append");
-    expect(append.production_allowed).toBe(false);
+    expect(append.production_allowed).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes(append.key),
+    );
     expect(append.expected_action).toContain("appendCells");
     // The append key's committed capability alone owns the paired receipt-bound row reversal.
     expect(append.expected_action).toContain("deleteDimension ROWS");

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
+import { OWNER_PROOF_WINDOW_OPEN_KEYS } from "@/lib/integrations/action-registry-seed";
 import type {
   SheetWritebackDependencies,
   SheetWritebackWriter,
@@ -26,6 +27,17 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth/session", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/auth/session")>()),
   requireCapabilityInSpace: vi.fn(async () => mocks.user),
+}));
+
+// The production-bound suspension reader would hang without Firestore in the unit env; an
+// immediate throw exercises the same fail-closed unreadable path deterministically.
+vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
+  ...(await importActual<
+    typeof import("@/lib/firestore/runtime-action-suspensions")
+  >()),
+  readRuntimeActionSuspension: vi.fn(async () => {
+    throw new Error("suspension store unreadable in unit env");
+  }),
 }));
 
 vi.mock("@/lib/environment/descriptor", async (importActual) => ({
@@ -271,7 +283,13 @@ describe("S98 operating-sheet route", () => {
     });
     expect(execute.status).toBe(409);
     const payload = (await execute.json()) as { error_type: string };
-    expect(payload.error_type).toBe("action_not_production_allowed");
+    // Outside a proof window the committed seed refuses; inside the append window the seed term
+    // passes and the fail-closed runtime-suspension read (unreadable in unit env) refuses instead.
+    expect(payload.error_type).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("google_sheets.renewal_checklist.row_append")
+        ? "action_runtime_suspended"
+        : "action_not_production_allowed",
+    );
     expect(mocks.writerMutations).toEqual([]);
   });
 
