@@ -109,6 +109,28 @@ const RECONCILE_MIN_AGE_MS = 2 * 60 * 1_000;
 const NOTE_SCAN_START_ROW = 2;
 const NOTE_SCAN_MAX_ROW = 3_000;
 
+/**
+ * S98 live-format tolerance (bounded proof finding, 2026-09-02): the operating Sheet renders
+ * numeric cells through column formatting, so a written "1.00" reads back as "$1.00" while the
+ * provider-side compare-and-set already applied. Two values match when they are identical
+ * strings OR both parse as the same finite number after stripping only currency/grouping
+ * rendering ("$", ",", surrounding whitespace). Text never number-matches, and blank never
+ * matches nonblank, so this cannot mask a collaborator edit to a different value.
+ */
+export function sheetCellValueMatches(written: string, observed: string): boolean {
+  if (written === observed) return true;
+  const numeric = (value: string): number | null => {
+    const stripped = value.trim().replace(/^\$/, "").replace(/,/g, "");
+    if (!stripped) return null;
+    return /^-?\d+(?:\.\d+)?$/.test(stripped) ? Number(stripped) : null;
+  };
+  const writtenNumber = numeric(written);
+  const observedNumber = numeric(observed);
+  return (
+    writtenNumber !== null && observedNumber !== null && writtenNumber === observedNumber
+  );
+}
+
 function columnLetter(index: number): string {
   let value = index;
   let letters = "";
@@ -345,7 +367,7 @@ export class SheetWritebackService {
     } else {
       const fieldEffect = effect.effect as SheetFieldUpdateEffectInput;
       const cell = await this.readAnchoredCell(input.proposal, fieldEffect, writer);
-      if (cell !== fieldEffect.afterValue) {
+      if (!sheetCellValueMatches(fieldEffect.afterValue, cell)) {
         throw new SheetWritebackServiceError("reversal_target_drift");
       }
     }
@@ -553,7 +575,10 @@ export class SheetWritebackService {
     const fieldEffect = effect.effect as SheetFieldUpdateEffectInput;
     const reversal = effect.reversal;
     const cell = await this.readAnchoredCell(input.proposal, fieldEffect, writer);
-    if (reversal.kind === "restore_field" && cell === reversal.restoreValue) {
+    if (
+      reversal.kind === "restore_field" &&
+      sheetCellValueMatches(reversal.restoreValue, cell)
+    ) {
       const receipt: ExternalActionReceipt = {
         actionKey: effect.actionKey,
         dataMode: "live",
@@ -570,7 +595,7 @@ export class SheetWritebackService {
       await this.dependencies.store.finish(reversalId, receipt);
       return receipt;
     }
-    if (cell === fieldEffect.afterValue) {
+    if (sheetCellValueMatches(fieldEffect.afterValue, cell)) {
       throw new SheetWritebackServiceError("reconcile_not_proven");
     }
     throw new SheetWritebackServiceError("reconcile_drift");
@@ -854,7 +879,7 @@ export class SheetWritebackService {
     );
     if (!applied) throw new SheetWritebackServiceError("cas_not_applied");
     const readback = await this.readCell(proposal, columnIndex, effect.rowNumber, writer);
-    if (readback !== effect.afterValue) {
+    if (!sheetCellValueMatches(effect.afterValue, readback)) {
       throw new SheetWritebackServiceError("provider_readback_mismatch");
     }
     return {
@@ -912,7 +937,7 @@ export class SheetWritebackService {
 
     const fieldEffect = validated.effect as SheetFieldUpdateEffectInput;
     const cell = await this.readAnchoredCell(proposal, fieldEffect, writer);
-    if (cell !== fieldEffect.afterValue) {
+    if (!sheetCellValueMatches(fieldEffect.afterValue, cell)) {
       throw new SheetWritebackServiceError("reversal_target_drift");
     }
     const header = await this.readHeader(proposal, writer);
@@ -935,7 +960,7 @@ export class SheetWritebackService {
       fieldEffect.rowNumber,
       writer,
     );
-    if (readback !== reversal.restoreValue) {
+    if (!sheetCellValueMatches(reversal.restoreValue, readback)) {
       throw new SheetWritebackServiceError("provider_readback_mismatch");
     }
     return {
@@ -983,7 +1008,7 @@ export class SheetWritebackService {
     }
     const effect = validated.effect;
     const cell = await this.readAnchoredCell(proposal, effect, writer);
-    if (cell === effect.afterValue) {
+    if (sheetCellValueMatches(effect.afterValue, cell)) {
       return {
         state: "after",
         providerRef: `s98-cell:${effect.field}`,
@@ -994,7 +1019,7 @@ export class SheetWritebackService {
         }),
       };
     }
-    if (cell === effect.expectedValue) return { state: "before" };
+    if (sheetCellValueMatches(effect.expectedValue, cell)) return { state: "before" };
     return { state: "drift" };
   }
 }

@@ -5,6 +5,7 @@ import {
   SheetWritebackService,
   SheetWritebackServiceError,
   hashSheetHeader,
+  sheetCellValueMatches,
   type SheetWritebackDependencies,
   type SheetWritebackWriter,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
@@ -319,6 +320,45 @@ it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
     expect(h.state.rows).toHaveLength(1);
   },
 );
+
+describe("S98 live-format value matching (2026-09-02 proof finding)", () => {
+  it("treats the Sheet's currency rendering of the written number as the same value", () => {
+    expect(sheetCellValueMatches("1.00", "$1.00")).toBe(true);
+    expect(sheetCellValueMatches("1200", "$1,200.00")).toBe(true);
+    expect(sheetCellValueMatches("1200", "1200")).toBe(true);
+    expect(sheetCellValueMatches("", "")).toBe(true);
+  });
+
+  it("never masks a real drift: blank, text, and different numbers stay mismatches", () => {
+    expect(sheetCellValueMatches("", "$0.00")).toBe(false);
+    expect(sheetCellValueMatches("1.00", "")).toBe(false);
+    expect(sheetCellValueMatches("1.00", "1.05")).toBe(false);
+    expect(sheetCellValueMatches("TEST", "$1.00")).toBe(false);
+    expect(sheetCellValueMatches("1.00", "one dollar")).toBe(false);
+  });
+
+  it("reconciles an ambiguous update whose cell reads back currency-formatted", async () => {
+    const h = harness({
+      rows: [{ values: ["", "", "Existing Tenant", "", ""], note: "" }],
+      failure: {
+        onMethod: "replaceCellIfExactMatch",
+        error: new Error("socket closed"),
+        afterApply: true,
+      },
+    });
+    const proposal = updateProposal(h);
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+    // The provider applied the write and the column formatting re-rendered it as currency.
+    h.state.rows[0].values[4] = "$1,200.00";
+    h.state.failure = undefined;
+    const receipt = await h.service.reconcileEffect({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    expect(receipt.reconciled).toBe(true);
+    expect(receipt.providerRef).toBe("s98-cell:current_rent");
+  });
+});
 
 describe("S98 one-attempt sheet execution", () => {
   it("appends once atomically with note and exact readback, and replays duplicates", async () => {
