@@ -29,7 +29,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     target_system: "Rentvine",
     expected_action: "Create a maintenance work order in Rentvine.",
     product_lane: "PMI KC KB",
-    readiness: "Needs Connection",
+    // Bounded S99 proof window (owner grant 2026-09-02, one TEST create on property 84 only);
+    // closed on proof completion by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       'Official POST /maintenance/work-orders documents the exact create body: decimal-string ids, boolean isVacant/isOwnerApproved/isSharedWithOwner, string "0" isSharedWithTenant, and sendVendorNotification defaulting TRUE so the serialized false is load-bearing. Success requires the { workOrder, schedulingStatusID } envelope plus a separate detail GET matching every reviewed field.',
@@ -145,7 +147,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "Cancellation is a separate reviewed status attempt: move the exact receipt-bound work order to the unique live system Cancelled status; never DELETE.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.work_order.read",
@@ -1836,7 +1838,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
+  "rentvine.work_order.create",
+];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {
