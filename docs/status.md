@@ -8,9 +8,9 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, 100% traffic
-- Serving commit: `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`
-- Immediate rollback: `pmi-kc-app-rmtiwwud5-993818fec846`
+- Serving revision: `pmi-kc-app-rmtjd24ee-17d334db377f`, 100% traffic
+- Serving commit: `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`
+- Immediate rollback: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
@@ -89,6 +89,31 @@ zoom/forced-colors/reduced-motion matrix, the full canonical gate, 31 core E2E t
 stable readback passed. Release caused no provider, role, store, client-data, draft, message,
 Action Registry, or protected-path effect.
 
+## S82 delivery
+
+S82 is `ALL_GATES_GREEN` and deployed. The renewal landing is now one sortable, filterable semantic
+table: each lease appears once with its location, authoritative owners and tenants, RentVine renewal
+date, current contractual base rent with a RentVine source label, deterministic overall status, rent
+verification state, and every current causal blocker as a direct phase link. Column headers own sort
+and filter controls; verified values act as exact-filter shortcuts; owner/tenant shortcuts apply
+opaque Secret Manager-derived `p1_` tokens so no display label enters a URL; active filters render
+as removable chips beside one always-present Clear filters control; and the two zero states use
+exact, distinct copy that a partial or failed read can never claim. Canonical URL state survives
+refresh, Back/Forward, copied links, lease work, and the workspace's return link, and privacy-
+bounded desk state now rides S83 access returns with the exact text-search-cleared notice. The lease
+workspace shows a clickable six-phase rail, one `Do this next` card, and one selected phase; an
+upcoming phase exposes its earliest unmet prerequisite instead of premature controls. The compat
+`/lease-renewal/lease/[leaseId]` route now lands on the guarded canonical workspace without dropping
+the id.
+
+Focused S82 suites, the real-Chromium production-build desk/workspace matrix, the full canonical
+gate, 31 core E2E tests, exact-SHA CI `33575465575`, zero-traffic candidate smoke at the exact tag
+URL, normalized configuration excluding only image/exact `APP_COMMIT_SHA`/the one specified
+`RENEWAL_DESK_PARTY_FILTER_KEY` binding, exact promotion, and repeated stable readback passed. The
+release's only cloud effects were the bounded candidate/traffic state plus creating and reading back
+that app-owned secret and its runtime-SA accessor grant; no client-data, provider-write, role,
+draft, message, or Action Registry effect ran.
+
 ## Implemented product baseline
 
 - Complete RentVine and operating-Sheet reads, source reconciliation, exact dispositions, current-
@@ -119,12 +144,15 @@ Action Registry, or protected-path effect.
 - S84's actor-filtered three-group navbar disclosure navigation, descriptive destination rows, nine
   local glyphs, responsive Menu/accordion behavior, and Dashboard/Internal Processes terminology are
   deployed over unchanged routes and guards.
+- S82's table-first renewal desk, canonical v2 query/opaque party-filter contract, desk-view return
+  continuity, guided six-phase workspace, and upgraded compat lease route are deployed; renewal
+  navigation stays read-only and draft-only.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, and S84 are
-complete and deployed; S82 is active. The queue then runs the owner-authorized source effects and
-bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, S84, and S82
+are complete and deployed; S97 is active. The queue continues with the owner-authorized source
+effects and bounded cloud pilot:
 
 - S97: exact RentVine renewal-date and recurring-charge create/update writeback.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
@@ -155,8 +183,8 @@ deferred to later separately grounded work.
 
 ## Verification baseline
 
-- Current serving exact-SHA aggregate CI run `33562996950`: passed.
-- Canonical serving gate: 586 unit files plus one intentional skip; 5,323 tests plus four skips; 26
+- Current serving exact-SHA aggregate CI run `33575465575`: passed.
+- Canonical serving gate: 595 unit files plus one intentional skip; 5,452 tests plus four skips; 26
   Firestore files/119 tests; 31 runnable core E2E tests; policy/static gates; and the complete
   production build.
 - Prior UI/assistant specification closure commit `081fa90071170054e53a2182a68466fbccf4ebf4`:
@@ -190,6 +218,15 @@ deferred to later separately grounded work.
   `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`; bounded candidate smoke on the exact tag URL; normalized
   predecessor parity excluding only image and exact `APP_COMMIT_SHA`; exact promotion; and two
   stable canonical traffic/version/route readback passes.
+
+- S82 commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`: focused desk/query/continuation/guidance/
+  destination/access-return/table/copy suites; the real-Chromium production-build desk and workspace
+  matrix over live-read-only rehearsal data; canonical verification; core E2E; exact-SHA CI
+  `33575465575`; zero-traffic candidate `pmi-kc-app-rmtjd24ee-17d334db377f`; bounded candidate smoke
+  on the exact tag URL; normalized predecessor parity excluding only image, exact `APP_COMMIT_SHA`,
+  and the one specified party-filter secret binding; exact promotion; two stable canonical
+  traffic/version/route readback passes; and secret/IAM/payload-shape readback for
+  `RENEWAL_DESK_PARTY_FILTER_KEY` without printing its value.
 
 ## Remaining runtime evidence
 

@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`            |
-| Serving commit            | `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`     |
+| Serving revision          | `pmi-kc-app-rmtjd24ee-17d334db377f`            |
+| Serving commit            | `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -32,7 +32,7 @@ Secret names are bound through Secret Manager. Values never belong in this file.
   from source uploads.
 - On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
   `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
-- The S96, S85, S86, S83, and S84 releases used a short-lived ADC token only in a task-specific shell variable passed through
+- The S96, S85, S86, S83, S84, and S82 releases used a short-lived ADC token only in a task-specific shell variable passed through
   `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
   only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
   Authentication dialogs must never be automated.
@@ -81,13 +81,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtiwwud5-993818fec846` from commit
-`796879d6e95834a749b8f11f998ff5c76e6d0459`.
+Captured predecessor: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` from commit
+`c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtiwwud5-993818fec846=100 --quiet
+  --to-revisions=pmi-kc-app-rmtj7bhzf-61f4736bdb6b=100 --quiet
 ```
 
 Forward restoration:
@@ -95,7 +95,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtj7bhzf-61f4736bdb6b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtjd24ee-17d334db377f=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -162,6 +162,23 @@ Ready/100% traffic on the exact revision, exact version identity, and healthy bo
 provider, role, store, client-data, draft, message, Action Registry, or protected-path effect
 occurred.
 
+The S82 release captured `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, passed focused desk/query/
+continuation/guidance/destination/access-return/table/copy suites, the real-Chromium production-
+build desk and workspace matrix over live-read-only rehearsal data, the canonical gate, core E2E,
+and exact-SHA CI run `33575465575`. Before the deploy it created Secret Manager secret
+`RENEWAL_DESK_PARTY_FILTER_KEY`, granted the runtime service account
+`roles/secretmanager.secretAccessor`, read back the name, IAM member, and 43-character canonical
+payload shape without printing the value, and added the reviewed
+`RENEWAL_DESK_PARTY_FILTER_KEY_SECRET_ID` signal to the production env file. Zero-traffic candidate
+`pmi-kc-app-rmtjd24ee-17d334db377f` passed the bounded read-only smoke at its exact tag URL with
+exact commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`, and its normalized runtime configuration
+equalled the predecessor after excluding only image, exact `APP_COMMIT_SHA`, and that one specified
+new secret binding - eleven Space maps, the closed Sheet write switch, Production + Live, and the
+managed runtime identity all preserved. Only that revision was promoted. Two stable canonical
+passes proved Ready/100% traffic on the exact revision, exact version identity, and healthy bounded
+routes including the guarded desk route. No client-data, provider-write, role, draft, message, or
+Action Registry effect occurred.
+
 ## Configuration invariants
 
 A routine release preserves:
@@ -169,7 +186,7 @@ A routine release preserves:
 - Production + Live;
 - managed runtime service account;
 - eleven Space maps;
-- existing Secret Manager bindings;
+- existing Secret Manager bindings, including the S82 `RENEWAL_DESK_PARTY_FILTER_KEY` reference;
 - current operating-Sheet action/runtime state (false until the S98 activation gate changes and
   reads it back);
 - local/Demo auth false;

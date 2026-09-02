@@ -10,9 +10,9 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` / commit
-  `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12` at 100% traffic. Immediate rollback is
-  `pmi-kc-app-rmtiwwud5-993818fec846`.
+- Production serves `pmi-kc-app-rmtjd24ee-17d334db377f` / commit
+  `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c` at 100% traffic. Immediate rollback is
+  `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
 - S96 is `ALL_GATES_GREEN` and deployed. Focused/canonical/core-E2E checks and exact-SHA CI passed;
@@ -39,20 +39,17 @@ effect beyond the owner-authorized keys and suite contracts.
   CI `33562996950`, candidate `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, bounded smoke, normalized
   configuration, exact promotion, and repeated stable readback, with no external effect.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
-  the S96, S85, S86, and S83 releases used the prior proven non-persistent ADC token bridge without
-  printing or writing a token.
-- S82 is implemented and committed on `main` as an unreleased candidate; production still serves the
-  S84 commit until the S82 release gates pass. The enriched desk/guidance projection, one semantic
-  table with column-owned sort/filter controls, canonical `renewal-desk-query/v2` URL and opaque
-  HMAC party-filter contract, deskView return continuity, privacy-bounded S83 access-return
-  extension, guided six-phase workspace, upgraded compat lease route, Secret Manager key binding
-  seam, and bounded content cleanup are in the committed tree. Focused S82 suites, the real-Chromium
-  desk/workspace matrix, the full canonical verifier, and core E2E passed on the exact committed
-  tree before commit. The party-filter shortcuts fail closed until the release binds
-  `RENEWAL_DESK_PARTY_FILTER_KEY`.
+  every release through S82 used the proven non-persistent ADC token bridge without printing or
+  writing a token.
+- S82 is `ALL_GATES_GREEN` and deployed: the table-first desk, canonical v2 query and opaque
+  party-filter contract, deskView continuity, privacy-bounded access returns, guided six-phase
+  workspace, and compat-route upgrade are live through exact-SHA CI `33575465575`, candidate
+  `pmi-kc-app-rmtjd24ee-17d334db377f`, bounded smoke, normalized configuration excluding only
+  image/exact `APP_COMMIT_SHA`/the one specified party-filter binding, exact promotion, repeated
+  stable readback, and secret/IAM/payload-shape readback, with no client-data or provider-write
+  effect.
 - The remaining S36, S87-S95, and S97-S100 suites are specified desired-state contracts, not
-  implementation. S82 remains active until its exact-SHA CI, release, key binding/readback, and
-  documentation gates pass. Their sole queue and completion gates are in
+  implementation. S97 is the active suite. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
@@ -75,16 +72,16 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Complete S82 delivery from the committed candidate. Require exact-SHA aggregate CI on the pushed
-commit; create and read back the `RENEWAL_DESK_PARTY_FILTER_KEY` secret with runtime-SA accessor
-access and add its reviewed `*_SECRET_ID` signal to the production env file; deploy the exact
-commit as a zero-traffic candidate; smoke the exact commit/revision/tag URL and bounded routes;
-compare normalized predecessor configuration excluding only image, exact `APP_COMMIT_SHA`, and the
-one S82-specified new secret binding; promote the exact revision; and repeat canonical
-version/route readback plus the desk route's served presence. Exclude user-owned
-`.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts from every commit and
-Cloud Build upload. Only then reconcile facts/status/plan/feature-suite index/loop state in a docs
-receipt commit and advance to S97.
+Begin S97. Re-read its complete contract, the deployed S30 one-attempt/readback/rollback safety
+primitives, the S77 exact-confirm foundation, the S80 authority matrix, and current desk/workspace
+truth. First remove the obsolete multi-record proof machinery with tests. Then implement the three
+exact renewal-writeback keys closed - `rentvine.lease.renewal_dates.update`,
+`rentvine.lease.recurring_charge.create` with only its receipt-bound reversal DELETE, and
+`rentvine.lease.recurring_charge.update` - behind exact preview/confirm/receipt/readback/reconcile
+behavior and deterministic gates. No key opens and no protected proof-window patch is prepared
+before those gates are green; the sole designated lease arrives only through secure execution
+context and is never substituted or committed. Exclude user-owned `.claude/settings.local.json`
+and `output/` plus ignored `temp/` artifacts from every commit and Cloud Build upload.
 
 ## Canonical queue
 
@@ -93,8 +90,8 @@ receipt commit and advance to S97.
 3. S86 — COMPLETE
 4. S83 — COMPLETE
 5. S84 — COMPLETE
-6. S82 — ACTIVE
-7. S97
+6. S82 — COMPLETE
+7. S97 — ACTIVE
 8. S98
 9. S99
 10. S100

@@ -4,11 +4,13 @@ Updated: 2026-09-01.
 
 ## Immediate action
 
-Begin S82. Re-verify the deployed S72/S75/S78/S80 renewal projection/query/authority truth, S81
-Connections anchors, S83 access handoffs, S84 navigation, and S85/S86 presentation/interaction
-primitives. Freeze the named table/projection/query/deskView/destination/copy and preservation
-tests before implementation; the party-filter derivation key must be Secret Manager-bound and read
-back before owner/tenant shortcut exposure, and its absence fails only those shortcuts closed.
+Begin S97. Re-read its complete contract, the deployed S30 one-attempt/readback/rollback safety
+primitives, the S77 exact-confirm foundation, the S80 authority matrix, and current desk/workspace
+truth. Remove the obsolete multi-record proof machinery with tests, then implement the three exact
+renewal-writeback keys closed behind preview/exact-confirm/receipt/readback/reconcile gates. No
+key opens, and no proof window is prepared, before its deterministic closed-state gates are green
+and the owner's per-key protected window applies; the sole designated lease arrives only through
+secure execution context and is never substituted or committed.
 
 Documentation Gate 0 is complete through specification closure
 `081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the
@@ -23,8 +25,8 @@ the S93/S94 integration gate, S95, and S87. Each suite executes once. S83 owns a
 navigation, S82 renewal UI, S97-S100 exact source effects, S36 its temporary cloud lifecycle, and S87
 the final six-cohort reconciliation.
 
-The desired S36, S82, and S87-S100 behavior is specified but not deployed. S96, S85, S86, S83, and
-S84 are complete and deployed. Continue to describe the current application using live readback and
+The desired S36 and S87-S100 behavior is specified but not deployed. S96, S85, S86, S83, S84, and
+S82 are complete and deployed. Continue to describe the current application using live readback and
 implemented facts until each remaining suite passes its delivery and release gates.
 
 ## Safe state while advancing

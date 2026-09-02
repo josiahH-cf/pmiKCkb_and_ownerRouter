@@ -11,14 +11,14 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12` as revision
-`pmi-kc-app-rmtj7bhzf-61f4736bdb6b` at 100% traffic. It remains Production + Live with eleven
+Production serves commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c` as revision
+`pmi-kc-app-rmtjd24ee-17d334db377f` at 100% traffic. It remains Production + Live with eleven
 Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
 and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
 Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
 
 The current code also retains obsolete multi-record proof and copy-only Sheet paths. They are not
-active guidance: S97 and S98 own their tested removal. The remaining S36, S82, S87-S95, and
+active guidance: S97 and S98 own their tested removal. The remaining S36, S87-S95, and
 S97-S100 contracts are specified desired state, not deployed behavior, until each suite completes
 implementation, verification, release, effect proof where required, and readback.
 
@@ -42,7 +42,11 @@ mirror readback gates without applying a role or running a provider effect. S84 
 destination rows, local glyphs, S83 count reuse, S86 transient registration, responsive
 Menu/accordion behavior, and Dashboard/Internal Processes terminology passed focused, real-browser,
 canonical, core-E2E, exact-SHA CI, candidate/configuration, exact-promotion, and repeated stable-
-readback gates over unchanged routes and guards. S82 is active.
+readback gates over unchanged routes and guards. S82 is also `ALL_GATES_GREEN` and deployed: its
+table-first desk, canonical v2 query and opaque party-filter contract, desk-view continuity,
+privacy-bounded access returns, guided six-phase workspace, and compat-route upgrade passed
+focused, real-browser, canonical, core-E2E, exact-SHA CI, candidate/configuration,
+exact-promotion, stable-readback, and secret/IAM readback gates. S97 is active.
 
 ## Authority and closed decisions
 
@@ -88,13 +92,14 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 6 implementation. Re-read S82 and the deployed S72/S75/S78/S80/S81/S83
-and S84/S85/S86 desk, process, follow-up, query, authority, navigation, and presentation truth.
-Freeze fail-first table/projection/query/deskView/destination/copy and preservation evidence; then
-implement the enriched shared projection, semantic table with column-owned sort/filter controls,
-canonical v2 URL and opaque party-filter contract, persistent desk-view return flow, guided
-six-phase workspace, and bounded content cleanup without adding provider calls, source writes,
-authority changes, or guessed links.
+The active position is step 7 implementation. Re-read S97 and the deployed S30 safety primitives,
+S77 confirm contract, S80 authority matrix, and S82 desk/workspace truth. S97 first removes the
+obsolete multi-record proof machinery with tests, then implements the three exact renewal-
+writeback keys closed - `rentvine.lease.renewal_dates.update`,
+`rentvine.lease.recurring_charge.create` with only its receipt-bound reversal DELETE, and
+`rentvine.lease.recurring_charge.update` - behind exact preview/confirm/receipt/readback/
+reconcile behavior and deterministic gates before any protected proof window is prepared under
+the owner's per-key authority.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

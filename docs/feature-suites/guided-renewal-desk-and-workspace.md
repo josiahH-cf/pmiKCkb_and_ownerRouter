@@ -3,9 +3,15 @@
 
 # S82 — Table-first renewal desk and guided lease workspace
 
-> Status: Specified and not implemented. The deployed S72/S75/S78/S80/S81 truth remains the
-> starting state; this suite changes its projection, presentation, and navigation, not its evidence
-> or authority, and consumes S85/S86 for global visual and interaction behavior.
+> Status: Complete and deployed on 2026-09-01 through commit
+> `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`, exact-SHA CI `33575465575`, zero-traffic candidate
+> `pmi-kc-app-rmtjd24ee-17d334db377f`, bounded candidate smoke, normalized runtime parity excluding
+> only image, exact `APP_COMMIT_SHA`, and the one specified `RENEWAL_DESK_PARTY_FILTER_KEY`
+> binding, exact promotion, and repeated canonical readback. Focused desk/query/continuation/
+> guidance/destination/access-return/table/copy suites, the real-Chromium production-build matrix,
+> canonical verification, and core E2E passed; the party-filter secret and its runtime-SA accessor
+> were created and read back without printing the value. Navigation performs no verification,
+> progress, source write, draft, send, or role change.
 
 **Goal.**
 

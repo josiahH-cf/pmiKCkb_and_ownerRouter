@@ -26,7 +26,9 @@ or cause provider effects.
 
 - Read all RentVine lease pages and the operating renewal Sheet.
 - Join by stable lease/row identity; never persist address/name as the sole key.
-- Show chronological work with complete address labels.
+- Land renewal work on one sortable, filterable table with per-lease identity, RentVine renewal
+  date and current base rent, deterministic status/verification states, and direct blocker links;
+  the guided workspace shows a six-phase rail, one next action, and one selected phase.
 - Classify agreement, conflict, one-sided, missing, intentional semantic difference, stale, and
   ambiguous joins.
 - Verify current rent only from fresh agreement or exact current resolution.
@@ -61,21 +63,22 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12` passed 586 unit files
-with one intentional file skip (5,323 tests and four skips), 26 Firestore files/119 tests, every
+The production release at commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c` passed 595 unit files
+with one intentional file skip (5,452 tests and four skips), 26 Firestore files/119 tests, every
 static/policy gate, core E2E, and the complete production build. Exact-SHA aggregate CI run
-`33562996950` passed. Zero-traffic revision `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` then passed exact
-identity, bounded-route, and normalized-configuration readback before promotion and repeated stable
-100% traffic readback. The committed Action Registry remains 41 keys with seven open. Revision
-`pmi-kc-app-rmtiwwud5-993818fec846` is the immediate rollback target; the earlier
+`33575465575` passed. Zero-traffic revision `pmi-kc-app-rmtjd24ee-17d334db377f` then passed exact
+identity, bounded-route, and normalized-configuration readback, excluding only image, exact
+`APP_COMMIT_SHA`, and the one S82-specified party-filter secret binding, before promotion and
+repeated stable 100% traffic readback. The committed Action Registry remains 41 keys with seven
+open. Revision `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` is the immediate rollback target; the earlier
 predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. The remaining S36, S82,
+superseded proof specifications are not part of this contract. The remaining S36,
 S87-S95, and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, S86, S83,
-and S84 are complete and deployed; S82 is the active suite. S97 later consumes S30's safety primitives
+S84, and S82 are complete and deployed; S97 is the active suite. S97 later consumes S30's safety primitives
 and replaces the proof-only route with the exact renewal product contract. All product decisions are
 closed; missing fresh provider values or managed sessions are fail-closed runtime inputs, not
 permission to invent them.
