@@ -652,10 +652,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "One atomic spreadsheets.batchUpdate whose single appendCells request appends one exact row after the current logical Renewals table with the system note on the resolved tenant_name cell (PMI KC writeback — operation <opaque id> — lease <provider id> — property <provider id>; the sealed proof mode uses the TEST — PMI KC writeback proof — prefix). The same capability owns ONLY the separately confirmed receipt-bound reversal of that exact unchanged app-appended row through one batchUpdate deleteDimension ROWS request; no other key or category can delete a row.",
     product_lane: "Lease Renewal Agent",
-    // Bounded S98 delete proof window (owner grant 2026-09-02, designated lease 115/property 84
-    // only): the receipt-bound reversal of the exact unchanged proof row with absence readback;
-    // closed on proof completion by the paired close commit.
-    readiness: "Approved for Execution",
+    readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
       "The official Sheets batchUpdate/appendCells contract applies its single subrequest atomically and writes RowData values plus the note in one call; deleteDimension removes exactly one ROW range. Sheets exposes no operation-status or idempotency ledger for these requests, so the app claims one attempt before the call, an uncertain response parks ambiguous and never retries, and reconciliation searches the exact opaque note identity, reporting observed state without claiming causality. The append requires server-resolved provider lease/property ids and a nonblank source-backed tenant_name; renewal_date is never inferred from RentVine endDate; the browser cannot select mode, note, ids, or the row key.",
@@ -669,7 +666,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "Only the exact unchanged receipt-bound appended row may be deleted, under a new preview/confirmation, with final readback proving the stable key and note absent.",
     connection_health_check_ref: "health.google_sheets.api",
-    production_allowed: true,
+    production_allowed: false,
   },
   {
     key: "google_sheets.renewal_checklist.field_update",
@@ -1839,9 +1836,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
-  "google_sheets.renewal_checklist.row_append",
-];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {
