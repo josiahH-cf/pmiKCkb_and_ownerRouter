@@ -421,7 +421,9 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(append.documented_evidence).toContain("renewal_date is never inferred");
 
     const update = entry("google_sheets.renewal_checklist.field_update");
-    expect(update.production_allowed).toBe(false);
+    expect(update.production_allowed).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes(update.key),
+    );
     expect(update.expected_action).toContain("matchEntireCell");
     expect(update.documented_evidence).toContain("occurrencesChanged");
     expect(update.documented_evidence).toContain("19-field Renewals semantic schema");
