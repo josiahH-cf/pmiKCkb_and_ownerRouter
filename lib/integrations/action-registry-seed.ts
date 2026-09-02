@@ -1679,9 +1679,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Manually confirmed GET /chat/messages for one server-bound Work Order chat: chatObjectTypeID=1, the exact bound work-order id, one confirmed positive page, pageSize=20. The documented read marks retrieved messages read for the manager role, so this is a consequential stateful read; there is no rollback and never an automatic retry, poll, or second page.",
     product_lane: "Maintenance Intake",
-    // Bounded S100 proof window (owner grant 2026-09-02): one confirmed chat page on the TEST
-    // work order 1731; closed on proof completion by the paired close commit.
-    readiness: "Approved for Execution",
+    readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
       "Official List Chat Messages documents Basic Auth, the bare-array dotted-key row shape, integer pagination headers, sender roles 1 (manager) and 2 (tenant), attachment metadata, and automatic manager-role read marking. It does not authorize polling, POST /chat/messages, attachment download, or app-side mapping.",
@@ -1733,7 +1731,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "None. The provider may have marked retrieved messages read for managers; the app discloses that uncertainty and relies on (account, messageID) deduplication for any later deliberate re-sync.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: true,
+    production_allowed: false,
   },
   {
     key: "gmail.maintenance_resident_reply.draft_create",
@@ -1844,9 +1842,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
-  "rentvine.work_order.chat.sync",
-];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {

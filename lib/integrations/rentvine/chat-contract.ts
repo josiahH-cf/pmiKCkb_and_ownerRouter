@@ -84,7 +84,10 @@ export function decodeChatPaginationHeaders(
   if (pageSize < 1 || pageSize > CHAT_PAGE_SIZE) {
     refuse("invalid_headers", "pagination-page-size must be 1 through 20.");
   }
-  if (totalPages < currentPage) {
+  // An empty thread reports zero items and zero pages for the confirmed first page (observed on
+  // the 2026-09-02 S100 sync proof); any other shortfall is a contradiction.
+  const emptyFirstPage = totalItems === 0 && totalPages === 0 && currentPage === 1;
+  if (totalPages < currentPage && !emptyFirstPage) {
     refuse(
       "invalid_headers",
       "pagination-total-pages must be at least the current page.",
@@ -92,7 +95,13 @@ export function decodeChatPaginationHeaders(
   }
   const rawNext = headers["pagination-next-page"];
   let nextPage: number | null = null;
-  if (rawNext !== undefined && rawNext.trim() !== "" && rawNext.trim() !== "null") {
+  // The live provider reports "0" for no next page (observed on the 2026-09-02 S100 sync proof).
+  if (
+    rawNext !== undefined &&
+    rawNext.trim() !== "" &&
+    rawNext.trim() !== "null" &&
+    rawNext.trim() !== "0"
+  ) {
     if (!/^\d+$/.test(rawNext.trim())) {
       refuse("invalid_headers", "pagination-next-page must be an integer or blank.");
     }

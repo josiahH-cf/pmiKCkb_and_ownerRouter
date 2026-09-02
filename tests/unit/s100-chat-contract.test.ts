@@ -69,6 +69,50 @@ describe("S100 chat contract constants", () => {
 });
 
 describe("S100 pagination headers", () => {
+  it("accepts the live empty-thread shape: zero items, zero pages, first page", () => {
+    expect(
+      decodeChatPaginationHeaders(
+        {
+          "pagination-current-page": "1",
+          "pagination-page-size": "20",
+          "pagination-total-items": "0",
+          "pagination-total-pages": "0",
+        },
+        1,
+      ),
+    ).toEqual({
+      currentPage: 1,
+      pageSize: 20,
+      totalItems: 0,
+      totalPages: 0,
+      nextPage: null,
+    });
+    // The live provider reports next-page "0" (and its own default page size) for none.
+    expect(
+      decodeChatPaginationHeaders(
+        {
+          "pagination-current-page": "1",
+          "pagination-page-size": "15",
+          "pagination-total-items": "0",
+          "pagination-total-pages": "0",
+          "pagination-next-page": "0",
+        },
+        1,
+      ).nextPage,
+    ).toBeNull();
+    expect(() =>
+      decodeChatPaginationHeaders(
+        {
+          "pagination-current-page": "2",
+          "pagination-page-size": "20",
+          "pagination-total-items": "0",
+          "pagination-total-pages": "0",
+        },
+        2,
+      ),
+    ).toThrow(/total-pages/);
+  });
+
   it("accepts the exact consistent header set with a blank next page", () => {
     expect(decodeChatPaginationHeaders(HEADERS, 1)).toEqual({
       currentPage: 1,

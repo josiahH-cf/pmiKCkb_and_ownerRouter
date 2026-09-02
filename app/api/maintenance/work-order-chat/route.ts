@@ -12,6 +12,7 @@ import {
   ActionRuntimeSuspendedError,
 } from "@/lib/operations/runtime-suspension-gate";
 import { rentVineAccountCode } from "@/lib/integrations/rentvine/client";
+import { getActionExecution } from "@/lib/firestore/action-executions";
 import { getMaintenanceWorkOrderLink } from "@/lib/firestore/maintenance-work-order-links";
 import {
   loadPreparedWorkOrderAction,
@@ -82,10 +83,17 @@ function syncAction(input: {
   ticketRef: string;
   workOrderId: string;
   page: number;
+  attempt: number;
 }): ExternalActionPreparationInput {
   return {
     workflowId: `maintenance:${input.ticketRef}`,
-    actionId: `work-order-chat-sync:${input.ticketRef}:p${input.page}`,
+    // A failed or ambiguous attempt consumed its deterministic id (2026-09-02 proof finding); a
+    // later deliberate sync of the same page runs under the next attempt suffix and relies on
+    // exact (account, messageID) deduplication.
+    actionId:
+      input.attempt === 0
+        ? `work-order-chat-sync:${input.ticketRef}:p${input.page}`
+        : `work-order-chat-sync:${input.ticketRef}:p${input.page}:a${input.attempt}`,
     actionKey: WORK_ORDER_CHAT_SYNC_KEY,
     dataMode: "live",
     values: {
@@ -158,11 +166,34 @@ export async function POST(request: Request) {
           { status: 409 },
         );
       }
-      const action = syncAction({
+      // Walk the attempt sequence: a ready or absent identity is usable, a succeeded one replays
+      // through confirm's duplicate path, and a consumed failed/ambiguous attempt advances the
+      // suffix so honest recovery stays possible without ever retrying automatically.
+      let action = syncAction({
         ticketRef: body.ticketId,
         workOrderId: link.provider_work_order_id,
         page: body.page ?? 1,
+        attempt: 0,
       });
+      for (let attempt = 1; attempt <= 20; attempt += 1) {
+        const existing = await getActionExecution(
+          user,
+          expectedExternalS20ExecutionId(action),
+        ).catch(() => null);
+        if (
+          !existing ||
+          existing.state === "Succeeded" ||
+          (existing.state === "Ready" && existing.attempt_count === 0)
+        ) {
+          break;
+        }
+        action = syncAction({
+          ticketRef: body.ticketId,
+          workOrderId: link.provider_work_order_id,
+          page: body.page ?? 1,
+          attempt,
+        });
+      }
       const record = await workOrderS20.prepare(user, {
         action,
         definition: workOrderDefinition(WORK_ORDER_CHAT_SYNC_KEY),

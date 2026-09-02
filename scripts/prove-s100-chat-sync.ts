@@ -124,10 +124,16 @@ function syncAction(input: {
   ticketRef: string;
   workOrderId: string;
   page: number;
+  attempt: number;
 }): ExternalActionPreparationInput {
   return {
     workflowId: `maintenance:${input.ticketRef}`,
-    actionId: `work-order-chat-sync:${input.ticketRef}:p${input.page}`,
+    // A failed or ambiguous attempt consumed its deterministic id; a later deliberate sync of the
+    // same page runs under the next attempt suffix and relies on exact deduplication.
+    actionId:
+      input.attempt === 0
+        ? `work-order-chat-sync:${input.ticketRef}:p${input.page}`
+        : `work-order-chat-sync:${input.ticketRef}:p${input.page}:a${input.attempt}`,
     actionKey: WORK_ORDER_CHAT_SYNC_KEY,
     dataMode: "live",
     values: {
@@ -211,8 +217,9 @@ async function main(): Promise<void> {
     );
   }
   const descriptor = requireEnvironmentDescriptor();
-  const actor = await ownerActor();
+  // getAdminFirestore initializes the default Firebase app; getAuth inside ownerActor needs it.
   const db = getAdminFirestore();
+  const actor = await ownerActor();
 
   if (op === "preview") {
     await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_CHAT_SYNC_KEY);
@@ -222,6 +229,7 @@ async function main(): Promise<void> {
       ticketRef: packet.ticketId,
       workOrderId,
       page: packet.page ?? 1,
+      attempt: Number(argValue("attempt", "0")),
     });
     const record = await workOrderS20.prepare(actor, {
       action,
