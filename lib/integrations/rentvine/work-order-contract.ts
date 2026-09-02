@@ -43,12 +43,17 @@ export const WORK_ORDER_PRIORITY_LABELS: Readonly<Record<string, string>> = {
   "3": "High",
 };
 
-/** Documented primary grouping ids: 1 Pending, 2 Open, 3 Closed, 4 On Hold. */
+/**
+ * Documented primary grouping ids: 1 Pending, 2 Open, 3 Closed, 4 On Hold. The live account's
+ * system Cancelled status carries primary 5 (observed on the 2026-09-02 S99 cancel proof), so it
+ * is named here; unknown groups still decode and render without a label.
+ */
 export const WORK_ORDER_PRIMARY_GROUPS: Readonly<Record<string, string>> = {
   "1": "Pending",
   "2": "Open",
   "3": "Closed",
   "4": "On Hold",
+  "5": "Cancelled",
 };
 /** Creation may target only a status whose live primary grouping is Pending or Open. */
 export const WORK_ORDER_CREATE_SAFE_PRIMARY_GROUPS = new Set(["1", "2"]);
@@ -236,14 +241,21 @@ export function decodeWorkOrderDetailResponse(body: unknown): WorkOrderDetail {
 }
 
 /**
- * Status-update response: exactly { workOrder }. A detail/create envelope (with
- * schedulingStatusID) or any other root is not update success.
+ * Status-update response: the documentation shows exactly { workOrder }, but the live provider
+ * answers with the detail-style { workOrder, schedulingStatusID } envelope (observed on the
+ * 2026-09-02 S99 cancel proof). Both decode; any other root is not update success.
  */
 export function decodeWorkOrderUpdateResponse(body: unknown): WorkOrderProjection {
   const root = requireRecord(body, "update response");
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || keys[0] !== "workOrder") {
-    refuse("invalid_envelope", "The update response root must be exactly { workOrder }.");
+  const keys = Object.keys(root).sort();
+  const bare = keys.length === 1 && keys[0] === "workOrder";
+  const detailShaped =
+    keys.length === 2 && keys[0] === "schedulingStatusID" && keys[1] === "workOrder";
+  if (!bare && !detailShaped) {
+    refuse(
+      "invalid_envelope",
+      "The update response root must be { workOrder } or { workOrder, schedulingStatusID }.",
+    );
   }
   return decodeWorkOrderProjection(root["workOrder"]);
 }

@@ -174,20 +174,29 @@ describe("S99 response envelopes", () => {
     );
   });
 
-  it("update: exactly { workOrder }; a detail/create envelope is not update success", () => {
+  it("update: { workOrder } or the live detail-shaped envelope; other roots refuse", () => {
     expect(decodeWorkOrderUpdateResponse({ workOrder: rawWorkOrder() }).workOrderId).toBe(
       "5150",
+    );
+    // The live provider answers updates with the detail-style envelope (observed on the
+    // 2026-09-02 S99 cancel proof).
+    expect(
+      decodeWorkOrderUpdateResponse({
+        workOrder: rawWorkOrder(),
+        schedulingStatusID: 3,
+      }).workOrderId,
+    ).toBe("5150");
+    expectRefusal(
+      () => decodeWorkOrderUpdateResponse(rawWorkOrder()),
+      "invalid_envelope",
     );
     expectRefusal(
       () =>
         decodeWorkOrderUpdateResponse({
           workOrder: rawWorkOrder(),
           schedulingStatusID: 3,
+          extra: 1,
         }),
-      "invalid_envelope",
-    );
-    expectRefusal(
-      () => decodeWorkOrderUpdateResponse(rawWorkOrder()),
       "invalid_envelope",
     );
   });
@@ -219,7 +228,8 @@ describe("S99 response envelopes", () => {
       ]),
     ).toEqual([{ vendorTradeId: "4", name: "Plumbing" }]);
     expectRefusal(
-      () => decodeTradeListResponse([{ vendorTrade: { vendorTradeID: "04", name: "x" } }]),
+      () =>
+        decodeTradeListResponse([{ vendorTrade: { vendorTradeID: "04", name: "x" } }]),
       "invalid_id",
     );
     // Id typing is orthogonal to wrapping: canonical decimal strings decode in either shape.
