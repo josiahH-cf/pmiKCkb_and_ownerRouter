@@ -211,12 +211,26 @@ describe("S99 response envelopes", () => {
     expect(decodeTradeListResponse([{ vendorTradeID: 4, name: "Plumbing" }])).toEqual([
       { vendorTradeId: "4", name: "Plumbing" },
     ]);
+    // The live provider wraps list rows as { vendorTrade } (observed 2026-09-02 S99 read proof)
+    // even though the documentation shows bare objects; both shapes decode.
+    expect(
+      decodeTradeListResponse([
+        { vendorTrade: { vendorTradeID: "4", name: "Plumbing" } },
+      ]),
+    ).toEqual([{ vendorTradeId: "4", name: "Plumbing" }]);
     expectRefusal(
-      () => decodeTradeListResponse([{ vendorTradeID: "4", name: "Plumbing" }]),
+      () => decodeTradeListResponse([{ vendorTrade: { vendorTradeID: "04", name: "x" } }]),
       "invalid_id",
     );
+    // Id typing is orthogonal to wrapping: canonical decimal strings decode in either shape.
+    expect(decodeTradeListResponse([{ vendorTradeID: "4", name: "Plumbing" }])).toEqual([
+      { vendorTradeId: "4", name: "Plumbing" },
+    ]);
     expectRefusal(
-      () => decodeTradeListResponse([{ vendorTrade: { vendorTradeID: 4 } }]),
+      () =>
+        decodeTradeListResponse([
+          { vendorTrade: { vendorTradeID: 4, name: "Plumbing" }, vendors: [] },
+        ]),
       "invalid_envelope",
     );
     expect(

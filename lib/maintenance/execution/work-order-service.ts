@@ -156,7 +156,13 @@ export async function runWorkOrderRead(
 export async function resolveTicketUnitMapping(
   ticket: MaintenanceTicketRecord,
 ): Promise<{ unitId: string; propertyId: string }> {
-  if (!ticket.unit || !/^[1-9][0-9]*$/.test(ticket.unit.unitId)) {
+  // The live roster ids arrive as "unit:<decimal>" (observed on the 2026-09-02 S99 read proof);
+  // bare decimals stay accepted for compatibility. The provider filter needs the bare decimal.
+  const rosterUnitId = ticket.unit?.unitId ?? "";
+  const numericUnitId =
+    /^unit:([1-9][0-9]*)$/.exec(rosterUnitId)?.[1] ??
+    (/^[1-9][0-9]*$/.test(rosterUnitId) ? rosterUnitId : null);
+  if (!ticket.unit || numericUnitId === null) {
     throw new WorkOrderServiceError(
       "ticket_not_eligible",
       "This ticket has no verified RentVine unit.",
@@ -179,7 +185,7 @@ export async function resolveTicketUnitMapping(
       "The verified unit has no current RentVine property mapping.",
     );
   }
-  return { unitId: ticket.unit.unitId, propertyId: candidate.propertyId };
+  return { unitId: numericUnitId, propertyId: candidate.propertyId };
 }
 
 export function buildTrustedContext(

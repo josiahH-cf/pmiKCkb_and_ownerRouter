@@ -112,8 +112,9 @@ async function main(): Promise<void> {
     );
   }
   const descriptor = requireEnvironmentDescriptor();
-  const actor = await ownerActor();
+  // getAdminFirestore initializes the default Firebase app; getAuth inside ownerActor needs it.
   const db = getAdminFirestore();
+  const actor = await ownerActor();
   const clients = buildWorkOrderClients();
   if (!clients) throw new Error("RentVine work-order credentials are not configured.");
 

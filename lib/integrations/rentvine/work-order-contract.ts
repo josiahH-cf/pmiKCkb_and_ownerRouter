@@ -302,21 +302,36 @@ export interface VendorTradeProjection {
   name: string;
 }
 
-/** Trade list rows are documented Vendor-trade objects whose vendorTradeID is an integer. */
+/**
+ * Trade list rows: the documentation shows bare Vendor-trade objects, but the live provider
+ * returns { vendorTrade } wrappers (observed on the 2026-09-02 S99 bounded read proof). Both
+ * shapes decode; a wrapper carrying a `vendors` include still refuses because the adapter never
+ * requests one.
+ */
 export function decodeTradeListResponse(body: unknown): VendorTradeProjection[] {
   if (!Array.isArray(body)) {
     refuse("invalid_envelope", "The vendor-trade list response must be a bare array.");
   }
   return body.map((row, index) => {
-    const raw = requireRecord(row, `trade row ${index}`);
-    if ("vendorTrade" in raw) {
+    const outer = requireRecord(row, `trade row ${index}`);
+    if ("vendors" in outer) {
       refuse(
         "invalid_envelope",
-        `Trade row ${index} must be a bare trade object, not a wrapper.`,
+        `Trade row ${index} carries a vendors include the adapter never requests.`,
       );
     }
+    const raw =
+      "vendorTrade" in outer
+        ? requireRecord(outer["vendorTrade"], `trade row ${index} wrapper`)
+        : outer;
+    // Documented bare rows carry integer ids; the live wrapped rows carry the same canonical
+    // decimal strings as every other body id (observed together on the 2026-09-02 read proof).
+    const rawId = raw["vendorTradeID"];
     return {
-      vendorTradeId: canonicalPathId(raw["vendorTradeID"], "vendorTradeID"),
+      vendorTradeId:
+        typeof rawId === "string"
+          ? decodeDecimalIdString(rawId, "vendorTradeID")
+          : canonicalPathId(rawId, "vendorTradeID"),
       name: requireString(raw["name"], "name"),
     };
   });
