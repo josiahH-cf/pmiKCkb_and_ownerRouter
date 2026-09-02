@@ -110,9 +110,20 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
       }
       const existing = state.charges.get(chargeId);
       if (!existing) throw new ProviderHttpError(404);
+      const echoIsoUpdate = (value: unknown): unknown => {
+        if (typeof value !== "string") return value;
+        const us = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+        return us ? `${us[3]}-${us[1]}-${us[2]}` : value;
+      };
+      const applied = Object.fromEntries(
+        Object.entries(payload).map(([key, value]) => [
+          key,
+          key === "startDate" || key === "endDate" ? echoIsoUpdate(value) : value,
+        ]),
+      );
       state.charges.set(chargeId, {
         ...existing,
-        ...payload,
+        ...applied,
       } as RecurringChargeProjection);
       return { recurringCharge: { leaseRecurringChargeID: chargeId } };
     },
@@ -122,6 +133,13 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         throw state.writerFailure.error;
       }
       const id = String(state.nextChargeId++);
+      // The live provider echoes submitted MM/DD/YYYY dates back as ISO YYYY-MM-DD
+      // (verified on the 2026-09-02 create proof); the fake mirrors that.
+      const echoIso = (value: string | null | undefined): string | null => {
+        if (value === null || value === undefined) return null;
+        const us = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+        return us ? `${us[3]}-${us[1]}-${us[2]}` : value;
+      };
       const created = charge({
         leaseRecurringChargeID: id,
         leaseID: leaseId,
@@ -130,8 +148,8 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         description: payload.description,
         dayDue: payload.dayDue,
         frequency: payload.frequency,
-        startDate: payload.startDate,
-        endDate: payload.endDate ?? null,
+        startDate: echoIso(payload.startDate) as string,
+        endDate: echoIso(payload.endDate ?? null),
         nextChargeDate: null,
         recurringStatusID: 2,
       });

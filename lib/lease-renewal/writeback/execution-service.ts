@@ -143,6 +143,30 @@ function chargeProjectionHash(projection: RecurringChargeProjection): string {
   return hashExecutionPreview({ version: "s97-charge-projection/v1", projection });
 }
 
+/**
+ * The official write payloads carry MM/DD/YYYY charge dates while the provider stores and echoes
+ * ISO YYYY-MM-DD (verified live 2026-09-02). Readback comparison normalizes both sides to ISO so
+ * "normalized submitted field" matching follows the documented contract; non-date values compare
+ * byte-exact.
+ */
+function normalizedChargeDate(value: string | null): string | null {
+  if (value === null) return null;
+  const us = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (us) return `${us[3]}-${us[1]}-${us[2]}`;
+  return value.slice(0, 10);
+}
+
+function chargeFieldMatches(
+  field: string,
+  actual: string | null,
+  expected: string | null,
+): boolean {
+  if (field === "startDate" || field === "endDate") {
+    return normalizedChargeDate(actual) === normalizedChargeDate(expected);
+  }
+  return actual === expected;
+}
+
 function providerOutcomeIsAmbiguous(error: unknown): boolean {
   // Auth/permission/validation refusals are definite; anything else after a provider attempt is
   // treated as possibly-applied.
@@ -901,7 +925,7 @@ export class RenewalWritebackService {
     for (const field of editable) {
       const changed = changes[field];
       const expected = changed !== undefined ? changed : before[field];
-      if (readback[field] !== expected) {
+      if (!chargeFieldMatches(field, readback[field], expected)) {
         throw new RenewalWritebackServiceError("provider_readback_mismatch");
       }
     }
@@ -926,12 +950,12 @@ export class RenewalWritebackService {
       "startDate",
     ] as const;
     for (const field of fields) {
-      if (projection[field] !== create[field]) {
+      if (!chargeFieldMatches(field, projection[field], create[field])) {
         throw new RenewalWritebackServiceError("provider_readback_mismatch");
       }
     }
     const expectedEnd = create.endDate ?? null;
-    if (projection.endDate !== expectedEnd) {
+    if (!chargeFieldMatches("endDate", projection.endDate, expectedEnd)) {
       throw new RenewalWritebackServiceError("provider_readback_mismatch");
     }
   }
