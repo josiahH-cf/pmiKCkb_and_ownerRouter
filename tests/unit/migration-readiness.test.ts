@@ -220,6 +220,10 @@ describe("buildMigrationReadinessReport", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      // S97 activation (2026-09-02): proven exact renewal-writeback keys, in seed order.
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.create",
+      "rentvine.lease.recurring_charge.update",
       "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
     ]);
@@ -518,6 +522,10 @@ describe("buildMigrationReadinessReport", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      // S97 activation (2026-09-02): proven exact renewal-writeback keys, in seed order.
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.create",
+      "rentvine.lease.recurring_charge.update",
       "rentcast.rental_listings.search",
       "internal.transactional_notice.send",
     ]);

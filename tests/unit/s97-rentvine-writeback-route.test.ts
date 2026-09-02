@@ -224,13 +224,9 @@ describe("S97 rentvine-writeback route", () => {
     });
     expect(execute.status).toBe(409);
     const payload = (await execute.json()) as { error_type: string };
-    // Outside a proof window the committed seed refuses; inside the dates window the seed term
-    // passes and the fail-closed runtime-suspension read (unreadable in unit env) refuses instead.
-    expect(payload.error_type).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.renewal_dates.update")
-        ? "action_runtime_suspended"
-        : "action_not_production_allowed",
-    );
+    // S97 activation (2026-09-02): the committed seed term is open, so the fail-closed
+    // runtime-suspension term (unreadable in the unit env) is the refusing gate.
+    expect(payload.error_type).toBe("action_runtime_suspended");
     expect(mocks.writerCalls).toEqual([]);
     expect(mocks.projection).not.toHaveBeenCalled();
   });

@@ -113,16 +113,14 @@ describe("S97 retired-machinery inventory", () => {
   );
 
   it(
-    "registers all three exact keys as closed system-of-record writes with the matrix",
+    "registers all three exact keys as proven system-of-record writes with the matrix",
     { timeout: SCAN_TIMEOUT },
     () => {
       for (const key of RENEWAL_WRITEBACK_KEYS) {
         const entry = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === key);
         expect(entry, key).toBeDefined();
-        // Closed except while the committed, owner-authorized bounded proof window names the key.
-        expect(entry?.production_allowed, key).toBe(
-          OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key),
-        );
+        // S97 activation 2026-09-02: every key passed its own bounded live proof before opening.
+        expect(entry?.production_allowed, key).toBe(true);
         expect(LEASE_EXECUTION_ACTIONS).toContain(key);
         expect(
           FINAL_V1_ACTION_PREVIEW_SCHEMAS[

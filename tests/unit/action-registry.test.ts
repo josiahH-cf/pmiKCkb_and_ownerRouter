@@ -60,6 +60,10 @@ describe("Action Registry repository", () => {
       "internal.transactional_notice.send",
       // S59: read-only RentCast lookup, explicitly activated for the meeting-readiness slice.
       "rentcast.rental_listings.search",
+      // S97 activation (2026-09-02): proven exact renewal-writeback keys.
+      "rentvine.lease.recurring_charge.create",
+      "rentvine.lease.recurring_charge.update",
+      "rentvine.lease.renewal_dates.update",
     ]);
   });
 

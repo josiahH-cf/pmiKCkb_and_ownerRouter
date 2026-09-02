@@ -179,6 +179,11 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE). Internal-only
   // auto-send, metadata-only, internal-domain-locked; every client-facing send stays human-confirmed.
   "internal.transactional_notice.send",
+  // S97 activation (2026-09-02): exact renewal-writeback keys, each proven live on the designated
+  // lease with receipts, exact readback, and separately confirmed reversal before opening.
+  "rentvine.lease.renewal_dates.update",
+  "rentvine.lease.recurring_charge.create",
+  "rentvine.lease.recurring_charge.update",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

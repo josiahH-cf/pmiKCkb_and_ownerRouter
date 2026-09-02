@@ -136,7 +136,7 @@ describe("lease renewal process-definition template", () => {
     );
   });
 
-  it("keeps the three exact RentVine writeback keys closed pending their proof windows", () => {
+  it("keeps the three exact RentVine writeback keys proven, open, and template-Planned", () => {
     const parsed = CreateProcessDefinitionInputSchema.parse(template());
     // S97: the retired broad identifier left the template with the execution matrix.
     expect(
@@ -153,13 +153,11 @@ describe("lease renewal process-definition template", () => {
       const writeback = parsed.action_references.find(
         (reference) => reference.action_registry_key === key,
       );
-      // The template renders a windowed (temporarily open) key as Planned; closed keys stay
-      // Needs Permission pending their own proof windows.
-      expect(writeback?.readiness, key).toBe(
-        OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key) ? "Planned" : "Needs Permission",
-      );
+      // S97 activation (2026-09-02): open keys render Planned in the template (per-workflow
+      // instance mapping still applies; registry promotion is never blanket workflow authority).
+      expect(writeback?.readiness, key).toBe("Planned");
       expect(writeback?.missing_connection_or_permission, key).toMatch(
-        /owner-authorized bounded proof window/i,
+        /ACTIVATED 2026-09-02 after its passed bounded live proof/,
       );
     }
   });

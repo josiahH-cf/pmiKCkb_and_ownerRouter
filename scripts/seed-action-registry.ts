@@ -43,6 +43,11 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.maintenance_owner_notice.draft_create",
   // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
   "internal.transactional_notice.send",
+  // S97 activation (2026-09-02): each exact renewal-writeback key passed its own bounded live proof
+  // on the owner-designated lease (forward/readback/receipt plus separately confirmed reversal).
+  "rentvine.lease.renewal_dates.update",
+  "rentvine.lease.recurring_charge.create",
+  "rentvine.lease.recurring_charge.update",
 ]);
 
 export function parseSeedActionRegistryArgs(

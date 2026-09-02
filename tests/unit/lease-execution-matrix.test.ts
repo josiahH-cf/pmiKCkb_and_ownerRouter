@@ -48,7 +48,11 @@ describe("Lease execution matrix", () => {
           "gmail.thread.reply",
           "gmail.label.apply",
           "gmail.renewal_notice.draft_create",
-          // S97-S100: a key inside its committed bounded proof window is temporarily open.
+          // S97 activation (2026-09-02): proven exact renewal-writeback keys are open.
+          "rentvine.lease.renewal_dates.update",
+          "rentvine.lease.recurring_charge.create",
+          "rentvine.lease.recurring_charge.update",
+          // S98-S100: a key inside its committed bounded proof window is temporarily open.
           ...OWNER_PROOF_WINDOW_OPEN_KEYS,
         ].includes(definition.key)
       ) {

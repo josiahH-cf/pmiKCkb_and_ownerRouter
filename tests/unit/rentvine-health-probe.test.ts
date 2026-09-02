@@ -123,6 +123,10 @@ describe("Action Registry stays non-executable for the live read paths", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      // S97 activation (2026-09-02): proven exact renewal-writeback keys, in seed order.
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.create",
+      "rentvine.lease.recurring_charge.update",
       // S59: read-only market-comparable lookup, explicitly activated on 2026-08-26.
       "rentcast.rental_listings.search",
       // S39.3: internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.

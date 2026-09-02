@@ -152,6 +152,11 @@ describe("Action Registry seed catalog", () => {
       // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE).
       // Internal-only auto-send; the generic gmail.message.send stays non-executable.
       "internal.transactional_notice.send",
+      // S97 activation (2026-09-02): each exact renewal-writeback key passed its own bounded live
+      // proof (forward/readback/receipt + separately confirmed reversal) before opening.
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.create",
+      "rentvine.lease.recurring_charge.update",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -180,9 +185,7 @@ describe("Action Registry seed catalog", () => {
     const dates = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.renewal_dates.update",
     );
-    expect(dates?.production_allowed).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.renewal_dates.update"),
-    );
+    expect(dates?.production_allowed).toBe(true);
     expect(dates?.expected_action).toContain("POST /leases/{leaseID}");
     expect(dates?.documented_evidence).toContain("startDate copied unchanged");
     expect(dates?.documented_evidence).toContain("never retries ambiguity");
@@ -190,9 +193,7 @@ describe("Action Registry seed catalog", () => {
     const create = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.recurring_charge.create",
     );
-    expect(create?.production_allowed).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.recurring_charge.create"),
-    );
+    expect(create?.production_allowed).toBe(true);
     // The create key's committed capability alone owns the paired receipt-bound reversal DELETE.
     expect(create?.expected_action).toContain(
       "DELETE /leases/{leaseID}/recurring-charges/{chargeID}",
@@ -204,9 +205,7 @@ describe("Action Registry seed catalog", () => {
     const update = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.recurring_charge.update",
     );
-    expect(update?.production_allowed).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.recurring_charge.update"),
-    );
+    expect(update?.production_allowed).toBe(true);
     expect(update?.documented_evidence).toContain(
       "rejects both dated-to-open-ended and open-ended-to-dated",
     );
