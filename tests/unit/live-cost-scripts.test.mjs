@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 import {
@@ -1415,14 +1416,43 @@ describe("sheet write-back runtime switch is coupled to its reviewed gate", () =
     ).toEqual([]);
   });
 
-  it("refuses the switch on while the gate is closed", () => {
-    const problems = validateSheetWritebackGateCoupling({
-      LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true",
-    });
+  it("allows the switch on now that both exact successor gates are activated", () => {
+    // S98 activation (2026-09-02): the coupling follows the two exact proven keys, so the
+    // reviewed switch may finally lead a deploy.
+    expect(
+      validateSheetWritebackGateCoupling({
+        LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true",
+      }),
+    ).toEqual([]);
+  });
+
+  it("refuses the switch on while any exact successor gate is closed", () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), "s98-gate-"));
+    mkdirSync(join(fixtureRoot, "lib", "integrations"), { recursive: true });
+    writeFileSync(
+      join(fixtureRoot, "lib", "integrations", "action-registry-seed.ts"),
+      [
+        "  {",
+        '    key: "google_sheets.renewal_checklist.row_append",',
+        "    production_allowed: true,",
+        "  },",
+        "  {",
+        '    key: "google_sheets.renewal_checklist.field_update",',
+        "    production_allowed: false,",
+        "  },",
+        "",
+      ].join("\n"),
+    );
+    const problems = validateSheetWritebackGateCoupling(
+      { LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true" },
+      fixtureRoot,
+    );
 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true refused");
-    expect(problems[0]).toContain("production_allowed:false");
+    expect(problems[0]).toContain(
+      "google_sheets.renewal_checklist.field_update is production_allowed:false",
+    );
   });
 
   it("refuses when the gate cannot be resolved, rather than assuming it is open", () => {
@@ -1437,7 +1467,7 @@ describe("sheet write-back runtime switch is coupled to its reviewed gate", () =
     expect(problems[0]).toContain("could not be resolved");
   });
 
-  it("refuses the whole deploy command, not just the flag", () => {
+  it("builds the deploy with the switch on under the activated gates", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run"],
       env: deployEnv({ LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true" }),
@@ -1445,10 +1475,12 @@ describe("sheet write-back runtime switch is coupled to its reviewed gate", () =
       revisionSuffix: createDeployRevisionSuffix(),
     });
 
-    expect(command.ok).toBe(false);
-    expect(command.errors.join("\n")).toContain(
-      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true refused",
-    );
+    expect(command.ok).toBe(true);
+    expect(
+      command.args.some((argument) =>
+        argument.includes("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true"),
+      ),
+    ).toBe(true);
   });
 
   it("still builds when the switch is off", () => {

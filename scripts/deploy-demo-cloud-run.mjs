@@ -274,9 +274,14 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   await executeDemoDeployPlan(command, revisionTrafficCommand);
 }
 
-// The Action Registry key that governs the live Sheet write-back effect. Its seed entry is the
-// REVIEWED control; LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED is only the runtime switch in front of it.
-const SHEET_WRITEBACK_ACTION_KEY = "google_sheets.renewal_checklist.writeback";
+// The Action Registry keys that govern the live Sheet write-back effects. Their seed entries are
+// the REVIEWED control; LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED is only the runtime switch in front
+// of them. S98 (2026-09-02) retired the broad `google_sheets.renewal_checklist.writeback`
+// identifier permanently, so the coupling requires BOTH exact successor keys to be open.
+const SHEET_WRITEBACK_ACTION_KEYS = [
+  "google_sheets.renewal_checklist.row_append",
+  "google_sheets.renewal_checklist.field_update",
+];
 const SHEET_WRITEBACK_ENV_NAME = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
 
 /**
@@ -320,13 +325,19 @@ export function readSeedProductionAllowed(actionKey, rootDir = root) {
 export function validateSheetWritebackGateCoupling(runtimeEnv, rootDir = root) {
   if (String(runtimeEnv?.[SHEET_WRITEBACK_ENV_NAME]) !== "true") return [];
 
-  const allowed = readSeedProductionAllowed(SHEET_WRITEBACK_ACTION_KEY, rootDir);
-  if (allowed === true) return [];
+  const closed = SHEET_WRITEBACK_ACTION_KEYS.map((actionKey) => ({
+    actionKey,
+    allowed: readSeedProductionAllowed(actionKey, rootDir),
+  })).filter((entry) => entry.allowed !== true);
+  if (closed.length === 0) return [];
 
-  const because =
-    allowed === false
-      ? `${SHEET_WRITEBACK_ACTION_KEY} is production_allowed:false`
-      : `${SHEET_WRITEBACK_ACTION_KEY} could not be resolved from the action registry seed`;
+  const because = closed
+    .map((entry) =>
+      entry.allowed === false
+        ? `${entry.actionKey} is production_allowed:false`
+        : `${entry.actionKey} could not be resolved from the action registry seed`,
+    )
+    .join("; ");
   return [
     `${SHEET_WRITEBACK_ENV_NAME}=true refused: ${because}. The runtime switch may not lead its reviewed gate. Deploy from the reviewed production env file (a local .env.local sets this true for local work), or open the gate first via its reviewed D12 change.`,
   ];
