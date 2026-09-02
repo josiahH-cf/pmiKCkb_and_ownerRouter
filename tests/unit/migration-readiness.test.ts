@@ -7,7 +7,10 @@ import {
   type MigrationReadinessDeps,
 } from "@/lib/admin/migration-readiness";
 import { buildActionRegistryRecord } from "@/lib/firestore/action-registry";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 
 const admin: AuthenticatedUser = {
   uid: "test-admin",
@@ -200,7 +203,18 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.action_registry.source).toBe("seed-catalog");
     expect(report.action_registry.total).toBe(ACTION_REGISTRY_SEED.length);
     expect(report.action_registry.note).toMatch(/static seed catalog/);
-    expect(report.action_registry.production_allowed_keys).toEqual([
+    // The durable seven-key set, plus whatever key the committed S97-S100 proof window
+    // currently opens (empty outside a window), in seed order.
+    expect(report.action_registry.production_allowed_keys).toEqual(
+      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
+        (entry) => entry.key,
+      ),
+    );
+    expect(
+      report.action_registry.production_allowed_keys.filter(
+        (key) => !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key),
+      ),
+    ).toEqual([
       "gmail.mailbox.read",
       "gmail.thread.reply",
       "gmail.label.apply",
@@ -487,7 +501,18 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.budget.available).toBe(true);
     expect(report.budget.cap_usd).toBe(10);
     expect(report.action_registry.total).toBeGreaterThanOrEqual(14);
-    expect(report.action_registry.production_allowed_keys).toEqual([
+    // The durable seven-key set, plus whatever key the committed S97-S100 proof window
+    // currently opens (empty outside a window), in seed order.
+    expect(report.action_registry.production_allowed_keys).toEqual(
+      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
+        (entry) => entry.key,
+      ),
+    );
+    expect(
+      report.action_registry.production_allowed_keys.filter(
+        (key) => !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key),
+      ),
+    ).toEqual([
       "gmail.mailbox.read",
       "gmail.thread.reply",
       "gmail.label.apply",

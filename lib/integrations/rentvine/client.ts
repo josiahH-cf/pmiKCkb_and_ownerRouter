@@ -353,10 +353,23 @@ export class RentVineClient {
     const response = await this.rawGet(path);
     this.ensureOk(response, path);
     const body = (await response.json()) as unknown;
-    if (Array.isArray(body)) return body as Record<string, unknown>[];
+    // Live list elements arrive as `{recurringCharge, account}` envelopes (verified 2026-09-02);
+    // normalize each to the inner charge so callers see the same shape as the detail read.
+    const unwrapElement = (entry: unknown): Record<string, unknown> => {
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+        const record = entry as Record<string, unknown>;
+        const inner = record["recurringCharge"];
+        if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+          return inner as Record<string, unknown>;
+        }
+        return record;
+      }
+      throw new RentVineError("Unexpected Rentvine recurringCharges element shape.", 0);
+    };
+    if (Array.isArray(body)) return body.map(unwrapElement);
     if (body && typeof body === "object") {
       const inner = (body as Record<string, unknown>)["recurringCharges"];
-      if (Array.isArray(inner)) return inner as Record<string, unknown>[];
+      if (Array.isArray(inner)) return inner.map(unwrapElement);
     }
     throw new RentVineError("Unexpected Rentvine recurringCharges response shape.", 0);
   }

@@ -2,7 +2,10 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import { FINAL_V1_ACTION_PREVIEW_SCHEMAS } from "@/lib/integrations/final-v1-action-contracts";
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 import {
@@ -116,7 +119,10 @@ describe("S97 retired-machinery inventory", () => {
       for (const key of RENEWAL_WRITEBACK_KEYS) {
         const entry = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === key);
         expect(entry, key).toBeDefined();
-        expect(entry?.production_allowed, key).toBe(false);
+        // Closed except while the committed, owner-authorized bounded proof window names the key.
+        expect(entry?.production_allowed, key).toBe(
+          OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key),
+        );
         expect(LEASE_EXECUTION_ACTIONS).toContain(key);
         expect(
           FINAL_V1_ACTION_PREVIEW_SCHEMAS[

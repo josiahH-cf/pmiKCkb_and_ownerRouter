@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CreateActionRegistryInputSchema } from "@/lib/firestore/schemas";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 
 const baseInput = {
@@ -152,7 +155,11 @@ describe("Action Registry seed catalog", () => {
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
-      expect(parsed.production_allowed, entry.key).toBe(EXECUTABLE.has(entry.key));
+      // S97-S100: a key inside its committed owner-authorized bounded proof window is
+      // temporarily executable; every other entry stays pinned to the durable allow-list.
+      expect(parsed.production_allowed, entry.key).toBe(
+        EXECUTABLE.has(entry.key) || OWNER_PROOF_WINDOW_OPEN_KEYS.includes(entry.key),
+      );
     }
   });
 
@@ -173,7 +180,9 @@ describe("Action Registry seed catalog", () => {
     const dates = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.renewal_dates.update",
     );
-    expect(dates?.production_allowed).toBe(false);
+    expect(dates?.production_allowed).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.renewal_dates.update"),
+    );
     expect(dates?.expected_action).toContain("POST /leases/{leaseID}");
     expect(dates?.documented_evidence).toContain("startDate copied unchanged");
     expect(dates?.documented_evidence).toContain("never retries ambiguity");
@@ -181,7 +190,9 @@ describe("Action Registry seed catalog", () => {
     const create = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.recurring_charge.create",
     );
-    expect(create?.production_allowed).toBe(false);
+    expect(create?.production_allowed).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.recurring_charge.create"),
+    );
     // The create key's committed capability alone owns the paired receipt-bound reversal DELETE.
     expect(create?.expected_action).toContain(
       "DELETE /leases/{leaseID}/recurring-charges/{chargeID}",
@@ -193,7 +204,9 @@ describe("Action Registry seed catalog", () => {
     const update = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.recurring_charge.update",
     );
-    expect(update?.production_allowed).toBe(false);
+    expect(update?.production_allowed).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.recurring_charge.update"),
+    );
     expect(update?.documented_evidence).toContain(
       "rejects both dated-to-open-ended and open-ended-to-dated",
     );

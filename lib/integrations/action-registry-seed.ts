@@ -992,7 +992,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "POST /leases/{leaseID} with fresh startDate copied unchanged plus only the changed endDate and/or increaseEligibilityDate (system-of-record update).",
     product_lane: "Lease Renewal Agent",
-    readiness: "Needs Permission",
+    // Bounded S97 proof window (owner grant 2026-09-02, designated lease only); closed on proof
+    // completion by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "The official RentVine contract documents POST /leases/{leaseID} returning an HTTP 200 {lease} wrapper. The S97 body always includes fresh startDate copied unchanged as YYYY-MM-DD and includes changed endDate and/or increaseEligibilityDate only, each YYYY-MM-DD or explicit null; at least one editable date must change, startDate is not editable, and every other lease field is omitted. Execution requires independent fresh GET /leases/{leaseID} readback matching the copied start date, changed dates, and preserved omitted state; exact prior dates are the reversal input. The provider has no proven idempotency or compare-and-set, so the app claims one attempt and never retries ambiguity.",
@@ -1005,7 +1007,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "A separately previewed and confirmed reversal POSTs the exact receipted prior dates back to the same lease and requires exact readback; drift refuses automatic reversal.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.lease.recurring_charge.create",
@@ -1530,6 +1532,17 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },
+];
+
+/**
+ * S97-S100 owner-authorized activation program (AGENTS "Owner-authorized activation program",
+ * owner proof grant 2026-09-02): the exact keys currently inside a bounded temporary proof window.
+ * A key listed here is production_allowed in this seed ONLY for its own live proof and is closed
+ * again (list emptied, entry restored) before any other key's window or the final activation
+ * patch. Outside a window this list is empty.
+ */
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
+  "rentvine.lease.renewal_dates.update",
 ];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =

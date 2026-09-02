@@ -5,7 +5,10 @@ import {
   buildActionRegistryRecord,
   upsertActionRegistryEntry,
 } from "../lib/firestore/action-registry";
-import { ACTION_REGISTRY_SEED } from "../lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "../lib/integrations/action-registry-seed";
 
 export interface SeedActionRegistryOptions {
   help: boolean;
@@ -75,7 +78,12 @@ export async function main(argv = process.argv.slice(2)) {
   const records = ACTION_REGISTRY_SEED.map((entry) => buildActionRegistryRecord(entry));
 
   const unexpectedExecutable = records.filter(
-    (record) => record.production_allowed && !EXECUTABLE_ALLOWLIST.has(record.key),
+    (record) =>
+      record.production_allowed &&
+      !EXECUTABLE_ALLOWLIST.has(record.key) &&
+      // S97-S100 activation program: a key inside its owner-authorized bounded proof window is
+      // temporarily production_allowed with the grant recorded next to the window list itself.
+      !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(record.key),
   );
   if (unexpectedExecutable.length > 0) {
     throw new Error(

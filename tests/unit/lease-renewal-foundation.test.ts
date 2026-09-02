@@ -11,7 +11,10 @@ import {
   submitProcessDefinitionForApproval,
   updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import {
   LEASE_RENEWAL_PLANNED_OUTPUTS,
   LEASE_RENEWAL_PLANNED_READS,
@@ -150,7 +153,11 @@ describe("lease renewal process-definition template", () => {
       const writeback = parsed.action_references.find(
         (reference) => reference.action_registry_key === key,
       );
-      expect(writeback?.readiness, key).toBe("Needs Permission");
+      // The template renders a windowed (temporarily open) key as Planned; closed keys stay
+      // Needs Permission pending their own proof windows.
+      expect(writeback?.readiness, key).toBe(
+        OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key) ? "Planned" : "Needs Permission",
+      );
       expect(writeback?.missing_connection_or_permission, key).toMatch(
         /owner-authorized bounded proof window/i,
       );

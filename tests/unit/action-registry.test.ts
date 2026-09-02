@@ -8,7 +8,10 @@ import {
   listActionRegistry,
   upsertActionRegistryEntry,
 } from "@/lib/firestore/action-registry";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -42,7 +45,11 @@ describe("Action Registry repository", () => {
     expect(all).toHaveLength(ACTION_REGISTRY_SEED.length);
     expect(keys).toEqual([...keys].sort());
     expect(
-      all.filter((entry) => entry.production_allowed).map((entry) => entry.key),
+      all
+        .filter((entry) => entry.production_allowed)
+        .map((entry) => entry.key)
+        // S97-S100: a committed bounded proof window may temporarily open one exact key.
+        .filter((key) => !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key)),
     ).toEqual([
       "gmail.label.apply",
       "gmail.mailbox.read",

@@ -10,7 +10,10 @@ import {
   listApprovalQueueEmailSettings,
   readApprovalQueueNotificationHealth,
 } from "@/lib/firestore/approval-queue-notifications";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import {
   evaluateBudgetGuard,
   readAwayModeStatus,
@@ -510,7 +513,10 @@ function summarizeRegistry(
     runtime_active_keys: runtime.runtime_active_keys,
     runtime_inert: runtime.runtime_inert,
     unexpected_production_allowed_keys: productionAllowedKeys.filter(
-      (key) => !EXECUTABLE_ALLOWLIST.has(key),
+      // A key inside its S97-S100 owner-authorized bounded proof window is expected, not a
+      // surprise flip; the window list is committed and reviewed beside the seed.
+      (key) =>
+        !EXECUTABLE_ALLOWLIST.has(key) && !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key),
     ),
   };
 }

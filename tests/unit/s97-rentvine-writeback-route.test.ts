@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
+import { OWNER_PROOF_WINDOW_OPEN_KEYS } from "@/lib/integrations/action-registry-seed";
 import type { RenewalWritebackDependencies } from "@/lib/lease-renewal/writeback/execution-service";
 import type { RenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-contract";
 
@@ -65,6 +66,17 @@ vi.mock("@/lib/lease-renewal/writeback/proposal-store", () => ({
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   recordRenewalProcessEvidence: mocks.projection,
+}));
+
+// The production-bound suspension reader would hang without Firestore in the unit env; an
+// immediate throw exercises the same fail-closed unreadable path deterministically.
+vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
+  ...(await importActual<
+    typeof import("@/lib/firestore/runtime-action-suspensions")
+  >()),
+  readRuntimeActionSuspension: vi.fn(async () => {
+    throw new Error("suspension store unreadable in unit env");
+  }),
 }));
 
 import { POST } from "@/app/api/lease-renewal/rentvine-writeback/route";
@@ -203,7 +215,7 @@ describe("S97 rentvine-writeback route", () => {
     expect(mocks.writerCalls).toEqual([]);
   });
 
-  it("refuses Admin execution through the real closed committed-seed gate before any writer", async () => {
+  it("refuses Admin execution through the real per-key gate before any writer", async () => {
     const { previewHash, effectHash } = await proposeDatesChange();
     const execute = await post({
       operation: "execute",
@@ -214,7 +226,13 @@ describe("S97 rentvine-writeback route", () => {
     });
     expect(execute.status).toBe(409);
     const payload = (await execute.json()) as { error_type: string };
-    expect(payload.error_type).toBe("action_not_production_allowed");
+    // Outside a proof window the committed seed refuses; inside the dates window the seed term
+    // passes and the fail-closed runtime-suspension read (unreadable in unit env) refuses instead.
+    expect(payload.error_type).toBe(
+      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("rentvine.lease.renewal_dates.update")
+        ? "action_runtime_suspended"
+        : "action_not_production_allowed",
+    );
     expect(mocks.writerCalls).toEqual([]);
     expect(mocks.projection).not.toHaveBeenCalled();
   });

@@ -141,6 +141,23 @@ describe("RentVineClient response handling", () => {
     expect(probe.status).toBe(0);
     expect(probe.count).toBeNull();
   });
+
+  it("unwraps the live {recurringCharge, account} list-element envelope", async () => {
+    // Verified live shape 2026-09-02: each list element wraps the charge next to its account.
+    const { client } = makeClient(() =>
+      jsonResponse(200, [
+        {
+          recurringCharge: { leaseRecurringChargeID: "651", accountID: "28" },
+          account: { accountID: "28", name: "Pet Rent - RES" },
+        },
+        { leaseRecurringChargeID: "652", accountID: "9" },
+      ]),
+    );
+    await expect(client.listRecurringCharges("177")).resolves.toEqual([
+      { leaseRecurringChargeID: "651", accountID: "28" },
+      { leaseRecurringChargeID: "652", accountID: "9" },
+    ]);
+  });
 });
 
 describe("RentVine identity guard", () => {

@@ -6,7 +6,10 @@ import {
 } from "@/lib/integrations/rentvine/client";
 import { createRentVineHealthCheckTransport } from "@/lib/integrations/rentvine/health-probe";
 import { getHealthCheckContract, runHealthCheck } from "@/lib/integrations/health-checks";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 
 const BASE_URL = "https://pmikcmetro.rentvine.com/api/manager";
 const FAKE_KEY = "demo-key";
@@ -110,9 +113,10 @@ describe("Action Registry stays non-executable for the live read paths", () => {
 
   it("keeps every seed entry non-executable except the exact reviewed allowlist", () => {
     expect(
-      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
-        (entry) => entry.key,
-      ),
+      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed)
+        .map((entry) => entry.key)
+        // S97-S100: a committed bounded proof window may temporarily open one exact key.
+        .filter((key) => !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key)),
     ).toEqual([
       "gmail.mailbox.read",
       "gmail.thread.reply",

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { EXECUTION_ACTION_POLICIES } from "@/lib/execution/risk-policy";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import {
+  ACTION_REGISTRY_SEED,
+  OWNER_PROOF_WINDOW_OPEN_KEYS,
+} from "@/lib/integrations/action-registry-seed";
 import {
   LEASE_EXECUTION_ACTIONS,
   LEASE_EXECUTION_DEFINITION_MAP,
@@ -45,6 +48,8 @@ describe("Lease execution matrix", () => {
           "gmail.thread.reply",
           "gmail.label.apply",
           "gmail.renewal_notice.draft_create",
+          // S97-S100: a key inside its committed bounded proof window is temporarily open.
+          ...OWNER_PROOF_WINDOW_OPEN_KEYS,
         ].includes(definition.key)
       ) {
         expect(entry?.production_allowed).toBe(false);
