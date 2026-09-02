@@ -93,7 +93,7 @@ async function main(): Promise<void> {
   const operation = process.argv[2];
   if (!operation) {
     throw new Error(
-      "operation required: propose|status|execute|reconcile|reverse-preview|reverse-execute|discard",
+      "operation required: propose|status|execute|reconcile|reverse-preview|reverse-execute|reverse-reconcile|discard",
     );
   }
   const descriptor = requireEnvironmentDescriptor();
@@ -239,6 +239,18 @@ async function main(): Promise<void> {
       `REVERSAL PREVIEW kind=${preview.kind} previewHash=${preview.previewHash} expires=${preview.expiresAtIso}`,
     );
     console.log(`written to ${path}; confirm with reverse-execute`);
+    return;
+  }
+
+  if (operation === "reverse-reconcile") {
+    await assertRenewalWritebackExecutionAllowed(descriptor, "recovery");
+    const receipt = await service.reconcileReversal({
+      proposal,
+      effectHash: effect.effectHash,
+    });
+    console.log(
+      `REVERSAL RECONCILED providerRef=${receipt.providerRef} resultHash=${receipt.resultHash}`,
+    );
     return;
   }
 

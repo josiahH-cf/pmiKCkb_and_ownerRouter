@@ -57,7 +57,7 @@ interface Harness {
     };
     charges: Map<string, RecurringChargeProjection>;
     nextChargeId: number;
-    writerFailure?: { error: unknown; onMethod: string };
+    writerFailure?: { error: unknown; onMethod: string; afterApply?: boolean };
     readbackOverride?: () => void;
     gateExecutable: boolean;
     /** S51 refusal shape; the injected gate resolves every one of these to non-executable. */
@@ -158,12 +158,19 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
     },
     async deleteRecurringChargeForCreateReversal(leaseId, chargeId) {
       record("deleteRecurringCharge", leaseId, chargeId);
-      if (state.writerFailure?.onMethod === "deleteRecurringCharge") {
+      if (
+        state.writerFailure?.onMethod === "deleteRecurringCharge" &&
+        !state.writerFailure.afterApply
+      ) {
         throw state.writerFailure.error;
       }
       const existing = state.charges.get(chargeId);
       if (!existing) throw new ProviderHttpError(404);
       state.charges.delete(chargeId);
+      if (state.writerFailure?.onMethod === "deleteRecurringCharge") {
+        // Applied on the provider, response lost on the way back (the live 2026-09-02 shape).
+        throw state.writerFailure.error;
+      }
       return existing;
     },
   };
@@ -308,6 +315,78 @@ it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
     expect(h.createWriterSpy).not.toHaveBeenCalled();
   },
 );
+
+describe("S97 reversal reconciliation", () => {
+  async function ambiguousDeleteHarness(afterApply: boolean) {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_create",
+            create: {
+              accountID: "9",
+              amount: "45.00",
+              description: "Reconcile fixture charge",
+              dayDue: "1",
+              frequency: "1",
+              startDate: "10/01/2026",
+            },
+          },
+        ],
+      }),
+    );
+    const forward = await h.service.executeEffect(confirmed(proposal));
+    const reversal = await h.service.previewReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    h.state.writerFailure = {
+      error: new Error("socket closed mid-response"),
+      onMethod: "deleteRecurringCharge",
+      afterApply,
+    };
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "provider_ambiguous",
+    );
+    h.state.writerFailure = undefined;
+    return { h, proposal, forward };
+  }
+
+  it("proves an applied-but-ambiguous delete from fresh absence and receipts it", async () => {
+    const { h, proposal } = await ambiguousDeleteHarness(true);
+    const receipt = await h.service.reconcileReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    expect(receipt.reconciled).toBe(true);
+    expect(receipt.providerRef).toMatch(/^s97-charge-deleted:/);
+    // No provider mutation ran during reconciliation.
+    expect(
+      h.calls.filter((call) => call.method === "deleteRecurringCharge"),
+    ).toHaveLength(1);
+  });
+
+  it("refuses to prove a delete the provider never applied and never retries", async () => {
+    const { h, proposal } = await ambiguousDeleteHarness(false);
+    await expectCode(
+      h.service.reconcileReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_not_proven",
+    );
+    expect(
+      h.calls.filter((call) => call.method === "deleteRecurringCharge"),
+    ).toHaveLength(1);
+  });
+});
 
 describe("S97 one-attempt execution", () => {
   it("executes a confirmed dates effect once with exact readback and replays duplicates", async () => {

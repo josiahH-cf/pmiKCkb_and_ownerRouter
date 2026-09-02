@@ -167,6 +167,34 @@ function chargeFieldMatches(
   return actual === expected;
 }
 
+/**
+ * The HTTP 200 DELETE response is the deleted recurring-charge object directly, but the live body
+ * omits recurringStatusID (verified 2026-09-02), so equality against the canonical pre-delete
+ * projection is field-by-field with dates normalized; recurringStatusID compares only if present.
+ */
+function assertDeletedBodyMatches(
+  response: unknown,
+  preDelete: RecurringChargeProjection,
+): void {
+  if (!response || typeof response !== "object" || Array.isArray(response)) {
+    throw new RenewalWritebackServiceError("provider_shape");
+  }
+  const record = response as Record<string, unknown>;
+  for (const [field, expected] of Object.entries(preDelete)) {
+    const value = record[field];
+    if (field === "recurringStatusID") {
+      if (value !== undefined && value !== expected) {
+        throw new RenewalWritebackServiceError("provider_readback_mismatch");
+      }
+      continue;
+    }
+    const actual = value === null || value === undefined ? null : String(value);
+    if (!chargeFieldMatches(field, actual, expected as string | null)) {
+      throw new RenewalWritebackServiceError("provider_readback_mismatch");
+    }
+  }
+}
+
 function providerOutcomeIsAmbiguous(error: unknown): boolean {
   // Auth/permission/validation refusals are definite; anything else after a provider attempt is
   // treated as possibly-applied.
@@ -379,6 +407,178 @@ export class RenewalWritebackService {
       throw new RenewalWritebackServiceError("reconcile_not_proven");
     }
     throw new RenewalWritebackServiceError("reconcile_drift");
+  }
+
+  /**
+   * Read-only reconciliation for an ambiguous reversal attempt: fresh provider state may prove the
+   * reversal applied, still pending, or drifted. It never retries and never mutates the provider.
+   */
+  async reconcileReversal(input: {
+    proposal: RenewalWritebackProposal;
+    effectHash: string;
+  }): Promise<ExternalActionReceipt> {
+    this.assertEnvironment();
+    const effect = this.effectByHash(input.proposal, input.effectHash);
+    if (effect.reversal.kind === "none") {
+      throw new RenewalWritebackServiceError("reversal_unsupported");
+    }
+    const forwardId = renewalWritebackExecutionId(input.proposal, effect);
+    const forward = await this.dependencies.store.get(forwardId);
+    if (!forward?.receipt) {
+      throw new RenewalWritebackServiceError("reversal_forward_unproven");
+    }
+    const reversalId = renewalWritebackReversalExecutionId(
+      forwardId,
+      forward.receipt.resultHash,
+    );
+    let record = await this.dependencies.store.get(reversalId);
+    if (!record) throw new RenewalWritebackServiceError("execution_missing");
+    if (record.state === "running" && record.attemptCount === 1) {
+      const ageMs = this.now() - Date.parse(record.updatedAt);
+      if (!Number.isFinite(ageMs) || ageMs < RECONCILE_MIN_AGE_MS) {
+        throw new RenewalWritebackServiceError("execution_in_progress");
+      }
+      await this.transitionClaimFailure(reversalId, true);
+      record = await this.dependencies.store.get(reversalId);
+      if (record?.state === "succeeded" && record.receipt) return record.receipt;
+      if (!record) throw new RenewalWritebackServiceError("execution_missing");
+    }
+    if (record.state !== "ambiguous" || record.attemptCount !== 1) {
+      throw new RenewalWritebackServiceError("execution_state");
+    }
+    const observation = await this.observeReversalOutcome(
+      input.proposal,
+      effect,
+      forward,
+    );
+    if (observation.state === "after") {
+      const receipt: ExternalActionReceipt = {
+        actionKey: effect.actionKey,
+        dataMode: "live",
+        liveEvidenceEligible: true,
+        providerRef: observation.providerRef,
+        resultHash: observation.readbackHash,
+        reconciled: true,
+        createdAt: new Date(this.now()).toISOString(),
+      };
+      await this.dependencies.store.finish(reversalId, receipt);
+      return receipt;
+    }
+    if (observation.state === "before") {
+      throw new RenewalWritebackServiceError("reconcile_not_proven");
+    }
+    throw new RenewalWritebackServiceError("reconcile_drift");
+  }
+
+  /** Observation only: classify fresh provider state against the reversal target. */
+  private async observeReversalOutcome(
+    proposal: RenewalWritebackProposal,
+    effect: ValidatedRenewalWritebackEffect,
+    forward: ExternalExecutionRecord,
+  ): Promise<
+    | { state: "after"; providerRef: string; readbackHash: string }
+    | { state: "before" }
+    | { state: "drift" }
+  > {
+    const reversal = effect.reversal;
+    if (
+      reversal.kind === "restore_dates" &&
+      effect.effect.kind === "renewal_dates_update"
+    ) {
+      const fresh = await this.readLeaseDates(proposal.leaseId);
+      if (canonicalJson(fresh) === canonicalJson(reversal.restore)) {
+        return {
+          state: "after",
+          providerRef: `s97-lease:${proposal.leaseId}`,
+          readbackHash: hashExecutionPreview({
+            version: "s97-dates-readback/v1",
+            leaseId: proposal.leaseId,
+            readback: fresh,
+          }),
+        };
+      }
+      const input = effect.effect;
+      const forwardAfter: LeaseDateState = {
+        startDate: input.before.startDate,
+        endDate:
+          "endDate" in input.after ? (input.after.endDate ?? null) : input.before.endDate,
+        increaseEligibilityDate:
+          "increaseEligibilityDate" in input.after
+            ? (input.after.increaseEligibilityDate ?? null)
+            : input.before.increaseEligibilityDate,
+      };
+      if (canonicalJson(fresh) === canonicalJson(forwardAfter))
+        return { state: "before" };
+      return { state: "drift" };
+    }
+    if (reversal.kind === "restore_charge_fields") {
+      const fresh = await this.readChargeProjection(proposal.leaseId, reversal.chargeId);
+      const restoreMatches = Object.entries(reversal.restore).every(([field, value]) =>
+        chargeFieldMatches(
+          field,
+          fresh[field as keyof RecurringChargeProjection] as string | null,
+          (value ?? null) as string | null,
+        ),
+      );
+      if (restoreMatches) {
+        return {
+          state: "after",
+          providerRef: `s97-charge:${reversal.chargeId}`,
+          readbackHash: chargeProjectionHash(fresh),
+        };
+      }
+      if (
+        effect.effect.kind === "recurring_charge_update" &&
+        Object.entries(effect.effect.changes).every(([field, value]) =>
+          chargeFieldMatches(
+            field,
+            fresh[field as keyof RecurringChargeProjection] as string | null,
+            (value ?? null) as string | null,
+          ),
+        )
+      ) {
+        return { state: "before" };
+      }
+      return { state: "drift" };
+    }
+    // delete_created_charge: absence is the applied state.
+    const created = this.createdChargeIdOf(forward.receipt!);
+    const chargeId = created.createdChargeId;
+    if (!chargeId) throw new RenewalWritebackServiceError("reversal_forward_unproven");
+    let detailAbsent = false;
+    let fresh: RecurringChargeProjection | null = null;
+    try {
+      // Raw read: readChargeProjection wraps provider errors and would hide the 404 signal.
+      const raw = await this.dependencies.reads.getRecurringCharge(
+        proposal.leaseId,
+        chargeId,
+      );
+      fresh = projectRecurringCharge(raw);
+    } catch (error) {
+      if (isProviderNotFound(error)) detailAbsent = true;
+      else throw new RenewalWritebackServiceError("provider_read_failed");
+    }
+    if (detailAbsent) {
+      const list = await this.dependencies.reads.listRecurringCharges(proposal.leaseId);
+      const stillListed = list.some(
+        (entry) =>
+          (entry as Record<string, unknown>)["leaseRecurringChargeID"] === chargeId,
+      );
+      if (stillListed) return { state: "drift" };
+      return {
+        state: "after",
+        providerRef: `s97-charge-deleted:${chargeId}`,
+        readbackHash: hashExecutionPreview({
+          version: "s97-delete-reconcile/v1",
+          chargeId,
+          detailAbsent: true,
+        }),
+      };
+    }
+    if (fresh && chargeProjectionHash(fresh) === forward.receipt!.resultHash) {
+      return { state: "before" };
+    }
+    return { state: "drift" };
   }
 
   /**
@@ -753,11 +953,7 @@ export class RenewalWritebackService {
       proposal.leaseId,
       chargeId,
     );
-    // The HTTP 200 response is the deleted recurring-charge object directly.
-    const deleted = projectRecurringCharge(response);
-    if (canonicalJson(deleted) !== canonicalJson(preDelete)) {
-      throw new RenewalWritebackServiceError("provider_readback_mismatch");
-    }
+    assertDeletedBodyMatches(response, preDelete);
     let detailAbsent = false;
     try {
       await this.dependencies.reads.getRecurringCharge(proposal.leaseId, chargeId);
@@ -779,7 +975,7 @@ export class RenewalWritebackService {
       readbackHash: hashExecutionPreview({
         version: "s97-delete-readback/v1",
         chargeId,
-        deletedHash: chargeProjectionHash(deleted),
+        deletedHash: chargeProjectionHash(preDelete),
       }),
     };
   }
