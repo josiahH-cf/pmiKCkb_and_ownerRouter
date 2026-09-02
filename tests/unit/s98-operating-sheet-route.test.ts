@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
-import { OWNER_PROOF_WINDOW_OPEN_KEYS } from "@/lib/integrations/action-registry-seed";
+import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import type {
   SheetWritebackDependencies,
   SheetWritebackWriter,
@@ -32,9 +32,7 @@ vi.mock("@/lib/auth/session", async (importActual) => ({
 // The production-bound suspension reader would hang without Firestore in the unit env; an
 // immediate throw exercises the same fail-closed unreadable path deterministically.
 vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
-  ...(await importActual<
-    typeof import("@/lib/firestore/runtime-action-suspensions")
-  >()),
+  ...(await importActual<typeof import("@/lib/firestore/runtime-action-suspensions")>()),
   readRuntimeActionSuspension: vi.fn(async () => {
     throw new Error("suspension store unreadable in unit env");
   }),
@@ -283,12 +281,16 @@ describe("S98 operating-sheet route", () => {
     });
     expect(execute.status).toBe(409);
     const payload = (await execute.json()) as { error_type: string };
-    // Outside a proof window the committed seed refuses; inside the append window the seed term
-    // passes and the fail-closed runtime-suspension read (unreadable in unit env) refuses instead.
+    // With the key closed the committed seed refuses; with the key executable (its bounded proof
+    // window, or the durable 2026-09-02 activation) the seed term passes and the fail-closed
+    // runtime-suspension read (unreadable in unit env) refuses instead.
+    const appendExecutable = ACTION_REGISTRY_SEED.some(
+      (entry) =>
+        entry.key === "google_sheets.renewal_checklist.row_append" &&
+        entry.production_allowed === true,
+    );
     expect(payload.error_type).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes("google_sheets.renewal_checklist.row_append")
-        ? "action_runtime_suspended"
-        : "action_not_production_allowed",
+      appendExecutable ? "action_runtime_suspended" : "action_not_production_allowed",
     );
     expect(mocks.writerMutations).toEqual([]);
   });

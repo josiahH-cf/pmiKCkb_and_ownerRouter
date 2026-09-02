@@ -48,6 +48,12 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "rentvine.lease.renewal_dates.update",
   "rentvine.lease.recurring_charge.create",
   "rentvine.lease.recurring_charge.update",
+  // S98 activation (2026-09-02): both exact operating-Sheet keys passed their bounded live proofs
+  // on the owner-designated lease 115/property 84 (sealed proof append with receipt, source-backed
+  // current_rent compare-and-set with honest ambiguity plus reconcile, receipted forward
+  // correction, and the receipt-bound delete with absence readback).
+  "google_sheets.renewal_checklist.row_append",
+  "google_sheets.renewal_checklist.field_update",
 ]);
 
 export function parseSeedActionRegistryArgs(

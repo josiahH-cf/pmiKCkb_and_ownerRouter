@@ -157,6 +157,11 @@ describe("Action Registry seed catalog", () => {
       "rentvine.lease.renewal_dates.update",
       "rentvine.lease.recurring_charge.create",
       "rentvine.lease.recurring_charge.update",
+      // S98 activation (2026-09-02): both exact operating-Sheet keys passed their bounded live
+      // proofs on lease 115/property 84 (sealed proof append + receipt-bound delete with absence
+      // readback; source-backed compare-and-set + receipted forward correction).
+      "google_sheets.renewal_checklist.row_append",
+      "google_sheets.renewal_checklist.field_update",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -363,13 +368,17 @@ describe("Lease-renewal checklist registry entries", () => {
       "google_sheets.renewal_checklist.writeback",
     ]);
 
+    // The two proven S98 write keys are durably activated (2026-09-02); everything else in the
+    // family is executable only inside a committed bounded owner proof window.
+    const activated = new Set([
+      "google_sheets.renewal_checklist.row_append",
+      "google_sheets.renewal_checklist.field_update",
+    ]);
     for (const e of renewalEntries) {
       expect(e.target_system, e.key).toBe("Google Sheets");
       expect(e.product_lane, e.key).toBe("Lease Renewal Agent");
-      // Closed outside a bounded owner proof window; the reviewed window list is the one
-      // committed exception, and the paired close commit restores the closed pin.
       expect(e.production_allowed, e.key).toBe(
-        OWNER_PROOF_WINDOW_OPEN_KEYS.includes(e.key),
+        activated.has(e.key) || OWNER_PROOF_WINDOW_OPEN_KEYS.includes(e.key),
       );
       expect(() => CreateActionRegistryInputSchema.parse(e)).not.toThrow();
     }
@@ -410,9 +419,8 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(retired.documented_evidence).toContain("cannot grant, prove, or inherit");
 
     const append = entry("google_sheets.renewal_checklist.row_append");
-    expect(append.production_allowed).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes(append.key),
-    );
+    expect(append.production_allowed).toBe(true);
+    expect(append.required_permissions.join(" ")).toContain("ACTIVATED 2026-09-02");
     expect(append.expected_action).toContain("appendCells");
     // The append key's committed capability alone owns the paired receipt-bound row reversal.
     expect(append.expected_action).toContain("deleteDimension ROWS");
@@ -421,9 +429,8 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(append.documented_evidence).toContain("renewal_date is never inferred");
 
     const update = entry("google_sheets.renewal_checklist.field_update");
-    expect(update.production_allowed).toBe(
-      OWNER_PROOF_WINDOW_OPEN_KEYS.includes(update.key),
-    );
+    expect(update.production_allowed).toBe(true);
+    expect(update.required_permissions.join(" ")).toContain("ACTIVATED 2026-09-02");
     expect(update.expected_action).toContain("matchEntireCell");
     expect(update.documented_evidence).toContain("occurrencesChanged");
     expect(update.documented_evidence).toContain("19-field Renewals semantic schema");

@@ -56,6 +56,9 @@ describe("Action Registry repository", () => {
       "gmail.maintenance_owner_notice.draft_create",
       "gmail.renewal_notice.draft_create",
       "gmail.thread.reply",
+      // S98 activation (2026-09-02): proven exact operating-Sheet write keys.
+      "google_sheets.renewal_checklist.field_update",
+      "google_sheets.renewal_checklist.row_append",
       // S39.3: internal-staff transactional notice flipped live (sorts after the gmail.* keys).
       "internal.transactional_notice.send",
       // S59: read-only RentCast lookup, explicitly activated for the meeting-readiness slice.
