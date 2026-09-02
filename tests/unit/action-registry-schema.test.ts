@@ -211,8 +211,8 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("contains the expanded 44-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(44);
+  it("contains the expanded 46-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(46);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         // S28 entries; screenshot storage stays closed while the read-only RentCast key is live.
@@ -351,10 +351,12 @@ describe("Lease-renewal checklist registry entries", () => {
     return CreateActionRegistryInputSchema.parse(found);
   }
 
-  it("seeds exactly read, reconcile, and writeback on the renewal-checklist sheet", () => {
+  it("seeds read/reconcile, the two exact S98 write keys, and the retired broad identifier", () => {
     expect(renewalEntries.map((e) => e.key).sort()).toEqual([
+      "google_sheets.renewal_checklist.field_update",
       "google_sheets.renewal_checklist.read",
       "google_sheets.renewal_checklist.reconcile",
+      "google_sheets.renewal_checklist.row_append",
       "google_sheets.renewal_checklist.writeback",
     ]);
 
@@ -362,9 +364,16 @@ describe("Lease-renewal checklist registry entries", () => {
       expect(e.target_system, e.key).toBe("Google Sheets");
       expect(e.product_lane, e.key).toBe("Lease Renewal Agent");
       expect(e.production_allowed, e.key).toBe(false);
-      expect(e.connection_health_check_ref, e.key).toBe("health.google_sheets.api");
       expect(() => CreateActionRegistryInputSchema.parse(e)).not.toThrow();
     }
+    // The two S98 write keys share the catalog's one Sheets health contract (the DWD-backed
+    // Sheets API seam) with the read pair; no separate write-health contract exists.
+    expect(
+      entry("google_sheets.renewal_checklist.row_append").connection_health_check_ref,
+    ).toBe("health.google_sheets.api");
+    expect(
+      entry("google_sheets.renewal_checklist.field_update").connection_health_check_ref,
+    ).toBe("health.google_sheets.api");
   });
 
   it("scopes the read connector to mapped tabs and denies tabs 4 & 7 at the boundary", () => {
@@ -384,56 +393,62 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(reconcile.expected_action).toMatch(/flags only/i);
   });
 
-  it("keeps writeback connection-blocked until the documented provider seam exists", () => {
-    const writeback = entry("google_sheets.renewal_checklist.writeback");
-
-    expect(writeback.evidence_status).toBe("Undocumented");
-    expect(writeback.readiness).toBe("Needs Connection");
-    expect(writeback.production_allowed).toBe(false);
-    expect(writeback.required_permissions.join(" ")).toMatch(
-      /atomic absent-key tombstone/i,
+  it("retires the broad Sheet identifier and documents the two exact S98 keys", () => {
+    const retired = entry("google_sheets.renewal_checklist.writeback");
+    expect(retired.production_allowed).toBe(false);
+    expect(retired.expected_action).toContain("retired");
+    expect(retired.documented_evidence).toContain(
+      "google_sheets.renewal_checklist.row_append",
     );
-    expect(writeback.documented_evidence).toMatch(/same-value-ABA-safe|generation/i);
+    expect(retired.documented_evidence).toContain("cannot grant, prove, or inherit");
+
+    const append = entry("google_sheets.renewal_checklist.row_append");
+    expect(append.production_allowed).toBe(false);
+    expect(append.expected_action).toContain("appendCells");
+    // The append key's committed capability alone owns the paired receipt-bound row reversal.
+    expect(append.expected_action).toContain("deleteDimension ROWS");
+    expect(append.expected_action).toContain("no other key or category can delete a row");
+    expect(append.documented_evidence).toContain("never retries");
+    expect(append.documented_evidence).toContain("renewal_date is never inferred");
+
+    const update = entry("google_sheets.renewal_checklist.field_update");
+    expect(update.production_allowed).toBe(false);
+    expect(update.expected_action).toContain("matchEntireCell");
+    expect(update.documented_evidence).toContain("occurrencesChanged");
+    expect(update.documented_evidence).toContain("19-field Renewals semantic schema");
   });
 
-  it("gives writeback a cell-addressed preview schema that validatePreviewPayload accepts", () => {
-    const writeback = entry("google_sheets.renewal_checklist.writeback");
-    const fields = writeback.preview_payload_schema ?? [];
+  it("gives field_update a cell-addressed preview schema that validatePreviewPayload accepts", () => {
+    const update = entry("google_sheets.renewal_checklist.field_update");
+    const fields = update.preview_payload_schema ?? [];
 
     expect(fields.map((f) => f.name)).toEqual([
       "tab",
-      "row_key",
-      "column",
-      "before_value",
+      "row_anchor",
+      "field",
+      "expected_value",
       "after_value",
       "source_of_value",
-      "verification_link",
     ]);
 
     const ok = validatePreviewPayload(fields, {
       tab: "Renewals",
-      row_key: "unit-1042::lease-2026-08",
-      column: "Renewal Date",
-      before_value: "2026-08-31",
-      after_value: "2026-09-30",
-      source_of_value: "Rentvine lease record",
-      verification_link: "https://kb.example/runs/abc123",
+      row_anchor: "op-12345678",
+      field: "current_rent",
+      after_value: "1200",
+      source_of_value: "Rentvine base rent",
     });
     expect(ok).toEqual({ ok: true, errors: [] });
 
     const missing = validatePreviewPayload(fields, {
       tab: "Renewals",
-      row_key: "unit-1042::lease-2026-08",
-      column: "Renewal Date",
-      before_value: "2026-08-31",
-      after_value: "2026-09-30",
-      source_of_value: "Rentvine lease record",
-      // verification_link omitted
+      row_anchor: "op-12345678",
+      field: "current_rent",
+      after_value: "1200",
+      // source_of_value omitted
     });
     expect(missing.ok).toBe(false);
-    expect(missing.errors).toContain(
-      'Missing required preview field "verification_link".',
-    );
+    expect(missing.errors).toContain('Missing required preview field "source_of_value".');
   });
 });
 

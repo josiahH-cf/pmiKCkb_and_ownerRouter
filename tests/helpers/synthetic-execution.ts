@@ -18,7 +18,6 @@ import {
   BoomRenewalExecutor,
   DotloopRenewalExecutor,
   LeaseGmailExecutor,
-  RenewalSheetExecutor,
   type WorkflowMessagePayload,
 } from "@/lib/lease-renewal/execution/providers";
 import {
@@ -289,15 +288,22 @@ function syntheticValues(
         body: tenantText.body,
         consent_ref: "fixture:sms-consent",
       };
-    case "google_sheets.renewal_checklist.writeback":
+    case "google_sheets.renewal_checklist.row_append":
       return {
         tab: "Renewals",
-        row_key: a.leaseRef,
-        column: "Status",
-        before_value: "Pending",
-        after_value: "Approved",
+        lease_ref: a.leaseRef,
+        property_ref: "property-synthetic-001",
+        tenant_name: "Synthetic Tenant",
+        field_values: "current_rent: 1400 (source: fixture:approved-renewal-decision)",
+        row_note: `PMI KC writeback \u2014 operation op-synthetic-001 \u2014 lease ${a.leaseRef} \u2014 property property-synthetic-001`,
+      };
+    case "google_sheets.renewal_checklist.field_update":
+      return {
+        tab: "Renewals",
+        row_anchor: "note:op-synthetic-001",
+        field: "current_rent",
+        after_value: "1400",
         source_of_value: "fixture:approved-renewal-decision",
-        verification_link: "https://example.invalid/renewal-verification",
       };
     case "dotloop.loop.create_from_template":
       return {
@@ -571,21 +577,6 @@ export function createSyntheticExecutorHarness() {
     verifySmsConsent: async () => true,
   };
 
-  let sheetValue = "Pending";
-  const sheetProvider = {
-    resolveCell: async (input: { tab: string; rowKey: string; column: string }) => ({
-      cell: `${input.tab}!${input.rowKey}:${input.column}`,
-      value: sheetValue,
-    }),
-    compareAndSetCell: async (input: { expectedValue: string; value: string }) => {
-      called("sheets.write");
-      if (sheetValue !== input.expectedValue) return { applied: false };
-      sheetValue = input.value;
-      return { applied: true };
-    },
-    readCell: async () => sheetValue,
-  };
-
   const renewalRecords = new Map<string, Readonly<Record<string, unknown>>>([
     [
       SYNTHETIC_V1_ALIASES.leaseRef,
@@ -626,7 +617,7 @@ export function createSyntheticExecutorHarness() {
       const blocker = this.validate(input);
       if (blocker) throw new ExternalExecutionError(blocker, "blocked");
       called(input.actionKey);
-      const providerRef = `synthetic:${input.actionKey}:${String(input.values.lease_ref)}`;
+      const providerRef = `synthetic:${input.actionKey}:${String(input.values.lease_ref ?? input.values.row_anchor ?? "anchor")}`;
       renewalRecords.set(providerRef, input.values);
       renewalIdempotency.set(externalActionIdempotencyKey(input), providerRef);
       return syntheticReceipt(input, providerRef, input.values);
@@ -969,8 +960,23 @@ export function createSyntheticExecutorHarness() {
     ["rentvine.renewal.portal_message.send", leaseMessage],
     ["sms.renewal_message.send", leaseMessage],
     [
-      "google_sheets.renewal_checklist.writeback",
-      new RenewalSheetExecutor(sheetProvider),
+      "google_sheets.renewal_checklist.row_append",
+      new SyntheticRenewalWritebackExecutor([
+        "tab",
+        "lease_ref",
+        "tenant_name",
+        "row_note",
+      ]),
+    ],
+    [
+      "google_sheets.renewal_checklist.field_update",
+      new SyntheticRenewalWritebackExecutor([
+        "tab",
+        "row_anchor",
+        "field",
+        "after_value",
+        "source_of_value",
+      ]),
     ],
     ["dotloop.loop.create_from_template", new DotloopRenewalExecutor(dotloopProvider)],
     ["dotloop.document.upload", new DotloopRenewalExecutor(dotloopProvider)],

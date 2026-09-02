@@ -389,6 +389,195 @@ export class GoogleSheetsApiWriter implements SheetsValuesWriter {
     }
     return body.spreadsheetId;
   }
+
+  /** Numeric sheetId for one tab title (S98 batchUpdate targets need it). */
+  async getSheetIdByTitle(spreadsheetId: string, tabTitle: string): Promise<number> {
+    const token = await this.authToken();
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=${encodeURIComponent("sheets.properties(sheetId,title)")}`,
+      {
+        headers: { Authorization: token },
+        signal: AbortSignal.timeout(SHEETS_REQUEST_TIMEOUT_MS),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets tab lookup failed (HTTP ${response.status}).`);
+    }
+    const body = (await response.json()) as {
+      sheets?: { properties?: { sheetId?: number; title?: string } }[];
+    };
+    const sheetId = body.sheets?.find((sheet) => sheet.properties?.title === tabTitle)
+      ?.properties?.sheetId;
+    if (typeof sheetId !== "number") {
+      throw new Error("Sheets tab was not found.");
+    }
+    return sheetId;
+  }
+
+  /**
+   * S98 row append: ONE atomic batchUpdate whose single appendCells request writes the exact row
+   * values and the system note on the note column. No range, index, or second mutation exists.
+   */
+  async appendRowWithNote(input: {
+    spreadsheetId: string;
+    sheetId: number;
+    values: readonly string[];
+    noteColumnIndex: number;
+    note: string;
+  }): Promise<void> {
+    const token = await this.authToken();
+    const rowData = {
+      values: input.values.map((value, index) => ({
+        userEnteredValue: { stringValue: value },
+        ...(index === input.noteColumnIndex ? { note: input.note } : {}),
+      })),
+    };
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(input.spreadsheetId)}:batchUpdate`,
+      {
+        method: "POST",
+        headers: { Authorization: token, "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(SHEETS_REQUEST_TIMEOUT_MS),
+        body: JSON.stringify({
+          requests: [
+            {
+              appendCells: {
+                sheetId: input.sheetId,
+                rows: [rowData],
+                fields: "userEnteredValue,note",
+              },
+            },
+          ],
+        }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets row append failed (HTTP ${response.status}).`);
+    }
+  }
+
+  /**
+   * S98 receipt-bound reversal: ONE deleteDimension ROW request for exactly one row, after the
+   * caller has revalidated the unchanged app-appended row.
+   */
+  async deleteExactRow(input: {
+    spreadsheetId: string;
+    sheetId: number;
+    rowNumber: number;
+  }): Promise<void> {
+    const token = await this.authToken();
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(input.spreadsheetId)}:batchUpdate`,
+      {
+        method: "POST",
+        headers: { Authorization: token, "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(SHEETS_REQUEST_TIMEOUT_MS),
+        body: JSON.stringify({
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId: input.sheetId,
+                  dimension: "ROWS",
+                  startIndex: input.rowNumber - 1,
+                  endIndex: input.rowNumber,
+                },
+              },
+            },
+          ],
+        }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets row delete failed (HTTP ${response.status}).`);
+    }
+  }
+
+  /**
+   * Read one column's cell text plus notes for a bounded row window (spreadsheets.get gridData).
+   * Locates an app-appended row by its exact note; also powers proof-row exclusion.
+   */
+  async getColumnNotes(input: {
+    spreadsheetId: string;
+    tabTitle: string;
+    columnIndex: number;
+    startRowNumber: number;
+    endRowNumber: number;
+  }): Promise<{ rowNumber: number; value: string; note: string }[]> {
+    const token = await this.authToken();
+    const columnLetter = columnIndexToLetter(input.columnIndex);
+    const range = `'${input.tabTitle}'!${columnLetter}${input.startRowNumber}:${columnLetter}${input.endRowNumber}`;
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(input.spreadsheetId)}?ranges=${encodeURIComponent(range)}&fields=${encodeURIComponent("sheets(properties(title),data(startRow,rowData(values(formattedValue,note))))")}`,
+      {
+        headers: { Authorization: token },
+        signal: AbortSignal.timeout(SHEETS_REQUEST_TIMEOUT_MS),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets note read failed (HTTP ${response.status}).`);
+    }
+    const body = (await response.json()) as {
+      sheets?: {
+        properties?: { title?: string };
+        data?: {
+          startRow?: number;
+          rowData?: { values?: { formattedValue?: string; note?: string }[] }[];
+        }[];
+      }[];
+    };
+    const sheet = body.sheets?.find(
+      (entry) => entry.properties?.title === input.tabTitle,
+    );
+    const grid = sheet?.data?.[0];
+    const startRow = (grid?.startRow ?? input.startRowNumber - 1) + 1;
+    return (grid?.rowData ?? []).map((row, index) => ({
+      rowNumber: startRow + index,
+      value: row.values?.[0]?.formattedValue ?? "",
+      note: row.values?.[0]?.note ?? "",
+    }));
+  }
+
+  /**
+   * S98 exact-cell compare-and-set: replace one cell's exact current text with the new value in a
+   * single server-side find/replace scoped to that cell. `false` means the expected value no
+   * longer matched (collaborator drift); nothing was changed.
+   */
+  async replaceCellIfExactMatch(
+    spreadsheetId: string,
+    range: string,
+    expected: string,
+    replacement: string,
+  ): Promise<boolean> {
+    if (expected === "") {
+      return this.findReplaceExactCell({
+        spreadsheetId,
+        range,
+        find: "^$",
+        replacement: quoteRegexReplacement(replacement),
+        searchByRegex: true,
+        operationLabel: "exact-cell update",
+      });
+    }
+    return this.findReplaceExactCell({
+      spreadsheetId,
+      range,
+      find: expected,
+      replacement,
+      searchByRegex: false,
+      operationLabel: "exact-cell update",
+    });
+  }
+}
+
+function columnIndexToLetter(index: number): string {
+  let value = index;
+  let letters = "";
+  do {
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26) - 1;
+  } while (value >= 0);
+  return letters;
 }
 
 function quoteRegexReplacement(value: string): string {

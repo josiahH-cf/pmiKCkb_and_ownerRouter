@@ -30,6 +30,14 @@ export interface SheetsValuesReader {
     spreadsheetId: string,
     ranges: string[],
   ): Promise<SheetsBatchGetResponse>;
+  /**
+   * Optional read-only per-cell NOTE read (spreadsheets.get gridData, fields-limited). S98 proof
+   * rows are machine-marked by a note prefix on the tenant cell; the live pipeline excludes them.
+   */
+  batchGetNotes?(
+    spreadsheetId: string,
+    tabTitles: string[],
+  ): Promise<Record<string, (string | null)[][]>>;
 }
 
 /**
@@ -197,6 +205,42 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
       throw new Error(`Sheets formula read failed (HTTP ${response.status}).`);
     }
     return (await response.json()) as SheetsBatchGetResponse;
+  }
+
+  /** Read-only cell notes per tab (fields-limited spreadsheets.get). Null when a cell has none. */
+  async batchGetNotes(
+    spreadsheetId: string,
+    tabTitles: string[],
+  ): Promise<Record<string, (string | null)[][]>> {
+    const auth = await this.authToken();
+    const rangesQuery = tabTitles
+      .map((title) => `ranges=${encodeURIComponent(`'${title.replaceAll("'", "''")}'`)}`)
+      .join("&");
+    const fields = encodeURIComponent(
+      "sheets(properties(title),data(rowData(values(note))))",
+    );
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?${rangesQuery}&fields=${fields}`,
+      { headers: { Authorization: auth } },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets notes read failed (HTTP ${response.status}).`);
+    }
+    const body = (await response.json()) as {
+      sheets?: {
+        properties?: { title?: string };
+        data?: { rowData?: { values?: { note?: string }[] }[] }[];
+      }[];
+    };
+    const out: Record<string, (string | null)[][]> = {};
+    for (const sheet of body.sheets ?? []) {
+      const title = sheet.properties?.title;
+      if (!title) continue;
+      out[title] = (sheet.data?.[0]?.rowData ?? []).map((row) =>
+        (row.values ?? []).map((cell) => cell.note ?? null),
+      );
+    }
+    return out;
   }
 }
 

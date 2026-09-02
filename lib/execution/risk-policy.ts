@@ -47,7 +47,19 @@ export const EXECUTION_ACTION_POLICIES = {
   "google_sheets.audit_snapshot.append": policy("High", "system_of_record_write", true),
   "google_sheets.renewal_checklist.read": policy("Low", "read", true),
   "google_sheets.renewal_checklist.reconcile": policy("Low", "read", true),
+  // S98: the retired broad identifier keeps its historical High classification; the two exact
+  // successor keys are individually classified system-of-record writes.
   "google_sheets.renewal_checklist.writeback": policy(
+    "High",
+    "system_of_record_write",
+    true,
+  ),
+  "google_sheets.renewal_checklist.row_append": policy(
+    "High",
+    "system_of_record_write",
+    true,
+  ),
+  "google_sheets.renewal_checklist.field_update": policy(
     "High",
     "system_of_record_write",
     true,

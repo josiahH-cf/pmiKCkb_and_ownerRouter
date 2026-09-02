@@ -8,7 +8,6 @@ const RUNTIME_ROOTS = ["app", "components", "lib"];
 const EXECUTION_MODULE = "@/lib/lease-renewal/sheet-writeback-execution";
 const ALLOWED_EXECUTION_IMPORTER = "lib/lease-renewal/sheet-writeback-service.ts";
 const RAW_WRITER_IMPLEMENTATION = "lib/google-sheets/write-client.ts";
-const REHEARSAL_COPY_PROOF = "lib/lease-renewal/rehearsal-sheet.ts";
 let runtimeSourceCache;
 
 function runtimeSources() {
@@ -44,27 +43,15 @@ describe("Sheet write-back runtime boundary", () => {
     expect(service).not.toMatch(/\b(?:executeProposalWriteBack|commitWritebackAtRow)\b/);
   });
 
-  it("keeps raw calls inside the provider plus the separately guarded rehearsal-copy proof", () => {
+  it("keeps raw value-mutation calls inside the provider implementation only", () => {
+    // S98 retired the rehearsal-copy proof module; the raw writer stays the only raw-call site.
     const bypassCalls = runtimeSources()
-      .filter(
-        ({ file }) => file !== RAW_WRITER_IMPLEMENTATION && file !== REHEARSAL_COPY_PROOF,
-      )
+      .filter(({ file }) => file !== RAW_WRITER_IMPLEMENTATION)
       .filter(({ source }) =>
         /\.(?:updateValues|writeValuesIfEmpty|clearValuesIfExactMatch)\s*\(/.test(source),
       )
       .map(({ file }) => file);
 
     expect(bypassCalls).toEqual([]);
-
-    const rehearsal = readFileSync(join(ROOT, REHEARSAL_COPY_PROOF), "utf8");
-    expect(rehearsal).toContain(
-      "input.operatingSpreadsheetId === input.rehearsalSpreadsheetId",
-    );
-    expect(rehearsal).toMatch(
-      /\.(?:writeValuesIfEmpty|clearValuesIfExactMatch)\s*\(\s*input\.rehearsalSpreadsheetId/g,
-    );
-    expect(rehearsal).not.toMatch(
-      /\.(?:updateValues|writeValuesIfEmpty|clearValuesIfExactMatch)\s*\(\s*input\.operatingSpreadsheetId/,
-    );
   }, 20_000);
 });

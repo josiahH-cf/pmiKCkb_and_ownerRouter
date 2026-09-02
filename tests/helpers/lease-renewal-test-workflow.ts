@@ -104,8 +104,10 @@ export const LEASE_TEST_ACTION_TARGETS: Record<LeaseExecutionActionKey, string> 
   "rentvine.renewal.portal_message.send":
     "Taylor Test Resident — TEST portal conversation adapter",
   "sms.renewal_message.send": "Taylor Test Resident — TEST SMS adapter",
-  "google_sheets.renewal_checklist.writeback":
-    "TEST renewal checklist row — internal adapter",
+  "google_sheets.renewal_checklist.row_append":
+    "TEST renewal checklist row-append — internal adapter",
+  "google_sheets.renewal_checklist.field_update":
+    "TEST renewal checklist field-update — internal adapter",
   "dotloop.loop.create_from_template": "TEST Dotloop renewal workspace",
   "dotloop.document.upload": "TEST renewal document workspace",
   "rentvine.lease.renewal_dates.update": `${LEASE_TEST_ALIASES.leaseRef} — TEST RentVine dates adapter`,
@@ -156,7 +158,8 @@ export const LEASE_BUSINESS_CLOSEOUT_GATES = Object.freeze([
     id: "sheet_closeout",
     label: "Renewal Sheet closeout and read-after-write reconciliation",
     testActionKeys: [
-      "google_sheets.renewal_checklist.writeback",
+      "google_sheets.renewal_checklist.row_append",
+      "google_sheets.renewal_checklist.field_update",
     ] as readonly LeaseExecutionActionKey[],
   },
 ] as const);
@@ -299,7 +302,8 @@ export function leaseTestBusinessActionBlocker(
     return "Record owner renewal direction and tenant-offer timing first.";
   }
   const afterResponse: readonly LeaseExecutionActionKey[] = [
-    "google_sheets.renewal_checklist.writeback",
+    "google_sheets.renewal_checklist.row_append",
+    "google_sheets.renewal_checklist.field_update",
     "dotloop.loop.create_from_template",
     "dotloop.document.upload",
     "rentvine.lease.renewal_dates.update",

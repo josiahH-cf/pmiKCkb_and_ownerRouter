@@ -11,7 +11,6 @@ import { OperationalPageBuilderPanel } from "@/components/admin/OperationalPageB
 import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { ReindexPanel } from "@/components/admin/ReindexPanel";
-import { RenewalRehearsalSheetPanel } from "@/components/admin/RenewalRehearsalSheetPanel";
 import { RuntimeSuspensionAdminPanel } from "@/components/admin/RuntimeSuspensionAdminPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
@@ -35,10 +34,6 @@ import {
   defaultOwnerTransactionalDestination,
   readOwnerTransactionalDestination,
 } from "@/lib/firestore/owner-transactional-destination";
-import {
-  readRenewalRehearsalSheetAdminConfig,
-  type RenewalRehearsalSheetAdminConfig,
-} from "@/lib/firestore/renewal-rehearsal-sheet-config";
 import {
   type NoticeRuleSetRecord,
   readNoticeRuleConfigRecord,
@@ -65,7 +60,6 @@ import type {
 } from "@/lib/firestore/types";
 import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
-import { resolveRenewalSheetBindings } from "@/lib/lease-renewal/rehearsal-sheet";
 import { launchSpaces } from "@/lib/spaces";
 import { readPrimaryNavigationProjection } from "@/lib/navigation/primary-navigation-projection";
 
@@ -89,15 +83,6 @@ export default async function AdminPage() {
   let publicationPolicyNote: string | undefined;
   let transactionalDestination = defaultOwnerTransactionalDestination();
   let transactionalDestinationNote: string | undefined;
-  const environmentSheetBindings = resolveRenewalSheetBindings();
-  let rehearsalSheetConfig: RenewalRehearsalSheetAdminConfig = {
-    operating: environmentSheetBindings.operating,
-    rehearsal:
-      environmentSheetBindings.rehearsal.status === "ready"
-        ? { ...environmentSheetBindings.rehearsal, source: "environment" }
-        : { status: "not_configured", configured: false },
-  };
-  let rehearsalSheetNote: string | undefined;
   let supportReports: SupportReportRecord[] = [];
   let supportReportsNote: string | undefined;
   let supportReporterDirectory: Record<string, string> = {};
@@ -168,14 +153,6 @@ export default async function AdminPage() {
       .catch(() => {
         transactionalDestinationNote =
           "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
-      }),
-    readRenewalRehearsalSheetAdminConfig(user)
-      .then((savedConfig) => {
-        rehearsalSheetConfig = savedConfig;
-      })
-      .catch(() => {
-        rehearsalSheetNote =
-          "Saved rehearsal-copy configuration is unavailable. No Sheet proof can run from this panel.";
       }),
     listAppUsers()
       .then((users) => {
@@ -454,12 +431,6 @@ export default async function AdminPage() {
               answerModel={config.geminiAnswerModel}
               classifyModel={config.geminiClassifyModel}
               provider={config.modelProvider}
-            />
-          </div>
-          <div className="task-anchor" id="admin-renewal-rehearsal-sheet" tabIndex={-1}>
-            <RenewalRehearsalSheetPanel
-              initialConfig={rehearsalSheetConfig}
-              unavailableNote={rehearsalSheetNote}
             />
           </div>
           <div className="grid three">

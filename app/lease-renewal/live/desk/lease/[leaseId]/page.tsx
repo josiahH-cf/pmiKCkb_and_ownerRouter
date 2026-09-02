@@ -6,6 +6,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { DiscrepancyDispositionPanel } from "@/components/lease-renewal/DiscrepancyDispositionPanel";
 import { RentvineUpdatesPanel } from "@/components/lease-renewal/RentvineUpdatesPanel";
+import { OperatingSheetPanel } from "@/components/lease-renewal/OperatingSheetPanel";
+import { clientSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import { getSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
+import {
+  OPERATING_SHEET_TAB,
+  liveOperatingSheetId,
+} from "@/lib/lease-renewal/sheet-writeback/live";
 import { clientRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/client-projection";
 import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-store";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
@@ -158,6 +165,14 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const writebackProposal = await getRenewalWritebackProposal(user, leaseId).catch(
     () => null,
   );
+  // S98: the single active operating-Sheet proposal, or null. A load failure shows the
+  // no-proposal state rather than blocking the workspace.
+  const operatingSheetId = liveOperatingSheetId();
+  const sheetProposal = operatingSheetId
+    ? await getSheetWritebackProposal(user, operatingSheetId, OPERATING_SHEET_TAB).catch(
+        () => null,
+      )
+    : null;
 
   return (
     <AppShell user={user}>
@@ -186,6 +201,23 @@ export default async function LiveRenewalLeaseWorkspacePage({
               />
             }
             packetSnapshot={packetSnapshot}
+            operatingSheetPanel={
+              <OperatingSheetPanel
+                hasSheetRow={
+                  outcome.workspace.dataCheck?.some((item) =>
+                    item.candidates.some((candidate) =>
+                      /sheet/i.test(candidate.sourceSystem),
+                    ),
+                  ) ?? false
+                }
+                initialProposal={
+                  sheetProposal ? clientSheetWritebackProposal(sheetProposal) : null
+                }
+                leaseId={leaseId}
+                role={user.role}
+                tenantNameSuggestion={outcome.workspace.summary.tenantNameLabel}
+              />
+            }
             rentvineUpdatesPanel={
               <RentvineUpdatesPanel
                 initialProposal={

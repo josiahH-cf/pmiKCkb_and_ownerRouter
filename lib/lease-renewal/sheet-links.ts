@@ -10,6 +10,7 @@ import {
   valuesToGridWithLinks,
   type SheetsBatchGetResponse,
 } from "@/lib/google-sheets/sheet-to-grids";
+import { PROOF_NOTE_PREFIX } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import { rentvineJoinIdsForGrid } from "@/lib/lease-renewal/rentvine-link";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import type {
@@ -56,5 +57,27 @@ export async function readRenewalSheetGridsWithLinks(
   }
   const titles = options.tabTitles ?? (await reader.listTabTitles(options.spreadsheetId));
   const response = await reader.batchGetFormulas(options.spreadsheetId, titles);
-  return { titles, ...formulaResponseToTablesWithJoinIds(response) };
+  const result = formulaResponseToTablesWithJoinIds(response);
+  // S98: rows machine-marked with the exact proof-note prefix are excluded from every downstream
+  // projection. The live reader supplies the note layer; a reader without it changes nothing.
+  if (reader.batchGetNotes) {
+    const notesByTab = await reader.batchGetNotes(options.spreadsheetId, titles);
+    titles.forEach((title, tableIndex) => {
+      const notes = notesByTab[title];
+      if (!notes) return;
+      const keep = (result.tables[tableIndex] ?? []).map(
+        (_row, rowIndex) =>
+          !(notes[rowIndex] ?? []).some(
+            (note) => typeof note === "string" && note.startsWith(PROOF_NOTE_PREFIX),
+          ),
+      );
+      result.tables[tableIndex] = (result.tables[tableIndex] ?? []).filter(
+        (_row, rowIndex) => keep[rowIndex],
+      );
+      result.tableJoinIds[tableIndex] = (result.tableJoinIds[tableIndex] ?? []).filter(
+        (_id, rowIndex) => keep[rowIndex],
+      );
+    });
+  }
+  return { titles, ...result };
 }

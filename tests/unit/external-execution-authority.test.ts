@@ -79,7 +79,7 @@ describe("external execution authority integration", () => {
     );
 
     const sheet = LEASE_EXECUTION_DEFINITION_MAP.get(
-      "google_sheets.renewal_checklist.writeback",
+      "google_sheets.renewal_checklist.row_append",
     )!;
     expect(validateExternalInput(sheet, input(sheet), true)).toContain("Admin approval");
     const approved = approve(input(sheet));

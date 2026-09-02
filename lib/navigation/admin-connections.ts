@@ -184,16 +184,8 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
   {
     id: "renewal-policy",
     label: "Renewal policy",
-    description: "Find the existing rehearsal, notice, and pricing policy controls.",
+    description: "Find the existing notice and pricing policy controls.",
     links: [
-      {
-        id: "admin-renewal-rehearsal-sheet",
-        label: "Rehearsal Sheet copy",
-        description: "Review the separate copy configuration and proof readiness.",
-        href: "/admin#admin-renewal-rehearsal-sheet",
-        requiredCapability: "manageAdmin",
-        surface: "admin",
-      },
       {
         id: "admin-renewal-notice-rules",
         label: "Renewal notice rules",

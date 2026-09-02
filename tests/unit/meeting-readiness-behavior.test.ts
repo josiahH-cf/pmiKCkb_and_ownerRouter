@@ -13,10 +13,6 @@ import {
   classifyDiscrepancy,
   DISCREPANCY_CATEGORIES,
 } from "@/lib/lease-renewal/discrepancy";
-import {
-  proveRehearsalSheetRoundTrip,
-  resolveRenewalSheetBindings,
-} from "@/lib/lease-renewal/rehearsal-sheet";
 import { parseCurrencyInput } from "@/lib/currency-input";
 
 const BASE_URL = "https://pmikcmetro.rentvine.com/api/manager";
@@ -109,41 +105,6 @@ describe("2026-08-26 meeting-readiness behavior outcome", () => {
         identityAmbiguous: true,
       }),
     ).toBe("identity_ambiguous");
-  });
-
-  it("refuses an operating-Sheet alias and round-trips only an empty rehearsal-copy cell", async () => {
-    expect(
-      resolveRenewalSheetBindings({
-        RENEWAL_SHEET_ID: "operating-sheet",
-        RENEWAL_REHEARSAL_SHEET_ID: "operating-sheet",
-      }).rehearsal.status,
-    ).toBe("same_as_operating");
-
-    let cell = "";
-    const writer = {
-      getValues: vi.fn(async () => (cell ? [[cell]] : [])),
-      writeValuesIfEmpty: vi.fn(async (_id: string, _range: string, value: string) => {
-        if (cell) return false;
-        cell = value;
-        return true;
-      }),
-      clearValuesIfExactMatch: vi.fn(
-        async (_id: string, _range: string, expected: string) => {
-          if (cell !== expected) return false;
-          cell = "";
-          return true;
-        },
-      ),
-    };
-    await expect(
-      proveRehearsalSheetRoundTrip(writer, {
-        operatingSpreadsheetId: "operating-sheet",
-        rehearsalSpreadsheetId: "rehearsal-copy",
-        range: "Lease Renewal!ZZ1",
-        marker: "PMI_REHEARSAL_PROBE_SYNTHETIC",
-      }),
-    ).resolves.toMatchObject({ status: "proved", restored: true });
-    expect(cell).toBe("");
   });
 
   it("accepts human currency formatting and rejects ambiguous or negative input", () => {

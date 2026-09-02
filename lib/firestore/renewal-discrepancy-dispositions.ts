@@ -28,12 +28,14 @@ export type DiscrepancyDispositionStatus =
   (typeof DISCREPANCY_DISPOSITION_STATUSES)[number];
 
 // The three exact S97 successor keys plus the Sheet writeback are the authoring vocabulary; the
-// retired broad identifier stays last so historical disposition versions keep parsing and can
+// retired broad identifiers stay last so historical disposition versions keep parsing and can
 // still advance through their remaining statuses.
 export const CORRECTION_TRANSACTION_KEYS = [
   "rentvine.lease.renewal_dates.update",
   "rentvine.lease.recurring_charge.update",
   "rentvine.lease.recurring_charge.create",
+  "google_sheets.renewal_checklist.row_append",
+  "google_sheets.renewal_checklist.field_update",
   "google_sheets.renewal_checklist.writeback",
   "rentvine.lease.renewal_writeback",
 ] as const;

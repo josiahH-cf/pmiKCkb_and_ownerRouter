@@ -480,9 +480,6 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
     // review degrades to a clear "not connected" panel instead of throwing.
     RENTVINE_API_BASE_URL: withDefault("RENTVINE_API_BASE_URL", ""),
     RENEWAL_SHEET_ID: withDefault("RENEWAL_SHEET_ID", ""),
-    // Optional COPY-only rehearsal target. It is never substituted for the operating Sheet and the
-    // proof refuses when both ids are equal. Empty means the Admin panel shows setup still needed.
-    RENEWAL_REHEARSAL_SHEET_ID: withDefault("RENEWAL_REHEARSAL_SHEET_ID", ""),
     SHEETS_IMPERSONATE_SA: withDefault("SHEETS_IMPERSONATE_SA", ""),
     SHEETS_DWD_SUBJECT: withDefault("SHEETS_DWD_SUBJECT", ""),
     // Phase C: the live append-only Sheet write-back stays OFF unless this is explicitly "true" (and the

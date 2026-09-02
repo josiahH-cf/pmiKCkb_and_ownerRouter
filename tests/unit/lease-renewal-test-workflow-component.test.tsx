@@ -155,7 +155,7 @@ describe("Lease production Test UI", () => {
     expect(
       screen.getByRole("button", { name: "Move to App Test complete" }),
     ).toBeDisabled();
-    expect(screen.getByText(/App Test completion unlocks after all 13/)).toBeVisible();
+    expect(screen.getByText(/App Test completion unlocks after all 14/)).toBeVisible();
 
     rendered.unmount();
     render(
@@ -168,7 +168,7 @@ describe("Lease production Test UI", () => {
     expect(
       screen.getByRole("button", { name: "Move to App Test complete" }),
     ).toBeEnabled();
-    expect(screen.getByText(/13 of 13 Test actions complete/)).toBeVisible();
+    expect(screen.getByText(/14 of 14 Test actions complete/)).toBeVisible();
     expect(
       screen.getByRole("region", { name: "Business closeout evidence gates" }),
     ).toHaveTextContent("Business closeout: Not proven");

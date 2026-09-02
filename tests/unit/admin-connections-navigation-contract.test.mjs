@@ -28,7 +28,6 @@ describe("S81 task-oriented Admin and Connections navigation contract", () => {
       "admin-task-index",
       "admin-people-access",
       "admin-runtime-suspensions",
-      "admin-renewal-rehearsal-sheet",
       "admin-renewal-notice-rules",
       "admin-owner-pricing-rules",
       "admin-activity-log",

@@ -7,6 +7,7 @@ import {
   readRenewalSheetGridsWithLinks,
 } from "@/lib/lease-renewal/sheet-links";
 import { runFullyLiveRenewalReview } from "@/lib/lease-renewal/live-run";
+import { PROOF_NOTE_PREFIX } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import type { SheetsValuesReader } from "@/lib/google-sheets/read-client";
 import type { SheetsBatchGetResponse } from "@/lib/google-sheets/sheet-to-grids";
 
@@ -143,6 +144,65 @@ describe("readRenewalSheetGridsWithLinks", () => {
     });
     expect(read.titles).toEqual(["Lease Renewal"]);
     expect(read.tableJoinIds[0]).toContain("lease:5");
+  });
+
+  it("drops proof-marked rows (and their join ids) when the note layer is present", async () => {
+    const reader: SheetsValuesReader = {
+      async listTabTitles() {
+        return ["Lease Renewal"];
+      },
+      async batchGet() {
+        return { valueRanges: [] };
+      },
+      async batchGetFormulas() {
+        return {
+          valueRanges: [
+            {
+              range: "Lease Renewal",
+              values: [
+                HEADER.map((h) => h),
+                renewalsRow({
+                  [TENANT]:
+                    '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/5","Guy")',
+                }),
+                renewalsRow({
+                  [TENANT]:
+                    '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/115","Proof Only")',
+                }),
+              ],
+            },
+          ],
+        };
+      },
+      async batchGetNotes() {
+        return {
+          "Lease Renewal": [
+            [],
+            ["PMI KC writeback — operation op-1 — lease 5 — property 9"],
+            [
+              `${PROOF_NOTE_PREFIX}PMI KC writeback — operation op-2 — lease 115 — property 84`,
+            ],
+          ],
+        };
+      },
+    };
+    const read = await readRenewalSheetGridsWithLinks({
+      reader,
+      spreadsheetId: "sheet-id",
+      tabTitles: ["Lease Renewal"],
+    });
+    expect(read.tables[0]).toHaveLength(2); // header + the one normal row
+    expect(read.tableJoinIds[0]).toEqual([null, "lease:5"]);
+    expect(JSON.stringify(read.tables)).not.toContain("Proof Only");
+  });
+
+  it("changes nothing for a reader without the note layer", async () => {
+    const read = await readRenewalSheetGridsWithLinks({
+      reader: readerWithFormulas(),
+      spreadsheetId: "sheet-id",
+      tabTitles: ["Lease Renewal"],
+    });
+    expect(read.tables[0]).toHaveLength(2);
   });
 
   it("throws on a reader without a FORMULA read", async () => {

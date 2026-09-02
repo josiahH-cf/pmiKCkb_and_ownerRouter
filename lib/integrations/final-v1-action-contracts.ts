@@ -100,14 +100,29 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("rule_ref", "Approved label rule", "reference"),
     f("reason", "Human reason", "string"),
   ],
-  "google_sheets.renewal_checklist.writeback": [
+  // S98: the retired broad Sheet identifier has no preview schema. The two exact keys carry the
+  // operating append/update fields.
+  "google_sheets.renewal_checklist.row_append": [
     f("tab", "Tab", "reference", "Google Sheets"),
-    f("row_key", "Re-anchored row key", "reference", "Google Sheets"),
-    f("column", "Column", "reference", "Google Sheets"),
-    f("before_value", "Before value", "string", "Google Sheets"),
-    f("after_value", "After value", "string"),
+    f("lease_ref", "Lease", "reference", "Rentvine"),
+    f("property_ref", "Property", "reference", "Rentvine"),
+    f("tenant_name", "Tenant label", "string"),
+    f("field_values", "Nonblank fields with exact sources", "string"),
+    f("row_note", "System note (mode-correct)", "string"),
+  ],
+  "google_sheets.renewal_checklist.field_update": [
+    f("tab", "Tab", "reference", "Google Sheets"),
+    f("row_anchor", "Stable row key or anchored row", "reference", "Google Sheets"),
+    f("field", "Supported field", "reference", "Google Sheets"),
+    f(
+      "expected_value",
+      "Exact current value (blank when empty)",
+      "string",
+      "Google Sheets",
+      false,
+    ),
+    f("after_value", "Proposed value", "string"),
     f("source_of_value", "Source of value", "string"),
-    f("verification_link", "Verification link", "string"),
   ],
   // S97: the retired broad writeback identifier has no preview schema. The three exact keys carry
   // official provider fields; the old synthetic five-field composite shape must never reappear.

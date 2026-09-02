@@ -179,11 +179,13 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     effect: "external_write",
     externalRequirement: "exact_action",
     // S97: the exact successor keys replace the retired broad writeback identifier.
+    // S98: the exact Sheet successor keys replace the retired broad writeback identifier.
     actionKeys: [
       "rentvine.lease.renewal_dates.update",
       "rentvine.lease.recurring_charge.update",
       "rentvine.lease.recurring_charge.create",
-      "google_sheets.renewal_checklist.writeback",
+      "google_sheets.renewal_checklist.row_append",
+      "google_sheets.renewal_checklist.field_update",
     ],
     exactConfirmation: true,
     audit: "external_receipt",
@@ -643,6 +645,14 @@ export const RENEWAL_ROUTE_INVENTORY = [
     // row carries the route's maximum authority — executing one exact-confirmed source write.
     kind: "api",
     source: "app/api/lease-renewal/rentvine-writeback/route.ts",
+    method: "POST",
+    capability: "execute_source_write",
+  },
+  {
+    // S98: Editors propose/discard under propose_source_write inside the handler; the declared
+    // row carries the route's maximum authority.
+    kind: "api",
+    source: "app/api/lease-renewal/operating-sheet/route.ts",
     method: "POST",
     capability: "execute_source_write",
   },

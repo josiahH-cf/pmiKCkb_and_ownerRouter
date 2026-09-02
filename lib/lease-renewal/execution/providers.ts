@@ -341,95 +341,9 @@ export class LeaseGmailExecutor implements ExternalExecutor {
   }
 }
 
-export interface SheetCellProvider {
-  resolveCell(input: {
-    tab: string;
-    rowKey: string;
-    column: string;
-  }): Promise<{ cell: string; value: string }>;
-  compareAndSetCell(input: {
-    cell: string;
-    expectedValue: string;
-    value: string;
-    idempotencyKey: string;
-  }): Promise<{ applied: boolean }>;
-  readCell(cell: string): Promise<string>;
-}
-
-export class RenewalSheetExecutor implements ExternalExecutor {
-  constructor(private readonly provider: SheetCellProvider) {}
-
-  validate(input: ExternalActionInput) {
-    return stringBlocker(
-      input,
-      "tab",
-      "row_key",
-      "column",
-      "before_value",
-      "after_value",
-      "source_of_value",
-      "verification_link",
-    );
-  }
-
-  async execute(input: ExternalActionInput) {
-    const blocker = this.validate(input);
-    if (blocker) throw new ExternalExecutionError(blocker, "blocked");
-    const expected = stringValue(input, "before_value");
-    const next = stringValue(input, "after_value");
-    const resolved = await this.provider.resolveCell({
-      tab: stringValue(input, "tab"),
-      rowKey: stringValue(input, "row_key"),
-      column: stringValue(input, "column"),
-    });
-    if (
-      resolved.value !== expected ||
-      (await this.provider.readCell(resolved.cell)) !== expected
-    ) {
-      throw new ExternalExecutionError("Sheet cell drifted before write.", "provider");
-    }
-    const write = await this.provider.compareAndSetCell({
-      cell: resolved.cell,
-      expectedValue: expected,
-      value: next,
-      idempotencyKey: externalActionIdempotencyKey(input),
-    });
-    if (!write.applied) {
-      throw new ExternalExecutionError(
-        "Sheet cell changed before the conditional write.",
-        "provider",
-      );
-    }
-    if ((await this.provider.readCell(resolved.cell)) !== next) {
-      throw new ExternalExecutionError(
-        "Sheet write requires reconciliation.",
-        "ambiguous",
-      );
-    }
-    return receipt(input, resolved.cell, {
-      before: digest(expected),
-      after: digest(next),
-      rowKey: digest(stringValue(input, "row_key")),
-    });
-  }
-
-  async reconcile(input: ExternalActionInput) {
-    const resolved = await this.provider.resolveCell({
-      tab: stringValue(input, "tab"),
-      rowKey: stringValue(input, "row_key"),
-      column: stringValue(input, "column"),
-    });
-    return (await this.provider.readCell(resolved.cell)) ===
-      stringValue(input, "after_value")
-      ? receipt(input, resolved.cell, { reconciled: true }, "succeeded", true)
-      : null;
-  }
-}
-
-// S97: the synthetic composite renewal executor and its fictional conditional-write provider were
-// retired. The real provider exposes no such operation; the exact S97 keys execute only through
-// the governed renewal-writeback service and its official one-attempt transport.
-
+// S98 retired the broad renewal_checklist.writeback identifier; its fictional cell
+// compare-and-set executor is gone. The two exact successor keys run only through the
+// governed sheet-writeback service, never through this provider module.
 export interface DotloopProvider {
   createLoop(input: {
     templateRef: string;

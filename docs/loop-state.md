@@ -16,24 +16,20 @@ effect beyond the owner-authorized keys and suite contracts.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, ten open
   keys of 44, the operating-Sheet write switch off, and the three proven S97 keys open.
 - S96 is `ALL_GATES_GREEN` and deployed through focused/canonical/core-E2E, exact-SHA CI,
-  candidate/config, promotion, and readback gates; production had zero connector records, so the
-  no-target first-click proof ran with no credential or vault effect.
-- S85 is `ALL_GATES_GREEN` and deployed through its focused/real-browser/canonical/core-E2E/CI
-  `33496148515`/candidate/config/promotion/readback gates. `brand_conformance` remains separately
-  blocked on approved official PMI assets; deployed values are provisional.
-- S86 is `ALL_GATES_GREEN` and deployed through focused interaction/S96-preservation suites, the
-  full canonical run, real-Chromium matrix, exact-SHA CI `33506372579`, candidate/config, exact
-  promotion, and repeated stable readback, with no store, provider, role, or message effect.
+  candidate/config, promotion, and readback gates with no credential or vault effect.
+- S85 is `ALL_GATES_GREEN` and deployed (CI `33496148515` plus the full gate ladder);
+  `brand_conformance` was later resolved with the published official PMI guide values live.
+- S86 is `ALL_GATES_GREEN` and deployed (focused interaction/S96-preservation suites, canonical
+  run, real-Chromium matrix, CI `33506372579`, full release gates) with no store or provider
+  effect.
 - S83 is `ALL_GATES_GREEN` and deployed through focused 27-file/175-test access coverage, the full
   canonical run, exact-SHA CI `33533250900`, candidate `pmi-kc-app-rmtiwwud5-993818fec846`,
   config/promotion/readback, and registry-mirror readback, with no role or provider effect.
 - S84 is `ALL_GATES_GREEN` and deployed: the three-group actor-aware disclosure navbar and
-  Dashboard/Internal Processes terminology are live over unchanged routes/guards through exact-SHA
-  CI `33562996950`, candidate `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, bounded smoke, normalized
-  configuration, exact promotion, and repeated stable readback, with no external effect.
-- ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
-  every release through S97 used the proven non-persistent ADC token bridge without printing or
-  writing a token.
+  Dashboard/Internal Processes terminology are live over unchanged routes/guards (CI
+  `33562996950`, candidate `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, full gates), no external effect.
+- ADC is healthy and resolves to `josiah@pmikcmetro.com`; every release through S97 used the
+  proven non-persistent ADC token bridge without printing or writing a token.
 - S82 is `ALL_GATES_GREEN` and deployed: the table-first desk, canonical v2 query and opaque
   party-filter contract, deskView continuity, privacy-bounded access returns, guided six-phase
   workspace, and compat-route upgrade are live through exact-SHA CI `33575465575`, candidate
@@ -51,7 +47,12 @@ effect beyond the owner-authorized keys and suite contracts.
   HTTP-400 absence signal, reversal reconciliation). Protected activation is live at commit
   `642269cab5afba563c41ce769541680c04d5c60c` with mirror readback 44 keys/ten open. The labeled
   permanent TEST row anchors the lease in the operating Sheet.
-- The remaining S36, S87-S95, and S98-S100 suites are specified desired-state contracts, not
+- S98's closed slice is implemented and focused-green, not yet released: the two exact keys
+  (append-with-note plus exact-cell compare-and-set), typed proposal/one-attempt/receipt/reversal
+  service, governed route and workspace panel, proof-row read exclusion, proof CLI, retired broad
+  key, and removed rehearsal-copy path (env delta: `RENEWAL_REHEARSAL_SHEET_ID` leaves the deploy
+  set). Both keys stay closed; the write switch stays off until each proof window.
+- The remaining S36, S87-S95, and S99-S100 suites are specified desired-state contracts, not
   implementation. S98 is the active suite. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
@@ -61,8 +62,8 @@ effect beyond the owner-authorized keys and suite contracts.
 - S96 solely owns connector disconnect/reconciliation; S86 supplies the shared interaction
   foundation; S83 supplies the access destination, review lane, and queue reachability S84 uses.
 - The committed execution Registry and its non-authoritative Firestore Admin display mirror both
-  read back at 44 keys/seven open with no malformed entry. Neither S83 nor the mirror grants action
-  execution.
+  read back at 44 keys/ten open with no malformed entry (the S98 seed moves to 46 on its release
+  and reseed). Neither S83 nor the mirror grants action execution.
 - S97 removed the obsolete multi-record proof machinery and proved/activated its keys. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
@@ -74,16 +75,17 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S98. Re-read its complete contract and the live operating-Sheet truth ("Lease Renewal" tab;
-the permanent S97 TEST row sits at the tail below one spacer). Implement the two exact keys
-closed - `google_sheets.renewal_checklist.row_append` and
-`google_sheets.renewal_checklist.field_update` - behind the S97-pattern proposal/one-attempt/
-receipt/readback/reconcile gates, remove the copy-only rehearsal Sheet path with tests, then run
-the serial bounded proof windows (temporary real-data row append/readback, blank-to-source field
-update, receipt-bound row delete, final absence) using the committed OWNER_PROOF_WINDOW_OPEN_KEYS
-machinery, close each window, and take protected activation through the full release train with
-mirror readback. Exclude user-owned `.claude/settings.local.json` and `output/` plus ignored
-`temp/` artifacts from every commit and Cloud Build upload.
+Finish S98 from the built closed slice: run the canonical gates (full unit, `verify.sh`, core
+E2E), commit, and pass exact-SHA CI; release the closed slice through candidate/bounded
+smoke/normalized config (one reviewed delta: `RENEWAL_REHEARSAL_SHEET_ID` removed)/exact
+promotion/readback with a 46-key mirror reseed; then run the three serial bounded proof windows on
+the designated lease 115/property 84 (proof-note row append with read-exclusion readback,
+blank-to-source `current_rent` compare-and-set, receipt-bound row delete with absence readback)
+via `scripts/prove-s98-sheet-writeback.ts`, opening OWNER_PROOF_WINDOW_OPEN_KEYS and the write
+switch only per window and closing each with readback; finally take protected activation through
+the full release train with mirror readback and write the docs receipt. Exclude user-owned
+`.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts from every commit and
+Cloud Build upload.
 
 ## Canonical queue
 

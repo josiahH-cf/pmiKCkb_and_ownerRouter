@@ -475,19 +475,17 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "google_sheets.renewal_checklist.writeback",
-    label: "Write a reconciled value back to the renewal-checklist sheet",
+    label: "Retired broad Sheet writeback identifier (non-executable)",
     target_system: "Google Sheets",
     expected_action:
-      "Append one Admin-approved reconciled value to one empty KB Proposed cell through a provider-owned stable-row transaction, immutable effect receipt, exact status/tombstone reconciliation, and effect-generation-guarded correction.",
+      "None. This broad identifier is retired and permanently non-executable; the exact S98 keys google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update own every operating-Sheet write.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Needs Connection",
-    evidence_status: "Undocumented",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
     documented_evidence:
-      "The local immutable preview/claim/receipt/reconcile/correction contract is built and tested, but Google Sheets REST exposes only fixed-range/value primitives. It does not supply the required atomic logical-row transaction, globally key-bound payload/status ledger, absent-key tombstone, or cell generation that every out-of-band edit invalidates. The live writer intentionally omits those methods and execution remains closed until a documented provider seam supplies all of them.",
+      "Retired by S98 (2026-09-02). The historical KB-Proposed abstraction required a provider-owned stable-row transaction/status/tombstone seam Google Sheets does not expose; S98 replaced it with a Sheets-native app-at-most-once contract under the exact google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update keys. This identifier remains only so historical dispositions and receipts keep parsing; it cannot grant, prove, or inherit any Sheet write and no window or activation may open it.",
     required_permissions: [
-      "Google Sheets API write access to the approved renewal-checklist sheet",
-      "Admin-enabled write-back feature flag (off by default) + per-console-user suggest/approve permission (§4.0)",
-      "Documented stable-row transaction provider with global idempotency, exact status, atomic absent-key tombstone, immutable effect evidence, and same-value-ABA-safe cell generation",
+      "None. This identifier is retired and permanently non-executable.",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
@@ -552,6 +550,52 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       "The app-plane contract is unit/Firestore proven to the provider seam. Preview and commit independently refuse before any live Sheet read when any required provider primitive is absent. The committed key and feature flag remain off; fixed-A1 smoke primitives are synthetic evidence only.",
     rollback_note:
       "Separately preview and exact-confirm a correction that clears only the receipted provider effect. The provider must condition atomically on the current cell generation so every intervening edit, including same-value ABA, blocks the clear.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
+    key: "google_sheets.renewal_checklist.row_append",
+    label: "Append one operating renewal Sheet row",
+    target_system: "Google Sheets",
+    expected_action:
+      "One atomic spreadsheets.batchUpdate whose single appendCells request appends one exact row after the current logical Renewals table with the system note on the resolved tenant_name cell (PMI KC writeback — operation <opaque id> — lease <provider id> — property <provider id>; the sealed proof mode uses the TEST — PMI KC writeback proof — prefix). The same capability owns ONLY the separately confirmed receipt-bound reversal of that exact unchanged app-appended row through one batchUpdate deleteDimension ROWS request; no other key or category can delete a row.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "The official Sheets batchUpdate/appendCells contract applies its single subrequest atomically and writes RowData values plus the note in one call; deleteDimension removes exactly one ROW range. Sheets exposes no operation-status or idempotency ledger for these requests, so the app claims one attempt before the call, an uncertain response parks ambiguous and never retries, and reconciliation searches the exact opaque note identity, reporting observed state without claiming causality. The append requires server-resolved provider lease/property ids and a nonblank source-backed tenant_name; renewal_date is never inferred from RentVine endDate; the browser cannot select mode, note, ids, or the row key.",
+    required_permissions: [
+      "Owner-authorized bounded proof window for this exact key after its closed deterministic gates, then separate protected final activation after that proof",
+      "Sheets DWD write scope on the approved operating sheet plus the reviewed operating-write runtime switch",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show the tab, server-resolved lease/property identity, tenant label, every nonblank field with its exact source, the mode-correct note, and the correction rule. Preview performs zero writes.",
+    rollback_note:
+      "Only the exact unchanged receipt-bound appended row may be deleted, under a new preview/confirmation, with final readback proving the stable key and note absent.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
+    key: "google_sheets.renewal_checklist.field_update",
+    label: "Update one supported operating renewal Sheet field",
+    target_system: "Google Sheets",
+    expected_action:
+      "One exact-cell server-side find/replace (matchEntireCell, single GridRange) that replaces one supported checklist cell only while the exact anchored row, resolved header, and expected current value still match; zero occurrences means collaborator drift and nothing changed.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "The official Sheets findReplace subrequest is scoped to one grid cell and returns occurrencesChanged, giving a provider-side compare-and-set: 1 means the exact expected value was replaced, 0 means drift with no change. The supported-field allowlist is exactly the 19-field Renewals semantic schema; murky/missing/duplicate headers, protected or merged targets, formulas, ambiguous row identity, and type mismatch refuse before the call. A correction restores the exact receipted prior value under a new confirmation through the same primitive.",
+    required_permissions: [
+      "Owner-authorized bounded proof window for this exact key after its closed deterministic gates, then separate protected final activation after that proof",
+      "Sheets DWD write scope on the approved operating sheet plus the reviewed operating-write runtime switch",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show the tab, stable row identity or anchored row, field, exact expected and proposed values, the value source, and the correction rule. Preview performs zero writes.",
+    rollback_note:
+      "A separately previewed and confirmed correction compare-and-sets the exact receipted prior value back into the same cell and requires exact readback.",
     connection_health_check_ref: "health.google_sheets.api",
     production_allowed: false,
   },

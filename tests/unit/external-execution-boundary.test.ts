@@ -227,7 +227,7 @@ describe("external execution fail-closed boundary", () => {
 
   it("accepts dependencies only from the same workflow with matching receipts", async () => {
     const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
-      "google_sheets.renewal_checklist.writeback",
+      "google_sheets.renewal_checklist.row_append",
     )!;
     const input = synthetic(definition);
     const store = new MemoryExternalExecutionStore();

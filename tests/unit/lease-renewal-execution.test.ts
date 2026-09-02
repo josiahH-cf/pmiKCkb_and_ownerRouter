@@ -131,7 +131,7 @@ describe("Lease Renewal fake-provider E2E", () => {
     const executors = new Map<string, ExternalExecutor>([
       [LEASE_EXECUTION_ACTIONS[0], fakeExecutor()],
       [LEASE_EXECUTION_ACTIONS[1], failing],
-      ["google_sheets.renewal_checklist.writeback", fakeExecutor()],
+      ["google_sheets.renewal_checklist.row_append", fakeExecutor()],
     ]);
     const orchestrator = new ExternalActionOrchestrator(
       LEASE_EXECUTION_DEFINITION_MAP,
@@ -152,7 +152,7 @@ describe("Lease Renewal fake-provider E2E", () => {
     ).rejects.toBeDefined();
     expect(failing.execute).toHaveBeenCalledTimes(1);
 
-    const sheet = input("google_sheets.renewal_checklist.writeback", 6);
+    const sheet = input("google_sheets.renewal_checklist.row_append", 6);
     const blocked = await orchestrator.prepare(sheet, [...store.records.values()]);
     expect(blocked.state).toBe("blocked");
     expect(blocked.blocker).toContain(LEASE_EXECUTION_ACTIONS[1]);

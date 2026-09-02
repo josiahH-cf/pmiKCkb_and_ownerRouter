@@ -86,6 +86,7 @@ export function RenewalWorkspace({
   deskView = null,
   discrepancyPanel = null,
   rentvineUpdatesPanel = null,
+  operatingSheetPanel = null,
   sheetDestination = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
@@ -100,6 +101,8 @@ export function RenewalWorkspace({
   discrepancyPanel?: ReactNode;
   /** S97: the page-supplied RentVine update proposal/review panel, phase-independent. */
   rentvineUpdatesPanel?: ReactNode;
+  /** S98: the page-supplied operating-Sheet proposal/review panel, phase-independent. */
+  operatingSheetPanel?: ReactNode;
   /** Server-validated operating-Sheet link for the verify phase's source evidence. */
   sheetDestination?: ExternalDeskDestination | null;
 }>) {
@@ -155,6 +158,8 @@ export function RenewalWorkspace({
       />
 
       {rentvineUpdatesPanel}
+
+      {operatingSheetPanel}
     </div>
   );
 }
