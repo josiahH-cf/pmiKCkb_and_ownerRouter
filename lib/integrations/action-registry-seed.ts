@@ -1014,7 +1014,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "POST /leases/{leaseID}/recurring-charges with every required official field explicitly supplied; this key's committed capability alone also owns the paired receipt-bound reversal DELETE /leases/{leaseID}/recurring-charges/{chargeID}.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Needs Permission",
+    // Bounded S97 proof window (owner grant 2026-09-02, designated lease only); closed on proof
+    // completion by the paired close commit.
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
       "The official RentVine contract documents POST /leases/{leaseID}/recurring-charges returning an HTTP 200 {recurringCharge} wrapper with optional nullable previousCharge and a positive string leaseRecurringChargeID. Required S97 body values are strings: positive canonical decimal accountID, amount matching ^(?:0|[1-9]\\d*)\\.\\d{2}$, exact nonblank description, canonical dayDue 1-31, explicit canonical frequency 1-24, and real startDate as MM/DD/YYYY; optional real endDate uses MM/DD/YYYY and is omitted for open-ended. No provider default or another lease supplies a value. Execution requires an independent detail GET on the returned id matching every normalized submitted field. The paired reversal DELETE is reachable only from the original create receipt after a fresh detail read canonically equals the receipted projection and a new exact confirmation; its HTTP 200 response is the deleted charge object directly and is followed by detail not-found plus collection absence. No other key or category can grant that DELETE, and arbitrary deletion is unavailable.",
@@ -1027,7 +1029,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     rollback_note:
       "Only the exact unchanged receipt-bound created charge may be deleted, after fresh canonical equality with its create receipt and a separately confirmed preview; absence is then read back. Drift permits read-only reconciliation only and never recreates the charge.",
     connection_health_check_ref: "health.rentvine.api_key",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.lease.recurring_charge.update",
@@ -1539,7 +1541,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  * again (list emptied, entry restored) before any other key's window or the final activation
  * patch. Outside a window this list is empty.
  */
-export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
+export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [
+  "rentvine.lease.recurring_charge.create",
+];
 
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
   BASE_ACTION_REGISTRY_SEED.map((entry) => {
