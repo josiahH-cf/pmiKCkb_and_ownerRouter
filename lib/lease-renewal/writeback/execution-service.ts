@@ -103,7 +103,11 @@ export interface RenewalWritebackDependencies {
 }
 
 const RECONCILE_MIN_AGE_MS = 2 * 60 * 1_000;
-const NOT_FOUND_STATUSES = new Set([404]);
+// The live provider answers a deleted/absent recurring-charge detail GET with HTTP 400 (verified
+// 2026-09-02 against the deleted proof charge); 404 stays accepted for conventional not-found.
+// Absence is never concluded from this status alone: every delete check also requires the id to be
+// missing from the collection listing.
+const NOT_FOUND_STATUSES = new Set([400, 404]);
 
 export function leaseDateStateOf(raw: Record<string, unknown>): LeaseDateState {
   const lease =
