@@ -112,6 +112,7 @@ const EXPECTED_BOUNDARIES = [
   "scripts/prove-rentvine-renewal-write.ts:getLease:new RentVineClient",
   "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreExternalExecutionStore",
   "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreRentVineProofCloseoutStore",
+  "scripts/prove-s100-chat-sync.ts:createClient:createDescriptorBoundGmailRuntimeClient",
   "scripts/prove-s98-sheet-writeback.ts:main:deps.createWriter",
   "scripts/smoke-gmail-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-gmail-draft-live.ts:runGmailDraftSmoke:dependencies.createGmailClient",
@@ -244,6 +245,9 @@ const PRODUCT_READ_ONLY_PROVIDER_FACTORIES = new Set([
 ]);
 
 const LAZY_SCRIPT_PROVIDER_FACTORIES = new Set([
+  // S100 proof runner: the governed-draft createClient thunk is invoked only inside the gated
+  // prepare/execute of the exact resident-draft key during an owner-authorized proof window.
+  "scripts/prove-s100-chat-sync.ts:createClient:createDescriptorBoundGmailRuntimeClient",
   "scripts/smoke-gmail-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-renewal-draft-live.ts:createDiagnosticProvider:new LiveRenewalGmailDraftProvider",
   "scripts/smoke-renewal-draft-live.ts:createGmailClient:new GmailRuntimeClient",
