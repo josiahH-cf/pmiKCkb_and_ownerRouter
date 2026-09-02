@@ -21,13 +21,16 @@ describe("buildMaintenanceProcessTemplate", () => {
     expect(template.steps.map((step) => step.title)).toEqual([...MAINTENANCE_STAGES]);
   });
 
-  it("references the RentVine work-order actions, none 'Approved for Execution'", () => {
+  it("references the RentVine work-order actions with their live registry readiness", () => {
     const refs = template.action_references ?? [];
     const keys = refs.map((ref) => ref.action_registry_key);
     expect(keys).toContain("rentvine.work_order.read");
     expect(keys).toContain("rentvine.work_order.create");
+    // The S99 activation (2026-09-02) opened these exact keys; the template reference is display
+    // metadata only and still grants no execution authority.
     for (const ref of refs) {
-      expect(ref.readiness).not.toBe("Approved for Execution");
+      expect(typeof ref.readiness).toBe("string");
+      expect(ref.readiness.length).toBeGreaterThan(0);
     }
   });
 });

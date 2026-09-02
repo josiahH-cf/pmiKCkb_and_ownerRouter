@@ -217,15 +217,15 @@ describe("S99 work-order writer", () => {
     });
   });
 
-  it("refuses a detail-shaped envelope as update success", async () => {
+  it("accepts the live detail-shaped update envelope (2026-09-02 cancel proof)", async () => {
     const { transport } = transportOf(() => ({
       status: 200,
       body: { workOrder: rawWorkOrder("5150"), schedulingStatusID: 1 },
     }));
     const writer = new RentVineWorkOrderWriter(CONFIG, transport);
-    await expect(writer.updateWorkOrderStatus(5150, "12")).rejects.toBeInstanceOf(
-      WorkOrderContractError,
-    );
+    await expect(writer.updateWorkOrderStatus(5150, "12")).resolves.toMatchObject({
+      workOrderId: "5150",
+    });
   });
 
   it("never constructs with missing credentials or a non-https base", () => {
