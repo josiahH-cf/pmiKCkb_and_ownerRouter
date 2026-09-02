@@ -337,7 +337,7 @@ describe("buildMigrationReadinessReport", () => {
         ...passingDeps(),
         listActionRegistry: async () =>
           committedRegistryRecords({
-            "rentvine.work_order.create": {
+            "google_sheets.renewal_checklist.writeback": {
               readiness: "Approved for Execution",
               evidence_status: "Documented",
               production_allowed: true,
@@ -347,10 +347,10 @@ describe("buildMigrationReadinessReport", () => {
     );
 
     expect(report.action_registry.production_allowed_keys).toContain(
-      "rentvine.work_order.create",
+      "google_sheets.renewal_checklist.writeback",
     );
     expect(report.action_registry.unexpected_production_allowed_keys).toEqual([
-      "rentvine.work_order.create",
+      "google_sheets.renewal_checklist.writeback",
     ]);
     expect(report.rollup.ok).toBe(false);
     expect(report.rollup.blockers.join(" ")).toMatch(/governance violation/);
