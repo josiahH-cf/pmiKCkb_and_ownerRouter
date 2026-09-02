@@ -189,6 +189,11 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   // forward correction, receipt-bound delete with absence readback).
   "google_sheets.renewal_checklist.row_append",
   "google_sheets.renewal_checklist.field_update",
+  // S99 activation (2026-09-02): the three exact work-order keys proven live on property 84
+  // (bounded read, Admin-approved TEST create 1731, cancel via the unique system Cancelled).
+  "rentvine.work_order.read",
+  "rentvine.work_order.create",
+  "rentvine.work_order.update_status",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

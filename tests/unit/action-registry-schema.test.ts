@@ -162,6 +162,12 @@ describe("Action Registry seed catalog", () => {
       // readback; source-backed compare-and-set + receipted forward correction).
       "google_sheets.renewal_checklist.row_append",
       "google_sheets.renewal_checklist.field_update",
+      // S99 activation (2026-09-02): the three exact work-order keys, each proven live on the
+      // owner-designated property 84 (bounded read; Admin-approved TEST create 1731 with
+      // reconciled receipt; cancel via the unique live system Cancelled status).
+      "rentvine.work_order.read",
+      "rentvine.work_order.create",
+      "rentvine.work_order.update_status",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);

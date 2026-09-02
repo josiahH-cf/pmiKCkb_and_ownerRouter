@@ -118,6 +118,10 @@ describe("Action Registry stays non-executable for the live read paths", () => {
         // S97-S100: a committed bounded proof window may temporarily open one exact key.
         .filter((key) => !OWNER_PROOF_WINDOW_OPEN_KEYS.includes(key)),
     ).toEqual([
+      // S99 activation (2026-09-02): proven exact work-order keys, in seed order.
+      "rentvine.work_order.create",
+      "rentvine.work_order.read",
+      "rentvine.work_order.update_status",
       // S98 activation (2026-09-02): proven exact operating-Sheet write keys, in seed order.
       "google_sheets.renewal_checklist.row_append",
       "google_sheets.renewal_checklist.field_update",

@@ -27,8 +27,12 @@ beforeEach(() => {
 });
 
 describe("Action Registry repository", () => {
-  it("uses the key as the record id and stays non-executable", () => {
-    const record = buildActionRegistryRecord(ACTION_REGISTRY_SEED[0]);
+  it("uses the key as the record id and keeps a closed entry non-executable", () => {
+    // The retired broad Sheet identifier is permanently closed, so this pin survives activations.
+    const retired = ACTION_REGISTRY_SEED.find(
+      (entry) => entry.key === "google_sheets.renewal_checklist.writeback",
+    )!;
+    const record = buildActionRegistryRecord(retired);
 
     expect(record.id).toBe(record.key);
     expect(record.production_allowed).toBe(false);
@@ -67,6 +71,10 @@ describe("Action Registry repository", () => {
       "rentvine.lease.recurring_charge.create",
       "rentvine.lease.recurring_charge.update",
       "rentvine.lease.renewal_dates.update",
+      // S99 activation (2026-09-02): proven exact work-order keys.
+      "rentvine.work_order.create",
+      "rentvine.work_order.read",
+      "rentvine.work_order.update_status",
     ]);
   });
 

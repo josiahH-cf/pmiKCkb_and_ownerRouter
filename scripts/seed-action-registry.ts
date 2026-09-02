@@ -54,6 +54,13 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   // correction, and the receipt-bound delete with absence readback).
   "google_sheets.renewal_checklist.row_append",
   "google_sheets.renewal_checklist.field_update",
+  // S99 activation (2026-09-02): the three exact work-order keys passed their bounded live proofs
+  // on the owner-designated property 84 (complete filtered read with catalog; Admin-approved TEST
+  // create 1731 reconciled to a durable receipt; cancel through the unique live system Cancelled
+  // status with exact readback).
+  "rentvine.work_order.read",
+  "rentvine.work_order.create",
+  "rentvine.work_order.update_status",
 ]);
 
 export function parseSeedActionRegistryArgs(
