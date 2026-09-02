@@ -3,7 +3,7 @@
 
 # S97 — Governed RentVine renewal writeback
 
-> Status: Specified successor to the deployed S30 proof boundary; all current RentVine renewal-write keys remain non-executable until this suite's closed-gate implementation, each exact key's bounded proof, protected activation patch, release, and readback pass.
+> Status: Closed-gate slice implemented and deployed at commit `f2153b00087516cf06c4f9776f2fc3562e146c83`, candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b`, exact-SHA CI `33583463885`, with the registry mirror read back at 44 keys/seven open. All three exact keys and the retired broad identifier remain non-executable; each key's owner-designated bounded live proof, closeout, protected activation patch, release, and readback are still required and wait on the secure lease packet.
 
 **Goal.**
 

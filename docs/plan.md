@@ -11,16 +11,17 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c` as revision
-`pmi-kc-app-rmtjd24ee-17d334db377f` at 100% traffic. It remains Production + Live with eleven
-Spaces, managed identity, seven open Action Registry keys, a closed operating-Sheet write switch,
-and a closed S30 one-lease `endDate` proof runner. No RentVine renewal write, operating-Sheet write,
-Maintenance provider mutation, resident sync/draft, or S36 pilot has run.
+Production serves commit `f2153b00087516cf06c4f9776f2fc3562e146c83` as revision
+`pmi-kc-app-rmtjhew5f-125876b4ff5b` at 100% traffic. It remains Production + Live with eleven
+Spaces, managed identity, seven open Action Registry keys (44 total), a closed operating-Sheet
+write switch, and the three exact S97 renewal-writeback keys deployed closed with the retired S30
+broad identifier. No RentVine renewal write, operating-Sheet write, Maintenance provider mutation,
+resident sync/draft, or S36 pilot has run.
 
-The current code also retains obsolete multi-record proof and copy-only Sheet paths. They are not
-active guidance: S97 and S98 own their tested removal. The remaining S36, S87-S95, and
-S97-S100 contracts are specified desired state, not deployed behavior, until each suite completes
-implementation, verification, release, effect proof where required, and readback.
+S97 removed the obsolete multi-record proof machinery; the current code still retains the copy-only
+Sheet path, whose tested removal S98 owns and which is not active guidance. The remaining S36,
+S87-S95, and S98-S100 contracts are specified desired state, not deployed behavior, until each
+suite completes implementation, verification, release, effect proof where required, and readback.
 
 S96 is `ALL_GATES_GREEN` and deployed. Its focused, canonical, core-E2E, exact-SHA CI, zero-traffic
 candidate, normalized-config, bounded-route, exact promotion, and stable readback gates passed. The
@@ -46,7 +47,10 @@ readback gates over unchanged routes and guards. S82 is also `ALL_GATES_GREEN` a
 table-first desk, canonical v2 query and opaque party-filter contract, desk-view continuity,
 privacy-bounded access returns, guided six-phase workspace, and compat-route upgrade passed
 focused, real-browser, canonical, core-E2E, exact-SHA CI, candidate/configuration,
-exact-promotion, stable-readback, and secret/IAM readback gates. S97 is active.
+exact-promotion, stable-readback, and secret/IAM readback gates. S97 is active: its closed
+exact-key slice (retirement, typed proposals, one-attempt receipted execution, reconcile,
+separate reversal, governed route, and workspace panel) is `ALL_GATES_GREEN` and deployed with
+all three keys closed; its live per-key proofs and protected activation remain.
 
 ## Authority and closed decisions
 
@@ -92,14 +96,11 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 7 implementation. Re-read S97 and the deployed S30 safety primitives,
-S77 confirm contract, S80 authority matrix, and S82 desk/workspace truth. S97 first removes the
-obsolete multi-record proof machinery with tests, then implements the three exact renewal-
-writeback keys closed - `rentvine.lease.renewal_dates.update`,
-`rentvine.lease.recurring_charge.create` with only its receipt-bound reversal DELETE, and
-`rentvine.lease.recurring_charge.update` - behind exact preview/confirm/receipt/readback/
-reconcile behavior and deterministic gates before any protected proof window is prepared under
-the owner's per-key authority.
+The active position is step 7's remaining owner-gated tail. The closed slice is deployed; each
+exact key now needs its owner-authorized bounded live proof window against the owner-designated
+lease from the secure untracked packet, exact reversal/closeout, readback, and separate protected
+activation. That packet is a runtime input, never committed; without it no proof window is
+prepared and the serial queue holds at S97.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

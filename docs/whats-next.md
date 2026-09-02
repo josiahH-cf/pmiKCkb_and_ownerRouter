@@ -4,13 +4,14 @@ Updated: 2026-09-01.
 
 ## Immediate action
 
-Begin S97. Re-read its complete contract, the deployed S30 one-attempt/readback/rollback safety
-primitives, the S77 exact-confirm foundation, the S80 authority matrix, and current desk/workspace
-truth. Remove the obsolete multi-record proof machinery with tests, then implement the three exact
-renewal-writeback keys closed behind preview/exact-confirm/receipt/readback/reconcile gates. No
-key opens, and no proof window is prepared, before its deterministic closed-state gates are green
-and the owner's per-key protected window applies; the sole designated lease arrives only through
-secure execution context and is never substituted or committed.
+S97's closed exact-key slice is `ALL_GATES_GREEN` and deployed (commit
+`f2153b00087516cf06c4f9776f2fc3562e146c83`, candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b`): the
+obsolete multi-record proof machinery is removed with a static inventory test and the three exact
+renewal-writeback keys are live closed behind preview/exact-confirm/receipt/readback/reconcile
+gates with typed proposals, a governed route, and the workspace review panel. S97 is now BLOCKED
+on one input: the owner-designated ended-lease secure packet. When it arrives, run the three
+serial per-key proof windows, closeouts, readbacks, and protected activations; the sole designated
+lease arrives only through secure execution context and is never substituted or committed.
 
 Documentation Gate 0 is complete through specification closure
 `081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the

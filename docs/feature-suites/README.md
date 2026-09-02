@@ -74,8 +74,15 @@ access-return/table/copy suites, the real-Chromium production-build matrix, cano
 core E2E, exact-SHA CI `33575465575`, bounded candidate smoke, normalized configuration excluding
 only image/exact `APP_COMMIT_SHA`/the one specified `RENEWAL_DESK_PARTY_FILTER_KEY` binding, exact
 promotion, repeated stable readback, and secret/IAM/payload-shape readback passed; the only cloud
-effects were the bounded candidate/traffic state and that app-owned secret. Resume S97 from
-`docs/loop-state.md`.
+effects were the bounded candidate/traffic state and that app-owned secret. S97's closed exact-key
+slice is implemented and deployed through exact candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b` at
+commit `f2153b00087516cf06c4f9776f2fc3562e146c83`; the retirement inventory plus
+proposal/execution/route/panel suites, the 600-file canonical run, complete verify gates, core E2E,
+exact-SHA CI `33583463885`, bounded candidate smoke, normalized configuration excluding only image
+and exact `APP_COMMIT_SHA`, exact promotion, repeated stable readback, and the reseeded 44-key/
+seven-open registry mirror readback passed with all three exact keys closed and no provider write.
+S97's remaining live per-key proof windows, closeout, and protected activation wait on the
+owner-designated lease secure packet. Resume S97 from `docs/loop-state.md`.
 
 Default execution is serialized because suites update shared registries, shell components, and
 governance docs. The sole optional parallel group is bounded S90 and S91 domain work in isolated

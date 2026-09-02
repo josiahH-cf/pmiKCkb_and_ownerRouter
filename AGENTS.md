@@ -23,12 +23,12 @@ the current code and live service. Date-stamped history is not authority.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtjd24ee-17d334db377f`, 100% traffic.
-- Deployed code: `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`.
+- Serving revision: `pmi-kc-app-rmtjhew5f-125876b4ff5b`, 100% traffic.
+- Deployed code: `f2153b00087516cf06c4f9776f2fc3562e146c83`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtjd24ee-17d334db377f` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -44,7 +44,7 @@ the current code and live service. Date-stamped history is not authority.
 - S83's capability-guided access-request workflow is deployed. Every managed staff user can inspect
   and request additive role/Space access; only a different current Admin can deny or exact-confirm
   application, and Firebase directory readback is required before a request becomes applied. The
-  Firestore Admin mirror matches the authoritative 41-key/seven-open registry.
+  Firestore Admin mirror matches the authoritative 44-key/seven-open registry.
 - S84's grouped navbar navigation is deployed. One actor-filtered manifest renders the My Work,
   Operations, and Admin disclosure groups with descriptive rows over unchanged routes and guards;
   visible navigation/landing terminology is Dashboard and Internal Processes while `/`, `/ask`,
@@ -55,6 +55,13 @@ the current code and live service. Date-stamped history is not authority.
   blocker links to its exact phase; the workspace shows a six-phase rail, one next action, and one
   selected phase; and navigation performs no verification, progress, source write, or send. The
   `RENEWAL_DESK_PARTY_FILTER_KEY` binding is the suite's one added runtime secret reference.
+- S97's closed renewal-writeback slice is deployed. The synthetic composite executor, the broad
+  writeback execution key, and the composite preview shape are out of production reachability; the
+  three exact keys (`renewal_dates.update`, `recurring_charge.update`, `recurring_charge.create`)
+  are registered closed with typed per-lease proposals, a one-attempt receipted execution service,
+  reconcile-only ambiguity recovery, separately confirmed reversal, the governed
+  `rentvine-writeback` route, and the workspace Review RentVine updates panel. No key opened; the
+  live per-key proofs wait on the owner-designated lease secure packet.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source. Its write-back runtime switch is off.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
@@ -129,11 +136,13 @@ Open keys as of 2026-08-27:
 - `rentcast.rental_listings.search`
 - `internal.transactional_notice.send`
 
-The other 34 keys are closed. In particular:
+The other 37 keys are closed. In particular:
 
 - `gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`, and
   `gmail.message.send` remain permanently closed under D33;
-- `rentvine.lease.renewal_writeback` remains closed;
+- the retired `rentvine.lease.renewal_writeback` identifier and its three exact S97
+  successors (`rentvine.lease.renewal_dates.update`, `rentvine.lease.recurring_charge.update`,
+  `rentvine.lease.recurring_charge.create`) remain closed;
 - `google_sheets.renewal_checklist.writeback` remains closed.
 
 A runtime flag never outranks the committed per-key gate.

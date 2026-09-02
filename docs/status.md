@@ -8,20 +8,20 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtjd24ee-17d334db377f`, 100% traffic
-- Serving commit: `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`
-- Immediate rollback: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`
+- Serving revision: `pmi-kc-app-rmtjhew5f-125876b4ff5b`, 100% traffic
+- Serving commit: `f2153b00087516cf06c4f9776f2fc3562e146c83`
+- Immediate rollback: `pmi-kc-app-rmtjd24ee-17d334db377f`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
-- RentVine renewal write: S30 one-lease `endDate` proof key closed; no live proof
+- RentVine renewal write: three exact S97 keys implemented closed; S30 proof key retired-closed; no live proof
 - RentVine Maintenance: concrete client is read/list-only; no live create/status/chat sync
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
 The serving candidate passed exact identity, normalized-config, bounded route, promotion, and stable
 readback gates. The committed execution Registry and its Firestore Admin display mirror both read
-back as 41 exact keys, seven open and 34 closed; the mirror cannot grant execution. None of the new
-S97-S100 exact keys is executable or deployed yet.
+back as 44 exact keys, seven open and 37 closed; the mirror cannot grant execution. The three exact
+S97 keys are deployed closed and not executable; the S98-S100 exact keys are not implemented yet.
 
 ## S85 technical delivery
 
@@ -127,9 +127,9 @@ draft, message, or Action Registry effect ran.
 - The Dashboard home surface, eleven Spaces presented as Internal Processes, processes, approvals,
   Admin, Maintenance, feedback, tokenized resident intake, Vendor boundaries, and work
   accountability.
-- S30's one-attempt/readback/rollback safety primitives are deployed behind a closed key. Current
-  code still contains obsolete multi-record proof and copy-only Sheet paths; S97/S98 own their tested
-  removal and they are not active planning authority.
+- S30's one-attempt/readback/rollback safety primitives are deployed; its broad proof key is a
+  retired non-executable identifier and S97 removed the obsolete multi-record proof machinery.
+  The copy-only Sheet path remains and S98 owns its tested removal; it is not planning authority.
 - S96's cancel-first connector dialog, strict request contract, versioned lifecycle, immutable
   redacted receipt, verifiable vault outcome, response-loss recovery, and setup-generation safety are
   deployed. Live readback found no connector records, so candidate first-click safety used the
@@ -151,10 +151,12 @@ draft, message, or Action Registry effect ran.
 ## Specified, not deployed
 
 The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, S84, and S82
-are complete and deployed; S97 is active. The queue continues with the owner-authorized source
-effects and bounded cloud pilot:
+are complete and deployed. S97 stays active: its closed exact-key slice is deployed, and its live
+per-key proofs plus protected activation wait on the owner-designated lease secure packet. The
+queue continues with the owner-authorized source effects and bounded cloud pilot:
 
-- S97: exact RentVine renewal-date and recurring-charge create/update writeback.
+- S97 (remaining): the owner-designated live per-key proof windows, closeout, and protected
+  activation for the three deployed closed writeback keys.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
   data proof row that is isolated/read back, receives one separately confirmed source-backed field
   update, then is deleted and proven absent.
@@ -227,6 +229,12 @@ deferred to later separately grounded work.
   and the one specified party-filter secret binding; exact promotion; two stable canonical
   traffic/version/route readback passes; and secret/IAM/payload-shape readback for
   `RENEWAL_DESK_PARTY_FILTER_KEY` without printing its value.
+- S97 closed slice, commit `f2153b00087516cf06c4f9776f2fc3562e146c83`: retirement inventory plus
+  proposal/execution/route/panel suites; 600-file/5,515-test canonical run; complete verify gates;
+  core E2E; exact-SHA CI `33583463885`; zero-traffic candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b`;
+  bounded candidate smoke on the exact tag URL; normalized predecessor parity excluding only image
+  and exact `APP_COMMIT_SHA`; exact promotion; two stable canonical version readback passes; and
+  Action Registry mirror readback at 44 keys/seven open with all three exact S97 keys closed.
 
 ## Remaining runtime evidence
 

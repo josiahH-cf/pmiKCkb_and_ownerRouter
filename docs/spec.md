@@ -63,15 +63,15 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c` passed 595 unit files
-with one intentional file skip (5,452 tests and four skips), 26 Firestore files/119 tests, every
+The production release at commit `f2153b00087516cf06c4f9776f2fc3562e146c83` passed 600 unit files
+with one intentional file skip (5,515 tests and four skips), 26 Firestore files/119 tests, every
 static/policy gate, core E2E, and the complete production build. Exact-SHA aggregate CI run
-`33575465575` passed. Zero-traffic revision `pmi-kc-app-rmtjd24ee-17d334db377f` then passed exact
-identity, bounded-route, and normalized-configuration readback, excluding only image, exact
-`APP_COMMIT_SHA`, and the one S82-specified party-filter secret binding, before promotion and
-repeated stable 100% traffic readback. The committed Action Registry remains 41 keys with seven
-open. Revision `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` is the immediate rollback target; the earlier
-predecessor chain retains its recorded version-aware rollback/restoration rehearsal.
+`33583463885` passed. Zero-traffic revision `pmi-kc-app-rmtjhew5f-125876b4ff5b` then passed exact
+identity, bounded-route, and normalized-configuration readback, excluding only image and exact
+`APP_COMMIT_SHA`, before promotion and repeated stable 100% traffic readback. The committed Action
+Registry is 44 keys with seven open; the three exact S97 writeback keys and the retired broad
+identifier read back closed. Revision `pmi-kc-app-rmtjd24ee-17d334db377f` is the immediate
+rollback target; the earlier predecessor chain retains its recorded rollback rehearsal.
 
 ## Current unfinished work
 

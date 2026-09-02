@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtjd24ee-17d334db377f`            |
-| Serving commit            | `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`     |
+| Serving revision          | `pmi-kc-app-rmtjhew5f-125876b4ff5b`            |
+| Serving commit            | `f2153b00087516cf06c4f9776f2fc3562e146c83`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -81,13 +81,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtj7bhzf-61f4736bdb6b` from commit
-`c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`.
+Captured predecessor: `pmi-kc-app-rmtjd24ee-17d334db377f` from commit
+`da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtj7bhzf-61f4736bdb6b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtjd24ee-17d334db377f=100 --quiet
 ```
 
 Forward restoration:
@@ -95,7 +95,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtjd24ee-17d334db377f=100 --quiet
+  --to-revisions=pmi-kc-app-rmtjhew5f-125876b4ff5b=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -147,7 +147,7 @@ configuration after excluding only image and `APP_COMMIT_SHA`; provider-generate
 reviewed separately. Only that candidate was promoted. Two stable canonical passes and independent
 Cloud Run/Firestore readback proved Ready/100% traffic, exact version, managed identity, Production +
 Live, eleven matching Space maps, three expected secret references, allowance 50, closed Sheet/Space
-write switches, and the reconciled 41-key/seven-open Action Registry mirror. No role, claim, access
+write switches, and the then-current reconciled Action Registry mirror. No role, claim, access
 request, provider, credential, client-data, draft, or message effect occurred.
 
 The S84 release captured `pmi-kc-app-rmtiwwud5-993818fec846`, passed focused navigation
@@ -178,6 +178,18 @@ managed runtime identity all preserved. Only that revision was promoted. Two sta
 passes proved Ready/100% traffic on the exact revision, exact version identity, and healthy bounded
 routes including the guarded desk route. No client-data, provider-write, role, draft, message, or
 Action Registry effect occurred.
+
+The S97 closed-slice release captured `pmi-kc-app-rmtjd24ee-17d334db377f`, passed the retirement
+inventory plus proposal/execution/route/panel suites, the 600-file/5,515-test canonical run,
+complete verify gates, core E2E, and exact-SHA CI run `33583463885`. Zero-traffic candidate
+`pmi-kc-app-rmtjhew5f-125876b4ff5b` passed the bounded read-only smoke at its exact tag URL with
+exact commit `f2153b00087516cf06c4f9776f2fc3562e146c83`, and its normalized runtime configuration
+equalled the predecessor after excluding only image and exact `APP_COMMIT_SHA` - eleven Space maps,
+four expected secret references, the closed Sheet write switch, Production + Live, and the managed
+runtime identity all preserved. Only that revision was promoted. Two stable canonical passes proved
+100% traffic on the exact revision and exact version identity, and the reseeded Action Registry
+mirror read back 44 keys/seven open with the three exact S97 keys and the retired broad identifier
+all closed. No client-data, provider-write, role, draft, or message effect occurred.
 
 ## Configuration invariants
 
