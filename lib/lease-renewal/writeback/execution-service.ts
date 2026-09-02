@@ -885,23 +885,27 @@ export class RenewalWritebackService {
         return { state: "drift" };
       }
     }
-    // Create: search the list for a charge exactly matching the submitted fields.
+    // Create: the list is discovery only (live list rows omit recurringStatusID); each candidate
+    // id is confirmed through the canonical detail read before it can count as the applied effect.
     const list = await this.dependencies.reads.listRecurringCharges(proposal.leaseId);
-    const matches = list.filter((entry) => {
+    const candidateIds = list
+      .map((entry) => (entry as Record<string, unknown>)["leaseRecurringChargeID"])
+      .filter((id): id is string => typeof id === "string");
+    const matches: RecurringChargeProjection[] = [];
+    for (const id of candidateIds) {
       try {
-        const projection = projectRecurringCharge(entry);
+        const projection = await this.readChargeProjection(proposal.leaseId, id);
         this.assertCreateFieldsApplied(projection, input.create);
-        return true;
+        matches.push(projection);
       } catch {
-        return false;
+        // Not this effect's charge (or unreadable right now); reconcile never fabricates a match.
       }
-    });
+    }
     if (matches.length === 1) {
-      const projection = projectRecurringCharge(matches[0]);
       return {
         state: "after",
-        providerRef: `s97-charge:${projection.leaseRecurringChargeID}`,
-        readbackHash: chargeProjectionHash(projection),
+        providerRef: `s97-charge:${matches[0].leaseRecurringChargeID}`,
+        readbackHash: chargeProjectionHash(matches[0]),
       };
     }
     if (matches.length === 0) return { state: "before" };

@@ -184,7 +184,12 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         return { ...found };
       },
       async listRecurringCharges() {
-        return [...state.charges.values()].map((entry) => ({ ...entry }));
+        // The live list omits recurringStatusID (verified 2026-09-02); only the detail carries it.
+        return [...state.charges.values()].map((entry) => {
+          const thin: Record<string, unknown> = { ...entry };
+          delete thin["recurringStatusID"];
+          return thin;
+        });
       },
     },
     createWriter: createWriterSpy as unknown as () => RenewalWritebackWriter,
