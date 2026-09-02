@@ -142,7 +142,14 @@ describe("S85 semantic token graph", () => {
       [...allCss.matchAll(/--([a-z0-9-]+)\s*:/gi)].map((match) => match[1]),
     );
     const uses = [...allCss.matchAll(/var\(--([a-z0-9-]+)/gi)].map((match) => match[1]);
-    expect([...new Set(uses.filter((name) => !definitions.has(name)))]).toEqual([]);
+    // next/font defines --font-poppins on <html> at runtime (official PMI typeface); every css
+    // use carries an explicit fallback family, so the reference is safe without a css definition.
+    const externallyDefined = new Set(["font-poppins"]);
+    expect(
+      [...new Set(uses.filter((name) => !definitions.has(name)))].filter(
+        (name) => !externallyDefined.has(name),
+      ),
+    ).toEqual([]);
     expect(componentCss.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(
       /#[0-9a-f]{3,8}\b|(?:rgb|rgba|hsl|hsla)\([^)]*\)/i,
     );

@@ -1,9 +1,13 @@
-/* S85 semantic theme manifest. The three PMI source values are accessible provisional product
-   placeholders, not official PMI values. Components consume semantic roles below, never sources. */
+/* S85 semantic theme manifest. The three PMI source values are the OFFICIAL brand values from
+   the PMI Brand Style Guide 071525 (docs/brand_pack/PMI_official_brand_values_2026-09-02.md).
+   Components consume semantic roles below, never sources. Official orange measures ~2.8:1 on
+   white, below the app's contrast floors, so light-theme text/interactive roles use a derived
+   accessible tone (#c2410c) per the guide's own black-on-light typography rule; the derived tone
+   is an accessibility adaptation, not a brand value. */
 :root {
-  --pmi-black: #141414;
+  --pmi-black: #000000;
   --pmi-white: #ffffff;
-  --pmi-orange: #c2410c;
+  --pmi-orange: #ff6d00;
 
   color-scheme: light;
 
@@ -22,10 +26,12 @@
   --ui-border: #64748b;
   --ui-border-strong: #334155;
   --ui-border-subtle: #cbd5e1;
-  --ui-border-interactive: var(--pmi-orange);
+  /* Derived accessible orange (official #ff6d00 fails the 3:1 non-text floor on light). */
+  --ui-border-interactive: #c2410c;
   --ui-border-error: #9f1239;
   --ui-border-forced: #334155;
-  --action-primary: var(--pmi-orange);
+  /* Derived accessible orange (official #ff6d00 vs white text fails the 4.5:1 floor). */
+  --action-primary: #c2410c;
   --action-primary-hover: #9a3412;
   --action-primary-active: #7c2d12;
   --action-primary-foreground: var(--pmi-white);
@@ -47,7 +53,8 @@
   --action-disabled-border: #64748b;
   --action-link: #9a3412;
   --action-link-hover: #7c2d12;
-  --ui-focus: var(--pmi-orange);
+  /* Derived accessible orange (focus indicators need 3:1 against light surfaces). */
+  --ui-focus: #c2410c;
   --ui-selected-surface: #ffedd5;
   --ui-selected-text: #9a3412;
   --state-verified-text: #166534;
@@ -87,8 +94,11 @@
 
   --topbar-border: rgb(255 255 255 / 0.7);
   --topbar-utility-surface: rgb(255 255 255 / 0.16);
+  /* Official PMI primary typeface (Poppins from Google, self-hosted at build via next/font,
+     which supplies --font-poppins on <html>); the system stack remains the fallback. */
   --font-sans:
-    system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+    var(--font-poppins, "Poppins"), system-ui, -apple-system, "Segoe UI", roboto,
+    "Helvetica Neue", arial, sans-serif;
   --font-heading: var(--font-sans);
   --font-size-min: 0.8rem;
   --field-hint-size: var(--font-size-min);
@@ -123,10 +133,11 @@ html[data-theme="dark"] {
   --ui-border: #a1a1aa;
   --ui-border-strong: #e2e8f0;
   --ui-border-subtle: #52525b;
-  --ui-border-interactive: #fb923c;
+  /* Official PMI orange: passes the floors on dark surfaces. */
+  --ui-border-interactive: var(--pmi-orange);
   --ui-border-error: #fda4af;
   --ui-border-forced: #e2e8f0;
-  --action-primary: #fb923c;
+  --action-primary: var(--pmi-orange);
   --action-primary-hover: #fdba74;
   --action-primary-active: #fed7aa;
   --action-primary-foreground: #171717;
@@ -148,7 +159,7 @@ html[data-theme="dark"] {
   --action-disabled-border: #a1a1aa;
   --action-link: #fdba74;
   --action-link-hover: #fed7aa;
-  --ui-focus: #fb923c;
+  --ui-focus: var(--pmi-orange);
   --ui-selected-surface: #431407;
   --ui-selected-text: #fed7aa;
   --state-verified-text: #86efac;
@@ -188,8 +199,11 @@ html[data-theme="dark"] {
 
   --topbar-border: rgb(255 255 255 / 0.7);
   --topbar-utility-surface: rgb(255 255 255 / 0.16);
+  /* Official PMI primary typeface (Poppins from Google, self-hosted at build via next/font,
+     which supplies --font-poppins on <html>); the system stack remains the fallback. */
   --font-sans:
-    system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+    var(--font-poppins, "Poppins"), system-ui, -apple-system, "Segoe UI", roboto,
+    "Helvetica Neue", arial, sans-serif;
   --font-heading: var(--font-sans);
   --font-size-min: 0.8rem;
   --field-hint-size: var(--font-size-min);
@@ -224,10 +238,11 @@ html[data-theme="dark"] {
     --ui-border: #a1a1aa;
     --ui-border-strong: #e2e8f0;
     --ui-border-subtle: #52525b;
-    --ui-border-interactive: #fb923c;
+    /* Official PMI orange: passes the floors on dark surfaces. */
+    --ui-border-interactive: var(--pmi-orange);
     --ui-border-error: #fda4af;
     --ui-border-forced: #e2e8f0;
-    --action-primary: #fb923c;
+    --action-primary: var(--pmi-orange);
     --action-primary-hover: #fdba74;
     --action-primary-active: #fed7aa;
     --action-primary-foreground: #171717;
@@ -249,7 +264,7 @@ html[data-theme="dark"] {
     --action-disabled-border: #a1a1aa;
     --action-link: #fdba74;
     --action-link-hover: #fed7aa;
-    --ui-focus: #fb923c;
+    --ui-focus: var(--pmi-orange);
     --ui-selected-surface: #431407;
     --ui-selected-text: #fed7aa;
     --state-verified-text: #86efac;
