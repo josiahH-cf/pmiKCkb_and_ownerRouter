@@ -328,13 +328,16 @@ function createdOrderMatchesPreview(
   input: ExternalActionInput,
   observed: WorkOrderProjection,
 ) {
+  // isVacant is compared nowhere: the live provider derives it from the unit's current occupancy
+  // and overrides the body field (observed on the 2026-09-02 S99 create proof, where a confirmed
+  // occupied preview read back "1" on a provider-vacant unit). The preview keeps the operator's
+  // explicit occupancy confirmation, but readback cannot treat the derived flag as drift.
   return (
     observed.propertyId === input.values.property_id &&
     observed.unitId === input.values.unit_id &&
     observed.description === String(input.values.description).trim() &&
     observed.priorityId === input.values.priority_id &&
     observed.workOrderStatusId === input.values.work_order_status_id &&
-    observed.isVacant === (input.values.is_vacant === true ? "1" : "0") &&
     observed.isOwnerApproved === "0" &&
     observed.isSharedWithTenant === "0" &&
     observed.isSharedWithOwner === "0" &&

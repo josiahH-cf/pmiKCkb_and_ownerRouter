@@ -376,6 +376,25 @@ async function main(): Promise<void> {
         resultHash: outcome.receipt.resultHash,
         reconciled: outcome.receipt.reconciled,
       });
+      // Mirror the route: a reconciled create projects its durable outcome onto the ticket link.
+      if (
+        action.actionKey === WORK_ORDER_CREATE_KEY &&
+        outcome.status === "succeeded" &&
+        prepared.ticket_ref
+      ) {
+        await projectMaintenanceWorkOrderOutcome(
+          actor,
+          {
+            ticketRef: prepared.ticket_ref,
+            executionId,
+            state: "succeeded",
+            providerWorkOrderId: outcome.receipt.providerRef,
+            receiptResultHash: outcome.receipt.resultHash,
+          },
+          db,
+        );
+        echo("link-projected", outcome.receipt.providerRef);
+      }
     }
     return;
   }
