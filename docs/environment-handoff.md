@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback and approved target contracts: 2026-09-01.
+Updated from live readback and approved target contracts: 2026-09-02.
 
 ## Production
 
@@ -10,8 +10,8 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Region                    | `us-central1`                                  |
 | Cloud Run service         | `pmi-kc-app`                                   |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtjhew5f-125876b4ff5b`            |
-| Serving commit            | `f2153b00087516cf06c4f9776f2fc3562e146c83`     |
+| Serving revision          | `pmi-kc-app-rmtjwy7f4-c705ce297553`            |
+| Serving commit            | `642269cab5afba563c41ce769541680c04d5c60c`     |
 | Traffic                   | 100%                                           |
 | Descriptor                | Production + Live                              |
 | Runtime identity          | project-managed PMI KC runtime service account |
@@ -19,7 +19,7 @@ Updated from live readback and approved target contracts: 2026-09-01.
 | Sheet write-back          | false                                          |
 | Legacy copy-only Sheet id | not configured                                 |
 | RentCast                  | selected; allowance 50                         |
-| S30 RentVine action       | non-executable                                 |
+| Retired broad RentVine id | non-executable (S97 exact keys are open)       |
 | Demo flags                | false                                          |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
@@ -32,7 +32,7 @@ Secret names are bound through Secret Manager. Values never belong in this file.
   from source uploads.
 - On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
   `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
-- The S96, S85, S86, S83, S84, and S82 releases used a short-lived ADC token only in a task-specific shell variable passed through
+- Every release through S97 used a short-lived ADC token only in a task-specific shell variable passed through
   `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
   only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
   Authentication dialogs must never be automated.
@@ -81,13 +81,13 @@ unchanged, and its runtime flag false at closeout.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtjd24ee-17d334db377f` from commit
-`da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`.
+Captured predecessor: `pmi-kc-app-rmtjhew5f-125876b4ff5b` from commit
+`f2153b00087516cf06c4f9776f2fc3562e146c83`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtjd24ee-17d334db377f=100 --quiet
+  --to-revisions=pmi-kc-app-rmtjhew5f-125876b4ff5b=100 --quiet
 ```
 
 Forward restoration:
@@ -95,7 +95,7 @@ Forward restoration:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtjhew5f-125876b4ff5b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtjwy7f4-c705ce297553=100 --quiet
 ```
 
 The 2026-08-27 rehearsal switched the predecessor to 100%:
@@ -190,6 +190,21 @@ runtime identity all preserved. Only that revision was promoted. Two stable cano
 100% traffic on the exact revision and exact version identity, and the reseeded Action Registry
 mirror read back 44 keys/seven open with the three exact S97 keys and the retired broad identifier
 all closed. No client-data, provider-write, role, draft, or message effect occurred.
+
+The S97 proof-and-activation release (2026-09-02) captured `pmi-kc-app-rmtjhew5f-125876b4ff5b`.
+Under the owner grant it ran three serial per-key bounded proof windows on the designated test
+lease (each window a reviewed commit, exact-SHA CI, and zero-traffic candidate release, closed and
+read back before the next): the dates proof applied and separately restored the one-day endDate
+delta with duplicate-replay proof; the create proof exercised the full honest recovery story
+(response-shape ambiguity, fresh-state reconciliation, receipt-bound DELETE, delete
+reconciliation from the provider's HTTP-400 absence signal plus list absence) and cleanly created
+the approved durable update-target charge; the update proof applied and exactly restored a charge
+amount with a readback hash equal to the original creation receipt. The activation commit
+`642269cab5afba563c41ce769541680c04d5c60c` (with the official-brand S85 source values) passed the
+canonical gates, core E2E, exact-SHA CI, bounded candidate smoke, and normalized predecessor
+parity excluding only image and exact `APP_COMMIT_SHA`; only that revision was promoted; two
+stable version readbacks passed; and the reseeded Action Registry mirror read back 44 keys/ten
+open with all three proven keys among the open set.
 
 ## Configuration invariants
 

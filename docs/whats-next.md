@@ -4,14 +4,14 @@ Updated: 2026-09-01.
 
 ## Immediate action
 
-S97's closed exact-key slice is `ALL_GATES_GREEN` and deployed (commit
-`f2153b00087516cf06c4f9776f2fc3562e146c83`, candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b`): the
-obsolete multi-record proof machinery is removed with a static inventory test and the three exact
-renewal-writeback keys are live closed behind preview/exact-confirm/receipt/readback/reconcile
-gates with typed proposals, a governed route, and the workspace review panel. S97 is now BLOCKED
-on one input: the owner-designated ended-lease secure packet. When it arrives, run the three
-serial per-key proof windows, closeouts, readbacks, and protected activations; the sole designated
-lease arrives only through secure execution context and is never substituted or committed.
+S97 is COMPLETE and deployed (activation commit `642269cab5afba563c41ce769541680c04d5c60c`,
+serving revision `pmi-kc-app-rmtjwy7f4-c705ce297553`): all three serial per-key live proofs passed
+on the owner-designated test lease with receipts, exact readback, honest ambiguity reconciliation,
+and separately confirmed reversal, and the three keys are open with the mirror read back at 44
+keys/ten open. S85 `brand_conformance` is resolved with the official extracted PMI guide values.
+Begin S98: implement the two exact operating-Sheet keys closed behind the S97-pattern gates,
+remove the copy-only rehearsal path, run the serial bounded proof windows on a temporary real-data
+row, and take protected activation through the full release train.
 
 Documentation Gate 0 is complete through specification closure
 `081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the

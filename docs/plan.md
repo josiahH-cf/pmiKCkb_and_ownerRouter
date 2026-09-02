@@ -1,6 +1,6 @@
 # PMI KC current plan
 
-Updated: 2026-09-01.
+Updated: 2026-09-02.
 
 ## Outcome
 
@@ -11,12 +11,14 @@ assistant and product-wide content reconciliation.
 
 ## Current implementation baseline
 
-Production serves commit `f2153b00087516cf06c4f9776f2fc3562e146c83` as revision
-`pmi-kc-app-rmtjhew5f-125876b4ff5b` at 100% traffic. It remains Production + Live with eleven
-Spaces, managed identity, seven open Action Registry keys (44 total), a closed operating-Sheet
-write switch, and the three exact S97 renewal-writeback keys deployed closed with the retired S30
-broad identifier. No RentVine renewal write, operating-Sheet write, Maintenance provider mutation,
-resident sync/draft, or S36 pilot has run.
+Production serves commit `642269cab5afba563c41ce769541680c04d5c60c` as revision
+`pmi-kc-app-rmtjwy7f4-c705ce297553` at 100% traffic. It remains Production + Live with eleven
+Spaces, managed identity, ten open Action Registry keys (44 total), a closed operating-Sheet
+write switch, and the retired S30 broad identifier closed. The only RentVine renewal writes ever
+executed are the receipted 2026-09-02 S97 proofs on the owner-designated test lease, each restored
+or receipt-bound-deleted except the approved durable test charge. No operating-Sheet write beyond
+the owner-approved labeled TEST row, no Maintenance provider mutation, no resident sync/draft, and
+no S36 pilot has run.
 
 S97 removed the obsolete multi-record proof machinery; the current code still retains the copy-only
 Sheet path, whose tested removal S98 owns and which is not active guidance. The remaining S36,
@@ -47,10 +49,10 @@ readback gates over unchanged routes and guards. S82 is also `ALL_GATES_GREEN` a
 table-first desk, canonical v2 query and opaque party-filter contract, desk-view continuity,
 privacy-bounded access returns, guided six-phase workspace, and compat-route upgrade passed
 focused, real-browser, canonical, core-E2E, exact-SHA CI, candidate/configuration,
-exact-promotion, stable-readback, and secret/IAM readback gates. S97 is active: its closed
-exact-key slice (retirement, typed proposals, one-attempt receipted execution, reconcile,
-separate reversal, governed route, and workspace panel) is `ALL_GATES_GREEN` and deployed with
-all three keys closed; its live per-key proofs and protected activation remain.
+exact-promotion, stable-readback, and secret/IAM readback gates. S97 is COMPLETE: the closed
+slice, all three serial per-key live proofs on the designated lease, and the protected activation
+are deployed with mirror readback at 44 keys/ten open. S85's separate `brand_conformance` is
+resolved with the official extracted guide values. S98 is the active suite.
 
 ## Authority and closed decisions
 
@@ -96,11 +98,12 @@ The only executable order is in `docs/feature-suites/README.md`:
 17. S95 — atomic minimal Dashboard composition and relocation.
 18. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
 
-The active position is step 7's remaining owner-gated tail. The closed slice is deployed; each
-exact key now needs its owner-authorized bounded live proof window against the owner-designated
-lease from the secure untracked packet, exact reversal/closeout, readback, and separate protected
-activation. That packet is a runtime input, never committed; without it no proof window is
-prepared and the serial queue holds at S97.
+The active position is step 8 (S98). Implement the two exact operating-Sheet keys
+(`google_sheets.renewal_checklist.row_append`, `google_sheets.renewal_checklist.field_update`)
+closed behind the S97-pattern gates, then run their serial bounded proof windows on a temporary
+real-data row (append/readback, blank-to-source field update, receipt-bound delete, final
+absence), close each window, and take the protected activation through the full release train.
+The copy-only rehearsal Sheet path is removed in the same suite.
 
 Default to serialization. Only bounded S90/S91 domain work may run in isolated worktrees after its
 prerequisites, with shared registries/schema/delivery serialized. No dependent starts after a failed

@@ -3,7 +3,7 @@
 
 # S97 — Governed RentVine renewal writeback
 
-> Status: Closed-gate slice implemented and deployed at commit `f2153b00087516cf06c4f9776f2fc3562e146c83`, candidate `pmi-kc-app-rmtjhew5f-125876b4ff5b`, exact-SHA CI `33583463885`, with the registry mirror read back at 44 keys/seven open. All three exact keys and the retired broad identifier remain non-executable; each key's owner-designated bounded live proof, closeout, protected activation patch, release, and readback are still required and wait on the secure lease packet.
+> Status: COMPLETE and deployed. Closed slice at commit `f2153b00087516cf06c4f9776f2fc3562e146c83` (CI `33583463885`); three serial per-key live proofs passed 2026-09-02 on the owner-designated test lease with receipts, exact readback, duplicate-replay proof, honest ambiguity reconciliation, receipt-bound delete with absence proof, and restores (the update restore hash equals the original creation receipt); protected activation promoted at commit `642269cab5afba563c41ce769541680c04d5c60c` with the mirror read back at 44 keys/ten open. The retired broad identifier stays closed.
 
 **Goal.**
 

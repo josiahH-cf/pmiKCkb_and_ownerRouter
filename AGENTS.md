@@ -19,16 +19,16 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-01
+## Present production truth — 2026-09-02
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtjhew5f-125876b4ff5b`, 100% traffic.
-- Deployed code: `f2153b00087516cf06c4f9776f2fc3562e146c83`.
+- Serving revision: `pmi-kc-app-rmtjwy7f4-c705ce297553`, 100% traffic.
+- Deployed code: `642269cab5afba563c41ce769541680c04d5c60c`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtjd24ee-17d334db377f` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtjhew5f-125876b4ff5b` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -36,15 +36,18 @@ the current code and live service. Date-stamped history is not authority.
 - S96 connector disconnect/reconciliation is deployed. Production currently has no
   `connector_connections` records, so its served inertness gate used the specified no-target path and
   no credential or vault effect ran.
-- S85's technical theme/Appearance system is deployed. Its source values remain explicitly
-  provisional; official `brand_conformance` is blocked on an approved PMI asset package.
+- S85's theme/Appearance system is deployed with the OFFICIAL PMI brand values. The owner ruled
+  (2026-09-02) the published PMI Brand Style Guide 071525 the approved source; its extracted
+  values (PMI Orange #ff6d00, Black #000000, White #ffffff, Poppins) drive the brand source layer
+  with contrast-derived accessible tones where official orange fails a floor. `brand_conformance`
+  is resolved.
 - S86's shared action/link/icon/help/busy/notice/dialog/page-state and transient-layer system is
   deployed. Its migrated consequential actions use exact cancel-first in-app confirmation and
   returned-state feedback without widening routes, permissions, action keys, or provider effects.
 - S83's capability-guided access-request workflow is deployed. Every managed staff user can inspect
   and request additive role/Space access; only a different current Admin can deny or exact-confirm
   application, and Firebase directory readback is required before a request becomes applied. The
-  Firestore Admin mirror matches the authoritative 44-key/seven-open registry.
+  Firestore Admin mirror matches the authoritative 44-key/ten-open registry.
 - S84's grouped navbar navigation is deployed. One actor-filtered manifest renders the My Work,
   Operations, and Admin disclosure groups with descriptive rows over unchanged routes and guards;
   visible navigation/landing terminology is Dashboard and Internal Processes while `/`, `/ask`,
@@ -55,19 +58,21 @@ the current code and live service. Date-stamped history is not authority.
   blocker links to its exact phase; the workspace shows a six-phase rail, one next action, and one
   selected phase; and navigation performs no verification, progress, source write, or send. The
   `RENEWAL_DESK_PARTY_FILTER_KEY` binding is the suite's one added runtime secret reference.
-- S97's closed renewal-writeback slice is deployed. The synthetic composite executor, the broad
-  writeback execution key, and the composite preview shape are out of production reachability; the
-  three exact keys (`renewal_dates.update`, `recurring_charge.update`, `recurring_charge.create`)
-  are registered closed with typed per-lease proposals, a one-attempt receipted execution service,
-  reconcile-only ambiguity recovery, separately confirmed reversal, the governed
-  `rentvine-writeback` route, and the workspace Review RentVine updates panel. No key opened; the
-  live per-key proofs wait on the owner-designated lease secure packet.
+- S97 is COMPLETE and deployed. Each exact key passed its own bounded serial live proof on the
+  owner-designated test lease 115 (property 84) before its protected activation: dates
+  forward/readback/duplicate-replay/restore; charge create with honest ambiguity reconciliation,
+  receipt-bound DELETE, delete-reconciliation, and a durable approved update-target charge; charge
+  update with a restore whose hash equals the original creation receipt. The three keys are open
+  in the committed seed and both executable allow-lists with proof citations; every execution
+  still requires the runtime-suspension term, Admin role, exact preview/confirm, one-attempt
+  claim, receipt, readback, and reversal-by-new-confirmation. The permanent labeled TEST row in
+  the operating Sheet (below a spacer at the tab tail) anchors the designated lease.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source. Its write-back runtime switch is off.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
   open.
-- RentVine read credentials are Secret Manager-bound. The S30 proof runner can target only one exact
-  lease `endDate`, remains closed, and is live-unproven.
+- RentVine read credentials are Secret Manager-bound. The retired S30 broad proof identifier
+  remains closed; the S97 proof runner and the three proven exact keys supersede it.
 - Budget controls are live: $25 alert-only budget, $100 project hard stop, $100 account backstop, and
   active Node.js 22 guardrail with `KILL_SWITCH_CAP_USD=100`.
 
@@ -126,7 +131,7 @@ Every cloud mutation must be read back. Record verified non-secret outcomes in `
 
 Production activation is per exact Action Registry key. Never infer a category grant.
 
-Open keys as of 2026-08-27:
+Open keys as of 2026-09-02:
 
 - `gmail.mailbox.read`
 - `gmail.thread.reply`
@@ -135,14 +140,15 @@ Open keys as of 2026-08-27:
 - `gmail.maintenance_owner_notice.draft_create`
 - `rentcast.rental_listings.search`
 - `internal.transactional_notice.send`
+- `rentvine.lease.renewal_dates.update` (S97 proof-qualified activation, 2026-09-02)
+- `rentvine.lease.recurring_charge.create` (includes only its receipt-bound reversal DELETE)
+- `rentvine.lease.recurring_charge.update`
 
-The other 37 keys are closed. In particular:
+The other 34 keys are closed. In particular:
 
 - `gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`, and
   `gmail.message.send` remain permanently closed under D33;
-- the retired `rentvine.lease.renewal_writeback` identifier and its three exact S97
-  successors (`rentvine.lease.renewal_dates.update`, `rentvine.lease.recurring_charge.update`,
-  `rentvine.lease.recurring_charge.create`) remain closed;
+- the retired `rentvine.lease.renewal_writeback` compatibility identifier remains closed;
 - `google_sheets.renewal_checklist.writeback` remains closed.
 
 A runtime flag never outranks the committed per-key gate.

@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-09-01. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-09-02. Resume here after reading `AGENTS.md` and `docs/facts.md`.
 
 ## Objective
 
@@ -10,11 +10,11 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Current checkpoint
 
-- Production serves `pmi-kc-app-rmtjhew5f-125876b4ff5b` / commit
-  `f2153b00087516cf06c4f9776f2fc3562e146c83` at 100% traffic. Immediate rollback is
-  `pmi-kc-app-rmtjd24ee-17d334db377f`.
-- Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
-  keys of 44, the operating-Sheet write switch off, and every RentVine writeback key closed.
+- Production serves `pmi-kc-app-rmtjwy7f4-c705ce297553` / commit
+  `642269cab5afba563c41ce769541680c04d5c60c` at 100% traffic. Immediate rollback is
+  `pmi-kc-app-rmtjhew5f-125876b4ff5b`.
+- Current implementation remains Production + Live with eleven Spaces, managed identity, ten open
+  keys of 44, the operating-Sheet write switch off, and the three proven S97 keys open.
 - S96 is `ALL_GATES_GREEN` and deployed through focused/canonical/core-E2E, exact-SHA CI,
   candidate/config, promotion, and readback gates; production had zero connector records, so the
   no-target first-click proof ran with no credential or vault effect.
@@ -41,17 +41,18 @@ effect beyond the owner-authorized keys and suite contracts.
   image/exact `APP_COMMIT_SHA`/the one specified party-filter binding, exact promotion, repeated
   stable readback, and secret/IAM/payload-shape readback, with no client-data or provider-write
   effect.
-- S97's closed slice is `ALL_GATES_GREEN` and deployed: retirement of the composite executor/broad
-  key/composite shape (static inventory), the three exact closed keys across seed/risk/matrix/
-  preview/governance, typed per-lease proposals with a durable store, the one-attempt receipted
-  execution service with reconcile-only ambiguity recovery and separately confirmed reversal, the
-  governed Editor-propose/Admin-execute route, and the workspace Review RentVine updates panel, all
-  live through exact-SHA CI `33583463885`, candidate smoke, config parity, exact promotion, stable
-  readback, and the reseeded 44/7 mirror readback with every writeback key closed. No provider
-  write ran. The remaining live per-key proofs and protected activation wait on the
-  owner-designated lease secure packet, which is absent.
+- S97 is COMPLETE and deployed. After the closed slice (CI `33583463885`), the owner designated
+  test lease 115/property 84 (2026-09-02) and all three serial per-key proofs passed live with
+  receipts: dates forward/duplicate-replay/restore; create with honest ambiguity reconcile,
+  receipt-bound DELETE plus delete-reconcile, and the approved durable update-target charge 1616;
+  update with a restore hash equal to the creation receipt. Each window was a reviewed
+  commit/CI/zero-traffic candidate, closed and read back before the next; the proofs surfaced and
+  fixed real contract gaps (ISO date normalization, detail-confirmed reconcile, list envelopes,
+  HTTP-400 absence signal, reversal reconciliation). Protected activation is live at commit
+  `642269cab5afba563c41ce769541680c04d5c60c` with mirror readback 44 keys/ten open. The labeled
+  permanent TEST row anchors the lease in the operating Sheet.
 - The remaining S36, S87-S95, and S98-S100 suites are specified desired-state contracts, not
-  implementation. S97 is the active suite. Their sole queue and completion gates are in
+  implementation. S98 is the active suite. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
@@ -62,7 +63,7 @@ effect beyond the owner-authorized keys and suite contracts.
 - The committed execution Registry and its non-authoritative Firestore Admin display mirror both
   read back at 44 keys/seven open with no malformed entry. Neither S83 nor the mirror grants action
   execution.
-- S97 removed the obsolete multi-record proof machinery and consumes S30's safety primitives. S98
+- S97 removed the obsolete multi-record proof machinery and proved/activated its keys. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
   baseline restored.
@@ -73,16 +74,16 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-S97 is BLOCKED on one input: the owner-designated ended-lease secure packet (per
-`docs/evidence/rentvine-one-record-proof-readiness-2026-08-30.md` and the untracked
-`docs/source-corpus/rentvine-proof-runtime.template.json` shape). When it arrives, run the three
-serial per-key proof windows on that sole lease - dates forward/readback/restore, charge
-create/readback/receipt-bound delete, reversible charge update/readback/restore - each with fresh
-state, exact confirmation, closeout, and readback, then the protected per-key activation patches
-and release. Never substitute a target or commit packet values. The serial queue holds at S97;
-S98 begins only after S97's complete delivery gate. Exclude user-owned
-`.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts from every commit and
-Cloud Build upload.
+Begin S98. Re-read its complete contract and the live operating-Sheet truth ("Lease Renewal" tab;
+the permanent S97 TEST row sits at the tail below one spacer). Implement the two exact keys
+closed - `google_sheets.renewal_checklist.row_append` and
+`google_sheets.renewal_checklist.field_update` - behind the S97-pattern proposal/one-attempt/
+receipt/readback/reconcile gates, remove the copy-only rehearsal Sheet path with tests, then run
+the serial bounded proof windows (temporary real-data row append/readback, blank-to-source field
+update, receipt-bound row delete, final absence) using the committed OWNER_PROOF_WINDOW_OPEN_KEYS
+machinery, close each window, and take protected activation through the full release train with
+mirror readback. Exclude user-owned `.claude/settings.local.json` and `output/` plus ignored
+`temp/` artifacts from every commit and Cloud Build upload.
 
 ## Canonical queue
 
@@ -92,8 +93,8 @@ Cloud Build upload.
 4. S83 — COMPLETE
 5. S84 — COMPLETE
 6. S82 — COMPLETE
-7. S97 — ACTIVE; closed slice deployed, proofs BLOCKED on owner packet
-8. S98
+7. S97 — COMPLETE
+8. S98 — ACTIVE
 9. S99
 10. S100
 11. S36 temporary pilot and restoration gate
@@ -113,8 +114,8 @@ only the manifest's explicitly safe isolated-worktree S90/S91 parallelism.
 
 ## Runtime inputs, not product questions
 
-- S97 receives the owner-designated real ended-lease URL in the execution prompt and resolves every
-  current provider value fresh. Stop on drift; never substitute another target or commit its values.
+- S97's proofs consumed the owner-designated lease (2026-09-02) and are complete; later windows
+  resolve every current provider value fresh, stop on drift, and never substitute targets.
 - S98 derives its temporary proof row from fresh real sources and the live operating schema. S99
   uses a staff-selected real work order or exact staff-confirmed creation proposal and live provider
   catalogs. S100 maps exact official messages and resident email at runtime. S36 deterministically

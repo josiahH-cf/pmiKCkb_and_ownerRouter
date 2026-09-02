@@ -8,20 +8,20 @@ This is a present snapshot, not a changelog. Historical implementation detail re
 
 - URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
 - Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtjhew5f-125876b4ff5b`, 100% traffic
-- Serving commit: `f2153b00087516cf06c4f9776f2fc3562e146c83`
-- Immediate rollback: `pmi-kc-app-rmtjd24ee-17d334db377f`
+- Serving revision: `pmi-kc-app-rmtjwy7f4-c705ce297553`, 100% traffic
+- Serving commit: `642269cab5afba563c41ce769541680c04d5c60c`
+- Immediate rollback: `pmi-kc-app-rmtjhew5f-125876b4ff5b`
 - Descriptor: Production + Live; eleven Spaces; managed runtime identity
 - Operating renewal Sheet: read source; write switch off
 - RentCast: reference reads selected; allowance 50
-- RentVine renewal write: three exact S97 keys implemented closed; S30 proof key retired-closed; no live proof
+- RentVine renewal write: three exact S97 keys OPEN after passed per-key live proofs (2026-09-02); S30 broad identifier retired-closed
 - RentVine Maintenance: concrete client is read/list-only; no live create/status/chat sync
 - Direct client sends: closed; governed initiation ends with an unsent Gmail draft
 
 The serving candidate passed exact identity, normalized-config, bounded route, promotion, and stable
 readback gates. The committed execution Registry and its Firestore Admin display mirror both read
-back as 44 exact keys, seven open and 37 closed; the mirror cannot grant execution. The three exact
-S97 keys are deployed closed and not executable; the S98-S100 exact keys are not implemented yet.
+back as 44 exact keys, ten open and 34 closed; the mirror cannot grant execution. The three exact
+S97 keys are open after their passed live proofs; the S98-S100 exact keys are not implemented yet.
 
 ## S85 technical delivery
 
@@ -150,13 +150,10 @@ draft, message, or Action Registry effect ran.
 
 ## Specified, not deployed
 
-The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, S84, and S82
-are complete and deployed. S97 stays active: its closed exact-key slice is deployed, and its live
-per-key proofs plus protected activation wait on the owner-designated lease secure packet. The
-queue continues with the owner-authorized source effects and bounded cloud pilot:
+The sole implementation queue is `docs/feature-suites/README.md`. S96, S85, S86, S83, S84, S82,
+and S97 are complete and deployed; S98 is the active suite. The queue continues with the
+owner-authorized source effects and bounded cloud pilot:
 
-- S97 (remaining): the owner-designated live per-key proof windows, closeout, and protected
-  activation for the three deployed closed writeback keys.
 - S98: exact operating-Sheet row append and supported-field update, including one temporary real-
   data proof row that is isolated/read back, receives one separately confirmed source-backed field
   update, then is deleted and proven absent.
