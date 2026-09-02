@@ -52,6 +52,9 @@ describe("Lease execution matrix", () => {
           "rentvine.lease.renewal_dates.update",
           "rentvine.lease.recurring_charge.create",
           "rentvine.lease.recurring_charge.update",
+          // S98 activation (2026-09-02): proven exact operating-Sheet write keys are open.
+          "google_sheets.renewal_checklist.row_append",
+          "google_sheets.renewal_checklist.field_update",
           // S98-S100: a key inside its committed bounded proof window is temporarily open.
           ...OWNER_PROOF_WINDOW_OPEN_KEYS,
         ].includes(definition.key)
