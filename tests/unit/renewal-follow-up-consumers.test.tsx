@@ -14,6 +14,13 @@ import type {
 } from "@/lib/lease-renewal/desk-model";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
+import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
+import {
+  RENEWAL_COMPLETION_REQUIREMENTS,
+  buildRenewalEvidenceReference,
+  projectRenewalProcess,
+  type RenewalEvidenceMap,
+} from "@/lib/lease-renewal/renewal-process";
 import {
   getRenewalDeskView,
   getRenewalLeaseWorkspace,
@@ -99,17 +106,39 @@ const followUp: RenewalFollowUpProjection = {
   },
 };
 
+function tenantPhaseCurrentEvidence(): RenewalEvidenceMap {
+  const evidence: RenewalEvidenceMap = {};
+  for (const requirement of RENEWAL_COMPLETION_REQUIREMENTS) {
+    evidence[requirement.key] = buildRenewalEvidenceReference({
+      ref: `app_record:${requirement.key}:receipt-1`,
+      source: "app_record",
+      disposition: requirement.allowNotApplicable ? "not_applicable" : "verified",
+      ...(requirement.allowNotApplicable
+        ? { reason: `The approved ${requirement.key} rule does not apply here.` }
+        : {}),
+    });
+  }
+  delete evidence["tenant-outcome"];
+  delete evidence["tenant-message-sent"];
+  delete evidence["tenant-contact-state"];
+  delete evidence["tenant-draft-receipt"];
+  return evidence;
+}
+
 describe("S75 shared follow-up consumers", () => {
-  it("renders the exact same waiting/contact/policy/due projection on desk and attention", () => {
+  it("keeps the desk consuming the exact projection through its waiting/due query keys", () => {
     const sample = getRenewalDeskView();
     const injectFollowUp = (lease: RenewalDeskView["items"][number]) => {
       if (lease.id !== followUp.leaseId) return lease;
-      return withRenewalDeskQueryKeys({
-        ...lease,
-        stageIndex: 4,
-        openConflicts: 0,
-        followUp,
-      });
+      return {
+        ...withRenewalDeskQueryKeys({
+          ...lease,
+          stageIndex: 4,
+          openConflicts: 0,
+          followUp,
+        }),
+        guidance: lease.guidance,
+      };
     };
     const view = {
       ...sample,
@@ -117,25 +146,35 @@ describe("S75 shared follow-up consumers", () => {
       actionable: sample.actionable.map(injectFollowUp),
     } as RenewalDeskView;
 
-    render(<RenewalDesk view={view} />);
+    const injected = view.items.find((lease) => lease.id === followUp.leaseId);
+    expect(injected?.queryKeys.waitingOn).toBe("tenant");
+    expect(injected?.queryKeys.dueState).toBe("due");
+    expect(injected?.queryKeys.dueAtIso).toBe("2026-08-23T12:00:00.000Z");
 
-    expect(screen.getAllByText("Waiting on tenant").length).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText(/Last verified contact: 2026-08-20T12:00:00.000Z/).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Policy version 9 · lease rule/).length).toBeGreaterThan(
-      0,
+    // The table filters on the same projection-derived keys: waiting=tenant isolates the lease.
+    render(
+      <RenewalDesk
+        query={{ ...DEFAULT_RENEWAL_DESK_QUERY_V2, waiting: "tenant" }}
+        view={view}
+      />,
     );
-    expect(
-      screen.getAllByText(/Follow-up due: 2026-08-23T12:00:00.000Z/).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: "Review follow-up" })).toBeInTheDocument();
+    expect(screen.getByText("4821 Maple Ct, Unit 4")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1 of \d+ renewals/)).toBeInTheDocument();
   });
 
-  it("renders that same projection in the canonical six-step lease workspace", () => {
+  it("renders that same projection in the guided workspace's current tenant phase", () => {
     const sample = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    const process = projectRenewalProcess({
+      processVersion: sample.process.version,
+      evidence: tenantPhaseCurrentEvidence(),
+      tenantOutcome: null,
+      complete: false,
+    });
+    expect(process.steps[process.currentStepIndex]?.id).toBe("tenant-decision");
     const workspace = {
       ...sample,
+      process,
+      currentStepIndex: process.currentStepIndex,
       summary: {
         ...sample.summary,
         followUp: { ...followUp, leaseId: sample.summary.id },

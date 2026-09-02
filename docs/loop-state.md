@@ -19,11 +19,9 @@ effect beyond the owner-authorized keys and suite contracts.
   the zero-traffic candidate matched exact version and normalized predecessor configuration, bounded
   routes passed, and exact promotion/stable readback passed. Production had zero connector records,
   so the specified no-target first-click proof ran with no credential or vault effect.
-- S85's technical implementation is `ALL_GATES_GREEN` and deployed. Its focused 21-test suite, real
-  Chromium cold-load/persistence/3-by-3 viewport/zoom/accessibility/print/route matrix, full unit,
-  Firestore, core E2E, policy, build, exact-SHA CI `33496148515`, zero-traffic candidate, normalized-
-  config, exact-promotion, and stable-readback gates passed. `brand_conformance` remains separately
-  blocked on approved official PMI assets; deployed source values are explicitly provisional.
+- S85's technical implementation is `ALL_GATES_GREEN` and deployed through its focused/real-browser/
+  canonical/core-E2E/CI `33496148515`/candidate/config/promotion/readback gates. `brand_conformance`
+  remains separately blocked on approved official PMI assets; deployed values are provisional.
 - S86 is `ALL_GATES_GREEN` and deployed. Focused interaction and complete S96-preservation suites,
   570 unit files with one intentional skip/5,223 passing tests, 26 Firestore files/119 tests, 31 core
   E2E tests, the production build, real Chromium theme/viewport/zoom/accessibility matrix, exact-SHA
@@ -36,20 +34,25 @@ effect beyond the owner-authorized keys and suite contracts.
   `pmi-kc-app-rmtiwwud5-993818fec846`, normalized configuration, exact promotion, repeated canonical
   route/version readback, and Action Registry mirror readback passed. No role, claim, request,
   provider, credential, client-data, draft, or message effect ran.
-- S84 is `ALL_GATES_GREEN` and deployed. The exact three-group actor-aware disclosure navigation,
-  renamed visible Dashboard/Internal Processes surfaces, local icon set, S83 count reuse, S86
-  transient registration, and responsive behavior are live over unchanged routes and guards. Focused
-  manifest/interaction/terminology suites, the real-Chromium desktop/touch/keyboard/320px/zoom/
-  forced-colors/reduced-motion matrix, 586 unit files/5,323 tests, 26 Firestore files/119 tests, 31
-  core E2E tests, exact-SHA CI `33562996950`, zero-traffic candidate
-  `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, bounded smoke, normalized configuration, exact promotion, and
-  repeated stable readback passed. No provider, role, store, client-data, draft, message, Action
-  Registry, or protected-path effect ran.
+- S84 is `ALL_GATES_GREEN` and deployed: the three-group actor-aware disclosure navbar and
+  Dashboard/Internal Processes terminology are live over unchanged routes/guards through exact-SHA
+  CI `33562996950`, candidate `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, bounded smoke, normalized
+  configuration, exact promotion, and repeated stable readback, with no external effect.
 - ADC is healthy and resolves to `josiah@pmikcmetro.com`. The default gcloud refresh remains stale;
   the S96, S85, S86, and S83 releases used the prior proven non-persistent ADC token bridge without
   printing or writing a token.
-- The remaining S36, S82, S87-S95, and S97-S100 suites are specified desired-state contracts, not
-  implementation. S82 is the active suite. Their sole queue and completion gates are in
+- S82 is implemented and committed on `main` as an unreleased candidate; production still serves the
+  S84 commit until the S82 release gates pass. The enriched desk/guidance projection, one semantic
+  table with column-owned sort/filter controls, canonical `renewal-desk-query/v2` URL and opaque
+  HMAC party-filter contract, deskView return continuity, privacy-bounded S83 access-return
+  extension, guided six-phase workspace, upgraded compat lease route, Secret Manager key binding
+  seam, and bounded content cleanup are in the committed tree. Focused S82 suites, the real-Chromium
+  desk/workspace matrix, the full canonical verifier, and core E2E passed on the exact committed
+  tree before commit. The party-filter shortcuts fail closed until the release binds
+  `RENEWAL_DESK_PARTY_FILTER_KEY`.
+- The remaining S36, S87-S95, and S97-S100 suites are specified desired-state contracts, not
+  implementation. S82 remains active until its exact-SHA CI, release, key binding/readback, and
+  documentation gates pass. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
@@ -72,17 +75,16 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S82. Re-read its complete contract plus the deployed S72/S75/S78/S80/S81 renewal truth, S83
-access handoffs, S84 navigation, and S85/S86 presentation/interaction primitives. Freeze fail-first
-table/projection/query/deskView/destination/copy and preservation evidence. Then implement the
-enriched shared desk/guidance projection, one semantic table with column-owned sort/filter controls,
-the canonical `renewal-desk-query/v2` URL contract with opaque HMAC party-filter keys, persistent
-desk-view return navigation, the guided six-phase workspace, and the bounded content cleanup —
-without adding provider calls, per-row reads, source writes, authority changes, or guessed links.
-The party-filter derivation key must be Secret Manager-bound and read back before owner/tenant
-shortcut exposure; missing configuration fails only those shortcuts closed. Exclude user-owned
+Complete S82 delivery from the committed candidate. Require exact-SHA aggregate CI on the pushed
+commit; create and read back the `RENEWAL_DESK_PARTY_FILTER_KEY` secret with runtime-SA accessor
+access and add its reviewed `*_SECRET_ID` signal to the production env file; deploy the exact
+commit as a zero-traffic candidate; smoke the exact commit/revision/tag URL and bounded routes;
+compare normalized predecessor configuration excluding only image, exact `APP_COMMIT_SHA`, and the
+one S82-specified new secret binding; promote the exact revision; and repeat canonical
+version/route readback plus the desk route's served presence. Exclude user-owned
 `.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts from every commit and
-Cloud Build upload.
+Cloud Build upload. Only then reconcile facts/status/plan/feature-suite index/loop state in a docs
+receipt commit and advance to S97.
 
 ## Canonical queue
 

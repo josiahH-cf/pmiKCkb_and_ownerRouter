@@ -4,6 +4,7 @@ import {
   isAccessCapability,
   isAccessSpace,
 } from "@/lib/access/catalog";
+import { isValidRenewalAccessReturn } from "@/lib/lease-renewal/access-return";
 import type { SpaceScope } from "@/lib/constants";
 
 export const ACCESS_HOME_DESTINATION = {
@@ -49,7 +50,6 @@ export function validateAccessReturnTarget(value: string): string {
     !value.startsWith("/") ||
     value.startsWith("//") ||
     value.includes("\\") ||
-    value.includes("?") ||
     value.includes("#") ||
     /[\u0000-\u001f\u007f]/u.test(value) ||
     new TextEncoder().encode(value).byteLength > MAX_RETURN_BYTES
@@ -64,6 +64,13 @@ export function validateAccessReturnTarget(value: string): string {
     throw new Error("This is not an allowed access return destination.");
   }
   if (decoded.includes("..") || decoded.includes("\\") || decoded.includes("//")) {
+    throw new Error("This is not an allowed access return destination.");
+  }
+
+  // S82: only the renewal desk and workspace accept query state, and only in privacy-bounded
+  // canonical v2 form. Every other destination remains path-only.
+  if (value.includes("?")) {
+    if (isValidRenewalAccessReturn(value)) return value;
     throw new Error("This is not an allowed access return destination.");
   }
 

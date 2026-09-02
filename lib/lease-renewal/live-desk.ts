@@ -67,6 +67,8 @@ import {
   STAGE_NEXT_ACTION,
   compareLeaseEndDate,
   humanizeCohortReason,
+  type DeskLeaseRow,
+  type DeskLeaseSummary,
   type DeskLeaseSummaryBase,
   type DeskReconCandidate,
   type DeskReconItem,
@@ -74,6 +76,7 @@ import {
   type RenewalDeskView,
   type RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
+import { buildDeskLeaseGuidance } from "@/lib/lease-renewal/desk-guidance";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
 import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
@@ -935,6 +938,9 @@ export async function loadLiveRenewalDesk(
   config: LiveRenewalConfig = buildLiveRenewalConfig(),
   progressByLease?: Map<string, RenewalProgress>,
   followUpSources: RenewalFollowUpSources = EMPTY_FOLLOW_UP_SOURCES,
+  // S82: the same record-specific human resolutions the workspace consumes, read once in bulk, so
+  // the table's rent-verification state reflects exact current resolutions.
+  resolutions: readonly LeaseRenewalResolutionRecord[] = [],
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -949,6 +955,27 @@ export async function loadLiveRenewalDesk(
       tabTitles: LIVE_DESK_TABS,
     });
     const cohort = classifyRenewalCohort(views, { windows });
+    // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
+    const toRow = (
+      summary: DeskLeaseSummary,
+      view: RawLease,
+      guidanceInputs: {
+        process: Parameters<typeof buildDeskLeaseGuidance>[0]["process"];
+        dataCheck: DeskReconItem[] | null;
+        rentDecision: LiveOwnerCurrentRentDecision | null;
+      },
+    ): DeskLeaseRow => ({
+      ...summary,
+      guidance: buildDeskLeaseGuidance({
+        summary,
+        process: guidanceInputs.process,
+        dataCheck: guidanceInputs.dataCheck,
+        rentvineCurrentRent: leaseCurrentRent(view) ?? null,
+        rentDecision: guidanceInputs.rentDecision,
+        currencyState: currency.state,
+        readComplete: complete,
+      }),
+    });
     const summaries = cohort.classifications.map((classification) => {
       const view = views[classification.index];
       const progress = classification.leaseId
@@ -968,12 +995,18 @@ export async function loadLiveRenewalDesk(
         const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
         const summary = toLiveSummary(view, classification, windows, dataCheck, progress);
         const leaseId = classification.leaseId ?? leaseIdOf(view);
-        if (!leaseId) return withRenewalDeskQueryKeys(summary);
+        if (!leaseId) {
+          return toRow(withRenewalDeskQueryKeys(summary), view, {
+            process: null,
+            dataCheck,
+            rentDecision: null,
+          });
+        }
         const currentRentDecision = resolveOwnerCurrentRentDecision(
           view,
           dataCheck,
           currency,
-          [],
+          resolutions,
         );
         const processEvidence = buildLiveProcessEvidence({
           leaseId,
@@ -1002,36 +1035,44 @@ export async function loadLiveRenewalDesk(
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
         });
-        return withRenewalDeskQueryKeys({
-          ...summary,
-          processVersion: process.version,
-          workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
-          stageIndex: process.currentStepIndex,
-          stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
-          nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
-          followUp: buildLiveFollowUp({
-            leaseId,
-            view,
-            readTimestamp,
-            sources: followUpSources,
-            process,
+        return toRow(
+          withRenewalDeskQueryKeys({
+            ...summary,
+            processVersion: process.version,
+            workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
+            stageIndex: process.currentStepIndex,
+            stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+            nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+            followUp: buildLiveFollowUp({
+              leaseId,
+              view,
+              readTimestamp,
+              sources: followUpSources,
+              process,
+            }),
           }),
-        });
+          view,
+          { process, dataCheck, rentDecision: currentRentDecision },
+        );
       }
       const summary = initialSummary;
       const leaseId = classification.leaseId ?? leaseIdOf(view);
-      return withRenewalDeskQueryKeys(
-        leaseId
-          ? {
-              ...summary,
-              followUp: buildLiveFollowUp({
-                leaseId,
-                view,
-                readTimestamp,
-                sources: followUpSources,
-              }),
-            }
-          : summary,
+      return toRow(
+        withRenewalDeskQueryKeys(
+          leaseId
+            ? {
+                ...summary,
+                followUp: buildLiveFollowUp({
+                  leaseId,
+                  view,
+                  readTimestamp,
+                  sources: followUpSources,
+                }),
+              }
+            : summary,
+        ),
+        view,
+        { process: null, dataCheck: null, rentDecision: null },
       );
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all

@@ -25,12 +25,18 @@ import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
 } from "@/lib/lease-renewal/live-desk";
+import { buildOperatingSheetDestination } from "@/lib/lease-renewal/desk-destinations";
+import {
+  buildDeskReturnHref,
+  validateDeskView,
+} from "@/lib/lease-renewal/desk-view-continuation";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 
 interface LiveLeaseWorkspacePageProps {
   params: Promise<{ leaseId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 // Renewals-space Editors and up. One live lease's renewal workspace, read-only / draft-only. The email step
@@ -59,10 +65,19 @@ const PANELS: Record<
 
 export default async function LiveRenewalLeaseWorkspacePage({
   params,
+  searchParams,
 }: LiveLeaseWorkspacePageProps) {
   await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability(renewalRoleCapability("read_workspace"));
   const { leaseId } = await params;
+  const search = (await searchParams) ?? {};
+  const stepParam = Array.isArray(search.step) ? search.step[0] : search.step;
+  const rawDeskView = Array.isArray(search.deskView)
+    ? search.deskView[0]
+    : search.deskView;
+  // S82: an invalid/oversized/noncanonical continuation falls back to the default desk; it can never
+  // become an open redirect or partially restore a different view.
+  const deskView = validateDeskView(rawDeskView);
 
   const [progress, packetSnapshot, policy, communications, dismissedAttentionKeys] =
     await Promise.all([
@@ -139,32 +154,37 @@ export default async function LiveRenewalLeaseWorkspacePage({
   return (
     <AppShell user={user}>
       <section className="content">
-        <Link className="back-link" href="/lease-renewal/live/desk">
-          ← Live renewal desk
+        <Link className="back-link" href={buildDeskReturnHref(deskView)}>
+          ← Back to renewals
         </Link>
         {outcome.status === "ok" ? (
-          <>
-            <RenewalWorkspace
-              compScreenshotExecutable={compScreenshotAction.executable}
-              packetSnapshot={packetSnapshot}
-              role={user.role}
-              workspace={outcome.workspace}
-            />
-            <DiscrepancyDispositionPanel
-              initialDispositions={dispositions}
-              leaseId={leaseId}
-              ownerUid={user.uid}
-              sourceHash={createHash("sha256")
-                .update(
-                  canonicalJson({
-                    lease_id: leaseId,
-                    read_at: outcome.workspace.dataCurrency?.readAtIso ?? readTimestamp,
-                    data_check: outcome.workspace.dataCheck,
-                  }),
-                )
-                .digest("hex")}
-            />
-          </>
+          <RenewalWorkspace
+            compScreenshotExecutable={compScreenshotAction.executable}
+            deskView={deskView}
+            discrepancyPanel={
+              <DiscrepancyDispositionPanel
+                initialDispositions={dispositions}
+                leaseId={leaseId}
+                ownerUid={user.uid}
+                sourceHash={createHash("sha256")
+                  .update(
+                    canonicalJson({
+                      lease_id: leaseId,
+                      read_at: outcome.workspace.dataCurrency?.readAtIso ?? readTimestamp,
+                      data_check: outcome.workspace.dataCheck,
+                    }),
+                  )
+                  .digest("hex")}
+              />
+            }
+            packetSnapshot={packetSnapshot}
+            role={user.role}
+            selectedStepId={stepParam}
+            sheetDestination={buildOperatingSheetDestination(
+              process.env.RENEWAL_SHEET_ID,
+            )}
+            workspace={outcome.workspace}
+          />
         ) : outcome.status === "not_found" ? (
           <article className="panel">
             <p className="muted">This live renewal is unavailable.</p>

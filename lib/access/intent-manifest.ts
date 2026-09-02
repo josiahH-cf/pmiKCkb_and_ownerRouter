@@ -102,6 +102,20 @@ export const ACCESS_INTENT_MANIFEST = [
     return_to: "/lease-renewal/live/desk",
   },
   {
+    key: "renewal_desk.save_progress",
+    source_path: "components/lease-renewal/RenewalDeskTable.tsx",
+    capability: "edit",
+    space: "renewals",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
+    key: "renewal_desk.resolve_reconciliation",
+    source_path: "components/lease-renewal/RenewalDeskTable.tsx",
+    capability: "approve",
+    space: "renewals",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
     key: "verified_placeholders.resolve",
     source_path: "components/spaces/SpaceDetailClient.tsx",
     capability: "resolvePlaceholder",

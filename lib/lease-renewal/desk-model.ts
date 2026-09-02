@@ -3,12 +3,18 @@
 // This module contains no records, fixtures, or constructors. Deterministic sample data belongs in
 // `tests/helpers`; Production code imports only these shapes and presentation constants.
 
+import type { Capability } from "@/lib/auth/roles";
 import type {
   CohortDisposition,
   CohortReason,
   DateWindow,
   RenewalCohort,
 } from "@/lib/lease-renewal/cohort";
+import type {
+  RenewalOverallStatus,
+  RenewalRentVerificationState,
+} from "@/lib/lease-renewal/desk-query-v2";
+import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
 import type { EffectiveRuleView } from "@/lib/lease-renewal/notice-rules";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
@@ -129,6 +135,75 @@ export interface DeskLeaseSummary extends DeskLeaseSummaryBase {
   queryKeys: RenewalDeskQueryKeys;
 }
 
+/** S82 guidance vocabulary — pure serializable types; the builder lives in `desk-guidance.ts`. */
+export type DeskGuidanceDestination =
+  | { kind: "workspace_phase"; stepId: RenewalProcessStepId }
+  | { kind: "none" };
+
+export type DeskBlockerType = "source" | "evidence" | "dependency";
+
+export interface DeskLeaseBlocker {
+  readonly id: string;
+  readonly label: string;
+  readonly type: DeskBlockerType;
+  readonly phaseId: RenewalProcessStepId | null;
+  readonly destination: DeskGuidanceDestination;
+  readonly requiredCapability?: Capability;
+}
+
+export interface DeskRentVerification {
+  readonly state: RenewalRentVerificationState;
+  /** True only when an exact current resolution verified a value differing from RentVine. */
+  readonly verifiedByResolutionDiffers: boolean;
+  readonly destination: DeskGuidanceDestination;
+}
+
+export type DeskLeaseAction =
+  | { readonly kind: "blocked" }
+  | {
+      readonly kind: "act";
+      readonly label: string;
+      readonly destination: DeskGuidanceDestination;
+      readonly requiredCapability?: Capability;
+    }
+  | {
+      readonly kind: "waiting";
+      readonly label: string;
+      readonly destination: DeskGuidanceDestination;
+    }
+  | {
+      readonly kind: "complete";
+      readonly label: string;
+      readonly destination: DeskGuidanceDestination;
+    }
+  | {
+      readonly kind: "needs_verification";
+      readonly label: string;
+      readonly destination: DeskGuidanceDestination;
+    }
+  | {
+      readonly kind: "review";
+      readonly label: string;
+      readonly destination: DeskGuidanceDestination;
+    };
+
+export interface DeskLeaseGuidance {
+  /** The canonical RentVine `unit.rent` value; null renders Needs Verification, never zero. */
+  readonly currentBaseRent: number | null;
+  readonly currentBaseRentSource: "RentVine";
+  readonly rentVerification: DeskRentVerification;
+  readonly overallStatus: RenewalOverallStatus;
+  readonly urgencyRank: number;
+  readonly isBlocked: boolean;
+  readonly blockers: readonly DeskLeaseBlocker[];
+  readonly action: DeskLeaseAction;
+}
+
+/** One canonical table row: the S78 summary plus its S82 guidance projection. */
+export interface DeskLeaseRow extends DeskLeaseSummary {
+  guidance: DeskLeaseGuidance;
+}
+
 /**
  * The ONE renewal ordering (S70, AC-S70-1 / AC-S70-2). Soonest lease end date first; a lease with no
  * end date sorts last; ties break on the stable lease id so the order does not shuffle between
@@ -175,12 +250,12 @@ export interface RenewalDeskView {
   readComplete: boolean;
   /** S58: the served snapshot's currency. */
   dataCurrency: DeskDataCurrency;
-  /** S78: the one complete serialized source consumed by controls, list, and attention fold. */
-  items: DeskLeaseSummary[];
-  actionable: DeskLeaseSummary[];
-  review: DeskLeaseSummary[];
-  skipped: DeskLeaseSummary[];
-  outOfWindow: DeskLeaseSummary[];
+  /** S78/S82: the one complete serialized source consumed by the table and every derived view. */
+  items: DeskLeaseRow[];
+  actionable: DeskLeaseRow[];
+  review: DeskLeaseRow[];
+  skipped: DeskLeaseRow[];
+  outOfWindow: DeskLeaseRow[];
 }
 
 export interface RenewalWorkspaceLiveState {

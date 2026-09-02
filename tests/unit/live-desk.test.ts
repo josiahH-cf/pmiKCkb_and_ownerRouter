@@ -701,3 +701,85 @@ describe("live renewal workspace + versioned evidence progress", () => {
     expect(untouched?.stageLabel).toBe("Verify renewal");
   });
 });
+
+describe("S82 desk guidance rows", () => {
+  it("attaches honest guidance: verified agreeing rent, blocked conflict, fail-closed no-match", async () => {
+    const result = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    const byId = new Map(result.view.items.map((row) => [row.id, row]));
+
+    const agreeing = byId.get("4821");
+    expect(agreeing?.guidance.currentBaseRent).toBe(1250);
+    expect(agreeing?.guidance.currentBaseRentSource).toBe("RentVine");
+    expect(agreeing?.guidance.rentVerification.state).toBe("verified");
+    expect(agreeing?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
+
+    const conflicting = byId.get("5001");
+    expect(conflicting?.guidance.currentBaseRent).toBe(1400);
+    expect(conflicting?.guidance.rentVerification.state).toBe("needs_verification");
+    expect(conflicting?.guidance.overallStatus).toBe("blocked");
+    expect(conflicting?.guidance.isBlocked).toBe(true);
+    expect(conflicting?.guidance.action).toEqual({ kind: "blocked" });
+    expect(conflicting?.guidance.blockers.length).toBeGreaterThan(0);
+    for (const blocker of conflicting?.guidance.blockers ?? []) {
+      expect(blocker.destination).toEqual({
+        kind: "workspace_phase",
+        stepId: "verify-renewal",
+      });
+    }
+
+    const noMatch = byId.get("6002");
+    expect(noMatch?.guidance.rentVerification.state).toBe("needs_verification");
+
+    const skipped = result.view.items.find((row) => row.id === "7003");
+    expect(skipped?.guidance.overallStatus).toBe("needs_review");
+    expect(skipped?.guidance.isBlocked).toBe(false);
+  });
+
+  it("verifies a conflicting rent by exact resolution without replacing the displayed RentVine value", async () => {
+    // Resolve the exact record-specific decision identity from the same reconciliation the
+    // workspace exposes, then feed the desk that one Resolved record.
+    const workspace = await loadLiveRenewalLeaseWorkspace(
+      "5001",
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+    );
+    if (workspace.status !== "ok") throw new Error(workspace.status);
+    const rentCheck = workspace.workspace.dataCheck.find(
+      (item) => item.fieldKey === "current_rent",
+    );
+    const triggerKey = rentCheck?.sourceTriggerKey;
+    if (!triggerKey) throw new Error("Expected a rent source trigger key.");
+
+    clearLiveLeaseCache();
+    const resolved = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+      undefined,
+      undefined,
+      [
+        {
+          id: "res-1",
+          source_trigger_key: triggerKey,
+          run_id: "live-review",
+          field_key: "current_rent",
+          field_label: "Rent",
+          severity: "Low",
+          status: "Resolved",
+          chosen_source: "Operating Sheet",
+          corrected_value: "1300",
+        } as never,
+      ],
+    );
+    if (resolved.status !== "ok") throw new Error(resolved.status);
+    const row = resolved.view.items.find((item) => item.id === "5001");
+    expect(row?.guidance.currentBaseRent).toBe(1400);
+    expect(row?.guidance.rentVerification.state).toBe("verified");
+    expect(row?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(true);
+  });
+});

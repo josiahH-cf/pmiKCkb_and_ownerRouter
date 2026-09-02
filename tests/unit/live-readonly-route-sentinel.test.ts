@@ -46,6 +46,9 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   // S75 page loads construct the descriptor-bound service only to list bodyless app-owned workflow
   // links from Firestore. The Gmail provider is constructed solely by the separate manual refresh.
   "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:createGmailHubService",
+  // S82: pure in-process HMAC token derivation for opaque owner/tenant filter shortcuts. It reads
+  // env-bound key material, performs no store or provider I/O, and never logs a label or key.
+  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:createPartyFilterResolver",
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createGmailHubService",
   // S66 GET composes only an authenticated app-owned Firestore read handler. Its POST is separately
   // denied by the Live-read-only request policy and the handler's edit + renewals guard.

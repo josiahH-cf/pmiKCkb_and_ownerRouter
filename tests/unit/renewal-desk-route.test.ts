@@ -13,9 +13,18 @@ describe("S78 canonical renewal route", () => {
     );
     const desk = source("app/lease-renewal/live/desk/page.tsx");
     expect(desk).toContain("buildRenewalDeskWindow");
-    expect(desk).toContain("parseRenewalDeskQuery");
+    expect(desk).toContain("parseRenewalDeskQueryV2");
     expect(desk).toContain('renewalRoleCapability("read_workspace")');
     expect(desk).not.toContain("startIso = now.toISOString().slice(0, 10)");
+  });
+
+  it("upgrades the compat lease route to the guarded canonical workspace without dropping the id", () => {
+    const compat = source("app/lease-renewal/lease/[leaseId]/page.tsx");
+    expect(compat).toContain('renewalRoleCapability("read_workspace")');
+    expect(compat).toContain("requirePageSpaceAccess");
+    expect(compat).toContain("buildWorkspaceHref");
+    expect(compat).toContain("isStableLeaseId(leaseId)");
+    expect(compat).toContain("serializeRenewalDeskQueryV2(parseRenewalDeskQueryV2(");
   });
 
   it("turns the legacy notices URL into the same Editor-readable canonical experience", () => {
@@ -29,17 +38,18 @@ describe("S78 canonical renewal route", () => {
     );
   });
 
-  it("keeps every control and action at a keyboard-visible 44px target with narrow fact parity", () => {
+  it("keeps table controls at 44px targets inside one contained scroll region", () => {
     const css = source("app/globals.css");
-    expect(css).toMatch(
-      /\.renewal-desk-control input,[\s\S]*?\.renewal-desk-control select \{[\s\S]*?min-height: 44px;/,
-    );
-    expect(css).toMatch(/\.renewal-desk-control-actions a \{[\s\S]*?min-height: 44px;/);
-    const s78Start = css.indexOf("/* S78: dense, URL-backed renewal triage.");
-    const s78 = css.slice(s78Start, css.indexOf("/* Metric cards", s78Start));
-    expect(s78).toContain("@media (max-width: 760px)");
-    expect(s78).toContain(".renewal-fact-grid");
-    expect(s78).not.toMatch(/display:\s*none/);
+    const s82Start = css.indexOf("/* S82: the table-first renewal desk.");
+    expect(s82Start).toBeGreaterThan(-1);
+    const s82 = css.slice(s82Start, css.indexOf("/* Metric cards", s82Start));
+    expect(s82).toMatch(/\.renewal-th-sort-button \{[\s\S]*?min-height: 44px;/);
+    expect(s82).toMatch(/\.renewal-th-filter summary \{[\s\S]*?min-height: 44px;/);
+    expect(s82).toMatch(/\.renewal-table-scroll \{[\s\S]*?overflow-x: auto;/);
+    expect(s82).toMatch(/\.renewal-phase-link \{[\s\S]*?min-height: 44px;/);
+    expect(s82).toContain("prefers-reduced-motion");
+    // No required fact is hidden by a breakpoint; the table scrolls instead.
+    expect(s82).not.toMatch(/display:\s*none/);
     expect(css).toContain(":focus-visible");
   });
 });

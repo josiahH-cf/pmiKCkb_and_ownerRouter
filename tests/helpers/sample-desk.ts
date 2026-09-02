@@ -26,6 +26,7 @@ import type {
   RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
 import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
+import { buildDeskLeaseGuidance } from "@/lib/lease-renewal/desk-guidance";
 import {
   buildOwnerRenewalDraft,
   type OwnerDraftInput,
@@ -344,9 +345,23 @@ function toSummary(
 export function getRenewalDeskView(): RenewalDeskView {
   const leases = SAMPLE_DESK_SEEDS.map((seed) => seed.lease);
   const cohort = classifyRenewalCohort(leases, { windows: SAMPLE_DESK_WINDOWS });
-  const summaries = SAMPLE_DESK_SEEDS.map((seed, index) =>
-    toSummary(seed, cohort.classifications[index]),
-  );
+  const summaries = SAMPLE_DESK_SEEDS.map((seed, index) => {
+    const summary = toSummary(seed, cohort.classifications[index]);
+    // S82: sample rows carry the same guidance shape as live rows; with no live process/decision
+    // inputs the builder yields honest fail-closed states rather than fabricated readiness.
+    return {
+      ...summary,
+      guidance: buildDeskLeaseGuidance({
+        summary,
+        process: null,
+        dataCheck: null,
+        rentvineCurrentRent: null,
+        rentDecision: null,
+        currencyState: "fresh",
+        readComplete: true,
+      }),
+    };
+  });
 
   return {
     windows: SAMPLE_DESK_WINDOWS,

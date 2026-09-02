@@ -5,21 +5,29 @@ import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
+import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 import {
   buildRenewalDeskWindow,
-  parseRenewalDeskQuery,
+  normalizeRenewalDeskText,
 } from "@/lib/lease-renewal/desk-query";
+import { parseRenewalDeskQueryV2 } from "@/lib/lease-renewal/desk-query-v2";
+import {
+  createPartyFilterResolver,
+  readPartyFilterKeyConfig,
+} from "@/lib/lease-renewal/party-filter-key";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 
 // Renewals-space Editors and up. Reads live RentVine + the renewal sheet on each render, so it is never
 // statically cached. It is read-only and draft-only: no send, no sheet write-back. This is the
-// canonical Renewal landing and surfaces real leases with their real reconciliation.
+// canonical Renewal landing and surfaces real leases with their real reconciliation through one
+// sortable, filterable table (S82).
 export const dynamic = "force-dynamic";
 
 const WINDOW_DAYS = 120;
+const RENEWALS_SPACE_ID = "renewals";
 
 type DeskSearchParams = Record<string, string | string[] | undefined>;
 
@@ -53,11 +61,9 @@ export default async function LiveRenewalDeskPage({
   // the loader/query projection remains deterministic and provider-effect-free.
   const now = new Date();
   const window = buildRenewalDeskWindow(now.toISOString().slice(0, 10), WINDOW_DAYS);
-  const query = parseRenewalDeskQuery((await searchParams) ?? {});
+  const rawSearchParams = (await searchParams) ?? {};
 
-  // The desk cards show each lease's RECORDED stage (owner decision made, tenant offer drafted, complete)
-  // over the data-derived default. Only leases an operator has touched carry a record, so this is small.
-  const [progressByLease, policy, communications, dismissedAttentionKeys] =
+  const [progressByLease, policy, communications, dismissedAttentionKeys, resolutions] =
     await Promise.all([
       listAllRenewalProgress(user),
       readNoticeRuleSnapshot(),
@@ -72,6 +78,9 @@ export default async function LiveRenewalDeskPage({
         }
       })(),
       listDismissedRenewalFollowUpKeys(user),
+      // S82: one bulk read of record-specific human resolutions so the table's rent verification
+      // reflects exact current decisions. A missing decision store never makes a value look resolved.
+      listResolutionsForRun(user, "live-review").catch(() => []),
     ]);
   const outcome = await loadLiveRenewalDesk(
     [window],
@@ -84,7 +93,38 @@ export default async function LiveRenewalDeskPage({
       policy,
       dismissedAttentionKeys,
     },
+    resolutions,
   );
+
+  // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these
+  // shortcuts closed; the unfiltered table stays usable.
+  const partyResolver = createPartyFilterResolver(
+    readPartyFilterKeyConfig(),
+    RENEWALS_SPACE_ID,
+  );
+  const partyFilters = {
+    available: partyResolver.available,
+    tokenFor: partyResolver.tokenFor,
+    matches: partyResolver.matches,
+  };
+
+  // Legacy `owner`/`tenant` display labels resolve once against the current authorized projection;
+  // the label itself never reaches the canonical URL.
+  const items = outcome.status === "ok" ? outcome.view.items : [];
+  const query = parseRenewalDeskQueryV2(rawSearchParams, {
+    resolveLegacyPartyLabel: (kind, label) => {
+      if (!partyResolver.available) return null;
+      const normalized = normalizeRenewalDeskText(label);
+      if (normalized === "") return null;
+      const present = items.some((item) =>
+        (kind === "owner"
+          ? item.queryKeys.normalizedOwners
+          : item.queryKeys.normalizedTenants
+        ).includes(normalized),
+      );
+      return present ? partyResolver.tokenFor(kind, normalized) : null;
+    },
+  });
 
   return (
     <AppShell user={user}>
@@ -93,7 +133,12 @@ export default async function LiveRenewalDeskPage({
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalDesk query={query} view={outcome.view} />
+          <RenewalDesk
+            partyFilters={partyFilters}
+            query={query}
+            role={user.role}
+            view={outcome.view}
+          />
         ) : (
           <LiveDeskPanel status={outcome.status} />
         )}

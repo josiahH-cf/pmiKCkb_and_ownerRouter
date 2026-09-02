@@ -1909,98 +1909,327 @@ textarea:disabled {
   padding: 0;
 }
 
-/* S78: dense, URL-backed renewal triage. The same ordered facts stack on narrow screens; no field is
-   hidden by a breakpoint, and every native control retains the shared 44px target/focus treatment. */
-.renewal-desk-controls {
-  align-items: end;
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
-}
-
-.renewal-desk-control {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.renewal-desk-control input,
-.renewal-desk-control select {
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--radius-md);
-  color: var(--ui-text);
-  min-height: 44px;
-  padding: 10px 12px;
-  width: 100%;
-}
-
-.renewal-desk-search {
-  grid-column: span 2;
-}
-
-.renewal-desk-control-actions {
+/* S82: the table-first renewal desk. Column-owned controls, one labelled contained scroll region on
+   narrow layouts (never page-level overflow), 44px targets, and non-color status treatments. */
+.renewal-table-toolbar {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  min-height: 44px;
 }
 
-.renewal-desk-control-actions a {
+.renewal-table-count {
+  font-weight: 700;
+}
+
+.renewal-filter-chips {
   align-items: center;
-  display: inline-flex;
-  min-height: 44px;
-}
-
-.renewal-worklist {
-  display: grid;
-  gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.renewal-worklist > li,
-.renewal-worklist-card,
-.renewal-worklist-card > * {
-  min-width: 0;
+.renewal-filter-chip {
+  align-items: center;
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 2px 6px 2px 12px;
 }
 
-.renewal-fact-grid {
+.renewal-filter-chip-remove {
+  align-items: center;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+}
+
+.renewal-filter-chip-remove:hover,
+.renewal-filter-chip-remove:focus-visible {
+  background: var(--action-secondary-hover);
+}
+
+.secondary-button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.renewal-table-scroll {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.renewal-table {
+  border-collapse: collapse;
+  min-width: 960px;
+  width: 100%;
+}
+
+.renewal-table caption {
+  text-align: left;
+}
+
+.renewal-table th,
+.renewal-table td {
+  border-bottom: 1px solid var(--ui-border);
+  padding: var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.renewal-table thead th {
+  background: var(--ui-canvas);
+  position: sticky;
+  top: 0;
+}
+
+/* The lease/location column stays identifiable while the region scrolls horizontally. */
+.renewal-table th:first-child,
+.renewal-table td:first-child,
+.renewal-table tbody th[scope="row"] {
+  background: var(--ui-surface);
+  left: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.renewal-table thead th:first-child {
+  background: var(--ui-canvas);
+  z-index: 2;
+}
+
+.renewal-th-sort-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.renewal-th-sort-button:hover,
+.renewal-th-sort-button:focus-visible {
+  background: var(--action-secondary-hover);
+  border-color: var(--ui-border-interactive);
+}
+
+.renewal-th-sort-direction {
+  display: inline-flex;
+  transition: transform var(--transition-fast);
+}
+
+.renewal-th-sort-direction[data-direction="asc"] {
+  transform: rotate(90deg);
+}
+
+.renewal-th-sort-direction[data-direction="desc"] {
+  transform: rotate(-90deg);
+}
+
+.renewal-th-filter-row th {
+  font-weight: 400;
+}
+
+.renewal-th-filter summary {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 4px 6px;
+}
+
+.renewal-th-filter summary:hover,
+.renewal-th-filter summary:focus-visible {
+  background: var(--action-secondary-hover);
+}
+
+.renewal-th-filter-panel {
+  background: var(--ui-overlay);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-raised);
   display: grid;
-  gap: var(--space-2) var(--space-4);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  max-width: min(320px, 80vw);
+  padding: var(--space-2);
+  position: absolute;
+  z-index: 30;
 }
 
-.renewal-fact-grid > div {
-  min-width: 0;
+.renewal-th-filter {
+  position: relative;
 }
 
-.renewal-fact-grid dt,
-.renewal-fact-grid dd {
-  margin: 0;
-  overflow-wrap: anywhere;
+.renewal-th-filter-form {
+  display: grid;
+  gap: var(--space-1);
 }
 
-.renewal-fact-grid dt {
+.renewal-td-secondary {
   color: var(--ui-text-muted);
+  display: block;
   font-size: var(--font-size-min);
+  font-weight: 400;
+}
+
+.renewal-lease-link {
   font-weight: 700;
 }
 
-.renewal-retention-reason {
+.renewal-party-list,
+.renewal-blocker-list {
+  display: grid;
+  gap: 2px;
+  list-style: none;
   margin: 0;
+  padding: 0;
 }
 
-@media (max-width: 760px) {
-  .renewal-desk-search {
-    grid-column: span 1;
-  }
+.renewal-blocker-list li {
+  overflow-wrap: anywhere;
+}
 
-  .renewal-fact-grid {
-    grid-template-columns: minmax(0, 1fr);
+.renewal-status-badge {
+  align-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-size: var(--font-size-min);
+  font-weight: 700;
+  gap: 4px;
+  padding: 2px 10px;
+}
+
+.renewal-status-badge[data-tone="verified"] {
+  background: var(--state-verified-surface);
+  color: var(--state-verified-text);
+}
+
+.renewal-status-badge[data-tone="caution"] {
+  background: var(--state-caution-surface);
+  color: var(--state-caution-text);
+}
+
+.renewal-status-badge[data-tone="error"] {
+  background: var(--state-error-surface);
+  color: var(--state-error-text);
+}
+
+.renewal-status-badge[data-tone="accent"] {
+  background: var(--action-secondary-hover);
+  color: var(--ui-text);
+}
+
+.renewal-status-badge[data-tone="neutral"] {
+  background: var(--ui-canvas);
+  color: var(--ui-text-muted);
+}
+
+.renewal-status-link {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.renewal-action-cell {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.renewal-table-empty {
+  padding: var(--space-4);
+  text-align: center;
+}
+
+/* S82: the guided workspace's six-phase rail. */
+.renewal-phase-rail ol {
+  display: grid;
+  gap: var(--space-1);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.renewal-phase-link {
+  align-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  color: var(--ui-text);
+  display: flex;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2);
+  text-decoration: none;
+}
+
+.renewal-phase-link:hover,
+.renewal-phase-link:focus-visible {
+  background: var(--action-secondary-hover);
+  border-color: var(--ui-border-interactive);
+  text-decoration: none;
+}
+
+.renewal-phase-rail li[data-selected] .renewal-phase-link {
+  background: var(--ui-selected-surface);
+  border-color: var(--ui-border-interactive);
+  box-shadow: inset 0 -3px 0 var(--ui-border-interactive);
+  color: var(--ui-selected-text);
+}
+
+.renewal-phase-index {
+  align-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+}
+
+.renewal-phase-rail li[data-state="complete"] .renewal-phase-index {
+  background: var(--state-verified-surface);
+  color: var(--state-verified-text);
+}
+
+.renewal-phase-copy {
+  display: grid;
+}
+
+.renewal-phase-label {
+  font-weight: 700;
+}
+
+.renewal-phase-state {
+  color: var(--ui-text-muted);
+  font-size: var(--font-size-min);
+}
+
+.renewal-phase-rail li[data-selected] .renewal-phase-state {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .renewal-th-sort-direction {
+    transition: none;
   }
 }
 

@@ -571,6 +571,23 @@ function readRuntimeSecrets(env, errors) {
     bindings.RENTCAST_API_KEY = `${secretId}:${version}`;
   }
 
+  // S82: bind the renewal-desk party-filter derivation key when its secret id is configured. The
+  // explicit *_SECRET_ID is the activation signal (the maintenance-intake pattern); without it the
+  // owner/tenant filter shortcuts fail closed and the table stays fully usable. The optional
+  // previous-key binding exists only for rotation.
+  const partyFilterSecretId = readString(env.RENEWAL_DESK_PARTY_FILTER_KEY_SECRET_ID);
+  if (partyFilterSecretId) {
+    const version =
+      readString(env.RENEWAL_DESK_PARTY_FILTER_KEY_SECRET_VERSION) ?? "latest";
+    bindings.RENEWAL_DESK_PARTY_FILTER_KEY = `${partyFilterSecretId}:${version}`;
+    const previousId = readString(env.RENEWAL_DESK_PARTY_FILTER_PREVIOUS_KEY_SECRET_ID);
+    if (previousId) {
+      const previousVersion =
+        readString(env.RENEWAL_DESK_PARTY_FILTER_PREVIOUS_KEY_SECRET_VERSION) ?? "latest";
+      bindings.RENEWAL_DESK_PARTY_FILTER_PREVIOUS_KEY = `${previousId}:${previousVersion}`;
+    }
+  }
+
   return bindings;
 }
 
