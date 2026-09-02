@@ -57,11 +57,14 @@ describe("Lease execution authority", () => {
     );
   });
 
-  it("leaves missing or undocumented provider contracts technically Blocked for Admin", () => {
-    const rentvine = LEASE_EXECUTION_DEFINITION_MAP.get(
-      "rentvine.lease.renewal_writeback",
-    )!;
-    const value = input(rentvine.key);
+  it("leaves vendor-pending provider contracts technically Blocked for Admin", () => {
+    // S97 retired the last undocumented matrix entry; every remaining contract requirement is
+    // documented or vendor_required, and Admin approval still cannot bypass a pending contract.
+    for (const definition of LEASE_EXECUTION_DEFINITION_MAP.values()) {
+      expect(definition.requiredContract).not.toBe("undocumented");
+    }
+    const boom = LEASE_EXECUTION_DEFINITION_MAP.get("boom.resident.enroll")!;
+    const value = input(boom.key);
     const previewHash = externalPreviewHash(value);
     value.authority = {
       ...value.authority!,
@@ -72,8 +75,8 @@ describe("Lease execution authority", () => {
         reason: "Approve synthetic provider proof.",
       },
     };
-    expect(validateExternalInput(rentvine, value, true)).toBe(
-      "Blocked: vendor contract required.",
+    expect(validateExternalInput(boom, value, true)).toBe(
+      "Documented provider contract is required.",
     );
   });
 });

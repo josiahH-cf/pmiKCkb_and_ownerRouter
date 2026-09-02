@@ -166,8 +166,14 @@ export function DiscrepancyDispositionPanel({
                 value={transactionKey}
               >
                 <option value="">Select one</option>
-                <option value="rentvine.lease.renewal_writeback">
-                  RentVine renewal writeback
+                <option value="rentvine.lease.renewal_dates.update">
+                  RentVine renewal dates update
+                </option>
+                <option value="rentvine.lease.recurring_charge.update">
+                  RentVine recurring charge update
+                </option>
+                <option value="rentvine.lease.recurring_charge.create">
+                  RentVine recurring charge create
                 </option>
                 <option value="google_sheets.renewal_checklist.writeback">
                   Operating-Sheet writeback

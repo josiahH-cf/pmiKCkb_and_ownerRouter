@@ -5,6 +5,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { DiscrepancyDispositionPanel } from "@/components/lease-renewal/DiscrepancyDispositionPanel";
+import { RentvineUpdatesPanel } from "@/components/lease-renewal/RentvineUpdatesPanel";
+import { clientRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/client-projection";
+import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-store";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
@@ -150,6 +153,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const dispositions = await listRenewalDiscrepancyDispositions(user, leaseId).catch(
     () => [],
   );
+  // S97: the single active RentVine update proposal for this lease, or null. A load failure shows
+  // the no-proposal state rather than blocking the workspace.
+  const writebackProposal = await getRenewalWritebackProposal(user, leaseId).catch(
+    () => null,
+  );
 
   return (
     <AppShell user={user}>
@@ -178,6 +186,17 @@ export default async function LiveRenewalLeaseWorkspacePage({
               />
             }
             packetSnapshot={packetSnapshot}
+            rentvineUpdatesPanel={
+              <RentvineUpdatesPanel
+                initialProposal={
+                  writebackProposal
+                    ? clientRenewalWritebackProposal(writebackProposal)
+                    : null
+                }
+                leaseId={leaseId}
+                role={user.role}
+              />
+            }
             role={user.role}
             selectedStepId={stepParam}
             sheetDestination={buildOperatingSheetDestination(

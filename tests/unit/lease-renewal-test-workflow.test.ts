@@ -119,7 +119,7 @@ async function runActions(
 describe("persistent Lease production Test workflow", () => {
   it("reuses all eleven Lease action definitions and reserved non-customer aliases", () => {
     expect(LEASE_TEST_ACTIONS).toEqual(LEASE_EXECUTION_ACTIONS);
-    expect(LEASE_TEST_ACTIONS).toHaveLength(11);
+    expect(LEASE_TEST_ACTIONS).toHaveLength(13);
     expect(LEASE_TEST_ALIASES.propertyLabel).toMatch(/^TEST/);
     expect(LEASE_TEST_ALIASES.residentEmail).toMatch(/@example\.invalid$/);
     expect(leaseTestActionDependencies("gmail.renewal_notice.send")).toEqual([
@@ -177,7 +177,7 @@ describe("persistent Lease production Test workflow", () => {
       data_mode: "test",
       status: "Created",
       labels: ["TEST DATA"],
-      action_total: 11,
+      action_total: 13,
     });
 
     await moveToExecuting(run.id, db);
@@ -203,8 +203,8 @@ describe("persistent Lease production Test workflow", () => {
       db,
     );
     expect(duplicate.receipt).toEqual(receipts[0]);
-    expect(store.get(LEASE_TEST_RUN_COLLECTIONS.receipts)?.size).toBe(11);
-    expect(store.get(LEASE_TEST_RUN_COLLECTIONS.attempts)?.size).toBe(11);
+    expect(store.get(LEASE_TEST_RUN_COLLECTIONS.receipts)?.size).toBe(13);
+    expect(store.get(LEASE_TEST_RUN_COLLECTIONS.attempts)?.size).toBe(13);
     expect([...store.keys()].sort()).toEqual(
       Object.values(LEASE_TEST_RUN_COLLECTIONS).sort(),
     );
@@ -248,7 +248,7 @@ describe("persistent Lease production Test workflow", () => {
     ).rejects.toThrow(/Complete required Test action/);
     await expect(
       transitionLeaseTestRun(editor, run.id, { nextStatus: "Done" }, db),
-    ).rejects.toThrow(/Complete all 11 Test actions/);
+    ).rejects.toThrow(/Complete all 13 Test actions/);
   });
 
   it("persists an idempotent bodyless business history and closes the renewal on Move-Out", async () => {

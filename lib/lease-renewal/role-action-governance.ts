@@ -161,13 +161,28 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Admin authority is required to approve a source-write proposal.",
     safeNextAction: "Leave the proposal queued for Admin review; no source is changed.",
   },
+  propose_source_write: {
+    label: "Assemble and save one typed RentVine update proposal",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save a RentVine update proposal.",
+    safeNextAction:
+      "Review the current lease facts read-only, or request Renewals access via the request workflow.",
+  },
   execute_source_write: {
     label: "Execute an exact-confirmed renewal source write",
     roleCapability: "manageAdmin",
     effect: "external_write",
     externalRequirement: "exact_action",
+    // S97: the exact successor keys replace the retired broad writeback identifier.
     actionKeys: [
-      "rentvine.lease.renewal_writeback",
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.update",
+      "rentvine.lease.recurring_charge.create",
       "google_sheets.renewal_checklist.writeback",
     ],
     exactConfirmation: true,
@@ -622,6 +637,14 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/rent-suggestion/route.ts",
     method: "POST",
     capability: "approve_pricing_suggestion",
+  },
+  {
+    // S97: Editors propose/discard under propose_source_write inside the handler; the declared
+    // row carries the route's maximum authority — executing one exact-confirmed source write.
+    kind: "api",
+    source: "app/api/lease-renewal/rentvine-writeback/route.ts",
+    method: "POST",
+    capability: "execute_source_write",
   },
   {
     kind: "api",

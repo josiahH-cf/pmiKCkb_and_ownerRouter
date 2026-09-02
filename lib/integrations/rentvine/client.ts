@@ -329,6 +329,38 @@ export class RentVineClient {
     return unwrapLease(await response.json());
   }
 
+  /**
+   * S97: canonical recurring-charge detail read (read-only). The official contract documents
+   * `GET /leases/{leaseID}/recurring-charges/{chargeID}?includes=account` returning a
+   * `{ recurringCharge }` envelope; this is the exact before/after readback for the S97 charge
+   * operations. Nothing here mutates.
+   */
+  async getRecurringCharge(
+    leaseId: string | number,
+    chargeId: string | number,
+  ): Promise<Record<string, unknown>> {
+    const path = `leases/${encodeURIComponent(String(leaseId))}/recurring-charges/${encodeURIComponent(String(chargeId))}`;
+    const response = await this.rawGet(path, { includes: "account" });
+    this.ensureOk(response, path);
+    return unwrapRecord(await response.json(), "recurringCharge");
+  }
+
+  /** S97: discovery list of a lease's recurring charges (read-only). */
+  async listRecurringCharges(
+    leaseId: string | number,
+  ): Promise<Record<string, unknown>[]> {
+    const path = `leases/${encodeURIComponent(String(leaseId))}/recurring-charges`;
+    const response = await this.rawGet(path);
+    this.ensureOk(response, path);
+    const body = (await response.json()) as unknown;
+    if (Array.isArray(body)) return body as Record<string, unknown>[];
+    if (body && typeof body === "object") {
+      const inner = (body as Record<string, unknown>)["recurringCharges"];
+      if (Array.isArray(inner)) return inner as Record<string, unknown>[];
+    }
+    throw new RentVineError("Unexpected Rentvine recurringCharges response shape.", 0);
+  }
+
   /** Read a single property by id (read-only). Unwraps the `{ property }` envelope. */
   async getProperty(propertyId: string | number): Promise<RawProperty> {
     const path = `properties/${encodeURIComponent(String(propertyId))}`;

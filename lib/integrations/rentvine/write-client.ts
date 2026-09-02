@@ -1,10 +1,11 @@
-// Narrow RentVine write transport for the documented renewal-related UPDATE endpoints.
+// Narrow RentVine write transport for the documented renewal-related endpoints (S30/S97).
 //
 // This module is deliberately separate from the GET-only RentVineClient. It has no generic request
-// method, no DELETE/PUT/status/create route, and no environment factory. Production code cannot
-// discover or execute a path supplied by a caller: the only public effects are the two official POST
-// routes below. The action-registry key stays closed until a disposable live test proves permission,
-// field semantics, readback, idempotency, and rollback.
+// method, no PUT/status route, and no environment factory. Production code cannot discover or
+// execute a path supplied by a caller: the only public effects are the exact official operations
+// below — the lease-date POST, the recurring-charge create/update POSTs, and the create key's
+// paired receipt-bound reversal DELETE. Every S97 Action Registry key stays closed until its own
+// bounded live proof and protected activation pass; the transport existing grants nothing.
 
 import {
   assertRentVineAccount,
@@ -15,10 +16,10 @@ import {
 } from "@/lib/integrations/rentvine/client";
 
 export interface RentVineWriteHttpRequest {
-  method: "POST";
+  method: "POST" | "DELETE";
   url: string;
   headers: Record<string, string>;
-  body: string;
+  body?: string;
 }
 
 export interface RentVineWriteHttpResponse {
@@ -40,10 +41,33 @@ export interface RentVineLeaseUpdatePayload {
   increaseEligibilityDate?: string | null;
 }
 
-/** Narrow subset of the existing recurring-charge update. It never creates or deletes a charge. */
+/**
+ * S97 recurring-charge update: only changed official fields, all wire-typed as strings. The body
+ * must be nonempty; omitted fields retain their fresh detail-GET values. Because the provider
+ * documents no clear value, an `endDate` transition between dated and open-ended is rejected at the
+ * proposal layer; this payload never carries `endDate: null`.
+ */
 export interface RentVineRecurringChargeUpdatePayload {
+  accountID?: string;
   amount?: string;
+  description?: string;
+  dayDue?: string;
+  frequency?: string;
   startDate?: string;
+  endDate?: string;
+}
+
+/**
+ * S97 recurring-charge create: every required official field explicitly supplied as a string; no
+ * provider default or another lease supplies a value. `endDate` is omitted for open-ended.
+ */
+export interface RentVineRecurringChargeCreatePayload {
+  accountID: string;
+  amount: string;
+  description: string;
+  dayDue: string;
+  frequency: string;
+  startDate: string;
   endDate?: string;
 }
 
@@ -123,30 +147,111 @@ function normalizeLeasePayload(
   };
 }
 
-function normalizeRecurringChargePayload(
+const DAY_DUE_RE = /^(?:[1-9]|[12]\d|3[01])$/;
+const FREQUENCY_RE = /^(?:[1-9]|1\d|2[0-4])$/;
+
+function assertChargeFieldValue(
+  field: keyof RentVineRecurringChargeCreatePayload,
+  value: string,
+): void {
+  switch (field) {
+    case "accountID":
+      if (!POSITIVE_INTEGER_ID_RE.test(value)) {
+        throw new Error("Recurring-charge accountID must be a positive integer id.");
+      }
+      return;
+    case "amount":
+      if (!POSITIVE_DECIMAL_RE.test(value)) {
+        throw new Error(
+          "Recurring-charge amount must be a non-negative decimal string with two digits.",
+        );
+      }
+      return;
+    case "description":
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new Error("Recurring-charge description must be a nonblank string.");
+      }
+      return;
+    case "dayDue":
+      if (!DAY_DUE_RE.test(value)) {
+        throw new Error('Recurring-charge dayDue must be a canonical "1"-"31" string.');
+      }
+      return;
+    case "frequency":
+      if (!FREQUENCY_RE.test(value)) {
+        throw new Error(
+          'Recurring-charge frequency must be a canonical "1"-"24" string.',
+        );
+      }
+      return;
+    case "startDate":
+      assertUsDate(value, "Recurring-charge startDate");
+      return;
+    case "endDate":
+      assertUsDate(value, "Recurring-charge endDate");
+      return;
+  }
+}
+
+const CHARGE_FIELD_ORDER = [
+  "accountID",
+  "amount",
+  "description",
+  "dayDue",
+  "frequency",
+  "startDate",
+  "endDate",
+] as const;
+
+function normalizeRecurringChargeUpdatePayload(
   payload: RentVineRecurringChargeUpdatePayload,
 ): RentVineRecurringChargeUpdatePayload {
-  if (
-    payload.amount === undefined &&
-    payload.startDate === undefined &&
-    payload.endDate === undefined
-  ) {
+  const normalized: RentVineRecurringChargeUpdatePayload = {};
+  for (const field of CHARGE_FIELD_ORDER) {
+    const value = payload[field];
+    if (value === undefined) continue;
+    if (value === null) {
+      throw new Error(`Recurring-charge ${field} cannot be null on update.`);
+    }
+    assertChargeFieldValue(field, value);
+    normalized[field] = value;
+  }
+  if (Object.keys(normalized).length === 0) {
     throw new Error("Recurring-charge update requires at least one allowed field.");
   }
-  if (payload.amount !== undefined && !POSITIVE_DECIMAL_RE.test(payload.amount)) {
-    throw new Error(
-      "Recurring-charge amount must be a non-negative decimal string with two digits.",
-    );
-  }
-  if (payload.startDate !== undefined) {
-    assertUsDate(payload.startDate, "Recurring-charge startDate");
+  return normalized;
+}
+
+function normalizeRecurringChargeCreatePayload(
+  payload: RentVineRecurringChargeCreatePayload,
+): RentVineRecurringChargeCreatePayload {
+  for (const field of [
+    "accountID",
+    "amount",
+    "description",
+    "dayDue",
+    "frequency",
+    "startDate",
+  ] as const) {
+    const value = payload[field];
+    if (value === undefined || value === null) {
+      throw new Error(`Recurring-charge create requires ${field}.`);
+    }
+    assertChargeFieldValue(field, value);
   }
   if (payload.endDate !== undefined) {
-    assertUsDate(payload.endDate, "Recurring-charge endDate");
+    if (payload.endDate === null) {
+      throw new Error("Recurring-charge create endDate is omitted for open-ended.");
+    }
+    assertChargeFieldValue("endDate", payload.endDate);
   }
   return {
-    ...(payload.amount !== undefined ? { amount: payload.amount } : {}),
-    ...(payload.startDate !== undefined ? { startDate: payload.startDate } : {}),
+    accountID: payload.accountID,
+    amount: payload.amount,
+    description: payload.description,
+    dayDue: payload.dayDue,
+    frequency: payload.frequency,
+    startDate: payload.startDate,
     ...(payload.endDate !== undefined ? { endDate: payload.endDate } : {}),
   };
 }
@@ -214,19 +319,54 @@ export class RentVineWriteClient {
   ): Promise<unknown> {
     return this.post(
       `/leases/${assertIntegerId(leaseId, "Lease id")}/recurring-charges/${assertIntegerId(chargeId, "Recurring-charge id")}`,
-      normalizeRecurringChargePayload(payload),
+      normalizeRecurringChargeUpdatePayload(payload),
     );
   }
 
-  private async post(path: string, payload: object): Promise<unknown> {
+  /** S97: create one recurring charge with every required official field explicitly supplied. */
+  async createRecurringCharge(
+    leaseId: string,
+    payload: RentVineRecurringChargeCreatePayload,
+  ): Promise<unknown> {
+    return this.post(
+      `/leases/${assertIntegerId(leaseId, "Lease id")}/recurring-charges`,
+      normalizeRecurringChargeCreatePayload(payload),
+    );
+  }
+
+  /**
+   * S97: the create key's paired receipt-bound reversal. This is the ONLY delete this transport
+   * exposes; callers must have proven the charge unchanged against its create receipt and obtained
+   * a fresh exact confirmation before invoking it. The HTTP 200 response is the deleted
+   * recurring-charge object directly.
+   */
+  async deleteRecurringChargeForCreateReversal(
+    leaseId: string,
+    chargeId: string,
+  ): Promise<unknown> {
+    return this.send(
+      "DELETE",
+      `/leases/${assertIntegerId(leaseId, "Lease id")}/recurring-charges/${assertIntegerId(chargeId, "Recurring-charge id")}`,
+    );
+  }
+
+  private post(path: string, payload: object): Promise<unknown> {
+    return this.send("POST", path, payload);
+  }
+
+  private async send(
+    method: "POST" | "DELETE",
+    path: string,
+    payload?: object,
+  ): Promise<unknown> {
     const response = await this.transport.send({
-      method: "POST",
+      method,
       url: `${this.baseUrl}${path}`,
       headers: {
         Authorization: this.authorization,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
     });
     if (response.status === 401 || response.status === 403) {
       throw new RentVineAuthError(response.status);

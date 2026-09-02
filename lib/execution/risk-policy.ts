@@ -57,7 +57,20 @@ export const EXECUTION_ACTION_POLICIES = {
   "quickbooks.bill.create_draft": policy("High", "accounting_write", true),
   "rentcast.rental_listings.search": policy("Low", "read", true),
   "rentvine.lease.read": policy("Low", "read", true),
+  // S97: the retired broad identifier keeps its historical High classification; the three exact
+  // successor keys are individually classified system-of-record writes.
   "rentvine.lease.renewal_writeback": policy("High", "system_of_record_write", true),
+  "rentvine.lease.renewal_dates.update": policy("High", "system_of_record_write", true),
+  "rentvine.lease.recurring_charge.create": policy(
+    "High",
+    "system_of_record_write",
+    true,
+  ),
+  "rentvine.lease.recurring_charge.update": policy(
+    "High",
+    "system_of_record_write",
+    true,
+  ),
   "rentvine.renewal.portal_message.send": policy(
     "Medium",
     "workflow_communication",

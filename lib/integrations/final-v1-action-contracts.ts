@@ -109,13 +109,30 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("source_of_value", "Source of value", "string"),
     f("verification_link", "Verification link", "string"),
   ],
-  "rentvine.lease.renewal_writeback": [
+  // S97: the retired broad writeback identifier has no preview schema. The three exact keys carry
+  // official provider fields; the old synthetic five-field composite shape must never reappear.
+  "rentvine.lease.renewal_dates.update": [
     f("lease_ref", "Lease", "reference", "Rentvine"),
-    f("current_rent", "Current rent", "number", "Rentvine"),
-    f("new_rent", "Approved new rent", "number"),
-    f("effective_date", "Effective date", "date"),
-    f("lease_end_date", "Lease end date", "date", "Rentvine"),
-    f("fee_cents", "Approved fee", "number"),
+    f("start_date", "Start date (copied unchanged)", "date", "Rentvine"),
+    f("end_date", "End date", "date"),
+    f("increase_eligibility_date", "Increase eligibility date", "date"),
+  ],
+  "rentvine.lease.recurring_charge.create": [
+    f("lease_ref", "Lease", "reference", "Rentvine"),
+    f("account_id", "Account", "reference", "Rentvine"),
+    f("amount", "Amount", "string"),
+    f("description", "Description", "string"),
+    f("day_due", "Day due", "string"),
+    f("frequency", "Frequency", "string"),
+    f("start_date", "Start date", "date"),
+    f("end_date", "End date (optional)", "date"),
+  ],
+  "rentvine.lease.recurring_charge.update": [
+    f("lease_ref", "Lease", "reference", "Rentvine"),
+    f("charge_ref", "Recurring charge", "reference", "Rentvine"),
+    f("changed_fields", "Changed official fields", "string"),
+    f("before_values", "Fresh before values", "string", "Rentvine"),
+    f("after_values", "Proposed after values", "string"),
   ],
   "dotloop.loop.create_from_template": [
     f("workflow_context", "Workflow context", "reference"),

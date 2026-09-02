@@ -69,12 +69,33 @@ describe("Lease execution matrix", () => {
       }
     }
 
+    // S97: the retired broad key never appears; the three exact keys follow Dotloop in the
+    // canonical effect order (dates, existing-charge updates, then new charges).
+    expect(positions.has("rentvine.lease.renewal_writeback")).toBe(false);
     expect(positions.get("dotloop.document.upload")!).toBeLessThan(
-      positions.get("rentvine.lease.renewal_writeback")!,
+      positions.get("rentvine.lease.renewal_dates.update")!,
     );
     expect(
-      LEASE_EXECUTION_DEFINITION_MAP.get("rentvine.lease.renewal_writeback")?.dependsOn,
+      LEASE_EXECUTION_DEFINITION_MAP.get("rentvine.lease.renewal_dates.update")
+        ?.dependsOn,
     ).toEqual(["dotloop.document.upload"]);
+    expect(
+      LEASE_EXECUTION_DEFINITION_MAP.get("rentvine.lease.recurring_charge.update")
+        ?.dependsOn,
+    ).toEqual(["rentvine.lease.renewal_dates.update"]);
+    expect(
+      LEASE_EXECUTION_DEFINITION_MAP.get("rentvine.lease.recurring_charge.create")
+        ?.dependsOn,
+    ).toEqual(["rentvine.lease.recurring_charge.update"]);
+    for (const key of [
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.update",
+      "rentvine.lease.recurring_charge.create",
+    ]) {
+      expect(LEASE_EXECUTION_DEFINITION_MAP.get(key)?.requiredContract).toBe(
+        "documented",
+      );
+    }
   });
 
   it("keeps portal and SMS as independently confirmable channel siblings", () => {

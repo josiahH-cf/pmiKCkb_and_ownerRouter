@@ -5,6 +5,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
+  CORRECTION_TRANSACTION_KEYS,
   listRenewalDiscrepancyDispositions,
   recordRenewalDiscrepancyDisposition,
 } from "@/lib/firestore/renewal-discrepancy-dispositions";
@@ -42,12 +43,7 @@ const BodySchema = z
       "completed",
     ]),
     evidence_refs: z.array(z.string().trim().min(1).max(500)).max(20),
-    transaction_key: z
-      .enum([
-        "rentvine.lease.renewal_writeback",
-        "google_sheets.renewal_checklist.writeback",
-      ])
-      .optional(),
+    transaction_key: z.enum(CORRECTION_TRANSACTION_KEYS).optional(),
     current_rent_definition_ref: z.string().trim().min(1).max(500).optional(),
     effect_receipt_ref: z.string().trim().min(1).max(500).optional(),
   })

@@ -161,22 +161,46 @@ describe("Action Registry seed catalog", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("documents the restricted RentVine seam while keeping writeback closed", () => {
-    const writeback = ACTION_REGISTRY_SEED.find(
+  it("retires the broad RentVine writeback identifier and documents the three exact S97 keys", () => {
+    const retired = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "rentvine.lease.renewal_writeback",
     );
+    expect(retired?.production_allowed).toBe(false);
+    expect(retired?.expected_action).toContain("retired");
+    expect(retired?.documented_evidence).toContain("rentvine.lease.renewal_dates.update");
+    expect(retired?.documented_evidence).toContain("cannot grant, prove, or inherit");
 
-    expect(writeback?.evidence_status).toBe("Documented");
-    expect(writeback?.readiness).toBe("Needs Permission");
-    expect(writeback?.documented_evidence).toContain(
-      "POST /leases/{leaseId}/recurring-charges/{chargeId}",
+    const dates = ACTION_REGISTRY_SEED.find(
+      (entry) => entry.key === "rentvine.lease.renewal_dates.update",
     );
-    expect(writeback?.preview_schema_note).toContain("Dry preview only");
-    expect(writeback?.production_allowed).toBe(false);
+    expect(dates?.production_allowed).toBe(false);
+    expect(dates?.expected_action).toContain("POST /leases/{leaseID}");
+    expect(dates?.documented_evidence).toContain("startDate copied unchanged");
+    expect(dates?.documented_evidence).toContain("never retries ambiguity");
+
+    const create = ACTION_REGISTRY_SEED.find(
+      (entry) => entry.key === "rentvine.lease.recurring_charge.create",
+    );
+    expect(create?.production_allowed).toBe(false);
+    // The create key's committed capability alone owns the paired receipt-bound reversal DELETE.
+    expect(create?.expected_action).toContain(
+      "DELETE /leases/{leaseID}/recurring-charges/{chargeID}",
+    );
+    expect(create?.documented_evidence).toContain(
+      "No other key or category can grant that DELETE",
+    );
+
+    const update = ACTION_REGISTRY_SEED.find(
+      (entry) => entry.key === "rentvine.lease.recurring_charge.update",
+    );
+    expect(update?.production_allowed).toBe(false);
+    expect(update?.documented_evidence).toContain(
+      "rejects both dated-to-open-ended and open-ended-to-dated",
+    );
   });
 
-  it("contains the expanded 41-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(41);
+  it("contains the expanded 44-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(44);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         // S28 entries; screenshot storage stays closed while the read-only RentCast key is live.
@@ -185,6 +209,9 @@ describe("Action Registry seed catalog", () => {
         // S39.2-built internal transactional send, FLIPPED on by S39.3 (dedicated key; generic gmail.message.send unchanged).
         "internal.transactional_notice.send",
         "rentvine.lease.read",
+        "rentvine.lease.renewal_dates.update",
+        "rentvine.lease.recurring_charge.create",
+        "rentvine.lease.recurring_charge.update",
         "rentvine.work_order.read",
         "leadsimple.task.create",
         "gmail.label.apply",

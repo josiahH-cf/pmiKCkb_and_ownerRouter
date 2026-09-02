@@ -133,16 +133,28 @@ describe("lease renewal process-definition template", () => {
     );
   });
 
-  it("keeps the documented RentVine writeback closed pending exact one-record permission", () => {
+  it("keeps the three exact RentVine writeback keys closed pending their proof windows", () => {
     const parsed = CreateProcessDefinitionInputSchema.parse(template());
-    const writeback = parsed.action_references.find(
-      (reference) => reference.action_registry_key === "rentvine.lease.renewal_writeback",
-    );
-
-    expect(writeback?.readiness).toBe("Needs Permission");
-    expect(writeback?.missing_connection_or_permission).toMatch(
-      /client-designated unmistakable test lease\/owner/i,
-    );
+    // S97: the retired broad identifier left the template with the execution matrix.
+    expect(
+      parsed.action_references.some(
+        (reference) =>
+          reference.action_registry_key === "rentvine.lease.renewal_writeback",
+      ),
+    ).toBe(false);
+    for (const key of [
+      "rentvine.lease.renewal_dates.update",
+      "rentvine.lease.recurring_charge.update",
+      "rentvine.lease.recurring_charge.create",
+    ]) {
+      const writeback = parsed.action_references.find(
+        (reference) => reference.action_registry_key === key,
+      );
+      expect(writeback?.readiness, key).toBe("Needs Permission");
+      expect(writeback?.missing_connection_or_permission, key).toMatch(
+        /owner-authorized bounded proof window/i,
+      );
+    }
   });
 });
 

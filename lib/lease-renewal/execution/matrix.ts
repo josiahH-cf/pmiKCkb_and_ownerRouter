@@ -10,7 +10,11 @@ export const LEASE_EXECUTION_ACTIONS = [
   "google_sheets.renewal_checklist.writeback",
   "dotloop.loop.create_from_template",
   "dotloop.document.upload",
-  "rentvine.lease.renewal_writeback",
+  // S97: the retired broad writeback identifier is replaced by the three exact keys in their
+  // canonical effect order (dates, existing-charge updates, new charges).
+  "rentvine.lease.renewal_dates.update",
+  "rentvine.lease.recurring_charge.update",
+  "rentvine.lease.recurring_charge.create",
   "boom.resident.enroll",
 ] as const;
 
@@ -94,14 +98,27 @@ export const LEASE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinition[] = 
     "Rentvine renewal",
     "High",
     [LEASE_EXECUTION_ACTIONS[8]],
-    "Use the documented provider correction contract; endpoint remains unavailable until confirmed.",
-    "undocumented",
+    "A separately previewed and confirmed reversal restores the exact receipted prior dates.",
   ),
   definition(
     LEASE_EXECUTION_ACTIONS[10],
-    "Boom",
+    "Rentvine renewal",
     "High",
     [LEASE_EXECUTION_ACTIONS[9]],
+    "A separately previewed and confirmed reversal restores the exact receipted prior changed fields.",
+  ),
+  definition(
+    LEASE_EXECUTION_ACTIONS[11],
+    "Rentvine renewal",
+    "High",
+    [LEASE_EXECUTION_ACTIONS[10]],
+    "Only the exact unchanged receipt-bound created charge may be deleted after fresh canonical equality and a new confirmation.",
+  ),
+  definition(
+    LEASE_EXECUTION_ACTIONS[12],
+    "Boom",
+    "High",
+    [LEASE_EXECUTION_ACTIONS[11]],
     "Use the documented Boom de-enrollment/correction path.",
     "vendor_required",
   ),

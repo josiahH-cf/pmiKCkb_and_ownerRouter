@@ -965,24 +965,89 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "rentvine.lease.renewal_writeback",
-    label: "Write lease renewal back to Rentvine",
+    label: "Retired broad renewal writeback (compatibility identifier)",
     target_system: "Rentvine",
     expected_action:
-      "Execute a lease renewal or update renewal charges in Rentvine (system-of-record update).",
+      "None. S97 retired this broad identifier; it is a non-executable compatibility key and can never name a provider effect.",
     product_lane: "Lease Renewal Agent",
     readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
-      "RentVine documents POST /leases/{leaseId} and POST /leases/{leaseId}/recurring-charges/{chargeId}. The separate write client exposes only those two routes and allowlists lease start/end dates plus an existing recurring charge amount/start date. The product can build an exact dry preview and rollback payload, while the production key remains closed and no executable caller or provider write is reachable. A live proof still requires one unmistakable client-designated test lease/owner, fresh provider state, exact confirmation, readback, receipt, and rollback.",
+      "S97 replaced the ambiguous broad writeback with three exact keys: rentvine.lease.renewal_dates.update, rentvine.lease.recurring_charge.create (whose committed capability alone includes its paired receipt-bound reversal DELETE), and rentvine.lease.recurring_charge.update. This retired identifier remains only so historical references stay resolvable; it cannot grant, prove, or inherit any successor capability and no production execution path reads it.",
     required_permissions: [
-      "Client-designated unmistakable test lease/owner and exact field/charge permission",
-      "Reviewed protected gate change for the one-record proof",
+      "None. This identifier is retired and permanently non-executable.",
     ],
     event_ingestion_mode: "None",
     preview_schema_note:
-      "Show the exact lease id, fresh current values, proposed allowlisted fields, existing recurring-charge id, rollback payload, actor, and one-record scope. Dry preview only while the key remains closed.",
+      "No preview exists. The S97 exact keys own the renewal-writeback preview contracts; this retired identifier renders only its non-executable status.",
     rollback_note:
-      "POST the exact captured prior allowlisted values back to the same lease and existing recurring charge, then read back both. No rollback is attempted until the designated one-record proof is separately approved.",
+      "Not applicable; the identifier performs no effect. Reversal semantics live on the exact S97 keys.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.lease.renewal_dates.update",
+    label: "Update RentVine lease renewal dates",
+    target_system: "Rentvine",
+    expected_action:
+      "POST /leases/{leaseID} with fresh startDate copied unchanged plus only the changed endDate and/or increaseEligibilityDate (system-of-record update).",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "The official RentVine contract documents POST /leases/{leaseID} returning an HTTP 200 {lease} wrapper. The S97 body always includes fresh startDate copied unchanged as YYYY-MM-DD and includes changed endDate and/or increaseEligibilityDate only, each YYYY-MM-DD or explicit null; at least one editable date must change, startDate is not editable, and every other lease field is omitted. Execution requires independent fresh GET /leases/{leaseID} readback matching the copied start date, changed dates, and preserved omitted state; exact prior dates are the reversal input. The provider has no proven idempotency or compare-and-set, so the app claims one attempt and never retries ambiguity.",
+    required_permissions: [
+      "Owner-authorized bounded proof window for this exact key after its closed deterministic gates, then separate protected final activation after that proof",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the exact lease id, fresh before dates, only the proposed changed dates, the copied startDate, the reversal (exact prior dates), actor, and one-lease scope. Preview performs zero writes.",
+    rollback_note:
+      "A separately previewed and confirmed reversal POSTs the exact receipted prior dates back to the same lease and requires exact readback; drift refuses automatic reversal.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.lease.recurring_charge.create",
+    label: "Create RentVine lease recurring charge",
+    target_system: "Rentvine",
+    expected_action:
+      "POST /leases/{leaseID}/recurring-charges with every required official field explicitly supplied; this key's committed capability alone also owns the paired receipt-bound reversal DELETE /leases/{leaseID}/recurring-charges/{chargeID}.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "The official RentVine contract documents POST /leases/{leaseID}/recurring-charges returning an HTTP 200 {recurringCharge} wrapper with optional nullable previousCharge and a positive string leaseRecurringChargeID. Required S97 body values are strings: positive canonical decimal accountID, amount matching ^(?:0|[1-9]\\d*)\\.\\d{2}$, exact nonblank description, canonical dayDue 1-31, explicit canonical frequency 1-24, and real startDate as MM/DD/YYYY; optional real endDate uses MM/DD/YYYY and is omitted for open-ended. No provider default or another lease supplies a value. Execution requires an independent detail GET on the returned id matching every normalized submitted field. The paired reversal DELETE is reachable only from the original create receipt after a fresh detail read canonically equals the receipted projection and a new exact confirmation; its HTTP 200 response is the deleted charge object directly and is followed by detail not-found plus collection absence. No other key or category can grant that DELETE, and arbitrary deletion is unavailable.",
+    required_permissions: [
+      "Owner-authorized bounded proof window for this exact key after its closed deterministic gates, then separate protected final activation after that proof",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the exact lease id, every explicit charge field (accountID, amount, description, dayDue, frequency, startDate, optional endDate), the receipt-bound delete reversal availability, actor, and one-lease scope. Preview performs zero writes.",
+    rollback_note:
+      "Only the exact unchanged receipt-bound created charge may be deleted, after fresh canonical equality with its create receipt and a separately confirmed preview; absence is then read back. Drift permits read-only reconciliation only and never recreates the charge.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.lease.recurring_charge.update",
+    label: "Update RentVine lease recurring charge",
+    target_system: "Rentvine",
+    expected_action:
+      "POST /leases/{leaseID}/recurring-charges/{chargeID} with only changed official fields (system-of-record update).",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "The official RentVine contract documents POST /leases/{leaseID}/recurring-charges/{chargeID} returning an HTTP 200 {recurringCharge} wrapper with optional nullable previousCharge. The S97 body permits only changed accountID, amount, description, dayDue, frequency, startDate, and/or endDate with the same string wire formats as create; it must be nonempty and null values are rejected. Because the provider documents no clear value, V1 rejects both dated-to-open-ended and open-ended-to-dated endDate transitions: neither has a supported exact inverse. Execution requires an independent exact detail GET where every changed field matches and every omitted field equals the fresh pre-read; the exact prior changed fields are the reversal input.",
+    required_permissions: [
+      "Owner-authorized bounded proof window for this exact key after its closed deterministic gates, then separate protected final activation after that proof",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the exact lease id, exact charge id, fresh before fields, only the proposed changed fields, the reversal (exact prior changed fields) where every change has a supported exact inverse, actor, and one-charge scope. Preview performs zero writes.",
+    rollback_note:
+      "A separately previewed and confirmed reversal POSTs the exact receipted prior changed fields back to the same charge and requires exact readback; a change without a supported exact inverse is refused at proposal time.",
     connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },

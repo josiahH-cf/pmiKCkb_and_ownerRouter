@@ -15,13 +15,12 @@ effect beyond the owner-authorized keys and suite contracts.
   `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, seven open
   keys, the operating-Sheet write switch off, and S30's closed one-lease `endDate` proof runner.
-- S96 is `ALL_GATES_GREEN` and deployed. Focused/canonical/core-E2E checks and exact-SHA CI passed;
-  the zero-traffic candidate matched exact version and normalized predecessor configuration, bounded
-  routes passed, and exact promotion/stable readback passed. Production had zero connector records,
-  so the specified no-target first-click proof ran with no credential or vault effect.
-- S85's technical implementation is `ALL_GATES_GREEN` and deployed through its focused/real-browser/
-  canonical/core-E2E/CI `33496148515`/candidate/config/promotion/readback gates. `brand_conformance`
-  remains separately blocked on approved official PMI assets; deployed values are provisional.
+- S96 is `ALL_GATES_GREEN` and deployed through focused/canonical/core-E2E, exact-SHA CI,
+  candidate/config, promotion, and readback gates; production had zero connector records, so the
+  no-target first-click proof ran with no credential or vault effect.
+- S85 is `ALL_GATES_GREEN` and deployed through its focused/real-browser/canonical/core-E2E/CI
+  `33496148515`/candidate/config/promotion/readback gates. `brand_conformance` remains separately
+  blocked on approved official PMI assets; deployed values are provisional.
 - S86 is `ALL_GATES_GREEN` and deployed. Focused interaction and complete S96-preservation suites,
   570 unit files with one intentional skip/5,223 passing tests, 26 Firestore files/119 tests, 31 core
   E2E tests, the production build, real Chromium theme/viewport/zoom/accessibility matrix, exact-SHA
@@ -48,16 +47,24 @@ effect beyond the owner-authorized keys and suite contracts.
   image/exact `APP_COMMIT_SHA`/the one specified party-filter binding, exact promotion, repeated
   stable readback, and secret/IAM/payload-shape readback, with no client-data or provider-write
   effect.
-- The remaining S36, S87-S95, and S97-S100 suites are specified desired-state contracts, not
+- S97's closed slice is implemented in-tree as an uncommitted candidate: the retirement wave (the
+  synthetic composite executor, broad matrix key, and composite preview shape are out of production
+  reachability with a static inventory test), the three exact closed keys across registry seed
+  (44 entries, seven open unchanged), risk policy, execution matrix, and preview schemas, the
+  versioned proposal contract/store, the one-attempt execution service with reconcile and separate
+  reversal, the governed `rentvine-writeback` route, and the workspace Review RentVine updates
+  panel with S83 handoffs. Focused suites are green; the full verify/CI/release ladder has not run,
+  nothing is deployed, and no key opened. Live per-key proofs additionally require the
+  owner-designated lease packet, which is absent.
+- The remaining S36, S87-S95, and S98-S100 suites are specified desired-state contracts, not
   implementation. S97 is the active suite. Their sole queue and completion gates are in
   `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
   protected activation/live proof contracts; it performed no feature, cloud, provider, key, role,
   Sheet, draft, or deployment effect.
-- S96 solely owns connector disconnect/reconciliation; S86 preserved it and supplies the shared
-  interaction/transient foundation. S83 consumes those contracts and now supplies the all-staff
-  access destination, Admin-only access-review lane, and role-aware queue reachability used by S84.
+- S96 solely owns connector disconnect/reconciliation; S86 supplies the shared interaction
+  foundation; S83 supplies the access destination, review lane, and queue reachability S84 uses.
 - The committed execution Registry and its non-authoritative Firestore Admin display mirror both
   read back at 41 keys/seven open with no malformed entry. Neither S83 nor the mirror grants action
   execution.
@@ -72,16 +79,13 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Begin S97. Re-read its complete contract, the deployed S30 one-attempt/readback/rollback safety
-primitives, the S77 exact-confirm foundation, the S80 authority matrix, and current desk/workspace
-truth. First remove the obsolete multi-record proof machinery with tests. Then implement the three
-exact renewal-writeback keys closed - `rentvine.lease.renewal_dates.update`,
-`rentvine.lease.recurring_charge.create` with only its receipt-bound reversal DELETE, and
-`rentvine.lease.recurring_charge.update` - behind exact preview/confirm/receipt/readback/reconcile
-behavior and deterministic gates. No key opens and no protected proof-window patch is prepared
-before those gates are green; the sole designated lease arrives only through secure execution
-context and is never substituted or committed. Exclude user-owned `.claude/settings.local.json`
-and `output/` plus ignored `temp/` artifacts from every commit and Cloud Build upload.
+Take the implemented S97 closed slice through the full ladder: complete unit/verify/core-E2E gates,
+protected-path and effect audits, commit and push with exact-SHA CI, zero-traffic candidate, bounded
+smoke, normalized configuration compare, exact promotion, repeated stable readback, and closed
+three-key registry readback, then reconcile every active document. No key opens and no proof-window
+patch is prepared in this slice; the live per-key proofs then wait on the owner-designated lease
+secure packet, which is not present. Exclude user-owned `.claude/settings.local.json` and `output/`
+plus ignored `temp/` artifacts from every commit and Cloud Build upload.
 
 ## Canonical queue
 

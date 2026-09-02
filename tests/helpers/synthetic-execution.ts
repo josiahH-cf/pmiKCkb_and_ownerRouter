@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 
 import { DRAFT_BANNER } from "@/lib/constants";
+import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
 import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
+import { ExternalExecutionError } from "@/lib/external-execution/types";
 import type {
+  ExternalActionReceipt,
   ExternalActionDefinition,
   ExternalActionInput,
   ExternalExecutor,
@@ -16,7 +19,6 @@ import {
   DotloopRenewalExecutor,
   LeaseGmailExecutor,
   RenewalSheetExecutor,
-  RentvineRenewalExecutor,
   type WorkflowMessagePayload,
 } from "@/lib/lease-renewal/execution/providers";
 import {
@@ -310,14 +312,31 @@ function syntheticValues(
         document_type: "lease-renewal",
         content_hash: sha256("synthetic renewal document"),
       };
-    case "rentvine.lease.renewal_writeback":
+    case "rentvine.lease.renewal_dates.update":
       return {
         lease_ref: a.leaseRef,
-        current_rent: 1_400,
-        new_rent: 1_500,
-        effective_date: "2027-01-01",
-        lease_end_date: "2027-12-31",
-        fee_cents: 0,
+        start_date: "2026-01-01",
+        end_date: "2027-12-31",
+        increase_eligibility_date: "2027-06-30",
+      };
+    case "rentvine.lease.recurring_charge.update":
+      return {
+        lease_ref: a.leaseRef,
+        charge_ref: "charge-synthetic-001",
+        changed_fields: "amount",
+        before_values: "1400.00",
+        after_values: "1500.00",
+      };
+    case "rentvine.lease.recurring_charge.create":
+      return {
+        lease_ref: a.leaseRef,
+        account_id: "9",
+        amount: "45.00",
+        description: "Synthetic renewal fee",
+        day_due: "1",
+        frequency: "1",
+        start_date: "2027-01-01",
+        end_date: "2027-12-31",
       };
     case "boom.resident.enroll":
       return {
@@ -576,34 +595,51 @@ export function createSyntheticExecutorHarness() {
       },
     ],
   ]);
-  const renewalIdempotency = new Map<string, string>();
-  const renewalProvider = {
-    compareAndSetRenewal: async (input: {
-      recordRef: string;
-      expectedLeaseRef: string;
-      expectedCurrentRent: number;
-      values: Readonly<Record<string, string | number | boolean>>;
-      idempotencyKey: string;
-    }) => {
-      called("rentvine.renewal_writeback");
-      const current = renewalRecords.get(input.recordRef);
-      if (
-        current?.lease_ref !== input.expectedLeaseRef ||
-        current.current_rent !== input.expectedCurrentRent
-      ) {
-        return { providerRef: input.recordRef, applied: false };
+  // S97: the fictional compare-and-set provider is retired. This local synthetic executor exists
+  // only so the S20 planning simulation can walk the three exact keys; production execution uses
+  // the governed renewal-writeback service, never this helper.
+  const syntheticReceipt = (
+    input: ExternalActionInput,
+    providerRef: string,
+    result: unknown,
+    reconciled = false,
+  ): ExternalActionReceipt => ({
+    actionKey: input.actionKey,
+    providerRef,
+    resultHash: createHash("sha256").update(JSON.stringify(result)).digest("hex"),
+    reconciled,
+    outcome: "succeeded",
+    createdAt: new Date().toISOString(),
+  });
+  class SyntheticRenewalWritebackExecutor implements ExternalExecutor {
+    constructor(private readonly requiredFields: readonly string[]) {}
+    validate(input: ExternalActionInput) {
+      for (const field of this.requiredFields) {
+        const value = input.values[field];
+        if (value === undefined || value === null || value === "") {
+          return `Synthetic renewal writeback requires ${field}.`;
+        }
       }
-      renewalRecords.set(input.recordRef, input.values);
-      renewalIdempotency.set(input.idempotencyKey, input.recordRef);
-      return { providerRef: input.recordRef, applied: true };
-    },
-    read: async (providerRef: string) => renewalRecords.get(providerRef) ?? null,
-    findByIdempotencyKey: async (idempotencyKey: string) => {
-      const providerRef = renewalIdempotency.get(idempotencyKey);
-      const values = providerRef ? renewalRecords.get(providerRef) : undefined;
-      return providerRef && values ? { providerRef, values } : null;
-    },
-  };
+      return null;
+    }
+    async execute(input: ExternalActionInput) {
+      const blocker = this.validate(input);
+      if (blocker) throw new ExternalExecutionError(blocker, "blocked");
+      called(input.actionKey);
+      const providerRef = `synthetic:${input.actionKey}:${String(input.values.lease_ref)}`;
+      renewalRecords.set(providerRef, input.values);
+      renewalIdempotency.set(externalActionIdempotencyKey(input), providerRef);
+      return syntheticReceipt(input, providerRef, input.values);
+    }
+    async reconcile(input: ExternalActionInput) {
+      const providerRef = renewalIdempotency.get(externalActionIdempotencyKey(input));
+      if (!providerRef) return null;
+      const values = renewalRecords.get(providerRef);
+      if (!values) return null;
+      return syntheticReceipt(input, providerRef, values, true);
+    }
+  }
+  const renewalIdempotency = new Map<string, string>();
 
   let syntheticLoop: {
     loopRef: string;
@@ -938,7 +974,30 @@ export function createSyntheticExecutorHarness() {
     ],
     ["dotloop.loop.create_from_template", new DotloopRenewalExecutor(dotloopProvider)],
     ["dotloop.document.upload", new DotloopRenewalExecutor(dotloopProvider)],
-    ["rentvine.lease.renewal_writeback", new RentvineRenewalExecutor(renewalProvider)],
+    [
+      "rentvine.lease.renewal_dates.update",
+      new SyntheticRenewalWritebackExecutor(["lease_ref", "start_date"]),
+    ],
+    [
+      "rentvine.lease.recurring_charge.update",
+      new SyntheticRenewalWritebackExecutor([
+        "lease_ref",
+        "charge_ref",
+        "changed_fields",
+      ]),
+    ],
+    [
+      "rentvine.lease.recurring_charge.create",
+      new SyntheticRenewalWritebackExecutor([
+        "lease_ref",
+        "account_id",
+        "amount",
+        "description",
+        "day_due",
+        "frequency",
+        "start_date",
+      ]),
+    ],
     ["boom.resident.enroll", new BoomRenewalExecutor(boomProvider)],
   ]);
 

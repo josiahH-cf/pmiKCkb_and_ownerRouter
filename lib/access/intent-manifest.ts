@@ -102,6 +102,20 @@ export const ACCESS_INTENT_MANIFEST = [
     return_to: "/lease-renewal/live/desk",
   },
   {
+    key: "renewal_workspace.propose_source_write",
+    source_path: "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    capability: "edit",
+    space: "renewals",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
+    // manageAdmin is app-wide (namedSpaceRequestable: false), so this handoff carries no Space.
+    key: "renewal_workspace.execute_source_write",
+    source_path: "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    capability: "manageAdmin",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
     key: "renewal_desk.save_progress",
     source_path: "components/lease-renewal/RenewalDeskTable.tsx",
     capability: "edit",

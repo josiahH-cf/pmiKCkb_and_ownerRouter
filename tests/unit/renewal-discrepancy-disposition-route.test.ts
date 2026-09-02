@@ -9,7 +9,10 @@ vi.mock("@/lib/auth/session", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/auth/session")>()),
   requireCapabilityInSpace: mocks.requireCapabilityInSpace,
 }));
-vi.mock("@/lib/firestore/renewal-discrepancy-dispositions", () => ({
+vi.mock("@/lib/firestore/renewal-discrepancy-dispositions", async (importActual) => ({
+  ...(await importActual<
+    typeof import("@/lib/firestore/renewal-discrepancy-dispositions")
+  >()),
   listRenewalDiscrepancyDispositions: mocks.list,
   recordRenewalDiscrepancyDisposition: mocks.record,
 }));

@@ -69,6 +69,9 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/sheet-writeback-service.ts:previewCorrection:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:previewWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:reconcileWriteback:deps.createWriter",
+  "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
+  "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
+  "lib/lease-renewal/writeback/live.ts:reader:new RentVineClient",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
   "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
@@ -181,6 +184,9 @@ const READ_ONLY_WITH_GATED_MUTATION = new Set([
 
 const LAZY_PROVIDER_FACTORIES = new Set([
   "lib/gmail-hub/service.ts:createClient:this.dependencies.createClient",
+  // S97: lazy read-only RentVine client for fresh proposal/readback state; the write client is a
+  // separately gated adapter and is only constructed inside the per-key runtime gate.
+  "lib/lease-renewal/writeback/live.ts:reader:new RentVineClient",
   "lib/lease-renewal/comp-screenshot-runtime.ts:createProvider:new GoogleDriveRenewalCompScreenshotProvider",
   "lib/lease-renewal/execution/renewal-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/lease-renewal/sheet-writeback-service.ts:createWriter:new GoogleSheetsApiWriter",
@@ -276,6 +282,8 @@ const GATED_PROVIDER_ADAPTERS = new Set([
   "lib/lease-renewal/sheet-writeback-service.ts:commitWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:previewCorrection:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:previewWriteback:deps.createWriter",
+  "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
+  "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
   "lib/notifications/internal-transactional-sender.ts:send:this.createClient",
   "lib/vendor/live-lifecycle-adapters.ts:disableUser:this.createClient",
@@ -433,6 +441,20 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     },
   ],
   [
+    "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
+    {
+      file: "tests/unit/s97-writeback-execution-service.test.ts",
+      marker: "S51_DYNAMIC_REFUSAL:s97-writeback-effect-writer",
+    },
+  ],
+  [
+    "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
+    {
+      file: "tests/unit/s97-writeback-execution-service.test.ts",
+      marker: "S51_DYNAMIC_REFUSAL:s97-writeback-reversal-writer",
+    },
+  ],
+  [
     "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
     {
       file: "tests/unit/maintenance-owner-notice-draft.test.ts",
@@ -560,6 +582,8 @@ const DYNAMIC_REFUSAL_FACTORY_ASSERTIONS = new Map([
   ["S51_DYNAMIC_REFUSAL:sheet-commit-writeback-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:sheet-preview-correction-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:sheet-preview-writeback-writer", "h.createWriter"],
+  ["S51_DYNAMIC_REFUSAL:s97-writeback-effect-writer", "createWriterSpy"],
+  ["S51_DYNAMIC_REFUSAL:s97-writeback-reversal-writer", "createWriterSpy"],
   ["S51_DYNAMIC_REFUSAL:maintenance-draft-request-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:internal-transactional-sender-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:vendor-disable-client", "createClient"],
@@ -594,6 +618,8 @@ const DYNAMIC_REFUSAL_ENTRYPOINTS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-label-read-client", "applyThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-label-mutation-client", "restoreThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "hub.watchMailbox("],
+  ["S51_DYNAMIC_REFUSAL:s97-writeback-effect-writer", "service.executeEffect("],
+  ["S51_DYNAMIC_REFUSAL:s97-writeback-reversal-writer", "service.executeReversal("],
   [
     "S51_DYNAMIC_REFUSAL:comp-screenshot-attachment-provider",
     "resolveRenewalDraftCompScreenshotAttachment(",

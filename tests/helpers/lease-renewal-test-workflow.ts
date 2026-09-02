@@ -108,7 +108,9 @@ export const LEASE_TEST_ACTION_TARGETS: Record<LeaseExecutionActionKey, string> 
     "TEST renewal checklist row — internal adapter",
   "dotloop.loop.create_from_template": "TEST Dotloop renewal workspace",
   "dotloop.document.upload": "TEST renewal document workspace",
-  "rentvine.lease.renewal_writeback": `${LEASE_TEST_ALIASES.leaseRef} — TEST RentVine adapter`,
+  "rentvine.lease.renewal_dates.update": `${LEASE_TEST_ALIASES.leaseRef} — TEST RentVine dates adapter`,
+  "rentvine.lease.recurring_charge.update": `${LEASE_TEST_ALIASES.leaseRef} — TEST RentVine charge-update adapter`,
+  "rentvine.lease.recurring_charge.create": `${LEASE_TEST_ALIASES.leaseRef} — TEST RentVine charge-create adapter`,
   "boom.resident.enroll": "Taylor Test Resident — TEST Boom adapter",
 };
 
@@ -300,7 +302,9 @@ export function leaseTestBusinessActionBlocker(
     "google_sheets.renewal_checklist.writeback",
     "dotloop.loop.create_from_template",
     "dotloop.document.upload",
-    "rentvine.lease.renewal_writeback",
+    "rentvine.lease.renewal_dates.update",
+    "rentvine.lease.recurring_charge.update",
+    "rentvine.lease.recurring_charge.create",
     "boom.resident.enroll",
   ];
   if (afterResponse.includes(actionKey)) {
