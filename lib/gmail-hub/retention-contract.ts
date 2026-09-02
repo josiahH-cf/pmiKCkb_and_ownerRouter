@@ -34,6 +34,8 @@ export const COMMUNICATIONS_RETENTION_TARGETS = Object.freeze({
   gmail_push_dedupe: "push_dedupe",
   gmail_sync_audit: "sync_audit",
   gmail_workflow_communications: "workflow_link",
+  // S100: imported RentVine work-order chat bodies live exactly 365 days from first import.
+  rentvine_work_order_chat_messages: "workflow_link",
   gmail_workflow_communication_audit: "bodyless_audit",
   gmail_retention_audit: "bodyless_audit",
   gmail_retention_cleanup_runs: "bodyless_audit",

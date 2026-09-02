@@ -19,6 +19,7 @@ const PATHS = [
   "gmail_workflow_communications/communication-1",
   "gmail_workflow_communication_audit/audit-1",
   "gmail_retention_audit/audit-1",
+  "rentvine_work_order_chat_messages/rentvine:pmikcmetro:501",
 ] as const;
 
 beforeAll(async () => {

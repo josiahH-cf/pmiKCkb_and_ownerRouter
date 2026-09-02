@@ -36,6 +36,9 @@ import {
   RentVineWorkOrderReader,
   RentVineWorkOrderWriter,
 } from "@/lib/integrations/rentvine/work-order-client";
+import { RentVineClient } from "@/lib/integrations/rentvine/client";
+import { RentVineWorkOrderChatReader } from "@/lib/integrations/rentvine/chat-client";
+import { RentVineWorkOrderChatSyncExecutor } from "@/lib/maintenance/execution/chat-sync-service";
 import { buildWorkOrderDraft } from "@/lib/maintenance/work-order-draft";
 import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
@@ -461,6 +464,31 @@ function syntheticValues(
         send_vendor_notification: false,
         send_review: false,
       };
+    case "rentvine.work_order.chat.sync":
+      return {
+        ticket_ref: a.maintenanceWorkflow,
+        work_order_id: "9005",
+        page: "1",
+        page_size: "20",
+        marks_read_for_managers: true,
+      };
+    case "gmail.maintenance_resident_reply.draft_create":
+      return {
+        rfc_message_id:
+          "<gmail-draft-syntheticresident0000000000000000000000@pmikcmetro.com>",
+        workflow_context: `maintenance:${a.maintenanceWorkflow}:resident-reply`,
+        ticket_ref: a.maintenanceWorkflow,
+        message_ref: "rentvine:pmikcmetro:501",
+        recipient_source_ref: "rentvine:lease:115:lease-tenant:88:vsynthetic",
+        mailbox_source_ref: `app:session:${a.internalMailbox}`,
+        from: a.internalMailbox,
+        to: "resident-synthetic@example.invalid",
+        subject: "Re: your maintenance request",
+        body: `${DRAFT_BANNER}
+
+Synthetic resident reply body confirming the visit.`,
+        draft_banner_present: true,
+      };
     case "gmail.maintenance_owner_notice.draft_create":
       return {
         rfc_message_id: "<synthetic-maintenance-draft@pmikcmetro.com>",
@@ -790,6 +818,45 @@ export function createSyntheticExecutorHarness() {
         workOrderRecord["primaryWorkOrderStatusID"] = target ? target.primary : "2";
         return respond(200, { workOrder: { ...workOrderRecord } });
       }
+      if (request.method === "GET" && path.endsWith("/chat/messages")) {
+        called("rentvine.chat_page_read");
+        return {
+          status: 200,
+          headers: {
+            "pagination-current-page": "1",
+            "pagination-page-size": "20",
+            "pagination-total-items": "1",
+            "pagination-total-pages": "1",
+          },
+          text: async () =>
+            JSON.stringify([
+              {
+                "message.messageID": 501,
+                "message.chatObjectTypeID": 1,
+                "message.objectID": 9005,
+                "message.roleTypeID": 2,
+                "message.message": "Synthetic resident chat message.",
+                "message.dateTimeCreated": "2026-09-01T15:04:05Z",
+                "message.contactID": 77,
+                "contact.contactID": 77,
+                "message.userID": null,
+                "user.userID": null,
+              },
+            ]),
+          json: async () => [],
+        };
+      }
+      if (request.method === "GET" && /\/leases\/\d+$/.test(path)) {
+        return respond(200, {
+          lease: { leaseID: "115" },
+          tenants: [
+            {
+              leaseTenant: { leaseTenantID: "88", leaseID: "115", contactID: "77" },
+              contact: { contactID: "77", email: "resident-synthetic@example.invalid" },
+            },
+          ],
+        });
+      }
       return respond(400, { error: `Unexpected fake work-order request ${path}` });
     },
   };
@@ -1087,9 +1154,24 @@ export function createSyntheticExecutorHarness() {
     ["google_drive.maintenance_photo.store", new MaintenancePhotoExecutor(photoProvider)],
     ["rentvine.work_order.create", rentvineWorkOrder],
     ["rentvine.work_order.update_status", rentvineWorkOrder],
-    // The draft uses the plain governed message executor, exactly as the production path does:
+    [
+      "rentvine.work_order.chat.sync",
+      new RentVineWorkOrderChatSyncExecutor({
+        clients: () => ({
+          chat: new RentVineWorkOrderChatReader(workOrderConfig, workOrderTransport),
+          workOrders: new RentVineWorkOrderReader(workOrderConfig, workOrderTransport),
+          leases: new RentVineClient(workOrderConfig, workOrderTransport),
+        }),
+        accountRef: "rentvine:pmikcmetro",
+        commit: async () => {
+          called("rentvine.chat_sync_commit");
+        },
+      }),
+    ],
+    // Drafts use the plain governed message executor, exactly as the production path does:
     // MaintenanceOwnerEmailExecutor is the SEND-shaped validator (it requires `recipients` and
     // an RFC Message-ID), which an unsent draft neither has nor needs.
+    ["gmail.maintenance_resident_reply.draft_create", leaseMessage],
     ["gmail.maintenance_owner_notice.draft_create", leaseMessage],
     ["gmail.maintenance_owner_notice.send", maintenanceMessage],
     ["gmail.thread.reply", maintenanceMessage],

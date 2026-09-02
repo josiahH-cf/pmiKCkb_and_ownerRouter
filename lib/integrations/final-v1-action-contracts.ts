@@ -283,6 +283,31 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
   // and carries the review banner, and has no RFC Message-ID because nothing has been sent. This
   // overlay was previously missing, so the action fell back to a base-seed schema that declared
   // `draft_body` and omitted the workflow/mailbox/source fields the builder actually emits.
+  "rentvine.work_order.chat.sync": [
+    f("ticket_ref", "App ticket", "reference"),
+    f("work_order_id", "Work order", "reference", "Rentvine"),
+    f("page", "Confirmed page", "string", "Rentvine"),
+    f("page_size", "Page size", "string", "Rentvine"),
+    f(
+      "marks_read_for_managers",
+      "Marks messages read for managers",
+      "boolean",
+      "Rentvine",
+    ),
+  ],
+  "gmail.maintenance_resident_reply.draft_create": [
+    f("rfc_message_id", "Draft RFC Message-ID", "reference"),
+    f("workflow_context", "Workflow context", "reference"),
+    f("ticket_ref", "Maintenance ticket", "reference"),
+    f("message_ref", "Resident chat message", "reference", "Rentvine"),
+    f("recipient_source_ref", "Verified resident source", "reference", "Rentvine"),
+    f("mailbox_source_ref", "Authenticated mailbox source", "reference"),
+    f("from", "Sender mailbox", "string", "Gmail"),
+    f("to", "Verified resident recipient", "string", "Rentvine"),
+    f("subject", "Subject", "string"),
+    f("body", "Draft body", "string"),
+    f("draft_banner_present", "Review banner present", "boolean"),
+  ],
   "gmail.maintenance_owner_notice.draft_create": [
     f("rfc_message_id", "Draft RFC Message-ID", "reference"),
     f("workflow_context", "Workflow context", "reference"),

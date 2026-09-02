@@ -29,6 +29,8 @@ describe("Maintenance execution matrix", () => {
         "Vendor email",
         "LeadSimple",
         "QuickBooks",
+        "Rentvine chat",
+        "Resident email",
       ]),
     );
     expect(MAINTENANCE_EXECUTION_DEFINITIONS.map((entry) => entry.key)).toEqual(

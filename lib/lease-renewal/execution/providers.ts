@@ -148,21 +148,39 @@ export class LeaseGmailExecutor implements ExternalExecutor {
     // (matching their Action Registry preview schemas); every other governed action uses recipient(s).
     const actualRecipientKey =
       input.actionKey.startsWith("gmail.renewal_notice") ||
-      input.actionKey === "gmail.maintenance_owner_notice.draft_create"
+      input.actionKey === "gmail.maintenance_owner_notice.draft_create" ||
+      input.actionKey === "gmail.maintenance_resident_reply.draft_create"
         ? "to"
         : recipientKey;
+    // S100: the resident reply is human-entered and exact-previewed by design, so it carries no
+    // template artifact; every other governed message still requires an exact approved artifact.
+    const templateFree =
+      input.actionKey === "gmail.maintenance_resident_reply.draft_create";
     const missing = stringBlocker(
       input,
       "workflow_context",
-      "template_ref",
+      ...(templateFree ? [] : ["template_ref"]),
       actualRecipientKey,
       "body",
     );
     if (missing) return missing;
-    try {
-      getGovernedArtifact(String(input.values.template_ref));
-    } catch {
-      return "An exact approved S24 artifact is required.";
+    if (templateFree) {
+      const residentMissing = stringBlocker(
+        input,
+        "ticket_ref",
+        "message_ref",
+        "subject",
+      );
+      if (residentMissing) return residentMissing;
+      if (/[\r\n]/.test(String(input.values.subject))) {
+        return "The reply subject may not contain header line breaks.";
+      }
+    } else {
+      try {
+        getGovernedArtifact(String(input.values.template_ref));
+      } catch {
+        return "An exact approved S24 artifact is required.";
+      }
     }
     if (input.actionKey === "gmail.renewal_notice.draft_create") {
       const copyMissing = stringBlocker(
@@ -606,6 +624,7 @@ function operationFor(actionKey: string): WorkflowMessageOperation | null {
   switch (actionKey) {
     case "gmail.renewal_notice.draft_create":
     case "gmail.maintenance_owner_notice.draft_create":
+    case "gmail.maintenance_resident_reply.draft_create":
     case "vendor.gmail.draft.create":
       return "draft";
     case "gmail.renewal_notice.send":

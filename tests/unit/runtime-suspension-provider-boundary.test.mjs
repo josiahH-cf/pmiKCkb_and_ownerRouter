@@ -11,6 +11,7 @@ const REVIEWED_PROVIDER_MODULE_SUFFIXES = [
   "/lib/google-drive/renewal-comp-screenshot",
   "/lib/google-sheets/read-client",
   "/lib/google-sheets/write-client",
+  "/lib/integrations/rentvine/chat-client",
   "/lib/integrations/rentvine/client",
   "/lib/integrations/rentvine/work-order-client",
   "/lib/lease-renewal/market-comp-provider",
@@ -81,6 +82,9 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/live.ts:reader:new RentVineClient",
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineClient",
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineWorkOrderChatReader",
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineWorkOrderReader",
   "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderReader",
   "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderWriter",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
@@ -213,6 +217,11 @@ const LAZY_PROVIDER_FACTORIES = new Set([
   // closed-route suite proves refusal with zero transport calls while all keys are closed.
   "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderReader",
   "lib/maintenance/execution/work-order-service.ts:buildWorkOrderClients:new RentVineWorkOrderWriter",
+  // S100: same shape as S99 — the chat/lease/work-order readers are constructed only after the
+  // route repeats the exact per-key gate, and the executor dispatches one page read at most.
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineClient",
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineWorkOrderChatReader",
+  "lib/maintenance/execution/chat-sync-service.ts:buildChatSyncClients:new RentVineWorkOrderReader",
   "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-adapters.ts:constructor:new GmailRuntimeClient",

@@ -145,6 +145,8 @@ export interface WorkOrderProjection {
   isSharedWithTenant: "0" | "1";
   isSharedWithOwner: "0" | "1";
   isNew: "0" | "1" | null;
+  /** S100 consumes the documented optional lease binding for resident mapping. */
+  leaseId: string | null;
   vendorTradeId: string | null;
   vendorContactId: string | null;
   assignedToUserId: string | null;
@@ -175,6 +177,7 @@ export function decodeWorkOrderProjection(value: unknown): WorkOrderProjection {
     ),
     isSharedWithOwner: decodeResponseFlag(raw["isSharedWithOwner"], "isSharedWithOwner"),
     isNew: decodeOptionalResponseFlag(raw["isNew"], "isNew"),
+    leaseId: decodeOptionalDecimalIdString(raw["leaseID"], "leaseID"),
     vendorTradeId: decodeOptionalDecimalIdString(raw["vendorTradeID"], "vendorTradeID"),
     vendorContactId: decodeOptionalDecimalIdString(
       raw["vendorContactID"],

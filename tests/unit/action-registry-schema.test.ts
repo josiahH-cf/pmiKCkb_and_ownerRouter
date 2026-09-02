@@ -212,7 +212,7 @@ describe("Action Registry seed catalog", () => {
   });
 
   it("contains the expanded 46-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(46);
+    expect(ACTION_REGISTRY_SEED).toHaveLength(48);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         // S28 entries; screenshot storage stays closed while the read-only RentCast key is live.
@@ -252,6 +252,8 @@ describe("Action Registry seed catalog", () => {
         "sms.renewal_message.send",
         "rentvine.work_order.assign_vendor",
         "gmail.maintenance_owner_notice.send",
+        "rentvine.work_order.chat.sync",
+        "gmail.maintenance_resident_reply.draft_create",
       ]),
     );
   });
@@ -261,7 +263,8 @@ describe("Action Registry seed catalog", () => {
       (entry) => entry.target_system === "Gmail",
     );
     // 16 + internal.transactional_notice.send (Gmail transport; flipped on by S39.3, production_allowed:true).
-    expect(gmailEntries).toHaveLength(17);
+    // 17 + the closed S100 resident-reply draft key.
+    expect(gmailEntries).toHaveLength(18);
 
     // Authorized for production by the 2026-07-19 owner grant (F-SEND-AUTHORIZED): draft-into-Gmail,
     // human sends. The sample-data guard (not the registry gate) keeps sample runs preview-only.

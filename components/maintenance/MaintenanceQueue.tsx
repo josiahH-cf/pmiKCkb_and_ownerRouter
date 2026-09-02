@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import { MaintenanceOwnerNoticeDraftComposer } from "@/components/maintenance/MaintenanceOwnerNoticeDraftComposer";
 import { RentvineWorkOrderPanel } from "@/components/maintenance/RentvineWorkOrderPanel";
+import { WorkOrderChatPanel } from "@/components/maintenance/WorkOrderChatPanel";
 import { ConfirmationDialog } from "@/components/ui";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
@@ -438,6 +439,10 @@ function TicketCard({
           initialLink={null}
           ticketId={ticket.id}
         />
+      </details>
+      <details>
+        <summary>Resident messages</summary>
+        <WorkOrderChatPanel canEdit={canEdit} ticketId={ticket.id} />
       </details>
       <WorkflowCommunicationPanel
         canLink

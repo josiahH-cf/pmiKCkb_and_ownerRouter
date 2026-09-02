@@ -27,6 +27,7 @@ const PreparedActionSchema = z
         actionKey: z.enum([
           "rentvine.work_order.create",
           "rentvine.work_order.update_status",
+          "rentvine.work_order.chat.sync",
         ]),
         dataMode: z.literal("live"),
         values: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),

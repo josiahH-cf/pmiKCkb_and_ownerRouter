@@ -321,6 +321,22 @@ export class RentVineClient {
     return unwrapLeases(await response.json());
   }
 
+  /**
+   * S100 resident mapping: the documented `GET /leases/{leaseID}?includes=tenants` read. Returns
+   * the RAW response root (lease plus tenants join); the S100 codec decodes the exact
+   * leaseTenant/contact pairs. Read-only.
+   */
+  async getLeaseWithTenants(leaseId: string | number): Promise<Record<string, unknown>> {
+    const id = encodeURIComponent(String(leaseId).trim());
+    const response = await this.rawGet(`leases/${id}`, { includes: "tenants" });
+    this.ensureOk(response, `leases/${id}`);
+    const body = await response.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      throw new RentVineError("Unexpected Rentvine lease response shape.", 0);
+    }
+    return body as Record<string, unknown>;
+  }
+
   /** Read a single lease by id (read-only). */
   async getLease(leaseId: string | number): Promise<RawLease> {
     const path = `leases/${encodeURIComponent(String(leaseId))}`;

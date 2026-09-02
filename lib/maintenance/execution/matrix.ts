@@ -24,6 +24,8 @@ export const MAINTENANCE_EXECUTION_ACTIONS = [
   // removed `rentvine.work_order.assign_vendor` here and re-cut every later index: the app never
   // assigns a Vendor through the work-order feature, so no matrix row may make it reachable.
   "gmail.maintenance_owner_notice.draft_create",
+  "rentvine.work_order.chat.sync",
+  "gmail.maintenance_resident_reply.draft_create",
 ] as const;
 
 export type MaintenanceExecutionActionKey =
@@ -46,6 +48,8 @@ export const MAINTENANCE_EXECUTION_ORDER: readonly MaintenanceExecutionActionKey
   "leadsimple.process.update_stage",
   "leadsimple.task.create",
   "rentvine.work_order.update_status",
+  "rentvine.work_order.chat.sync",
+  "gmail.maintenance_resident_reply.draft_create",
   "quickbooks.bill.create_draft",
   "vendor.gmail.revoke",
   "vendor.account.disable",
@@ -128,6 +132,25 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
     [],
     "documented",
     "Delete the unsent draft.",
+  ),
+  // S100: one manually confirmed consequential chat page read. The provider read-marker has no
+  // rollback, so the correction is honest disclosure, never a compensating provider call.
+  def(
+    MAINTENANCE_EXECUTION_ACTIONS[19],
+    "Rentvine chat",
+    "Medium",
+    [],
+    "documented",
+    "None. The provider may have marked messages read for managers; disclose the uncertainty and rely on deduplicated re-sync.",
+  ),
+  // S100: the resident reply ends in one unsent Gmail draft a person corrects in Gmail.
+  def(
+    MAINTENANCE_EXECUTION_ACTIONS[20],
+    "Resident email",
+    "Medium",
+    [],
+    "documented",
+    "Edit or delete the unchanged unsent draft in Gmail; the app only reconciles the observed result.",
   ),
 ];
 

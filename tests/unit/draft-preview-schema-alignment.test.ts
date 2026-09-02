@@ -6,6 +6,7 @@ import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 import { EXECUTION_ACTION_POLICIES } from "@/lib/execution/risk-policy";
 import { buildRenewalNoticeDraftAction } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import { buildMaintenanceOwnerNoticeDraftAction } from "@/lib/maintenance/execution/owner-notice-draft-request";
+import { buildResidentReplyDraftAction } from "@/lib/maintenance/execution/resident-reply-draft-request";
 import {
   MAINTENANCE_EXECUTION_ACTIONS,
   MAINTENANCE_EXECUTION_DEFINITION_MAP,
@@ -137,6 +138,49 @@ describe("draft-pair preview schema alignment", () => {
         action.values,
       ),
     ).toEqual({ ok: true, errors: [] });
+  });
+
+  it("accepts the exact S100 resident-reply draft values and always carries the banner", () => {
+    const build = (body: string) =>
+      buildResidentReplyDraftAction({
+        ticketRef: "ticket-9",
+        messageRef: "rentvine:pmikcmetro:501",
+        recipient: {
+          to: "resident@residentdomain.test",
+          sourceRef: "rentvine:lease:115:lease-tenant:88:vdeadbeefdeadbeef",
+        },
+        mailbox: { email: "josiah@pmikcmetro.com", sourceRef: "app:session:user-1" },
+        subject: "Re: your maintenance request",
+        body,
+      });
+
+    const action = build("Plain reply body.");
+    expect(action.values.body).toBe(`${DRAFT_BANNER}\n\nPlain reply body.`);
+    // A body already carrying the banner is not double-prefixed.
+    expect(build(String(action.values.body)).values.body).toBe(action.values.body);
+    expect(
+      validatePreviewPayload(
+        previewSchemaFor("gmail.maintenance_resident_reply.draft_create"),
+        action.values,
+      ),
+    ).toEqual({ ok: true, errors: [] });
+  });
+});
+
+describe("S100 resident-reply draft workflow definition", () => {
+  const key = "gmail.maintenance_resident_reply.draft_create";
+
+  it("is resolvable in the canonical maintenance matrix with no unsatisfiable dependency", () => {
+    expect(MAINTENANCE_EXECUTION_ACTIONS).toContain(key);
+    const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key);
+    expect(definition).toBeDefined();
+    expect(definition?.dependsOn).toEqual([]);
+    expect(definition?.risk).toBe(EXECUTION_ACTION_POLICIES[key].defaultRisk);
+  });
+
+  it("stays closed in the committed seed until its own activation gate", () => {
+    const entry = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === key);
+    expect(entry?.production_allowed).toBe(false);
   });
 });
 

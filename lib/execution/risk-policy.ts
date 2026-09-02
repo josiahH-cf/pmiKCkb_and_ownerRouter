@@ -26,6 +26,11 @@ export const EXECUTION_ACTION_POLICIES = {
   "gmail.draft.create": policy("Medium", "workflow_draft", true),
   "gmail.label.apply": policy("Low", "governed_label", true),
   "gmail.mailbox.read": policy("Low", "read", true),
+  "gmail.maintenance_resident_reply.draft_create": policy(
+    "Medium",
+    "workflow_draft",
+    true,
+  ),
   "gmail.maintenance_owner_notice.draft_create": policy("Medium", "workflow_draft", true),
   "gmail.maintenance_owner_notice.send": policy("Medium", "workflow_communication", true),
   "gmail.message.send": {
@@ -90,6 +95,9 @@ export const EXECUTION_ACTION_POLICIES = {
   ),
   "rentvine.work_order.assign_vendor": policy("High", "vendor_assignment", true),
   "rentvine.work_order.read": policy("Low", "read", true),
+  // S100: retrieving work-order chat marks messages read for managers, so the GET is a Medium
+  // consequential stateful read with exact confirmation, never a passive page read.
+  "rentvine.work_order.chat.sync": policy("Medium", "stateful_read", true),
   "rentvine.work_order.create": policy("High", "system_of_record_write", true),
   "rentvine.work_order.update_status": policy("High", "system_of_record_write", true),
   "sms.renewal_message.send": policy("Medium", "workflow_communication", true),
@@ -180,6 +188,10 @@ export function classifyExecutionRisk(
     (action.kind === "read" && input.actionKey.includes("gmail"))
   ) {
     addCommunicationBlockers(blockers, action.kind, input.communication);
+  }
+
+  if (action.kind === "stateful_read") {
+    addStatefulReadBlockers(blockers, input.communication);
   }
 
   if (action.kind === "trusted_publication") {
@@ -277,6 +289,23 @@ function addCommunicationBlockers(
     if (gates?.scheduled || gates?.bulk || gates?.modelTriggered) {
       blockers.push("unsupported_automation");
     }
+  }
+}
+
+// S100: a consequential provider read is human-initiated, workflow-linked, exact-confirmed,
+// and never scheduled, bulk, or model-triggered. Mailbox scope does not apply.
+function addStatefulReadBlockers(
+  blockers: ExecutionBlockerCode[],
+  gates: WorkflowCommunicationGates | undefined,
+) {
+  if (!gates?.workflowLinked) blockers.push("workflow_link_missing");
+  if (!gates?.humanInitiated) blockers.push("human_initiation_missing");
+  // The external trusted context cannot carry exactConfirmed at preparation (the S20 bridge
+  // derives it from the confirmed preview hash at execution and independently requires that
+  // hash for Medium risk), so only an explicit execute-time mismatch blocks here.
+  if (gates?.exactConfirmed === false) blockers.push("exact_confirmation_missing");
+  if (gates?.scheduled || gates?.bulk || gates?.modelTriggered) {
+    blockers.push("unsupported_automation");
   }
 }
 

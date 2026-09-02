@@ -317,6 +317,7 @@ function trackedFieldsMatch(before: WorkOrderProjection, after: WorkOrderProject
     before.isVacant === after.isVacant &&
     before.isSharedWithTenant === after.isSharedWithTenant &&
     before.isSharedWithOwner === after.isSharedWithOwner &&
+    before.leaseId === after.leaseId &&
     before.vendorTradeId === after.vendorTradeId &&
     before.vendorContactId === after.vendorContactId &&
     before.assignedToUserId === after.assignedToUserId

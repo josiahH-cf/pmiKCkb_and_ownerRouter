@@ -15,8 +15,7 @@ effect beyond the owner-authorized keys and suite contracts.
   `pmi-kc-app-rmtjhew5f-125876b4ff5b`.
 - Current implementation remains Production + Live with eleven Spaces, managed identity, ten open
   keys of 44, the operating-Sheet write switch off, and the three proven S97 keys open.
-- S96 is `ALL_GATES_GREEN` and deployed through focused/canonical/core-E2E, exact-SHA CI,
-  candidate/config, promotion, and readback gates with no credential or vault effect.
+- S96 is `ALL_GATES_GREEN` and deployed with the full gate ladder and no credential/vault effect.
 - S85 is `ALL_GATES_GREEN` and deployed (CI `33496148515` plus the full gate ladder);
   `brand_conformance` was later resolved with the published official PMI guide values live.
 - S86 is `ALL_GATES_GREEN` and deployed (focused interaction/S96-preservation suites, canonical
@@ -45,14 +44,16 @@ effect beyond the owner-authorized keys and suite contracts.
   train and proof windows wait on the one owner step: interactive reauth (`auth:session` /
   `gcloud auth application-default login` as josiah@pmikcmetro.com — ADC and CLI are both
   invalid_rapt).
-- S99's closed slice is implemented and focused-green: the official OpenAPI snapshot/codecs
-  (hash-pinned), narrow six-GET reader and two-POST writer, official-contract executor replacing
-  the synthetic CAS/vendor-assignment one, matrix re-cut (assign_vendor row removed; update_status
-  deps cleared), corrected three-key preview schemas, S20 Approval-Queue route with the
-  ticket-link projection/guard, ticket panel, proof CLI, and closed-key refusal proofs. All three
-  keys stay closed until their windows.
-- The remaining S36, S87-S95, and S100 suites are specified desired-state contracts, not
-  implementation. Their sole queue and completion gates are in `docs/feature-suites/README.md`.
+- S99's closed slice is committed (`c2ffec2`, exact-SHA CI `33658852900` green): official
+  snapshot/codecs, narrow reader/writer, official executor, re-cut matrix, S20 route with
+  ticket-link projection, panel, and proof CLI. All three keys stay closed until their windows.
+- S100's closed slice is implemented and focused-green: the hash-pinned chat contract and
+  lease-tenants resident resolver, one-page chat reader, transactional dedup/quarantine store with
+  365-day workflow_link retention plus rules/index, `stateful_read` policy, cancel-first sync
+  route/executor, rerun-only mapping review, governed resident-reply draft route/builder, ticket
+  panel, and committed-seed closed refusals. Both S100 keys stay closed.
+- The remaining S36 and S87-S95 suites are specified desired-state contracts, not implementation.
+  Their sole queue and completion gates are in `docs/feature-suites/README.md`.
 - The prior UI/assistant documentation gate passed exact-SHA CI. The 2026-08-31 owner decision pass
   additionally closed every product question for S36/S97-S100 and authorized their exact future
   protected activation/live proof contracts; it performed no feature, cloud, provider, key, role,
@@ -60,8 +61,8 @@ effect beyond the owner-authorized keys and suite contracts.
 - S96 solely owns connector disconnect/reconciliation; S86 supplies the shared interaction
   foundation; S83 supplies the access destination, review lane, and queue reachability S84 uses.
 - The committed execution Registry and its non-authoritative Firestore Admin display mirror both
-  read back at 44 keys/ten open with no malformed entry (the S98 seed moves to 46 on its release
-  and reseed). Neither S83 nor the mirror grants action execution.
+  read back at 44 keys/ten open with no malformed entry (the committed seed now holds 48 entries;
+  the next release reseeds the mirror). Neither S83 nor the mirror grants action execution.
 - S97 removed the obsolete multi-record proof machinery and proved/activated its keys. S98
   removes the obsolete copy-only Sheet path. S99/S100 replace synthetic or inert provider seams with
   exact official operations. S36 ends with its temporary resources gone and the eleven-store/flag
@@ -73,18 +74,18 @@ effect beyond the owner-authorized keys and suite contracts.
 
 ## Next exact action
 
-Commit and CI the S99 closed slice, then continue S100's closed slice while the one owner step is
+Commit and CI the S100 closed slice, then start S36's closed-safe work while the one owner step is
 outstanding: interactive reauth (`auth:session`), which unblocks, in order, the S98 closed-slice
-release train (one reviewed env delta: `RENEWAL_REHEARSAL_SHEET_ID` removed; 46-key mirror
+release train (one reviewed env delta: `RENEWAL_REHEARSAL_SHEET_ID` removed; 48-key mirror
 reseed), the three serial S98 proof windows on lease 115/property 84 via
-`scripts/prove-s98-sheet-writeback.ts` (proof-note append/exclusion; blank-to-source
-`current_rent` compare-and-set; receipt-bound delete with absence readback), S98 activation, the
-S99 release, the S99 windows via `scripts/prove-s99-work-order.ts` (bounded read proof; one
-owner-approved TEST work-order create on property 84; cancel through the unique live system
-Cancelled status as its confirmed final state), S99 activation, and the docs receipts. Open
-OWNER_PROOF_WINDOW_OPEN_KEYS and any write switch only per window and close each with readback.
-Exclude user-owned `.claude/settings.local.json` and `output/` plus ignored `temp/` artifacts
-from every commit and Cloud Build upload.
+`scripts/prove-s98-sheet-writeback.ts`, S98 activation, the S99 release, the S99 windows via
+`scripts/prove-s99-work-order.ts` (bounded read; one owner-approved TEST create on property 84;
+cancel via the unique live system Cancelled status), S99 activation, then the S100 release and its
+two serial windows (one confirmed chat page on the TEST work order, then one resident-reply draft
+only after a mapped resident with a verified email exists), S100 activation, and the docs
+receipts. Open OWNER_PROOF_WINDOW_OPEN_KEYS and any write switch only per window and close each
+with readback. Exclude user-owned `.claude/settings.local.json` and `output/` plus ignored
+`temp/` artifacts from every commit and Cloud Build upload.
 
 ## Canonical queue
 

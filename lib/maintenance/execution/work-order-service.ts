@@ -198,10 +198,12 @@ export function buildTrustedContext(
   return {
     connectionReady: true,
     endpointDocumented: true,
+    // Every reference is the server-built one from the action itself; the bridge re-compares
+    // them and refuses drift. Browser payloads never reach the assembled action objects.
     externalReferences: {
-      connectionRef: CONNECTION_REF,
-      contractRef: CONTRACT_REF,
-      mappingRef: MAPPING_REF,
+      connectionRef: action.connectionRef ?? CONNECTION_REF,
+      contractRef: action.contractRef ?? CONTRACT_REF,
+      mappingRef: action.mappingRef ?? MAPPING_REF,
       sourceRefs: action.sourceRefs,
     },
     localPreviewValidated: true,
@@ -209,6 +211,15 @@ export function buildTrustedContext(
     roleScopeAuthorized: true,
     sourceValidated: true,
     technical,
+    // The S100 stateful-read policy requires an operator-confirmed, workflow-linked, one-off
+    // dispatch; exactConfirmed is derived by the bridge from the confirmed preview hash.
+    communication: {
+      workflowLinked: true,
+      mailboxScopeAuthorized: true,
+      humanInitiated: true,
+      recipientMatchesPreview: true,
+      reversible: true,
+    },
   };
 }
 

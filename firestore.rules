@@ -559,6 +559,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // S100 imported work-order chat bodies are server-only; no browser role may read them.
+    match /rentvine_work_order_chat_messages/{recordId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

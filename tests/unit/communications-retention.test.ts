@@ -507,18 +507,18 @@ describe("communications retention v1.0", () => {
     };
     await new FirestoreCommunicationsCleanupStore(db as never).listCandidates(anchor, 17);
     expect(operations.filter(([operation]) => operation === "collection")).toHaveLength(
-      8,
+      9,
     );
     expect(operations.filter(([operation]) => operation === "limit")).toEqual(
-      Array.from({ length: 8 }, () => ["limit", 17]),
+      Array.from({ length: 9 }, () => ["limit", 17]),
     );
     expect(operations.filter(([operation]) => operation === "where")).toEqual(
-      Array.from({ length: 8 }, () => [
+      Array.from({ length: 9 }, () => [
         ["where", "legal_hold", "==", false],
         ["where", "expires_at_ms", "<=", anchor],
       ]).flat(),
     );
-    expect(operations.filter(([operation]) => operation === "get")).toHaveLength(8);
+    expect(operations.filter(([operation]) => operation === "get")).toHaveLength(9);
   });
 
   it("creates a counts audit once and does not overwrite it on a retry", async () => {

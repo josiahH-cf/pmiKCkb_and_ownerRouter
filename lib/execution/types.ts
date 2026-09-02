@@ -6,6 +6,9 @@ export type ExecutionRisk = (typeof EXECUTION_RISK_LEVELS)[number];
 
 export type ExecutionActionKind =
   | "read"
+  // S100: a documented provider GET whose retrieval changes provider state (the
+  // chat read marks messages read for managers). Human-initiated and exact-confirmed.
+  | "stateful_read"
   | "health"
   | "local_draft"
   | "governed_label"
