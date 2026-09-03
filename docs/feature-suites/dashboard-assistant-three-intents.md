@@ -39,7 +39,7 @@ only the question text.
 
 **What it is / how it functions.**
 
-1. **Intent registry.** `lib/assistant/intents.ts` (versioned, closed): `work.assigned_today`,
+1. **Intent registry.** A new versioned, closed intent registry module under an assistant library: `work.assigned_today`,
    `renewal.blocked`, `renewal.window`. A deterministic matcher with a representative-language
    corpus maps phrasings; `renewal.window` parses `next month`, `this month`, or an explicit
    `YYYY-MM` in the Kansas City calendar; an ambiguous period returns one clarification.

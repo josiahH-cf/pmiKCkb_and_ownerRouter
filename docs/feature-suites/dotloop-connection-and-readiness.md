@@ -54,7 +54,7 @@ staff. Entry needs `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_CLIENT_SECRET`, and
 
 **What it is / how it functions.**
 
-1. **Connect.** `app/api/connections/dotloop/connect` mints a CSRF `state`, stores it server-side, and
+1. **Connect.** A new Dotloop connect route under the connections API mints a CSRF `state`, stores it server-side, and
    redirects to the authorize URL (existing `buildDotloopAuthorizeUrl`). The callback route exchanges
    the code server-side, stores access and refresh tokens only as `ConnectorSecretVault` refs, creates
    the `connector_connections` record through `createConnectedConnection`, and never returns a token
