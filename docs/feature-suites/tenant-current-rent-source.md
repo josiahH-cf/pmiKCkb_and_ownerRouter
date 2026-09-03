@@ -3,7 +3,8 @@
 
 # S102 — Tenant current rent from the active RentVine lease
 
-> Status: Implemented in the working tree on 2026-09-03 and unreleased. The shared lease view now
+> Status: Implemented and committed on 2026-09-03 (`ff200d3`, exact-SHA CI green), deployed in
+> zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84`, and not promoted. The shared lease view now
 > carries `currentRent` from the documented lease detail `baseRentAmount` inside the live lease
 > generation, keeps `unit.rent` only as the labelled `unitListedRent` reference, and the S51 oracle,
 > live review, console provider, and scripts read the same source. The serving revision still reads

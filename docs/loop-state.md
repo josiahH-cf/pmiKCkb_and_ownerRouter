@@ -15,10 +15,11 @@ provider or action authority.
   `d243911cb20ffb01773072c0e27c723648eeea34` at 100% traffic. Immediate rollback is
   `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
 - The formerly uncommitted remediation slice is committed and pushed as `e6b76f9` with exact-SHA CI
-  green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites and their
-  documentation are committed through `28a9253`, also CI green.
-- Zero-traffic candidate `pmi-kc-app-rmtloqhri-64ba4b00a394` (tag `cand-rmtloqhri-64ba4b00a394`)
-  was deployed from commit `28a9253646af1a7293f96db94feedff1c50d59fb` and passed the anonymous
+  green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
+  implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, also
+  CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84` (tag `cand-rmtlsgy0i-ffb8a132da84`)
+  was deployed from commit `ff200d30cafa8552a6e96718b2a288122ef24f80` and passed the anonymous
   read-only smoke at its exact commit and revision. It is not promoted.
 - Candidate assurance has not run. Its remaining inputs are two authenticated managed Admin and
   Editor browser-profile directories on the candidate origin and the S51 monitoring resource set,
@@ -26,8 +27,8 @@ provider or action authority.
   policies; fresh setup refuses while that channel exists, so a reviewed manual recovery plus the
   operator's email verification is required).
 - The S51 identity read sent the ADC quota-project header to the OpenID userinfo endpoint and was
-  refused; the preflight now reads identity with the bearer token only. That fix is in the working
-  tree with its unit test and is unreleased.
+  refused; the preflight now reads identity with the bearer token only (committed in `ff200d3`,
+  carried by the candidate, not yet exercised live).
 - Runtime is Production + Live with eleven Spaces, the operating-Sheet write switch on, and a
   48-key/16-open committed Registry plus matching non-authoritative Admin mirror.
 - S99, S97, and S100 chat sync are proven and open; S100 remains BLOCKED on a synchronized resident
@@ -39,25 +40,29 @@ provider or action authority.
   Exclude them, ignored `temp/`, credentials, provider bodies, and customer evidence from commits
   and build uploads.
 
-## Active unreleased work
+## Committed, candidate-deployed, unpromoted work
 
-- S102 (tenant current rent from the RentVine lease detail) is implemented in the working tree:
+- S102 (tenant current rent from the RentVine lease detail) is committed in `ff200d3`:
   the live lease generation enriches every export view with the documented lease detail
   (`baseRentAmount` as `currentRent`, `rentAmount` as the total, month-to-month evidence for S103),
   `unit.rent` survives only as the labelled `unitListedRent` reference, and the live review, console
   provider, S51 oracle, reconciliation script, and capture/smoke scripts read the same source. The
   workspace verification phase shows the unit rent as reference only. Fixtures use the shared
-  lease-detail fake. The canonical gate is running on this change.
-- The S51 preflight identity-read fix above ships with the same gate.
+  lease-detail fake. The canonical gate, core E2E, and exact-SHA CI passed; the candidate above
+  carries it. It is not promoted.
+- The earlier zero-traffic candidate from `28a9253` (`pmi-kc-app-rmtloqhri-64ba4b00a394`) is
+  superseded by the candidate above and carries no traffic.
 
 ## Next exact action
 
-Finish the canonical gate and core E2E on the S102 slice, commit and push it with the preflight fix,
-require exact-SHA CI, then continue the renewal-completion order at S103 (lease term and annual
-month-to-month review). Do not redeploy for S102 alone; the next candidate carries the whole green
-tree. Promotion of the existing candidate waits on the two managed browser profiles and the
-monitoring recovery; when those exist, capture the configuration fingerprint, run
-`--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
+Begin S103 (`docs/feature-suites/lease-term-and-renewal-eligibility.md`): lease term and annual
+month-to-month review, consuming the month-to-month evidence S102 already places on the lease view.
+Then continue the renewal-completion order (S104, S105, S106, S34, S107, S108, S109, S110, S111),
+one green suite at a time with a zero-traffic candidate and smoke after each. Promotion of the
+current candidate waits on the two managed browser profiles and the monitoring recovery; when those
+exist, capture the configuration fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`,
+run `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms
+observation.
 
 ## Canonical feature queue
 
@@ -66,7 +71,7 @@ monitoring recovery; when those exist, capture the configuration fingerprint, ru
 3. S99 — COMPLETE
 4. S100 — BLOCKED on the resident-draft runtime input; chat sync complete
 5. S51/S54 — assurance expansion committed; live candidate gate pending owner inputs
-6. S102 — implemented, unreleased (renewal-completion R1)
+6. S102 — committed and candidate-deployed, not promoted (renewal-completion R1)
 7. S103, S104, S105, S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
 8. S36 — queued behind complete S100
 9. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified

@@ -100,11 +100,11 @@ the current code and live service. Date-stamped history is not authority.
 - S36 has not started because its S100 prerequisite is incomplete. S82 conformance, S97 integrity,
   S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
   assurance are committed (`e6b76f9`) and deployed as zero-traffic candidate
-  `pmi-kc-app-rmtloqhri-64ba4b00a394` from commit `28a9253646af1a7293f96db94feedff1c50d59fb`;
+  `pmi-kc-app-rmtlsgy0i-ffb8a132da84` from commit `ff200d30cafa8552a6e96718b2a288122ef24f80`;
   its anonymous smoke passed and promotion waits on the managed Admin/Editor browser profiles and
   the S51 monitoring resource set. The owner's 2026-09-03 renewal-completion program (S102-S111 and
-  the rewritten S34) executes before S36 and the S88-S95 program; S102 is implemented and
-  unreleased. S87-S95 and S101 remain specification-only desired behavior.
+  the rewritten S34) executes before S36 and the S88-S95 program; S102 is committed in
+  `ff200d3`, carried by that candidate, and not promoted. S87-S95 and S101 remain specification-only desired behavior.
 
 ## Product boundary
 

@@ -19,8 +19,8 @@ Git and provider/app receipts.
 - Direct client sends: closed; supported initiation ends with an unsent Gmail draft
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
-stable readback. The remediation slice below is committed at `e6b76f9` and deployed as zero-traffic
-candidate `pmi-kc-app-rmtloqhri-64ba4b00a394` from commit `28a9253646af1a7293f96db94feedff1c50d59fb`;
+stable readback. The remediation slice below, the grounded renewal-completion suites, S102, and the S51 preflight
+identity-read fix are committed through `ff200d3` and deployed as zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84` from commit `ff200d30cafa8552a6e96718b2a288122ef24f80`;
 its anonymous smoke passed at the exact commit and revision, and it is not promoted.
 
 ## Delivered application baseline
@@ -80,9 +80,9 @@ E2E, exact-SHA CI, zero-traffic candidate checks, promotion, and live readback p
 
 The owner's specification package is grounded as S102-S111 plus the rewritten S34 and executes before
 S36 and the assistant program. S102 (tenant current rent from the RentVine lease detail
-`baseRentAmount`, with `unit.rent` kept only as a labelled reference) is implemented in the working
-tree and unreleased. S103-S111 and S34 remain specified only. The S51 identity-read fix (bearer-only
-userinfo read) is also unreleased.
+`baseRentAmount`, with `unit.rent` kept only as a labelled reference) is committed in `ff200d3`,
+carried by the current candidate, and not promoted. S103-S111 and S34 remain specified only. The S51
+identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work
 

@@ -4,13 +4,14 @@ Updated: 2026-09-03.
 
 ## Immediate action
 
-Finish the S102 gate (canonical verifier plus core E2E), commit and push it with the S51 preflight
-identity-read fix, and require exact-SHA CI. Then continue the renewal-completion program at S103.
+Continue the renewal-completion program at S103 (lease term and annual month-to-month review) from
+`docs/loop-state.md`. S102 is committed in `ff200d3` with exact-SHA CI green and deployed in the
+current zero-traffic candidate.
 
 Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its immediate rollback is
-`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Zero-traffic candidate `pmi-kc-app-rmtloqhri-64ba4b00a394`
-(commit `28a9253646af1a7293f96db94feedff1c50d59fb`) passed its anonymous smoke and waits for the S51
+`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84`
+(commit `ff200d30cafa8552a6e96718b2a288122ef24f80`) passed its anonymous smoke and waits for the S51
 candidate assurance. Preserve `.claude/settings.local.json`, `output/`, and the owner's untracked specification
 package as user-owned content.
 
@@ -18,7 +19,7 @@ package as user-owned content.
 
 Use only the canonical queue in `docs/feature-suites/README.md`. The owner's 2026-09-03 direction
 executes S102-S111 and the rewritten S34 (rows 12-22) before S36 and the S88-S95 program. S102 is
-implemented and unreleased; S103 is next. S96, S85, S86, S83, S84, and S99 are complete and
+committed and candidate-deployed but not promoted; S103 is next. S96, S85, S86, S83, S84, and S99 are complete and
 deployed; S82/S97/S98 remediation is committed and awaits promotion; S100 remains blocked on the
 exact eligible resident message; S36 has not started.
 

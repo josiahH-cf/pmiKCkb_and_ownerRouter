@@ -76,8 +76,8 @@ image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized c
 provider-generated per-build provenance metadata separately.
 
 Current zero-traffic candidate (deployed 2026-09-03 from commit
-`28a9253646af1a7293f96db94feedff1c50d59fb`): revision `pmi-kc-app-rmtloqhri-64ba4b00a394`, tag
-`cand-rmtloqhri-64ba4b00a394`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
+`ff200d30cafa8552a6e96718b2a288122ef24f80`): revision `pmi-kc-app-rmtlsgy0i-ffb8a132da84`, tag
+`cand-rmtlsgy0i-ffb8a132da84`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
 serving 100%). Its anonymous smoke passed (root 307, sign-in 200, protected 307, version 200 at the
 exact commit and revision). It is not promoted; the S51 candidate assurance below has not run.
 
