@@ -70,7 +70,8 @@ bounded integrity/conformance remediation that is active and unreleased. S98's c
 safe normal append while refusing fixed-row update/delete/restore operations unsupported by a stable
 provider seam. The expanded S51/S54 production-assurance gate owns their shared release. S100 chat
 sync is deployed; its resident-draft
-action remains blocked on the exact live input named in `docs/facts.md`. S36 is queued behind
+action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
+them before S36; see the README bundle section. S36 is queued behind
 complete S100, and S87-S95 plus S101 remain specification-only desired behavior. Completed suite
 narratives are removed once current code, tests, and facts own their contract; Git history retains
 provenance.

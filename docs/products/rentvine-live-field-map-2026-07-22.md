@@ -17,10 +17,26 @@ superseded.
 - Current rent for this live shape: `unit.rent` on 306/306.
 - Lease-level current-rent keys in the 2026-08-26 diagnostic: 0/306.
 
-For export-shaped rows, the mapper accepts only `unit.rent` as contractual base rent and does not
-fall through to lease-level rent lookalikes when that field is absent. Flat legacy fixtures without
-an explicit unit retain the configurable fallback. Recipient handling iterates all owner/tenant
-records and keeps owner and tenant channels separate.
+For export-shaped rows, the deployed mapper accepts only `unit.rent` as contractual base rent and
+does not fall through to lease-level rent lookalikes when that field is absent. Flat legacy fixtures
+without an explicit unit retain the configurable fallback. Recipient handling iterates all
+owner/tenant records and keeps owner and tenant channels separate.
+
+## Lease detail (bodyless discovery 2026-09-03)
+
+`GET /leases/{leaseID}` (`RentVineClient.getLease`) carries fields the export row does not:
+
+- `baseRentAmount` (number) and `rentAmount` (number): the tenant's contractual base rent and total
+  rent on the active lease. `unit.rent` on the export is a unit attribute and tracks the unit's
+  listed rent, so S102 moves `currentRent` to `baseRentAmount`.
+- `isMonthToMonth` (`"0"`/`"1"`), `monthToMonthStartDate` (ISO date or null), and
+  `hasPendingMonthToMonthConversion` (boolean): the lease-term evidence S103 consumes.
+- `occupancyEndDate`, `isMarkedToVacate`, `leaseStatusID`, `primaryLeaseStatusID`, and the S97
+  `startDate`/`endDate`/`increaseEligibilityDate` dates.
+
+`GET /leases/{leaseID}/recurring-charges?includes=account` returns `{ recurringCharge, account }`
+elements; `account.isRent` identifies the rent account. The 2026-09-03 export read returned 309
+distinct leases (complete).
 
 ## Evidence rule
 

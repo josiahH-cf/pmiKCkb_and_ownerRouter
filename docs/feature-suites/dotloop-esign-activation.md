@@ -1,43 +1,192 @@
 <!-- spec-shape: overhaul-v1 -->
+<!-- feature-handoff: renewal-completion-v1 -->
 
-# S34 — Dotloop e-signature activation
+# S34 — Dotloop renewal packet lifecycle
 
-> Status: Exact packet binding, preview/confirmation, idempotency, readback, receipt, reconciliation, and rollback seams are complete; official account inputs are missing.
+> Status: Rewritten from the 2026-09-03 owner package; not implemented beyond the typed seam. The
+> `DotloopProvider` interface, `DotloopRenewalExecutor`, S66 packet binding, and two closed keys
+> exist with fakes only; no live Dotloop call exists.
 
 **Goal.**
 
-Create and reconcile one exact lease packet through documented Dotloop APIs.
+An approved current renewal creates or reuses exactly one linked Dotloop loop from the selected
+profile and template, shows and refreshes its state in the workspace, and hands the operator to
+Dotloop for signature work the API cannot perform.
+
+**Current state / intended end state.**
+
+| Package requirement (PMI-06)                      | Classification    | Evidence                                                                                                                  |
+| ------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Create only from an approved current proposal     | Already satisfied | `bindCurrentPacketForDotloop` refuses stale or incomplete S66 snapshots (`lib/lease-documents/dotloop-packet-binding.ts`) |
+| Selected profile and template                     | Missing           | Delivered by S106 selection record                                                                                        |
+| Populate property, participants, terms, documents | Missing           | `DotloopProvider` methods are typed but unimplemented (`lib/lease-renewal/execution/providers.ts`)                        |
+| Store loop id and URL on the owning record        | Partially         | `recordPacketExecutionProjection` exists (`lib/firestore/lease-document-packet-snapshots.ts`); no loop fields             |
+| Repeat creates no second loop                     | Partially         | One-attempt claim pattern exists for S97/S98; Dotloop has no idempotency key                                              |
+| Material change makes the relationship explicit   | Already satisfied | Packet snapshot hash and `Superseded` state (S66)                                                                         |
+| Readback and status link                          | Missing           | No client                                                                                                                 |
+| Webhooks optional                                 | Missing           | Subscription probe from S106                                                                                              |
+| Signature handoff, never assumed complete         | Partially         | `lib/lease-renewal/dotloop-followup-draft.ts` drafts a chase note; no loop link                                           |
+| Provider errors and missing data as blockers      | Already satisfied | `PacketBlocker` and `Failed`/`Partially executed` states                                                                  |
+
+Intended end state: a concrete `DotloopProvider` over the official API, one durable loop link per
+packet snapshot hash, readback-driven status, and an explicit signature handoff.
+
+**Actors and entry conditions.**
+
+A document coordinator or renewal operator (Editor or higher, Renewals Space) previews and confirms
+loop creation for one lease whose S66 snapshot is `Ready for preview` and whose owner outcome is
+`approved_terms`. Execution requires S106 readiness `connected` with selected profile and template,
+the exact production-allowed keys `dotloop.loop.create_from_template` and `dotloop.document.upload`,
+exact preview/confirmation, and the existing approval tier for High-risk effects.
+
+**Provider contract (official Dotloop Public API v2, read 2026-09-03).**
+
+- `POST /profile/{profile_id}/loop` body `name` (≤200 chars), `status`, `transactionType`; or
+  `POST /loop-it?profile_id=` with address fields, `participants[]` (`fullName`, `email`, `role`),
+  and `templateId`. Response carries `id` and `loopUrl`.
+- `PATCH /profile/{profile_id}/loop/{loop_id}/detail` sections such as `Property Address` and
+  `Contract Dates`; `GET/POST/PATCH/DELETE .../participant`; `GET/POST .../folder`;
+  `POST .../folder/{folder_id}/document/` multipart upload; `GET .../loop/{loop_id}` readback.
+- Participant roles include `TENANT`, `LANDLORD`, `PROPERTY_MANAGER`, `ADMIN`, `OTHER`. Lease
+  transaction types are `LISTING_FOR_LEASE` and `LEASE_OFFER` with documented status sets.
+- Webhook subscriptions (`POST /subscription`, event types `LOOP_CREATED`, `LOOP_UPDATED`,
+  `LOOP_PARTICIPANT_*`) are optional. No document-level event and no signature status is documented.
 
 **What it is / how it functions.**
 
-S66 produces a current exact-hash packet snapshot. Activation maps only an approved artifact catalog, participants, fields, signatures, and template/profile to a typed provider request.
+1. **Provider implementation.** `lib/integrations/dotloop/provider.ts` implements `DotloopProvider`
+   over the S106 client: `createLoop` uses the selected template with an app-chosen loop name that
+   embeds the packet snapshot id (the provider-observable identity for reconciliation), sets
+   `transactionType` and initial `status` from the selection record (owner-selected from the
+   documented enumeration, never hard-coded), adds participants from the packet snapshot's
+   tenant/owner participants with documented roles, patches `Property Address`, creates the packet
+   folder, and uploads each packet artifact from Drive. `readLoop` and `readDocument` map the
+   official responses; `reconcile` lists the profile's loops by batch and matches the exact name.
+2. **Lifecycle.** Reuse the existing external-execution preview/confirm/claim/receipt/readback path
+   through `DotloopRenewalExecutor`. The loop link (`loopId`, `loopUrl`, `profileId`,
+   `templateId`, `packetSnapshotHash`) is recorded with `recordPacketExecutionProjection`. A repeat
+   for the same snapshot hash returns the existing link; a new snapshot hash marks the prior loop
+   `Superseded` and requires a new confirmation for a replacement loop.
+3. **Status.** The workspace `document-packet` and `signatures-follow-up` phases show the loop link,
+   last readback time, loop status, participant count, document count, and a `Refresh from Dotloop`
+   control; when webhooks are available, `LOOP_UPDATED` events only schedule a readback.
+4. **Signature handoff.** Because the API exposes no signature operation, the phase shows `Open in
+Dotloop to send for signature` with the exact loop URL and the required signers; signature
+   completion is recorded only from the existing S72 signed-artifact evidence path, never inferred.
+
+**In scope / out of scope.**
+
+In scope: provider, executor wiring, loop link, readback, refresh, optional webhook readback, handoff
+copy, and fakes. Out of scope: legal content, broad Dotloop administration, requiring webhooks, or
+any signature API.
 
 **Open questions & assumptions.**
 
-Client/provider must supply one approved S66 catalog plus OAuth and the exact account/profile,
-template, participant, field, signature, webhook/re-fetch, correction, and rollback mappings. No
-provider action becomes executable until those references are official and configured.
+The owner selects transaction type and initial status during S106 selection; the approved S66
+artifact catalog remains the document source. Both are external inputs, not assumptions.
 
 **Cross-product impacts.**
 
-S66 packet truth, Lease Renewal, Drive artifacts, Action Registry, receipts, and rollback.
+Packet snapshots and execution projections, external execution claims and receipts, action
+registry (`production_allowed` flips are protected-path changes surfaced for owner direction), S72
+phases, S107 continuation, S111 proof.
+
+**Authority and evidence map.**
+
+| Input                                                                | Classification                   | Use and limitation                                                                        |
+| -------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `AGENTS.md` effect model, S66, S72, execution providers, S97 pattern | Authority / implementation truth | Exact preview/confirm/claim/receipt/readback; protected activation; no autonomous effect. |
+| Official Dotloop Public API v2                                       | Provider contract                | Endpoints, bodies, roles, statuses; no signature API.                                     |
+| Owner package PMI-06                                                 | Intent evidence                  | One loop per renewal, visible state, explicit handoff.                                    |
+
+**Architecture outcome (deterministic, fail-first).**
+
+- **ARCH-S34-1** — One provider implementation behind the existing `DotloopProvider` interface; the
+  executor fixture that expects a loop link after confirmation fails today.
+- **ARCH-S34-2** — Loop identity is bound to the packet snapshot hash; a second create for the same
+  hash returns the stored link without a provider call.
+
+**Behavior outcome (deterministic, fail-first).**
+
+- **BEH-S34-1** — One approved renewal yields one loop with the selected profile/template, expected
+  participants, address, folder, and documents through the fake.
+- **BEH-S34-2** — Missing template, participant email, property address, or connection blocks
+  creation with the exact next action.
+- **BEH-S34-3** — Readback updates the workspace state; webhook and polling modes converge to the
+  same state; signature work is never marked complete without artifact evidence.
+
+**Human litmus outcome.**
+
+### The renewal packet appears in Dotloop once
+
+**If this was built correctly:** After approval the operator previews and confirms the packet. One
+loop appears in Dotloop with the right people and documents, the workspace shows its link and status,
+and repeating the action does not create another loop. The workspace tells the operator to open
+Dotloop to send for signatures.
+
+- Model verdict: PASS | FAIL - why: completed by the implementation runner with fake-provider
+  evidence and, when a connected account exists, one live create/readback proof.
+- Human verdict: NOT RUN — no human observer.
+
+**Requirement-to-outcome traceability.**
+
+| Requirement                       | Architecture outcome       | Behavior outcome | Human litmus                               | Deterministic evidence / falsification        |
+| --------------------------------- | -------------------------- | ---------------- | ------------------------------------------ | --------------------------------------------- |
+| DLPKT-01, DLPKT-02 one loop       | `ARCH-S34-1`, `ARCH-S34-2` | `BEH-S34-1`      | The renewal packet appears in Dotloop once | Create and repeat fixtures                    |
+| DLPKT-03 link and refresh         | `ARCH-S34-1`               | `BEH-S34-3`      | The renewal packet appears in Dotloop once | Readback fixture                              |
+| DLPKT-04, DLPKT-05 blockers/stale | `ARCH-S34-2`               | `BEH-S34-2`      | The renewal packet appears in Dotloop once | Missing-data and superseded-snapshot fixtures |
+| DLPKT-06, DLPKT-07 handoff/modes  | `ARCH-S34-1`               | `BEH-S34-3`      | The renewal packet appears in Dotloop once | Handoff copy and webhook/polling parity       |
+
+**Preservation set.**
+
+`tests/unit/dotloop-renewal-executor.test.ts`, `s66-dotloop-packet-binding.test.ts`,
+`s66-packet-truth-boundary.test.ts`, `dotloop-followup-draft.test.ts`, and `lease-execution-matrix.test.ts`
+stay green.
 
 **Adversarial acceptance checks.**
 
-- **AC-S34-1** — An incomplete or stale S66 snapshot cannot create a provider request.
-- **AC-S34-2** — One confirmed request is idempotent and provider-read-back before completion is claimed.
-- **AC-S34-3** — No guessed legal copy, participant, signature placement, template, profile, or webhook authentication is accepted.
+- **AC-S34-1** — `ARCH-S34-2`: an incomplete or stale S66 snapshot cannot create a provider request.
+- **AC-S34-2** — `BEH-S34-1`: one confirmed request is claimed once, read back, and receipted before
+  completion is claimed.
+- **AC-S34-3** — `BEH-S34-3`: no guessed legal copy, participant, signature placement, template, or
+  webhook authentication is accepted, and signature completion is never inferred.
+- **AC-S34-4** — `ARCH-S34-1`: a lost create response reconciles by exact loop name without a second
+  create.
 
 **Forbidden actions / hard gates.**
 
-No UI/RPA automation, guessed API, unsigned legal content, autonomous send, or production flip without the exact provider contract.
+No UI/RPA automation, no invented signature endpoint, no unsigned legal content, no autonomous
+execution, and no `production_allowed` flip without owner direction and a passed bounded proof.
+
+**Dependencies / sequencing.**
+
+Requires S106 readiness and the S66 catalog; consumed by S105, S107, and S111.
+
+**Standalone delivery contract.**
+
+- **Deliverable now:** provider, executor wiring, loop link, readback, refresh, handoff, fakes.
+- **Consumes, but does not assume:** S106 connection and selection; absent readiness is the
+  `document-packet` blocker.
+- **Externally blocked effect:** live loop creation until the OAuth app, connected account, approved
+  catalog, and key activation exist; recorded as `BLOCKED` for the live proof only.
+- **Produces for downstream suites:** loop link, packet execution state, handoff state.
+
+**Verification and delivery contract.**
+
+1. Freeze the create, repeat, blocker, readback, and handoff fixtures failing for the expected
+   reason.
+2. Run focused provider, executor, snapshot, and workspace checks.
+3. Run `bash scripts/verify.sh` and `npm run test:e2e:core`; audit action gates and secrets.
+4. Report `ALL_GATES_GREEN` for the closed slice; `BLOCKED` names only the live proof inputs;
+   `BUDGET_EXHAUSTED` only with an explicit budget.
 
 **Ordered prompt sequence.**
 
-1. Publish the approved S66 catalog.
-2. Configure OAuth and exact Dotloop mappings.
-3. Run one preview/confirm/create/readback/correction proof before gate review.
+1. Re-verify the S66 binding and executor seam.
+2. Materialize the fail-first provider and lifecycle fixtures.
+3. Implement the provider, link, readback, and handoff.
+4. Run focused and canonical checks; record the live limitation; update current docs.
 
 **Deletion/merge recommendation.**
 
-Keep until a live one-packet proof and correction path are complete.
+Keep until one live packet creation, readback, and correction proof completes.

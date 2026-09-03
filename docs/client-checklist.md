@@ -27,8 +27,21 @@ guess, substitute a record, or stop unrelated closed-safe work.
   resident email in the signed-in user's connected managed mailbox.
 - S36 runs one temporary provision/import/query/readback/retirement pilot and restores the original
   eleven-store/config baseline.
-- Dotloop and LeadSimple are deferred until after the current RentVine activation work and require
-  later separately grounded scopes.
+- Dotloop is the next integration under the owner's 2026-09-03 renewal-completion direction (S106
+  connection, S34 packet lifecycle). LeadSimple remains deferred to a later separately grounded scope.
+- Month-to-month leases are reviewed twelve months after their month-to-month anchor date (owner
+  direction 2026-09-03); the cadence drives in-app review visibility only.
+
+## Renewal-completion inputs (S102-S111, S34, S106)
+
+| Input                                                                               | Needed by   | Refusal rule when absent                                                                          |
+| ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
+| Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. |
+| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; fake-provider proof still completes.                       |
+| Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                               |
+| Property preapproval amounts entered by an Admin                                    | S108        | Every ticket waits on owner approval as today.                                                    |
+| Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                           |
+| Two authenticated managed Admin/Editor browser profiles                             | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                   |
 
 ## Runtime evidence by suite
 

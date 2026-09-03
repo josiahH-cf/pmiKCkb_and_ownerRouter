@@ -65,7 +65,7 @@ attachments, RentVine chat posting, and every other unlisted effect remain close
 | Gmail                    | Workflow reads, replies, labels, unsent renewal/maintenance drafts              | Direct/generic notice sends closed                                               |
 | Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                                                 |
 | Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                                               |
-| Dotloop                  | Typed packet/binding seam                                                       | OAuth/mapping/provider activation pending                                        |
+| Dotloop                  | Typed packet/binding seam; S106 connection and S34 packet lifecycle specified   | OAuth app registration, connected account, and per-key activation pending        |
 | LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                                              |
 | Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync open; resident draft and Vendor effects closed                  |
 
