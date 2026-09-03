@@ -19,9 +19,11 @@ Git and provider/app receipts.
 - Direct client sends: closed; supported initiation ends with an unsent Gmail draft
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
-stable readback. The remediation slice below, the grounded renewal-completion suites, S102, and the S51 preflight
-identity-read fix are committed through `ff200d3` and deployed as zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84` from commit `ff200d30cafa8552a6e96718b2a288122ef24f80`;
-its anonymous smoke passed at the exact commit and revision, and it is not promoted.
+stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
+identity-read fix, and S103 are committed through `0158c90` and deployed as zero-traffic candidate
+`pmi-kc-app-rmtm1dmg7-98fa238467b3` from commit `0158c90bc2da68e6a3e0c03103dd0e418a11b000`; its
+anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
+`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
 ## Delivered application baseline
 
@@ -84,7 +86,8 @@ S36 and the assistant program. S102 (tenant current rent from the RentVine lease
 carried by the current candidate, and not promoted. S103 (one lease-term projection over the exact
 lease-detail `isMonthToMonth` signal, a `periodic_review` disposition with a 12-month review anchor,
 a visible desk/workspace term with its own filter and scope, and an Editor-gated app-owned term
-review bound to the lease view fingerprint) is implemented and unreleased; production still uses the
+review bound to the lease view fingerprint) is committed in `0158c90` with exact-SHA CI green,
+carried by the current candidate, and not promoted; production still uses the
 heuristic skip signals and shows no term. Its local rehearsal browser smoke ran against live
 read-only sources and also surfaced one pre-existing S84 behavior that is not changed here: because
 the responsive navigation resolves on the client, a payload as large as the full desk briefly paints

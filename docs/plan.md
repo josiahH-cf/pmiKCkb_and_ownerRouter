@@ -25,9 +25,9 @@ seam exists. S100's closed-safe workflow and chat-sync action are deployed, prov
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
 expanded S51/S54 assurance harness are committed (`e6b76f9`) and deployed as zero-traffic
-candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84`; promotion waits on the managed Admin/Editor
-browser profiles and the S51 monitoring resource set. S102 is committed (`ff200d3`) and carried by
-that candidate.
+candidate `pmi-kc-app-rmtm1dmg7-98fa238467b3`; promotion waits on the managed Admin/Editor
+browser profiles and the S51 monitoring resource set. S102 (`ff200d3`) and S103 (`0158c90`) are
+committed and carried by that candidate.
 
 ## Active correction slice
 
@@ -120,8 +120,9 @@ The only executable order is in `docs/feature-suites/README.md`:
 11. S51/S54 — production assurance expansion. Committed; owns the shared release gate for steps 6-8.
 12. S102 — tenant current rent from the RentVine lease detail. Committed and candidate-deployed,
     not promoted.
-13. S103 — lease term and renewal eligibility. Implemented and unreleased. Then S104, S105, S106,
-    S34, S107, S108, S109, S110, S111 in that order (owner direction 2026-09-03).
+13. S103 — lease term and renewal eligibility. Committed and candidate-deployed, not promoted.
+    Then S104, S105, S106, S34, S107, S108, S109, S110, S111 in that order (owner direction
+    2026-09-03).
 14. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
 15. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.

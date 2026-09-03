@@ -8,3 +8,4 @@
 # Runner-local state and user-owned artifacts are intentionally outside the deployable app.
 .claude/
 output/
+docs/specs/

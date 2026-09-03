@@ -3,7 +3,8 @@
 
 # S103 — Lease term and renewal eligibility
 
-> Status: IMPLEMENTED / UNRELEASED. `projectLeaseTerm` owns the term for the cohort, desk,
+> Status: COMMITTED (`0158c90`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
+> (`pmi-kc-app-rmtm1dmg7-98fa238467b3`, zero traffic, anonymous smoke passed); NOT PROMOTED. `projectLeaseTerm` owns the term for the cohort, desk,
 > workspace, and query; month-to-month leases carry the new `periodic_review` disposition with a
 > 12-month review anchor; the app-owned `lease_renewal_term_reviews` record and its Editor-gated
 > route resolve leases whose provider evidence is absent or contradictory. Production still uses the

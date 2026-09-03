@@ -16,11 +16,13 @@ provider or action authority.
   `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
 - The formerly uncommitted remediation slice is committed and pushed as `e6b76f9` with exact-SHA CI
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
-  implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, also
-  CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84` (tag `cand-rmtlsgy0i-ffb8a132da84`)
-  was deployed from commit `ff200d30cafa8552a6e96718b2a288122ef24f80` and passed the anonymous
-  read-only smoke at its exact commit and revision. It is not promoted.
+  implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
+  through `0158c90`; both are exact-SHA CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtm1dmg7-98fa238467b3` (tag `cand-rmtm1dmg7-98fa238467b3`)
+  was deployed from commit `0158c90bc2da68e6a3e0c03103dd0e418a11b000` and passed the anonymous
+  read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
+  `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
+  `pmi-kc-app-rmtlsgy0i-ffb8a132da84`.
 - Candidate assurance has not run. Its remaining inputs are two authenticated managed Admin and
   Editor browser-profile directories on the candidate origin and the S51 monitoring resource set,
   which currently reads `DRIFT` (one managed channel with a mismatched definition, no metric, no
@@ -53,9 +55,10 @@ provider or action authority.
 - The earlier zero-traffic candidate from `28a9253` (`pmi-kc-app-rmtloqhri-64ba4b00a394`) is
   superseded by the candidate above and carries no traffic.
 
-## S103 implemented, not yet released
+## S103 committed and candidate-deployed, not promoted
 
-S103 (lease term and renewal eligibility) is implemented on top of S102's enriched view: one
+S103 (lease term and renewal eligibility) is committed in `0158c90` on top of S102's enriched view:
+one
 `projectLeaseTerm` projection owns the term for the cohort, desk, workspace, and
 `renewal-desk-query/v2`; the exact lease-detail `isMonthToMonth` signal replaces the heuristic
 month-to-month skip keys (kept only for flat legacy fixtures); month-to-month leases carry the new
@@ -64,15 +67,16 @@ inspection-only workspace, and their own desk scope; an expired or missing end d
 conversion, a contradicted signal, or an unreadable detail yields `needs_review`; and the
 Editor-gated `lease_renewal_term_reviews` record plus `/api/lease-renewal/term-review` resolve
 leases whose provider evidence is absent, each bound to the lease view fingerprint so a drifted
-record goes stale. No provider write, timer, draft, or send derives from it.
+record goes stale. No provider write, timer, draft, or send derives from it. The canonical gate,
+core E2E, exact-SHA CI, and the local rehearsal browser smoke against live read-only sources all
+passed; the browser run also recorded one pre-existing S84 narrow-viewport behavior, left to S84.
 
 ## Next exact action
 
-Require exact-SHA aggregate CI for the S103 commit, deploy one zero-traffic candidate from that
-clean HEAD, and pass `npm run smoke:release-candidate` at its exact commit and revision. Then begin
-S104 (`docs/feature-suites/renewal-desk-workspace-parity-closure.md`) and continue the
-renewal-completion order (S105, S106, S34, S107, S108, S109, S110, S111), one green suite at a time
-with a zero-traffic candidate and smoke after each. Promotion of any candidate waits on the two
+Begin S104 (`docs/feature-suites/renewal-desk-workspace-parity-closure.md`): desk and workspace
+parity plus the open/write/return continuation proof, consuming S102's rent and S103's term. Then
+continue the renewal-completion order (S105, S106, S34, S107, S108, S109, S110, S111), one green
+suite at a time with a zero-traffic candidate and smoke after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
 fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
@@ -85,7 +89,7 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 4. S100 — BLOCKED on the resident-draft runtime input; chat sync complete
 5. S51/S54 — assurance expansion committed; live candidate gate pending owner inputs
 6. S102 — committed and candidate-deployed, not promoted (renewal-completion R1)
-7. S103 — implemented, unreleased (renewal-completion R2)
+7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
 8. S104, S105, S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
 9. S36 — queued behind complete S100
 10. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
