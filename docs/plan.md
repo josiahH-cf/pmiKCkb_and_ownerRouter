@@ -25,9 +25,9 @@ seam exists. S100's closed-safe workflow and chat-sync action are deployed, prov
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
 expanded S51/S54 assurance harness are committed (`e6b76f9`) and deployed as zero-traffic
-candidate `pmi-kc-app-rmtm1dmg7-98fa238467b3`; promotion waits on the managed Admin/Editor
-browser profiles and the S51 monitoring resource set. S102 (`ff200d3`) and S103 (`0158c90`) are
-committed and carried by that candidate.
+candidate `pmi-kc-app-rmtm41tyu-d8d9003c8b52`; promotion waits on the managed Admin/Editor
+browser profiles and the S51 monitoring resource set. S102 (`ff200d3`), S103 (`0158c90`), and S104
+(`0f01353`) are committed and carried by that candidate.
 
 ## Active correction slice
 
@@ -121,7 +121,8 @@ The only executable order is in `docs/feature-suites/README.md`:
 12. S102 — tenant current rent from the RentVine lease detail. Committed and candidate-deployed,
     not promoted.
 13. S103 — lease term and renewal eligibility. Committed and candidate-deployed, not promoted.
-14. S104 — renewal desk and workspace parity closure. Implemented and unreleased.
+14. S104 — renewal desk and workspace parity closure. Committed and candidate-deployed, not
+    promoted.
 15. S105, S106, S34, S107, S108, S109, S110, S111 — the rest of the renewal-completion program in
     that order (owner direction 2026-09-03).
 16. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.

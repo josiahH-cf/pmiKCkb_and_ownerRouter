@@ -20,8 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, and S103 are committed through `0158c90` and deployed as zero-traffic candidate
-`pmi-kc-app-rmtm1dmg7-98fa238467b3` from commit `0158c90bc2da68e6a3e0c03103dd0e418a11b000`; its
+identity-read fix, S103, and S104 are committed through `0f01353` and deployed as zero-traffic
+candidate `pmi-kc-app-rmtm41tyu-d8d9003c8b52` from commit
+`0f013531bbd7d4cafa980d83d95955e5e517bf0b`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -89,7 +90,7 @@ a visible desk/workspace term with its own filter and scope, and an Editor-gated
 review bound to the lease view fingerprint) is committed in `0158c90` with exact-SHA CI green,
 carried by the current candidate, and not promoted. S104 (one shared rent, term, and guidance
 projection across the desk row and the lease workspace, with parity and view-continuation proofs) is
-implemented and unreleased; production still uses the
+committed in `0f01353` with exact-SHA CI green, carried by the current candidate, and not promoted; production still uses the
 heuristic skip signals and shows no term. Its local rehearsal browser smoke ran against live
 read-only sources and also surfaced one pre-existing S84 behavior that is not changed here: because
 the responsive navigation resolves on the client, a payload as large as the full desk briefly paints

@@ -3,7 +3,8 @@
 
 # S104 — Renewal desk and workspace parity closure
 
-> Status: IMPLEMENTED / UNRELEASED. The lease-scoped rent, the unit reference, the term projection,
+> Status: COMMITTED (`0f01353`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
+> (`pmi-kc-app-rmtm41tyu-d8d9003c8b52`, zero traffic, anonymous smoke passed); NOT PROMOTED. The lease-scoped rent, the unit reference, the term projection,
 > and the guidance projection now reach the desk row and the lease workspace from one builder, and
 > parity plus continuation are asserted at the unit layer and in the rehearsal browser. Production
 > still serves the S82 baseline.
