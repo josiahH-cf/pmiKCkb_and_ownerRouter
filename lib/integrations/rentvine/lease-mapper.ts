@@ -54,15 +54,35 @@ export const DEFAULT_RENTVINE_LEASE_FIELD_MAP: RentVineLeaseFieldMap = {
 export const RENTVINE_SOURCE = "rentvine";
 export const RENTVINE_SOURCE_SYSTEM = "Rentvine (read-authoritative)";
 
+/** View key carrying the export unit's listed rent (a unit attribute, never the tenant's rent). */
+export const UNIT_LISTED_RENT_VIEW_KEY = "unitListedRent";
+/** View key carrying the applied lease-detail evidence (S102/S103). */
+export const LEASE_DETAIL_VIEW_KEY = "leaseDetail";
+/** View key carrying the lease detail's total `rentAmount`, kept apart from base rent. */
+export const TOTAL_RENT_AMOUNT_VIEW_KEY = "totalRentAmount";
+
+/** The lease-detail facts a view carries after enrichment (S102 rent, S103 term evidence). */
+export type LeaseDetailView =
+  | {
+      status: "available";
+      baseRentAmount: number | null;
+      rentAmount: number | null;
+      isMonthToMonth: boolean | null;
+      monthToMonthStartDate: string | null;
+      hasPendingMonthToMonthConversion: boolean | null;
+    }
+  | { status: "unavailable" };
+
 /**
  * Flatten Rentvine lease-EXPORT rows into flat lease "views" the field map can read. Confirmed live:
  * the plain /leases list omits tenant names and carries no rent, so the live read uses /leases/export
- * — where the tenant names live on `lease.tenants[].name` and the contractual rent on `unit.rent`.
- * This lifts `unit.rent` onto the lease view as canonical `currentRent` and
- * keeps `lease.tenants[]` for the name join. It also preserves the export row's measured unit/property
- * and owner-bearing siblings (`unit`, `property`, `portfolio`, `owner`, `owners`) on the view. The unit
- * sibling carries the authoritative bedroom/bathroom facts used by the RentCast query, while the lease
- * itself carries no owner contact. Attaching them is additive (the pipeline field map reads only scalar
+ * for identity, dates, and tenant names. The export's `unit.rent` is a UNIT attribute (the unit's
+ * listed rent) and is kept only as `unitListedRent`; the tenant's contractual base rent comes from the
+ * documented lease detail (`baseRentAmount`) applied by `applyLeaseDetailToView` (S102). The view
+ * keeps `lease.tenants[]` for the name join and preserves the export row's measured unit/property and
+ * owner-bearing siblings (`unit`, `property`, `portfolio`, `owner`, `owners`). The unit sibling carries
+ * the authoritative bedroom/bathroom facts used by the RentCast query, while the lease itself carries
+ * no owner contact. Attaching them is additive (the pipeline field map reads only scalar
  * tenant/date/rent keys, never these objects). Pure and deterministic.
  */
 export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
@@ -85,11 +105,15 @@ export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
     // the top-level export value in `currentRentHit`. An explicit empty object also preserves the
     // fail-closed rule when the top-level unit is missing or malformed.
     if (nestedLease) view.unit = unit;
-    // Export contract: unit.rent is the documented contractual rent. Canonicalize it even when a
-    // lease-level rent-shaped field is also present. The canonical reader below treats the explicit
-    // unit object as authoritative, so an absent unit.rent never falls through to a lookalike.
-    if (unit.rent !== undefined && unit.rent !== null) {
-      view.currentRent = unit.rent;
+    // S102: the export's `unit.rent` is the unit's listed rent, not the tenant's lease rent. Keep it
+    // only as the labelled reference. The export lease object carries no rent key (measured
+    // 2026-09-03), so a nested export view has no `currentRent` until the lease detail is applied;
+    // a lease-level lookalike on the export must never become current rent.
+    if (nestedLease) {
+      delete view.currentRent;
+      if (unit.rent !== undefined && unit.rent !== null) {
+        view[UNIT_LISTED_RENT_VIEW_KEY] = unit.rent;
+      }
     }
     // Preserve measured unit/property and owner-bearing siblings so downstream query/recipient
     // boundaries can reach the exact export facts (never overwriting a real lease field).
@@ -242,18 +266,103 @@ function firstPresentKey(
 }
 
 /**
- * Export-shaped views carry an explicit `unit` object and therefore accept only `unit.rent` as
- * contractual base rent. Flat legacy fixtures without a unit retain the configurable fallback.
+ * Export-shaped views carry an explicit `unit` object and therefore accept only the lease-detail
+ * `currentRent` applied by `applyLeaseDetailToView`; `unit.rent` and lease-level lookalikes never
+ * qualify. Flat legacy fixtures without a unit retain the configurable fallback.
  */
 function currentRentHit(
   lease: RawLease,
   fallbackKeys: string[],
 ): { key: string; value: unknown } | null {
   if (lease.unit && typeof lease.unit === "object" && !Array.isArray(lease.unit)) {
-    const unit = lease.unit as Record<string, unknown>;
-    return isPresent(unit.rent) ? { key: "currentRent", value: unit.rent } : null;
+    return isPresent(lease.currentRent)
+      ? { key: "currentRent", value: lease.currentRent }
+      : null;
   }
   return firstPresentKey(lease, fallbackKeys);
+}
+
+/** The stable RentVine lease id of a view, or null when absent. */
+export function leaseIdOfView(lease: RawLease): string | null {
+  const hit = firstPresentKey(lease, ["leaseID", "leaseId", "id"]);
+  if (!hit) return null;
+  const text = String(hit.value).trim();
+  return /^\d+$/.test(text) ? text : null;
+}
+
+function finitePositiveAmount(value: unknown): number | null {
+  const amount = toRentNumber(value);
+  return amount !== null && amount > 0 ? amount : null;
+}
+
+function providerBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text === "1") return true;
+    if (text === "0") return false;
+  }
+  return null;
+}
+
+/**
+ * Apply one documented lease-detail record to its export view (S102/S103). Only a finite positive
+ * `baseRentAmount` becomes `currentRent`; `rentAmount` stays separate as the total; month-to-month
+ * evidence is decoded from the exact provider shapes. Pure and idempotent.
+ */
+export function applyLeaseDetailToView(
+  view: RawLease,
+  detail: Readonly<Record<string, unknown>>,
+): LeaseDetailView {
+  const record =
+    detail.lease && typeof detail.lease === "object" && !Array.isArray(detail.lease)
+      ? (detail.lease as Record<string, unknown>)
+      : detail;
+  const baseRentAmount = finitePositiveAmount(record.baseRentAmount);
+  const applied: LeaseDetailView = {
+    status: "available",
+    baseRentAmount,
+    rentAmount: finitePositiveAmount(record.rentAmount),
+    isMonthToMonth: providerBoolean(record.isMonthToMonth),
+    monthToMonthStartDate: toIsoDate(record.monthToMonthStartDate),
+    hasPendingMonthToMonthConversion: providerBoolean(
+      record.hasPendingMonthToMonthConversion,
+    ),
+  };
+  if (baseRentAmount === null) delete view.currentRent;
+  else view.currentRent = baseRentAmount;
+  if (applied.rentAmount === null) delete view[TOTAL_RENT_AMOUNT_VIEW_KEY];
+  else view[TOTAL_RENT_AMOUNT_VIEW_KEY] = applied.rentAmount;
+  view[LEASE_DETAIL_VIEW_KEY] = applied;
+  return applied;
+}
+
+/** Record that the lease detail could not be read; the view keeps no current rent. */
+export function markLeaseDetailUnavailable(view: RawLease): void {
+  delete view.currentRent;
+  delete view[TOTAL_RENT_AMOUNT_VIEW_KEY];
+  view[LEASE_DETAIL_VIEW_KEY] = { status: "unavailable" } satisfies LeaseDetailView;
+}
+
+/** The applied lease-detail evidence, or null when no detail was applied or marked. */
+export function leaseDetailOf(lease: RawLease): LeaseDetailView | null {
+  const value = lease[LEASE_DETAIL_VIEW_KEY];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const status = (value as Record<string, unknown>).status;
+  return status === "available" || status === "unavailable"
+    ? (value as LeaseDetailView)
+    : null;
+}
+
+/** The export unit's listed rent as a finite number, for reference display only. */
+export function leaseUnitListedRent(lease: RawLease): number | undefined {
+  return toRentNumber(lease[UNIT_LISTED_RENT_VIEW_KEY]) ?? undefined;
+}
+
+/** The lease detail's total `rentAmount`, kept apart from contractual base rent. */
+export function leaseTotalRentAmount(lease: RawLease): number | undefined {
+  return toRentNumber(lease[TOTAL_RENT_AMOUNT_VIEW_KEY]) ?? undefined;
 }
 
 /** Resolve a tenant name from the lease, falling back to a nested tenants[] array (export shape). */

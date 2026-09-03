@@ -25,6 +25,7 @@ import {
   leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
 } from "../lib/integrations/rentvine/lease-mapper";
+import { enrichLeaseViewsWithDetail } from "../lib/integrations/rentvine/lease-detail-enrichment";
 import { createRentVineHealthCheckTransport } from "../lib/integrations/rentvine/health-probe";
 import {
   getHealthCheckContract,
@@ -158,6 +159,8 @@ async function main(): Promise<void> {
     // read the 25-row default page.
     rawRows = (await client.listAllLeasesExport()).rows;
     const views = leaseViewsFromExport(rawRows);
+    // S102: base rent comes from the documented lease detail (bounded read, shape-only output).
+    await enrichLeaseViewsWithDetail(views, client);
     leases =
       limit !== undefined && Number.isFinite(limit) && limit > 0
         ? views.slice(0, limit)

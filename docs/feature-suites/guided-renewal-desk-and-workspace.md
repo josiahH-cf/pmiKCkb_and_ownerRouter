@@ -126,8 +126,10 @@ conservatively retained as `Needs verification`; the desk publishes no inferred 
 blocker, or progress-dependent action and directs the operator to refresh. Status-dependent filters
 cannot claim an authoritative empty result until that supporting read recovers.
 
-Current rent on the table is the canonical RentVine export value already resolved from `unit.rent`
-by the existing RentVine mapper. It is not a Sheet value, a human-reconciled replacement, recurring
+Current rent on the table is the tenant's contractual base rent from the documented RentVine lease
+detail (`baseRentAmount`), applied to the shared lease view by the existing RentVine mapper under
+S102; the export's `unit.rent` is the unit's listed rent and appears only as a labelled reference. It
+is not a Sheet value, a human-reconciled replacement, recurring
 charges, a RentCast estimate, an Admin-approved suggestion, or an owner/tenant renewal offer. Format
 it as currency and label its source as RentVine. A missing/non-finite value renders `Needs
 Verification`; never coerce it to zero. A Sheet disagreement does not replace the displayed RentVine

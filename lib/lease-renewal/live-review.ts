@@ -11,6 +11,7 @@
 // authenticated app (design §6.1); they are never logged here.
 
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
 import {
   runFullyLiveRenewalReview,
   type FullyLiveRenewalRunResult,
@@ -101,8 +102,14 @@ async function runLiveReview(
   if (!config.ok) return { status: config.reason };
 
   try {
+    // S102: reuse the live lease generation (export + per-lease detail) instead of a second read.
+    const { snapshot } = await getLiveLeaseSnapshot(
+      config.rentvineClient,
+      Date.parse(readTimestamp),
+    );
     const result = await runFullyLiveRenewalReview({
       rentvineClient: config.rentvineClient,
+      leaseRead: { views: snapshot.views, complete: snapshot.complete },
       sheetsReader: config.sheetsReader,
       spreadsheetId: config.spreadsheetId,
       tabTitles: LIVE_REVIEW_TABS,

@@ -355,6 +355,9 @@ describe("S63 four-binding shape through the live read", () => {
     expect(byId.get("fixture-lease-b")?.endDate).toBe("2030-02-28");
     expect(byId.get("fixture-lease-c")?.endDate).toBe("2030-03-31");
     expect(byId.get("fixture-lease-d")?.endDate).toBe("2030-04-30");
-    expect(byId.get("fixture-lease-d")?.currentRent).toBe(0);
+    // S102: the export unit rent is only the listed-rent reference; without a detail reader no
+    // current rent exists and zero is never coerced into one.
+    expect(byId.get("fixture-lease-d")?.unitListedRent).toBe(0);
+    expect(byId.get("fixture-lease-d")?.currentRent).toBeUndefined();
   });
 });

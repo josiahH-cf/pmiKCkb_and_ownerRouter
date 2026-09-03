@@ -111,3 +111,43 @@ describe("production assurance aggregate preflight", () => {
     expect(fake.request).not.toHaveBeenCalled();
   });
 });
+
+describe("user-credential identity read (S51 quota-header fix)", () => {
+  it("reads userinfo with only the bearer token and never the ADC quota-project header", async () => {
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      expect(Object.keys(headers).map((key) => key.toLowerCase())).toEqual([
+        "authorization",
+      ]);
+      expect(headers.Authorization).toBe("Bearer synthetic-token");
+      return new Response(JSON.stringify({ email: "operator@pmikcmetro.com" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const request = vi.fn();
+    const client = {
+      request,
+      getAccessToken: vi.fn(async () => ({ token: "synthetic-token" })),
+    };
+    const auth = {
+      getCredentials: vi.fn(async () => ({})),
+      getClient: vi.fn(async () => client as never),
+    };
+    const context = await preflightProductionAssurance(
+      { project: "pmi-kc-kb-prod", deadlineAtMs: Date.now() + 60_000 },
+      {
+        env: {
+          ENVIRONMENT_KIND: "production",
+          DATA_CONTEXT: "live",
+        } as unknown as NodeJS.ProcessEnv,
+        loadEnvironment: () => undefined,
+        createAuth: () => auth,
+        fetch: fetchImpl as unknown as typeof fetch,
+      },
+    );
+    expect(context.project).toBe("pmi-kc-kb-prod");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(request).not.toHaveBeenCalled();
+  });
+});

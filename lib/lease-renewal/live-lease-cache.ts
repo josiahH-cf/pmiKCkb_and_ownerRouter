@@ -25,9 +25,21 @@
 // clearLiveLeaseCache() resets the module state between tests.
 
 import type { LeaseExportReadResult, RawLease } from "@/lib/integrations/rentvine/client";
+import {
+  enrichLeaseViewsWithDetail,
+  LEASE_DETAIL_READ_CONCURRENCY,
+  type LeaseDetailReader,
+} from "@/lib/integrations/rentvine/lease-detail-enrichment";
 import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 
-export interface LeaseExportReader {
+export { LEASE_DETAIL_READ_CONCURRENCY };
+
+/**
+ * The export reader plus, when the client exposes it, the documented per-lease detail read that
+ * S102 uses to enrich each view with the tenant's contractual base rent and S103's term evidence.
+ * A reader without `getLease` yields views whose rent is unavailable, never a unit-rent fallback.
+ */
+export interface LeaseExportReader extends Partial<LeaseDetailReader> {
   listAllLeasesExport(): Promise<LeaseExportReadResult>;
 }
 
@@ -52,6 +64,13 @@ export interface LiveLeaseSnapshot {
   complete: boolean;
   /** When this snapshot was read (the caller-supplied nowMs of the successful read). */
   readAtMs: number;
+  /**
+   * S102: true only when every lease received its documented detail (base rent and term evidence).
+   * False leaves portfolio completeness untouched; only the affected leases read `unavailable`.
+   */
+  detailComplete: boolean;
+  /** S102: leases whose detail read failed or was impossible in this generation. */
+  detailUnavailableCount: number;
 }
 
 /** The age/refresh facts a surface renders. Exactly one UI state derives from these. */
@@ -137,10 +156,21 @@ function readOnce(reader: LeaseExportReader, nowMs: number): Promise<LiveLeaseSn
   inflight = (async () => {
     try {
       const exportRead = await reader.listAllLeasesExport();
+      const views = leaseViewsFromExport(exportRead.rows);
+      // S102: the same generation carries each lease's documented detail so every consumer of the
+      // snapshot reads the tenant's base rent, never the export unit's listed rent.
+      const detail = await enrichLeaseViewsWithDetail(
+        views,
+        typeof reader.getLease === "function"
+          ? { getLease: (id) => reader.getLease!(id) }
+          : undefined,
+      );
       const snapshot: LiveLeaseSnapshot = {
-        views: leaseViewsFromExport(exportRead.rows),
+        views,
         complete: exportRead.complete,
         readAtMs: nowMs,
+        detailComplete: detail.detailComplete,
+        detailUnavailableCount: detail.detailUnavailableCount,
       };
       entry = { snapshot, invalidated: false };
       failure = null;

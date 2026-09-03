@@ -183,7 +183,11 @@ function fakeClient(overrides: ClientOverrides = {}) {
     pages: 1,
     complete: true,
   }));
-  const getLease = vi.fn(async () => overrides.lease ?? { leaseID: 42, propertyID: 7 });
+  // S102: the lease detail carries the tenant's base rent; the owner join still reads propertyID.
+  const getLease = vi.fn(async () => ({
+    baseRentAmount: 1400,
+    ...(overrides.lease ?? { leaseID: 42, propertyID: 7 }),
+  }));
   const getProperty = vi.fn(
     async () => overrides.property ?? { propertyID: 7, portfolioID: 9 },
   );
@@ -627,8 +631,10 @@ describe("renewal-notice-draft route — tenant channel is unchanged", () => {
     expect(payload.status).toBe("preview");
     expect(payload.channel).toBe("tenant");
     expect(payload.recipient.to).toBe("tenant42@northend-apts.com");
-    // The owner-only join is never walked for the tenant channel.
-    expect(getLease).not.toHaveBeenCalled();
+    // The owner-only join is never walked for the tenant channel. (S102 reads the lease detail
+    // for every lease inside the live generation, so only the property/portfolio/contact hops
+    // prove the join stayed closed.)
+    expect(getLease).not.toHaveBeenCalledWith("42", expect.anything());
     expect(getProperty).not.toHaveBeenCalled();
     expect(getPortfolio).not.toHaveBeenCalled();
     expect(getContact).not.toHaveBeenCalled();

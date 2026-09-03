@@ -112,24 +112,30 @@ export interface IndependentActionDestinationObservation {
 
 type NotesByTab = Readonly<Record<string, readonly (readonly (string | null)[])[]>>;
 
+/** Documented per-lease detail records keyed by lease id (S102: the only base-rent source). */
+export type IndependentLeaseDetailMap = ReadonlyMap<
+  string,
+  Readonly<Record<string, unknown>>
+>;
+
 /**
- * Project the measured RentVine export contract without using the renewal desk mapper or pipeline.
- * `unit.rent` is intentionally the only rent input: a lease-level lookalike cannot replace a
- * missing contractual base rent.
+ * Project the measured RentVine contract without using the renewal desk mapper or pipeline. S102:
+ * the tenant's contractual base rent is the lease DETAIL `baseRentAmount`; the export's `unit.rent`
+ * is a unit attribute and a lease-level lookalike cannot replace a missing base rent.
  */
 export function projectIndependentRentVineRows(
   exportRows: readonly Record<string, unknown>[],
   sheetLeaseUrls: ReadonlyMap<string, string>,
+  leaseDetails: IndependentLeaseDetailMap = new Map(),
 ): IndependentRenewalSourceRow[] {
   return exportRows.map((exportRow) => {
     const lease = asRecord(exportRow.lease) ?? exportRow;
-    const unit = asRecord(exportRow.unit);
     const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]) ?? "";
     const address = independentAddress(lease, exportRow);
     const owners = independentOwners(lease, exportRow);
     const tenants = independentTenants(lease);
     const endDate = independentDate(lease.endDate);
-    const rent = finiteAmount(unit?.rent);
+    const rent = independentRentVineCurrentRent(exportRow, leaseDetails);
     return {
       leaseId,
       address: address ?? `Lease ${leaseId || NEEDS_VERIFICATION}`,
@@ -251,11 +257,20 @@ export function independentSourceDigest(
   });
 }
 
-/** Read only the measured RentVine export path used for contractual base rent. */
+/**
+ * Read only the documented lease-detail path used for contractual base rent (S102). A missing or
+ * non-positive `baseRentAmount`, or a missing detail, is a missing rent; `unit.rent` never qualifies.
+ */
 export function independentRentVineCurrentRent(
   exportRow: Readonly<Record<string, unknown>>,
+  leaseDetails: IndependentLeaseDetailMap = new Map(),
 ): number | null {
-  return finiteAmount(asRecord(exportRow.unit)?.rent);
+  const lease = asRecord(exportRow.lease) ?? exportRow;
+  const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]);
+  const detail = leaseId === null ? undefined : leaseDetails.get(leaseId);
+  const inner = detail ? (asRecord(detail.lease) ?? detail) : undefined;
+  const rent = finiteAmount(inner?.baseRentAmount);
+  return rent !== null && rent > 0 ? rent : null;
 }
 
 /**

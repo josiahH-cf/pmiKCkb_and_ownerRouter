@@ -4,10 +4,11 @@ Updated: 2026-09-03.
 
 ## Outcome
 
-Deliver the active S82 conformance, S97 integrity hardening, S98 append integrity plus fixed-row
-capability refusal, and S51/S54 assurance correction as one bounded, falsifiable release without
-describing worktree behavior as production truth. Then resume the canonical feature queue only at its
-actual blocker.
+Promote the committed S82 conformance, S97 integrity hardening, S98 append integrity plus fixed-row
+capability refusal, and S51/S54 assurance correction through its deployed zero-traffic candidate once
+the owner-supplied assurance inputs exist, and execute the owner's 2026-09-03 renewal-completion
+program (S102-S111, rewritten S34) in dependency order without describing worktree behavior as
+production truth.
 
 ## Current implementation baseline
 
@@ -23,7 +24,9 @@ refuses fixed-row update/delete/restore until a provider-owned stable-row and ex
 seam exists. S100's closed-safe workflow and chat-sync action are deployed, proven, and activated; its
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
-expanded S51/S54 assurance harness are unreleased.
+expanded S51/S54 assurance harness are committed (`e6b76f9`) and deployed as zero-traffic
+candidate `pmi-kc-app-rmtloqhri-64ba4b00a394`; promotion waits on the managed Admin/Editor
+browser profiles and the S51 monitoring resource set. S102 is implemented and unreleased.
 
 ## Active correction slice
 
@@ -92,7 +95,7 @@ expanded S51/S54 assurance harness are unreleased.
   resident reply may be only an unsent draft in the signed-in managed mailbox.
 - No direct send, RentVine chat post, Vendor assignment, attachment upload, generic/bulk effect,
   autonomous/model-triggered effect, self-granted access, or personal runtime identity is allowed.
-- Dotloop and LeadSimple remain outside this slice pending separately grounded scopes.
+- Dotloop is now scoped by S106/S34 under D-RENEWAL-COMPLETION; LeadSimple remains deferred.
 - `.claude/settings.local.json`, `output/`, ignored `temp/`, credentials, bodies, provider payloads,
   and customer evidence remain outside Git and build uploads.
 
@@ -113,17 +116,20 @@ The only executable order is in `docs/feature-suites/README.md`:
 9. S99 — RentVine Maintenance work-order writeback. COMPLETE.
 10. S100 — RentVine work-order chat sync and resident draft. BLOCKED on the resident-draft runtime
     input; chat sync complete.
-11. S51/S54 — production assurance expansion. Active; owns the shared release gate for steps 6-8.
-12. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
-13. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
+11. S51/S54 — production assurance expansion. Committed; owns the shared release gate for steps 6-8.
+12. S102 — tenant current rent from the RentVine lease detail. Implemented, unreleased.
+13. S103, S104, S105, S106, S34, S107, S108, S109, S110, S111 — the renewal-completion program in
+    that order (owner direction 2026-09-03).
+14. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
+15. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.
-14. S90 and S91 — Work/access and renewal query adapters.
-15. S92 — knowledge and bounded grounded narration.
-16. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
-17. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
-18. S95 — atomic minimal Dashboard composition and relocation.
-19. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
-20. S101 — post-S87 read-only cross-application assistant expansion.
+16. S90 and S91 — Work/access and renewal query adapters.
+17. S92 — knowledge and bounded grounded narration.
+18. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
+19. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
+20. S95 — atomic minimal Dashboard composition and relocation.
+21. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
+22. S101 — post-S87 read-only cross-application assistant expansion.
 
 The correction slice is an explicit S82 conformance, S97/S98 integrity, and release-assurance
 intercept; it does not pretend a dependent feature suite advanced. Default to serialization. Only

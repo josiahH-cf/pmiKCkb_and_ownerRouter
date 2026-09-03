@@ -7,9 +7,11 @@ import {
   type RentVineHttpTransport,
 } from "@/lib/integrations/rentvine/client";
 import {
+  applyLeaseDetailToView,
   leaseCurrentRent,
   leaseEndDateIso,
   leaseTenantName,
+  leaseUnitListedRent,
   leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
@@ -37,7 +39,8 @@ function clientReturning(status: number, body: unknown): RentVineClient {
 }
 
 // Shaped like the live /leases/export response (KEY names confirmed live; values synthetic): tenant
-// names live on lease.tenants[].name and the contractual rent on unit.rent.
+// names live on lease.tenants[].name; unit.rent is the UNIT's listed rent. The tenant's contractual
+// base rent lives on the lease DETAIL (baseRentAmount), applied through applyLeaseDetailToView (S102).
 const EXPORT_ROW = {
   lease: {
     leaseID: 1,
@@ -57,15 +60,21 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect((rows[0].unit as Record<string, unknown>).rent).toBe("1250.00");
   });
 
-  it("flattens an export row: lifts unit.rent to currentRent and keeps tenants[]", () => {
+  it("flattens an export row: keeps unit.rent only as unitListedRent and leaves currentRent unset", () => {
     const views = leaseViewsFromExport([EXPORT_ROW]);
-    expect(views[0].currentRent).toBe("1250.00");
+    expect(views[0].currentRent).toBeUndefined();
+    expect(leaseUnitListedRent(views[0])).toBe(1250);
     expect(views[0].endDate).toBe("2026-08-31");
     expect(Array.isArray(views[0].tenants)).toBe(true);
   });
 
-  it("maps a flattened export view (tenant from tenants[0].name, rent from unit.rent)", () => {
+  it("maps a flattened export view (tenant from tenants[0].name, rent from the applied lease detail)", () => {
     const views = leaseViewsFromExport([EXPORT_ROW]);
+    applyLeaseDetailToView(views[0], {
+      leaseID: "1",
+      baseRentAmount: 1250,
+      rentAmount: 1250,
+    });
     const result = mapLeasesToNonSheetCandidates(views, { readTimestamp: READ_TS });
 
     expect(result.skipped).toBe(0);
@@ -76,7 +85,7 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect(result.resolvedKeys.currentRent).toBe("currentRent");
   });
 
-  it("uses unit.rent consistently when an export also carries a different lease-level rent", () => {
+  it("uses only the applied lease-detail base rent when the export carries unit and lease-level lookalikes", () => {
     const [view] = leaseViewsFromExport([
       {
         lease: {
@@ -86,13 +95,20 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
           currentRent: "998.00",
           tenants: [{ name: "Synthetic Household" }],
         },
-        unit: { rent: "1250.00" },
+        unit: { rent: "1000.00" },
       },
     ]);
-    expect(view.currentRent).toBe("1250.00");
-    expect(leaseCurrentRent(view)).toBe(1250);
+    expect(view.currentRent).toBeUndefined();
+    expect(leaseCurrentRent(view)).toBeUndefined();
+    applyLeaseDetailToView(view, {
+      leaseID: "8",
+      baseRentAmount: 1050,
+      rentAmount: 1075,
+    });
+    expect(leaseCurrentRent(view)).toBe(1050);
+    expect(leaseUnitListedRent(view)).toBe(1000);
     const mapped = mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS });
-    expect(mapped.candidates[0].fields.current_rent.value).toBe(1250);
+    expect(mapped.candidates[0].fields.current_rent.value).toBe(1050);
     expect(mapped.resolvedKeys.currentRent).toBe("currentRent");
   });
 
@@ -130,7 +146,9 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     ]);
 
     expect(view.unit).toEqual({ rent: "1250.00" });
-    expect(leaseCurrentRent(view)).toBe(1250);
+    expect(leaseUnitListedRent(view)).toBe(1250);
+    expect(leaseCurrentRent(view)).toBeUndefined();
+    applyLeaseDetailToView(view, { leaseID: "10", baseRentAmount: 1250 });
     expect(
       mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS }).candidates[0]
         .fields.current_rent.value,

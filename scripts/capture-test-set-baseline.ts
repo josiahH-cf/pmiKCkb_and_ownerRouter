@@ -31,6 +31,7 @@ import {
   leasePortfolioId,
   leaseViewsFromExport,
 } from "../lib/integrations/rentvine/lease-mapper";
+import { enrichLeaseViewsWithDetail } from "../lib/integrations/rentvine/lease-detail-enrichment";
 import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "../lib/lease-renewal/headers";
 import { readRenewalSheetGridsWithLinks } from "../lib/lease-renewal/sheet-links";
 import {
@@ -96,6 +97,8 @@ async function main(): Promise<void> {
     throw new S63RunError("rentvine_export_incomplete");
   }
   const views = leaseViewsFromExport(exportResult.rows);
+  // S102: base rent comes from the documented lease detail, never from the export unit's rent.
+  await enrichLeaseViewsWithDetail(views, rentvine);
 
   const sheetReader = new GoogleSheetsApiReader(
     requireEnv("SHEETS_IMPERSONATE_SA"),

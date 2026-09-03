@@ -13,7 +13,7 @@ import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 const READ_TS = "2026-06-20T00:00:00.000Z";
 
 describe("leaseViewsFromExport S59 query inputs", () => {
-  it("preserves the measured unit and property siblings beside canonical base rent", () => {
+  it("preserves the measured unit and property siblings and keeps unit.rent as the listed reference", () => {
     const unit = {
       rent: 1250,
       beds: 3,
@@ -31,7 +31,13 @@ describe("leaseViewsFromExport S59 query inputs", () => {
       leaseViewsFromExport([
         { lease: { leaseID: 7, tenants: [{ name: "Tenant" }] }, unit, property },
       ])[0],
-    ).toMatchObject({ currentRent: 1250, unit, property });
+    ).toMatchObject({ unitListedRent: 1250, unit, property });
+    // S102: the tenant's current rent comes only from the applied lease detail.
+    expect(
+      leaseViewsFromExport([
+        { lease: { leaseID: 7, tenants: [{ name: "Tenant" }] }, unit, property },
+      ])[0].currentRent,
+    ).toBeUndefined();
   });
 });
 

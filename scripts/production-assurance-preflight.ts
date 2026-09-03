@@ -34,6 +34,35 @@ export interface ProductionAssurancePreflightDependencies {
   readonly env?: NodeJS.ProcessEnv;
   readonly loadEnvironment?: () => void;
   readonly createAuth?: () => AssuranceAuth;
+  /** Identity read transport (tests inject a fake); defaults to global fetch. */
+  readonly fetch?: typeof fetch;
+}
+
+/**
+ * Read the signed-in user's email from the OpenID userinfo endpoint with ONLY the bearer token.
+ * google-auth-library adds `x-goog-user-project` from the ADC quota project to every
+ * `client.request`, and the userinfo endpoint rejects that header with a serviceusage permission
+ * error even for a project Owner. The bearer token alone is sufficient and value-free here; the
+ * token never leaves this call and is never logged.
+ */
+async function readUserInfoEmail(
+  client: AuthenticatedAssuranceClient,
+  fetchImpl: typeof fetch,
+  signal: AbortSignal | undefined,
+): Promise<string | undefined> {
+  const accessToken = await client.getAccessToken();
+  const token = accessToken?.token;
+  if (typeof token !== "string" || token.length === 0) {
+    throw new Error("assurance_adc_identity_invalid");
+  }
+  const response = await fetchImpl("https://openidconnect.googleapis.com/v1/userinfo", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    ...(signal ? { signal } : {}),
+  });
+  if (!response.ok) throw new Error("assurance_adc_identity_invalid");
+  const payload = (await response.json()) as { readonly email?: unknown };
+  return typeof payload.email === "string" ? payload.email : undefined;
 }
 
 export function assertLiveAssuranceEnvironment(
@@ -151,20 +180,26 @@ export async function preflightProductionAssurance(
     remainingAssuranceTime(input.deadlineAtMs, ASSURANCE_RUN_TIMEOUT_MS),
   );
   if (!email) {
-    const response = await withAssuranceTimeout(
+    const signal = assuranceAbortSignal(
+      remainingAssuranceTime(input.deadlineAtMs),
+      input.abortSignal,
+    );
+    email = await withAssuranceTimeout(
       () =>
-        client.request<{ readonly email?: unknown }>({
-          method: "GET",
-          url: "https://openidconnect.googleapis.com/v1/userinfo",
-          signal: assuranceAbortSignal(
-            remainingAssuranceTime(input.deadlineAtMs),
-            input.abortSignal,
-          ),
-        }),
+        typeof (client as { getAccessToken?: unknown }).getAccessToken === "function"
+          ? readUserInfoEmail(client, dependencies.fetch ?? fetch, signal)
+          : client
+              .request<{ readonly email?: unknown }>({
+                method: "GET",
+                url: "https://openidconnect.googleapis.com/v1/userinfo",
+                signal,
+              })
+              .then((response) =>
+                typeof response.data.email === "string" ? response.data.email : undefined,
+              ),
       "assurance_identity_deadline_exceeded",
       remainingAssuranceTime(input.deadlineAtMs, ASSURANCE_RUN_TIMEOUT_MS),
     );
-    email = typeof response.data.email === "string" ? response.data.email : undefined;
     assertAssuranceAdcIdentity(email, input.project);
   }
 

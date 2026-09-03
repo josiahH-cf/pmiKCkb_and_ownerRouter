@@ -3,10 +3,11 @@
 
 # S102 — Tenant current rent from the active RentVine lease
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. The deployed renewal lane and
-> the active S82 remediation read `unit.rent` from the RentVine lease export as the lease's current
-> contractual base rent. The owner's application review showed that value moving with the
-> property-level market rent, so it is the wrong source for what the tenant pays.
+> Status: Implemented in the working tree on 2026-09-03 and unreleased. The shared lease view now
+> carries `currentRent` from the documented lease detail `baseRentAmount` inside the live lease
+> generation, keeps `unit.rent` only as the labelled `unitListedRent` reference, and the S51 oracle,
+> live review, console provider, and scripts read the same source. The serving revision still reads
+> `unit.rent`, which the owner's review showed moving with the property-level market rent.
 
 **Goal.**
 

@@ -37,7 +37,7 @@ const RENTVINE_HOST = "pmikcmetro.rentvine.com";
 const SOURCE_URL = "https://pmikcmetro.rentvine.com/leases/115";
 
 describe("independent production renewal source projection", () => {
-  it("reads measured export paths and never substitutes a lease-level rent", () => {
+  it("reads measured export paths and takes base rent only from the lease detail", () => {
     const rows = projectIndependentRentVineRows(
       [
         {
@@ -69,6 +69,9 @@ describe("independent production renewal source projection", () => {
         },
       ],
       new Map([["115", SOURCE_URL]]),
+      // S102: unit.rent (1,250) is the unit's listed rent; the lease detail carries the tenant's
+      // base rent and is the only rent input.
+      new Map([["115", { leaseID: "115", baseRentAmount: 1225, rentAmount: 1250 }]]),
     );
 
     expect(rows[0]).toEqual({
@@ -77,10 +80,21 @@ describe("independent production renewal source projection", () => {
       owners: ["Owner LLC"],
       tenants: ["Tenant One", "Tenant Two"],
       endDate: "2026-10-31",
-      baseRent: "$1,250",
+      baseRent: "$1,225",
       rentvineSourceUrl: SOURCE_URL,
     });
     expect(rows[1].baseRent).toBe("Needs Verification");
+    expect(
+      projectIndependentRentVineRows(
+        [
+          {
+            lease: { leaseID: 117, tenants: [{ name: "No Detail" }] },
+            unit: { rent: "1,250.00" },
+          },
+        ],
+        new Map(),
+      )[0].baseRent,
+    ).toBe("Needs Verification");
   });
 
   it("pairs evaluated values with only validated FORMULA links and excludes proof rows", () => {

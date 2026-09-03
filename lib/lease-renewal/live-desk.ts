@@ -21,6 +21,7 @@ import {
   RENTVINE_SOURCE,
   RENTVINE_SOURCE_SYSTEM,
   leaseCurrentRent,
+  leaseUnitListedRent,
   leaseEndDateIso,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
@@ -1379,6 +1380,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       currency,
     );
     const currentRent = currentRentDecision.currentRent;
+    const unitListedRent = leaseUnitListedRent(view);
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
     let summary = toLiveSummary(view, classification, windows, dataCheck, progress);
@@ -1546,6 +1548,9 @@ export async function loadLiveRenewalLeaseWorkspace(
       ...(compAttributes ? { compAttributes } : {}),
       // S60: the authoritative rent for the internal under-market signal (never a draft input).
       ...(typeof currentRent === "number" && currentRent > 0 ? { currentRent } : {}),
+      ...(typeof unitListedRent === "number" && unitListedRent > 0
+        ? { unitListedRent }
+        : {}),
     };
     return { status: "ok", workspace };
   } catch {

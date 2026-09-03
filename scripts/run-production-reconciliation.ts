@@ -588,6 +588,43 @@ async function readDirectProjection(
         .then((value) => ({ ok: true as const, value }))
         .catch(() => ({ ok: false as const }))
     : ({ ok: false as const } as const);
+  // S102: the tenant's base rent lives on the documented lease detail; read every lease's detail
+  // under the same bounded deadline and keep the map alongside the export rows. A failed detail is
+  // a missing rent for that lease, never a fallback to the export unit's listed rent.
+  const leaseDetails: Map<string, Readonly<Record<string, unknown>>> = new Map();
+  if (rentvineRead.ok && rentvineClient) {
+    const ids = rentvineRead.value.rows
+      .map((row) => {
+        const lease = (
+          row.lease && typeof row.lease === "object" ? row.lease : row
+        ) as Record<string, unknown>;
+        const value = lease.leaseID ?? lease.leaseId ?? lease.id;
+        return value === undefined || value === null ? null : String(value).trim();
+      })
+      .filter((id): id is string => id !== null && /^d+$/.test(id));
+    await withAssuranceTimeout(
+      async () => {
+        let next = 0;
+        const worker = async () => {
+          while (next < ids.length) {
+            const id = ids[next];
+            next += 1;
+            try {
+              leaseDetails.set(id, await rentvineClient.getLease(id));
+            } catch {
+              // Missing detail: the row's base rent stays Needs Verification.
+            }
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(6, Math.max(ids.length, 1)) }, worker),
+        );
+      },
+      "rentvine_assurance_detail_read_timeout",
+      remainingAssuranceTime(deadlineAtMs, 120_000),
+      { onTimeout: () => beginSourceClientClose(clients) },
+    ).catch(() => undefined);
+  }
   const expectedRentvineHost = clients.expectedRentvineHost;
   const sheetRead = expectedRentvineHost
     ? await withAssuranceTimeout(
@@ -617,6 +654,7 @@ async function readDirectProjection(
     ? projectIndependentRentVineRows(
         rentvineRead.value.rows,
         sheetRead.ok ? sheetRead.value.leaseUrls : new Map(),
+        leaseDetails,
       )
     : [];
   let decision: SourceReadState = decisionRead.ok ? "complete" : "unavailable";
@@ -631,6 +669,7 @@ async function readDirectProjection(
           ? decisionRead.value
           : { resolutions: [], trackedIncompleteLeaseIds: new Set() },
         referenceDateIso,
+        leaseDetails,
       );
     } catch {
       decision = "unavailable";
@@ -640,6 +679,7 @@ async function readDirectProjection(
         sheetRead.ok ? sheetRead.value : null,
         { resolutions: [], trackedIncompleteLeaseIds: new Set() },
         referenceDateIso,
+        leaseDetails,
       );
     }
   }
@@ -667,6 +707,7 @@ function buildExpectedProjectionRows(
   sheet: IndependentSheetProjection | null,
   decisions: IndependentDecisionFacts,
   referenceDateIso: string,
+  leaseDetails: ReadonlyMap<string, Readonly<Record<string, unknown>>> = new Map(),
 ): ExpectedProjectionRow[] {
   return baseRows.map((row, index) => {
     const sourceRow = rentvineRows[index] ?? {};
@@ -692,7 +733,7 @@ function buildExpectedProjectionRows(
     const sourceExpectation: IndependentRentExpectation = row.leaseId
       ? projectIndependentRentExpectation({
           leaseId: row.leaseId,
-          rentvineCurrentRent: independentRentVineCurrentRent(sourceRow),
+          rentvineCurrentRent: independentRentVineCurrentRent(sourceRow, leaseDetails),
           sheetFact: sheet?.byLeaseId.get(row.leaseId) ?? null,
           resolutions: decisions.resolutions,
         })

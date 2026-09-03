@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { withFakeLeaseDetail } from "@/tests/helpers/rentvine-detail-fake";
 import {
   runFullyLiveRenewalReview,
   runLiveRenewalReview,
@@ -35,7 +36,7 @@ function fakeClient(rows: Record<string, unknown>[]) {
 describe("runLiveRenewalReview", () => {
   it("maps the live read and keeps the run non-executable", async () => {
     const { run, liveRentvineCandidates, skippedLeases } = await runLiveRenewalReview({
-      rentvineClient: fakeClient(EXPORT_ROWS),
+      rentvineClient: withFakeLeaseDetail(fakeClient(EXPORT_ROWS)),
       runId: "live-1",
       readTimestamp: READ_TS,
       tables: [],
@@ -50,7 +51,7 @@ describe("runLiveRenewalReview", () => {
 
   it("uses fixture tables and other sources only when the test injects them explicitly", async () => {
     const { run } = await runLiveRenewalReview({
-      rentvineClient: fakeClient(EXPORT_ROWS),
+      rentvineClient: withFakeLeaseDetail(fakeClient(EXPORT_ROWS)),
       runId: "live-2",
       readTimestamp: READ_TS,
       tables: SAMPLE_RENEWAL_TABLES,
@@ -74,7 +75,7 @@ describe("runLiveRenewalReview", () => {
 
   it("does not leak a tenant name or rent into the counts-only manifest", async () => {
     const { run } = await runLiveRenewalReview({
-      rentvineClient: fakeClient(EXPORT_ROWS),
+      rentvineClient: withFakeLeaseDetail(fakeClient(EXPORT_ROWS)),
       runId: "live-3",
       readTimestamp: READ_TS,
       tables: [],
@@ -103,7 +104,7 @@ describe("runFullyLiveRenewalReview", () => {
 
   it("composes both live reads: sheet tables + Rentvine candidates, no writes", async () => {
     const result = await runFullyLiveRenewalReview({
-      rentvineClient: fakeClient(EXPORT_ROWS),
+      rentvineClient: withFakeLeaseDetail(fakeClient(EXPORT_ROWS)),
       sheetsReader,
       spreadsheetId: "sheet-id",
       tabTitles: ["Renewals", "Property Attributes"],

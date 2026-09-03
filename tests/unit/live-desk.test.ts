@@ -8,6 +8,10 @@ import {
   type LiveLeaseSnapshotResult,
 } from "@/lib/lease-renewal/live-lease-cache";
 import {
+  applyFakeLeaseDetail,
+  withFakeLeaseDetail,
+} from "@/tests/helpers/rentvine-detail-fake";
+import {
   buildLiveProcessEvidence,
   loadLiveOwnerCurrentRentDecision,
   loadLiveRenewalDesk,
@@ -174,7 +178,8 @@ function okConfig(
 ) {
   return {
     ok: true as const,
-    rentvineClient: { listAllLeasesExport },
+    // S102: the fake client answers the documented lease-detail read from the rows it returned.
+    rentvineClient: withFakeLeaseDetail({ listAllLeasesExport }),
     rentvineHost: "pmikcmetro.rentvine.com",
     sheetsReader: fakeSheetsReader(),
     spreadsheetId: "sheet-id",
@@ -184,11 +189,15 @@ function okConfig(
 function snapshotResult(
   rows: readonly Record<string, unknown>[] = EXPORT_ROWS as Record<string, unknown>[],
 ): LiveLeaseSnapshotResult {
+  const views = leaseViewsFromExport(rows);
+  applyFakeLeaseDetail(views, rows);
   return {
     snapshot: {
-      views: leaseViewsFromExport(rows),
+      views,
       complete: true,
       readAtMs: Date.parse(READ_TS),
+      detailComplete: true,
+      detailUnavailableCount: 0,
     },
     currency: {
       state: "fresh",
@@ -1516,5 +1525,56 @@ describe("S82 desk guidance rows", () => {
     expect(row?.guidance.currentBaseRent).toBe(1400);
     expect(row?.guidance.rentVerification.state).toBe("needs_verification");
     expect(row?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
+  });
+});
+
+// S102: the desk's current base rent is the lease-detail base rent, never the export unit's rent.
+describe("S102 desk current base rent source", () => {
+  it("shows the lease-detail base rent when the unit's listed rent differs", async () => {
+    const config = okConfig(async () => ({
+      rows: [
+        {
+          lease: {
+            leaseID: 9102,
+            endDate: "2026-08-31",
+            leaseType: "Fixed Term",
+            baseRentAmount: 1050,
+            tenants: [{ name: "Detail Tenant" }],
+          },
+          unit: { rent: "1000.00" },
+        },
+      ],
+      pages: 1,
+      complete: true,
+    }));
+    const view = await loadLiveRenewalDesk(
+      [{ startIso: "2026-08-01", endIso: "2026-08-31" }],
+      READ_TS,
+      config as unknown as NonNullable<DeskConfigArg>,
+    );
+    expect(view.status).toBe("ok");
+    if (view.status !== "ok") return;
+    const row = view.view.items.find((item) => item.id === "9102");
+    expect(row?.guidance.currentBaseRent).toBe(1050);
+    expect(row?.guidance.currentBaseRentSource).toBe("RentVine");
+  });
+
+  it("keeps the rent unavailable when the client has no lease-detail read", async () => {
+    const config = okConfig();
+    const exportOnly = {
+      ...config,
+      rentvineClient: { listAllLeasesExport: config.rentvineClient.listAllLeasesExport },
+    };
+    const view = await loadLiveRenewalDesk(
+      [{ startIso: "2026-08-01", endIso: "2026-08-31" }],
+      READ_TS,
+      exportOnly as unknown as NonNullable<DeskConfigArg>,
+    );
+    expect(view.status).toBe("ok");
+    if (view.status !== "ok") return;
+    for (const row of view.view.items) {
+      expect(row.guidance.currentBaseRent).toBeNull();
+      expect(row.guidance.rentVerification).not.toBe("verified");
+    }
   });
 });

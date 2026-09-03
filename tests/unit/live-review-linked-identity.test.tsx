@@ -13,6 +13,7 @@ import {
 } from "@/lib/lease-renewal/live-review";
 import { loadLiveRenewalLeaseWorkspace } from "@/lib/lease-renewal/live-desk";
 import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import { withFakeLeaseDetail } from "@/tests/helpers/rentvine-detail-fake";
 import {
   buildLiveRenewalReviewItemHref,
   liveRenewalReviewItemId,
@@ -66,7 +67,7 @@ beforeEach(() => {
     ok: true,
     spreadsheetId: "synthetic-sheet",
     rentvineHost: "pmikcmetro.rentvine.com",
-    rentvineClient: {
+    rentvineClient: withFakeLeaseDetail({
       async listAllLeasesExport() {
         return {
           rows: [
@@ -83,7 +84,7 @@ beforeEach(() => {
           complete: true,
         };
       },
-    },
+    }),
     sheetsReader: {
       async listTabTitles() {
         return ["Lease Renewal"];

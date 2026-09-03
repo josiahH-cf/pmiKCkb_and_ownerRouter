@@ -323,4 +323,9 @@ export interface RenewalLeaseWorkspace {
   compAttributes?: { bedrooms?: number; bathrooms?: number; postalCode?: string };
   /** S60: the authoritative current rent (RentVine), for the INTERNAL under-market signal only. */
   currentRent?: number;
+  /**
+   * S102: the export unit's listed rent, shown only as a labelled reference beside the tenant's
+   * base rent. It never feeds verification, proposals, drafts, or the Sheet comparison.
+   */
+  unitListedRent?: number;
 }

@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-09-02.
+Last updated: 2026-09-03.
 
 This is a present snapshot, not a changelog. Historical implementation and proof detail remains in
 Git and provider/app receipts.
@@ -19,8 +19,9 @@ Git and provider/app receipts.
 - Direct client sends: closed; supported initiation ends with an unsent Gmail draft
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
-stable readback. The repository `HEAD` after that release is documentation-only and is not the served
-application commit.
+stable readback. The remediation slice below is committed at `e6b76f9` and deployed as zero-traffic
+candidate `pmi-kc-app-rmtloqhri-64ba4b00a394` from commit `28a9253646af1a7293f96db94feedff1c50d59fb`;
+its anonymous smoke passed at the exact commit and revision, and it is not promoted.
 
 ## Delivered application baseline
 
@@ -45,10 +46,10 @@ application commit.
   disclosed mark-read proof and is activated. No polling, webhook, RentVine chat post, or direct send
   is reachable.
 
-## Active unreleased remediation
+## Committed, candidate-deployed, unpromoted remediation
 
 Adversarial review reopened S82 conformance, added bounded S97/S98 write-integrity hardening, and
-expanded S51/S54 assurance. The current worktree is correcting nullable-rent display/draft behavior,
+expanded S51/S54 assurance. The committed slice corrects nullable-rent display/draft behavior,
 typed auxiliary-read degradation, desk/workspace packet parity, exact source destinations,
 phase-local source-write panels, forced post-write source freshness, snapshot-bound discrepancy
 decisions/approvals/Sheet claims, one resolution-aware blocker projection, visible scope/count/filter
@@ -75,7 +76,19 @@ activity. These changes are
 not production behavior and cannot be called green until focused tests, the canonical verifier, core
 E2E, exact-SHA CI, zero-traffic candidate checks, promotion, and live readback pass.
 
+## Renewal-completion program (owner direction 2026-09-03)
+
+The owner's specification package is grounded as S102-S111 plus the rewritten S34 and executes before
+S36 and the assistant program. S102 (tenant current rent from the RentVine lease detail
+`baseRentAmount`, with `unit.rent` kept only as a labelled reference) is implemented in the working
+tree and unreleased. S103-S111 and S34 remain specified only. The S51 identity-read fix (bearer-only
+userinfo read) is also unreleased.
+
 ## Blocked and queued work
+
+- Promotion of the current candidate waits on two authenticated managed Admin/Editor browser
+  profiles and a passing S51 monitoring resource set (currently `DRIFT`: one mismatched managed
+  channel, no metric, no policies).
 
 - S100 is BLOCKED only on `gmail.maintenance_resident_reply.draft_create`. Its exact proof requires a
   synchronized resident message mapped to a verified resident email in the signed-in managed

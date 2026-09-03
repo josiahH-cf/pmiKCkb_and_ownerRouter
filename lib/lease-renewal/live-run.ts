@@ -6,7 +6,8 @@
 // NonSheetCandidates the pipeline already reconciles. The pipeline result still carries
 // `production_allowed: false` and a counts-only manifest — no writes.
 
-import type { RentVineClient } from "@/lib/integrations/rentvine/client";
+import type { RawLease, RentVineClient } from "@/lib/integrations/rentvine/client";
+import { enrichLeaseViewsWithDetail } from "@/lib/integrations/rentvine/lease-detail-enrichment";
 import {
   RENTVINE_SOURCE,
   leaseViewsFromExport,
@@ -34,8 +35,18 @@ import {
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 
 export interface LiveRenewalRunOptions {
-  /** Only the read-only COMPLETE export read is used — a fake satisfies this in tests. */
-  rentvineClient: Pick<RentVineClient, "listAllLeasesExport">;
+  /**
+   * The read-only COMPLETE export read plus, when available, the documented per-lease detail read
+   * that S102 uses for the tenant's base rent. A fake satisfies this in tests.
+   */
+  rentvineClient: Pick<RentVineClient, "listAllLeasesExport"> &
+    Partial<Pick<RentVineClient, "getLease">>;
+  /**
+   * S102: an already-read, already-enriched lease generation (the live lease cache snapshot). When
+   * present the run performs no export or detail read of its own, so the desk, workspace, and
+   * review share one generation instead of re-reading the portfolio.
+   */
+  leaseRead?: { views: RawLease[]; complete: boolean };
   runId: string;
   /** Read timestamp captured at read time; accepted as INPUT, never Date.now(). */
   readTimestamp: string;
@@ -85,10 +96,27 @@ export interface LiveRenewalRunResult {
 export async function runLiveRenewalReview(
   options: LiveRenewalRunOptions,
 ): Promise<LiveRenewalRunResult> {
-  const exportRead = await options.rentvineClient.listAllLeasesExport(
-    options.listParams ? { params: options.listParams } : {},
-  );
-  const views = leaseViewsFromExport(exportRead.rows);
+  let views: RawLease[];
+  let exportComplete: boolean;
+  if (options.leaseRead) {
+    views = options.leaseRead.views;
+    exportComplete = options.leaseRead.complete;
+  } else {
+    const exportRead = await options.rentvineClient.listAllLeasesExport(
+      options.listParams ? { params: options.listParams } : {},
+    );
+    views = leaseViewsFromExport(exportRead.rows);
+    exportComplete = exportRead.complete;
+    // S102: the direct path enriches its own views so no consumer sees the unit's listed rent as
+    // the tenant's current rent.
+    const detailReader = options.rentvineClient;
+    await enrichLeaseViewsWithDetail(
+      views,
+      typeof detailReader.getLease === "function"
+        ? { getLease: (id) => detailReader.getLease!(id) }
+        : undefined,
+    );
+  }
 
   let viewsToMap = views;
   let cohort: RenewalCohort | undefined;
@@ -122,7 +150,7 @@ export async function runLiveRenewalReview(
     pipelineInput,
     liveRentvineCandidates: mapping.candidates.length,
     skippedLeases: mapping.skipped,
-    exportComplete: exportRead.complete,
+    exportComplete,
     ...(cohort ? { cohort } : {}),
   };
 }

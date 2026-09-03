@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 
 import { composeRentVineAddress } from "@/lib/integrations/rentvine/address";
 import type { RentVineClient } from "@/lib/integrations/rentvine/client";
+import { enrichLeaseViewsWithDetail } from "@/lib/integrations/rentvine/lease-detail-enrichment";
+import {
+  leaseCurrentRent,
+  leaseViewsFromExport,
+} from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import type {
   ConsoleDataProvider,
@@ -29,7 +34,8 @@ export function resetRentvineConsoleCacheForTests() {
 
 export function createRentvineConsoleProvider(
   options: {
-    client?: Pick<RentVineClient, "listAllLeasesExport">;
+    client?: Pick<RentVineClient, "listAllLeasesExport"> &
+      Partial<Pick<RentVineClient, "getLease">>;
     now?: () => Date;
   } = {},
 ): ConsoleDataProvider {
@@ -54,9 +60,16 @@ export function createRentvineConsoleProvider(
       try {
         const exportRead = await client.listAllLeasesExport();
         const totalLeases = exportRead.rows.length;
-        const rows = exportRead.rows
-          .slice(0, MAX_ROWS)
-          .map((row) => toConsoleRow(row, observedAt))
+        // S102: current rent comes from the documented lease detail, never from the export unit.
+        const views = leaseViewsFromExport(exportRead.rows.slice(0, MAX_ROWS));
+        await enrichLeaseViewsWithDetail(
+          views,
+          typeof client.getLease === "function"
+            ? { getLease: (id) => client.getLease!(id) }
+            : undefined,
+        );
+        const rows = views
+          .map((view) => toConsoleRow(view, observedAt))
           .filter((row): row is ConsoleOperationalRow => row !== null);
         const sourceHealth = healthySourceState(
           rows.length,
@@ -98,9 +111,7 @@ function toConsoleRow(
   const leaseRef = firstString(lease, ["leaseID", "leaseId", "id"]);
   if (!tenant && !propertyLabel && !leaseRef) return null;
 
-  const rent =
-    firstFiniteNumber(unit, ["rent", "currentRent", "rentAmount"]) ??
-    firstFiniteNumber(lease, ["rent", "currentRent", "rentAmount"]);
+  const rent = leaseCurrentRent(row) ?? null;
   const leaseEnd = firstString(lease, [
     "endDate",
     "leaseEndDate",
@@ -190,18 +201,6 @@ function firstString(value: Record<string, unknown>, keys: readonly string[]) {
     }
     if (typeof candidate === "number" && Number.isFinite(candidate)) {
       return String(candidate);
-    }
-  }
-  return null;
-}
-
-function firstFiniteNumber(value: Record<string, unknown>, keys: readonly string[]) {
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
-    if (typeof candidate === "string" && candidate.trim()) {
-      const parsed = Number(candidate.replace(/[$,\s]/g, ""));
-      if (Number.isFinite(parsed)) return parsed;
     }
   }
   return null;

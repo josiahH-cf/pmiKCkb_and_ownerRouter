@@ -29,6 +29,10 @@ import {
   rentVineAccountCode,
   type RawLease,
 } from "../lib/integrations/rentvine/client";
+import {
+  enrichLeaseViewsWithDetail,
+  type LeaseDetailReader,
+} from "../lib/integrations/rentvine/lease-detail-enrichment";
 import { leaseViewsFromExport } from "../lib/integrations/rentvine/lease-mapper";
 import {
   LeaseGmailExecutor,
@@ -298,6 +302,13 @@ async function runLive(
   // miss any lease outside it (including the whole test cohort).
   const rows = (await rentvineClient.listAllLeasesExport()).rows;
   const leases = leaseViewsFromExport(rows).slice(0, Number.isFinite(limit) ? limit : 25);
+  // S102: base rent comes from the documented lease detail for the bounded sample only.
+  await enrichLeaseViewsWithDetail(
+    leases,
+    "getLease" in rentvineClient
+      ? (rentvineClient as unknown as LeaseDetailReader)
+      : undefined,
+  );
   dependencies.logger.log(
     `RentVine account ${rentVineAccountCode(baseUrl)}: scanned ${leases.length} lease view(s) for recipient resolution.`,
   );

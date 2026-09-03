@@ -85,6 +85,12 @@ function resolveSelectedStep(
   return workspace.process.steps[workspace.process.currentStepIndex]?.id ?? ids[0];
 }
 
+function formatCurrencyReference(amount: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    amount,
+  );
+}
+
 export function RenewalWorkspace({
   compScreenshotExecutable = false,
   packetSnapshot = null,
@@ -624,6 +630,12 @@ function PhaseContent({
                 );
               })}
             </ul>
+            {typeof workspace.unitListedRent === "number" ? (
+              <p className="muted">
+                Unit rent (RentVine): {formatCurrencyReference(workspace.unitListedRent)}.
+                Reference only; the current base rent above comes from the lease.
+              </p>
+            ) : null}
             {sheetDestination ? (
               <p>
                 <a

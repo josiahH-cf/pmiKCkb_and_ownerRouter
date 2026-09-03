@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { withFakeLeaseDetail } from "@/tests/helpers/rentvine-detail-fake";
 
 import type { LeaseExportReadResult } from "@/lib/integrations/rentvine/client";
 import {
@@ -60,7 +61,8 @@ describe("Console Rentvine Live provider", () => {
       }),
     );
     const provider = createRentvineConsoleProvider({
-      client: { listAllLeasesExport },
+      // S102: current rent comes from the lease detail the fake derives from the fixture row.
+      client: withFakeLeaseDetail({ listAllLeasesExport }),
       now: () => new Date("2026-07-15T12:00:00.000Z"),
     });
     const result = await provider.load(ACTOR);
