@@ -30,16 +30,16 @@ open key does not imply role/Space access.
 
 The approved matrix is:
 
-| Capability                                                              | Editor with Renewals Space      | Approver/Admin distinction               | External authority                   |
-| ----------------------------------------------------------------------- | ------------------------------- | ---------------------------------------- | ------------------------------------ |
-| Read canonical desk/workspace and source-backed facts                   | Allowed                         | Same                                     | Read connection and freshness checks |
-| Search/sort/filter and save app-owned progress/record an owner decision | Allowed and audited             | Same                                     | No provider write                    |
-| Request RentCast reference comps                                        | Allowed                         | Same                                     | Exact read key, runtime state, quota |
-| Approve a comp-derived pricing suggestion                               | Not implied                     | Existing Approver/Admin rule             | App approval record only             |
-| Preview and create one unsent renewal Gmail draft                       | Allowed with exact confirmation | Same                                     | Exact draft key; never send          |
-| Manage timing/pricing policy, users, connections, suspensions, or gates | Denied                          | Existing Admin-only rule                 | Exact management boundary            |
-| Write RentVine/Sheet or store screenshot                                | No role alone authorizes        | Exact reviewed flow when separately open | Current keys remain closed           |
-| Send a renewal message from the app                                     | Never                           | Never                                    | Permanently closed                   |
+| Capability                                                              | Editor with Renewals Space      | Approver/Admin distinction               | External authority                                                                                              |
+| ----------------------------------------------------------------------- | ------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Read canonical desk/workspace and source-backed facts                   | Allowed                         | Same                                     | Read connection and freshness checks                                                                            |
+| Search/sort/filter and save app-owned progress/record an owner decision | Allowed and audited             | Same                                     | No provider write                                                                                               |
+| Request RentCast reference comps                                        | Allowed                         | Same                                     | Exact read key, runtime state, quota                                                                            |
+| Approve a comp-derived pricing suggestion                               | Not implied                     | Existing Approver/Admin rule             | App approval record only                                                                                        |
+| Preview and create one unsent renewal Gmail draft                       | Allowed with exact confirmation | Same                                     | Exact draft key; never send                                                                                     |
+| Manage timing/pricing policy, users, connections, suspensions, or gates | Denied                          | Existing Admin-only rule                 | Exact management boundary                                                                                       |
+| Write RentVine/Sheet or store screenshot                                | No role alone authorizes        | Exact reviewed flow when separately open | Exact S97/S98 keys are open; operation capability remains conjunctive and S98 fixed-row effects are unavailable |
+| Send a renewal message from the app                                     | Never                           | Never                                    | Permanently closed                                                                                              |
 
 **In scope / out of scope.**
 
@@ -183,10 +183,11 @@ authorized; unprotected page/route alignment may proceed under standing implemen
   projecting its declared row.
 - Editors can enter the canonical desk/workspace and use ordinary app-owned progress, owner-direction,
   comp-read, and exact unsent-draft flows. Approver reconciliation, Admin pricing/source approvals,
-  Admin configuration, closed source writes, and permanent in-app-send refusal remain distinct and
+  Admin configuration, separately exact-gated source writes, and permanent in-app-send refusal remain distinct and
   are explained in the operator UI and direct API errors.
-- The exact Registry preservation test proves the RentCast and renewal-draft keys remain open while
-  screenshot storage, RentVine/Sheet writes, and renewal/generic sends remain closed. No protected
+- Current Registry readback is governed by `docs/facts.md`: S97/S98 exact keys are open, while S98
+  fixed-row effects still fail their operation-capability check; screenshot storage and renewal/generic
+  sends remain closed. No role alone opens any key. No protected
   auth, Action Registry, action-gate, Firestore Rules, or budget path changed, so `AC-S80-5` passes
   without a withheld patch.
 - Focused S80 and preservation runs are green. The canonical run passed 528 unit files with one
@@ -194,7 +195,7 @@ authorized; unprotected page/route alignment may proceed under standing implemen
   policy/static gate, the production-only zero-vulnerability audit, and the 104-page build.
 - Exact commit `d2dfbcc2a865af1f92103083c2a49714c2dc3977` passed aggregate CI run `33280384474`.
   Zero-traffic revision `pmi-kc-app-rmtf01asj-4b3665ad072f` passed exact identity, bounded-route,
-  Production+Live, managed-identity, eleven-Space, allowance-50, closed-Sheet-write, and secret-
+  Production+Live, managed-identity, eleven-Space, allowance-50, then-closed-Sheet-write, and secret-
   binding readback before promotion; the same revision then passed stable readback at 100% traffic.
   Captured rollback target `pmi-kc-app-rmtew9a2z-46a2353b6491` remains available.
 

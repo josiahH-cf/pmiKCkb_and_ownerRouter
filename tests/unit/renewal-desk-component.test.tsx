@@ -49,9 +49,14 @@ describe("RenewalDesk (S82 table)", () => {
     expect(screen.queryByText("Data diagnostics")).not.toBeInTheDocument();
     expect(screen.queryByText("Visible")).not.toBeInTheDocument();
 
-    // Source trust stays: Live chip and the one concise result count.
+    // Source trust stays: Live chip and the truthful three-part result count.
     expect(screen.getByText("Live data")).toBeInTheDocument();
-    expect(screen.getByText(/Showing \d+ of \d+ renewals/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Matching: \d+ · Selected scope: \d+ · Total loaded: \d+/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Worklist scope:/).parentElement).toHaveTextContent(
+      "Current window and tracked incomplete",
+    );
   });
 
   it("renders each lease once as a row with its identity, date, rent state, and status", () => {
@@ -102,10 +107,28 @@ describe("RenewalDesk (S82 table)", () => {
       .map((node) => node.textContent)
       .join(" ");
     expect(statuses).toContain("Live read incomplete");
-    expect(screen.getByText(/leases loaded so far \(partial read\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/leases loaded from a partial source read/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Total loaded:.*partial portfolio read/)).toBeInTheDocument();
     expect(
       screen.queryByText(/leases in your current renewal window/),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps the desk usable while symbolic supporting reads are unavailable", () => {
+    render(
+      <RenewalDesk
+        auxiliaryFailures={[{ key: "progress", status: "failed" }]}
+        view={getRenewalDeskView()}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByText("Supporting information unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(/saved renewal progress: read did not complete/),
+    ).toBeInTheDocument();
   });
 });
 
@@ -131,6 +154,26 @@ describe("RenewalDesk data currency", () => {
   const REFRESHING = /Refreshing lease data/;
   const FAILED = /did not complete/;
   const TOO_OLD = /Data too old to act on/;
+
+  it("exposes only closed source-state values on the desk root", () => {
+    const { container } = render(
+      <RenewalDesk
+        view={{
+          ...withCurrency(
+            currency({ state: "expired", refreshing: true, lastError: true }),
+          ),
+          readComplete: false,
+        }}
+      />,
+    );
+    const desk = container.firstElementChild;
+    expect(desk).toHaveAttribute("data-source-currency-state", "expired");
+    expect(desk).toHaveAttribute("data-source-read-complete", "false");
+    expect(desk).toHaveAttribute("data-source-refreshing", "true");
+    expect(desk).toHaveAttribute("data-source-refresh-failed", "true");
+    expect(desk).not.toHaveAttribute("data-source-read-at-iso");
+    expect(desk).not.toHaveAttribute("data-source-age-ms");
+  });
 
   it("renders exactly the updated state on fresh data", () => {
     render(<RenewalDesk view={withCurrency(currency({}))} />);

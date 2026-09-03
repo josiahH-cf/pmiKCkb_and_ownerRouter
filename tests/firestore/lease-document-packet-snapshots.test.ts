@@ -15,6 +15,8 @@ import {
   getCurrentPacketSnapshot,
   getPacketSnapshot,
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
+  listCurrentRenewalPacketSnapshots,
+  packetHeadId,
   recordPacketExecutionProjection,
   savePacketSnapshot,
 } from "@/lib/firestore/lease-document-packet-snapshots";
@@ -201,5 +203,80 @@ describe("S66 immutable packet snapshot store", () => {
       for (const forbidden of forbiddenKeys)
         expect(serialized).not.toContain(`"${forbidden}"`);
     }
+  });
+
+  it("reads current packet truth for a bounded cohort and preserves explicit missing heads", async () => {
+    const deskPacket = readyS66Input();
+    // The live renewal desk addresses packet heads by the canonical lease id for both identities.
+    deskPacket.transactionId = deskPacket.leaseId;
+    const current = await savePacketSnapshot(
+      actor,
+      {
+        evaluation: evaluateRenewalPacket(deskPacket),
+        expectedCurrentSnapshotId: null,
+        nowIso: "2026-08-10T12:00:00.000Z",
+      },
+      db,
+    );
+
+    const cohort = await listCurrentRenewalPacketSnapshots(
+      actor,
+      [current.leaseId, "lease-without-packet", current.leaseId],
+      db,
+    );
+
+    expect([...cohort.keys()]).toEqual([current.leaseId, "lease-without-packet"]);
+    expect(cohort.get(current.leaseId)).toMatchObject({
+      snapshotId: current.snapshotId,
+      current: true,
+      visibleState: current.visibleState,
+    });
+    expect(cohort.get("lease-without-packet")).toBeNull();
+  });
+
+  it("refuses an unbounded packet cohort", async () => {
+    await expect(
+      listCurrentRenewalPacketSnapshots(
+        actor,
+        Array.from({ length: 501 }, (_, index) => `lease-${index}`),
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("refuses a current head whose stored identity differs from the requested lease", async () => {
+    await db
+      .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.heads)
+      .doc(packetHeadId("lease-a", "lease-a"))
+      .set({
+        lease_id: "lease-b",
+        transaction_id: "lease-b",
+        snapshot_id: "packet_corrupt",
+        snapshot_version: 1,
+        payload_hash: "a".repeat(64),
+      });
+
+    await expect(
+      listCurrentRenewalPacketSnapshots(actor, ["lease-a"], db),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("refuses duplicate current heads pointing at one immutable snapshot", async () => {
+    for (const leaseId of ["lease-a", "lease-b"]) {
+      await db
+        .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.heads)
+        .doc(packetHeadId(leaseId, leaseId))
+        .set({
+          lease_id: leaseId,
+          transaction_id: leaseId,
+          snapshot_id: "packet_shared",
+          snapshot_version: 1,
+          payload_hash: "b".repeat(64),
+        });
+    }
+
+    await expect(
+      listCurrentRenewalPacketSnapshots(actor, ["lease-a", "lease-b"], db),
+    ).rejects.toMatchObject({ status: 409 });
   });
 });

@@ -25,12 +25,12 @@ import type {
 } from "@/lib/firestore/types";
 
 const LIVE_REVIEW_LABEL = "Live renewal review";
-// Shared run id for the live review. The resolve route rebuilds this run to match a flag by
-// source_trigger_key (`lease_renewal:reconcile:live-review:{field}`), which is derived from
-// runId + field_key only — so a rebuild at resolve time lines up with the flag rendered on the page.
+// Shared run id for the live review. The resolve route rebuilds this run to match a flag by its
+// record-specific source_trigger_key. Both paths must therefore use the same linked Sheet row ->
+// RentVine lease identity; otherwise a row-coordinate key and a lease-id key would not line up.
 export const LIVE_REVIEW_RUN_ID = "live-review";
-// Parity with `smoke:renewal-review --live`: the single "Lease Renewal" tab, fuzzy (name) join, the
-// full lease set (no cohort pre-filter). This reproduces the calibration result reviewers have seen.
+// The single operating tab and full lease set (no cohort pre-filter). The linked row identity below
+// supplies the exact lease join; fuzzy name matching remains only the pipeline's fallback.
 const LIVE_REVIEW_TABS = ["Lease Renewal"];
 
 export interface LiveReviewMeta {
@@ -63,7 +63,13 @@ export interface LiveReviewOverlay {
 }
 
 export type LiveReviewOutcome =
-  | { status: "ok"; view: RenewalRunView; meta: LiveReviewMeta }
+  | {
+      status: "ok";
+      view: RenewalRunView;
+      /** Exact current-source run used to build `view`; consumers must reuse it for currency joins. */
+      run: RenewalRunResult;
+      meta: LiveReviewMeta;
+    }
   | { status: Exclude<LiveReviewStatus, "ok"> };
 
 // Heuristic markers of an authentication/authorization failure (stale ADC, blocked scope, bad/expired
@@ -102,6 +108,7 @@ async function runLiveReview(
       tabTitles: LIVE_REVIEW_TABS,
       runId: LIVE_REVIEW_RUN_ID,
       readTimestamp,
+      linkJoin: true,
     });
     return { status: "ok", result };
   } catch (error) {
@@ -126,6 +133,7 @@ export async function loadLiveRenewalReview(
   const { result } = outcome;
   return {
     status: "ok",
+    run: result.run,
     view: buildRenewalRunView(
       result.run,
       overlay.resolutions ?? [],

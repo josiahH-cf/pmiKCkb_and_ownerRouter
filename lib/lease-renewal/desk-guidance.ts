@@ -57,6 +57,8 @@ export interface DeskGuidanceInput {
   readonly rentDecision: LiveOwnerCurrentRentDecision | null;
   readonly currencyState: DeskDataCurrency["state"];
   readonly readComplete: boolean;
+  /** False means saved workflow state could not be read; dependent status/action must fail closed. */
+  readonly progressStateAvailable?: boolean;
 }
 
 const WAITING_PARTY_LABEL: Record<string, string> = {
@@ -84,7 +86,15 @@ function rentVerification(input: DeskGuidanceInput): DeskRentVerification {
   }
   const agreement = decision.currentRentEvidence.agreement;
   const fresh = decision.currentRentEvidence.currencyState === "fresh";
-  if (fresh && (agreement === "agree" || agreement === "resolved")) {
+  const hasPositiveCurrentRent =
+    typeof decision.currentRent === "number" &&
+    Number.isFinite(decision.currentRent) &&
+    decision.currentRent > 0;
+  if (
+    fresh &&
+    hasPositiveCurrentRent &&
+    (agreement === "agree" || agreement === "resolved")
+  ) {
     const differs =
       agreement === "resolved" &&
       input.rentvineCurrentRent !== null &&
@@ -140,12 +150,20 @@ function blockersFrom(process: RenewalProcessProjection): DeskLeaseBlocker[] {
 function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
   const process = input.process;
   if (
+    input.progressStateAvailable === false ||
     !input.readComplete ||
     input.currencyState === "expired" ||
     input.summary.disposition === "review" ||
     process?.status === "needs_verification" ||
     process?.migrationRequired === true
   ) {
+    return "needs_verification";
+  }
+  // A missing side or single-source contractual-rent comparison is not a proven conflict. Surface
+  // it as Needs verification so the table tells the operator what kind of work remains; reserve
+  // Blocked for an actual unresolved conflict or another causal process blocker.
+  const rentCheck = input.dataCheck?.find((item) => item.fieldKey === "current_rent");
+  if (rentCheck?.agreement === "missing" || rentCheck?.agreement === "single_source") {
     return "needs_verification";
   }
   if (!process) return "needs_review";
@@ -229,6 +247,13 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
         destination: { kind: "none" },
       };
     case "needs_verification": {
+      if (input.progressStateAvailable === false) {
+        return {
+          kind: "needs_verification",
+          label: "Saved renewal progress could not be verified. Refresh before acting.",
+          destination: { kind: "none" },
+        };
+      }
       if (!input.readComplete) {
         return {
           kind: "needs_verification",
@@ -247,7 +272,9 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
         return {
           kind: "needs_verification",
           label: `${input.summary.reasonLabel}. Resolve it from an authoritative source.`,
-          destination: { kind: "none" },
+          destination: input.summary.id
+            ? { kind: "workspace_phase", stepId: "verify-renewal" }
+            : { kind: "none" },
         };
       }
       return {
@@ -273,8 +300,18 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
 /** Build one lease's guidance projection. Pure; every fact comes from the passed evidence. */
 export function buildDeskLeaseGuidance(input: DeskGuidanceInput): DeskLeaseGuidance {
   const status = overallStatus(input);
+  const sourceRecoveryWins =
+    input.progressStateAvailable === false ||
+    !input.readComplete ||
+    input.currencyState === "expired" ||
+    input.summary.disposition === "review" ||
+    input.process?.migrationRequired === true;
   const blockers =
-    status === "blocked" && input.process ? blockersFrom(input.process) : [];
+    !sourceRecoveryWins &&
+    (status === "blocked" || status === "needs_verification") &&
+    input.process
+      ? blockersFrom(input.process)
+      : [];
   return {
     currentBaseRent:
       typeof input.rentvineCurrentRent === "number" &&

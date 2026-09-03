@@ -217,6 +217,20 @@ describe("S82 rent display and verification", () => {
     expect(guidance.rentVerification.state).toBe("needs_verification");
   });
 
+  it("never treats a non-positive or non-finite resolved rent as verified", () => {
+    for (const currentRent of [0, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const guidance = buildDeskLeaseGuidance(
+        input({
+          rentvineCurrentRent: null,
+          rentDecision: decision("resolved", currentRent),
+        }),
+      );
+      expect(guidance.currentBaseRent).toBeNull();
+      expect(guidance.rentVerification.state).toBe("needs_verification");
+      expect(guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
+    }
+  });
+
   it("marks a conflicting or single-source rent needs_verification and stale reads unavailable", () => {
     expect(
       buildDeskLeaseGuidance(input({ rentDecision: decision("conflict", 1500) }))
@@ -233,6 +247,38 @@ describe("S82 rent display and verification", () => {
       buildDeskLeaseGuidance(input({ readComplete: false })).rentVerification.state,
     ).toBe("unavailable");
   });
+
+  it("reserves Blocked for a conflict and labels a missing rent side Needs verification", () => {
+    const singleSource = buildDeskLeaseGuidance(
+      input({
+        dataCheck: [
+          {
+            fieldKey: "current_rent",
+            fieldLabel: "Rent",
+            agreement: "single_source",
+            candidates: [],
+          },
+        ],
+      }),
+    );
+    expect(singleSource.overallStatus).toBe("needs_verification");
+    expect(singleSource.isBlocked).toBe(true);
+
+    const conflict = buildDeskLeaseGuidance(
+      input({
+        process: blockedProcess(),
+        dataCheck: [
+          {
+            fieldKey: "current_rent",
+            fieldLabel: "Rent",
+            agreement: "conflict",
+            candidates: [],
+          },
+        ],
+      }),
+    );
+    expect(conflict.overallStatus).toBe("blocked");
+  });
 });
 
 describe("S82 overall status precedence", () => {
@@ -246,6 +292,22 @@ describe("S82 overall status precedence", () => {
     );
     expect(expired.overallStatus).toBe("needs_verification");
     expect(expired.isBlocked).toBe(true);
+    expect(expired.blockers).toEqual([]);
+    expect(expired.action).toMatchObject({
+      kind: "needs_verification",
+      label: expect.stringContaining("too old"),
+      destination: { kind: "none" },
+    });
+
+    const incomplete = buildDeskLeaseGuidance(
+      input({ process: blockedProcess(), readComplete: false }),
+    );
+    expect(incomplete.blockers).toEqual([]);
+    expect(incomplete.action).toMatchObject({
+      kind: "needs_verification",
+      label: expect.stringContaining("did not complete"),
+      destination: { kind: "none" },
+    });
   });
 
   it("reports complete, waiting, and ready from real process projections", () => {
@@ -271,7 +333,7 @@ describe("S82 overall status precedence", () => {
   it("treats a review-disposition row as fail-closed needs_verification", () => {
     const guidance = buildDeskLeaseGuidance(
       input({
-        process: null,
+        process: blockedProcess(),
         summary: {
           ...input().summary,
           disposition: "review",
@@ -285,6 +347,23 @@ describe("S82 overall status precedence", () => {
     expect(guidance.action).toMatchObject({
       kind: "needs_verification",
       label: expect.stringContaining("No end date on file"),
+      destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+    });
+    expect(guidance.blockers).toEqual([]);
+  });
+
+  it("fails closed without an actionable destination when saved progress is unreadable", () => {
+    const normallyReady = buildDeskLeaseGuidance(input());
+    expect(normallyReady.overallStatus).toBe("ready");
+    expect(normallyReady.action.kind).toBe("act");
+
+    const unavailable = buildDeskLeaseGuidance(input({ progressStateAvailable: false }));
+    expect(unavailable.overallStatus).toBe("needs_verification");
+    expect(unavailable.isBlocked).toBe(true);
+    expect(unavailable.action).toEqual({
+      kind: "needs_verification",
+      label: "Saved renewal progress could not be verified. Refresh before acting.",
+      destination: { kind: "none" },
     });
   });
 

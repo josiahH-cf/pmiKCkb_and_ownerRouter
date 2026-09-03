@@ -22,11 +22,13 @@ function baseInput(
   overrides: Partial<SheetWritebackProposalInput> = {},
 ): SheetWritebackProposalInput {
   return {
+    generationId: "proposal-12345678",
     spreadsheetId: "sheet-1",
     tabTitle: "Lease Renewal",
     headerHash: HEADER_HASH,
     headerWidth: 19,
     tenantColumnIndex: 2,
+    scope: { kind: "lease_workspace", leaseId: "115", propertyId: "84" },
     actorUid: "admin-1",
     actorEmail: "admin@pmikcmetro.com",
     actorRole: "Admin",
@@ -217,6 +219,19 @@ describe("S98 proposal contract", () => {
       expectedValue: "",
       afterValue: "1200",
       source: "RentVine base rent",
+      authorization: {
+        sourceTriggerKey: "lease_renewal:reconcile:live-review:key:current_rent",
+        runId: "live-review",
+        fieldKey: "current_rent",
+        proposedValue: "1200",
+        sourceOfValue: "RentVine base rent",
+        candidateFingerprint: `rcf1_${"a".repeat(64)}`,
+        resolutionUpdatedAt: "2026-09-02T11:59:00.000Z",
+        authorizationToken: `rwat1_${"b".repeat(64)}`,
+        approvalId: "approval-12345678",
+        approvalUpdatedAt: "2026-09-02T11:59:30.000Z",
+        approvalDecidedByUid: "admin-2",
+      },
     };
     const proposal = buildSheetWritebackProposal(baseInput({ effects: [update] }));
     expect(proposal.effects[0].actionKey).toBe(SHEET_FIELD_UPDATE_KEY);

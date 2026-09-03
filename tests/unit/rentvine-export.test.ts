@@ -96,6 +96,68 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect(mapped.resolvedKeys.currentRent).toBe("currentRent");
   });
 
+  it("does not substitute a lease-level rent when export unit.rent is absent", () => {
+    const [view] = leaseViewsFromExport([
+      {
+        lease: {
+          leaseID: 9,
+          endDate: "2026-08-31",
+          currentRent: "9999.00",
+          rent: "8888.00",
+          tenants: [{ name: "Missing Unit Rent" }],
+        },
+        unit: {},
+      },
+    ]);
+
+    expect(leaseCurrentRent(view)).toBeUndefined();
+    const mapped = mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS });
+    expect(mapped.candidates[0].fields).not.toHaveProperty("current_rent");
+    expect(mapped.resolvedKeys.currentRent).toBeUndefined();
+  });
+
+  it("never lets a nested lease.unit shadow the top-level export unit", () => {
+    const [view] = leaseViewsFromExport([
+      {
+        lease: {
+          leaseID: 10,
+          endDate: "2026-08-31",
+          tenants: [{ name: "Conflicting Unit" }],
+          unit: { rent: "9999.00" },
+        },
+        unit: { rent: "1250.00" },
+      },
+    ]);
+
+    expect(view.unit).toEqual({ rent: "1250.00" });
+    expect(leaseCurrentRent(view)).toBe(1250);
+    expect(
+      mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS }).candidates[0]
+        .fields.current_rent.value,
+    ).toBe(1250);
+  });
+
+  it("fails closed when a nested export has only a nested lease.unit rent", () => {
+    const [view] = leaseViewsFromExport([
+      {
+        lease: {
+          leaseID: 11,
+          endDate: "2026-08-31",
+          tenants: [{ name: "Malformed Top Unit" }],
+          unit: { rent: "9999.00" },
+        },
+        unit: "malformed",
+      },
+    ]);
+
+    expect(view.unit).toEqual({});
+    expect(leaseCurrentRent(view)).toBeUndefined();
+    expect(
+      mapLeasesToNonSheetCandidates([view], { readTimestamp: READ_TS }).candidates[0]
+        .fields,
+    ).not.toHaveProperty("current_rent");
+  });
+
   it("preserves property/portfolio siblings so the owner channel resolves from an export row", () => {
     const rowWithOwner = {
       lease: {

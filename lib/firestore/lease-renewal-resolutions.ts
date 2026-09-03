@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { parseCurrencyInput } from "@/lib/currency-input";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -42,6 +43,9 @@ export const LEASE_RENEWAL_COLLECTIONS = {
 export const ResolveLeaseRenewalFlagInputSchema = z.object({
   run_id: z.string().min(1),
   source_trigger_key: z.string().min(1),
+  // Required client snapshot binding. The persistence boundary below also compares it with the
+  // just-rebuilt Live flag so a decision can never silently move to unseen source facts.
+  candidate_fingerprint: z.string().trim().min(1),
   kind: z.enum(["pick_source", "corrected_value", "flag_incorrect"]),
   chosen_source: z.string().min(1).optional(),
   corrected_value: z.string().min(1).optional(),
@@ -63,6 +67,7 @@ export interface ResolvableFlag {
   property_key?: string;
   field_key: string;
   field_label: string;
+  candidate_fingerprint: string;
   severity: QueueRiskLevel;
   /** Suggested source from reconciliation, when one exists. Suggestion only; never auto-applied. */
   suggested_source?: string;
@@ -135,15 +140,22 @@ export function planLeaseRenewalResolution(
       if (!input.chosen_source) {
         throw new EditableLayerError("Pick a source requires a chosen source.", 400);
       }
-      const chosen = flag.candidate_sources.find(
+      const matchingCandidates = flag.candidate_sources.filter(
         (candidate) => candidate.source === input.chosen_source,
       );
-      if (!chosen) {
+      if (matchingCandidates.length === 0) {
         throw new EditableLayerError(
           "The chosen source is not one of this flag's candidates.",
           400,
         );
       }
+      if (matchingCandidates.length !== 1) {
+        throw new EditableLayerError(
+          "The chosen source is ambiguous for this record. Refresh the exact lease mapping before deciding.",
+          409,
+        );
+      }
+      const chosen = matchingCandidates[0];
       return {
         status: "Resolved",
         resolution_kind: "pick_source",
@@ -160,6 +172,15 @@ export function planLeaseRenewalResolution(
     case "corrected_value": {
       if (!input.corrected_value) {
         throw new EditableLayerError("Enter a corrected value requires a value.", 400);
+      }
+      if (flag.field_key === "current_rent") {
+        const rent = parseCurrencyInput(input.corrected_value);
+        if (!rent.ok || rent.value <= 0) {
+          throw new EditableLayerError(
+            "Current rent requires a positive currency value.",
+            400,
+          );
+        }
       }
       return {
         status: "Resolved",
@@ -196,6 +217,7 @@ function toResolvableFlag(
     ...(flag.propertyKey ? { property_key: flag.propertyKey } : {}),
     field_key: flag.fieldKey,
     field_label: flag.fieldLabel,
+    candidate_fingerprint: flag.candidateFingerprint,
     severity: flag.reconciliation.severity,
     suggested_source: flag.reconciliation.suggested_winner?.source,
     candidate_sources: flag.reconciliation.candidates.map((candidate) => ({
@@ -249,6 +271,13 @@ export async function resolveLeaseRenewalFlag(
     );
   }
 
+  if (parsed.candidate_fingerprint !== flag.candidate_fingerprint) {
+    throw new EditableLayerError(
+      "The source facts changed after this flag was displayed. Review the current candidates before deciding.",
+      409,
+    );
+  }
+
   const reason = resolutionReasonRequirement(flag, parsed);
   const plan = planLeaseRenewalResolution(flag, parsed);
   const docId = resolutionDocId(parsed.source_trigger_key);
@@ -275,6 +304,7 @@ export async function resolveLeaseRenewalFlag(
           property_key: flag.property_key,
           field_key: flag.field_key,
           field_label: flag.field_label,
+          candidate_fingerprint: flag.candidate_fingerprint,
           severity: flag.severity,
           status: plan.status,
           resolution_kind: plan.resolution_kind,
@@ -299,6 +329,7 @@ export async function resolveLeaseRenewalFlag(
         source_trigger_key: flag.source_trigger_key,
         run_id: flag.run_id,
         property_key: flag.property_key,
+        candidate_fingerprint: flag.candidate_fingerprint,
         actor_uid: actor.uid,
         action: plan.resolution_kind,
         previous_status: previousStatus,

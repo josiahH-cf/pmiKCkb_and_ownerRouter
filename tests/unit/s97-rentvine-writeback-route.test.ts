@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
-import { OWNER_PROOF_WINDOW_OPEN_KEYS } from "@/lib/integrations/action-registry-seed";
 import type { RenewalWritebackDependencies } from "@/lib/lease-renewal/writeback/execution-service";
 import type { RenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-contract";
+import { RENEWAL_SOURCE_REFRESH_COOKIE } from "@/lib/lease-renewal/post-write-freshness";
 
 const mocks = vi.hoisted(() => ({
   user: {
@@ -14,7 +14,12 @@ const mocks = vi.hoisted(() => ({
   deps: null as RenewalWritebackDependencies | { status: "not_configured" } | null,
   proposals: new Map<string, RenewalWritebackProposal>(),
   gateOpen: false,
+  refreshConfigured: false,
+  refreshRead: vi.fn(async () => ({
+    snapshot: { readAtMs: Date.parse("2026-09-02T12:00:00.000Z"), complete: true },
+  })),
   writerCalls: [] as string[],
+  writerFailsAfterApply: false,
   projection: vi.fn(async () => ({})),
 }));
 
@@ -52,20 +57,49 @@ vi.mock("@/lib/lease-renewal/writeback/live", async (importActual) => {
 
 vi.mock("@/lib/lease-renewal/writeback/proposal-store", () => ({
   saveRenewalWritebackProposal: vi.fn(
-    async (_actor: unknown, proposal: RenewalWritebackProposal) => {
+    async (
+      _actor: unknown,
+      proposal: RenewalWritebackProposal,
+      expected: string | null,
+    ) => {
+      const current = mocks.proposals.get(proposal.leaseId)?.previewHash ?? null;
+      if (current !== expected) throw new Error("stale proposal generation");
       mocks.proposals.set(proposal.leaseId, proposal);
     },
   ),
   getRenewalWritebackProposal: vi.fn(
     async (_actor: unknown, leaseId: string) => mocks.proposals.get(leaseId) ?? null,
   ),
-  discardRenewalWritebackProposal: vi.fn(async (_actor: unknown, leaseId: string) => {
-    mocks.proposals.delete(leaseId);
-  }),
+  getRenewalWritebackProposalGeneration: vi.fn(
+    async (_actor: unknown, leaseId: string, previewHash: string) => {
+      const current = mocks.proposals.get(leaseId);
+      return current?.previewHash === previewHash ? current : null;
+    },
+  ),
+  listRenewalWritebackProposalHistory: vi.fn(async () => []),
+  discardRenewalWritebackProposal: vi.fn(
+    async (_actor: unknown, leaseId: string, previewHash: string) => {
+      if (mocks.proposals.get(leaseId)?.previewHash !== previewHash) {
+        throw new Error("stale proposal generation");
+      }
+      mocks.proposals.delete(leaseId);
+    },
+  ),
 }));
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   recordRenewalProcessEvidence: mocks.projection,
+}));
+
+vi.mock("@/lib/lease-renewal/live-config", () => ({
+  buildLiveRentVineConfig: () =>
+    mocks.refreshConfigured
+      ? { ok: true, rentvineClient: { boundary: "test" } }
+      : { ok: false, reason: "not_configured" },
+}));
+
+vi.mock("@/lib/lease-renewal/live-lease-cache", () => ({
+  refreshLiveLeaseSnapshotFromProvider: mocks.refreshRead,
 }));
 
 // The production-bound suspension reader would hang without Firestore in the unit env; an
@@ -111,6 +145,9 @@ function fakeDeps(): RenewalWritebackDependencies {
         async updateLease(leaseId: string, payload: Record<string, unknown>) {
           mocks.writerCalls.push("updateLease");
           LEASE.endDate = (payload.endDate as string | null | undefined) ?? LEASE.endDate;
+          if (mocks.writerFailsAfterApply) {
+            throw Object.assign(new Error("provider response lost"), { status: 504 });
+          }
           return { lease: { leaseID: leaseId } };
         },
         async updateExistingRecurringCharge() {
@@ -131,6 +168,13 @@ function fakeDeps(): RenewalWritebackDependencies {
         return effect();
       },
     }),
+    claimActiveEffect: async ({ proposal, record }) => {
+      if (mocks.proposals.get(proposal.leaseId)?.previewHash !== proposal.previewHash) {
+        return "blocked";
+      }
+      if (!(await store.get(record.id))) await store.create(record);
+      return store.claim(record.id, record.previewHash);
+    },
   };
 }
 
@@ -151,6 +195,7 @@ async function proposeDatesChange(): Promise<{
   const response = await post({
     operation: "propose",
     leaseId: "4821",
+    expectedPriorPreviewHash: null,
     evidenceRef: "workspace:4821",
     effects: [{ kind: "renewal_dates_update", after: { endDate: "2027-08-31" } }],
   });
@@ -170,7 +215,16 @@ describe("S97 rentvine-writeback route", () => {
     mocks.deps = fakeDeps();
     mocks.proposals.clear();
     mocks.gateOpen = false;
+    mocks.refreshConfigured = false;
+    mocks.refreshRead.mockReset();
+    mocks.refreshRead.mockResolvedValue({
+      snapshot: {
+        readAtMs: Date.parse("2026-09-02T12:00:00.000Z"),
+        complete: true,
+      },
+    });
     mocks.writerCalls = [];
+    mocks.writerFailsAfterApply = false;
     mocks.projection.mockClear();
     LEASE.startDate = "2025-09-01";
     LEASE.endDate = "2026-08-31";
@@ -186,6 +240,7 @@ describe("S97 rentvine-writeback route", () => {
     const response = await post({
       operation: "propose",
       leaseId: "4821",
+      expectedPriorPreviewHash: null,
       evidenceRef: "workspace:4821",
       effects: [{ kind: "renewal_dates_update", after: { endDate: "2027-08-31" } }],
     });
@@ -211,6 +266,84 @@ describe("S97 rentvine-writeback route", () => {
     const payload = (await execute.json()) as { error: string };
     expect(payload.error).toContain("Admin authority is required");
     expect(mocks.writerCalls).toEqual([]);
+  });
+
+  it("derives a create baseline from canonical detail reads instead of trusting browser input", async () => {
+    mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
+    const deps = fakeDeps();
+    deps.reads.listRecurringCharges = async () => [
+      { leaseRecurringChargeID: "701", amount: "not-authoritative" },
+    ];
+    deps.reads.getRecurringCharge = async (_leaseId, chargeId) => ({
+      leaseRecurringChargeID: chargeId,
+      leaseID: "4821",
+      accountID: "9",
+      amount: "45.00",
+      description: "Renewal admin fee",
+      dayDue: "1",
+      frequency: "1",
+      startDate: "2026-09-01",
+      isMoveInCharge: "0",
+      isFromImport: "0",
+      endDate: null,
+      nextChargeDate: null,
+      rentIncreaseID: null,
+      importSourceKey: null,
+      recurringStatusID: 1,
+    });
+    mocks.deps = deps;
+
+    const response = await post({
+      operation: "propose",
+      leaseId: "4821",
+      expectedPriorPreviewHash: null,
+      evidenceRef: "workspace:4821",
+      effects: [
+        {
+          kind: "recurring_charge_create",
+          create: {
+            accountID: "9",
+            amount: "45.00",
+            description: "Renewal admin fee",
+            dayDue: "1",
+            frequency: "1",
+            startDate: "09/01/2026",
+          },
+          baseline: { candidates: [] },
+        },
+      ],
+    });
+
+    // The strict browser schema rejects caller-owned baseline material outright.
+    expect(response.status).toBe(400);
+    const cleanResponse = await post({
+      operation: "propose",
+      leaseId: "4821",
+      expectedPriorPreviewHash: null,
+      evidenceRef: "workspace:4821",
+      effects: [
+        {
+          kind: "recurring_charge_create",
+          create: {
+            accountID: "9",
+            amount: "45.00",
+            description: "Renewal admin fee",
+            dayDue: "1",
+            frequency: "1",
+            startDate: "09/01/2026",
+          },
+        },
+      ],
+    });
+    expect(cleanResponse.status).toBe(200);
+    const baseline = (
+      mocks.proposals.get("4821")?.effects[0].effect as {
+        baseline?: { candidates: { chargeId: string; projectionHash: string }[] };
+      }
+    ).baseline;
+    expect(baseline?.candidates).toEqual([
+      { chargeId: "701", projectionHash: expect.stringMatching(/^[a-f0-9]{64}$/) },
+    ]);
   });
 
   it("refuses Admin execution through the real per-key gate before any writer", async () => {
@@ -247,10 +380,12 @@ describe("S97 rentvine-writeback route", () => {
       duplicate: boolean;
       receipt: { provider_ref: string; result_hash: string };
       projection: string;
+      source_refresh: { status: string };
     };
     expect(outcome.status).toBe("executed");
     expect(outcome.duplicate).toBe(false);
     expect(outcome.projection).toBe("projected");
+    expect(outcome.source_refresh).toEqual({ status: "unavailable" });
     expect(outcome.receipt.result_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
     expect(mocks.projection).toHaveBeenCalledWith(
@@ -271,6 +406,105 @@ describe("S97 rentvine-writeback route", () => {
     const duplicate = (await second.json()) as { duplicate: boolean };
     expect(duplicate.duplicate).toBe(true);
     expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+  });
+
+  it("returns the explicit post-write source generation when its full read succeeds", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    mocks.refreshConfigured = true;
+    const response = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      status: string;
+      source_refresh: { status: string; read_at_iso: string; complete: boolean };
+    };
+    expect(payload.status).toBe("executed");
+    expect(payload.source_refresh).toEqual({
+      status: "current",
+      read_at_iso: "2026-09-02T12:00:00.000Z",
+      complete: true,
+    });
+    expect(mocks.refreshRead).toHaveBeenCalledTimes(1);
+    expect(response.headers.get("set-cookie")).toMatch(
+      new RegExp(`${RENEWAL_SOURCE_REFRESH_COOKIE}=\\d{13}`),
+    );
+    expect(response.headers.get("set-cookie")).toContain("Path=/lease-renewal");
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+  });
+
+  it("reports a failed post-write projection refresh without undoing a receipted write", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    mocks.refreshConfigured = true;
+    mocks.refreshRead.mockRejectedValueOnce(new Error("provider reread unavailable"));
+    const response = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      status: string;
+      source_refresh: { status: string };
+    };
+    expect(payload.status).toBe("executed");
+    expect(payload.source_refresh).toEqual({ status: "failed" });
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+    expect(response.headers.get("set-cookie")).toContain(
+      `${RENEWAL_SOURCE_REFRESH_COOKIE}=`,
+    );
+  });
+
+  it("refreshes and projects a successfully reconciled forward effect", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    mocks.writerFailsAfterApply = true;
+    const attempted = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(attempted.status).toBe(409);
+    mocks.writerFailsAfterApply = false;
+    mocks.refreshConfigured = true;
+    mocks.projection.mockClear();
+
+    const response = await post({
+      operation: "reconcile",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      status: string;
+      projection: string;
+      source_refresh: { status: string };
+    };
+    expect(payload).toMatchObject({
+      status: "reconciled",
+      projection: "projected",
+      source_refresh: { status: "current" },
+    });
+    expect(mocks.projection).toHaveBeenCalledWith(
+      expect.anything(),
+      "4821",
+      "source-write-receipt",
+      expect.objectContaining({ disposition: "verified" }),
+    );
+    expect(response.headers.get("set-cookie")).toContain(
+      `${RENEWAL_SOURCE_REFRESH_COOKIE}=`,
+    );
   });
 
   it("keeps a provider-successful effect successful when projection fails", async () => {
@@ -328,7 +562,12 @@ describe("S97 rentvine-writeback route", () => {
 
   it("discards a proposal without touching provider receipts", async () => {
     await proposeDatesChange();
-    const response = await post({ operation: "discard", leaseId: "4821" });
+    const current = mocks.proposals.get("4821")!;
+    const response = await post({
+      operation: "discard",
+      leaseId: "4821",
+      previewHash: current.previewHash,
+    });
     expect(response.status).toBe(200);
     expect(mocks.proposals.has("4821")).toBe(false);
     expect(mocks.writerCalls).toEqual([]);
@@ -355,6 +594,7 @@ describe("S97 rentvine-writeback route", () => {
     const preview = await post({
       operation: "reverse_preview",
       leaseId: "4821",
+      previewHash,
       effectHash,
     });
     expect(preview.status).toBe(200);
@@ -369,6 +609,7 @@ describe("S97 rentvine-writeback route", () => {
     const execute = await post({
       operation: "reverse_execute",
       leaseId: "4821",
+      previewHash,
       effectHash,
       reversal: previewPayload.reversal,
       confirm: true,
@@ -376,10 +617,59 @@ describe("S97 rentvine-writeback route", () => {
     expect(execute.status).toBe(200);
     const payload = (await execute.json()) as { status: string };
     expect(payload.status).toBe("reversed");
+    expect(execute.headers.get("set-cookie")).toContain(
+      `${RENEWAL_SOURCE_REFRESH_COOKIE}=`,
+    );
     expect(mocks.writerCalls.filter((call) => call === "updateLease").length).toBe(
       writesBefore + 1,
     );
     expect(LEASE.endDate).toBe("2026-08-31");
+  });
+
+  it("refreshes the source generation after reversal reconciliation", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    const previewResponse = await post({
+      operation: "reverse_preview",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+    });
+    const reversal = ((await previewResponse.json()) as { reversal: unknown }).reversal;
+    mocks.writerFailsAfterApply = true;
+    const attempted = await post({
+      operation: "reverse_execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      reversal,
+      confirm: true,
+    });
+    expect(attempted.status).toBe(409);
+    mocks.writerFailsAfterApply = false;
+    mocks.refreshConfigured = true;
+
+    const response = await post({
+      operation: "reverse_reconcile",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "reversal_reconciled",
+      source_refresh: { status: "current" },
+    });
+    expect(response.headers.get("set-cookie")).toContain(
+      `${RENEWAL_SOURCE_REFRESH_COOKIE}=`,
+    );
   });
 
   it("rejects unsupported operations and extra fields structurally", async () => {

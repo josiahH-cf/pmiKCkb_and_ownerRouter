@@ -3,9 +3,10 @@
 
 # S100 — RentVine work-order chat sync and resident reply draft
 
-> Status: Specified, not implemented; neither exact action key exists in the committed registry, and
-> both provider effects must remain fail-closed until their implementation, proof, and protected
-> per-key activation gates pass.
+> Status: **BLOCKED solely on resident-draft proof and activation.** Manual chat sync is complete,
+> live-proven, open, deployed, and read back. The resident-reply draft implementation and UI are
+> deployed fail-closed; its exact key remains closed until a synchronized thread has one mapped
+> resident with a verified email for bounded live proof and protected activation.
 
 **Goal.**
 
@@ -15,15 +16,8 @@ draft to a verified resident without automatically changing any work order or se
 
 **Current state / intended end state.**
 
-Current production has tokenized app maintenance intake, app tickets, RentVine lease/unit reads, one
-concrete list-only work-order client plus synthetic/governed work-order abstractions, workflow-linked
-Gmail capabilities, and an unsent maintenance **owner** notice draft. It has no RentVine work-order-
-chat list adapter, no imported-chat store or review lane, no resident-reply draft workflow, and no
-Action Registry entries named
-`rentvine.work_order.chat.sync` or `gmail.maintenance_resident_reply.draft_create`. The existing
-invitation-shaped `rentvine-resident-channel` module is inert and does not implement this feature.
-
-The intended state adds two independent exact actions:
+Production has the two independent governed paths described here. The existing invitation-shaped
+`rentvine-resident-channel` module remains inert and is not this feature:
 
 1. `rentvine.work_order.chat.sync` performs only a manually confirmed
    `GET /chat/messages` for one server-bound Work Order chat. The official endpoint returns messages
@@ -34,6 +28,13 @@ The intended state adds two independent exact actions:
 
 Neither action calls RentVine's chat-message POST, creates or updates a work order, changes work-order
 status, creates another draft automatically, or sends a message.
+
+Chat completion evidence used TEST work order 1731. After one honestly reported pagination ambiguity,
+a fresh deliberate one-page action completed with zero imported/unmapped/duplicate messages and a
+durable receipt; the delivered parser handles empty threads, string `"0"` next-page values, and
+attempt-suffix recovery. The exact chat-sync key is open and deployed. The only missing terminal
+evidence is the resident-draft live proof and activation; no mapped resident with verified email is
+currently available on a synchronized thread, and no substitute recipient may be invented.
 
 **Actors and entry conditions.**
 
@@ -230,16 +231,13 @@ No material product choice remains. The following are explicit V1 decisions:
   algorithm but cannot select or type a person/email.
 - PMI KC never deletes Gmail drafts in V1. A person corrects or deletes the unchanged unsent draft in
   Gmail through its exact link; the app may reconcile observed state but has no delete key or API.
-- `rentvine.work_order.chat.sync` and `gmail.maintenance_resident_reply.draft_create` remain
-  `production_allowed:false` now. After closed implementation and deterministic gates, the owner-
-  authorized temporary proof window may open only the key under proof; it is closed/read back before
-  that key's separate final activation after proof. A credential or open related key cannot imply
-  either grant.
+- `rentvine.work_order.chat.sync` is proven and `production_allowed:true`.
+  `gmail.maintenance_resident_reply.draft_create` remains `production_allowed:false`; only its own
+  bounded proof and protected activation may open it. The chat grant, a credential, or any related
+  key cannot imply the draft grant.
 
-A live proof still needs one staff-selected current real work order, one mapped resident with
-verified email, a managed actor/mailbox, and provider permission. Those are external operational
-inputs, not missing product behavior; deterministic fixtures can complete the fail-closed
-implementation first.
+The remaining live proof needs one mapped resident with verified email on a synchronized thread and
+the signed-in managed mailbox. That is the suite's sole blocker; it is not missing product behavior.
 
 **Cross-product impacts.**
 
@@ -258,7 +256,7 @@ S47 intake preservation; and final S87 Maintenance content reconciliation.
 | [Official RentVine Get Lease documentation](https://docs.rentvine.com/#tag/Leases/operation/getLease)                         | Primary provider contract                | Documents lease `tenants` include and exact `leaseTenant.contactID` plus nested `contact.contactID/email` fields used for resident mapping; it does not authorize name/property inference.                                                                                                                          |
 | Current Maintenance page, ticket stores, work-order execution family, and Gmail owner-draft path                              | Verified implementation truth            | Supply role/Space conventions, app-ticket truth, exact provider-effect discipline, signed-in mailbox binding, governed preview/confirmation, one attempt, unsent-draft receipt, and reconciliation patterns. The owner-draft key/recipient/template cannot be reused as a resident reply.                           |
 | `lib/maintenance/rentvine-resident-channel.ts`                                                                                | Superseded inert implementation artifact | Its invitation/template/webhook contract has no route or action authority and must not be adapted into chat sync or treated as provider proof.                                                                                                                                                                      |
-| Owner direction for S100                                                                                                      | Product and future-activation authority  | Selects manual work-order chat sync, exact dedup/mapping/review/retention boundaries, and the resident-reply Gmail draft; authorizes a bounded per-key proof window plus later final activation after proof; it does not make either key executable now or authorize RentVine POST/direct send.                     |
+| Owner direction for S100                                                                                                      | Product and per-key activation authority | Selects manual work-order chat sync, exact dedup/mapping/review/retention boundaries, and the resident-reply Gmail draft. The chat key has completed its proof/activation; the authority does not open the draft key before its own proof or authorize RentVine POST/direct send.                                   |
 | Exact safe live work order/resident/mailbox and protected key activation                                                      | External dependency                      | Required only for live proofs/activation. Never substitute a Test identity, guess a recipient, or block closed-key fixture implementation.                                                                                                                                                                          |
 
 **Architecture outcome (deterministic, fail-first).**
@@ -430,37 +428,34 @@ or broaden S47. S87 remains the final owner of product-wide Maintenance placemen
 the sync, mapping-review, and resident-draft surfaces to its migration manifest without changing
 their effect semantics.
 
-The two S100 keys are independent: sync can be implemented and fixture-verified while the draft key
-is closed, and the draft path can be fixture-verified while no live sync target exists. Live sync
-proof precedes live draft proof because only a synchronized, exactly mapped resident message may
-seed the draft workflow. Neither proof authorizes the other key.
+The two S100 keys remain independent. Sync is implemented, proven, activated, and deployed while the
+draft key is closed; the draft path is implemented and fixture-verified. Only a synchronized,
+exactly mapped resident message may seed the remaining draft proof. Chat evidence does not authorize
+the draft key.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Closed-by-default registry/policy contracts, stateful-read architecture,
+- **Delivered:** closed-by-default registry/policy contracts, stateful-read architecture,
   exact one-page adapter, bounded parser/store/review lane, manual UX, dedup/ambiguity/receipt flow,
   resident-reply composer, server recipient/mailbox resolution, governed unsent-draft creation and
   reconciliation lifecycle with human Gmail correction/deletion outside the app;
   Firestore rules/indexes/retention, privacy controls, full deterministic fixture tests, closed-state
-  release, bounded live proofs, protected activation, and exact release/readback.
+  release, the completed chat proof/activation/readback, and the fail-closed draft path.
 - **Consumes, but does not assume:** A current app-ticket/work-order binding, provider resident/contact
   source, connected signed-in Gmail mailbox, S47 ticket provenance, and shared interaction primitives.
   Each absent input has a named unavailable or needs-mapping state with zero provider construction.
-- **Externally blocked effect:** Live sync requires one exact staff-selected real work order/resident,
-  managed actor, credential permission, exact preview, and protected activation of
-  `rentvine.work_order.chat.sync`. Live draft requires a successful mapped sync, verified current
-  resident email, connected managed mailbox, and separate protected activation of
-  `gmail.maintenance_resident_reply.draft_create`. Record the corresponding live proof as `BLOCKED`
-  without blocking the green fail-closed code slice.
+- **Externally blocked effect:** Only the live draft remains blocked: it requires a successful mapped
+  sync, verified current resident email, connected managed mailbox, and separate protected activation
+  of `gmail.maintenance_resident_reply.draft_create`. No substitute recipient or synthetic message
+  may be used. Chat sync is not blocked.
 - **Produces for downstream suites:** A stable bounded message/review projection, opaque sync receipt
   and ambiguity states, exact resident mapping contract, resident-draft request/outcome contract, and
   S87 surface/state manifest entries.
 
 **Verification and delivery contract.**
 
-1. Before implementation, capture that both exact keys/adapters/stores/surfaces are absent, freeze
-   S47/Maintenance/Gmail/send-boundary preservation, and materialize failing policy, request allowlist,
-   render-zero-call, dedup/mapping, privacy, and cross-layer draft tests for that expected absence.
+1. Preserve the completed fail-first policy, request allowlist, render-zero-call, dedup/mapping,
+   privacy, and cross-layer draft tests plus S47/Maintenance/Gmail/send-boundary coverage.
 2. Run focused tests for risk classification; registry schema; exact RentVine transport and bounded
    parser; page/cancel/confirmation state; attempt claim/receipt/ambiguity; store concurrency/dedup;
    transactional auto-binding/rerun-only review; Firestore rules; attachment metadata; PII/logging;
@@ -469,35 +464,33 @@ seed the draft workflow. Neither proof authorizes the other key.
 3. Run `bash scripts/verify.sh` and `npm run test:e2e:core`; inspect the mechanical diff and audit
    secrets, PII, provider URLs/verbs/query parameters, action-key state, runtime descriptor, account/
    work-order/resident/mailbox sources, attachment fields, logs, receipts, and scope traceability.
-4. Keep both committed keys closed through closed-state release. After deterministic gates and one
-   exact real target exist, apply the owner-authorized temporary proof-window patch for only the key
-   under proof, read it back executable, run one bodyless-evidence proof, then close/read it back
-   before opening the other proof window or preparing final activation. Deliver every served change
-   through the existing zero-traffic candidate, exact smoke, promotion, readback, and rollback
-   process; sample/Test data never contacts either provider.
-5. Report one implementation terminal state: `ALL_GATES_GREEN` only after both exact keys' bounded
-   live proof, protected activation, release, and readback pass; `BUDGET_EXHAUSTED` only with an
-   explicit budget; or `BLOCKED` only on one exact unavailable runtime input after all independent
-   fail-closed work is complete. Do not call a fixture-green slice live-proven or advance the
-   canonical queue from it.
+4. Keep the draft key closed. When the exact mapped resident and verified email exist, apply the
+   owner-authorized temporary proof window only to that key, read it back executable, run one
+   bodyless-evidence draft proof, close/read it back, then prepare its separate final activation.
+   Deliver every served change through the existing zero-traffic candidate, exact smoke, promotion,
+   readback, and rollback process. Do not rerun or temporarily close the proven chat key.
+5. Preserve terminal `BLOCKED` solely for the missing mapped resident/verified-email draft target.
+   Report `ALL_GATES_GREEN` only after the draft key's bounded live proof, protected activation,
+   release, and readback pass. `BUDGET_EXHAUSTED` applies only if a user supplies an explicit run
+   budget. The chat key is already live-proven and must not be reopened.
 
 **Ordered prompt sequence.**
 
-1. Re-verify official RentVine endpoint behavior, current provider/action code, exact Maintenance
-   bindings, Gmail draft lifecycle, and S47 preservation; record fail-first checks.
-2. Add the closed action schemas and `stateful_read` policy, then build the narrow transport/parser,
-   attempt ledger, atomic dedup store, mapping/review lane, and manual one-page UX.
-3. Build the separate closed resident-reply draft contract by reusing the governed unsent-draft
-   ledger while adding server-owned resident/mailbox resolution, exact preview invalidation, exact
-   Gmail link/read-only reconciliation, and a hard absence of app draft-delete reachability.
-4. Falsify every automatic/cross-scope/replay/response-loss/mapping/PII/attachment/send path; run
-   focused, Firestore, canonical, and end-to-end preservation gates.
-5. Reconcile current facts/status/plan/loop/manifest and S87 surface ownership, ship fail-closed code,
-   and run each live proof only after its own exact protected authority and safe target exist.
+1. Preserve the deployed chat proof, activation, receipts, and mark-read disclosure without rerunning
+   its provider effect.
+2. Keep the implemented resident-draft path and exact key fail-closed while searching only current
+   authorized source data for a synchronized message with one mapped resident and verified email.
+3. When that exact target exists, rerun draft-focused, Firestore, canonical, and end-to-end
+   preservation gates; open only the draft proof window and create one reviewed unsent draft.
+4. Close and read back the proof window, review the protected activation patch, then release and read
+   back the exact draft key through the existing candidate/promotion contract.
+5. Reconcile current status only after live evidence; never substitute a recipient or infer success
+   from fixture coverage.
 
 **Deletion/merge recommendation.**
 
-Remove S100 from the active tree only after both keys' implemented contracts, closed/open state,
+Keep S100 active and blocked until the resident-draft key's proof, activation, release, and readback
+are complete. Remove it only after both keys' implemented contracts, closed/open state,
 proof results, manual-sync/read-marker behavior, mapping/review lifecycle, unsent-draft boundary, and
 all safety tests are represented in current product, integration, engineering, and facts documents.
 Do not merge it into S47 or the owner-notice draft: each has different actors, sources, recipients,

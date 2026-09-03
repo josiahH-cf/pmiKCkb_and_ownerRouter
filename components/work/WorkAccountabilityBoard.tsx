@@ -48,6 +48,7 @@ export function WorkAccountabilityBoard({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
   const [busyKey, setBusyKey] = useState("");
   const [filters, setFilters] = useState({
     staff: "",
@@ -65,17 +66,6 @@ export function WorkAccountabilityBoard({
     loadGeneration.current = generation;
     setIsRefreshing(true);
     try {
-      if (mutationAllowed) {
-        await fetch("/api/work", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(
-            mode === "mine"
-              ? { action: "reconcile" }
-              : { action: "reconcile_team", limit: 100 },
-          ),
-        }).catch(() => undefined);
-      }
       const response = await fetch(
         `/api/work?view=${mode === "team" ? "team" : "mine"}`,
         {
@@ -100,7 +90,41 @@ export function WorkAccountabilityBoard({
         setIsRefreshing(false);
       }
     }
-  }, [mode, mutationAllowed]);
+  }, [mode]);
+
+  const reconcileAndLoad = useCallback(async () => {
+    if (!mutationAllowed || isReconciling) return;
+    setIsReconciling(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/work", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          mode === "mine"
+            ? { action: "reconcile" }
+            : { action: "reconcile_team", limit: 100 },
+        ),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Work activity could not be reconciled.");
+      }
+      await load();
+      setNotice("Work activity was reconciled and refreshed.");
+    } catch (reconcileError) {
+      setError(
+        reconcileError instanceof Error
+          ? reconcileError.message
+          : "Work activity could not be reconciled.",
+      );
+    } finally {
+      setIsReconciling(false);
+    }
+  }, [isReconciling, load, mode, mutationAllowed]);
 
   useEffect(() => {
     alive.current = true;
@@ -304,9 +328,26 @@ export function WorkAccountabilityBoard({
               its own controls.
             </p>
           </div>
-          <button type="button" className="secondary" onClick={() => void load()}>
-            {isRefreshing ? "Refreshing…" : "Refresh"}
-          </button>
+          <div className="action-row">
+            {mutationAllowed ? (
+              <button
+                type="button"
+                className="secondary"
+                disabled={isReconciling || isRefreshing}
+                onClick={() => void reconcileAndLoad()}
+              >
+                {isReconciling ? "Reconciling…" : "Reconcile activity"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="secondary"
+              disabled={isRefreshing}
+              onClick={() => void load()}
+            >
+              {isRefreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </div>
         {tasks.length === 0 ? (
           <div className="panel empty-state" role="status">

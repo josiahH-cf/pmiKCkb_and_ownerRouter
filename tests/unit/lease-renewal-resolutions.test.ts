@@ -105,8 +105,19 @@ function simulationKey(fieldKey: string): string {
   return key;
 }
 
+function simulationFingerprint(fieldKey: string): string {
+  const run = getSimulationRun(SIMULATION_RUN_ID);
+  const fingerprint = run?.flags.find(
+    (flag) => flag.fieldKey === fieldKey,
+  )?.candidateFingerprint;
+  if (!fingerprint) throw new Error(`Missing simulation fingerprint for ${fieldKey}.`);
+  return fingerprint;
+}
+
 const MEDIUM_KEY = simulationKey("inspections_cadence");
 const HIGH_KEY = simulationKey("renewal_date");
+const MEDIUM_FINGERPRINT = simulationFingerprint("inspections_cadence");
+const HIGH_FINGERPRINT = simulationFingerprint("renewal_date");
 
 describe("resolveLeaseRenewalFlag reason audit", () => {
   it("refuses an omitted Live resolver instead of falling back to fixture data", async () => {
@@ -118,6 +129,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
         {
           run_id: SIMULATION_RUN_ID,
           source_trigger_key: MEDIUM_KEY,
+          candidate_fingerprint: MEDIUM_FINGERPRINT,
           kind: "pick_source",
           chosen_source: "rentvine_building",
           reason_code: "accepted_suggestion",
@@ -136,6 +148,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
       {
         run_id: SIMULATION_RUN_ID,
         source_trigger_key: MEDIUM_KEY,
+        candidate_fingerprint: MEDIUM_FINGERPRINT,
         kind: "pick_source",
         chosen_source: "rentvine_building",
         reason_code: "accepted_suggestion",
@@ -151,6 +164,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
       resolved_by_uid: "approver-1",
+      candidate_fingerprint: expect.stringMatching(/^rcf1_[a-f0-9]{64}$/),
     });
 
     const record = db.store.get(
@@ -173,6 +187,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({
       source_trigger_key: MEDIUM_KEY,
+      candidate_fingerprint: resolution.candidate_fingerprint,
       property_key: resolution.property_key,
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
@@ -185,6 +200,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
     const input = {
       run_id: SIMULATION_RUN_ID,
       source_trigger_key: MEDIUM_KEY,
+      candidate_fingerprint: MEDIUM_FINGERPRINT,
       kind: "pick_source" as const,
       chosen_source: "rentvine_building",
       reason_code: "accepted_suggestion" as const,
@@ -222,6 +238,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
         {
           run_id: SIMULATION_RUN_ID,
           source_trigger_key: HIGH_KEY,
+          candidate_fingerprint: HIGH_FINGERPRINT,
           kind: "pick_source",
           chosen_source: "rentvine",
           reason: "Confirmed against the signed lease.",
@@ -240,6 +257,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
         {
           run_id: SIMULATION_RUN_ID,
           source_trigger_key: HIGH_KEY,
+          candidate_fingerprint: HIGH_FINGERPRINT,
           kind: "pick_source",
           chosen_source: "rentvine",
           reason: "Confirmed against the signed lease.",
@@ -248,5 +266,36 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
         getSimulationRun,
       ),
     ).resolves.toMatchObject({ status: "Resolved", resolved_by_uid: "admin-1" });
+  });
+
+  it("rejects render-to-POST source drift without persisting an unseen decision", async () => {
+    const db = new ResolutionTestFirestore();
+    const rendered = getSimulationRun(SIMULATION_RUN_ID)!;
+    const drifted = structuredClone(rendered);
+    const target = drifted.flags.find(
+      (flag) => flag.queueMapping?.queueItem.source_trigger_key === MEDIUM_KEY,
+    );
+    if (!target) throw new Error("Missing drift target.");
+    target.candidateFingerprint = `rcf1_${"f".repeat(64)}`;
+
+    await expect(
+      resolveLeaseRenewalFlag(
+        approver,
+        {
+          run_id: SIMULATION_RUN_ID,
+          source_trigger_key: MEDIUM_KEY,
+          candidate_fingerprint: MEDIUM_FINGERPRINT,
+          kind: "pick_source",
+          chosen_source: "rentvine_building",
+          reason_code: "accepted_suggestion",
+        },
+        db as unknown as Firestore,
+        () => drifted,
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringMatching(/source facts changed/i),
+    });
+    expect(db.store.size).toBe(0);
   });
 });

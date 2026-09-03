@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -9,6 +9,7 @@ import {
   PARTY_FILTERING_UNAVAILABLE_NOTICE,
   RenewalDeskTable,
   UNFILTERED_EMPTY_COPY,
+  buildDeskPartyFilterOptions,
   type DeskPartyShortcuts,
 } from "@/components/lease-renewal/RenewalDeskTable";
 import type {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/lease-renewal/desk-query-v2";
 
 const TOKEN_A = `p1_${"a".repeat(43)}`;
+const TOKEN_B = `p1_${"b".repeat(43)}`;
 
 const shortcuts: DeskPartyShortcuts = {
   available: true,
@@ -94,7 +96,15 @@ function row(
     openConflicts: 0,
     ...overrides,
   };
-  return { ...withRenewalDeskQueryKeys(base), guidance: guidance(guidanceOverrides) };
+  return {
+    ...withRenewalDeskQueryKeys(base),
+    processState: {
+      status: "active",
+      currentStepId: "owner-decision",
+      currentStepState: "ready",
+    },
+    guidance: guidance(guidanceOverrides),
+  };
 }
 
 const state: RenewalDeskQueryV2State = { ...DEFAULT_RENEWAL_DESK_QUERY_V2 };
@@ -125,6 +135,156 @@ describe("S82 table structure and sorting semantics", () => {
       "tabindex",
       "0",
     );
+  });
+
+  it("labels matching, selected-scope, and loaded totals plus the always-visible default scope", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadComplete={false}
+        sourceReadOk={false}
+        state={state}
+        totalInScope={4}
+        totalLoaded={5}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Matching: 1 · Selected scope: 4 · Total loaded: 5 (partial portfolio read)",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Worklist scope:/).parentElement).toHaveTextContent(
+      "Current window and tracked incomplete",
+    );
+  });
+
+  it("keeps exact portfolio counts separate from unavailable dependent status", () => {
+    render(
+      <RenewalDeskTable
+        dependentStateComplete={false}
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadComplete
+        sourceReadOk
+        state={state}
+        totalInScope={4}
+        totalLoaded={5}
+      />,
+    );
+
+    expect(
+      screen.getByText("Matching: 1 · Selected scope: 4 · Total loaded: 5"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/partial portfolio read/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Incomplete: refresh before relying/)).toBeInTheDocument();
+  });
+
+  it("offers discoverable exact owner and tenant choices using only opaque tokens", () => {
+    render(
+      <RenewalDeskTable
+        partyOptions={{
+          owner: [{ label: "Owner Alpha", token: TOKEN_A }],
+          tenant: [{ label: "Tenant Alpha", token: TOKEN_B }],
+        }}
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalInScope={1}
+        totalLoaded={1}
+      />,
+    );
+
+    const owner = document.querySelector<HTMLSelectElement>("#renewal-filter-ownerKey");
+    const tenant = document.querySelector<HTMLSelectElement>("#renewal-filter-tenantKey");
+    expect(owner).not.toBeNull();
+    expect(tenant).not.toBeNull();
+    expect([...owner!.options].map((option) => [option.text, option.value])).toEqual([
+      ["All owners", ""],
+      ["Owner Alpha", TOKEN_A],
+    ]);
+    expect([...tenant!.options].map((option) => [option.text, option.value])).toEqual([
+      ["All tenants", ""],
+      ["Tenant Alpha", TOKEN_B],
+    ]);
+    expect(TOKEN_A).toMatch(/^p1_[A-Za-z0-9_-]{43}$/);
+    expect(TOKEN_B).toMatch(/^p1_[A-Za-z0-9_-]{43}$/);
+  });
+
+  it("derives stable party choices only from valid issued tokens in the supplied projection", () => {
+    const options = buildDeskPartyFilterOptions([row("L2"), row("L1")], {
+      available: true,
+      tokenFor: (kind, normalizedLabel) =>
+        kind === "owner" && normalizedLabel === "owner alpha"
+          ? TOKEN_A
+          : "not-an-opaque-token",
+    });
+    expect(options.owner).toEqual([{ label: "Owner Alpha", token: TOKEN_A }]);
+    expect(options.tenant).toEqual([]);
+  });
+
+  it("uses native date controls and exposes symbolic invalid-range feedback", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={{ ...state, dateDiagnostics: ["range_reversed", "range_too_long"] }}
+        totalInScope={1}
+        totalLoaded={1}
+      />,
+    );
+
+    expect(document.querySelector("#renewal-filter-endDate")).toHaveAttribute(
+      "type",
+      "date",
+    );
+    expect(document.querySelector("#renewal-filter-month")).toHaveAttribute(
+      "type",
+      "month",
+    );
+    expect(document.querySelector("#renewal-filter-from")).toHaveAttribute(
+      "type",
+      "date",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The range end must be on or after the range start.",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Renewal date ranges can cover at most 120 days.",
+    );
+    expect(
+      screen.getByText("Filter renewal date", { exact: true }).closest("details"),
+    ).toHaveAttribute("open");
+  });
+
+  it("announces a pending GET filter submission and prevents a repeat submit", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalInScope={1}
+        totalLoaded={1}
+      />,
+    );
+    const input = document.querySelector("#renewal-filter-lease");
+    const form = input?.closest("form");
+    if (!form) throw new Error("Missing lease filter form");
+    fireEvent.submit(form);
+    expect(within(form).getByRole("button", { name: "Applying…" })).toBeDisabled();
+    expect(within(form).getByRole("status")).toHaveTextContent(
+      "Applying lease or location filter.",
+    );
+    expect(form).toHaveAttribute("aria-busy", "true");
   });
 
   it("keeps every non-owned filter as hidden state inside a header sort form", () => {
@@ -167,6 +327,73 @@ describe("S82 row cells and exact-value shortcuts", () => {
     const url = new URL(`https://x${lease.getAttribute("href")}`);
     expect(url.pathname).toBe("/lease-renewal/live/desk/lease/L1");
     expect(url.searchParams.get("deskView")).toBe("v=2&sort=base_rent");
+    const leaseRow = lease.closest("tr");
+    expect(leaseRow).toHaveAttribute("data-lease-id", "L1");
+    expect(leaseRow).toHaveAttribute("data-disposition", "actionable");
+    expect(leaseRow).toHaveAttribute("data-status", "ready");
+    expect(leaseRow).toHaveAttribute("data-rent-verification", "verified");
+    expect(leaseRow).toHaveAttribute("data-rent-verification-differs", "false");
+    expect(leaseRow).toHaveAttribute("data-is-blocked", "false");
+    expect(leaseRow).toHaveAttribute("data-action-kind", "act");
+    expect(leaseRow).toHaveAttribute("data-blocker-count", "0");
+    expect(leaseRow).toHaveAttribute("data-process-status", "active");
+    expect(leaseRow).toHaveAttribute("data-process-current-step", "owner-decision");
+    expect(leaseRow).toHaveAttribute("data-process-current-step-state", "ready");
+    expect(leaseRow).toHaveAttribute("data-retention-state", "window");
+    expect(leaseRow).toHaveAttribute("data-waiting-party", "none");
+    expect(leaseRow).toHaveAttribute("data-workspace-available", "true");
+    expect(
+      leaseRow?.querySelector('[data-renewal-field="overall-status"]'),
+    ).toHaveAttribute("data-status", "ready");
+    expect(
+      leaseRow?.querySelector('[data-renewal-field="rent-verification"]'),
+    ).toHaveAttribute("data-rent-verification", "verified");
+    expect(leaseRow?.querySelector('[data-renewal-field="action"]')).toHaveAttribute(
+      "data-action-destination-kind",
+      "workspace_phase",
+    );
+    expect(leaseRow?.querySelector('[data-renewal-field="action"]')).toHaveAttribute(
+      "data-action-step-id",
+      "owner-decision",
+    );
+  });
+
+  it("keeps review leases inspectable and makes definitive skips non-navigable", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row("SKIP", {
+            disposition: "skip",
+            reason: "month_to_month",
+            reasonLabel: "Month-to-month",
+          }),
+          row("REVIEW", {
+            disposition: "review",
+            reason: "no_end_date",
+            reasonLabel: "No end date on file",
+          }),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={2}
+      />,
+    );
+
+    const review = screen.getByRole("link", { name: "REVIEW Main St" });
+    expect(review.closest("tr")).toHaveAttribute("data-workspace-available", "true");
+    expect(
+      document.querySelector('tr[data-workspace-available="true"] a.renewal-lease-link'),
+    ).toBe(review);
+    expect(screen.queryByRole("link", { name: "SKIP Main St" })).toBeNull();
+    const skipRow = screen.getByText("SKIP Main St").closest("tr");
+    expect(skipRow).toHaveAttribute("data-workspace-available", "false");
+    expect(
+      [...(skipRow?.querySelectorAll("a") ?? [])].some((link) =>
+        link.getAttribute("href")?.includes("/desk/lease/SKIP"),
+      ),
+    ).toBe(false);
   });
 
   it("applies the opaque owner key on the owner shortcut and never a display label", () => {
@@ -257,13 +484,43 @@ describe("S82 row cells and exact-value shortcuts", () => {
       within(l2 as HTMLElement).getAllByText("Needs Verification").length,
     ).toBeGreaterThan(0);
   });
-});
 
-describe("S82 action cell", () => {
-  it("renders every causal blocker as a phase link carrying the continuation", () => {
+  it("renders a server-validated RentVine destination as a protected external link", () => {
     render(
       <RenewalDeskTable
         role="Editor"
+        rows={[
+          row("L1", {
+            sourceDestinations: {
+              rentvine: {
+                kind: "external",
+                href: "https://pmikcmetro.rentvine.com/leases/1",
+                label: "Opens this lease in RentVine in a new tab.",
+              },
+            },
+          }),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalInScope={1}
+        totalLoaded={1}
+      />,
+    );
+    const source = screen.getByRole("link", {
+      name: "Open lease L1 in RentVine in a new tab",
+    });
+    expect(source).toHaveAttribute("target", "_blank");
+    expect(source).toHaveAttribute("rel", "noopener noreferrer");
+    expect(source).toHaveAttribute("href", "https://pmikcmetro.rentvine.com/leases/1");
+  });
+});
+
+describe("S82 action cell", () => {
+  it("renders every causal blocker as a phase link for a capable actor", () => {
+    render(
+      <RenewalDeskTable
+        role="Admin"
         rows={[
           row(
             "L1",
@@ -310,6 +567,197 @@ describe("S82 action cell", () => {
       screen.getByRole("link", { name: "2 blocking source items remain." }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open" })).toBeNull();
+    const rowElement = blocker.closest("tr");
+    expect(rowElement).toHaveAttribute("data-action-kind", "blocked");
+    expect(rowElement).toHaveAttribute("data-is-blocked", "true");
+    expect(rowElement).toHaveAttribute("data-blocker-count", "2");
+    const blockerItem = blocker.closest("li");
+    expect(blockerItem).toHaveAttribute("data-blocker-id", "b1");
+    expect(blockerItem).toHaveAttribute("data-blocker-type", "evidence");
+    expect(blockerItem).toHaveAttribute("data-blocker-phase-id", "verify-renewal");
+    expect(blockerItem).toHaveAttribute(
+      "data-blocker-destination-kind",
+      "workspace_phase",
+    );
+    expect(blockerItem).toHaveAttribute("data-blocker-step-id", "verify-renewal");
+    expect(blockerItem).toHaveAttribute("data-required-capability", "none");
+  });
+
+  it("swaps a capability-gated blocker for the exact S83 access handoff", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row(
+            "L1",
+            {},
+            {
+              overallStatus: "blocked",
+              urgencyRank: OVERALL_STATUS_URGENCY_RANK.blocked,
+              isBlocked: true,
+              action: { kind: "blocked" },
+              blockers: [
+                {
+                  id: "source-resolution:0",
+                  label: "Record an exact source disposition.",
+                  type: "evidence",
+                  phaseId: "verify-renewal",
+                  destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+                  requiredCapability: "approve",
+                },
+              ],
+            },
+          ),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={{ ...state, ownerKey: TOKEN_A, overallStatus: "blocked" }}
+        totalBeforeQuery={1}
+      />,
+    );
+
+    expect(
+      screen.getByText("Record an exact source disposition.").closest("a"),
+    ).toBeNull();
+    const request = screen.getByRole("link", { name: "Request access" });
+    const handoff = new URL(`https://example.invalid${request.getAttribute("href")}`);
+    expect(handoff.searchParams.get("capability")).toBe("approve");
+    const returnTo = new URL(
+      handoff.searchParams.get("return_to")!,
+      "https://example.invalid",
+    );
+    expect(returnTo.pathname).toBe("/lease-renewal/live/desk");
+    expect(returnTo.searchParams.get("ownerKey")).toBe(TOKEN_A);
+    expect(returnTo.searchParams.get("overallStatus")).toBe("blocked");
+  });
+
+  it("renders needs-verification causal blockers while definitive skips stay unlinked", () => {
+    const blockerGuidance: Partial<DeskLeaseGuidance> = {
+      overallStatus: "needs_verification",
+      urgencyRank: OVERALL_STATUS_URGENCY_RANK.needs_verification,
+      isBlocked: true,
+      action: {
+        kind: "needs_verification",
+        label: "Current process state needs verification.",
+        destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+      },
+      blockers: [
+        {
+          id: "source-check:0",
+          label: "Review the current source conflict.",
+          type: "source",
+          phaseId: "verify-renewal",
+          destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+        },
+      ],
+    };
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row("L1", {}, blockerGuidance),
+          row(
+            "SKIP",
+            {
+              disposition: "skip",
+              reason: "month_to_month",
+              reasonLabel: "Month-to-month",
+            },
+            {
+              ...blockerGuidance,
+              blockers: [
+                {
+                  id: "skip-check:0",
+                  label: "Review the definitive skip evidence.",
+                  type: "evidence",
+                  phaseId: "verify-renewal",
+                  destination: {
+                    kind: "workspace_phase",
+                    stepId: "verify-renewal",
+                  },
+                },
+              ],
+            },
+          ),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={2}
+      />,
+    );
+
+    const eligible = screen.getByRole("link", {
+      name: "Review the current source conflict.",
+    });
+    expect(eligible.getAttribute("href")).toContain("step=verify-renewal");
+    const skipText = screen.getByText("Review the definitive skip evidence.");
+    expect(skipText.closest("a")).toBeNull();
+    expect(skipText.closest("tr")).toHaveAttribute("data-workspace-available", "false");
+    expect(skipText.closest("li")).toHaveAttribute("data-blocker-id", "skip-check:0");
+  });
+
+  it("links eligible review work to verification but leaves unread progress non-actionable", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row(
+            "REVIEW",
+            {
+              disposition: "review",
+              reason: "no_end_date",
+              reasonLabel: "No end date on file",
+            },
+            {
+              overallStatus: "needs_verification",
+              urgencyRank: OVERALL_STATUS_URGENCY_RANK.needs_verification,
+              isBlocked: true,
+              action: {
+                kind: "needs_verification",
+                label: "Resolve the missing renewal date.",
+                destination: {
+                  kind: "workspace_phase",
+                  stepId: "verify-renewal",
+                },
+              },
+            },
+          ),
+          row(
+            "UNREAD",
+            {},
+            {
+              overallStatus: "needs_verification",
+              urgencyRank: OVERALL_STATUS_URGENCY_RANK.needs_verification,
+              isBlocked: true,
+              action: {
+                kind: "needs_verification",
+                label:
+                  "Saved renewal progress could not be verified. Refresh before acting.",
+                destination: { kind: "none" },
+              },
+            },
+          ),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={2}
+      />,
+    );
+
+    const reviewAction = screen.getByRole("link", {
+      name: "Resolve the missing renewal date.",
+    });
+    expect(reviewAction.getAttribute("href")).toContain("step=verify-renewal");
+    const unreadAction = screen.getByText(
+      "Saved renewal progress could not be verified. Refresh before acting.",
+    );
+    expect(unreadAction.closest("a")).toBeNull();
+    expect(unreadAction.closest("td")).toHaveAttribute(
+      "data-action-destination-kind",
+      "none",
+    );
   });
 
   it("swaps a capability-gated next control for the exact S83 access handoff", () => {
@@ -332,7 +780,14 @@ describe("S82 action cell", () => {
         ]}
         shortcuts={shortcuts}
         sourceReadOk
-        state={{ ...state, lease: "Main" }}
+        state={{
+          ...state,
+          q: "legacy words",
+          lease: "Main",
+          ownerKey: TOKEN_A,
+          scope: "tracked",
+          overallStatus: "blocked",
+        }}
         totalBeforeQuery={1}
       />,
     );
@@ -340,6 +795,16 @@ describe("S82 action cell", () => {
     const href = request.getAttribute("href") ?? "";
     expect(href).toContain("/admin/access?");
     expect(href).toContain("capability=approve");
+    const handoff = new URL(`https://example.invalid${href}`);
+    const returnTo = handoff.searchParams.get("return_to");
+    expect(returnTo).not.toBeNull();
+    const restored = new URL(returnTo!, "https://example.invalid");
+    expect(restored.pathname).toBe("/lease-renewal/live/desk");
+    expect(restored.searchParams.get("ownerKey")).toBe(TOKEN_A);
+    expect(restored.searchParams.get("scope")).toBe("tracked");
+    expect(restored.searchParams.get("overallStatus")).toBe("blocked");
+    expect(restored.searchParams.has("q")).toBe(false);
+    expect(restored.searchParams.has("lease")).toBe(false);
     // An active text filter warns that the access return clears it.
     expect(
       screen.getByText("Your text search will be cleared in the access return link."),

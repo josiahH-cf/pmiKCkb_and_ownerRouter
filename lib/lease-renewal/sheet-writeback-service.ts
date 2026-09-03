@@ -311,6 +311,8 @@ async function previewWriteback(
       fieldKey: current.plan.fieldKey,
       approvalId: current.approval.id,
       approvalVersion: current.approval.updated_at,
+      candidateFingerprint: current.approval.candidate_fingerprint!,
+      resolutionUpdatedAt: current.approval.resolution_updated_at!,
       sourceOfValue: current.approval.source_of_value,
       descriptor: context.descriptor,
       target: {
@@ -397,6 +399,8 @@ async function commitWriteback(
       fieldKey: current.plan.fieldKey,
       approvalId: current.approval.id,
       approvalVersion: current.approval.updated_at,
+      candidateFingerprint: current.approval.candidate_fingerprint!,
+      resolutionUpdatedAt: current.approval.resolution_updated_at!,
       sourceOfValue: current.approval.source_of_value,
       proposedValueHash: hashSheetCellValue(current.plan.proposedValue),
     },
@@ -962,6 +966,15 @@ async function loadCurrentApprovedPlan(
     approval.updated_at?.trim().length > 0 &&
     resolution?.run_id === input.runId &&
     resolution.status === "Resolved" &&
+    typeof resolution.candidate_fingerprint === "string" &&
+    resolution.candidate_fingerprint.trim().length > 0 &&
+    resolution.candidate_fingerprint === flag.candidateFingerprint &&
+    typeof approval.candidate_fingerprint === "string" &&
+    approval.candidate_fingerprint.trim().length > 0 &&
+    approval.candidate_fingerprint === resolution.candidate_fingerprint &&
+    typeof approval.resolution_updated_at === "string" &&
+    approval.resolution_updated_at.trim().length > 0 &&
+    approval.resolution_updated_at === resolution.updated_at &&
     proposal?.status === "Queued" &&
     approval.property_key === propertyKey &&
     resolution.property_key === propertyKey &&
@@ -1175,6 +1188,8 @@ function writeBinding(
     fieldKey: current.plan.fieldKey,
     approvalId: current.approval.id,
     approvalVersion: current.approval.updated_at,
+    candidateFingerprint: current.approval.candidate_fingerprint!,
+    resolutionUpdatedAt: current.approval.resolution_updated_at!,
     sourceOfValue: current.approval.source_of_value,
     descriptor: context.descriptor,
     target: {

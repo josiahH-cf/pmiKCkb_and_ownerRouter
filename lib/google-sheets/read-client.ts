@@ -66,7 +66,14 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     private readonly dwdSubject:
       | string
       | undefined = process.env.SHEETS_DWD_SUBJECT?.trim() || undefined,
+    private readonly abortSignal?: AbortSignal,
   ) {}
+
+  private requestSignal(): AbortSignal | undefined {
+    return this.abortSignal
+      ? AbortSignal.any([this.abortSignal, AbortSignal.timeout(30_000)])
+      : undefined;
+  }
 
   private getAuthClient(): Promise<AuthClient> {
     if (!this.authClientPromise) {
@@ -110,6 +117,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
       url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(saEmail)}:signJwt`,
       method: "POST",
       data: { payload },
+      signal: this.requestSignal(),
     });
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -118,6 +126,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
         grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
         assertion: signResponse.data.signedJwt,
       }),
+      signal: this.requestSignal(),
     });
     const tokenData = (await tokenResponse.json()) as {
       access_token?: string;
@@ -154,7 +163,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     const token = await this.authToken();
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties.title`,
-      { headers: { Authorization: token } },
+      { headers: { Authorization: token }, signal: this.requestSignal() },
     );
     if (!response.ok) {
       throw new Error(`Sheets metadata read failed (HTTP ${response.status}).`);
@@ -175,7 +184,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     const query = ranges.map((range) => `ranges=${encodeURIComponent(range)}`).join("&");
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchGet?${query}`,
-      { headers: { Authorization: token } },
+      { headers: { Authorization: token }, signal: this.requestSignal() },
     );
     if (!response.ok) {
       throw new Error(`Sheets values read failed (HTTP ${response.status}).`);
@@ -199,7 +208,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     ].join("&");
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchGet?${query}`,
-      { headers: { Authorization: token } },
+      { headers: { Authorization: token }, signal: this.requestSignal() },
     );
     if (!response.ok) {
       throw new Error(`Sheets formula read failed (HTTP ${response.status}).`);
@@ -221,7 +230,7 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     );
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?${rangesQuery}&fields=${fields}`,
-      { headers: { Authorization: auth } },
+      { headers: { Authorization: auth }, signal: this.requestSignal() },
     );
     if (!response.ok) {
       throw new Error(`Sheets notes read failed (HTTP ${response.status}).`);

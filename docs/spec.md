@@ -1,6 +1,6 @@
 # PMI KC current product contract
 
-Updated: 2026-09-01.
+Updated: 2026-09-02.
 
 ## Application
 
@@ -56,29 +56,32 @@ Every effect is exact-key gated and follows preview, exact confirmation, one bou
 provider idempotency, receipt, readback, ambiguity recovery, and separate reversal/correction. S100's
 manual chat sync is the sole specified non-reversible stateful-read exception: its explicit warning
 states that RentVine marks retrieved manager messages read and documents no unread restoration.
-RentVine renewal and Maintenance writes, operating-Sheet writes, manual resident chat sync, and the
-resident-reply Gmail draft are approved desired behavior under S97-S100 but remain closed and
-undeployed today. Direct notice sends, generic/bulk provider calls, vendor assignment, RentVine chat
+The exact S97 renewal writes, S98 operating-Sheet keys, S99 work-order operations, and S100 manual
+chat sync are deployed and open only behind their exact contracts. S98's active unreleased
+hardening retains normal row append but refuses fixed-row field update/delete/restore because the
+current Sheets integration cannot atomically bind a logical row and expected generation; open-key
+state does not override that capability boundary. The S100
+resident-reply Gmail draft remains closed pending its exact eligible mapping, proof, and activation.
+Direct notice sends, generic/bulk provider calls, vendor assignment, attachments, RentVine chat
 posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-The production release at commit `f2153b00087516cf06c4f9776f2fc3562e146c83` passed 600 unit files
-with one intentional file skip (5,515 tests and four skips), 26 Firestore files/119 tests, every
-static/policy gate, core E2E, and the complete production build. Exact-SHA aggregate CI run
-`33583463885` passed. Zero-traffic revision `pmi-kc-app-rmtjhew5f-125876b4ff5b` then passed exact
-identity, bounded-route, and normalized-configuration readback, excluding only image and exact
-`APP_COMMIT_SHA`, before promotion and repeated stable 100% traffic readback. The committed Action
-Registry is 44 keys with seven open; the three exact S97 writeback keys and the retired broad
-identifier read back closed. Revision `pmi-kc-app-rmtjd24ee-17d334db377f` is the immediate
-rollback target; the earlier predecessor chain retains its recorded rollback rehearsal.
+Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
+`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic. Its captured immediate rollback is
+`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Live readback confirms Production + Live, eleven Spaces, the
+managed runtime identity, an enabled operating-Sheet switch, and a 48-key Registry with 16 open and
+32 closed. The current S82/S51/S54 remediation remains worktree behavior until its complete test,
+exact-SHA CI, candidate, promotion, observation, and readback gates pass.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. The remaining S36,
-S87-S95, and S97-S100 suites are desired-state contracts, not deployed behavior. S96, S85, S86, S83,
-S84, and S82 are complete and deployed; S97 is the active suite. S97 later consumes S30's safety primitives
-and replaces the proof-only route with the exact renewal product contract. All product decisions are
-closed; missing fresh provider values or managed sessions are fail-closed runtime inputs, not
-permission to invent them.
+superseded proof specifications are not part of this contract. The original S82 delivery is
+deployed, but its bounded conformance remediation plus expanded S51/S54 assurance is active and
+unreleased. S97-S99 are complete and deployed. S100 chat sync is complete, proven, and open; S100
+remains blocked only on the exact mapped resident/email input required for its closed unsent-draft
+key. S36 is queued behind complete S100 and has not started. S87-S95 and S101 are
+specification-only desired behavior, not current Dashboard AI, minimal-home, decluttering, or broad
+assistant-read capability. All product decisions are closed; a missing runtime input blocks only
+its dependent gate and is never permission to invent or substitute evidence.

@@ -1922,6 +1922,16 @@ textarea:disabled {
   font-weight: 700;
 }
 
+.renewal-scope-indicator {
+  align-items: center;
+  background: var(--ui-selected-surface);
+  border: 1px solid var(--ui-border-interactive);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  min-height: 44px;
+  padding: 6px 12px;
+}
+
 .renewal-filter-chips {
   align-items: center;
   display: flex;
@@ -1939,7 +1949,7 @@ textarea:disabled {
   border-radius: var(--radius-pill);
   display: inline-flex;
   gap: var(--space-1);
-  min-height: 32px;
+  min-height: 44px;
   padding: 2px 6px 2px 12px;
 }
 
@@ -1948,8 +1958,8 @@ textarea:disabled {
   border-radius: var(--radius-pill);
   display: inline-flex;
   justify-content: center;
-  min-height: 28px;
-  min-width: 28px;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .renewal-filter-chip-remove:hover,
@@ -2068,7 +2078,9 @@ textarea:disabled {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-1);
+  max-height: min(70vh, 640px);
   max-width: min(320px, 80vw);
+  overflow-y: auto;
   padding: var(--space-2);
   position: absolute;
   z-index: 30;
@@ -2083,6 +2095,20 @@ textarea:disabled {
   gap: var(--space-1);
 }
 
+.renewal-filter-validation {
+  background: var(--state-caution-surface);
+  border: 1px solid var(--state-caution-border);
+  border-radius: var(--radius-sm);
+  color: var(--state-caution-text);
+  margin: 0;
+  padding: var(--space-2);
+}
+
+.renewal-filter-validation ul {
+  margin: var(--space-1) 0 0;
+  padding-inline-start: var(--space-3);
+}
+
 .renewal-td-secondary {
   color: var(--ui-text-muted);
   display: block;
@@ -2092,6 +2118,36 @@ textarea:disabled {
 
 .renewal-lease-link {
   font-weight: 700;
+}
+
+.renewal-table .renewal-lease-link,
+.renewal-table .text-link,
+.renewal-table .renewal-status-link,
+.renewal-table .renewal-source-link {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  margin-bottom: 0;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.renewal-table .renewal-lease-link:hover,
+.renewal-table .renewal-lease-link:focus-visible,
+.renewal-table .text-link:hover,
+.renewal-table .text-link:focus-visible,
+.renewal-table .renewal-status-link:hover,
+.renewal-table .renewal-status-link:focus-visible,
+.renewal-table .renewal-source-link:hover,
+.renewal-table .renewal-source-link:focus-visible {
+  background: var(--action-secondary-hover);
+}
+
+.renewal-source-link {
+  color: var(--action-link);
+  font-size: var(--font-size-min);
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .renewal-party-list,
@@ -2158,6 +2214,29 @@ textarea:disabled {
   text-align: center;
 }
 
+.renewal-loading {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  min-height: 88px;
+}
+
+.renewal-loading-indicator {
+  animation: renewal-loading-spin 0.9s linear infinite;
+  border: 4px solid var(--ui-border);
+  border-radius: 50%;
+  border-top-color: var(--action-primary);
+  display: inline-block;
+  height: 32px;
+  width: 32px;
+}
+
+@keyframes renewal-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* S82: the guided workspace's six-phase rail. */
 .renewal-phase-rail ol {
   display: grid;
@@ -2185,6 +2264,19 @@ textarea:disabled {
   background: var(--action-secondary-hover);
   border-color: var(--ui-border-interactive);
   text-decoration: none;
+}
+
+.renewal-workspace-link {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.renewal-workspace-link:hover,
+.renewal-workspace-link:focus-visible {
+  background: var(--action-secondary-hover);
 }
 
 .renewal-phase-rail li[data-selected] .renewal-phase-link {

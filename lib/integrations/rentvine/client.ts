@@ -173,18 +173,21 @@ export function unwrapWorkOrders(body: unknown): RawWorkOrder[] {
 
 /** Buffer one read so json() and text() can both be called without double-consuming the body. */
 export function createFetchTransport(
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; signal?: AbortSignal } = {},
 ): RentVineHttpTransport {
   const timeoutMs = options.timeoutMs ?? 30_000;
   return {
     async send(request) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const signal = options.signal
+        ? AbortSignal.any([options.signal, controller.signal])
+        : controller.signal;
       try {
         const response = await fetch(request.url, {
           method: request.method,
           headers: request.headers,
-          signal: controller.signal,
+          signal,
         });
         const headers: Record<string, string> = {};
         response.headers.forEach((value, key) => {

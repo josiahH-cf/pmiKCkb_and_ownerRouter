@@ -1,6 +1,6 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-08-31.
+Updated: 2026-09-02.
 
 All product-scope and authority questions for the canonical queue are closed. This file lists only
 fresh runtime evidence that an implementing runner must resolve and validate; none is permission to
@@ -10,18 +10,21 @@ guess, substitute a record, or stop unrelated closed-safe work.
 
 - Production is Live-only. Use real source-backed values; never create a fake person, lease, work
   order, message, or customer value.
-- The app is intended to update in-scope systems of record under the exact S97-S100 contracts.
-- The owner authorizes each exact S97-S100 key's bounded protected proof window after closed
-  implementation/deterministic gates, mandatory close/readback, and final activation after its
-  applicable live proof and remaining suite gates; no broad or sibling key inherits that authority.
-- The secure execution prompt designates the sole S97 RentVine property/lease target. S97 may perform
-  the specified temporary one-day `endDate` proof and exact rollback only on that target.
-- S98 may append one temporary source-backed proof row at the end of the operating renewal Sheet,
-  label/note/isolate it as a test, read it back, separately update its blank `current_rent` from the
-  fresh source, then separately delete it and prove final absence.
-- S99 includes staff-confirmed RentVine work-order creation and status update. S100 includes manual
-  authenticated inbound work-order-chat synchronization and only an unsent Gmail resident-reply
-  draft in the signed-in user's connected mailbox.
+- The app updates in-scope systems of record only through exact active keys and their human-
+  initiated preview/confirmation/receipt/readback contracts; no broad or sibling key inherits that
+  authority.
+- S97's three bounded proofs are complete and its exact renewal-date, recurring-charge-create, and
+  recurring-charge-update keys are active. The designated proof lease must not be reused for another
+  proof merely because it was the authorized test target.
+- S98's bounded operating-Sheet proof is complete, both exact Registry keys remain open, and the
+  temporary proof row was deleted and read back absent. Do not create a replacement proof row. The
+  hardened normal product path is append-only; field update/delete/restore report unavailable until
+  Google Sheets exposes the required stable logical-row and expected-generation operation.
+- S99's bounded work-order proofs are complete and its exact read/create/status-update keys are
+  active. Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
+- S100's manual authenticated inbound work-order-chat synchronization is active. Its unsent Gmail
+  resident-reply draft key remains closed until one synchronized resident message maps to a verified
+  resident email in the signed-in user's connected managed mailbox.
 - S36 runs one temporary provision/import/query/readback/retirement pilot and restores the original
   eleven-store/config baseline.
 - Dotloop and LeadSimple are deferred until after the current RentVine activation work and require
@@ -29,13 +32,13 @@ guess, substitute a record, or stop unrelated closed-safe work.
 
 ## Runtime evidence by suite
 
-| Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S97   | Managed Admin/Renewals actor, exact account and designated lease from the secure target URL plus matching operating-Sheet row; date-key one-day delta and rollback; source-backed staff-confirmed create terms; one existing charge with a supported reversible update delta; fresh before reads, phase previews/confirmations, and current exact key/config state | Use one serial window per exact key. Stop on any target/state/actor/key/value drift; never choose another lease or invent charge terms; each reversal and key closeout must read back exactly.                       |
-| S98   | Managed Admin/Renewals actor, operating workbook/tab/schema/header hash, fresh tenant and current-rent source values, exact temporary marker/note, downstream exclusion, surrounding-row baseline                                                                                                                                                                  | Use serial append, field-update, and append-owned reversal windows. Stop on murky headers/protection/formula/validation/identity drift; delete only the unchanged receipted row and prove stable-key/marker absence. |
-| S99   | Managed staff actor, current RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal                                                                                                                                                                            | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; rollback/correction must use the exact receipted work order                                                           |
-| S100  | Managed signed-in user, exact provider account/work-order/message identities, disclosed mark-read effect, verified resident-email mapping, connected Gmail mailbox                                                                                                                                                                                                 | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send                                                                                          |
-| S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                                                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                |
+| Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                                                                    |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S97   | For each normal action: current managed Admin/Renewals actor, exact account/lease/charge target, source-backed proposed values, fresh before read, exact preview/confirmation, runtime-suspension clearance, and active exact-key readback                                         | Stop on any target/state/actor/key/value drift; never infer a charge or term; every reversal/correction needs a new exact confirmation and readback. Completed proof phases and targets are not rerun.                                                                   |
+| S98   | For a normal append: current managed Admin/Renewals actor, operating workbook/tab/schema/header identity, fresh one-to-one lease absence, server-derived source values, exact preview/confirmation, write-switch and active-key readback                                           | Stop on header, identity, source, proposal-generation, or recovery drift. Never rerun proof mutations or use fixed-row field update/delete/restore; correct an append manually from its receipt/destination until a separately reviewed stable-row provider seam exists. |
+| S99   | For each normal action: current managed staff actor, RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal, and exact preview/confirmation                                    | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; correction must use the exact receipted work order. Do not reuse proof work order 1731 as a proof target.                                                                 |
+| S100  | For manual chat sync: current managed actor, exact account/work-order/message identities, and disclosed mark-read effect. For the one remaining resident-draft proof: a synchronized resident message mapped to a verified resident email plus the signed-in managed Gmail mailbox | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send. The draft proof cannot run until the exact eligible message exists.                                                                         |
+| S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                                                                    |
 
 ## Existing policy inputs
 

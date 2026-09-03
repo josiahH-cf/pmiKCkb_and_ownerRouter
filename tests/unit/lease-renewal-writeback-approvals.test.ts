@@ -19,6 +19,7 @@ import {
   listWritebackApprovalsForRun,
 } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
+import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -30,6 +31,9 @@ const approver = userWith("Approver", "approver-1");
 
 const RUN_ID = "run-1";
 const KEY = "lease_renewal:reconcile:run-1:current_rent";
+const FINGERPRINT_1 = `rcf1_${"1".repeat(64)}`;
+const FINGERPRINT_2 = `rcf1_${"2".repeat(64)}`;
+const FINGERPRINT_LATER = `rcf1_${"3".repeat(64)}`;
 
 function seedResolution(
   db: FakeFirestore,
@@ -43,6 +47,7 @@ function seedResolution(
     property_key: "opaque-property-key",
     field_key: "current_rent",
     field_label: "Current rent",
+    candidate_fingerprint: FINGERPRINT_1,
     severity: "High",
     status: "Resolved",
     resolution_kind: "pick_source",
@@ -77,6 +82,17 @@ function fs(): Firestore {
   return db as unknown as Firestore;
 }
 
+const UNSEEN_AUTHORIZATION_TOKEN = `rwat1_${"0".repeat(64)}`;
+
+function authorizationToken(key = KEY): string {
+  const record = db.store.get(
+    `${LEASE_RENEWAL_COLLECTIONS.resolutions}/${resolutionDocId(key)}`,
+  ) as LeaseRenewalResolutionRecord | undefined;
+  return record
+    ? (writebackAuthorizationTokenForResolution(record) ?? UNSEEN_AUTHORIZATION_TOKEN)
+    : UNSEEN_AUTHORIZATION_TOKEN;
+}
+
 function decide(
   actor: AuthenticatedUser,
   decision: "approve" | "return",
@@ -84,7 +100,13 @@ function decide(
 ) {
   return decideWritebackApproval(
     actor,
-    { run_id: RUN_ID, source_trigger_key: KEY, decision, reason },
+    {
+      run_id: RUN_ID,
+      source_trigger_key: KEY,
+      authorization_token: authorizationToken(),
+      decision,
+      reason,
+    },
     fs(),
   );
 }
@@ -130,6 +152,7 @@ describe("decideWritebackApproval", () => {
       {
         run_id: RUN_ID,
         source_trigger_key: KEY,
+        authorization_token: authorizationToken(),
         decision: "approve",
         reason_code: "accepted_suggestion",
       },
@@ -181,6 +204,7 @@ describe("decideWritebackApproval", () => {
         {
           run_id: RUN_ID,
           source_trigger_key: KEY,
+          authorization_token: authorizationToken(),
           decision: "approve",
           reason_code: "accepted_suggestion",
         },
@@ -202,6 +226,7 @@ describe("decideWritebackApproval", () => {
         {
           run_id: RUN_ID,
           source_trigger_key: KEY,
+          authorization_token: authorizationToken(),
           decision: "approve",
           reason_code: "stale_source",
         },
@@ -231,6 +256,41 @@ describe("decideWritebackApproval", () => {
     await expect(decide(admin, "approve")).rejects.toThrow(/no queued write-back/);
   });
 
+  it("requires a fresh source-bound resolution instead of approving a legacy unbound record", async () => {
+    seedResolution(db, { candidate_fingerprint: undefined });
+    await expect(decide(admin, "approve")).rejects.toThrow(
+      /predates current source binding/,
+    );
+    expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
+  });
+
+  it("rejects an unseen re-resolution even when its value and source are unchanged", async () => {
+    seedResolution(db);
+    const reviewedToken = authorizationToken();
+    seedResolution(db, {
+      candidate_fingerprint: FINGERPRINT_2,
+      updated_at: "2026-07-02T00:00:00.000Z",
+    });
+
+    await expect(
+      decideWritebackApproval(
+        admin,
+        {
+          run_id: RUN_ID,
+          source_trigger_key: KEY,
+          authorization_token: reviewedToken,
+          decision: "approve",
+          reason: "I reviewed the earlier proposal.",
+        },
+        fs(),
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringMatching(/changed after it was displayed/i),
+    });
+    expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
+  });
+
   it("rejects a run_id that does not match the resolution", async () => {
     seedResolution(db);
     await expect(
@@ -239,6 +299,7 @@ describe("decideWritebackApproval", () => {
         {
           run_id: "other-run",
           source_trigger_key: KEY,
+          authorization_token: authorizationToken(),
           decision: "approve",
           reason: "x",
         },
@@ -252,7 +313,13 @@ describe("decideWritebackApproval", () => {
     await expect(
       decideWritebackApproval(
         admin,
-        { run_id: RUN_ID, source_trigger_key: KEY, decision: "approve", reason: "   " },
+        {
+          run_id: RUN_ID,
+          source_trigger_key: KEY,
+          authorization_token: authorizationToken(),
+          decision: "approve",
+          reason: "   ",
+        },
         fs(),
       ),
     ).rejects.toThrow();
@@ -263,6 +330,7 @@ describe("decideWritebackApproval", () => {
       DecideWritebackApprovalInputSchema.parse({
         run_id: RUN_ID,
         source_trigger_key: KEY,
+        authorization_token: UNSEEN_AUTHORIZATION_TOKEN,
         decision: "return",
         reason_code: "accepted_suggestion",
       }),
@@ -274,6 +342,7 @@ describe("decideWritebackApproval", () => {
       DecideWritebackApprovalInputSchema.parse({
         run_id: RUN_ID,
         source_trigger_key: KEY,
+        authorization_token: UNSEEN_AUTHORIZATION_TOKEN,
         decision: "approve",
       }),
     ).toThrow("A plain-English reason is required.");
@@ -306,6 +375,9 @@ describe("decideWritebackApproval", () => {
 
     // A later re-resolution changed the queued value; the old approval is now stale.
     seedResolution(db, {
+      resolution_kind: "corrected_value",
+      chosen_source: undefined,
+      corrected_value: "1600",
       proposed_writeback: {
         field_key: "current_rent",
         value: "1600",
@@ -320,6 +392,24 @@ describe("decideWritebackApproval", () => {
     expect(reapproved.state).toBe("Approved");
     expect(reapproved.proposed_value).toBe("1600");
     expect(reapproved.source_of_value).toBe("corrected_value");
+  });
+
+  it("requires re-approval when source facts drift even if the proposed value stays the same", async () => {
+    seedResolution(db);
+    const first = await decide(admin, "approve");
+    expect(first.candidate_fingerprint).toBe(FINGERPRINT_1);
+
+    seedResolution(db, {
+      candidate_fingerprint: FINGERPRINT_2,
+      updated_at: "2026-07-02T00:00:00.000Z",
+    });
+    const reapproved = await decide(admin, "approve", "Reviewed changed source facts.");
+    expect(reapproved).toMatchObject({
+      state: "Approved",
+      proposed_value: "1500",
+      candidate_fingerprint: FINGERPRINT_2,
+      resolution_updated_at: "2026-07-02T00:00:00.000Z",
+    });
   });
 
   it("lists approvals for a run", async () => {
@@ -345,6 +435,8 @@ function seedResolutionForKey(
     run_id: RUN_ID,
     field_key: fieldKey,
     field_label: fieldKey,
+    candidate_fingerprint:
+      fieldKey === "renewal_date" ? `rcf1_${"4".repeat(64)}` : FINGERPRINT_1,
     severity: "High",
     status: "Resolved",
     resolution_kind: "pick_source",
@@ -377,7 +469,15 @@ describe("decideWritebackApprovalsBulk", () => {
   ) {
     return decideWritebackApprovalsBulk(
       actor,
-      { run_id: RUN_ID, source_trigger_keys: keys, decision, reason },
+      {
+        run_id: RUN_ID,
+        proposals: keys.map((key) => ({
+          source_trigger_key: key,
+          authorization_token: authorizationToken(key),
+        })),
+        decision,
+        reason,
+      },
       fs(),
     );
   }
@@ -438,6 +538,43 @@ describe("decideWritebackApprovalsBulk", () => {
     expect(outcome.results[1].ok).toBe(false);
     expect(outcome.results[1].error).toMatch(/Resolve it/);
     expect(await getWritebackApproval(admin, KEY, fs())).not.toBeNull();
+  });
+
+  it("rejects only the bulk item whose reviewed authorization snapshot drifted", async () => {
+    seedResolution(db);
+    seedResolutionForKey(KEY2, "renewal_date");
+    const staleToken = authorizationToken(KEY);
+    const currentToken = authorizationToken(KEY2);
+    seedResolution(db, {
+      candidate_fingerprint: FINGERPRINT_LATER,
+      updated_at: "2026-07-03T00:00:00.000Z",
+    });
+
+    const outcome = await decideWritebackApprovalsBulk(
+      admin,
+      {
+        run_id: RUN_ID,
+        proposals: [
+          { source_trigger_key: KEY, authorization_token: staleToken },
+          { source_trigger_key: KEY2, authorization_token: currentToken },
+        ],
+        decision: "approve",
+        reason: "Reviewed both displayed proposals.",
+      },
+      fs(),
+    );
+
+    expect(outcome).toMatchObject({ decided_count: 1, failed_count: 1 });
+    expect(outcome.results[0]).toMatchObject({
+      source_trigger_key: KEY,
+      ok: false,
+      error: expect.stringMatching(/changed after it was displayed/i),
+    });
+    expect(outcome.results[1]).toEqual({
+      source_trigger_key: KEY2,
+      ok: true,
+      state: "Approved",
+    });
   });
 
   it("reports an illegal transition (double-approve) per item, deciding the rest", async () => {
@@ -508,6 +645,7 @@ describe("listWritebackApprovalActivityForRun", () => {
       {
         run_id: RUN_ID,
         source_trigger_key: KEY2,
+        authorization_token: authorizationToken(KEY2),
         decision: "approve",
         reason: "Confirmed the renewal date.",
       },

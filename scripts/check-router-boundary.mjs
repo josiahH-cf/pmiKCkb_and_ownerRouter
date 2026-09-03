@@ -149,17 +149,14 @@ assertIncludes("docs/README.md", [
 
 assertIncludes("docs/environment-handoff.md", [
   "Production + Live",
-  "pmi-kc-app-rmtf01asj-4b3665ad072f",
-  "d2dfbcc2a865af1f92103083c2a49714c2dc3977",
-  "pmi-kc-app-rmtew9a2z-46a2353b6491",
-  "64031f8ee028f09930660060c8f5f627ca5ccde1",
-  "pmi-kc-app-rmtep3ke9-9d3ecafb0c2e",
-  "2d7903d42dce9dbfad49338b959e467f6c333ccc",
+  "pmi-kc-app-rmtkmhj1z-8855e4c6dbfb",
+  "d243911cb20ffb01773072c0e27c723648eeea34",
+  "pmi-kc-app-rmtkgn08q-db89a37c43dc",
   "pmi-kc-app-rmtbh280n-61b78ef991cc",
   "pmi-kc-app-rmtafuqbg-4e2e4ffe0f48",
   "Sheet write-back",
   "Current rollback",
-  "The 2026-08-27 rehearsal switched the predecessor to 100%",
+  "The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor",
   "Forward restoration",
 ]);
 
@@ -178,7 +175,7 @@ assertIncludes("docs/autonomous-agent-runner.md", [
 
 assertIncludes("docs/integration-architecture.md", [
   "Every provider capability is one exact Action Registry key",
-  "All other keys are closed",
+  "these 16 are open and the other 32 are closed",
   "RentVine write boundary",
   "Sheet boundary",
   "A human sends them from Gmail",

@@ -14,7 +14,11 @@ import type {
   RenewalOverallStatus,
   RenewalRentVerificationState,
 } from "@/lib/lease-renewal/desk-query-v2";
-import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
+import type {
+  RenewalProcessStatus,
+  RenewalProcessStepId,
+  RenewalSubstepState,
+} from "@/lib/lease-renewal/renewal-process";
 import type { EffectiveRuleView } from "@/lib/lease-renewal/notice-rules";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
@@ -27,6 +31,7 @@ import {
   type RenewalTenantOutcome,
 } from "@/lib/lease-renewal/renewal-process";
 import type { TenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
+import type { ExternalDeskDestination } from "@/lib/lease-renewal/desk-destinations";
 
 /** S72: the six renewal steps, derived from the one immutable renewal-v1 definition. */
 export const RENEWAL_STEPS = RENEWAL_STEPPER_STEPS;
@@ -61,7 +66,15 @@ export interface DeskReconItem {
   fieldLabel: string;
   /** Bodyless identity of this exact record+field decision, when it raised a queue item. */
   sourceTriggerKey?: string;
-  agreement: "agree" | "conflict" | "single_source" | "missing";
+  /** Exact source facts this item represents; a resolution is current only when this matches. */
+  candidateFingerprint?: string;
+  agreement:
+    | "agree"
+    | "conflict"
+    | "single_source"
+    | "missing"
+    | "resolved"
+    | "dismissed";
   candidates: DeskReconCandidate[];
 }
 
@@ -127,6 +140,10 @@ export interface DeskLeaseSummaryBase {
   stageLabel: string | null;
   nextAction: string | null;
   openConflicts: number;
+  /** Exact current source links validated server-side; absent values retain in-app fallbacks. */
+  sourceDestinations?: {
+    rentvine?: ExternalDeskDestination;
+  };
   /** S75: one source-backed contact/policy projection on canonical Live cards. */
   followUp?: RenewalFollowUpProjection;
 }
@@ -199,9 +216,21 @@ export interface DeskLeaseGuidance {
   readonly action: DeskLeaseAction;
 }
 
+/**
+ * App-owned S72 projection markers kept separate from source facts. Production assurance uses these
+ * only to verify desk-guidance parity; they are not independent evidence for Gmail, policy, packet,
+ * RentVine, Sheet, or progress truth.
+ */
+export interface DeskProcessStateMarker {
+  readonly status: RenewalProcessStatus;
+  readonly currentStepId: RenewalProcessStepId;
+  readonly currentStepState: RenewalSubstepState;
+}
+
 /** One canonical table row: the S78 summary plus its S82 guidance projection. */
 export interface DeskLeaseRow extends DeskLeaseSummary {
-  guidance: DeskLeaseGuidance;
+  readonly guidance: DeskLeaseGuidance;
+  readonly processState: DeskProcessStateMarker | null;
 }
 
 /**
@@ -270,6 +299,8 @@ export interface RenewalWorkspaceLiveState {
 
 export interface RenewalLeaseWorkspace {
   summary: DeskLeaseSummary;
+  /** False only when this stable lease is open for source inspection outside an active/tracked flow. */
+  workflowAvailable: boolean;
   steps: typeof RENEWAL_STEPS;
   currentStepIndex: number;
   process: RenewalProcessProjection;

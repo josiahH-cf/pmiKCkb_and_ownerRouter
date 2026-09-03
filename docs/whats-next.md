@@ -1,51 +1,45 @@
 # What is next
 
-Updated: 2026-09-01.
+Updated: 2026-09-02.
 
 ## Immediate action
 
-S97 is COMPLETE and deployed (activation commit `642269cab5afba563c41ce769541680c04d5c60c`,
-serving revision `pmi-kc-app-rmtjwy7f4-c705ce297553`): all three serial per-key live proofs passed
-on the owner-designated test lease with receipts, exact readback, honest ambiguity reconciliation,
-and separately confirmed reversal, and the three keys are open with the mirror read back at 44
-keys/ten open. S85 `brand_conformance` is resolved with the official extracted PMI guide values.
-Begin S98: implement the two exact operating-Sheet keys closed behind the S97-pattern gates,
-remove the copy-only rehearsal path, run the serial bounded proof windows on a temporary real-data
-row, and take protected activation through the full release train.
+Complete the bounded S82 conformance remediation and expanded S51/S54 production assurance. The
+worktree changes are not production truth until focused and canonical tests, exact-SHA CI, a
+zero-traffic candidate, managed Admin/Editor candidate checks, exact source reconciliation,
+promotion, the full five-minute observation, and live readback pass.
 
-Documentation Gate 0 is complete through specification closure
-`081fa90071170054e53a2182a68466fbccf4ebf4`, exact-SHA aggregate CI run `33425658400`, and the
-pointer-only queue handoff. Do not repeat the audit or readiness gate. Preserve
-`.claude/settings.local.json` and `output/` as untracked user-owned content.
+Production currently serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
+`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its immediate rollback is
+`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Preserve `.claude/settings.local.json` and `output/` as
+untracked user-owned content.
 
 ## Implementation sequence
 
-Use only the canonical queue in `docs/feature-suites/README.md`: S96, S85, S86, S83, S84, S82,
-S97, S98, S99, S100, the S36 temporary pilot/restoration gate, S88, S89, S90, S91, S92, S94, S93,
-the S93/S94 integration gate, S95, and S87. Each suite executes once. S83 owns access, S84 primary
-navigation, S82 renewal UI, S97-S100 exact source effects, S36 its temporary cloud lifecycle, and S87
-the final six-cohort reconciliation.
-
-The desired S36 and S87-S100 behavior is specified but not deployed. S96, S85, S86, S83, S84, and
-S82 are complete and deployed. Continue to describe the current application using live readback and
-implemented facts until each remaining suite passes its delivery and release gates.
+Use only the canonical queue in `docs/feature-suites/README.md`. S96, S85, S86, S83, S84, and
+S97-S99 are complete and deployed; do not rerun their proof windows. S82's original delivery is
+deployed, while its current correction and S51/S54 assurance intercept execute before the queue
+resumes. S100 chat sync is complete and deployed, but S100 remains blocked on the exact eligible
+resident-message/email input required to prove and activate its closed Gmail draft key. S36 has not
+started and remains queued behind complete S100. S87-S95 and S101 are specifications only.
 
 ## Safe state while advancing
 
 - Assistant queries never grant access, start workflows, create generic approvals, send client
-  communication, or execute the S97-S100 source actions.
-- S94's only V1 write is one reviewed, human-confirmed renewal-to-self My Work task with exact
-  idempotency and readback; production exposure waits for both dedicated secrets.
-- S96 can complete its code/readback gates without destroying a live credential; live-vault proof is
-  separate evidence.
+  communication, or execute provider/source actions.
+- S94's only specified V1 write is one reviewed, human-confirmed renewal-to-self My Work task with
+  exact idempotency and readback; the suite remains specification only.
 - S89 establishes the privacy-safe Ask rollback floor before assistant exposure.
 - S95 changes `/` and `/ask` together only after complete S93/S94 integration and destination parity.
-- Official-brand sign-off and task-frequency priority scores are not inferred.
+- Completed S97-S99 and S100-chat proofs are not rerun, assigned to another record, or treated as
+  category authority.
+- The closed S100 resident-draft key may advance only with the exact eligible live mapping and its
+  own proof, close/readback, protected activation, release, and readback.
 
 ## Runtime evidence
 
-No product question remains open. The secure owner instruction supplies the sole S97 target; every
-other provider id/value/catalog, actor session, confirmation, mailbox mapping, and S36 source packet
-is resolved fresh under its suite. Missing/stale evidence blocks only that exact live effect after
-all independent closed work is green. Official brand and real human litmus evidence remain separately
-reported conformance evidence, never model-filled authority.
+No product question remains open. Managed Admin/Editor browser profiles and live service access are
+runtime inputs for S51; the synchronized resident mapping/email is the exact remaining S100 input;
+and S36 later derives its deterministic source/pilot packet from current approved state. Missing or
+stale evidence blocks only its dependent gate and is never replaced with a personal identity,
+guessed value, Demo record, or different production record.

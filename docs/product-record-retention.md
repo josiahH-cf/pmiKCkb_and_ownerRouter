@@ -1,6 +1,6 @@
 # Product record retention
 
-Updated: 2026-08-31.
+Updated: 2026-09-02.
 
 ## Principles
 
@@ -20,10 +20,10 @@ contract in `docs/work-accountability-data-contract.md`.
 
 Native TTL or scheduled cleanup is optional unless a specific record contract says otherwise.
 
-## Specified future record
+## Current S100 record
 
-S100 specifies `rentvine_work_order_chat_messages` under the existing
+Deployed S100 stores synchronized `rentvine_work_order_chat_messages` under the existing
 `communications-retention:v1.0` `workflow_link` class: 365 days from immutable first successful
 local import, with existing legal-hold and confirmed cleanup behavior. Duplicate sync, view, mapping
-review, and draft creation do not refresh that anchor. This is a target contract, not a claim that
-the collection or writer exists in current production.
+review, and draft creation do not refresh that anchor. The closed resident-reply draft key does not
+change the retention contract for synchronized messages.

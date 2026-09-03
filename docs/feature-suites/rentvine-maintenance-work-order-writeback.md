@@ -3,9 +3,9 @@
 
 # S99 — Governed RentVine maintenance work-order writeback
 
-> Status: Specified and not implemented. Production has one concrete list-only RentVine work-order
-> read, no concrete work-order writer, and all three exact S99 Action Registry keys remain closed.
-> Neither the synthetic test executor nor its hard-coded statuses is a provider capability.
+> Status: **COMPLETE / DEPLOYED.** The exact RentVine work-order read, create, and status-update keys
+> are proven, open, released, and read back. The retired synthetic executor and its hard-coded
+> statuses are not provider capabilities.
 
 **Goal.**
 
@@ -18,22 +18,18 @@ sends a notification through this feature.
 
 **Current state / intended end state.**
 
-Current production stores and manages app-owned maintenance tickets in Firestore. The concrete
-RentVine client can only list `GET /maintenance/work-orders`; it has no single-work-order or catalog
-reader and no work-order write transport. The three exact Action Registry entries exist but are
-`production_allowed:false`. Their current preview schemas use an invented composite
-`property_unit`/`vendor_trade`/English-status shape rather than the official provider body.
-
-`RentvineWorkOrderExecutor` is reachable only through synthetic helpers and unit tests. It assumes
-provider idempotency and conditional status updates that the official RentVine contract does not
-offer, hard-codes app-facing status names, and includes an out-of-scope Vendor-assignment branch. It
-must not be adapted or activated as if those assumptions were live truth.
-
-The intended end state uses only the official account-pinned work-order endpoints and fresh account
+Production stores app-owned maintenance tickets separately and now uses only the official account-
+pinned work-order endpoints and fresh account
 catalogs listed below. One server-built proposal links one Live app ticket to one positive-integer
 RentVine target. A write succeeds only after the returned work-order id and a separate provider GET
 match the exact reviewed fields. App-ticket status and RentVine status remain separate; neither one
 silently advances the other.
+
+Completion evidence used property 84. The complete filtered read passed; TEST work order 1731 was
+created with honest ambiguity reconciliation, a durable receipt, and final `Cancelled` state. The
+delivered corrections cover trade rows, unit identifiers, provider `isVacant`, the update envelope,
+and group 5 parsing. All three exact keys were activated and read back without adding Vendor
+assignment, notification, attachment, chat-post, or send reachability.
 
 **Actors and entry conditions.**
 
@@ -51,9 +47,10 @@ Orders` permission, Production + Live, no applicable runtime suspension, and an 
 - A create proposal requires one persisted Live ticket with a verified unit, non-empty description,
   no unresolved identity blocker, and no successful or ambiguous prior create attempt. A status
   proposal requires one exact work order selected from a fresh S99 read.
-- A live proof uses only one staff-selected real work order or one exact staff-confirmed real creation
-  proposal supplied outside Git. No synthetic issue, person, property, unit, work order, or value may
-  be introduced for proof.
+- The completed live proof used one staff-selected real work order or exact staff-confirmed real
+  creation proposal supplied outside Git. It is historical evidence, not a reusable runtime input;
+  it must not be rerun, reassigned, or replaced. No synthetic issue, person, property, unit, work
+  order, or value may be introduced into normal execution.
 
 **What it is / how it functions.**
 
@@ -221,10 +218,10 @@ unsent Gmail resident-reply draft.
 
 **Open questions & assumptions.**
 
-No product decision remains open. Exact provider ids, current status/trade catalogs, the proof target
-or proposal, and account-level no-notification evidence are fail-closed runtime inputs, not values to
-commit or guess. Their absence blocks only the exact read/write/proof that consumes them after every
-independent closed-safe deliverable is complete.
+No product decision remains open. Exact provider ids, current status/trade catalogs, the selected
+normal-operation target or proposal, and account-level no-notification evidence are fail-closed
+runtime inputs, not values to commit or guess. Their absence blocks only the exact normal read/write
+that consumes them. The completed proof target is historical evidence and is never selected again.
 
 **Cross-product impacts.**
 
@@ -319,7 +316,7 @@ status action.
 Preserve app-owned ticket capture, intake quarantine, unit verification, ticket/activity/notification
 lifecycle, photo and unsent owner-draft boundaries, current role/Space/approval semantics, all
 RentVine lease/property reads, the `pmikcmetro` account and managed credentials, runtime suspension,
-seven currently open keys until exact activation, permanent no-send rules, secrets/PII hygiene,
+the exact per-key registry boundary, permanent no-send rules, secrets/PII hygiene,
 eleven Spaces, and every unrelated provider key. Provider work-order status and app ticket status
 remain independently visible and independently changed.
 
@@ -363,7 +360,7 @@ causality.
 
 **Dependencies / sequencing.**
 
-S99 consumes S83 access/approval handoff and S85/S86 action, confirmation, status, and recovery
+S99 consumed S83 access/approval handoff and S85/S86 action, confirmation, status, and recovery
 presentation. It preserves the deployed maintenance ticket/intake/unit contracts and may execute
 after S98 in the canonical serialized queue; it has no functional dependency on renewal values,
 Dotloop, or LeadSimple. S100 consumes S99's exact provider account/work-order link and cannot post or
@@ -371,69 +368,47 @@ mutate through it. S90 and S87 consume S99's final read-only status/action surfa
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** corrected exact three-key schemas; concrete official read/write adapters;
+- **Delivered:** corrected exact three-key schemas; concrete official read/write adapters;
   ticket proposal/approval/route/UI; live catalogs; claims, receipts, readback, reconciliation,
   restore/cancellation, projection, deterministic tests, closed release, bounded proof, and protected
   activation.
-- **Consumes, but does not assume:** provider ids/catalogs/state, the real proof target/proposal,
-  vacancy/priority/status/trade choices, and notification-automation evidence are fresh runtime inputs.
-- **Externally blocked effect:** only an exact live read/write/proof or final key activation is blocked
-  when its managed credentials, permission, real target/proposal, reversible transition, or
-  no-notification evidence is unavailable. Closed-safe code and release work finish first; no
-  substitute record, mapping, or transition is chosen.
+- **Consumes, but does not assume:** provider ids/catalogs/state, the normal-operation target/proposal,
+  vacancy/priority/status/trade choices, and notification-automation evidence are fresh runtime inputs;
+  the completed proof target is not.
+- **Externally blocked effect:** none. Normal actions still fail closed when managed credentials,
+  permission, real target/proposal, reversible transition, or no-notification evidence is unavailable;
+  no substitute record, mapping, or transition is chosen.
 - **Produces for downstream suites:** one canonical work-order link, exact provider status/receipt/
   recovery contracts, S100's provider identity input, and read-only S90/S87 projections.
 
 **Verification and delivery contract.**
 
-1. Re-read the official consumed OpenAPI operations and hash a minimal contract snapshot, including
-   exact request id/flag wire types and all eight response-root codecs; freeze the
-   current list-only client, closed Registry entries, synthetic executor reachability, ticket/unit
-   contracts, approval behavior, and provider-account identity. Materialize fail-first endpoint,
-   field, catalog, one-attempt, reconciliation, no-notification, and inventory checks.
-2. Implement the complete product slice with all three keys false. Replace—not bless—the synthetic
-   assumptions; use HTTP-boundary fakes only. Run focused adversarial/preservation tests,
-   `bash scripts/verify.sh`, `npm run test:e2e:core`, secret/PII/protected-path/effect/diff audits,
-   exact-SHA CI, zero-traffic candidate smoke, promotion, and stable closed-key/runtime readback.
-3. Apply the owner-authorized temporary proof-window patch for only the exact read key, read it back
-   executable, and prove it against one staff-selected real work order and the live status/trade
-   catalogs. Validate permissions, pagination/detail shape, account identity, links, and bodyless
-   evidence without emitting a provider write, then close/read back the read key.
-4. Under a secure expiring proof binding, apply a separate temporary proof-window patch for only each
-   exact write key being proven and read it back executable. Execute only the staff-selected reversible
-   status case or exact staff-confirmed real creation proposal. A status proof must read the before
-   state, apply one no-notification transition, read it back, separately restore the prior status, and
-   prove final restoration. A real needed create remains active only when staff explicitly confirms
-   that end state; otherwise separately cancel it through the unique live `Cancelled` status. The
-   creation proves only `create`; `update_status` is also proven only when a separate status restore or
-   cancellation POST and readback pass. A status-only proof does not prove `create`. Close/read back
-   every proof-window key before final activation. Failure to prove intended final state, notification
-   safety, restoration/correction, or exact key closeout is an incident, not a retry.
-5. Only after deterministic gates and each key's applicable real proof pass, apply the owner-authorized
-   protected patch for that exact S99 key; no sibling key inherits its evidence. The final S99 end
-   state has all three keys proven and active. Rerun the canonical and exact-SHA release path and read
-   back revision, runtime, credentials/role scope, suspensions, account identity, and each exact key.
-   Roll back/suspend without deleting receipts if any invariant fails.
-6. Record only `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` with an explicit user budget, or `BLOCKED` after
-   every independent closed-safe deliverable is green and one exact external prerequisite is
-   unavailable. Reconcile facts/status/plan/loop/manifest/client documentation to observed truth.
+1. Preserve the official operation/response codecs, exact key/method/field/catalog matrix,
+   one-attempt behavior, no-notification boundary, receipts, readback, reconciliation, and
+   correction/cancellation tests in every affected change.
+2. Keep the three exact open keys, account identity, ticket link/status projection, and all closed
+   Vendor/chat/attachment/send operations aligned across code and current docs.
+3. Release changes through the normal exact-SHA, zero-traffic candidate, managed assurance,
+   promotion, and readback gates. Do not rerun or replace the completed work-order proof.
+4. Specify any new work-order method, transition, assignment, attachment, or notification under a
+   new exact contract and key; never infer it from the completed S99 proof.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current ticket/read/Registry/synthetic truth and the official endpoint, field, catalog,
-   permission, notification, and response contracts; freeze preservation and falsification evidence.
-2. Build the closed exact read/create/status clients, proposal/approval/UI, receipts, readback,
-   reconciliation, and separate restore/cancel flow with no out-of-scope provider reachability.
-3. Falsify identity, mapping, stale state, concurrency, ambiguity, notification/share, role/UI,
-   synthetic-boundary, and preservation behavior; ship and read back the closed candidate.
-4. Run the one exact real-record/proposal proof, verify its intended final state and notification
-   boundary, and close/read back any temporary proof authorization.
-5. Review, test, deliver, and read back the exact protected activation patch; hand the provider link
-   and read-only status/recovery contracts to S100/S90/S87.
+1. Reconcile the current three-key implementation, official operation codecs, provider catalogs,
+   proposal/claim lifecycle, and current production readback against this contract without rerunning
+   or replacing the completed live proof.
+2. Run the focused S99 endpoint/type, route, role, one-attempt, ambiguity, receipt, projection,
+   correction, notification, and prohibited-reachability falsification.
+3. Run the canonical verifier, exact-SHA CI, zero-traffic candidate smoke and managed assurance,
+   exact promotion, observation, and live configuration/version readback for any code-bearing change.
+4. Report exactly one terminal state: `ALL_GATES_GREEN` only after every applicable gate passes;
+   `BUDGET_EXHAUSTED` only when an explicit execution budget is actually exhausted; or `BLOCKED` only
+   for one exact unavailable external input or authority after all unrelated in-scope work is
+   complete. Never choose a substitute work order, catalog value, transition, or proof target.
 
 **Deletion/merge recommendation.**
 
-Keep S99 active until all three exact actions are deployed and read back, the real proof has its
-intended verified final state, and synthetic provider assumptions are absent from product
-reachability. Then merge the stable operation matrix and recovery contract into current Maintenance
-and integration documentation and remove the suite narrative; Git retains proof provenance.
+The completion gate is satisfied. Retain this contract only while it remains the active source for
+the official operation matrix and recovery boundary; durable Maintenance and integration
+documentation may absorb it without reviving synthetic provider assumptions.

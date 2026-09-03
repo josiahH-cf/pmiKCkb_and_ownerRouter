@@ -1,22 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
-import { Button, Field } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   SheetWritebackClientEffect,
   SheetWritebackClientProposal,
 } from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import type { SheetWritebackEffectStatusView } from "@/lib/lease-renewal/sheet-writeback/status";
 
-export interface SheetWritebackEffectStatus extends SheetWritebackClientEffect {
-  execution_id: string;
-  state: string;
-  attempt_count: number;
-  receipt?: { provider_ref: string; result_hash: string; reconciled: boolean };
-  reversal_state: string | null;
-}
+export type SheetWritebackEffectStatus = SheetWritebackEffectStatusView;
 
 interface ReversalPreview {
   reversalExecutionId: string;
@@ -39,11 +34,16 @@ const REVERSAL_LABELS = {
     "Correction available: restore the exact receipted prior value into the same cell.",
 } as const;
 
-async function postSheet(body: Record<string, unknown>) {
+async function postSheet(workspaceContext: string | null, body: Record<string, unknown>) {
+  if (!workspaceContext) {
+    throw new Error(
+      "This lease workspace needs a fresh secure page load before Sheet work.",
+    );
+  }
   const response = await fetch("/api/lease-renewal/operating-sheet", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, workspaceContext }),
   });
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
@@ -89,24 +89,21 @@ function stateLabel(state: string): string {
   if (state === "succeeded") return "Applied with receipt";
   if (state === "ambiguous") return "Needs reconciliation";
   if (state === "failed") return "Declined without change";
+  if (state === "unknown") return "Checking durable status";
   return state;
 }
 
 export function OperatingSheetPanel({
-  leaseId,
   role,
   hasSheetRow,
-  sheetRowNumber = null,
-  tenantNameSuggestion = "",
+  workspaceContext,
   initialProposal,
   initialEffects = null,
 }: Readonly<{
-  leaseId: string;
   role: Role;
   /** BEH-S98-1: append is offered only when no exact row exists; update only on an exact row. */
   hasSheetRow: boolean;
-  sheetRowNumber?: number | null;
-  tenantNameSuggestion?: string;
+  workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
 }>) {
@@ -121,16 +118,13 @@ export function OperatingSheetPanel({
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const errorRef = useRef<HTMLParagraphElement>(null);
-
-  const [tenantName, setTenantName] = useState(tenantNameSuggestion);
-  const [updateField, setUpdateField] = useState("current_rent");
-  const [updateRow, setUpdateRow] = useState(
-    sheetRowNumber !== null ? String(sheetRowNumber) : "",
+  const [statusPending, setStatusPending] = useState(
+    initialProposal !== null && initialEffects === null,
   );
-  const [updateValue, setUpdateValue] = useState("");
-  const [updateSource, setUpdateSource] = useState("");
-  const [evidenceRef, setEvidenceRef] = useState("");
+  const statusLoadedPreviewRef = useRef<string | null>(
+    initialEffects !== null ? (initialProposal?.preview_hash ?? null) : null,
+  );
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   const editor = can(role, "edit");
   const executor = can(role, "manageAdmin");
@@ -138,6 +132,41 @@ export function OperatingSheetPanel({
   const expired = proposal
     ? mountedAtMs > Date.parse(proposal.confirmation_expires_at)
     : false;
+  const proposalPreviewHash = proposal?.preview_hash;
+
+  useEffect(() => {
+    if (
+      !workspaceContext ||
+      !proposalPreviewHash ||
+      statusLoadedPreviewRef.current === proposalPreviewHash
+    ) {
+      setStatusPending(false);
+      return;
+    }
+    let cancelled = false;
+    setStatusPending(true);
+    void postSheet(workspaceContext, { operation: "status" })
+      .then((payload) => {
+        if (cancelled) return;
+        setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
+        setEffects((payload.effects as SheetWritebackEffectStatus[] | undefined) ?? null);
+        statusLoadedPreviewRef.current = proposalPreviewHash;
+      })
+      .catch((statusError) => {
+        if (cancelled) return;
+        setError(
+          statusError instanceof Error
+            ? statusError.message
+            : "The durable Sheet status could not be loaded.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setStatusPending(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [proposalPreviewHash, workspaceContext]);
 
   async function run(action: () => Promise<void>) {
     setPending(true);
@@ -158,57 +187,28 @@ export function OperatingSheetPanel({
   }
 
   async function refreshStatus() {
-    const payload = await postSheet({ operation: "status" });
+    const payload = await postSheet(workspaceContext, { operation: "status" });
     setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
     setEffects((payload.effects as SheetWritebackEffectStatus[] | undefined) ?? null);
   }
 
   async function proposeAppend() {
-    if (!tenantName.trim()) {
-      throw new Error("Enter the source-backed tenant label before saving.");
-    }
-    const payload = await postSheet({
+    const payload = await postSheet(workspaceContext, {
       operation: "propose",
-      evidenceRef: evidenceRef.trim() || `workspace:${leaseId}`,
-      effects: [
-        { kind: "row_append", leaseId, tenantName: tenantName.trim(), fields: {} },
-      ],
+      intent: "append_missing_row",
+      expectedPriorPreviewHash: proposal?.preview_hash ?? null,
     });
     setProposal(payload.proposal as SheetWritebackClientProposal);
     setEffects(null);
     setNotice("Proposal saved from the fresh Sheet header. Review the exact row below.");
   }
 
-  async function proposeUpdate() {
-    const rowNumber = Number(updateRow.trim());
-    if (!Number.isInteger(rowNumber) || rowNumber < 2) {
-      throw new Error("Enter the exact Sheet row number of the anchored row.");
-    }
-    if (!updateValue.trim() || !updateSource.trim()) {
-      throw new Error("Enter the proposed value and its exact source.");
-    }
-    const payload = await postSheet({
-      operation: "propose",
-      evidenceRef: evidenceRef.trim() || `workspace:${leaseId}`,
-      effects: [
-        {
-          kind: "field_update",
-          field: updateField,
-          rowNumber,
-          afterValue: updateValue.trim(),
-          source: updateSource.trim(),
-        },
-      ],
-    });
-    setProposal(payload.proposal as SheetWritebackClientProposal);
-    setEffects(null);
-    setNotice(
-      "Proposal saved with the fresh current value captured for the compare-and-set.",
-    );
-  }
-
   async function discard() {
-    await postSheet({ operation: "discard" });
+    if (!proposal) return;
+    await postSheet(workspaceContext, {
+      operation: "discard",
+      previewHash: proposal.preview_hash,
+    });
     setProposal(null);
     setEffects(null);
     setArmedEffect(null);
@@ -217,7 +217,7 @@ export function OperatingSheetPanel({
 
   async function executeEffect(effect: SheetWritebackClientEffect) {
     if (!proposal) return;
-    const payload = await postSheet({
+    const payload = await postSheet(workspaceContext, {
       operation: "execute",
       previewHash: proposal.preview_hash,
       effectHash: effect.effect_hash,
@@ -233,13 +233,16 @@ export function OperatingSheetPanel({
   }
 
   async function reconcileEffect(effectHash: string) {
-    await postSheet({ operation: "reconcile", effectHash });
+    await postSheet(workspaceContext, { operation: "reconcile", effectHash });
     setNotice("Reconciliation recorded a durable outcome from fresh Sheet state.");
     await refreshStatus();
   }
 
   async function previewReversal(effectHash: string) {
-    const payload = await postSheet({ operation: "reverse_preview", effectHash });
+    const payload = await postSheet(workspaceContext, {
+      operation: "reverse_preview",
+      effectHash,
+    });
     setReversalPreviews((current) => ({
       ...current,
       [effectHash]: payload.reversal as ReversalPreview,
@@ -250,7 +253,7 @@ export function OperatingSheetPanel({
   async function executeReversal(effectHash: string) {
     const reversal = reversalPreviews[effectHash];
     if (!reversal) return;
-    await postSheet({
+    await postSheet(workspaceContext, {
       operation: "reverse_execute",
       effectHash,
       reversal,
@@ -266,6 +269,10 @@ export function OperatingSheetPanel({
   const statusByHash = new Map(
     (effects ?? []).map((entry) => [entry.effect_hash, entry] as const),
   );
+  const proposalLifecycleLocked =
+    proposal !== null &&
+    (effects === null ||
+      effects.some((entry) => ["running", "ambiguous"].includes(entry.state)));
 
   return (
     <article aria-labelledby="operating-sheet-title" className="panel ui-stack">
@@ -288,7 +295,7 @@ export function OperatingSheetPanel({
           <ol className="ui-stack">
             {proposal.effects.map((effect) => {
               const status = statusByHash.get(effect.effect_hash);
-              const state = status?.state ?? "not_started";
+              const state = status?.state ?? "unknown";
               const reversalPreview = reversalPreviews[effect.effect_hash];
               return (
                 <li className="ui-stack" key={effect.effect_hash}>
@@ -303,7 +310,11 @@ export function OperatingSheetPanel({
                       <li key={line}>{line}</li>
                     ))}
                   </ul>
-                  <p className="muted">{REVERSAL_LABELS[effect.reversal_kind]}</p>
+                  <p className="muted">
+                    {status?.reversal_executable
+                      ? REVERSAL_LABELS[effect.reversal_kind]
+                      : "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable until Google Sheets provides an atomic stable-row delete or restore protocol."}
+                  </p>
                   {state === "ambiguous" ? (
                     <p className="muted" role="status">
                       The Sheet outcome is unproven. Reconciliation reads fresh state by
@@ -322,7 +333,9 @@ export function OperatingSheetPanel({
                   ) : null}
                   {executor ? (
                     <div className="ui-actions">
-                      {state === "not_started" && !expired ? (
+                      {state === "not_started" &&
+                      !expired &&
+                      status?.effect_executable !== false ? (
                         armedEffect === effect.effect_hash ? (
                           <>
                             <Button
@@ -349,6 +362,12 @@ export function OperatingSheetPanel({
                           </Button>
                         )
                       ) : null}
+                      {state === "not_started" && status?.effect_executable === false ? (
+                        <p className="muted" role="status">
+                          This provider operation is unavailable until an atomic
+                          stable-row mutation protocol is connected.
+                        </p>
+                      ) : null}
                       {state === "ambiguous" || state === "running" ? (
                         <Button
                           disabled={pending}
@@ -360,7 +379,7 @@ export function OperatingSheetPanel({
                           Reconcile from Sheet state
                         </Button>
                       ) : null}
-                      {state === "succeeded" ? (
+                      {state === "succeeded" && status?.reversal_executable ? (
                         reversalPreview ? (
                           <Button
                             disabled={pending}
@@ -393,9 +412,9 @@ export function OperatingSheetPanel({
               );
             })}
           </ol>
-          {executor && effects === null ? (
+          {effects === null ? (
             <Button
-              disabled={pending}
+              disabled={pending || statusPending}
               onClick={() => void run(refreshStatus)}
               variant="secondary"
             >
@@ -415,111 +434,46 @@ export function OperatingSheetPanel({
 
       {editor ? (
         <details>
-          <summary>{hasSheetRow ? "Update in Sheet" : "Add Sheet row"}</summary>
+          <summary>
+            {hasSheetRow ? "Sheet row update unavailable" : "Add Sheet row"}
+          </summary>
           <form
             className="ui-stack"
             onSubmit={(event) => {
               event.preventDefault();
-              void run(hasSheetRow ? proposeUpdate : proposeAppend);
+              if (!hasSheetRow) void run(proposeAppend);
             }}
           >
             {hasSheetRow ? (
-              <>
-                <p className="muted">
-                  Update one supported field on the exact anchored row. Saving captures
-                  the fresh current value for the compare-and-set; the write applies only
-                  while that exact value still matches.
-                </p>
-                <Field htmlFor="s98-field" label="Supported field">
-                  <select
-                    id="s98-field"
-                    onChange={(event) => setUpdateField(event.target.value)}
-                    value={updateField}
-                  >
-                    {[
-                      "owner_pricing_confirmed",
-                      "renewal_letter_sent",
-                      "renewal_date",
-                      "current_rent",
-                      "market_value",
-                      "renewal_completed",
-                      "tenant_responded",
-                      "info_form_sent",
-                      "form_returned",
-                      "lease_docs_sent",
-                      "rhino_renewed",
-                      "pet_registered",
-                      "esign_complete",
-                      "additional_insured_verified",
-                      "recurring_charge_added",
-                      "added_to_inspection_sheet",
-                      "air_filter_setup",
-                      "utility_proof",
-                    ].map((field) => (
-                      <option key={field} value={field}>
-                        {field}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field htmlFor="s98-row" label="Exact Sheet row number">
-                  <input
-                    id="s98-row"
-                    onChange={(event) => setUpdateRow(event.target.value)}
-                    value={updateRow}
-                  />
-                </Field>
-                <Field htmlFor="s98-value" label="Proposed value">
-                  <input
-                    id="s98-value"
-                    onChange={(event) => setUpdateValue(event.target.value)}
-                    value={updateValue}
-                  />
-                </Field>
-                <Field htmlFor="s98-source" label="Exact source of the value">
-                  <input
-                    id="s98-source"
-                    onChange={(event) => setUpdateSource(event.target.value)}
-                    value={updateSource}
-                  />
-                </Field>
-              </>
+              <p className="muted">
+                Current-rent updates are unavailable until the provider can atomically
+                bind the stable lease row, expected generation, idempotency key, and
+                durable operation status. A read followed by a fixed-cell write is not
+                used.
+              </p>
             ) : (
-              <>
-                <p className="muted">
-                  This lease has no exact Sheet row. Saving appends one row after the
-                  current table with the server-resolved lease/property identity in the
-                  system note; unconfirmed columns stay blank.
-                </p>
-                <Field htmlFor="s98-tenant" label="Source-backed tenant label">
-                  <input
-                    id="s98-tenant"
-                    onChange={(event) => setTenantName(event.target.value)}
-                    value={tenantName}
-                  />
-                </Field>
-              </>
+              <p className="muted">
+                The server will append one row only if a fresh RentVine-to-Sheet link
+                check confirms this lease has no exact row. Lease, property, and tenant
+                identity come from RentVine; every unconfirmed column stays blank.
+              </p>
             )}
-            <Field htmlFor="s98-evidence" label="Evidence reference">
-              <input
-                id="s98-evidence"
-                onChange={(event) => setEvidenceRef(event.target.value)}
-                placeholder="Where these approved values come from"
-                value={evidenceRef}
-              />
-            </Field>
             <div className="ui-actions">
-              <Button disabled={pending} type="submit">
-                Save proposal from fresh Sheet state
-              </Button>
+              {!hasSheetRow ? (
+                <Button disabled={pending || !workspaceContext} type="submit">
+                  Prepare exact missing-row append
+                </Button>
+              ) : null}
               {proposal ? (
                 <Button
-                  disabled={pending}
+                  disabled={pending || proposalLifecycleLocked}
                   onClick={() => void run(discard)}
                   type="button"
                   variant="secondary"
                 >
-                  Discard the saved proposal
+                  {effects?.some((entry) => entry.state === "succeeded")
+                    ? "Archive completed proposal"
+                    : "Discard the saved proposal"}
                 </Button>
               ) : null}
             </div>
@@ -542,9 +496,9 @@ export function OperatingSheetPanel({
           {error}
         </p>
       ) : null}
-      {pending ? (
+      {pending || statusPending ? (
         <p aria-busy="true" className="muted" role="status">
-          Working…
+          {statusPending ? "Checking durable Sheet status…" : "Working…"}
         </p>
       ) : null}
     </article>

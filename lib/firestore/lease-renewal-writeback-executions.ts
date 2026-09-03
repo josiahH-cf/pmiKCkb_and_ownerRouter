@@ -330,6 +330,8 @@ function claimAuthorizationMatchesPreview(
     authorization.fieldKey === preview.binding.fieldKey &&
     authorization.approvalId === preview.binding.approvalId &&
     authorization.approvalVersion === preview.binding.approvalVersion &&
+    authorization.candidateFingerprint === preview.binding.candidateFingerprint &&
+    authorization.resolutionUpdatedAt === preview.binding.resolutionUpdatedAt &&
     authorization.sourceOfValue === preview.binding.sourceOfValue &&
     authorization.proposedValueHash === preview.binding.proposedValueHash
   );
@@ -352,6 +354,8 @@ function liveAuthorizationMatches(
     approval.property_key === expected.propertyKey &&
     approval.field_key === expected.fieldKey &&
     timestampIso(approval.updated_at) === expected.approvalVersion &&
+    approval.candidate_fingerprint === expected.candidateFingerprint &&
+    approval.resolution_updated_at === expected.resolutionUpdatedAt &&
     approval.source_of_value === expected.sourceOfValue &&
     typeof approval.proposed_value === "string" &&
     approval.proposed_value.trim().length > 0 &&
@@ -361,6 +365,8 @@ function liveAuthorizationMatches(
     resolution.property_key === expected.propertyKey &&
     resolution.field_key === expected.fieldKey &&
     resolution.status === "Resolved" &&
+    resolution.candidate_fingerprint === expected.candidateFingerprint &&
+    timestampIso(resolution.updated_at) === expected.resolutionUpdatedAt &&
     proposal?.status === "Queued" &&
     proposal?.field_key === expected.fieldKey &&
     proposal?.source_of_value === expected.sourceOfValue &&

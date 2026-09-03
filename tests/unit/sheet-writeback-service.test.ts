@@ -342,6 +342,7 @@ function runWithFlag(
         propertyKey: "4821 maple",
         fieldKey: "current_rent",
         fieldLabel: overrides.fieldLabel ?? "Current rent",
+        candidateFingerprint: "candidate-fingerprint-1",
         recordRef: {
           tab: overrides.tab ?? "Lease Renewal",
           sourceRowIndex: overrides.rowIndex ?? 1,
@@ -363,6 +364,8 @@ function approval(
     property_key: "4821 maple",
     field_key: "current_rent",
     field_label: "Current rent",
+    candidate_fingerprint: "candidate-fingerprint-1",
+    resolution_updated_at: "2026-07-29T22:30:00.000Z",
     severity: "Medium",
     state: "Approved",
     proposed_value: "1300",
@@ -387,6 +390,7 @@ function resolution(
     property_key: "4821 maple",
     field_key: "current_rent",
     field_label: "Current rent",
+    candidate_fingerprint: "candidate-fingerprint-1",
     severity: "Medium",
     status: "Resolved",
     proposed_writeback: {
@@ -410,6 +414,8 @@ function claimAuthorization(preview: SheetWritebackPreviewRecord) {
     fieldKey: preview.binding.fieldKey,
     approvalId: preview.binding.approvalId,
     approvalVersion: preview.binding.approvalVersion,
+    candidateFingerprint: preview.binding.candidateFingerprint,
+    resolutionUpdatedAt: preview.binding.resolutionUpdatedAt,
     sourceOfValue: preview.binding.sourceOfValue,
     proposedValueHash: preview.binding.proposedValueHash,
   };
@@ -826,6 +832,60 @@ describe("Sheet write-back immutable action contract", () => {
     });
     expect(h.createWriter).not.toHaveBeenCalled();
     expect(h.store.previews.size).toBe(0);
+  });
+
+  it("refuses a stale source-fact resolution and approval before constructing a writer", async () => {
+    enable();
+    const h = harness({
+      loadApproval: async () =>
+        approval({ candidate_fingerprint: "candidate-fingerprint-old" }),
+      loadResolution: async () =>
+        resolution({ candidate_fingerprint: "candidate-fingerprint-old" }),
+    });
+
+    await expect(
+      prepareOrCommitWriteback(admin, writeInput(), READ_TS, h.deps, context()),
+    ).resolves.toEqual({
+      status: "not_approved",
+      reason:
+        "The approval or queued proposal changed. Approve the current proposal before writing.",
+    });
+    expect(h.createWriter).not.toHaveBeenCalled();
+    expect(h.store.previews.size).toBe(0);
+  });
+
+  it("refuses a same-value/source re-resolution at the final claim boundary", async () => {
+    enable();
+    let liveCandidateFingerprint = "candidate-fingerprint-1";
+    let liveResolutionUpdatedAt = "2026-07-29T22:30:00.000Z";
+    const store = new MemorySheetWritebackExecutionStore(
+      (authorization) =>
+        authorization.candidateFingerprint === liveCandidateFingerprint &&
+        authorization.resolutionUpdatedAt === liveResolutionUpdatedAt,
+    );
+    const h = harness({ store });
+    const { outcome } = await prepare(h);
+
+    // The service's pre-claim reads still return the exact reviewed value and source, while the
+    // atomic authorization oracle observes a newer resolution of those same facts.
+    liveCandidateFingerprint = "candidate-fingerprint-2";
+    liveResolutionUpdatedAt = "2026-07-29T22:45:00.000Z";
+
+    await expect(
+      prepareOrCommitWriteback(
+        admin,
+        writeInput({
+          confirm: true,
+          executionId: outcome.preview.executionId,
+          previewHash: outcome.preview.hash,
+        }),
+        READ_TS,
+        h.deps,
+        context(),
+      ),
+    ).rejects.toMatchObject({ code: "preview_mismatch", status: 409 });
+    expect(h.writer.updates).toHaveLength(0);
+    expect(await store.getExecution(outcome.preview.executionId)).toBeNull();
   });
 
   it("rejects surrounding-whitespace drift between preview and confirmation", async () => {

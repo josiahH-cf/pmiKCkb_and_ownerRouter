@@ -2,7 +2,7 @@
 
 # S53 — Exact-key activation and gate integrity
 
-> Status: Current contract: 41 keys, seven open and 34 closed as of 2026-08-26.
+> Status: Current contract: 48 keys, 16 open and 32 closed as of 2026-09-02.
 
 **Goal.**
 
@@ -14,9 +14,10 @@ The committed seed is the action authority. Runtime config and provider construc
 
 **Open questions & assumptions.**
 
-No product authority question remains for S97-S100. Each exact suite supplies and tests its endpoint,
-mapping, identity, proof, receipt/readback, and reversal before using the owner-authorized protected
-activation. Every other future key still requires its own exact owner direction.
+No product authority question remains for S97-S100. S97-S99 and the S100 chat-sync key completed
+their exact proof, close/readback, protected activation, release, and final readback lifecycles. The
+S100 resident-draft key remains closed until its exact runtime input and separate proof/activation
+gates pass. Every other future key still requires its own exact owner direction.
 
 **Cross-product impacts.**
 
@@ -26,9 +27,11 @@ Every provider, Admin Connections, migration readiness, release config, and acti
 
 - **AC-S53-1** — Seed, runtime allowlists, Admin readiness, and tests agree on the exact key set.
 - **AC-S53-2** — A closed key refuses before provider construction even when credentials/runtime flags exist.
-- **AC-S53-3** — Generic/direct notice sends and broad legacy RentVine/Sheet keys remain closed; only
-  the exact S97-S100 keys may change after their own closed implementation, proof, protected patch,
-  release, and readback gates.
+- **AC-S53-3** — Preserve the present 48-key/16-open result: completed exact S97-S99 and S100-chat
+  keys remain open, while generic/direct notice sends, the S100 resident-draft key, broad legacy
+  RentVine/Sheet keys, and every unlisted effect remain closed. The resident-draft key may change
+  only after its exact eligible live mapping, proof, mandatory close/readback, protected activation,
+  release, and final readback all pass.
 
 **Forbidden actions / hard gates.**
 

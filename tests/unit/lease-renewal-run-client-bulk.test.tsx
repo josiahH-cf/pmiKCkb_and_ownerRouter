@@ -12,6 +12,7 @@ import { LeaseRenewalRunClient } from "@/tests/helpers/components/LeaseRenewalRu
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 const refresh = vi.fn();
+const AUTHORIZATION_TOKEN = `rwat1_${"c".repeat(64)}`;
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
@@ -28,6 +29,7 @@ beforeEach(() => {
 function queuedFlag(key: string, fieldLabel: string): RenewalFlagView {
   return {
     sourceTriggerKey: key,
+    candidateFingerprint: `rcf1_${"d".repeat(64)}`,
     fieldKey: key,
     fieldLabel,
     severity: "High",
@@ -38,7 +40,12 @@ function queuedFlag(key: string, fieldLabel: string): RenewalFlagView {
     candidates: [],
     resolution: null,
     writeback: null,
-    writebackApproval: { queued: true, state: "Awaiting Approval", stale: false },
+    writebackApproval: {
+      queued: true,
+      state: "Awaiting Approval",
+      stale: false,
+      authorizationToken: AUTHORIZATION_TOKEN,
+    },
   };
 }
 
@@ -214,7 +221,16 @@ describe("run-page bulk write-back decisions", () => {
     expect(url).toBe("/api/lease-renewal/writeback-approvals/bulk");
     expect(JSON.parse(String(request.body))).toEqual({
       run_id: "run-1",
-      source_trigger_keys: ["k-rent", "k-date"],
+      proposals: [
+        {
+          source_trigger_key: "k-rent",
+          authorization_token: AUTHORIZATION_TOKEN,
+        },
+        {
+          source_trigger_key: "k-date",
+          authorization_token: AUTHORIZATION_TOKEN,
+        },
+      ],
       decision: "approve",
       reason: "Checked both against RentVine.",
     });

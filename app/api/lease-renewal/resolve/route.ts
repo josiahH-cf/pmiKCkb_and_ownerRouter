@@ -12,6 +12,7 @@ import {
   resolveLeaseRenewalFlag,
 } from "@/lib/firestore/lease-renewal-resolutions";
 import { createRenewalRunResolver } from "@/lib/lease-renewal/resolve-run";
+import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 
 // Resolve one lease-renewal reconciliation flag (§3.5: pick a source / enter a corrected value /
 // flag-is-wrong). The route and data layer both enforce the Approver/Admin rule, the
@@ -36,7 +37,12 @@ export async function POST(request: Request) {
       input.source_trigger_key,
     );
 
-    return NextResponse.json({ activity, resolution });
+    const authorizationToken = writebackAuthorizationTokenForResolution(resolution);
+    return NextResponse.json({
+      activity,
+      resolution,
+      ...(authorizationToken ? { authorization_token: authorizationToken } : {}),
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

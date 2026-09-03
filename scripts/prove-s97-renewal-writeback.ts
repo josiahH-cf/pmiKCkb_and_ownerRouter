@@ -42,11 +42,12 @@ import {
 } from "@/lib/lease-renewal/writeback/live";
 import {
   RENEWAL_WRITEBACK_ACCOUNT,
+  buildRecurringChargeCreateBaseline,
   buildRenewalWritebackProposal,
   projectRecurringCharge,
-  renewalWritebackExecutionId,
   type RenewalWritebackEffectInput,
   type RenewalWritebackProposal,
+  type RecurringChargeProjection,
 } from "@/lib/lease-renewal/writeback/proposal-contract";
 import {
   discardRenewalWritebackProposal,
@@ -114,6 +115,31 @@ async function main(): Promise<void> {
     await assertRenewalWritebackExecutionAllowed(descriptor, "recovery");
     const leaseState = leaseDateStateOf(await deps.reads.getLease(packet.leaseId));
     console.log("fresh lease state:", JSON.stringify(leaseState));
+    const chargeSnapshot: RecurringChargeProjection[] = [];
+    if (packet.effects.some((effect) => effect.kind === "recurring_charge_create")) {
+      const listed = await deps.reads.listRecurringCharges(packet.leaseId);
+      const ids = listed.map(
+        (entry) => (entry as Record<string, unknown>)["leaseRecurringChargeID"],
+      );
+      if (
+        ids.some((id) => typeof id !== "string" || !/^[1-9]\d*$/.test(id)) ||
+        new Set(ids).size !== ids.length
+      ) {
+        throw new Error("Recurring-charge list cannot form an exact create baseline.");
+      }
+      for (const id of ids as string[]) {
+        const projection = projectRecurringCharge(
+          await deps.reads.getRecurringCharge(packet.leaseId, id),
+        );
+        if (
+          projection.leaseRecurringChargeID !== id ||
+          projection.leaseID !== packet.leaseId
+        ) {
+          throw new Error("Recurring-charge baseline crossed provider identity.");
+        }
+        chargeSnapshot.push(projection);
+      }
+    }
     const effects: RenewalWritebackEffectInput[] = [];
     for (const effect of packet.effects) {
       if (effect.kind === "renewal_dates_update") {
@@ -134,7 +160,16 @@ async function main(): Promise<void> {
           changes: (effect.changes ?? {}) as never,
         });
       } else {
-        effects.push({ kind: effect.kind, create: (effect.create ?? {}) as never });
+        const create = (effect.create ?? {}) as never;
+        effects.push({
+          kind: effect.kind,
+          create,
+          baseline: buildRecurringChargeCreateBaseline({
+            leaseId: packet.leaseId,
+            create,
+            projections: chargeSnapshot,
+          }),
+        });
       }
     }
     const proposal = buildRenewalWritebackProposal({
@@ -177,7 +212,7 @@ async function main(): Promise<void> {
     console.log(`proposal previewHash=${proposal.previewHash}`);
     console.log(`confirmation expires ${proposal.confirmationExpiresAtIso}`);
     for (const entry of proposal.effects) {
-      const record = await deps.store.get(renewalWritebackExecutionId(proposal, entry));
+      const { record } = await service.readEffectExecution(proposal, entry.effectHash);
       console.log(
         `  effect[${entry.index}] ${entry.actionKey} state=${record?.state ?? "not_started"} receipt=${record?.receipt?.providerRef ?? "-"}`,
       );

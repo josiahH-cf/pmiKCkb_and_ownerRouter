@@ -5,12 +5,14 @@ import {
   clearLiveLeaseCache,
   getLiveLeaseRead,
   getLiveLeaseSnapshot,
+  getLiveLeaseSnapshotAtOrAfter,
   getLiveLeaseViews,
   invalidateLiveLeaseCache,
   LeaseDataExpiredError,
   LEASE_EXPORT_MAX_AGE_MS,
   LEASE_EXPORT_TTL_MS,
   LEASE_REFRESH_BACKOFF_BASE_MS,
+  refreshLiveLeaseSnapshotFromProvider,
   requireCurrentLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
 
@@ -208,6 +210,65 @@ describe("getLiveLeaseSnapshot (S58 age contract)", () => {
     const result = await getLiveLeaseSnapshot(client, 1_001);
     expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
     expect(result.currency.state).toBe("fresh");
+  });
+
+  it("a post-write refresh bypasses both cached data and a pre-write in-flight read", async () => {
+    let releasePreWrite: (() => void) | undefined;
+    let call = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        call += 1;
+        if (call === 2) {
+          await new Promise<void>((resolve) => {
+            releasePreWrite = resolve;
+          });
+        }
+        return {
+          rows: [{ lease: { leaseID: call } }],
+          pages: 1,
+          complete: true,
+        };
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    const staleRevalidation = getLiveLeaseSnapshot(
+      client,
+      1_000 + LEASE_EXPORT_TTL_MS + 1,
+    );
+    await flushAsync();
+    const postWrite = refreshLiveLeaseSnapshotFromProvider(client, 80_000, 80_001);
+    releasePreWrite?.();
+    await staleRevalidation;
+    const refreshed = await postWrite;
+
+    expect(client.listAllLeasesExport).toHaveBeenCalledTimes(3);
+    expect(refreshed.snapshot.views[0].leaseID).toBe(3);
+    expect(refreshed.snapshot.readAtMs).toBeGreaterThanOrEqual(80_000);
+    expect(refreshed.currency.state).toBe("fresh");
+  });
+
+  it("forces an instance-local pre-write generation to meet a browser refresh barrier", async () => {
+    let call = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        call += 1;
+        return {
+          rows: [{ lease: { leaseID: call } }],
+          pages: 1,
+          complete: true,
+        };
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+
+    const refreshed = await getLiveLeaseSnapshotAtOrAfter(client, 2_001, 2_000);
+    expect(client.listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(refreshed.snapshot.views[0].leaseID).toBe(2);
+    expect(refreshed.snapshot.readAtMs).toBeGreaterThanOrEqual(2_000);
+
+    const reused = await getLiveLeaseSnapshotAtOrAfter(client, 2_002, 2_000);
+    expect(client.listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(reused.snapshot).toBe(refreshed.snapshot);
   });
 
   it("propagates a cold-miss failure (there is no last good data to serve)", async () => {

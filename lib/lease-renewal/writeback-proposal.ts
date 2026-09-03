@@ -37,7 +37,7 @@ export interface WritebackProposal {
   /** Binding guardrails, surfaced so the UI cannot misrepresent them. */
   requiresApproval: true;
   autoApplyAllowed: false;
-  suggestionOnly: true;
+  suggestionOnly: boolean;
   /** True only when a concrete value is ready to append (drives the value-free "proposal ready" badge). */
   valueReady: boolean;
 }

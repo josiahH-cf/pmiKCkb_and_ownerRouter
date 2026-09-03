@@ -36,6 +36,7 @@ try {
     if (cdpUrl) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
     }
+    let workMutationCount = 0;
     await page.route("**/api/work**", async (route) => {
       const request = route.request();
       const url = new URL(request.url());
@@ -44,6 +45,7 @@ try {
         return;
       }
       if (request.method() === "POST") {
+        workMutationCount += 1;
         await route.fulfill({
           contentType: "application/json",
           status: 200,
@@ -99,6 +101,14 @@ try {
         path: join(artifactDir, `${route.file}-${viewport.name}.png`),
       });
     }
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "My work", exact: true }).waitFor();
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }));
+    await page.waitForTimeout(100);
+    assert(
+      workMutationCount === 0,
+      `My Work entry, navigation return, or scroll restoration issued ${workMutationCount} hidden mutation(s).`,
+    );
     if (cdpUrl) await page.close();
     else await context.close();
   }
@@ -111,7 +121,24 @@ process.stdout.write(
 );
 
 function syntheticSnapshot() {
-  const task = {
+  const activeTask = {
+    id: "browser-task-active",
+    space_id: "lease-renewals",
+    source: { type: "manual", status: "verified" },
+    task_type: "renewal review",
+    title: "Continue active renewal review",
+    assignee_uid: "local-demo-admin",
+    creator_uid: "local-demo-admin",
+    assigner_uid: "local-demo-admin",
+    state: "In progress",
+    next_action: "Continue the exact review",
+    created_at: "2027-08-11T12:00:00.000Z",
+    updated_at: "2027-08-11T12:19:00.000Z",
+    record_version: 1,
+    retention_policy_version: "staff-work-retention:v1.0",
+    legal_hold: false,
+  };
+  const completedTask = {
     id: "browser-task-1",
     space_id: "lease-renewals",
     source: { type: "manual", status: "verified" },
@@ -139,14 +166,34 @@ function syntheticSnapshot() {
     retention_expires_at: "2027-08-10T12:10:00.000Z",
     legal_hold: false,
   };
+  const activeSession = {
+    id: "browser-session-active",
+    task_id: activeTask.id,
+    original_task_id: activeTask.id,
+    staff_uid: "local-demo-admin",
+    state: "Active",
+    original_start_at: "2027-08-11T12:00:00.000Z",
+    last_acknowledged_activity_at: "2027-08-11T12:19:00.000Z",
+    effective_start_at: "2027-08-11T12:00:00.000Z",
+    effective_minutes: 19,
+    correction_state: "none",
+    idempotency_key: "browser-active-hash",
+    record_version: 1,
+    created_at: "2027-08-11T12:00:00.000Z",
+    updated_at: "2027-08-11T12:19:00.000Z",
+    retention_policy_version: "staff-work-retention:v1.0",
+    legal_hold: false,
+  };
   return {
-    tasks: [task],
-    editable_task_ids: [task.id],
+    tasks: [activeTask, completedTask],
+    editable_task_ids: [activeTask.id, completedTask.id],
+    current_session: activeSession,
     sessions: [
+      activeSession,
       {
         id: "browser-session-1",
-        task_id: task.id,
-        original_task_id: task.id,
+        task_id: completedTask.id,
+        original_task_id: completedTask.id,
         staff_uid: "local-demo-admin",
         state: "Ended",
         original_start_at: "2026-08-10T12:00:00.000Z",

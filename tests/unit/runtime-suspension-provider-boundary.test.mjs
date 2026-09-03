@@ -38,8 +38,6 @@ const ORCHESTRATION_FACTORY_WRAPPERS = new Set([
 const EXPECTED_BOUNDARIES = [
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
   "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
-  "app/api/lease-renewal/operating-sheet/route.ts:assembleProposal:deps.createWriter",
-  "app/api/lease-renewal/operating-sheet/route.ts:rentvineReader:new RentVineClient",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
   "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
@@ -74,9 +72,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/sheet-writeback-service.ts:previewWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:reconcileWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
-  "lib/lease-renewal/sheet-writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback/execution-service.ts:observeEffectOutcome:this.dependencies.createWriter",
-  "lib/lease-renewal/sheet-writeback/execution-service.ts:previewReversal:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback/execution-service.ts:reconcileReversal:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback/live.ts:createWriter:new GoogleSheetsApiWriter",
   "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
@@ -113,7 +109,7 @@ const EXPECTED_BOUNDARIES = [
   "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreExternalExecutionStore",
   "scripts/prove-rentvine-renewal-write.ts:main:new FirestoreRentVineProofCloseoutStore",
   "scripts/prove-s100-chat-sync.ts:createClient:createDescriptorBoundGmailRuntimeClient",
-  "scripts/prove-s98-sheet-writeback.ts:main:deps.createWriter",
+  "scripts/run-production-reconciliation.ts:createIndependentSourceClients:new GoogleSheetsApiReader",
   "scripts/smoke-gmail-draft-live.ts:createGmailClient:new GmailRuntimeClient",
   "scripts/smoke-gmail-draft-live.ts:runGmailDraftSmoke:dependencies.createGmailClient",
   "scripts/smoke-renewal-draft-live.ts:createDiagnosticProvider:new LiveRenewalGmailDraftProvider",
@@ -149,8 +145,11 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "app/api/admin/owner-policy-rules/route.ts:portfolioIdResolvesLive:buildLiveRentVineConfig",
   // S60/S62: the clamp's authoritative-rent + portfolio-id read for the suggestion recompute.
   "app/api/lease-renewal/rent-suggestion/route.ts:resolveLeaseLiveFacts:buildLiveRentVineConfig",
+  // S97: after an exact write/readback, refresh the shared read-only lease projection.
+  "app/api/lease-renewal/rentvine-writeback/route.ts:refreshProjectionAfterWrite:buildLiveRentVineConfig",
   "app/api/maintenance/owner-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:buildLiveRenewalConfig",
+  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "lib/console/rentvine-live-provider.ts:configuredClient:buildLiveRentVineConfig",
@@ -164,17 +163,21 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   // S59: resolves one exact lease for a read-only RentCast query; it constructs no writer.
   "lib/lease-renewal/market-comp-query-resolver.ts:resolveCurrentMarketCompQueryBasis:buildLiveRentVineConfig",
   "lib/lease-renewal/sheet-writeback-service.ts:buildLiveWritebackDeps:buildLiveRenewalConfig",
+  "lib/lease-renewal/sheet-writeback/workspace-resolution.ts:resolveFreshOperatingSheetLeaseContext:buildLiveRenewalConfig",
   "lib/maintenance/live-unit-source.ts:loadLiveUnitCandidates:buildLiveRentVineConfig",
   // S68: source verification reads the cached complete lease portfolio and creates no effect.
   "lib/work-accountability/source-resolver.ts:readLiveRenewalLeaseVersion:buildLiveRentVineConfig",
   // 2026-08-26: bodyless, read-only operator discrepancy diagnostic.
   "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+  // S51: operator-run read-only source oracle, independent from the desk projection.
+  "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
 ].sort();
 
 const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+  "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
 ]);
 
 const PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS = new Set(
@@ -184,12 +187,9 @@ const PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS = new Set(
 );
 
 const READ_ONLY_RECONCILIATION = new Set([
-  // S98 proposal assembly and recovery paths use the writer object for READS only (header, cell,
-  // note lookups); every mutation lives behind the gated one-attempt entry points.
-  "app/api/lease-renewal/operating-sheet/route.ts:assembleProposal:deps.createWriter",
-  "app/api/lease-renewal/operating-sheet/route.ts:rentvineReader:new RentVineClient",
+  // S98 recovery paths use the writer object for READS only (header, cell, note lookups); every
+  // reachable mutation lives behind the gated one-attempt append entry point.
   "lib/lease-renewal/sheet-writeback/execution-service.ts:observeEffectOutcome:this.dependencies.createWriter",
-  "lib/lease-renewal/sheet-writeback/execution-service.ts:previewReversal:this.dependencies.createWriter",
   "lib/lease-renewal/sheet-writeback/execution-service.ts:reconcileReversal:this.dependencies.createWriter",
   "lib/external-execution/governed-draft-execution.ts:reconcileGovernedDraft:request.createClient",
   "lib/gmail-hub/service.ts:createReadOnlyReconciliationClient:this.createClient",
@@ -256,9 +256,6 @@ const LAZY_SCRIPT_PROVIDER_FACTORIES = new Set([
   // The S30 script passes this closure into the proof service. Only execute/rollback invokes it,
   // after exact confirmation, one-attempt claim, fresh-state reread, and the second runtime gate.
   "scripts/prove-rentvine-renewal-write.ts:createWriter:new RentVineWriteClient",
-  // The S98 proof runner reads header/cell state for propose through the service dependencies;
-  // every mutation goes through the service's gated one-attempt entry points.
-  "scripts/prove-s98-sheet-writeback.ts:main:deps.createWriter",
 ]);
 
 // S98 retired the rehearsal-copy proof script; no exact-confirmed script factory remains.
@@ -271,6 +268,7 @@ const READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES = new Set([
   "scripts/capture-test-set-baseline.ts:main:new RentVineClient",
   "scripts/discover-rentvine-fields.ts:main:new RentVineClient",
   "scripts/prove-rentvine-renewal-write.ts:getLease:new RentVineClient",
+  "scripts/run-production-reconciliation.ts:createIndependentSourceClients:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new GoogleSheetsApiReader",
   "scripts/smoke-renewal-review.ts:main:new RentVineClient",
   "scripts/smoke-rentcast-comp.ts:main:new RentCastMarketCompProvider",
@@ -319,7 +317,6 @@ const GATED_PROVIDER_ADAPTERS = new Set([
   "lib/lease-renewal/sheet-writeback-service.ts:previewCorrection:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:previewWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
-  "lib/lease-renewal/sheet-writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
   "lib/lease-renewal/writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
@@ -486,13 +483,6 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     },
   ],
   [
-    "lib/lease-renewal/sheet-writeback/execution-service.ts:executeReversal:this.dependencies.createWriter",
-    {
-      file: "tests/unit/s98-sheet-writeback-service.test.ts",
-      marker: "S51_DYNAMIC_REFUSAL:s98-sheet-reversal-writer",
-    },
-  ],
-  [
     "lib/lease-renewal/writeback/execution-service.ts:executeEffect:this.dependencies.createWriter",
     {
       file: "tests/unit/s97-writeback-execution-service.test.ts",
@@ -636,7 +626,6 @@ const DYNAMIC_REFUSAL_FACTORY_ASSERTIONS = new Map([
   ["S51_DYNAMIC_REFUSAL:sheet-preview-writeback-writer", "h.createWriter"],
   ["S51_DYNAMIC_REFUSAL:s97-writeback-effect-writer", "createWriterSpy"],
   ["S51_DYNAMIC_REFUSAL:s98-sheet-effect-writer", "createWriterSpy"],
-  ["S51_DYNAMIC_REFUSAL:s98-sheet-reversal-writer", "createWriterSpy"],
   ["S51_DYNAMIC_REFUSAL:s97-writeback-reversal-writer", "createWriterSpy"],
   ["S51_DYNAMIC_REFUSAL:maintenance-draft-request-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:internal-transactional-sender-client", "createClient"],
@@ -674,7 +663,6 @@ const DYNAMIC_REFUSAL_ENTRYPOINTS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "hub.watchMailbox("],
   ["S51_DYNAMIC_REFUSAL:s97-writeback-effect-writer", "service.executeEffect("],
   ["S51_DYNAMIC_REFUSAL:s98-sheet-effect-writer", "service.executeEffect("],
-  ["S51_DYNAMIC_REFUSAL:s98-sheet-reversal-writer", "service.executeReversal("],
   ["S51_DYNAMIC_REFUSAL:s97-writeback-reversal-writer", "service.executeReversal("],
   [
     "S51_DYNAMIC_REFUSAL:comp-screenshot-attachment-provider",
@@ -1143,6 +1131,7 @@ describe("runtime suspension provider-construction boundary", () => {
       "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
       "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
       "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+      "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
     ]);
     expect(PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS.size).toBeGreaterThan(0);
   }, 20_000);

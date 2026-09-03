@@ -13,6 +13,8 @@ const desk = source("components/lease-renewal/RenewalDesk.tsx");
 const table = source("components/lease-renewal/RenewalDeskTable.tsx");
 const workspace = source("components/lease-renewal/RenewalWorkspace.tsx");
 const deskPage = source("app/lease-renewal/live/desk/page.tsx");
+const workspacePage = source("app/lease-renewal/live/desk/lease/[leaseId]/page.tsx");
+const globalStyles = source("app/globals.css");
 
 describe("S82 retired desk surfaces are absent", () => {
   it("removes the attention duplicate, metric grid, card worklist, and global controls", () => {
@@ -52,7 +54,10 @@ describe("S82 preserved copy roles remain", () => {
     expect(desk).toContain("Live read incomplete");
     expect(desk).toContain("Data too old to act on");
     expect(desk).toContain("RenewalDeskRefresh");
-    expect(table).toContain("Showing {rows.length} of {totalBeforeQuery} renewals");
+    expect(table).toContain("Matching: {rows.length}");
+    expect(table).toContain("Selected scope: {scopeCount}");
+    expect(table).toContain("Total loaded:");
+    expect(table).toContain("Worklist scope:");
   });
 
   it("keeps blocker, disabled-action, unsent-draft, and assistive copy in the workspace", () => {
@@ -63,6 +68,17 @@ describe("S82 preserved copy roles remain", () => {
     expect(workspace).toContain("Go to current phase");
     expect(table).toContain("sr-only");
     expect(table).toContain("<caption");
+  });
+
+  it("keeps every workspace text/source destination on the 44-pixel target contract", () => {
+    expect(globalStyles).toMatch(
+      /\.renewal-workspace-link\s*\{[^}]*min-height:\s*44px;[^}]*min-width:\s*44px;/s,
+    );
+    expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(5);
+    expect(workspacePage).toContain('className="back-link renewal-workspace-link"');
+    expect(workspacePage).toContain(
+      'className="secondary-button renewal-workspace-link"',
+    );
   });
 });
 

@@ -1,6 +1,6 @@
 # Production capacity and pilot
 
-Updated: 2026-08-31.
+Updated: 2026-09-02.
 
 Production is already live. New external effects still roll out as bounded pilots.
 
@@ -35,19 +35,24 @@ Neither trigger authorizes automatic scaling.
 ## Current pilots/proofs
 
 - RentCast reference reads are live under allowance 50.
-- S97 specifies one owner-designated lease `endDate` proof, exact rollback, retirement of the old
-  multi-record machinery, and later activation of only its three exact renewal keys.
-- S98 specifies one temporary source-backed row at the end of the operating renewal Sheet, exact
-  readback and deletion, and retirement of the copy-only rehearsal path.
-- S99/S100 specify exact Maintenance work-order effects, one manual mark-read-aware chat sync, and an
-  unsent resident-reply Gmail draft. Fake work orders, automatic sync, provider chat posts, and sends
-  are not proof substitutes.
-- S36 specifies one temporary source-copy/Store lifecycle that must finish with both temporary
-  resources absent, the original source intact, eleven Stores restored, and its runtime flag false.
+- S97 is complete and deployed. Its date, recurring-charge-create, and recurring-charge-update keys
+  passed separate bounded proofs and are active through their exact human-confirmed contracts.
+- S98's proof-qualified baseline is deployed and its two exact keys remain open; the temporary proof
+  row was deleted and read back absent. Active unreleased hardening keeps normal row append and
+  refuses field update/delete/restore until a stable provider row-generation seam exists.
+- S99 is complete and deployed. Exact RentVine work-order read, create, and status update are active;
+  proof work order 1731 is in its final `Cancelled` state.
+- S100's manual, mark-read-aware chat sync passed proof and is active. Its unsent resident-reply
+  draft remains closed because no synchronized resident message currently maps to a verified
+  resident email. Automatic sync, provider chat posts, attachments, notifications, and sends remain
+  outside this authority.
+- S36 has not started because complete S100 is its prerequisite. Its one temporary source-copy/Store
+  lifecycle must still finish with both temporary resources absent, the original source intact,
+  eleven Stores restored, and its runtime flag false.
 
-These S97-S100/S36 contracts are authorized targets, not current production capability. Their live
-effects remain unavailable until each closed implementation, bounded proof, protected activation,
-release, and readback gate passes.
+Completed S97-S99 and S100 chat-sync proofs must not be rerun or assigned substitute targets. Normal
+operations use their active exact-key contracts; S100 resident-draft proof and S36 remain unavailable
+until their own prerequisites and gates pass.
 
 Do not turn “pilot” into permission for broad writes or a simultaneous all-record cutover.
 

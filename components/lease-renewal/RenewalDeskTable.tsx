@@ -7,6 +7,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import {
+  RenewalDeskGetForm,
+  RenewalDeskSubmitButton,
+} from "@/components/lease-renewal/RenewalDeskGetForm";
 import { Icon } from "@/components/ui/Icon";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
@@ -15,7 +19,7 @@ import type {
   DeskGuidanceDestination,
 } from "@/lib/lease-renewal/desk-model";
 import {
-  DEFAULT_RENEWAL_DESK_QUERY_V2,
+  PARTY_FILTER_TOKEN_PATTERN,
   RENEWAL_DESK_V2_STEPS,
   buildActiveFilterChips,
   clearRenewalDeskFilters,
@@ -23,12 +27,12 @@ import {
   serializeRenewalDeskQueryV2,
   withDateDimension,
   type RenewalDeskQueryV2State,
+  type RenewalDeskDateDiagnostic,
   type RenewalDeskV2Sort,
   type RenewalOverallStatus,
   type RenewalRentVerificationState,
 } from "@/lib/lease-renewal/desk-query-v2";
 import {
-  RENEWAL_DESK_ROUTE,
   buildDeskHref,
   buildWorkspaceHref,
   encodeDeskView,
@@ -36,12 +40,27 @@ import {
 import {
   ACCESS_RETURN_TEXT_SEARCH_NOTICE,
   accessReturnClearsTextSearch,
+  buildRenewalDeskAccessReturn,
 } from "@/lib/lease-renewal/access-return";
+import {
+  EXTERNAL_LINK_REL,
+  EXTERNAL_LINK_TARGET,
+} from "@/lib/lease-renewal/desk-destinations";
 
 export interface DeskPartyShortcuts {
   readonly available: boolean;
   /** Active-key token for one row party, from the server resolver; null renders plain text. */
   tokenFor(partyKind: "owner" | "tenant", normalizedLabel: string): string | null;
+}
+
+export interface DeskPartyFilterOption {
+  readonly label: string;
+  readonly token: string;
+}
+
+export interface DeskPartyFilterOptions {
+  readonly owner: readonly DeskPartyFilterOption[];
+  readonly tenant: readonly DeskPartyFilterOption[];
 }
 
 export const PARTY_FILTERING_UNAVAILABLE_NOTICE = "Party filtering is unavailable.";
@@ -96,6 +115,22 @@ const STEP_FILTER_LABELS: Record<(typeof RENEWAL_DESK_V2_STEPS)[number], string>
   needs_verification: "Phase needs verification",
 };
 
+const SCOPE_LABELS: Record<RenewalDeskQueryV2State["scope"], string> = {
+  active: "Current window and tracked incomplete",
+  tracked: "Tracked incomplete outside the window",
+  all: "All loaded leases",
+};
+
+const DATE_DIAGNOSTIC_MESSAGES: Record<RenewalDeskDateDiagnostic, string> = {
+  end_date_malformed: "The exact renewal date was not valid and was not applied.",
+  month_malformed: "The renewal month was not valid and was not applied.",
+  range_incomplete: "Choose both a start and end date to apply a range.",
+  range_malformed:
+    "One or both range dates were not valid, so the range was not applied.",
+  range_reversed: "The range end must be on or after the range start.",
+  range_too_long: "Renewal date ranges can cover at most 120 days.",
+};
+
 const CURRENCY = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -105,6 +140,37 @@ const CURRENCY = new Intl.NumberFormat("en-US", {
 
 function href(state: RenewalDeskQueryV2State): string {
   return buildDeskHref(state);
+}
+
+/** Build stable, deduplicated choices from only rows in the current authorized projection. */
+export function buildDeskPartyFilterOptions(
+  rows: readonly DeskLeaseRow[],
+  shortcuts: DeskPartyShortcuts,
+): DeskPartyFilterOptions {
+  const collect = (kind: "owner" | "tenant"): DeskPartyFilterOption[] => {
+    if (!shortcuts.available) return [];
+    const byToken = new Map<string, DeskPartyFilterOption>();
+    for (const row of rows) {
+      const labels = kind === "owner" ? row.ownerNameLabels : row.tenantNameLabels;
+      const normalized =
+        kind === "owner"
+          ? row.queryKeys.normalizedOwners
+          : row.queryKeys.normalizedTenants;
+      labels.forEach((label, index) => {
+        const token = shortcuts.tokenFor(kind, normalized[index] ?? "");
+        if (!token || !PARTY_FILTER_TOKEN_PATTERN.test(token)) return;
+        if (!byToken.has(token)) byToken.set(token, { label, token });
+      });
+    }
+    return [...byToken.values()].sort((left, right) =>
+      left.label.localeCompare(right.label, "en-US"),
+    );
+  };
+  return { owner: collect("owner"), tenant: collect("tenant") };
+}
+
+function formStateKey(state: RenewalDeskQueryV2State): string {
+  return serializeRenewalDeskQueryV2(state);
 }
 
 /** Hidden inputs preserving every nondefault key except the ones this form owns. */
@@ -141,11 +207,18 @@ function SortHeader({
     : undefined;
   return (
     <th aria-sort={ariaSort} scope="col">
-      <form action={RENEWAL_DESK_ROUTE} className="renewal-th-sort" method="get">
+      <RenewalDeskGetForm
+        className="renewal-th-sort"
+        pendingLabel={`Sorting renewals by ${label}.`}
+        stateKey={formStateKey(state)}
+      >
         <PreservedState except={["sort", "direction"]} state={state} />
         <input name="sort" type="hidden" value={column} />
         <input name="direction" type="hidden" value={nextDirection} />
-        <button className="renewal-th-sort-button" type="submit">
+        <RenewalDeskSubmitButton
+          className="renewal-th-sort-button"
+          pendingText="Sorting…"
+        >
           <span>{label}</span>
           {active ? (
             <span
@@ -163,8 +236,8 @@ function SortHeader({
                 : ", sorted descending. Activate to reverse."
               : ". Activate to sort."}
           </span>
-        </button>
-      </form>
+        </RenewalDeskSubmitButton>
+      </RenewalDeskGetForm>
     </th>
   );
 }
@@ -172,12 +245,162 @@ function SortHeader({
 function HeaderFilter({
   label,
   children,
-}: Readonly<{ label: string; children: ReactNode }>) {
+  defaultOpen = false,
+}: Readonly<{ label: string; children: ReactNode; defaultOpen?: boolean }>) {
   return (
-    <details className="renewal-th-filter">
+    <details className="renewal-th-filter" open={defaultOpen || undefined}>
       <summary>{label}</summary>
       <div className="renewal-th-filter-panel">{children}</div>
     </details>
+  );
+}
+
+function PartyHeaderFilter({
+  kind,
+  options,
+  state,
+}: Readonly<{
+  kind: "owner" | "tenant";
+  options: readonly DeskPartyFilterOption[];
+  state: RenewalDeskQueryV2State;
+}>) {
+  const name = kind === "owner" ? "ownerKey" : "tenantKey";
+  const selectedToken = state[name];
+  const selectedAvailable =
+    selectedToken === "" || options.some((option) => option.token === selectedToken);
+  const label = kind === "owner" ? "Owner" : "Tenant";
+  return (
+    <HeaderFilter label={`Filter ${kind}`}>
+      {!selectedAvailable ? (
+        <p className="renewal-filter-validation" role="status">
+          The selected {kind} is no longer available in this worklist. Choose another
+          value or apply “All {kind}s.”
+        </p>
+      ) : null}
+      <SelectFilter
+        label={label}
+        name={name}
+        options={[
+          { value: "", label: `All ${kind}s` },
+          ...options.map((option) => ({ value: option.token, label: option.label })),
+        ]}
+        state={state}
+        value={selectedAvailable ? selectedToken : ""}
+      />
+    </HeaderFilter>
+  );
+}
+
+function RenewalDateFilters({ state }: Readonly<{ state: RenewalDeskQueryV2State }>) {
+  const diagnostics = state.dateDiagnostics ?? [];
+  const dateExcept = ["endDate", "month", "from", "through"] as const;
+  const currentExact = state.endDate && state.endDate !== "missing" ? state.endDate : "";
+  return (
+    <HeaderFilter label="Filter renewal date" defaultOpen={diagnostics.length > 0}>
+      {diagnostics.length > 0 ? (
+        <div
+          aria-label="Renewal date filter problems"
+          className="renewal-filter-validation"
+          role="alert"
+        >
+          <strong>The date filter was not fully applied:</strong>
+          <ul>
+            {diagnostics.map((diagnostic) => (
+              <li key={diagnostic}>{DATE_DIAGNOSTIC_MESSAGES[diagnostic]}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <RenewalDeskGetForm
+        className="renewal-th-filter-form"
+        pendingLabel="Applying exact renewal date filter."
+        stateKey={formStateKey(state)}
+      >
+        <PreservedState except={dateExcept} state={state} />
+        <label className="field-label" htmlFor="renewal-filter-endDate">
+          Exact date
+        </label>
+        <input
+          className="ui-input"
+          defaultValue={currentExact}
+          id="renewal-filter-endDate"
+          name="endDate"
+          required
+          type="date"
+        />
+        <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
+          Apply exact date
+        </RenewalDeskSubmitButton>
+      </RenewalDeskGetForm>
+
+      <RenewalDeskGetForm
+        className="renewal-th-filter-form"
+        pendingLabel="Filtering for leases with a missing renewal date."
+        stateKey={formStateKey(state)}
+      >
+        <PreservedState except={dateExcept} state={state} />
+        <input name="endDate" type="hidden" value="missing" />
+        <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
+          Show missing dates
+        </RenewalDeskSubmitButton>
+      </RenewalDeskGetForm>
+
+      <RenewalDeskGetForm
+        className="renewal-th-filter-form"
+        pendingLabel="Applying renewal month filter."
+        stateKey={formStateKey(state)}
+      >
+        <PreservedState except={dateExcept} state={state} />
+        <label className="field-label" htmlFor="renewal-filter-month">
+          Month
+        </label>
+        <input
+          className="ui-input"
+          defaultValue={state.month}
+          id="renewal-filter-month"
+          name="month"
+          required
+          type="month"
+        />
+        <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
+          Apply month
+        </RenewalDeskSubmitButton>
+      </RenewalDeskGetForm>
+
+      <RenewalDeskGetForm
+        className="renewal-th-filter-form"
+        pendingLabel="Applying renewal date range."
+        stateKey={formStateKey(state)}
+      >
+        <PreservedState except={dateExcept} state={state} />
+        <label className="field-label" htmlFor="renewal-filter-from">
+          Range start
+        </label>
+        <input
+          className="ui-input"
+          defaultValue={state.from}
+          id="renewal-filter-from"
+          name="from"
+          required
+          type="date"
+        />
+        <label className="field-label" htmlFor="renewal-filter-through">
+          Range end (at most 120 days)
+        </label>
+        <input
+          className="ui-input"
+          defaultValue={state.through}
+          id="renewal-filter-through"
+          name="through"
+          required
+          type="date"
+        />
+        <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
+          Apply range
+        </RenewalDeskSubmitButton>
+      </RenewalDeskGetForm>
+    </HeaderFilter>
   );
 }
 
@@ -196,7 +419,11 @@ function SelectFilter({
 }>) {
   const id = `renewal-filter-${name}`;
   return (
-    <form action={RENEWAL_DESK_ROUTE} className="renewal-th-filter-form" method="get">
+    <RenewalDeskGetForm
+      className="renewal-th-filter-form"
+      pendingLabel={`Applying ${label.toLowerCase()} filter.`}
+      stateKey={formStateKey(state)}
+    >
       <PreservedState except={[name]} state={state} />
       <label className="field-label" htmlFor={id}>
         {label}
@@ -208,10 +435,10 @@ function SelectFilter({
           </option>
         ))}
       </select>
-      <button className="secondary-button" type="submit">
+      <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
         Apply
-      </button>
-    </form>
+      </RenewalDeskSubmitButton>
+    </RenewalDeskGetForm>
   );
 }
 
@@ -238,14 +465,50 @@ function ActionCell({
   state: RenewalDeskQueryV2State;
 }>) {
   const { guidance } = row;
-  if (guidance.action.kind === "blocked") {
+  const canOpenWorkspace = row.id !== "" && row.disposition !== "skip";
+  const rendersCausalBlockers =
+    guidance.blockers.length > 0 &&
+    (guidance.action.kind === "blocked" || guidance.action.kind === "needs_verification");
+  if (rendersCausalBlockers) {
     return (
       <ul className="renewal-blocker-list">
         {guidance.blockers.map((blocker) => {
-          const target = currentDestinationHref(blocker.destination, row.id, deskView);
+          const lacksCapability = Boolean(
+            blocker.requiredCapability && !can(role, blocker.requiredCapability),
+          );
+          const target = canOpenWorkspace
+            ? currentDestinationHref(blocker.destination, row.id, deskView)
+            : null;
           return (
-            <li key={blocker.id}>
-              {target ? (
+            <li
+              data-blocker-destination-kind={blocker.destination.kind}
+              data-blocker-id={blocker.id}
+              data-blocker-phase-id={blocker.phaseId ?? "none"}
+              data-blocker-step-id={
+                blocker.destination.kind === "workspace_phase"
+                  ? blocker.destination.stepId
+                  : "none"
+              }
+              data-blocker-type={blocker.type}
+              data-required-capability={blocker.requiredCapability ?? "none"}
+              key={blocker.id}
+            >
+              {lacksCapability && blocker.requiredCapability ? (
+                <span className="renewal-action-cell">
+                  <span>{blocker.label}</span>
+                  <RequestAccessLink
+                    returnTo={buildRenewalDeskAccessReturn(state)}
+                    surface={
+                      blocker.requiredCapability === "approve"
+                        ? "renewal_desk.resolve_reconciliation"
+                        : "renewal_desk.save_progress"
+                    }
+                  />
+                  {accessReturnClearsTextSearch(state) ? (
+                    <span className="muted">{ACCESS_RETURN_TEXT_SEARCH_NOTICE}</span>
+                  ) : null}
+                </span>
+              ) : target ? (
                 <Link className="text-link" href={target}>
                   {blocker.label}
                 </Link>
@@ -268,9 +531,15 @@ function ActionCell({
       <span className="renewal-action-cell">
         <span>{action.label}</span>
         {action.requiredCapability === "approve" ? (
-          <RequestAccessLink surface="renewal_desk.resolve_reconciliation" />
+          <RequestAccessLink
+            returnTo={buildRenewalDeskAccessReturn(state)}
+            surface="renewal_desk.resolve_reconciliation"
+          />
         ) : (
-          <RequestAccessLink surface="renewal_desk.save_progress" />
+          <RequestAccessLink
+            returnTo={buildRenewalDeskAccessReturn(state)}
+            surface="renewal_desk.save_progress"
+          />
         )}
         {accessReturnClearsTextSearch(state) ? (
           <span className="muted">{ACCESS_RETURN_TEXT_SEARCH_NOTICE}</span>
@@ -278,16 +547,15 @@ function ActionCell({
       </span>
     );
   }
-  const target =
-    "destination" in action
-      ? currentDestinationHref(action.destination, row.id, deskView)
-      : null;
-  if (target) {
-    return (
-      <Link className="text-link" href={target}>
-        {action.label}
-      </Link>
-    );
+  if (canOpenWorkspace && "destination" in action) {
+    const target = currentDestinationHref(action.destination, row.id, deskView);
+    if (target) {
+      return (
+        <Link className="text-link" href={target}>
+          {action.label}
+        </Link>
+      );
+    }
   }
   return <span>{"label" in action ? action.label : ""}</span>;
 }
@@ -326,7 +594,7 @@ function PartyCell({
         const token = shortcuts.available
           ? shortcuts.tokenFor(kind, normalized[index] ?? "")
           : null;
-        if (!token) {
+        if (!token || !PARTY_FILTER_TOKEN_PATTERN.test(token)) {
           return <li key={`${label}-${index}`}>{label}</li>;
         }
         const key = kind === "owner" ? "ownerKey" : "tenantKey";
@@ -348,30 +616,63 @@ function PartyCell({
 
 export function RenewalDeskTable({
   rows,
+  totalLoaded,
+  totalInScope,
   totalBeforeQuery,
   state,
   role,
   shortcuts,
+  partyOptions,
   sourceReadOk,
+  sourceReadComplete = sourceReadOk,
+  dependentStateComplete = true,
 }: Readonly<{
   rows: readonly DeskLeaseRow[];
-  totalBeforeQuery: number;
+  /** Preferred truthful count contract. */
+  totalLoaded?: number;
+  totalInScope?: number;
+  /** @deprecated Compatibility input for callers migrating to totalLoaded. */
+  totalBeforeQuery?: number;
   state: RenewalDeskQueryV2State;
   role: Role;
   shortcuts: DeskPartyShortcuts;
+  /** Choices derived from the full current authorized projection, before filtering. */
+  partyOptions?: DeskPartyFilterOptions;
   /** True only for a complete canonical source read; partial/failed reads cannot claim empty. */
   sourceReadOk: boolean;
+  /** False labels every displayed count as partial even when cached rows remain usable. */
+  sourceReadComplete?: boolean;
+  /** False when filters/status depend on unavailable auxiliary reads; portfolio counts stay exact. */
+  dependentStateComplete?: boolean;
 }>) {
   const deskView = encodeDeskView(state);
   const chips = buildActiveFilterChips(state);
   const filtersActive = hasActiveRenewalDeskFilters(state);
   const clearedHref = href(clearRenewalDeskFilters(state));
+  const loadedCount = totalLoaded ?? totalBeforeQuery ?? rows.length;
+  const scopeCount = totalInScope ?? loadedCount;
+  const availablePartyOptions =
+    partyOptions ?? buildDeskPartyFilterOptions(rows, shortcuts);
 
   return (
     <section aria-label="Renewal worklist" className="ui-stack">
       <div className="renewal-table-toolbar">
         <span className="renewal-table-count" role="status">
-          Showing {rows.length} of {totalBeforeQuery} renewals
+          Matching: {rows.length} · Selected scope: {scopeCount} · Total loaded:{" "}
+          {loadedCount}
+          {sourceReadComplete ? "" : " (partial portfolio read)"}
+        </span>
+        <span
+          className="renewal-scope-indicator"
+          data-dependent-state-complete={dependentStateComplete ? "true" : "false"}
+        >
+          <strong>Dependent status:</strong>{" "}
+          {dependentStateComplete
+            ? "Current"
+            : "Incomplete: refresh before relying on status filters"}
+        </span>
+        <span className="renewal-scope-indicator">
+          <strong>Worklist scope:</strong> {SCOPE_LABELS[state.scope]}
         </span>
         {chips.length > 0 ? (
           <ul aria-label="Active filters" className="renewal-filter-chips">
@@ -435,10 +736,10 @@ export function RenewalDeskTable({
             <tr className="renewal-th-filter-row">
               <th scope="col">
                 <HeaderFilter label="Filter lease/location">
-                  <form
-                    action={RENEWAL_DESK_ROUTE}
+                  <RenewalDeskGetForm
                     className="renewal-th-filter-form"
-                    method="get"
+                    pendingLabel="Applying lease or location filter."
+                    stateKey={formStateKey(state)}
                   >
                     <PreservedState except={["lease"]} state={state} />
                     <label className="field-label" htmlFor="renewal-filter-lease">
@@ -452,86 +753,39 @@ export function RenewalDeskTable({
                       name="lease"
                       type="text"
                     />
-                    <button className="secondary-button" type="submit">
+                    <RenewalDeskSubmitButton
+                      className="secondary-button"
+                      pendingText="Applying…"
+                    >
                       Apply
-                    </button>
-                  </form>
+                    </RenewalDeskSubmitButton>
+                  </RenewalDeskGetForm>
                 </HeaderFilter>
               </th>
               <th scope="col">
                 {shortcuts.available ? (
-                  <span className="muted">Click an owner value to filter.</span>
+                  <PartyHeaderFilter
+                    kind="owner"
+                    options={availablePartyOptions.owner}
+                    state={state}
+                  />
                 ) : (
                   <span className="muted">{PARTY_FILTERING_UNAVAILABLE_NOTICE}</span>
                 )}
               </th>
               <th scope="col">
                 {shortcuts.available ? (
-                  <span className="muted">Click a tenant value to filter.</span>
+                  <PartyHeaderFilter
+                    kind="tenant"
+                    options={availablePartyOptions.tenant}
+                    state={state}
+                  />
                 ) : (
                   <span className="muted">{PARTY_FILTERING_UNAVAILABLE_NOTICE}</span>
                 )}
               </th>
               <th scope="col">
-                <HeaderFilter label="Filter renewal date">
-                  <form
-                    action={RENEWAL_DESK_ROUTE}
-                    className="renewal-th-filter-form"
-                    method="get"
-                  >
-                    <PreservedState
-                      except={["endDate", "month", "from", "through"]}
-                      state={state}
-                    />
-                    <label className="field-label" htmlFor="renewal-filter-endDate">
-                      Exact date (YYYY-MM-DD) or `missing`
-                    </label>
-                    <input
-                      className="ui-input"
-                      defaultValue={state.endDate}
-                      id="renewal-filter-endDate"
-                      maxLength={10}
-                      name="endDate"
-                      type="text"
-                    />
-                    <label className="field-label" htmlFor="renewal-filter-month">
-                      Month (YYYY-MM)
-                    </label>
-                    <input
-                      className="ui-input"
-                      defaultValue={state.month}
-                      id="renewal-filter-month"
-                      maxLength={7}
-                      name="month"
-                      type="text"
-                    />
-                    <label className="field-label" htmlFor="renewal-filter-from">
-                      Range from (YYYY-MM-DD)
-                    </label>
-                    <input
-                      className="ui-input"
-                      defaultValue={state.from}
-                      id="renewal-filter-from"
-                      maxLength={10}
-                      name="from"
-                      type="text"
-                    />
-                    <label className="field-label" htmlFor="renewal-filter-through">
-                      Range through (at most 120 days)
-                    </label>
-                    <input
-                      className="ui-input"
-                      defaultValue={state.through}
-                      id="renewal-filter-through"
-                      maxLength={10}
-                      name="through"
-                      type="text"
-                    />
-                    <button className="secondary-button" type="submit">
-                      Apply
-                    </button>
-                  </form>
-                </HeaderFilter>
+                <RenewalDateFilters state={state} />
               </th>
               <th scope="col">
                 <span className="muted">RentVine source value</span>
@@ -660,12 +914,14 @@ export function RenewalDeskTable({
               <tr>
                 <td className="renewal-table-empty" colSpan={8}>
                   {!sourceReadOk
-                    ? "The source read did not complete, so this table cannot claim an empty worklist. Refresh to read again."
-                    : totalBeforeQuery === 0
+                    ? "The portfolio read did not complete, so this table cannot claim an empty worklist. Refresh to read again."
+                    : loadedCount === 0
                       ? UNFILTERED_EMPTY_COPY
-                      : filtersActive
-                        ? FILTERED_EMPTY_COPY
-                        : UNFILTERED_EMPTY_COPY}
+                      : !dependentStateComplete
+                        ? "Supporting status did not complete, so these filters cannot claim there are no matching renewals. Clear filters or refresh to read again."
+                        : filtersActive
+                          ? FILTERED_EMPTY_COPY
+                          : UNFILTERED_EMPTY_COPY}
                 </td>
               </tr>
             ) : (
@@ -701,13 +957,47 @@ function DeskRow({
   deskView: string | null;
 }>) {
   const { guidance } = row;
-  const workspaceHref = row.id ? buildWorkspaceHref({ leaseId: row.id, deskView }) : null;
-  const rentVerificationHref = row.id
+  // Definitive cohort exclusions do not have a renewal workspace. Review and out-of-window rows do:
+  // those are precisely the leases for which an operator may need to verify/correct source facts.
+  // Keeping this predicate beside the rendered metadata lets browser assurance choose a destination
+  // that the server loader can truthfully resolve without depending on live row order.
+  const workspaceAvailable = row.id !== "" && row.disposition !== "skip";
+  const workspaceHref = workspaceAvailable
+    ? buildWorkspaceHref({ leaseId: row.id, deskView })
+    : null;
+  const rentVerificationHref = workspaceAvailable
     ? currentDestinationHref(guidance.rentVerification.destination, row.id, deskView)
     : null;
   const status = guidance.overallStatus;
+  const actionDestination =
+    "destination" in guidance.action
+      ? guidance.action.destination
+      : ({ kind: "none" } as const);
+  const actionStepId =
+    actionDestination.kind === "workspace_phase" ? actionDestination.stepId : "none";
+  const actionRequiredCapability =
+    "requiredCapability" in guidance.action
+      ? (guidance.action.requiredCapability ?? "none")
+      : "none";
   return (
-    <tr data-status={status}>
+    <tr
+      data-action-kind={guidance.action.kind}
+      data-blocker-count={String(guidance.blockers.length)}
+      data-disposition={row.disposition}
+      data-is-blocked={guidance.isBlocked ? "true" : "false"}
+      data-lease-id={row.id}
+      data-process-current-step={row.processState?.currentStepId ?? "none"}
+      data-process-current-step-state={row.processState?.currentStepState ?? "none"}
+      data-process-status={row.processState?.status ?? "none"}
+      data-rent-verification={guidance.rentVerification.state}
+      data-rent-verification-differs={
+        guidance.rentVerification.verifiedByResolutionDiffers ? "true" : "false"
+      }
+      data-retention-state={row.retention.state}
+      data-status={status}
+      data-waiting-party={row.followUp?.waiting.party ?? "none"}
+      data-workspace-available={workspaceAvailable ? "true" : "false"}
+    >
       <th className="renewal-td-lease" scope="row">
         {workspaceHref ? (
           <Link className="renewal-lease-link" href={workspaceHref}>
@@ -776,9 +1066,22 @@ function DeskRow({
         ) : (
           <span>Needs Verification</span>
         )}
-        <span className="renewal-td-secondary">RentVine</span>
+        {row.sourceDestinations?.rentvine ? (
+          <a
+            aria-label={`Open lease ${row.id} in RentVine in a new tab`}
+            className="renewal-source-link"
+            href={row.sourceDestinations.rentvine.href}
+            rel={EXTERNAL_LINK_REL}
+            target={EXTERNAL_LINK_TARGET}
+            title={row.sourceDestinations.rentvine.label}
+          >
+            Open in RentVine ↗
+          </a>
+        ) : (
+          <span className="renewal-td-secondary">RentVine</span>
+        )}
       </td>
-      <td>
+      <td data-renewal-field="overall-status" data-status={status}>
         <Link
           className="renewal-status-link"
           href={href({ ...state, overallStatus: status })}
@@ -792,7 +1095,13 @@ function DeskRow({
           <span className="renewal-td-secondary">{row.stageLabel}</span>
         ) : null}
       </td>
-      <td>
+      <td
+        data-renewal-field="rent-verification"
+        data-rent-verification={guidance.rentVerification.state}
+        data-rent-verification-differs={
+          guidance.rentVerification.verifiedByResolutionDiffers ? "true" : "false"
+        }
+      >
         {rentVerificationHref ? (
           <Link className="renewal-status-link" href={rentVerificationHref}>
             <StatusBadge tone={RENT_VERIFICATION_TONE[guidance.rentVerification.state]}>
@@ -810,7 +1119,15 @@ function DeskRow({
           </span>
         ) : null}
       </td>
-      <td className="renewal-td-action">
+      <td
+        className="renewal-td-action"
+        data-action-destination-kind={actionDestination.kind}
+        data-action-kind={guidance.action.kind}
+        data-action-required-capability={actionRequiredCapability}
+        data-action-step-id={actionStepId}
+        data-blocker-count={String(guidance.blockers.length)}
+        data-renewal-field="action"
+      >
         <ActionCell deskView={deskView} role={role} row={row} state={state} />
       </td>
     </tr>

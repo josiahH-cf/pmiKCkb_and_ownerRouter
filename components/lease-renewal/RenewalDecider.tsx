@@ -66,7 +66,7 @@ function RenewalDeciderRun({
   const [deferredKeys, setDeferredKeys] = useState<ReadonlySet<string>>(new Set());
   const [completedKeys, setCompletedKeys] = useState<ReadonlySet<string>>(new Set());
   const [pendingFollowOns, setPendingFollowOns] = useState<
-    ReadonlyMap<string, DecisionReasonCode>
+    ReadonlyMap<string, { reasonCode: DecisionReasonCode; authorizationToken?: string }>
   >(new Map());
   const [progressError, setProgressError] = useState<string | null>(null);
   const [progressRunId, setProgressRunId] = useState<string | null>(null);
@@ -159,9 +159,16 @@ function RenewalDeciderRun({
     router.refresh();
   }
 
-  function queueFollowOn(flag: RenewalFlagView, reasonCode: DecisionReasonCode) {
+  function queueFollowOn(
+    flag: RenewalFlagView,
+    reasonCode: DecisionReasonCode,
+    authorizationToken?: string,
+  ) {
     setPendingFollowOns((previous) =>
-      new Map(previous).set(flag.sourceTriggerKey, reasonCode),
+      new Map(previous).set(flag.sourceTriggerKey, {
+        reasonCode,
+        ...(authorizationToken ? { authorizationToken } : {}),
+      }),
     );
     router.refresh();
   }
@@ -201,9 +208,16 @@ function RenewalDeciderRun({
         key={currentFlag.sourceTriggerKey}
         manifest={view.manifest}
         onComplete={() => complete(currentFlag)}
-        onFollowOnQueued={(reasonCode) => queueFollowOn(currentFlag, reasonCode)}
+        onFollowOnQueued={(reasonCode, authorizationToken) =>
+          queueFollowOn(currentFlag, reasonCode, authorizationToken)
+        }
         onSkip={() => void skip(currentFlag)}
-        optimisticFollowOnReasonCode={pendingFollowOns.get(currentFlag.sourceTriggerKey)}
+        optimisticFollowOnReasonCode={
+          pendingFollowOns.get(currentFlag.sourceTriggerKey)?.reasonCode
+        }
+        optimisticFollowOnAuthorizationToken={
+          pendingFollowOns.get(currentFlag.sourceTriggerKey)?.authorizationToken
+        }
         runId={view.runId}
         skipping={skippingKey === currentFlag.sourceTriggerKey}
       />

@@ -27,7 +27,7 @@ The renewal Work source type `renewal_lease`, its canonical `lease-renewals` Spa
 source version, task record, activity record, cancellation transition, canonical source link, and
 12-month Work retention policy already exist. Current Ask does not use that path: `Capture Task`
 creates a knowledge-gap placeholder, and submitting Ask with a selected process can start a workflow
-run. S83 access requests and the new Dashboard assistant are specified but not implemented. There is
+run. S83 access requests are deployed; the new Dashboard assistant remains specified but not implemented. There is
 no generic approval-request writer, and current config has neither required
 `ASSISTANT_ACTION_TOKEN_KEY` nor the distinct required `ASSISTANT_ACTION_IDEMPOTENCY_KEY`; the
 optional `ASSISTANT_ACTION_TOKEN_PREVIOUS_KEY` rotation slot is also absent.

@@ -1,7 +1,8 @@
 // S98 one-attempt operating-Sheet execution (ARCH-S98-2/3/4). A durable claim precedes the single
 // Sheets call; Sheets exposes no operation-status or idempotency ledger for these requests, so an
 // uncertain response never retries and reconciliation reports observed state without claiming
-// causality. Only `row_append` can construct its receipt-bound one-row deleteDimension reversal.
+// causality. Only normal `row_append` mutates; fixed-row update/delete paths are unavailable until
+// the provider exposes a stable-row, generation-bound, idempotent protocol with durable status.
 
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
@@ -14,6 +15,7 @@ import type {
 import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "@/lib/lease-renewal/headers";
 import {
   PROOF_NOTE_PREFIX,
+  SHEET_WRITEBACK_CONFIRMATION_TTL_MS,
   SheetWritebackContractError,
   assertSheetWritebackConfirmation,
   normalRowNote,
@@ -27,6 +29,11 @@ import {
   type SheetWritebackProposal,
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import {
+  verifySheetReversalPreviewHash,
+  type SheetReversalPreviewBinding,
+} from "@/lib/lease-renewal/sheet-writeback/workspace-context";
+import type { SheetAppendLifecycleState } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
 
 export type SheetWritebackServiceErrorCode =
   | "environment_refused"
@@ -48,7 +55,10 @@ export type SheetWritebackServiceErrorCode =
   | "reversal_unsupported"
   | "reversal_forward_unproven"
   | "reversal_target_drift"
-  | "confirmation_invalid";
+  | "confirmation_invalid"
+  | "authorization_stale"
+  | "provider_capability_unavailable"
+  | "proof_retired";
 
 /** Value-free refusal safe for routes and UI copy. */
 export class SheetWritebackServiceError extends Error {
@@ -74,6 +84,7 @@ export interface SheetWritebackWriter {
     noteColumnIndex: number;
     note: string;
   }): Promise<void>;
+  /** Legacy fixed-row primitive retained only for reader/recovery doubles; S98 never calls it. */
   deleteExactRow(input: {
     spreadsheetId: string;
     sheetId: number;
@@ -86,6 +97,7 @@ export interface SheetWritebackWriter {
     startRowNumber: number;
     endRowNumber: number;
   }): Promise<{ rowNumber: number; value: string; note: string }[]>;
+  /** Legacy fixed-A1 primitive retained only for compatibility; S98 execution never calls it. */
   replaceCellIfExactMatch(
     spreadsheetId: string,
     range: string,
@@ -102,6 +114,33 @@ export interface SheetWritebackDependencies {
   gateFor(actionKey: string): SheetWritebackGate;
   /** The reviewed operating-write runtime switch. */
   writeFlagEnabled(): boolean;
+  /** Firestore-only exact resolution/approval claim for a normal field update. */
+  claimAuthorizedFieldUpdate?: (input: {
+    executionId: string;
+    previewHash: string;
+    authorization: NonNullable<SheetFieldUpdateEffectInput["authorization"]>;
+  }) => Promise<"claimed" | "duplicate" | "blocked">;
+  /** Firestore-only generation + lease scoped append claim; absent means append execution refuses. */
+  claimLeaseScopedAppend?: (input: {
+    executionId: string;
+    previewHash: string;
+    effectHash: string;
+    spreadsheetId: string;
+    tabTitle: string;
+    leaseId: string;
+    propertyId: string;
+  }) => Promise<"claimed" | "duplicate" | "blocked">;
+  /** Persist the terminal append lifecycle so proposal replacement cannot erase recovery. */
+  settleLeaseScopedAppend?: (input: {
+    executionId: string;
+    previewHash: string;
+    effectHash: string;
+    spreadsheetId: string;
+    tabTitle: string;
+    leaseId: string;
+    propertyId: string;
+    state: SheetAppendLifecycleState;
+  }) => Promise<void>;
   now?: () => number;
 }
 
@@ -174,6 +213,8 @@ export class SheetWritebackService {
     proposal: SheetWritebackProposal;
     effectHash: string;
     confirmation: SheetWritebackConfirmation;
+    /** Fresh read-only source check performed after the durable claim but before provider mutation. */
+    revalidateBeforeEffect?: () => Promise<void>;
   }): Promise<SheetWritebackReceiptDetails> {
     this.assertEnvironment();
     const { proposal } = input;
@@ -193,10 +234,25 @@ export class SheetWritebackService {
       throw error;
     }
     await this.assertGates(effect.actionKey);
+    if (proposal.scope.kind === "sealed_proof") {
+      throw new SheetWritebackServiceError("proof_retired");
+    }
+    // The live Google Sheets writer has no provider-owned stable-row + expected-generation +
+    // idempotency/status protocol. A read followed by fixed-A1 find/replace is not exact lease
+    // binding, so field updates remain unreachable until that provider seam exists.
+    if (effect.effect.kind === "field_update") {
+      throw new SheetWritebackServiceError("provider_capability_unavailable");
+    }
 
     const executionId = sheetWritebackExecutionId(proposal, effect);
     const existing = await this.dependencies.store.get(executionId);
     if (existing?.state === "succeeded" && existing.receipt) {
+      try {
+        await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
+      } catch {
+        // A legacy success may predate the lease lifecycle. The immutable execution receipt is
+        // still authoritative; replacement logic remains fail-closed for every lifecycle present.
+      }
       return { receipt: existing.receipt, duplicate: true };
     }
     if (existing && (existing.state !== "ready" || existing.attemptCount !== 0)) {
@@ -208,9 +264,6 @@ export class SheetWritebackService {
     // flag were already asserted above, so refusals never reach this construction.
     const writer = this.dependencies.createWriter();
     await this.assertHeaderFresh(proposal, writer);
-    if (effect.effect.kind === "field_update") {
-      await this.assertFieldAnchorFresh(proposal, effect.effect, writer);
-    }
 
     if (!existing) {
       const record: ExternalExecutionRecord = {
@@ -232,24 +285,46 @@ export class SheetWritebackService {
       } catch {
         const concurrent = await this.dependencies.store.get(executionId);
         if (concurrent?.state === "succeeded" && concurrent.receipt) {
+          try {
+            await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
+          } catch {
+            // See the legacy-success compatibility note above.
+          }
           return { receipt: concurrent.receipt, duplicate: true };
         }
         if (!concurrent) throw new SheetWritebackServiceError("execution_state");
       }
     }
 
-    const claim = await this.dependencies.store.claim(executionId, proposal.previewHash);
+    const claim = await this.dependencies.claimLeaseScopedAppend?.({
+      executionId,
+      previewHash: proposal.previewHash,
+      effectHash: effect.effectHash,
+      spreadsheetId: proposal.spreadsheetId,
+      tabTitle: proposal.tabTitle,
+      leaseId: proposal.scope.leaseId,
+      propertyId: proposal.scope.propertyId,
+    });
+    if (claim === undefined) throw new SheetWritebackServiceError("claim_refused");
     if (claim === "duplicate") {
       const settled = await this.dependencies.store.get(executionId);
       if (settled?.state === "succeeded" && settled.receipt) {
+        try {
+          await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
+        } catch {
+          // The execution receipt remains the durable source for an already-completed attempt.
+        }
         return { receipt: settled.receipt, duplicate: true };
       }
       throw new SheetWritebackServiceError("execution_state");
     }
-    if (claim !== "claimed") throw new SheetWritebackServiceError("claim_refused");
+    if (claim !== "claimed") {
+      throw new SheetWritebackServiceError("claim_refused");
+    }
 
     let outcome: { providerRef: string; readbackHash: string; rowNumber?: number };
     try {
+      await input.revalidateBeforeEffect?.();
       const gate = this.dependencies.gateFor(effect.actionKey);
       outcome = await gate.run(() => this.performEffect(proposal, effect, writer));
     } catch (error) {
@@ -257,13 +332,14 @@ export class SheetWritebackService {
         error instanceof SheetWritebackServiceError &&
         (error.code === "cas_not_applied" ||
           error.code === "header_drift" ||
-          error.code === "row_anchor_drift")
+          error.code === "row_anchor_drift" ||
+          error.code === "authorization_stale")
       ) {
         // Definite zero-effect refusals: the attempt is consumed without ambiguity.
-        await this.transitionClaimFailure(executionId, false);
+        await this.transitionEffectClaimFailure(proposal, effect, executionId, false);
         throw error;
       }
-      await this.transitionClaimFailure(executionId, true);
+      await this.transitionEffectClaimFailure(proposal, effect, executionId, true);
       console.error(
         JSON.stringify({
           marker: "LIVE_EFFECT_REQUIRES_ATTENTION",
@@ -286,6 +362,7 @@ export class SheetWritebackService {
       createdAt: new Date(this.now()).toISOString(),
     };
     await this.dependencies.store.finish(executionId, receipt);
+    await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
     return {
       receipt,
       duplicate: false,
@@ -310,7 +387,7 @@ export class SheetWritebackService {
       if (!Number.isFinite(ageMs) || ageMs < RECONCILE_MIN_AGE_MS) {
         throw new SheetWritebackServiceError("execution_in_progress");
       }
-      await this.transitionClaimFailure(executionId, true);
+      await this.transitionEffectClaimFailure(input.proposal, effect, executionId, true);
       record = await this.dependencies.store.get(executionId);
       if (record?.state === "succeeded" && record.receipt) return record.receipt;
       if (!record) throw new SheetWritebackServiceError("execution_missing");
@@ -330,6 +407,7 @@ export class SheetWritebackService {
         createdAt: new Date(this.now()).toISOString(),
       };
       await this.dependencies.store.finish(executionId, receipt);
+      await this.settleAppendLifecycle(input.proposal, effect, executionId, "succeeded");
       return receipt;
     }
     if (observation.state === "before") {
@@ -350,45 +428,10 @@ export class SheetWritebackService {
     if (!forward || forward.state !== "succeeded" || !forward.receipt) {
       throw new SheetWritebackServiceError("reversal_forward_unproven");
     }
-    const writer = this.dependencies.createWriter();
-    let currentRowNumber: number | undefined;
-    if (effect.reversal.kind === "delete_appended_row") {
-      const located = await this.locateRowByOperationId(
-        input.proposal,
-        effect.reversal.operationId,
-        writer,
-      );
-      if (!located) throw new SheetWritebackServiceError("reversal_target_drift");
-      const rowHash = await this.hashRowContent(input.proposal, located, writer);
-      if (rowHash !== forward.receipt.resultHash) {
-        throw new SheetWritebackServiceError("reversal_target_drift");
-      }
-      currentRowNumber = located.rowNumber;
-    } else {
-      const fieldEffect = effect.effect as SheetFieldUpdateEffectInput;
-      const cell = await this.readAnchoredCell(input.proposal, fieldEffect, writer);
-      if (!sheetCellValueMatches(fieldEffect.afterValue, cell)) {
-        throw new SheetWritebackServiceError("reversal_target_drift");
-      }
-    }
-    const nowMs = this.now();
-    const reversalExecutionId = sheetWritebackReversalExecutionId(
-      forwardExecutionId,
-      forward.receipt.resultHash,
-    );
-    return {
-      reversalExecutionId,
-      forwardExecutionId,
-      previewHash: hashExecutionPreview({
-        version: "s98-reversal-preview/v1",
-        reversalExecutionId,
-        forwardReceiptHash: forward.receipt.resultHash,
-        reversal: effect.reversal,
-      }),
-      expiresAtIso: new Date(nowMs + 10 * 60 * 1_000).toISOString(),
-      kind: effect.reversal.kind,
-      ...(currentRowNumber !== undefined ? { currentRowNumber } : {}),
-    };
+    // Do not mint a confirmation for a mutation the live provider cannot atomically bind. Kept
+    // after the forward-record check so callers receive truthful missing-forward state without
+    // constructing a Sheets writer or reading a fixed row.
+    throw new SheetWritebackServiceError("provider_capability_unavailable");
   }
 
   /** Execute one separately confirmed reversal, exactly once. */
@@ -401,114 +444,65 @@ export class SheetWritebackService {
     this.assertEnvironment();
     const effect = this.effectByHash(input.proposal, input.effectHash);
     await this.assertGates(effect.actionKey);
+    if (input.proposal.scope.kind === "sealed_proof") {
+      throw new SheetWritebackServiceError("proof_retired");
+    }
     const nowMs = this.now();
     const confirmedAtMs = Date.parse(input.confirmedAtIso);
+    const expiresAtMs = Date.parse(input.reversal.expiresAtIso);
     if (
       !Number.isFinite(confirmedAtMs) ||
       confirmedAtMs > nowMs ||
-      nowMs > Date.parse(input.reversal.expiresAtIso)
+      !Number.isFinite(expiresAtMs) ||
+      confirmedAtMs > expiresAtMs ||
+      nowMs > expiresAtMs ||
+      expiresAtMs - nowMs > SHEET_WRITEBACK_CONFIRMATION_TTL_MS
     ) {
       throw new SheetWritebackServiceError("confirmation_invalid");
     }
-    const forward = await this.dependencies.store.get(input.reversal.forwardExecutionId);
+    const forwardExecutionId = sheetWritebackExecutionId(input.proposal, effect);
+    if (input.reversal.forwardExecutionId !== forwardExecutionId) {
+      throw new SheetWritebackServiceError("confirmation_invalid");
+    }
+    const forward = await this.dependencies.store.get(forwardExecutionId);
     if (!forward || forward.state !== "succeeded" || !forward.receipt) {
       throw new SheetWritebackServiceError("reversal_forward_unproven");
     }
     const expectedReversalId = sheetWritebackReversalExecutionId(
-      input.reversal.forwardExecutionId,
+      forwardExecutionId,
       forward.receipt.resultHash,
     );
-    if (expectedReversalId !== input.reversal.reversalExecutionId) {
+    const currentRowShapeValid =
+      effect.reversal.kind === "delete_appended_row"
+        ? Number.isInteger(input.reversal.currentRowNumber) &&
+          (input.reversal.currentRowNumber ?? 0) >= 2
+        : input.reversal.currentRowNumber === undefined;
+    if (
+      expectedReversalId !== input.reversal.reversalExecutionId ||
+      input.reversal.kind !== effect.reversal.kind ||
+      !currentRowShapeValid
+    ) {
       throw new SheetWritebackServiceError("confirmation_invalid");
     }
-    const existing = await this.dependencies.store.get(expectedReversalId);
-    if (existing?.state === "succeeded" && existing.receipt) {
-      return { receipt: existing.receipt, duplicate: true };
-    }
-    if (existing && (existing.state !== "ready" || existing.attemptCount !== 0)) {
-      throw new SheetWritebackServiceError("execution_state");
-    }
-    if (!existing) {
-      const record: ExternalExecutionRecord = {
-        id: expectedReversalId,
-        dataMode: "live",
-        workflowId: `s98:${input.proposal.tabTitle}`,
-        actionId: expectedReversalId,
-        actionKey: effect.actionKey,
-        contextHash: forward.receipt.resultHash,
-        previewHash: input.reversal.previewHash,
-        idempotencyKey: expectedReversalId,
-        state: "ready",
-        attemptCount: 0,
-        createdAt: new Date(nowMs).toISOString(),
-        updatedAt: new Date(nowMs).toISOString(),
-      };
-      try {
-        await this.dependencies.store.create(record);
-      } catch {
-        const concurrent = await this.dependencies.store.get(expectedReversalId);
-        if (concurrent?.state === "succeeded" && concurrent.receipt) {
-          return { receipt: concurrent.receipt, duplicate: true };
-        }
-        if (!concurrent) throw new SheetWritebackServiceError("execution_state");
-      }
-    }
-    const claim = await this.dependencies.store.claim(
-      expectedReversalId,
-      input.reversal.previewHash,
-    );
-    if (claim === "duplicate") {
-      const settled = await this.dependencies.store.get(expectedReversalId);
-      if (settled?.state === "succeeded" && settled.receipt) {
-        return { receipt: settled.receipt, duplicate: true };
-      }
-      throw new SheetWritebackServiceError("execution_state");
-    }
-    if (claim !== "claimed") throw new SheetWritebackServiceError("claim_refused");
-
-    let outcome: { providerRef: string; readbackHash: string };
-    try {
-      const gate = this.dependencies.gateFor(effect.actionKey);
-      outcome = await gate.run(() =>
-        this.performReversal(
-          input.proposal,
-          effect,
-          forward,
-          this.dependencies.createWriter(),
-        ),
-      );
-    } catch (error) {
-      if (
-        error instanceof SheetWritebackServiceError &&
-        (error.code === "reversal_target_drift" || error.code === "cas_not_applied")
-      ) {
-        await this.transitionClaimFailure(expectedReversalId, false);
-        throw error;
-      }
-      await this.transitionClaimFailure(expectedReversalId, true);
-      console.error(
-        JSON.stringify({
-          marker: "LIVE_EFFECT_REQUIRES_ATTENTION",
-          action_key: effect.actionKey,
-          execution_id: expectedReversalId,
-          state: "ambiguous",
-          data_mode: "live",
-        }),
-      );
-      throw new SheetWritebackServiceError("provider_ambiguous");
-    }
-
-    const receipt: ExternalActionReceipt = {
-      actionKey: effect.actionKey,
-      dataMode: "live",
-      liveEvidenceEligible: true,
-      providerRef: outcome.providerRef,
-      resultHash: outcome.readbackHash,
-      reconciled: false,
-      createdAt: new Date(this.now()).toISOString(),
+    const binding: SheetReversalPreviewBinding = {
+      proposalPreviewHash: input.proposal.previewHash,
+      effectHash: effect.effectHash,
+      forwardExecutionId,
+      forwardReceiptHash: forward.receipt.resultHash,
+      reversalExecutionId: expectedReversalId,
+      kind: input.reversal.kind,
+      ...(input.reversal.currentRowNumber !== undefined
+        ? { currentRowNumber: input.reversal.currentRowNumber }
+        : {}),
+      expiresAtIso: input.reversal.expiresAtIso,
     };
-    await this.dependencies.store.finish(expectedReversalId, receipt);
-    return { receipt, duplicate: false };
+    if (!verifySheetReversalPreviewHash(binding, input.reversal.previewHash)) {
+      throw new SheetWritebackServiceError("confirmation_invalid");
+    }
+
+    // Google Sheets exposes no stable-row, generation-bound, provider-idempotent delete or restore
+    // operation. The prior locate/read then fixed-row mutation was unsafe under collaborator moves.
+    throw new SheetWritebackServiceError("provider_capability_unavailable");
   }
 
   /** Read-only reconciliation of an ambiguous reversal from observed state. */
@@ -649,6 +643,58 @@ export class SheetWritebackService {
     }
   }
 
+  private appendLifecycleInput(
+    proposal: SheetWritebackProposal,
+    effect: ValidatedSheetWritebackEffect,
+    executionId: string,
+  ) {
+    if (
+      proposal.scope.kind !== "lease_workspace" ||
+      effect.effect.kind !== "row_append"
+    ) {
+      return null;
+    }
+    return {
+      executionId,
+      previewHash: proposal.previewHash,
+      effectHash: effect.effectHash,
+      spreadsheetId: proposal.spreadsheetId,
+      tabTitle: proposal.tabTitle,
+      leaseId: proposal.scope.leaseId,
+      propertyId: proposal.scope.propertyId,
+    };
+  }
+
+  private async settleAppendLifecycle(
+    proposal: SheetWritebackProposal,
+    effect: ValidatedSheetWritebackEffect,
+    executionId: string,
+    state: SheetAppendLifecycleState,
+  ): Promise<void> {
+    const lifecycle = this.appendLifecycleInput(proposal, effect, executionId);
+    if (!lifecycle || !this.dependencies.settleLeaseScopedAppend) return;
+    await this.dependencies.settleLeaseScopedAppend({ ...lifecycle, state });
+  }
+
+  private async transitionEffectClaimFailure(
+    proposal: SheetWritebackProposal,
+    effect: ValidatedSheetWritebackEffect,
+    executionId: string,
+    ambiguous: boolean,
+  ): Promise<void> {
+    await this.transitionClaimFailure(executionId, ambiguous);
+    try {
+      await this.settleAppendLifecycle(
+        proposal,
+        effect,
+        executionId,
+        ambiguous ? "ambiguous" : "failed",
+      );
+    } catch {
+      // A stale running lifecycle is deliberately fail-closed and keeps recovery reachable.
+    }
+  }
+
   private async assertHeaderFresh(
     proposal: SheetWritebackProposal,
     writer: SheetWritebackWriter,
@@ -689,29 +735,6 @@ export class SheetWritebackService {
       width: header.length,
       columns,
     };
-  }
-
-  private async assertFieldAnchorFresh(
-    proposal: SheetWritebackProposal,
-    effect: SheetFieldUpdateEffectInput,
-    writer: SheetWritebackWriter,
-  ): Promise<void> {
-    if (effect.rowKey !== null) {
-      const located = await this.locateRowByOperationId(proposal, effect.rowKey, writer);
-      if (!located || located.rowNumber !== effect.rowNumber) {
-        throw new SheetWritebackServiceError("row_anchor_drift");
-      }
-      return;
-    }
-    const tenantCell = await this.readCell(
-      proposal,
-      proposal.tenantColumnIndex,
-      effect.rowNumber,
-      writer,
-    );
-    if (tenantCell !== effect.anchorTenantName) {
-      throw new SheetWritebackServiceError("row_anchor_drift");
-    }
   }
 
   private async readCell(
@@ -864,113 +887,7 @@ export class SheetWritebackService {
       };
     }
 
-    const effect = validated.effect;
-    const columnIndex = header.columns.get(effect.field);
-    if (columnIndex === undefined) {
-      throw new SheetWritebackServiceError("header_drift");
-    }
-    const letter = columnLetter(columnIndex);
-    const range = `'${proposal.tabTitle}'!${letter}${effect.rowNumber}`;
-    const applied = await writer.replaceCellIfExactMatch(
-      proposal.spreadsheetId,
-      range,
-      effect.expectedValue,
-      effect.afterValue,
-    );
-    if (!applied) throw new SheetWritebackServiceError("cas_not_applied");
-    const readback = await this.readCell(proposal, columnIndex, effect.rowNumber, writer);
-    if (!sheetCellValueMatches(effect.afterValue, readback)) {
-      throw new SheetWritebackServiceError("provider_readback_mismatch");
-    }
-    return {
-      providerRef: `s98-cell:${effect.field}`,
-      readbackHash: hashExecutionPreview({
-        version: "s98-cell-readback/v1",
-        field: effect.field,
-        value: readback,
-      }),
-    };
-  }
-
-  private async performReversal(
-    proposal: SheetWritebackProposal,
-    validated: ValidatedSheetWritebackEffect,
-    forward: ExternalExecutionRecord,
-    writer: SheetWritebackWriter,
-  ): Promise<{ providerRef: string; readbackHash: string }> {
-    const reversal = validated.reversal;
-    if (reversal.kind === "delete_appended_row") {
-      const located = await this.locateRowByOperationId(
-        proposal,
-        reversal.operationId,
-        writer,
-      );
-      if (!located) throw new SheetWritebackServiceError("reversal_target_drift");
-      const rowHash = await this.hashRowContent(proposal, located, writer);
-      if (rowHash !== forward.receipt!.resultHash) {
-        throw new SheetWritebackServiceError("reversal_target_drift");
-      }
-      const sheetId = await writer.getSheetIdByTitle(
-        proposal.spreadsheetId,
-        proposal.tabTitle,
-      );
-      await writer.deleteExactRow({
-        spreadsheetId: proposal.spreadsheetId,
-        sheetId,
-        rowNumber: located.rowNumber,
-      });
-      const still = await this.locateRowByOperationId(
-        proposal,
-        reversal.operationId,
-        writer,
-      );
-      if (still) throw new SheetWritebackServiceError("provider_readback_mismatch");
-      return {
-        providerRef: `s98-row-deleted:${reversal.operationId}`,
-        readbackHash: hashExecutionPreview({
-          version: "s98-delete-readback/v1",
-          operationId: reversal.operationId,
-          deletedHash: forward.receipt!.resultHash,
-        }),
-      };
-    }
-
-    const fieldEffect = validated.effect as SheetFieldUpdateEffectInput;
-    const cell = await this.readAnchoredCell(proposal, fieldEffect, writer);
-    if (!sheetCellValueMatches(fieldEffect.afterValue, cell)) {
-      throw new SheetWritebackServiceError("reversal_target_drift");
-    }
-    const header = await this.readHeader(proposal, writer);
-    const columnIndex = header.columns.get(fieldEffect.field);
-    if (columnIndex === undefined) {
-      throw new SheetWritebackServiceError("header_drift");
-    }
-    const letter = columnLetter(columnIndex);
-    const range = `'${proposal.tabTitle}'!${letter}${fieldEffect.rowNumber}`;
-    const applied = await writer.replaceCellIfExactMatch(
-      proposal.spreadsheetId,
-      range,
-      fieldEffect.afterValue,
-      reversal.restoreValue,
-    );
-    if (!applied) throw new SheetWritebackServiceError("cas_not_applied");
-    const readback = await this.readCell(
-      proposal,
-      columnIndex,
-      fieldEffect.rowNumber,
-      writer,
-    );
-    if (!sheetCellValueMatches(reversal.restoreValue, readback)) {
-      throw new SheetWritebackServiceError("provider_readback_mismatch");
-    }
-    return {
-      providerRef: `s98-cell:${fieldEffect.field}`,
-      readbackHash: hashExecutionPreview({
-        version: "s98-cell-readback/v1",
-        field: fieldEffect.field,
-        value: readback,
-      }),
-    };
+    throw new SheetWritebackServiceError("provider_capability_unavailable");
   }
 
   private async observeEffectOutcome(

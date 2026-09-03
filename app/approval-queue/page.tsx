@@ -28,7 +28,8 @@ import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
-import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
+import { loadRenewalRunViewContext } from "@/lib/lease-renewal/renewal-review-board";
+import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
 import {
   buildLeaseRenewalDecisionProjections,
   LIVE_RENEWAL_DECISION_RUN_ID,
@@ -122,10 +123,18 @@ export default async function ApprovalQueuePage({
   // so one failing does not blank the others. Both project from ONE run-views gather — no extra reads.
   let renewalBoard: RenewalReviewBoard | undefined;
   let writebackQueue: WritebackApprovalQueue | undefined;
+  let renewalCurrentRuns: RenewalRunResult[] = [];
+  let renewalStatusAvailable = false;
   try {
-    const renewalViews = await loadRenewalRunViews(user);
-    renewalBoard = buildRenewalReviewBoard(renewalViews);
-    writebackQueue = buildWritebackApprovalQueue(renewalViews);
+    const renewalContext = await loadRenewalRunViewContext(user);
+    renewalCurrentRuns = renewalContext.runs;
+    renewalStatusAvailable =
+      renewalContext.sourceStatus === "available" &&
+      renewalContext.overlayStatus === "available";
+    if (renewalStatusAvailable) {
+      renewalBoard = buildRenewalReviewBoard(renewalContext.views);
+      writebackQueue = buildWritebackApprovalQueue(renewalContext.views);
+    }
   } catch {
     renewalBoard = undefined;
     writebackQueue = undefined;
@@ -136,6 +145,7 @@ export default async function ApprovalQueuePage({
   let decisionMetrics: DecisionMetrics | undefined;
   let allResolutions: LeaseRenewalResolutionRecord[] = [];
   let allWritebackApprovals: LeaseRenewalWritebackApprovalRecord[] = [];
+  let decisionStoreAvailable = false;
   try {
     [allResolutions, allWritebackApprovals] = await Promise.all([
       listAllLeaseRenewalResolutions(user),
@@ -145,6 +155,7 @@ export default async function ApprovalQueuePage({
       resolutions: allResolutions,
       approvals: allWritebackApprovals,
     });
+    decisionStoreAvailable = true;
   } catch {
     decisionMetrics = undefined;
   }
@@ -152,7 +163,7 @@ export default async function ApprovalQueuePage({
   const liveDecisionProjections = buildLeaseRenewalDecisionProjections(
     allResolutions,
     allWritebackApprovals,
-    { runId: LIVE_RENEWAL_DECISION_RUN_ID },
+    { runId: LIVE_RENEWAL_DECISION_RUN_ID, currentRuns: renewalCurrentRuns },
   );
 
   return (
@@ -166,13 +177,29 @@ export default async function ApprovalQueuePage({
           initialItems={items}
           initialSelectedItemId={initialSelectedItemId}
           renewalBoard={renewalBoard}
+          renewalStatusUnavailable={!renewalStatusAvailable}
           writebackQueue={writebackQueue}
         />
-        <LeaseDecisionProjectionPanel
-          decisions={liveDecisionProjections}
-          emptyMessage="No Live Review decision has been recorded yet. This projection will populate after an authorized Live app decision; it never reads or changes a provider."
-          title="Live renewal decisions and write-back authorization"
-        />
+        {renewalStatusAvailable && decisionStoreAvailable ? (
+          <LeaseDecisionProjectionPanel
+            decisions={liveDecisionProjections}
+            emptyMessage="No Live Review decision has been recorded yet. This projection will populate after an authorized Live app decision; it never reads or changes a provider."
+            title="Live renewal decisions and write-back authorization"
+          />
+        ) : (
+          <section
+            aria-label="Live renewal decisions and write-back authorization"
+            className="panel ui-stack"
+          >
+            <h2 className="section-subtitle">
+              Live renewal decisions and write-back authorization
+            </h2>
+            <p className="notice notice-warning" role="status">
+              Current renewal decision status could not be verified. Refresh before
+              relying on an empty queue or taking a decision-dependent action.
+            </p>
+          </section>
+        )}
         {/* AQ-2 (Note 2 §Q): Decision Metrics moves to the very bottom of the page. */}
         {decisionMetrics ? <DecisionMetricsCard metrics={decisionMetrics} /> : null}
       </section>

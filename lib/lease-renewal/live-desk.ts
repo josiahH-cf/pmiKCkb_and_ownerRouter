@@ -35,7 +35,10 @@ import {
 } from "@/lib/lease-renewal/live-config";
 import {
   getLiveLeaseSnapshot,
+  getLiveLeaseSnapshotAtOrAfter,
+  type AttemptedLiveLeaseSnapshotResult,
   type LiveLeaseCurrency,
+  type LiveLeaseSnapshotResult,
 } from "@/lib/lease-renewal/live-lease-cache";
 import {
   runRenewalPipeline,
@@ -78,8 +81,11 @@ import {
 } from "@/lib/lease-renewal/desk-model";
 import { buildDeskLeaseGuidance } from "@/lib/lease-renewal/desk-guidance";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
-import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
-import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
+import {
+  buildRenewalDeskWindow,
+  withRenewalDeskQueryKeys,
+} from "@/lib/lease-renewal/desk-query";
+import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {
   effectiveStageIndex,
@@ -104,6 +110,11 @@ import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 import { parseCurrencyInput } from "@/lib/currency-input";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { buildRentvineDestination } from "@/lib/lease-renewal/desk-destinations";
+import {
+  projectEffectiveDataCheck,
+  type EffectiveDataCheckProjection,
+} from "@/lib/lease-renewal/effective-data-check";
 
 // Parity with the live review: the single "Lease Renewal" tab, name join, no cohort pre-filter inside
 // the pipeline (the desk classifies the cohort itself). The run id is inert here (the desk never uses
@@ -112,6 +123,15 @@ const LIVE_DESK_TABS = ["Lease Renewal"];
 // Must match the resolution surface so one record-specific decision reaches this workspace.
 const LIVE_DESK_RUN_ID = "live-review";
 const RENT_FIELD_KEY = "current_rent";
+
+/** Preserve the three-state packet read contract: unavailable, proved absent, or present. */
+export function packetSnapshotFromBatch(
+  packetSnapshotsByLease: ReadonlyMap<string, RenewalPacketSnapshot | null> | undefined,
+  leaseId: string,
+): RenewalPacketSnapshot | null | undefined {
+  if (!packetSnapshotsByLease || !packetSnapshotsByLease.has(leaseId)) return undefined;
+  return packetSnapshotsByLease.get(leaseId)!;
+}
 
 /** The desk degrades to one of these typed statuses instead of throwing (mirrors live-notices). */
 export type LiveDeskStatus = "not_configured" | "account_mismatch" | "read_error";
@@ -143,7 +163,7 @@ const EMPTY_FOLLOW_UP_SOURCES: RenewalFollowUpSources = {
 };
 
 export interface LiveOwnerCurrentRentDecision {
-  currentRent: number;
+  currentRent: number | null;
   currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
 }
 
@@ -174,38 +194,37 @@ function coerceZip(value: unknown): string | undefined {
  */
 function resolveOwnerCurrentRentDecision(
   view: RawLease,
-  dataCheck: readonly DeskReconItem[],
+  dataCheck: EffectiveDataCheckProjection,
   currency: LiveLeaseCurrency,
-  resolutions: readonly LeaseRenewalResolutionRecord[],
 ): LiveOwnerCurrentRentDecision {
-  const rentCheck = dataCheck.find((item) => item.fieldKey === RENT_FIELD_KEY);
-  const rentResolution = rentCheck?.sourceTriggerKey
-    ? resolutions.find(
-        (record) =>
-          record.source_trigger_key === rentCheck.sourceTriggerKey &&
-          record.status === "Resolved",
-      )
-    : undefined;
+  const rentCheck = dataCheck.items.find((item) => item.fieldKey === RENT_FIELD_KEY);
+  const rentResolution = dataCheck.resolutionsByField.get(RENT_FIELD_KEY);
   const resolvedRentRaw =
-    rentResolution?.proposed_writeback?.value ?? rentResolution?.corrected_value;
+    rentResolution?.kind === "flag_incorrect" ? null : rentResolution?.value;
   const parsedResolvedRent = resolvedRentRaw
     ? parseCurrencyInput(resolvedRentRaw)
     : undefined;
-  const resolvedRent = parsedResolvedRent?.ok ? parsedResolvedRent.value : undefined;
+  const resolvedRent =
+    parsedResolvedRent?.ok && parsedResolvedRent.value > 0
+      ? parsedResolvedRent.value
+      : undefined;
+  const unresolvedAgreement =
+    rentResolution?.priorAgreement ?? rentCheck?.agreement ?? "missing";
 
   return {
-    currentRent: resolvedRent ?? leaseCurrentRent(view) ?? 0,
+    currentRent: resolvedRent ?? leaseCurrentRent(view) ?? null,
     currentRentEvidence: {
       agreement:
-        resolvedRent !== undefined ? "resolved" : (rentCheck?.agreement ?? "missing"),
+        resolvedRent !== undefined
+          ? "resolved"
+          : unresolvedAgreement === "resolved" || unresolvedAgreement === "dismissed"
+            ? "missing"
+            : unresolvedAgreement,
       currencyState: currency.state,
       readAtIso: new Date(currency.readAtMs).toISOString(),
       ...(resolvedRent !== undefined
         ? {
-            resolvedSource:
-              rentResolution?.proposed_writeback?.source_of_value ??
-              rentResolution?.chosen_source ??
-              "Human-resolved current rent",
+            resolvedSource: rentResolution?.source ?? "Human-resolved current rent",
           }
         : {}),
     },
@@ -231,15 +250,25 @@ export async function loadLiveOwnerCurrentRentDecision(
     );
     const view = snapshot.views.find((candidate) => leaseIdOf(candidate) === leaseId);
     if (!view) return { status: snapshot.complete ? "not_found" : "read_error" };
-    const { tables } = await readRenewalSheetGrids({
+    const { tables, tableJoinIds } = await readRenewalSheetGridsWithLinks({
       reader: config.sheetsReader,
       spreadsheetId: config.spreadsheetId,
       tabTitles: LIVE_DESK_TABS,
     });
-    const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+    const portfolioOutcomes = reconcileLeaseFields(
+      snapshot.views,
+      tables,
+      readTimestamp,
+      tableJoinIds,
+    );
+    const dataCheck = projectEffectiveDataCheck(
+      buildLeaseDataCheck(view, portfolioOutcomes),
+      resolutions,
+      LIVE_DESK_RUN_ID,
+    );
     return {
       status: "ok",
-      decision: resolveOwnerCurrentRentDecision(view, dataCheck, currency, resolutions),
+      decision: resolveOwnerCurrentRentDecision(view, dataCheck, currency),
     };
   } catch {
     return { status: "read_error" };
@@ -327,10 +356,7 @@ function toDeskCandidate(candidate: ReconCandidate): DeskReconCandidate {
  * (the §2.3 add-on downgrade: `raise_flag` false) is NOT an open conflict, so it reads as reconciled;
  * only a raised conflict shows as "conflict". Agreement passes straight through otherwise.
  */
-function outcomeToDeskItem(
-  outcome: ReconciledFieldOutcome,
-  fieldLabel: string,
-): DeskReconItem {
+function outcomeToDeskItem(outcome: ReconciledFieldOutcome): DeskReconItem {
   const recon = outcome.reconciliation;
   const openConflict = recon.raise_flag && recon.agreement === "conflict";
   const agreement: DeskReconItem["agreement"] = openConflict
@@ -340,54 +366,75 @@ function outcomeToDeskItem(
       : recon.agreement;
   return {
     fieldKey: outcome.fieldKey,
-    fieldLabel,
+    // Preserve the canonical pipeline label. Persisted decisions include this label in their exact
+    // identity contract, so a workspace-only synonym would make an otherwise current decision look
+    // stale even when its trigger and candidate fingerprint still match.
+    fieldLabel: outcome.fieldLabel,
     ...(outcome.queueMapping?.queueItem.source_trigger_key
       ? { sourceTriggerKey: outcome.queueMapping.queueItem.source_trigger_key }
       : {}),
+    candidateFingerprint: outcome.candidateFingerprint,
     agreement,
     candidates: recon.candidates.map(toDeskCandidate),
   };
 }
 
 /**
- * Build one lease's rent Data-check item from the REAL reconciliation. Reconciles ONLY this lease's
- * RentVine candidate against the live sheet (via the real pipeline, so the add-on suppression applies).
+ * Build the portfolio's reconciliation once. One full association pass is required so a duplicated
+ * fallback name or exact id fails closed instead of allowing the same Sheet row to verify two leases.
  * When the field cannot be reconciled (RentVine carries no rent, or no sheet row matches this lease),
  * it renders a facts-only "Needs input" item rather than fabricating a pass.
  */
-function buildRentDeskItem(
-  view: RawLease,
+function reconcileLeaseFields(
+  views: readonly RawLease[],
   tables: RawGrid[],
   readTimestamp: string,
-): DeskReconItem {
-  const mapping = mapLeasesToNonSheetCandidates([view], { readTimestamp });
-  const run = runRenewalPipeline({
+  tableJoinIds?: readonly (readonly (string | null)[])[],
+): readonly ReconciledFieldOutcome[] {
+  const mapping = mapLeasesToNonSheetCandidates([...views], { readTimestamp });
+  return runRenewalPipeline({
     runId: LIVE_DESK_RUN_ID,
     tables,
+    tableJoinIds,
     nonSheetCandidates: mapping.candidates,
-  });
-  const outcome = run.outcomes.find(
-    (candidate) =>
-      candidate.fieldKey === RENT_FIELD_KEY &&
-      candidate.reconciliation.candidates.some((c) => c.source === RENTVINE_SOURCE),
-  );
-  if (outcome) return outcomeToDeskItem(outcome, "Rent");
+  }).outcomes;
+}
+
+function fieldOutcome(
+  outcomes: readonly ReconciledFieldOutcome[],
+  fieldKey: string,
+): ReconciledFieldOutcome | undefined {
+  const matches = outcomes.filter((candidate) => candidate.fieldKey === fieldKey);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function buildRentDeskItem(
+  view: RawLease,
+  outcomes: readonly ReconciledFieldOutcome[],
+): DeskReconItem {
+  const outcome = fieldOutcome(outcomes, RENT_FIELD_KEY);
+  if (outcome) return outcomeToDeskItem(outcome);
 
   const rent = leaseCurrentRent(view);
   return {
     fieldKey: RENT_FIELD_KEY,
-    fieldLabel: "Rent",
+    fieldLabel: "Current rent",
     agreement: "missing",
     candidates: rent !== undefined ? [rentvineCandidate(String(rent))] : [],
   };
 }
 
 /** The lease-end Data-check item — a RentVine fact (single source). "Needs input" when absent. */
-function buildEndDateDeskItem(view: RawLease): DeskReconItem {
+function buildEndDateDeskItem(
+  view: RawLease,
+  outcomes: readonly ReconciledFieldOutcome[],
+): DeskReconItem {
+  const outcome = fieldOutcome(outcomes, "renewal_date");
+  if (outcome) return outcomeToDeskItem(outcome);
   const endIso = leaseEndDateIso(view);
   return {
     fieldKey: "renewal_date",
-    fieldLabel: "Lease end date",
+    fieldLabel: "Renewal date",
     agreement: endIso ? "single_source" : "missing",
     candidates: endIso ? [rentvineCandidate(endIso)] : [],
   };
@@ -396,10 +443,33 @@ function buildEndDateDeskItem(view: RawLease): DeskReconItem {
 /** One lease's Data-check: rent (real reconciliation) then lease-end (RentVine fact). */
 function buildLeaseDataCheck(
   view: RawLease,
-  tables: RawGrid[],
-  readTimestamp: string,
+  portfolioOutcomes: readonly ReconciledFieldOutcome[],
 ): DeskReconItem[] {
-  return [buildRentDeskItem(view, tables, readTimestamp), buildEndDateDeskItem(view)];
+  const leaseId = leaseIdOf(view);
+  const expectedJoinId = leaseId ? `lease:${leaseId}` : null;
+  const outcomes = expectedJoinId
+    ? portfolioOutcomes.filter((outcome) =>
+        outcome.matchedCandidateJoinIds?.includes(expectedJoinId),
+      )
+    : [];
+  return [buildRentDeskItem(view, outcomes), buildEndDateDeskItem(view, outcomes)];
+}
+
+function rentvineSourceUrlForLease(
+  leaseId: string,
+  tableJoinIds: readonly (readonly (string | null)[])[],
+  tableSourceUrls: readonly (readonly (string | null)[])[],
+): string | null {
+  const expected = `lease:${leaseId}`;
+  const matches: (string | null)[] = [];
+  for (let tableIndex = 0; tableIndex < tableJoinIds.length; tableIndex += 1) {
+    (tableJoinIds[tableIndex] ?? []).forEach((joinId, rowIndex) => {
+      if (joinId === expected) {
+        matches.push(tableSourceUrls[tableIndex]?.[rowIndex] ?? null);
+      }
+    });
+  }
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function inRenewalWindow(endDateIso: string, windows: readonly DateWindow[]): boolean {
@@ -412,7 +482,13 @@ function retentionFor(
   classification: CohortLease,
   windows: readonly DateWindow[],
   progress: RenewalProgress | null,
+  progressStateAvailable = true,
 ): RenewalDeskRetentionState {
+  // A definitive source-backed skip is not renewal work, even if obsolete progress survived from a
+  // prior classification. It remains visible as a skipped source row without a process/action.
+  if (classification.disposition === "skip") {
+    return { state: "outside", label: "Excluded from the renewal workflow" };
+  }
   const endDateIso = classification.endDateIso;
   if (!endDateIso) {
     return {
@@ -432,6 +508,12 @@ function retentionFor(
       label: "Tracked incomplete renewal retained outside the active window",
     };
   }
+  if (!progressStateAvailable) {
+    return {
+      state: "needs_verification",
+      label: "Saved progress unavailable; retained until tracking state can be verified",
+    };
+  }
   return { state: "outside", label: "Outside the active renewal window" };
 }
 
@@ -441,12 +523,19 @@ function toLiveSummary(
   windows: readonly DateWindow[],
   dataCheck?: DeskReconItem[],
   progress?: RenewalProgress | null,
+  progressStateAvailable = true,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
-  const retention = retentionFor(classification, windows, progress ?? null);
+  const retention = retentionFor(
+    classification,
+    windows,
+    progress ?? null,
+    progressStateAvailable,
+  );
   const isActionable = classification.disposition === "actionable";
-  const processVisible = isActionable || retention.state === "tracked_incomplete";
+  const processVisible =
+    progressStateAvailable && (isActionable || retention.state === "tracked_incomplete");
   const openConflicts = dataCheck
     ? dataCheck.filter((item) => item.agreement === "conflict").length
     : 0;
@@ -694,11 +783,11 @@ function clearLiveEvidence(
   return removeRenewalEvidence(evidence, key).evidence;
 }
 
-function buildLiveProcessEvidence(input: {
+export function buildLiveProcessEvidence(input: {
   leaseId: string;
   view: RawLease;
   endDateIso: string | null;
-  currentRent: number;
+  currentRent: number | null;
   currentRentEvidence: LiveOwnerCurrentRentDecision["currentRentEvidence"];
   dataCheck: DeskReconItem[];
   dataCurrency: LiveLeaseCurrency;
@@ -761,7 +850,12 @@ function buildLiveProcessEvidence(input: {
     input.currentRentEvidence.currencyState === "fresh" &&
     (input.currentRentEvidence.agreement === "agree" ||
       input.currentRentEvidence.agreement === "resolved");
-  if (baseRentVerified && Number.isFinite(input.currentRent) && input.currentRent > 0) {
+  if (
+    baseRentVerified &&
+    typeof input.currentRent === "number" &&
+    Number.isFinite(input.currentRent) &&
+    input.currentRent > 0
+  ) {
     set(
       "base-rent",
       "reconciliation_receipt",
@@ -901,10 +995,28 @@ function buildLiveProcessEvidence(input: {
       clear("dotloop-packet-readback");
     }
   } else if (packet === null) {
+    clear("packet-catalog-version");
     clear("current-packet-version");
     clear("packet-facts");
     clear("packet-snapshot");
     clear("dotloop-packet-readback");
+  } else {
+    // An unavailable packet read is not proof that no packet exists. Remove any historical packet
+    // claims from the current display projection and attach an explicit unavailable blocker so the
+    // UI pauses dependent work without presenting an empty/current state.
+    for (const key of [
+      "packet-catalog-version",
+      "current-packet-version",
+      "packet-facts",
+      "packet-snapshot",
+      "dotloop-packet-readback",
+    ] as const) {
+      clear(key);
+      blockers[key] = {
+        reason: "Current document packet status could not be read.",
+        nextAction: "Retry the packet status read before relying on document progress.",
+      };
+    }
   }
 
   return { evidence, blockers };
@@ -941,19 +1053,35 @@ export async function loadLiveRenewalDesk(
   // S82: the same record-specific human resolutions the workspace consumes, read once in bulk, so
   // the table's rent-verification state reflects exact current resolutions.
   resolutions: readonly LeaseRenewalResolutionRecord[] = [],
+  // Current packet truth read in one bounded batch by the caller. An absent map means the read was
+  // unavailable; a present `null` entry proves there is no current packet. Both clear historical
+  // packet evidence, but only the unavailable state attaches an explicit retry blocker.
+  packetSnapshotsByLease:
+    | ReadonlyMap<string, RenewalPacketSnapshot | null>
+    | undefined = undefined,
+  /** False when the caller could not read saved progress; desk guidance then fails closed. */
+  progressStateAvailable = true,
+  /** Exact lease generation already used to choose packet ids; avoids a second cache generation. */
+  leaseSnapshotResult?: LiveLeaseSnapshotResult,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const { snapshot, currency } = await getLiveLeaseSnapshot(
-      config.rentvineClient,
-      Date.parse(readTimestamp),
-    );
+    const { snapshot, currency } =
+      leaseSnapshotResult ??
+      (await getLiveLeaseSnapshot(config.rentvineClient, Date.parse(readTimestamp)));
     const { views, complete } = snapshot;
-    const { tables } = await readRenewalSheetGrids({
-      reader: config.sheetsReader,
-      spreadsheetId: config.spreadsheetId,
-      tabTitles: LIVE_DESK_TABS,
-    });
+    const { tables, tableJoinIds, tableRentvineSourceUrls } =
+      await readRenewalSheetGridsWithLinks({
+        reader: config.sheetsReader,
+        spreadsheetId: config.spreadsheetId,
+        tabTitles: LIVE_DESK_TABS,
+      });
+    const portfolioOutcomes = reconcileLeaseFields(
+      views,
+      tables,
+      readTimestamp,
+      tableJoinIds,
+    );
     const cohort = classifyRenewalCohort(views, { windows });
     // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
     const toRow = (
@@ -964,18 +1092,31 @@ export async function loadLiveRenewalDesk(
         dataCheck: DeskReconItem[] | null;
         rentDecision: LiveOwnerCurrentRentDecision | null;
       },
-    ): DeskLeaseRow => ({
-      ...summary,
-      guidance: buildDeskLeaseGuidance({
-        summary,
-        process: guidanceInputs.process,
-        dataCheck: guidanceInputs.dataCheck,
-        rentvineCurrentRent: leaseCurrentRent(view) ?? null,
-        rentDecision: guidanceInputs.rentDecision,
-        currencyState: currency.state,
-        readComplete: complete,
-      }),
-    });
+    ): DeskLeaseRow => {
+      const process = progressStateAvailable ? guidanceInputs.process : null;
+      const currentStep = process?.steps[process.currentStepIndex];
+      return {
+        ...summary,
+        processState:
+          process && currentStep
+            ? {
+                status: process.status,
+                currentStepId: currentStep.id,
+                currentStepState: currentStep.state,
+              }
+            : null,
+        guidance: buildDeskLeaseGuidance({
+          summary,
+          process,
+          dataCheck: guidanceInputs.dataCheck,
+          rentvineCurrentRent: leaseCurrentRent(view) ?? null,
+          rentDecision: guidanceInputs.rentDecision,
+          currencyState: currency.state,
+          readComplete: complete,
+          progressStateAvailable,
+        }),
+      };
+    };
     const summaries = cohort.classifications.map((classification) => {
       const view = views[classification.index];
       const progress = classification.leaseId
@@ -987,27 +1128,67 @@ export async function loadLiveRenewalDesk(
         windows,
         undefined,
         progress,
+        progressStateAvailable,
       );
+      const leaseId = classification.leaseId ?? leaseIdOf(view);
+      // Source navigation is independent from workflow eligibility. If the operating Sheet carries
+      // one exact validated RentVine lease link, surface it for every loaded row—including review,
+      // out-of-window, and definitively skipped rows—without creating a renewal workspace.
+      const rentvineDestination = leaseId
+        ? buildRentvineDestination({
+            sourceUrl: rentvineSourceUrlForLease(
+              leaseId,
+              tableJoinIds,
+              tableRentvineSourceUrls,
+            ),
+            expectedHost: config.rentvineHost,
+            leaseId,
+          })
+        : null;
+      // Every non-skipped row can open the same inspection workspace, so every such row consumes
+      // the same current data-check and rent decision as that workspace. Workflow/process actions
+      // remain limited below to actionable or already-tracked leases.
+      const effectiveDataCheck =
+        leaseId && classification.disposition !== "skip"
+          ? projectEffectiveDataCheck(
+              buildLeaseDataCheck(view, portfolioOutcomes),
+              resolutions,
+              LIVE_DESK_RUN_ID,
+            )
+          : null;
+      const dataCheck = effectiveDataCheck?.items ?? null;
+      const currentRentDecision = effectiveDataCheck
+        ? resolveOwnerCurrentRentDecision(view, effectiveDataCheck, currency)
+        : null;
+      const sourceAwareSummary = dataCheck
+        ? toLiveSummary(
+            view,
+            classification,
+            windows,
+            dataCheck,
+            progress,
+            progressStateAvailable,
+          )
+        : initialSummary;
       if (
         classification.disposition === "actionable" ||
         initialSummary.retention.state === "tracked_incomplete"
       ) {
-        const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
-        const summary = toLiveSummary(view, classification, windows, dataCheck, progress);
-        const leaseId = classification.leaseId ?? leaseIdOf(view);
+        const summary = sourceAwareSummary;
         if (!leaseId) {
           return toRow(withRenewalDeskQueryKeys(summary), view, {
             process: null,
             dataCheck,
-            rentDecision: null,
+            rentDecision: currentRentDecision,
           });
         }
-        const currentRentDecision = resolveOwnerCurrentRentDecision(
-          view,
-          dataCheck,
-          currency,
-          resolutions,
-        );
+        if (!effectiveDataCheck || !dataCheck || !currentRentDecision) {
+          return toRow(withRenewalDeskQueryKeys(summary), view, {
+            process: null,
+            dataCheck,
+            rentDecision: currentRentDecision,
+          });
+        }
         const processEvidence = buildLiveProcessEvidence({
           leaseId,
           view,
@@ -1018,7 +1199,7 @@ export async function loadLiveRenewalDesk(
           dataCurrency: currency,
           readComplete: complete,
           progress,
-          packetSnapshot: undefined,
+          packetSnapshot: packetSnapshotFromBatch(packetSnapshotsByLease, leaseId),
         });
         const evidence = applyLiveFollowUpEvidence({
           evidence: processEvidence.evidence,
@@ -1038,30 +1219,45 @@ export async function loadLiveRenewalDesk(
         return toRow(
           withRenewalDeskQueryKeys({
             ...summary,
-            processVersion: process.version,
-            workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
-            stageIndex: process.currentStepIndex,
-            stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
-            nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+            ...(rentvineDestination
+              ? { sourceDestinations: { rentvine: rentvineDestination } }
+              : {}),
+            ...(progressStateAvailable
+              ? {
+                  processVersion: process.version,
+                  workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
+                  stageIndex: process.currentStepIndex,
+                  stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+                  nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+                }
+              : {
+                  processVersion: null,
+                  workflowStepId: null,
+                  stageIndex: -1,
+                  stageLabel: null,
+                  nextAction: null,
+                }),
             followUp: buildLiveFollowUp({
               leaseId,
               view,
               readTimestamp,
               sources: followUpSources,
-              process,
+              ...(progressStateAvailable ? { process } : {}),
             }),
           }),
           view,
           { process, dataCheck, rentDecision: currentRentDecision },
         );
       }
-      const summary = initialSummary;
-      const leaseId = classification.leaseId ?? leaseIdOf(view);
+      const summary = sourceAwareSummary;
       return toRow(
         withRenewalDeskQueryKeys(
           leaseId
             ? {
                 ...summary,
+                ...(rentvineDestination
+                  ? { sourceDestinations: { rentvine: rentvineDestination } }
+                  : {}),
                 followUp: buildLiveFollowUp({
                   leaseId,
                   view,
@@ -1072,7 +1268,7 @@ export async function loadLiveRenewalDesk(
             : summary,
         ),
         view,
-        { process: null, dataCheck: null, rentDecision: null },
+        { process: null, dataCheck, rentDecision: currentRentDecision },
       );
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
@@ -1107,7 +1303,9 @@ export async function loadLiveRenewalDesk(
  * from the shared live read, reconciles its rent through the REAL pipeline for the Data-check, and builds
  * the owner draft + notice view + readiness checklist from live facts via the existing builders. The
  * tenant/owner email step is drafted only through the gated live composer (never here), so `tenantDraft`
- * stays null. Returns `not_found` for an unknown or non-actionable lease, or a typed degrade status.
+ * stays null. A review or out-of-window lease remains openable so an operator can inspect and correct
+ * its source-backed blockers; a definitive cohort exclusion remains outside the renewal workflow.
+ * Returns `not_found` for an unknown or definitively skipped lease, or a typed degrade status.
  */
 export async function loadLiveRenewalLeaseWorkspace(
   leaseId: string,
@@ -1122,44 +1320,86 @@ export async function loadLiveRenewalLeaseWorkspace(
     comps: { rent: number; source: string; label?: string }[];
   } | null = null,
   resolutions: readonly LeaseRenewalResolutionRecord[] = [],
-  packetSnapshot: RenewalPacketSnapshot | null = null,
+  packetSnapshot: RenewalPacketSnapshot | null | undefined = undefined,
   followUpSources: RenewalFollowUpSources = EMPTY_FOLLOW_UP_SOURCES,
+  /** Short-lived source-write barrier supplied by the workspace route; carries no lease values. */
+  sourceRefreshAfterMs: number | null = null,
+  /** Typed page-level attempt: success reuses one generation; failure forbids an intra-render retry. */
+  leaseSnapshotAttempt?: AttemptedLiveLeaseSnapshotResult,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const { snapshot, currency } = await getLiveLeaseSnapshot(
-      config.rentvineClient,
-      Date.parse(readTimestamp),
-    );
+    if (leaseSnapshotAttempt?.status === "unavailable") {
+      return { status: "read_error" };
+    }
+    const readAtMs = Date.parse(readTimestamp);
+    const { snapshot, currency } =
+      leaseSnapshotAttempt?.value ??
+      (sourceRefreshAfterMs === null
+        ? await getLiveLeaseSnapshot(config.rentvineClient, readAtMs)
+        : await getLiveLeaseSnapshotAtOrAfter(
+            config.rentvineClient,
+            readAtMs,
+            sourceRefreshAfterMs,
+          ));
     const { views, complete } = snapshot;
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
     // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads
     // as a failed read, never as "not found".
     if (!view) return { status: complete ? "not_found" : "read_error" };
 
-    // Classify this one lease against its own end-date window, so its disposition matches what the desk
-    // shows for a linked (actionable) lease without threading the page's batch windows through.
-    const endIso = leaseEndDateIso(view);
-    const windows: DateWindow[] = endIso ? [{ startIso: endIso, endIso }] : [];
+    // Use the exact current-window rule used by the desk. A lease must not become actionable merely
+    // because it was opened: review and out-of-window leases remain inspectable with their original
+    // disposition, while definitive skip signals still have no renewal workspace.
+    const windows: DateWindow[] = [buildRenewalDeskWindow(readTimestamp.slice(0, 10))];
     const classification = classifyRenewalCohort([view], { windows }).classifications[0];
-    if (classification.disposition !== "actionable") return { status: "not_found" };
+    if (classification.disposition === "skip") return { status: "not_found" };
 
-    const { tables } = await readRenewalSheetGrids({
-      reader: config.sheetsReader,
-      spreadsheetId: config.spreadsheetId,
-      tabTitles: LIVE_DESK_TABS,
-    });
-    const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
+    const { tables, tableJoinIds, tableRentvineSourceUrls } =
+      await readRenewalSheetGridsWithLinks({
+        reader: config.sheetsReader,
+        spreadsheetId: config.spreadsheetId,
+        tabTitles: LIVE_DESK_TABS,
+      });
+    const portfolioOutcomes = reconcileLeaseFields(
+      views,
+      tables,
+      readTimestamp,
+      tableJoinIds,
+    );
+    const effectiveDataCheck = projectEffectiveDataCheck(
+      buildLeaseDataCheck(view, portfolioOutcomes),
+      resolutions,
+      LIVE_DESK_RUN_ID,
+    );
+    const dataCheck = effectiveDataCheck.items;
     const currentRentDecision = resolveOwnerCurrentRentDecision(
       view,
-      dataCheck,
+      effectiveDataCheck,
       currency,
-      resolutions,
     );
     const currentRent = currentRentDecision.currentRent;
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
     let summary = toLiveSummary(view, classification, windows, dataCheck, progress);
+    const workflowAvailable =
+      classification.disposition === "actionable" ||
+      summary.retention.state === "tracked_incomplete";
+    const rentvineDestination = buildRentvineDestination({
+      sourceUrl: rentvineSourceUrlForLease(
+        leaseId,
+        tableJoinIds,
+        tableRentvineSourceUrls,
+      ),
+      expectedHost: config.rentvineHost,
+      leaseId,
+    });
+    if (rentvineDestination) {
+      summary = {
+        ...summary,
+        sourceDestinations: { rentvine: rentvineDestination },
+      };
+    }
 
     const processEvidence = buildLiveProcessEvidence({
       leaseId,
@@ -1196,15 +1436,19 @@ export async function loadLiveRenewalLeaseWorkspace(
       view,
       readTimestamp,
       sources: followUpSources,
-      process,
+      ...(workflowAvailable ? { process } : {}),
     });
     summary = {
       ...summary,
-      processVersion: process.version,
-      workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
-      stageIndex: process.currentStepIndex,
-      stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
-      nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+      ...(workflowAvailable
+        ? {
+            processVersion: process.version,
+            workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
+            stageIndex: process.currentStepIndex,
+            stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+            nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
+          }
+        : {}),
       followUp,
     };
     const deskSummary = withRenewalDeskQueryKeys(summary);
@@ -1214,6 +1458,7 @@ export async function loadLiveRenewalLeaseWorkspace(
     // null and the Tenant-offer card invites composing below. The gated composer is still the only send.
     const endDateIso = classification.endDateIso;
     const tenantDraft =
+      workflowAvailable &&
       ownerDecisionIsCurrent(effectiveProgress) &&
       effectiveProgress?.ownerDecision &&
       endDateIso
@@ -1233,6 +1478,7 @@ export async function loadLiveRenewalLeaseWorkspace(
 
     const workspace: RenewalLeaseWorkspace = {
       summary: deskSummary,
+      workflowAvailable,
       steps: RENEWAL_STEPS,
       currentStepIndex: process.currentStepIndex,
       process,
@@ -1280,21 +1526,26 @@ export async function loadLiveRenewalLeaseWorkspace(
       ),
       followUp,
       // Effective current evidence drives the versioned progress controls in the workspace UI.
-      live: {
-        leaseId,
-        ownerDecision: effectiveProgress?.ownerDecision ?? null,
-        ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
-        tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
-        tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
-        processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-        complete: effectiveProgress?.complete ?? false,
-      },
+      ...(workflowAvailable
+        ? {
+            live: {
+              leaseId,
+              ownerDecision: effectiveProgress?.ownerDecision ?? null,
+              ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
+              tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
+              tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+              processVersion:
+                effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+              complete: effectiveProgress?.complete ?? false,
+            },
+          }
+        : {}),
       // S58: expired data disables compose/record controls in the workspace UI; the routes refuse
       // server-side regardless.
       dataCurrency: toDeskCurrency(currency),
       ...(compAttributes ? { compAttributes } : {}),
       // S60: the authoritative rent for the internal under-market signal (never a draft input).
-      ...(currentRent > 0 ? { currentRent } : {}),
+      ...(typeof currentRent === "number" && currentRent > 0 ? { currentRent } : {}),
     };
     return { status: "ok", workspace };
   } catch {

@@ -36,7 +36,7 @@ import {
 import { NeedsDecisionInboxPanel } from "./NeedsDecisionInboxPanel";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
 import { WritebackQueuePanel } from "./WritebackQueuePanel";
-import { ConfirmationDialog } from "@/components/ui";
+import { ConfirmationDialog, Notice } from "@/components/ui";
 
 type QueueView = "all" | "renewals" | "writeback";
 
@@ -65,6 +65,7 @@ export function ApprovalQueue({
   initialItems,
   initialSelectedItemId,
   renewalBoard,
+  renewalStatusUnavailable = false,
   writebackQueue,
 }: Readonly<{
   currentUser: { role: Role; uid: string };
@@ -73,6 +74,7 @@ export function ApprovalQueue({
   initialItems: ApprovalQueueItemRecord[];
   initialSelectedItemId?: string;
   renewalBoard?: RenewalReviewBoard;
+  renewalStatusUnavailable?: boolean;
   writebackQueue?: WritebackApprovalQueue;
 }>) {
   // The unified, value-free "Needs your decision" list is always the landing surface (Slice 4a). The
@@ -590,7 +592,15 @@ export function ApprovalQueue({
 
   return (
     <div className="approval-queue-shell">
-      <NeedsDecisionInboxPanel inbox={needsInbox} />
+      {!renewalStatusUnavailable || needsInbox.counts.total > 0 ? (
+        <NeedsDecisionInboxPanel inbox={needsInbox} />
+      ) : null}
+      {renewalStatusUnavailable ? (
+        <Notice tone="caution">
+          Renewal review and write-back status are unavailable. Refresh before relying on
+          an empty decision list; renewal actions remain on their owning renewal pages.
+        </Notice>
+      ) : null}
 
       <details
         className="panel ui-collapse"
@@ -639,9 +649,17 @@ export function ApprovalQueue({
             </div>
 
             {view === "renewals" ? (
-              <RenewalReviewPanel board={renewalBoard} />
+              renewalStatusUnavailable ? (
+                <Notice tone="caution">Renewal review status is unavailable.</Notice>
+              ) : (
+                <RenewalReviewPanel board={renewalBoard} />
+              )
             ) : view === "writeback" ? (
-              <WritebackQueuePanel queue={writebackQueue} />
+              renewalStatusUnavailable ? (
+                <Notice tone="caution">Write-back proposal status is unavailable.</Notice>
+              ) : (
+                <WritebackQueuePanel queue={writebackQueue} />
+              )
             ) : (
               renderAllItemsView()
             )}

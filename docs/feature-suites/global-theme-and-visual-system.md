@@ -3,9 +3,10 @@
 
 # S85 — Global semantic theme and visual-system foundation
 
-> Status: Specified and not implemented. The deployed application is light-only, its PMI color and
-> typography values are explicitly provisional, and the existing semantic tokens and UI primitives
-> remain the starting truth.
+> Status: Complete and deployed. The current application provides Light, Dark, and device-setting
+> themes through the shared semantic visual system. The owner-approved PMI Brand Style Guide 071525
+> supplies official PMI Orange `#ff6d00`, Black `#000000`, White `#ffffff`, and Poppins; accessible
+> contrast-derived tones remain explicitly derived adaptations rather than additional brand colors.
 
 **Goal.**
 
@@ -15,14 +16,11 @@ route authority, and existing workflow behavior.
 
 **Current state / intended end state.**
 
-The root layout loads one light `:root` palette. No theme preference, pre-paint theme activation,
-dark palette, `color-scheme`, forced-colors contract, or theme test exists. The token file also owns
-component/layout rules; existing surfaces retain many literal colors and duplicated selectors; three
-referenced variables are undefined; generic white control borders can be the only 1.23:1 boundary;
-and the standalone global-error boundary has a separate light-only inline palette. The shared
-`Button` exposes only primary/secondary variants, while other visual classes bypass the primitive
-layer. The brand pack establishes black/orange/white identity but supplies no official color values,
-font, icon set, or supporting brand color.
+Before S85, the root layout loaded one light `:root` palette and had no theme preference, pre-paint
+theme activation, dark palette, `color-scheme`, forced-colors contract, or theme test. The token file
+also owned component/layout rules, existing surfaces retained literal colors and duplicated
+selectors, and the standalone global-error boundary used a separate light-only inline palette.
+Those conditions are historical implementation inputs, not current production state.
 
 The intended application has one semantic token contract for surfaces, text, borders, actions,
 focus, elevation, motion, and functional states. It renders a correct theme before content is shown,
@@ -30,8 +28,9 @@ lets the user choose `Use device setting`, `Light`, or `Dark`, and follows devic
 the device setting is selected. Every first-party surface, including public/vendor pages and the
 global error boundary, is legible and structurally consistent in both themes. Functional green,
 amber, red, purple, and neutral treatments keep their meanings; orange remains an action/brand
-accent, not a success signal. No value is described as official PMI branding until official assets
-are supplied and separately reviewed.
+accent, not a success signal. The approved guide is the official source for PMI color and typography
+values. Semantic tones derived to meet contrast floors are labelled as accessibility adaptations,
+not official palette additions.
 
 **Actors and entry conditions.**
 
@@ -100,25 +99,24 @@ semantic roles rather than palette names or literals. The minimum complete role 
   reference/read-only text, icon, border, and surface pairs;
 - radius, spacing, target size, typography, elevation, transition, and reduced-motion behavior.
 
-The current source layer contains exactly six provisional `--pmi-*` tokens. This inventory is
-exhaustive and none is an official PMI value:
+The pre-S85 source layer contained exactly six provisional `--pmi-*` tokens. The deployed source
+layer now takes its official black, white, and orange values from the approved guide and preserves
+derived accessibility roles separately:
 
-| Current source token   | Current provisional definition | Exact S85 disposition                                                                                                                                                                  |
-| ---------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--pmi-black`          | `#141414`                      | Retain as the replaceable black source; migrate direct component use to `--brand-hero-surface` or `--topbar-surface` according to the owning surface.                                  |
-| `--pmi-white`          | `#ffffff`                      | Retain as the replaceable white source; migrate direct component use to `--brand-on-hero`, `--topbar-text`, `--ui-surface`, or the applicable action foreground.                       |
-| `--pmi-orange`         | `#c2410c`                      | Retain as the replaceable orange source; migrate direct component use to `--action-primary`, `--ui-focus`, or the exact link role.                                                     |
-| `--pmi-orange-bright`  | `#ea580c`                      | Transitional derived source alias; migrate topbar badges/accents to `--topbar-accent` and focus use to `--ui-focus`, then delete after its source-usage count reaches zero.            |
-| `--pmi-orange-100`     | `#fdece2`                      | Transitional derived source alias; migrate each use to `--ui-selected-surface` or `--nav-operations-tile` according to context, then delete after its source-usage count reaches zero. |
-| `--pmi-orange-on-dark` | `var(--pmi-orange-bright)`     | Transitional derived source alias; migrate wordmark/tagline use to `--topbar-accent`, then delete after its source-usage count reaches zero.                                           |
+| Original source token  | Original provisional definition | Exact S85 disposition                                                                                                                                                                  |
+| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--pmi-black`          | `#141414`                       | Retain as the replaceable black source; migrate direct component use to `--brand-hero-surface` or `--topbar-surface` according to the owning surface.                                  |
+| `--pmi-white`          | `#ffffff`                       | Retain as the replaceable white source; migrate direct component use to `--brand-on-hero`, `--topbar-text`, `--ui-surface`, or the applicable action foreground.                       |
+| `--pmi-orange`         | `#c2410c`                       | Retain as the replaceable orange source; migrate direct component use to `--action-primary`, `--ui-focus`, or the exact link role.                                                     |
+| `--pmi-orange-bright`  | `#ea580c`                       | Transitional derived source alias; migrate topbar badges/accents to `--topbar-accent` and focus use to `--ui-focus`, then delete after its source-usage count reaches zero.            |
+| `--pmi-orange-100`     | `#fdece2`                       | Transitional derived source alias; migrate each use to `--ui-selected-surface` or `--nav-operations-tile` according to context, then delete after its source-usage count reaches zero. |
+| `--pmi-orange-on-dark` | `var(--pmi-orange-bright)`      | Transitional derived source alias; migrate wordmark/tagline use to `--topbar-accent`, then delete after its source-usage count reaches zero.                                           |
 
-All themeable components consume the semantic names below. A later approved brand package replaces
-the three retained black/white/orange sources, explicitly disposes of any derived aliases still
-present, and revalidates every dependent pair; it cannot bypass contrast gates. The following values
-are the exact provisional implementation baseline and accessible product choices, not official PMI
-values. The table records resolved values; the manifest itself references the retained source token
-where a role intentionally depends on black, white, or orange and records that dependency for later
-brand replacement and pair revalidation.
+All themeable components consume the semantic names below. The approved brand source replaced the
+three retained black/white/orange sources, explicitly disposed of obsolete derived aliases, and was
+revalidated across every dependent contrast pair. The table records resolved semantic values; the
+manifest references the official source token where a role intentionally depends on black, white, or
+orange and identifies every accessibility-derived role.
 
 | Semantic role(s)                                                                                                                               | Light value(s)                                                            | Dark value(s)                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -163,8 +161,8 @@ the table is not a substitute for rendered-state testing.
 For each `--state-<name>-text/surface` pair, `--state-<name>-icon` and
 `--state-<name>-border` resolve to that pair's text value; components do not invent a third hue.
 Required markers and validation copy use the independently declared `--field-required-text`, always
-with their existing non-color/ARIA cue; they never alias a source-status token even when the exact
-provisional values happen to match.
+with their existing non-color/ARIA cue; they never alias a source-status token even when resolved
+values happen to match.
 
 Secondary actions are outlined: resting fill is transparent, text and the explicit secondary border
 remain visible, and hover/active add only the listed neutral surfaces. Destructive actions use the
@@ -296,7 +294,7 @@ vendor/authenticated surfaces; contrast, forced-color, reduced-motion, responsiv
 regression gates; staged removal of themeable literals, undefined variables, and duplicate style
 rules.
 
-Out of scope: official PMI color/font/logo invention; a new supporting brand color; account-synced
+Out of scope: PMI color/font/logo invention; a new supporting brand color; account-synced
 preferences; user-profile or Firestore changes; route/role/provider/workflow behavior; content
 removal; action-key changes; third-party theme/icon packages; marketing-site redesign; autonomous
 effects; or changing what any functional status means.
@@ -309,8 +307,9 @@ effects; or changing what any functional status means.
   identity/data contract with no supplied need and is therefore excluded.
 - Decision: S84's destination title/subtext remains visible inside an opened navigation panel; it is
   concise wayfinding content, not removable page exposition. S87 governs other persistent copy.
-- Assumption: official PMI visual values remain unavailable. Existing values stay explicitly
-  provisional until a separately reviewed asset package replaces only the brand source layer.
+- Decision: the owner-approved PMI Brand Style Guide 071525 is the official source for PMI Orange,
+  Black, White, and Poppins. Contrast-derived semantic tones are accessibility adaptations and do
+  not expand the official palette.
 
 **Cross-product impacts.**
 
@@ -323,11 +322,11 @@ registry, route guard, or external effect changes.
 
 | Input                                                                                                                                                                                                                                                                                                                        | Classification                   | Use and limitation                                                                                                                      |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Router, committed layout/styles/components/tests, `docs/facts.md`                                                                                                                                                                                                                                                            | Authority / implementation truth | Establish current light-only plumbing, provisional tokens, workflow boundaries, and behaviors that must be preserved.                   |
-| `docs/brand_pack/PMI_app_brand_pack_llm_context.md`                                                                                                                                                                                                                                                                          | Verified visual-source boundary  | Supports black/orange/white identity and explicitly withholds official values, font, icon, and motion claims.                           |
+| Router, committed layout/styles/components/tests, `docs/facts.md`                                                                                                                                                                                                                                                            | Authority / implementation truth | Establish current deployed theme plumbing, official-source tokens, workflow boundaries, and behaviors that must be preserved.           |
+| `docs/brand_pack/PMI_official_brand_values_2026-09-02.md` and the owner-approved PMI Brand Style Guide 071525                                                                                                                                                                                                                | Verified visual-source authority | Supply official PMI Orange, Black, White, and Poppins plus the approved usage constraints; derived accessibility tones remain labelled. |
 | 2026-08-31 long-term UI/UX note and `docs/evidence/ui-ux-audit-2026-08-31.html`                                                                                                                                                                                                                                              | Intent and audit evidence        | Require dark mode, clear branding, and global consistency; reviewer decisions do not authorize implementation.                          |
 | [WCAG contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [use of color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color), [non-text contrast](https://www.w3.org/WAI/WCAG22/understanding/non-text-contrast.html), and [CSS Color Adjustment](https://www.w3.org/TR/css-color-adjust-1/) | External standards evidence      | Define measurable contrast, non-color, forced-color, and `color-scheme` expectations; do not supply PMI values.                         |
-| Official PMI digital asset package                                                                                                                                                                                                                                                                                           | External release dependency      | Absence does not block the accessible technical foundation, but `brand_conformance` and final production-brand sign-off remain blocked. |
+| Official logo image assets                                                                                                                                                                                                                                                                                                   | Preserved asset boundary         | Existing approved assets and logo rules remain authoritative; no missing external package blocks deployed `brand_conformance`.          |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -372,10 +371,10 @@ dialogs are as clear in either palette, and no color suggests that an unfinished
 
 **If this was built correctly:** Orange and black create a consistent PMI visual hierarchy, while
 success, warning, blocked, and reference colors keep their functional meanings. Documentation and UI
-never call a provisional value, font, supporting color, or icon “official PMI.”
+call only guide-sourced values official and label contrast-derived tones as accessibility adaptations.
 
-- Model verdict: PASS - the source-token/literal audit and rendered theme checks keep provisional
-  product values separate from functional status meaning and make no official-brand claim.
+- Model verdict: PASS - the source-token/literal audit and rendered theme checks keep official brand
+  values, accessibility-derived tones, and functional status meaning distinct.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -419,7 +418,7 @@ away a preservation failure.
 
 **Forbidden actions / hard gates.**
 
-Do not invent or label official PMI values/assets; add a remote icon/font/theme dependency; persist
+Do not invent additional PMI values/assets; add a remote icon/font/theme dependency; persist
 appearance in user or provider data; weaken route/action/source gates; alter a functional status;
 hide environment/source/safety meaning; send a client message; write to RentVine or the operating
 Sheet; alter protected auth/action-gate/budget paths; or treat a screenshot alone as accessibility
@@ -429,29 +428,24 @@ certification.
 
 Implement S85 in full before broad S86/S87 surface migration. S85 owns root resolution, semantic
 roles, Appearance selection, and all local Appearance disclosure/keyboard/touch/dismissal/focus
-behavior; it has no S86 prerequisite. S86 later consumes S85's semantic roles and optional
-Appearance close/register adapter to add cross-family transient-layer coordination without replacing
-or weakening S85 behavior. S83 remains before S84 and S82 for their access handoffs. S84 consumes
-S85's Appearance utility and semantic icon/tone roles plus S86's later coordinator, but retains its
-own within-navbar disclosure contract. S82/S83 consume the theme roles without changing source/action
-truth. Official brand assets remain a release dependency for brand conformance even though technical
-theme work can proceed.
+behavior; it has no S86 prerequisite. S86 consumes S85's semantic roles and optional Appearance
+close/register adapter to add cross-family transient-layer coordination without replacing or
+weakening S85 behavior. S83 remains before S84 and S82 for their access handoffs. S84 consumes S85's
+Appearance utility and semantic icon/tone roles plus S86's coordinator, but retains its own
+within-navbar disclosure contract. S82/S83 consume the theme roles without changing source/action
+truth. Brand conformance is resolved from the approved guide and contrast revalidation.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** complete theme resolver, Appearance control, semantic Light/Dark tokens,
-  theme migration for existing primitives, bounded 29-experience ledger, contrast/accessibility/visual
-  checks, and safe system fallback can reach `ALL_GATES_GREEN` without external brand
-  assets.
+- **Delivered:** complete theme resolver, Appearance control, semantic Light/Dark tokens, theme
+  migration for existing primitives, bounded 29-experience ledger, contrast/accessibility/visual
+  checks, safe system fallback, and official-source brand conformance reached `ALL_GATES_GREEN`.
 - **Does not consume downstream suites:** S85 publishes semantic roles, the complete standalone
   Appearance behavior, and its optional coordinator adapter for later S86/S84 consumption. Until
   downstream components exist, current shell/controls consume only the enumerated compatibility
   aliases; their absence cannot block S85's technical result.
-- **Externally blocked release check:** `brand_conformance` and final production-brand sign-off are blocked
-  on an approved PMI color/logo/type asset package plus contrast revalidation. The technical
-  `ALL_GATES_GREEN` implementation result may be reported alongside `brand_conformance: BLOCKED`;
-  it cannot claim official-brand accuracy or treat that separate sign-off as an implementation
-  terminal state.
+- **Brand release check:** `brand_conformance` is resolved from the owner-approved guide and passed
+  contrast revalidation. No external brand input remains open for this suite.
 - **Produces for downstream suites:** resolved-theme contract, semantic tokens, Appearance utility,
   icon/tone compatibility, rendered theme matrix, and literal/contrast gates.
 
@@ -470,8 +464,7 @@ theme work can proceed.
    secrets, PII, route/action gates, runtime configuration, and scope before authorized delivery.
 5. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only if a future
    user supplies an explicit budget; or `BLOCKED` only for one exact unavailable input/authority after
-   every independent fail-closed path is complete. Report `brand_conformance: BLOCKED` separately
-   until the approved asset package and contrast revalidation exist.
+   every independent fail-closed path is complete. Current `brand_conformance` is resolved.
 
 **Ordered prompt sequence.**
 
@@ -485,6 +478,6 @@ theme work can proceed.
 **Deletion/merge recommendation.**
 
 Remove S85 when every audited surface is represented in the Light/Dark/state ledger, obsolete
-aliases/literals are removed, all acceptance and preservation gates are current, official
-`brand_conformance` is either verified or carried by a separate active contract, and the resulting
-theme/visual contracts are owned by code, tests, and verified present-fact documentation.
+aliases/literals are removed, all acceptance and preservation gates are current, verified
+`brand_conformance` remains owned by code/tests/current facts, and the resulting theme/visual
+contracts no longer need an active suite.

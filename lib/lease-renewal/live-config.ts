@@ -21,6 +21,7 @@ export type LiveRenewalConfig =
   | {
       ok: true;
       rentvineClient: RentVineClient;
+      rentvineHost: string;
       sheetsReader: GoogleSheetsApiReader;
       spreadsheetId: string;
     }
@@ -37,7 +38,10 @@ type EnvLike = Record<string, string | undefined>;
  * renewal sheet — e.g. the maintenance location→unit matcher. Same account safety (pmikcmetro only);
  * no I/O on construction. `not_configured` when any RentVine value is absent.
  */
-export function buildLiveRentVineConfig(env: EnvLike = process.env): LiveRentVineConfig {
+export function buildLiveRentVineConfig(
+  env: EnvLike = process.env,
+  options: { readonly abortSignal?: AbortSignal } = {},
+): LiveRentVineConfig {
   const baseUrl = env.RENTVINE_API_BASE_URL?.trim();
   const apiKey = env.RENTVINE_API_KEY?.trim();
   const apiSecret = env.RENTVINE_API_SECRET?.trim();
@@ -56,7 +60,7 @@ export function buildLiveRentVineConfig(env: EnvLike = process.env): LiveRentVin
     ok: true,
     rentvineClient: new RentVineClient(
       { baseUrl, apiKey, apiSecret },
-      createFetchTransport(),
+      createFetchTransport({ signal: options.abortSignal }),
     ),
   };
 }
@@ -98,5 +102,11 @@ export function buildLiveRenewalConfig(env: EnvLike = process.env): LiveRenewalC
   );
   const sheetsReader = new GoogleSheetsApiReader(impersonateSa, dwdSubject);
 
-  return { ok: true, rentvineClient, sheetsReader, spreadsheetId };
+  return {
+    ok: true,
+    rentvineClient,
+    rentvineHost: new URL(baseUrl).hostname.toLowerCase(),
+    sheetsReader,
+    spreadsheetId,
+  };
 }

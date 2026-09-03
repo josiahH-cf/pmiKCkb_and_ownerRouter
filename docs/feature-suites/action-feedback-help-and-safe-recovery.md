@@ -19,20 +19,20 @@ target, informed confirmation, truthful completion state, and a usable recovery 
 
 **Current state / intended end state.**
 
-The product has several strong local patterns—visible focus, Field descriptions/errors, Tabs,
+Before S86, the product had several strong local patterns—visible focus, Field descriptions/errors, Tabs,
 Stepper, native Disclosure, live Ask/Work feedback, a tested in-app renewal dialog, and exact-preview
 contracts for high-risk external effects—but no shared action, icon, contextual-help, progress,
-alert, or dialog behavior. Global anchors remove their own signifier; most base actions have no
-hover/active treatment; all shared disabled buttons use a wait cursor even when not busy; connection
-and Admin actions often swap labels without a spinner or announcement; native `title`, browser
-`confirm`/`prompt`, silent failures, and ad hoc empty/loading states remain.
+alert, or dialog behavior. Global anchors removed their own signifier; most base actions had no
+hover/active treatment; all shared disabled buttons used a wait cursor even when not busy; connection
+and Admin actions often swapped labels without a spinner or announcement; native `title`, browser
+`confirm`/`prompt`, silent failures, and ad hoc empty/loading states remained.
 
-The current Admin connector `Disconnect` defect is owned and closed first by S96. S86 does not define
+The Admin connector `Disconnect` defect was owned and closed first by S96. S86 does not define
 a second lifecycle or defer that safety work behind visual primitives; after S96, its only connector
 obligation is to preserve the exact preview, confirmation, pending, receipt, recovery, and disclosure
 contract while applying shared presentation.
 
-The intended product has one composable interaction layer. Navigation is visibly a link; mutations
+The deployed product has one composable interaction layer. Navigation is visibly a link; mutations
 are buttons; important and destructive actions have distinct non-color hierarchy; every activation
 shows immediate pressed/busy/result feedback; determinate progress is used only when a real fraction
 exists; supplementary help is available by focus, tap, and optional delayed hover; dialogs have
@@ -87,8 +87,9 @@ S85 supplies theme tokens; no primitive owns literal theme colors.
 - Use a native link only when activation changes location, downloads, or opens a validated external
   destination. Use a button for state changes and commands. A link styled as a button retains link
   semantics and names its destination; a button never fakes navigation.
-- Each bounded task region has at most one visually primary action. Primary uses S85's contrast-
-  validated provisional orange primary-action semantic role. Secondary actions use neutral/outlined
+- Each bounded task region has at most one visually primary action. Primary uses S85's validated PMI
+  primary-action semantic role derived from the official brand source, with an accessible contrast
+  tone where required. Secondary actions use neutral/outlined
   treatment. Destructive uses the error/destructive role, never orange or green. Tertiary is visibly
   interactive text.
 - Inline and reference links are underlined at rest. Full-row navigation/action links use a visible

@@ -62,6 +62,8 @@ function preview(
     propertyKey?: string;
     fieldKey?: string;
     approvalId?: string;
+    candidateFingerprint?: string;
+    resolutionUpdatedAt?: string;
     sourceOfValue?: string;
     proposedValue?: string;
     predecessorExecutionId?: string;
@@ -78,6 +80,8 @@ function preview(
     fieldKey: options.fieldKey ?? "current_rent",
     approvalId: options.approvalId ?? `approval-${resolutionDocId(sourceTriggerKey)}`,
     approvalVersion,
+    candidateFingerprint: options.candidateFingerprint ?? "candidate-fingerprint-1",
+    resolutionUpdatedAt: options.resolutionUpdatedAt ?? "2026-07-29T22:30:00.000Z",
     sourceOfValue: options.sourceOfValue ?? "RentVine",
     descriptor: {
       environmentKind: "production",
@@ -114,6 +118,8 @@ function authorizationFor(
     fieldKey: prepared.binding.fieldKey,
     approvalId: prepared.binding.approvalId,
     approvalVersion: prepared.binding.approvalVersion,
+    candidateFingerprint: prepared.binding.candidateFingerprint,
+    resolutionUpdatedAt: prepared.binding.resolutionUpdatedAt,
     sourceOfValue: prepared.binding.sourceOfValue,
     proposedValueHash: prepared.binding.proposedValueHash,
   };
@@ -158,6 +164,8 @@ async function seedAuthorization(
         property_key: binding.propertyKey,
         field_key: binding.fieldKey,
         field_label: "Current rent",
+        candidate_fingerprint: binding.candidateFingerprint,
+        resolution_updated_at: binding.resolutionUpdatedAt,
         severity: "Medium",
         state: overrides.approvalState ?? "Approved",
         proposed_value: approvalValue,
@@ -177,6 +185,7 @@ async function seedAuthorization(
       property_key: binding.propertyKey,
       field_key: binding.fieldKey,
       field_label: "Current rent",
+      candidate_fingerprint: binding.candidateFingerprint,
       severity: "Medium",
       status: "Resolved",
       resolution_kind: "pick_source",
@@ -191,7 +200,7 @@ async function seedAuthorization(
       reason: "Accepted the reviewed source.",
       resolved_by_uid: binding.actorUid,
       created_at: "2026-07-29T22:00:00.000Z",
-      updated_at: "2026-07-29T22:30:00.000Z",
+      updated_at: binding.resolutionUpdatedAt,
     });
   });
 }
@@ -543,6 +552,37 @@ describe("Sheet write-back Firestore one-attempt store", () => {
         sourceTriggerKey: prepared.binding.sourceTriggerKey,
       }),
     ).resolves.toBeNull();
+  }, 20_000);
+
+  it("rejects a same-value/source re-resolution that lands before the winning claim", async () => {
+    const store = new FirestoreSheetWritebackExecutionStore(db);
+    const prepared = preview({
+      sourceTriggerKey: "trigger-reresolution-race",
+      nonce: "reresolution-race",
+    });
+    await seedAuthorization(prepared);
+    await store.createPreview(prepared);
+
+    const resolutionRef = db
+      .collection(LEASE_RENEWAL_COLLECTIONS.resolutions)
+      .doc(resolutionDocId(prepared.binding.sourceTriggerKey));
+    await db.runTransaction(async (transaction) => {
+      transaction.update(resolutionRef, {
+        candidate_fingerprint: "candidate-fingerprint-2",
+        updated_at: "2026-07-29T22:45:00.000Z",
+      });
+    });
+
+    await expect(
+      store.claim({
+        previewHash: prepared.id,
+        executionId: prepared.executionId,
+        actorUid: prepared.binding.actorUid,
+        nowMs: nowMs + 1,
+        authorization: authorizationFor(prepared),
+      }),
+    ).resolves.toMatchObject({ status: "mismatch" });
+    expect(await store.getExecution(prepared.executionId)).toBeNull();
   }, 20_000);
 
   it("denies direct client access to all four Admin-SDK-only collections", async () => {

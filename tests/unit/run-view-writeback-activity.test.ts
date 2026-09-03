@@ -5,6 +5,7 @@ import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
 import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalActivityRecord,
+  LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 import {
   getSimulationRun,
@@ -28,6 +29,7 @@ function queuedResolutionFor(
   key: string,
   fieldKey: string,
   fieldLabel: string,
+  candidateFingerprint: string,
 ): LeaseRenewalResolutionRecord {
   return {
     id: key,
@@ -35,16 +37,17 @@ function queuedResolutionFor(
     run_id: runId,
     field_key: fieldKey,
     field_label: fieldLabel,
+    candidate_fingerprint: candidateFingerprint,
     severity: "High",
     status: "Resolved",
-    resolution_kind: "pick_source",
-    chosen_source: "rentvine",
+    resolution_kind: "corrected_value",
+    corrected_value: "1500",
     reason: "RentVine is authoritative.",
     resolved_by_uid: "approver-1",
     proposed_writeback: {
       field_key: fieldKey,
       value: "1500",
-      source_of_value: "rentvine",
+      source_of_value: "corrected_value",
       status: "Queued",
       production_allowed: false,
     },
@@ -71,7 +74,118 @@ function activityRecord(
   };
 }
 
+function approvalFor(
+  resolution: LeaseRenewalResolutionRecord,
+  overrides: Partial<LeaseRenewalWritebackApprovalRecord> = {},
+): LeaseRenewalWritebackApprovalRecord {
+  if (!resolution.proposed_writeback) throw new Error("expected a queued proposal");
+  return {
+    id: "approval-1",
+    source_trigger_key: resolution.source_trigger_key,
+    run_id: resolution.run_id,
+    field_key: resolution.field_key,
+    field_label: resolution.field_label,
+    candidate_fingerprint: resolution.candidate_fingerprint,
+    resolution_updated_at: resolution.updated_at,
+    severity: resolution.severity,
+    state: "Approved",
+    proposed_value: resolution.proposed_writeback.value,
+    source_of_value: resolution.proposed_writeback.source_of_value,
+    reason: "Approved after exact review.",
+    decided_by_uid: "admin-2",
+    production_allowed: false,
+    executed: false,
+    created_at: "2026-07-01T01:00:00.000Z",
+    updated_at: "2026-07-01T01:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function fingerprintFor(run: ReturnType<typeof firstSimRun>["run"], key: string): string {
+  const value = run.flags.find(
+    (flag) => flag.queueMapping?.queueItem.source_trigger_key === key,
+  )?.candidateFingerprint;
+  if (!value) throw new Error("expected a candidate fingerprint");
+  return value;
+}
+
 describe("buildRenewalRunView write-back approval activity overlay", () => {
+  it("projects the exact saved queued proposal instead of the deterministic suggestion", () => {
+    const { summary, run } = firstSimRun();
+    const base = buildRenewalRunView(run, [], summary.label);
+    const flag = base.groups.flatMap((group) => group.flags)[0];
+    const resolution = queuedResolutionFor(
+      summary.runId,
+      flag.sourceTriggerKey,
+      flag.fieldKey,
+      flag.fieldLabel,
+      fingerprintFor(run, flag.sourceTriggerKey),
+    );
+    resolution.proposed_writeback = {
+      field_key: flag.fieldKey,
+      value: "1501",
+      source_of_value: "corrected_value",
+      status: "Queued",
+      production_allowed: false,
+    };
+    resolution.resolution_kind = "corrected_value";
+    resolution.chosen_source = undefined;
+    resolution.corrected_value = "1501";
+
+    const view = buildRenewalRunView(run, [resolution], summary.label);
+    const projected = view.groups
+      .flatMap((group) => group.flags)
+      .find((candidate) => candidate.sourceTriggerKey === flag.sourceTriggerKey);
+
+    expect(projected?.writeback).toMatchObject({
+      proposedValue: "1501",
+      sourceSystem: "corrected_value",
+      suggestionOnly: false,
+    });
+    expect(projected?.writebackApproval?.authorizationToken).toMatch(
+      /^rwat1_[a-f0-9]{64}$/,
+    );
+  });
+
+  it.each([
+    ["missing source fingerprint", { candidate_fingerprint: undefined }],
+    ["blank source fingerprint", { candidate_fingerprint: "" }],
+    ["missing resolution version", { resolution_updated_at: undefined }],
+    [
+      "mismatched resolution version",
+      { resolution_updated_at: "2026-06-30T00:00:00.000Z" },
+    ],
+  ])(
+    "renders a %s approval as stale and awaiting a fresh decision",
+    (_name, overrides) => {
+      const { summary, run } = firstSimRun();
+      const base = buildRenewalRunView(run, [], summary.label);
+      const flag = base.groups.flatMap((group) => group.flags)[0];
+      const resolution = queuedResolutionFor(
+        summary.runId,
+        flag.sourceTriggerKey,
+        flag.fieldKey,
+        flag.fieldLabel,
+        fingerprintFor(run, flag.sourceTriggerKey),
+      );
+      const view = buildRenewalRunView(run, [resolution], summary.label, [
+        approvalFor(resolution, overrides),
+      ]);
+      const projected = view.groups
+        .flatMap((group) => group.flags)
+        .find(
+          (candidate) => candidate.sourceTriggerKey === flag.sourceTriggerKey,
+        )?.writebackApproval;
+
+      expect(projected).toMatchObject({
+        state: "Awaiting Approval",
+        stale: true,
+        productionAllowed: false,
+        executed: false,
+      });
+    },
+  );
+
   it("layers the grouped decision history onto a queued flag, oldest → newest", () => {
     const { summary, run } = firstSimRun();
 
@@ -86,6 +200,7 @@ describe("buildRenewalRunView write-back approval activity overlay", () => {
       key,
       flag.fieldKey,
       flag.fieldLabel,
+      fingerprintFor(run, key),
     );
     const activityByKey = new Map<string, LeaseRenewalWritebackApprovalActivityRecord[]>([
       [
@@ -140,6 +255,7 @@ describe("buildRenewalRunView write-back approval activity overlay", () => {
       flag.sourceTriggerKey,
       flag.fieldKey,
       flag.fieldLabel,
+      fingerprintFor(run, flag.sourceTriggerKey),
     );
 
     const view = buildRenewalRunView(run, [resolution], summary.label);
@@ -161,7 +277,15 @@ describe("buildRenewalRunView write-back approval activity overlay", () => {
 
     const view = buildRenewalRunView(
       run,
-      [queuedResolutionFor(summary.runId, key, flag.fieldKey, flag.fieldLabel)],
+      [
+        queuedResolutionFor(
+          summary.runId,
+          key,
+          flag.fieldKey,
+          flag.fieldLabel,
+          fingerprintFor(run, key),
+        ),
+      ],
       summary.label,
       [],
       new Map([

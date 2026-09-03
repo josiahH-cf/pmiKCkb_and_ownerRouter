@@ -148,8 +148,50 @@ describe("S82 v2 parse and canonical serialization", () => {
           "&waiting=??&conflicts=maybe&overallStatus=green&blocked=perhaps&rentVerification=ok",
       ),
     );
-    expect(state).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
+    expect(state).toEqual({
+      ...DEFAULT_RENEWAL_DESK_QUERY_V2,
+      dateDiagnostics: ["end_date_malformed", "month_malformed"],
+    });
     expect(serializeRenewalDeskQueryV2(state)).toBe("");
+  });
+
+  it.each([
+    [
+      "malformed exact date",
+      { v: "2", endDate: "2026-02-31", lease: "Maple" },
+      "end_date_malformed",
+    ],
+    ["malformed month", { v: "2", month: "2026-19", lease: "Maple" }, "month_malformed"],
+    [
+      "incomplete range",
+      { v: "2", from: "2026-09-01", lease: "Maple" },
+      "range_incomplete",
+    ],
+    [
+      "malformed range",
+      { v: "2", from: "2026-09-01", through: "not-a-date", lease: "Maple" },
+      "range_malformed",
+    ],
+    [
+      "reversed range",
+      { v: "2", from: "2026-09-02", through: "2026-09-01", lease: "Maple" },
+      "range_reversed",
+    ],
+    [
+      "range over 120 days",
+      { v: "2", from: "2026-09-01", through: "2026-12-30", lease: "Maple" },
+      "range_too_long",
+    ],
+  ] as const)("returns a symbolic diagnostic for %s", (_label, input, diagnostic) => {
+    const state = parseRenewalDeskQueryV2(input);
+    expect(state.dateDiagnostics).toContain(diagnostic);
+    expect(state.lease).toBe("Maple");
+    expect(state.from).toBe("");
+    expect(state.through).toBe("");
+    const canonical = serializeRenewalDeskQueryV2(state);
+    expect(canonical).toContain("lease=Maple");
+    expect(canonical).not.toContain("not-a-date");
+    expect(canonical).not.toContain("2026-12-30");
   });
 
   it("bounds the two free-text keys to 120 trimmed UTF-16 code units", () => {
@@ -320,6 +362,64 @@ describe("S82 v2 filter application", () => {
     expect(result.items.map((entry) => entry.id)).toEqual(["L1", "L4"]);
     expect(result.totalBeforeQuery).toBe(4);
     expect(result.totalAfterQuery).toBe(2);
+    expect(result.totalLoaded).toBe(4);
+    expect(result.totalInScope).toBe(4);
+    expect(result.totalMatching).toBe(2);
+  });
+
+  it("separates loaded, selected-scope, and matching totals", () => {
+    const source = [
+      ...items,
+      item("L5", { retention: "outside", overallStatus: "blocked" }),
+    ];
+    const result = applyRenewalDeskQueryV2(
+      source,
+      { ...base, overallStatus: "blocked" },
+      testMatcher,
+    );
+    expect(result.totalLoaded).toBe(5);
+    expect(result.totalInScope).toBe(4);
+    expect(result.totalMatching).toBe(1);
+    expect(result.items.map((entry) => entry.id)).toEqual(["L1"]);
+  });
+
+  it("keeps a 320-row worklist deterministic with one party match per in-scope row", () => {
+    const large = Array.from({ length: 320 }, (_, index) =>
+      item(`L${String(index).padStart(3, "0")}`, {
+        retention: index % 10 === 0 ? "outside" : "window",
+        owners: ["Owner Alpha"],
+        endDateIso: `2026-${String((index % 12) + 1).padStart(2, "0")}-${String(
+          (index % 28) + 1,
+        ).padStart(2, "0")}`,
+      }),
+    );
+    let matchCalls = 0;
+    const matcher: typeof testMatcher = (...args) => {
+      matchCalls += 1;
+      return testMatcher(...args);
+    };
+    const startedAt = performance.now();
+    const first = applyRenewalDeskQueryV2(
+      large,
+      { ...base, ownerKey: TOKEN_A, sort: "end_date" },
+      matcher,
+    );
+    const elapsedMs = performance.now() - startedAt;
+    const second = applyRenewalDeskQueryV2(
+      large,
+      { ...base, ownerKey: TOKEN_A, sort: "end_date" },
+      testMatcher,
+    );
+
+    expect(first.totalLoaded).toBe(320);
+    expect(first.totalInScope).toBe(288);
+    expect(first.totalMatching).toBe(288);
+    expect(matchCalls).toBe(288);
+    expect(first.items.map((entry) => entry.id)).toEqual(
+      second.items.map((entry) => entry.id),
+    );
+    expect(large[0]?.id).toBe("L000");
+    expect(elapsedMs).toBeLessThan(1_000);
   });
 
   it("combines filters with AND across columns", () => {

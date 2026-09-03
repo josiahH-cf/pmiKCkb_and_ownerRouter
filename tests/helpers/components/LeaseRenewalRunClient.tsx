@@ -82,6 +82,7 @@ export function LeaseRenewalRunClient({
             eligible={eligibleFlags.map((flag) => ({
               key: flag.sourceTriggerKey,
               label: flag.fieldLabel,
+              authorizationToken: flag.writebackApproval?.authorizationToken ?? "",
             }))}
             onClearSelection={() => setSelectedKeys(new Set())}
             onSelectAll={() =>
@@ -91,6 +92,7 @@ export function LeaseRenewalRunClient({
             selected={selectedEligible.map((flag) => ({
               key: flag.sourceTriggerKey,
               label: flag.fieldLabel,
+              authorizationToken: flag.writebackApproval?.authorizationToken ?? "",
             }))}
           />
         ) : null}
@@ -212,8 +214,8 @@ function WritebackBulkDecisionBar({
   onClearSelection,
 }: {
   runId: string;
-  eligible: { key: string; label: string }[];
-  selected: { key: string; label: string }[];
+  eligible: { key: string; label: string; authorizationToken: string }[];
+  selected: { key: string; label: string; authorizationToken: string }[];
   onSelectAll: () => void;
   onClearSelection: () => void;
 }) {
@@ -242,7 +244,10 @@ function WritebackBulkDecisionBar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           run_id: runId,
-          source_trigger_keys: selected.map((item) => item.key),
+          proposals: selected.map((item) => ({
+            source_trigger_key: item.key,
+            authorization_token: item.authorizationToken,
+          })),
           decision,
           reason: reason.trim(),
           reason_code: reasonCode || undefined,

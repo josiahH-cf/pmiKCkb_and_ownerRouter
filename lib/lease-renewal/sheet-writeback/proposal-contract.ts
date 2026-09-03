@@ -7,7 +7,7 @@
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { RENEWAL_TAB_SCHEMAS, type ColumnSchemaField } from "@/lib/lease-renewal/headers";
 
-export const SHEET_WRITEBACK_PROPOSAL_VERSION = "operating-sheet-writeback/v1";
+export const SHEET_WRITEBACK_PROPOSAL_VERSION = "operating-sheet-writeback/v2";
 
 export const SHEET_ROW_APPEND_KEY = "google_sheets.renewal_checklist.row_append";
 export const SHEET_FIELD_UPDATE_KEY = "google_sheets.renewal_checklist.field_update";
@@ -30,6 +30,12 @@ export const SHEET_SUPPORTED_FIELDS: readonly string[] = (
 
 const OPAQUE_ID_RE = /^[a-z0-9][a-z0-9-]{7,63}$/;
 const POSITIVE_INTEGER_ID_RE = /^[1-9]\d*$/;
+const CANDIDATE_FINGERPRINT_RE = /^rcf1_[a-f0-9]{64}$/;
+const AUTHORIZATION_TOKEN_RE = /^rwat1_[a-f0-9]{64}$/;
+
+function validIsoTimestamp(value: string): boolean {
+  return value.trim().length > 0 && Number.isFinite(Date.parse(value));
+}
 
 export class SheetWritebackContractError extends Error {
   constructor(
@@ -114,7 +120,39 @@ export interface SheetFieldUpdateEffectInput {
   readonly expectedValue: string;
   readonly afterValue: string;
   readonly source: string;
+  /**
+   * Exact app-plane decision generation that authorized this cell update. Normal lease-workspace
+   * updates require it; the sealed historical proof scope is the only branch that may omit it.
+   */
+  readonly authorization?: SheetFieldUpdateAuthorization;
 }
+
+export interface SheetFieldUpdateAuthorization {
+  readonly sourceTriggerKey: string;
+  readonly runId: string;
+  readonly fieldKey: string;
+  readonly proposedValue: string;
+  readonly sourceOfValue: string;
+  readonly candidateFingerprint: string;
+  readonly resolutionUpdatedAt: string;
+  readonly authorizationToken: string;
+  readonly approvalId: string;
+  readonly approvalUpdatedAt: string;
+  readonly approvalDecidedByUid: string;
+}
+
+export type SheetWritebackProposalScope =
+  | {
+      readonly kind: "lease_workspace";
+      readonly leaseId: string;
+      readonly propertyId: string;
+    }
+  | {
+      /** Only the owner-authorized S98 proof runner may construct this scope. */
+      readonly kind: "sealed_proof";
+      readonly leaseId: string;
+      readonly propertyId: string;
+    };
 
 export type SheetWritebackEffectInput =
   | SheetRowAppendEffectInput
@@ -137,12 +175,15 @@ export interface ValidatedSheetWritebackEffect {
 }
 
 export interface SheetWritebackProposalInput {
+  /** Server-generated identity for this immutable proposal generation. */
+  readonly generationId: string;
   readonly spreadsheetId: string;
   readonly tabTitle: string;
   /** Hash of the freshly resolved header (positions + semantic keys) the effects bind to. */
   readonly headerHash: string;
   readonly headerWidth: number;
   readonly tenantColumnIndex: number;
+  readonly scope: SheetWritebackProposalScope;
   readonly actorUid: string;
   readonly actorEmail: string;
   readonly actorRole: string;
@@ -154,11 +195,13 @@ export interface SheetWritebackProposalInput {
 
 export interface SheetWritebackProposal {
   readonly version: typeof SHEET_WRITEBACK_PROPOSAL_VERSION;
+  readonly generationId: string;
   readonly spreadsheetId: string;
   readonly tabTitle: string;
   readonly headerHash: string;
   readonly headerWidth: number;
   readonly tenantColumnIndex: number;
+  readonly scope: SheetWritebackProposalScope;
   readonly actorUid: string;
   readonly actorEmail: string;
   readonly actorRole: string;
@@ -250,9 +293,66 @@ function validateFieldUpdate(input: SheetFieldUpdateEffectInput): void {
   }
 }
 
+function validateScope(input: SheetWritebackProposalInput): void {
+  if (
+    !POSITIVE_INTEGER_ID_RE.test(input.scope.leaseId) ||
+    !POSITIVE_INTEGER_ID_RE.test(input.scope.propertyId)
+  ) {
+    fail(
+      "identity_invalid",
+      "The proposal requires one server-resolved lease and property.",
+    );
+  }
+  for (const effect of input.effects) {
+    if (effect.kind === "row_append") {
+      if (
+        effect.leaseId !== input.scope.leaseId ||
+        effect.propertyId !== input.scope.propertyId
+      ) {
+        fail(
+          "identity_mismatch",
+          "The row identity does not match this lease workspace.",
+        );
+      }
+      if (
+        (input.scope.kind === "lease_workspace" && effect.mode !== "normal") ||
+        (input.scope.kind === "sealed_proof" && effect.mode !== "proof")
+      ) {
+        fail("mode_invalid", "The append mode does not match the proposal scope.");
+      }
+      continue;
+    }
+    if (input.scope.kind === "sealed_proof") continue;
+    const authorization = effect.authorization;
+    if (
+      !authorization ||
+      effect.field !== "current_rent" ||
+      authorization.fieldKey !== effect.field ||
+      authorization.proposedValue !== effect.afterValue ||
+      authorization.sourceOfValue !== effect.source ||
+      !authorization.sourceTriggerKey.trim() ||
+      !authorization.runId.trim() ||
+      !CANDIDATE_FINGERPRINT_RE.test(authorization.candidateFingerprint) ||
+      !validIsoTimestamp(authorization.resolutionUpdatedAt) ||
+      !authorization.approvalId.trim() ||
+      !validIsoTimestamp(authorization.approvalUpdatedAt) ||
+      !authorization.approvalDecidedByUid.trim() ||
+      !AUTHORIZATION_TOKEN_RE.test(authorization.authorizationToken)
+    ) {
+      fail(
+        "authorization_invalid",
+        "A lease-workspace field update requires the exact current resolved and approved rent proposal.",
+      );
+    }
+  }
+}
+
 export function buildSheetWritebackProposal(
   input: SheetWritebackProposalInput,
 ): SheetWritebackProposal {
+  if (!OPAQUE_ID_RE.test(input.generationId)) {
+    fail("generation_invalid", "The proposal requires a server-generated generation id.");
+  }
   if (!input.spreadsheetId.trim() || !input.tabTitle.trim()) {
     fail("target_invalid", "The proposal binds one exact spreadsheet and tab.");
   }
@@ -280,6 +380,7 @@ export function buildSheetWritebackProposal(
     else if (effect.kind === "field_update") validateFieldUpdate(effect);
     else fail("unsupported_effect", "Unknown Sheet writeback effect kind.");
   }
+  validateScope(input);
 
   const createdAtIso = new Date(input.nowMs).toISOString();
   const effects: ValidatedSheetWritebackEffect[] = input.effects.map((effect, index) => ({
@@ -299,9 +400,11 @@ export function buildSheetWritebackProposal(
           },
     effectHash: hashExecutionPreview({
       version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+      generationId: input.generationId,
       spreadsheetId: input.spreadsheetId,
       tabTitle: input.tabTitle,
       headerHash: input.headerHash,
+      scope: input.scope,
       actionKey:
         effect.kind === "row_append" ? SHEET_ROW_APPEND_KEY : SHEET_FIELD_UPDATE_KEY,
       effect,
@@ -310,9 +413,11 @@ export function buildSheetWritebackProposal(
 
   const previewHash = hashExecutionPreview({
     version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+    generationId: input.generationId,
     spreadsheetId: input.spreadsheetId,
     tabTitle: input.tabTitle,
     headerHash: input.headerHash,
+    scope: input.scope,
     actorUid: input.actorUid,
     sourceReadAtIso: input.sourceReadAtIso,
     evidenceRef: input.evidenceRef,
@@ -325,11 +430,13 @@ export function buildSheetWritebackProposal(
 
   return {
     version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+    generationId: input.generationId,
     spreadsheetId: input.spreadsheetId,
     tabTitle: input.tabTitle,
     headerHash: input.headerHash,
     headerWidth: input.headerWidth,
     tenantColumnIndex: input.tenantColumnIndex,
+    scope: input.scope,
     actorUid: input.actorUid,
     actorEmail: input.actorEmail,
     actorRole: input.actorRole,
@@ -377,7 +484,10 @@ export function sheetWritebackExecutionId(
   proposal: SheetWritebackProposal,
   effect: ValidatedSheetWritebackEffect,
 ): string {
-  return `s98:${proposal.spreadsheetId.slice(0, 12)}:${effect.effectHash}`;
+  // A proposal generation is part of attempt identity. Rebuilding identical terms after a prior
+  // success (and an external restore/correction) must create a fresh claim instead of replaying the
+  // old success receipt merely because the effect body hashes the same.
+  return `s98:${proposal.spreadsheetId.slice(0, 12)}:${proposal.previewHash}:${effect.effectHash}`;
 }
 
 /** The reversal attempt identity is separate from its forward identity. */

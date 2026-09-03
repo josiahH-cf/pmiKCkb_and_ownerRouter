@@ -82,6 +82,36 @@ describe("release argument contract", () => {
       parseReleaseArgs(["--environment=production", "--promote"]).errors.join(" "),
     ).toMatch(/--candidate-revision/);
   });
+
+  it("requires green-candidate input and a new promotion receipt for production promotion", () => {
+    const missing = parseReleaseArgs([
+      "--environment=production",
+      "--promote",
+      "--candidate-revision=pmi-kc-app-candidate-123",
+    ]).errors.join(" ");
+    expect(missing).toMatch(/--candidate-assurance-receipt/);
+    expect(missing).toMatch(/--promotion-receipt/);
+
+    expect(
+      parseReleaseArgs([
+        "--environment=production",
+        "--promote",
+        "--candidate-revision=pmi-kc-app-candidate-123",
+        "--candidate-assurance-receipt=/tmp/candidate.json",
+        "--promotion-receipt=/tmp/promotion.json",
+        "--operator-email=operator@pmikcmetro.com",
+        "--admin-profile=/tmp/admin-profile",
+        "--editor-profile=/tmp/editor-profile",
+      ]).errors,
+    ).toEqual([]);
+    expect(
+      parseReleaseArgs([
+        "--environment=demo",
+        "--promote",
+        "--candidate-revision=pmi-kc-app-candidate-123",
+      ]).errors,
+    ).toEqual([]);
+  });
 });
 
 describe("local-only configuration refusal (AC-S40-12)", () => {
@@ -267,7 +297,9 @@ describe("environment parameterisation (AC-S40-11)", () => {
       "capture-prior-revision",
       "deploy-candidate",
       "smoke-candidate",
+      "assure-candidate",
       "promote-exact-revision",
+      "observe-promoted-revision",
       "rollback",
     ]);
     // The smoke must come before the promotion, or the candidate check proves nothing.
@@ -280,6 +312,18 @@ describe("environment parameterisation (AC-S40-11)", () => {
     expect(smoke.command).toContain(`--expected-tag=${plan.candidateTag}`);
     expect(smoke.command).toContain(`--expected-service=${TARGET.service}`);
     expect(smoke.command).not.toContain("smoke:demo-live");
+    const assurance = plan.steps.find((step) => step.name === "assure-candidate");
+    expect(assurance.command).toContain("--prepare-candidate-receipt");
+    expect(assurance.command).toContain("--candidate-assurance-receipt=");
+    const promotion = plan.steps.find((step) => step.name === "promote-exact-revision");
+    expect(promotion.command).toContain("npm run release");
+    expect(promotion.command).toContain("--candidate-assurance-receipt=");
+    expect(promotion.command).toContain("--promotion-receipt=");
+    const observation = plan.steps.find(
+      (step) => step.name === "observe-promoted-revision",
+    );
+    expect(observation.command).toContain("--promotion-receipt=");
+    expect(observation.command).not.toContain("--predecessor-revision");
   });
 
   it("emits no steps at all when the plan is refused", () => {

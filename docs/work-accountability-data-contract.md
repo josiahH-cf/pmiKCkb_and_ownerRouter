@@ -19,12 +19,17 @@ Anything not allowed below is prohibited.
 
 ## Permitted transient client signals
 
-- A visible document may treat pointer, keyboard, touch, or scroll as one boolean indication that
-  the person interacted in this app. The handler does not read the event object.
+- A visible document may treat a deliberate pointer, keyboard, or touch interaction as one boolean
+  indication that the person interacted in this app. The handler does not read the event object.
+  Page load, navigation return, focus, and browser/programmatic scroll restoration are never
+  activity signals.
 - The signal may schedule at most one heartbeat per minute for the already-explicit Active session.
 - A heartbeat carries only session id/version. The server supplies the acknowledged time.
 - The 13-minute warning and 15-minute cutoff derive from the last server-acknowledged time. Hidden
   documents send no heartbeat and claim no background activity.
+- Initial data load and cutoff detection are read-only. Reconciliation and cutoff recovery require
+  their explicit user-facing buttons and never run merely because My Work opened or returned from
+  browser history.
 
 ## Permitted operational logs
 

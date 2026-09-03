@@ -7,7 +7,9 @@
 > `33533250900`, zero-traffic candidate `pmi-kc-app-rmtiwwud5-993818fec846`, normalized runtime
 > parity, exact promotion, repeated canonical readback, and the 41-key/seven-open Firestore mirror
 > readback passed. No role, claim, request, provider, credential, client-data, draft, or message
-> effect ran during release.
+> effect ran during release. The current authoritative registry and Firestore Admin mirror have since
+> advanced together to 48 exact keys with 16 open; the original release count is retained only as
+> release evidence.
 
 **Goal.**
 
@@ -23,17 +25,17 @@ and governed workflow-communications access; Approvers add approval and placehol
 authority; Admins add administration and soft-delete authority. Space claims independently control
 Renewals and Maintenance reach. Firebase custom claims in the authenticated ID token are the
 authority for the current request/session; Firebase Admin directory readback is the persisted latest
-claim source and may be newer until the user refreshes authentication. Only an Admin
-can use the existing People and Access controls to change them. A managed user cannot currently
-request a missing role, capability, or Space.
+claim source and may be newer until the user refreshes authentication. Only an Admin can use People
+and Access controls to change them directly. Before S83, a managed user could not request a missing
+role, capability, or Space; S83 closed that gap.
 
-The current Approval Queue is an operational, Renewals-scoped shell. Its general queue records can be
+The pre-S83 Approval Queue was an operational, Renewals-scoped shell. Its general queue records could be
 approved by some Approvers, and a generic approval transition does not change or read back Firebase
-claims. It therefore cannot safely be reused as the access-request state machine. The current Admin
-page also contains no requester-facing access destination, while renewal pages still need a safe
-handoff when role or Space access is missing.
+claims. It therefore could not safely be reused as the access-request state machine. The Admin page
+also contained no requester-facing access destination, while renewal pages needed a safe handoff
+when role or Space access was missing.
 
-The intended state adds a capability-first `My access` workflow for all managed staff. Users can
+The deployed state adds a capability-first `My access` workflow for all managed staff. Users can
 select what they need to do, request any missing capability that an existing higher role can provide,
 request any higher existing global role directly, or request named Space access. The server derives
 the least existing role and Space change needed and shows the complete bundle before submission.
@@ -856,7 +858,7 @@ gates. No provider effect owns request state.
 
 | Input                                                                                    | Classification            | Use and limitation                                                                                                                                                            |
 | ---------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md`, action registry, and `docs/facts.md`                                        | Authority / present truth | Managed identities, exact-key separation, protected-path handling, Live-only behavior, closed writes, and client-send boundaries remain unchanged.                            |
+| `AGENTS.md`, action registry, and `docs/facts.md`                                        | Authority / present truth | Managed identities, exact-key separation, protected-path handling, Live-only behavior, current per-key write activation, and client-send boundaries remain unchanged.         |
 | `lib/auth/roles.ts`, session/Space guards, Admin user services, and current audit stores | Implementation truth      | Supply the exact roles, seven base capabilities, Space semantics, and claim mutation safeguards. The request catalog cannot become authority.                                 |
 | S80 plus the current renewal governance matrix                                           | Implementation truth      | Prove role/Space and action/provider conditions are separate. Only role/Space denial produces a request handoff.                                                              |
 | Current Approval Queue shell, permissions, and specialized sub-views                     | Implementation truth      | Supply UI/navigation patterns. Access requests need a separate Admin-only data and transition boundary because generic approvals are Renewals-scoped and do not apply claims. |
@@ -967,8 +969,8 @@ missing-scope `All spaces` compatibility; Renewals/Maintenance isolation; last-A
 guards; append-only audit-before-mutation; unrelated custom claims; S80 page/API/control/action
 parity; generic Approval Queue schema, Approver behavior, bulk actions, and renewal scoping; S81 task
 anchors and all-role status; three bounded health probes; unsupported connector refusal; Live-only
-environment; draft-only communication; closed source writes; session refresh; secrets/PII scans; and
-responsive/accessibility gates remain green separately.
+environment; draft-only communication; exact per-key source-write gates and confirmations; session
+refresh; secrets/PII scans; and responsive/accessibility gates remain green separately.
 
 **Adversarial acceptance checks.**
 

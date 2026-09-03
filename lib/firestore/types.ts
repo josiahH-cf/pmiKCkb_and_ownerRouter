@@ -665,6 +665,8 @@ export interface LeaseRenewalResolutionRecord extends Partial<ProductRecordReten
   property_key?: string;
   field_key: string;
   field_label: string;
+  /** Versioned digest of the exact source candidates reviewed; absent legacy records are stale. */
+  candidate_fingerprint?: string;
   severity: QueueRiskLevel;
   status: LeaseRenewalResolutionStatus;
   resolution_kind?: LeaseRenewalResolutionKind;
@@ -684,6 +686,7 @@ export interface LeaseRenewalResolutionActivityRecord {
   source_trigger_key: string;
   run_id: string;
   property_key?: string;
+  candidate_fingerprint?: string;
   actor_uid: string;
   action: LeaseRenewalResolutionKind | "reopened";
   previous_status?: LeaseRenewalResolutionStatus;
@@ -837,6 +840,9 @@ export interface LeaseRenewalWritebackApprovalRecord {
   property_key?: string;
   field_key: string;
   field_label: string;
+  /** Exact resolution source facts and version this approval authorized. */
+  candidate_fingerprint?: string;
+  resolution_updated_at?: string;
   severity: QueueRiskLevel;
   state: LeaseRenewalWritebackApprovalState;
   // Snapshot of the queued proposal this decision was made against, so a later re-resolution that
@@ -860,6 +866,8 @@ export interface LeaseRenewalWritebackApprovalActivityRecord {
   source_trigger_key: string;
   run_id: string;
   property_key?: string;
+  candidate_fingerprint?: string;
+  resolution_updated_at?: string;
   actor_uid: string;
   action: LeaseRenewalWritebackApprovalDecision;
   previous_state?: LeaseRenewalWritebackApprovalState;

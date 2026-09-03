@@ -3,7 +3,8 @@
 
 # S82 — Table-first renewal desk and guided lease workspace
 
-> Status: Complete and deployed on 2026-09-01 through commit
+> Status: Reopened for active, unreleased conformance remediation. The original baseline was deployed
+> on 2026-09-01 through commit
 > `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`, exact-SHA CI `33575465575`, zero-traffic candidate
 > `pmi-kc-app-rmtjd24ee-17d334db377f`, bounded candidate smoke, normalized runtime parity excluding
 > only image, exact `APP_COMMIT_SHA`, and the one specified `RENEWAL_DESK_PARTY_FILTER_KEY`
@@ -11,7 +12,8 @@
 > guidance/destination/access-return/table/copy suites, the real-Chromium production-build matrix,
 > canonical verification, and core E2E passed; the party-filter secret and its runtime-SA accessor
 > were created and read back without printing the value. Navigation performs no verification,
-> progress, source write, draft, send, or role change.
+> progress, source write, draft, send, or role change. The remediation below is implemented in the
+> current working tree but is not deployed; production closure remains pending.
 
 **Goal.**
 
@@ -21,24 +23,58 @@ while the lease workspace itself remains focused on one safe next action.
 
 **Current state / intended end state.**
 
-The deployed desk has the relevant identity, date, cohort, workflow, follow-up, and conflict facts,
-but presents them through eleven separate query controls, a global search box, five metrics, a
-duplicated attention list and worklist, card layouts, a per-card six-step visualization, one `Open`
-button, and renewal-authority prose. Current base rent and the exact blocker destinations available
-inside a lease are not first-class desk fields. The detail page's back link discards the desk query.
+The deployed 2026-09-01 baseline supplies the sortable semantic table, persistent desk query,
+clickable phase/blocker navigation, and phase-selected workspace. Exact validated source
+destinations and the other corrections below are not part of that deployed baseline. A later
+adversarial conformance review found bounded gaps between the baseline and this contract's
+source-truth, failure-state, filter, and action-placement requirements. The current remediation
+closes those gaps locally; it remains unreleased until the post-deployment closure gate below passes.
 
 The intended desk is one sortable, filterable semantic table. Each lease appears once with its
 location, authoritative owners and tenants, RentVine renewal date and current contractual base rent,
 overall status, rent-verification state, and every current actionable blocker. Sort/filter controls
 belong to their table columns; there is no separate search or filter panel. Verified categorical
-values act as filter shortcuts, lease/location links open the exact workspace, and blocker links open
-the exact phase or trusted source. Canonical URL state survives refresh, Back/Forward, copied links,
-lease work, and the workspace's return link.
+values act as filter shortcuts. Lease/location links open the exact workspace only for
+workspace-eligible actionable, review, and out-of-window rows; definitive skips stay plain and may
+offer only an independently validated external source. Blocker links open the exact phase or trusted
+source. Canonical URL state survives refresh, Back/Forward, copied links, lease work, and the
+workspace's return link.
 
 The lease workspace retains the earlier S82 direction: a clickable six-phase rail, one current-action
 card, and one selected phase instead of the complete operational evidence engine on screen. This
 iteration deliberately increases structured desk data while continuing to remove explanatory and
 infrastructure prose.
+
+### Post-deployment conformance remediation (active, unreleased)
+
+The reopened slice implements these bounded corrections without changing S82 action authority:
+
+- preserve missing RentVine current rent as `null` and require a finite positive source value before
+  base-rent evidence can clear; never project missing rent as `$0`;
+- use the same bounded live lease generation for desk assembly and current packet lookup, bulk-read
+  current packet snapshots, and clear historical packet evidence when that auxiliary truth is
+  unavailable;
+- represent each supporting read as a typed available/failed/unavailable result, surface a symbolic
+  notice, and disable only its dependent control instead of silently converting failure to empty,
+  verified, or ready state;
+- expose separate loaded, selected-scope, and matching totals; give invalid date/range input
+  value-free feedback; keep filters in accessible GET forms; and provide owner/tenant header filters;
+- derive protected RentVine destinations from validated source links and place RentVine and operating-
+  Sheet proposal panels inside the verification phase rather than below every phase; and
+- refresh the complete lease projection after a RentVine write or reversal and report partial or
+  failed refresh honestly while preserving its durable receipt; and
+- bind each displayed discrepancy, saved decision, queued proposal, Admin approval, preview, and
+  durable Sheet claim to one current source-candidate fingerprint and resolution version, treating
+  legacy, malformed, duplicated, or drifted records as stale across every consuming surface; and
+- expose value-free source-currency, row-status, blocker/action, resolution-difference, workspace-
+  eligibility, and destination-kind markers so the independent S51 oracle can verify exact rendered
+  state and link cardinality without persisting customer values or importing the desk projection.
+
+Closure requires focused unit/browser tests, canonical verification, the expanded S51/S54 managed
+Admin/Editor candidate checks, exact RentVine/Sheet source reconciliation, promotion, monitoring
+readback, and the required post-promotion observation. Until those gates pass and the serving
+revision is read back, the remediation remains **ACTIVE / UNRELEASED** and must not be presented as
+deployed.
 
 **Actors and entry conditions.**
 
@@ -83,6 +119,13 @@ no bulk reader, add one bounded server aggregation rather than calling a per-lea
 row. A failed auxiliary read marks only its dependent status `Unavailable`/`Needs verification` and
 cannot turn missing evidence into `Ready` or fail the source-complete table silently.
 
+Portfolio completeness, selected-scope completeness, and dependent-status completeness are distinct
+facts. A failed auxiliary read never relabels an otherwise complete RentVine portfolio count as a
+partial source read. When saved progress is unreadable, every possibly tracked out-of-window lease is
+conservatively retained as `Needs verification`; the desk publishes no inferred phase, workflow
+blocker, or progress-dependent action and directs the operator to refresh. Status-dependent filters
+cannot claim an authoritative empty result until that supporting read recovers.
+
 Current rent on the table is the canonical RentVine export value already resolved from `unit.rent`
 by the existing RentVine mapper. It is not a Sheet value, a human-reconciled replacement, recurring
 charges, a RentCast estimate, an Admin-approved suggestion, or an owner/tenant renewal offer. Format
@@ -93,17 +136,41 @@ existing reconciliation requirement is satisfied.
 
 The table's rent-verification states are:
 
-- `Verified`: the existing current-rent rule is satisfied by fresh RentVine/operating-Sheet agreement
-  or one exact current discrepancy resolution;
+- `Verified`: the existing current-rent rule is satisfied by a finite positive value plus fresh
+  RentVine/operating-Sheet agreement or one exact current discrepancy resolution;
 - `Needs verification`: RentVine rent is missing, the Sheet row/value is missing, or sources disagree
   without an exact current resolution; and
 - `Unavailable`: current source completeness/currency prevents the comparison from being evaluated.
+
+Resolution currency is structural, not a label comparison. For every resolvable flag the server
+derives one versioned, order-independent fingerprint over the exact canonical source/value
+candidates. Read timestamps, display labels, and navigation URLs are not facts in that fingerprint;
+adding, removing, or changing a candidate source/value is. A resolution control carries the exact
+fingerprint the person reviewed, and the server rebuilds current source truth before persistence. A
+missing or changed fingerprint refuses as stale and refreshes the review; it cannot silently apply
+the same source-name choice to a value the person did not see.
+
+A current `pick_source` resolution must name one present candidate and preserve that candidate's
+exact canonical value. A `corrected_value` resolution must preserve its explicit source contract and
+contain a finite positive rent. `flag_incorrect` may dismiss the flagged conflict but cannot select or
+verify a rent value. Legacy, malformed, or fingerprint-mismatched records are stale. One
+resolution-aware effective data-check projection then owns conflict counts, rent verification,
+overall status, blockers, process evidence, desk, and workspace; source drift reopens all of those
+views together.
 
 The amount and the verification state remain separate fields. When an exact resolution verifies a
 value different from the displayed RentVine amount, the verification cell says `Verified by
 resolution · differs from RentVine` and links to that evidence; it does not silently replace the
 RentVine table value. `Verified` is evidence-backed, not a button toggle, and clicking it does not
 change either source.
+
+When a current-rent resolution queues a Sheet proposal, the operator and Admin see that persisted
+proposal's exact value and source, not a separately recalculated suggestion. Each approval control
+uses a server-issued, value-free authorization token bound to the trigger, run, property, field,
+value, source, candidate fingerprint, and resolution version. Bulk review carries one token per
+item. Approval rereads the resolution transactionally and refuses a stale token. Current-approval
+labels and final Sheet claims require the same nonempty fingerprint and resolution version; a same-
+value re-resolution still requires a new approval, preview, and claim.
 
 The deterministic overall-status precedence is:
 
@@ -157,9 +224,9 @@ renewal offer is not added to this table by this suite.
 
 The table is the only worklist. Remove the separate `Needs your attention` cards, metric grid,
 card-based worklist, per-row stepper, renewal-authority panel, global search box, global controls card,
-`Apply view`, `Clear search`, and single `Open` button. Keep one concise `Showing X of Y` result count,
-Live/source-age state, the existing refresh action, and partial-read/error notices because they
-change whether the table can be trusted.
+`Apply view`, `Clear search`, and single `Open` button. Keep concise matching, selected-scope, and
+total-loaded counts, Live/source-age state, the existing refresh action, and distinct portfolio-read
+and supporting-status notices because they change which counts, filters, and actions can be trusted.
 
 ### Column sort and filter contract
 
@@ -363,7 +430,9 @@ one exact server-validated external `https` source in a new tab. When no trustwo
 exists, render a non-interactive status plus a specific internal fallback.
 
 - `Needs verification` links to its exact in-app comparison/resolution target. Multiple sources get
-  separately labelled links inside that target.
+  separately labelled links inside that target. A record-specific item that is resolved by Live
+  review links to that exact actionable card/resolve control; an adjacent disposition-note form does
+  not masquerade as the resolution that clears verification.
 - A verified Sheet source links at minimum to the configured operating Sheet; exact tab/row may be
   used only from current Sheet metadata.
 - RentVine opens externally only from a current source-provided hyperlink whose expected tenant host
@@ -440,14 +509,14 @@ provider-call-count gates. No provider effect owns table state.
 
 **Authority and evidence map.**
 
-| Input                                                           | Classification            | Use and limitation                                                                                                                                                              |
-| --------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md`, committed action registry, and `docs/facts.md`     | Authority / present truth | Live-only data, managed identity, draft-only messaging, read-only operating Sheet, exact action keys, and closed writes remain unchanged.                                       |
-| S72/S75/S78/S80/S81 and current code/tests                      | Implementation truth      | Supply six-step evidence, waiting truth, cohort/query compatibility, authority, and exact destinations. S82 extends their projection; it does not duplicate state.              |
-| Current RentVine export mapper and live desk/workspace loader   | Source truth              | Supply address/party/date and canonical `unit.rent` base rent. Missing facts remain missing; table enrichment cannot add per-row reads.                                         |
-| Current Sheet reconciliation/resolution and source-link readers | Verification truth        | Supply rent agreement/blocker and trusted link evidence without replacing the table's RentVine amount or writing either source.                                                 |
-| User's two renewal UI notes and clarification                   | Intent evidence           | Require a table-first verbose desk, no separate search, persistent filters, clickable values/blockers, a focused workspace, and RentVine lease-price truth; `sale` means lease. |
-| Missing provider mapping or source URL                          | External dependency       | Use exact internal fallback; never guess a URL or block the independently implementable table/workspace slice.                                                                  |
+| Input                                                           | Classification            | Use and limitation                                                                                                                                                                              |
+| --------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`, committed action registry, and `docs/facts.md`     | Authority / present truth | Live-only data, managed identity, draft-only messaging, S98's exact append plus fixed-row capability refusal, and per-key action gates remain unchanged; S82 navigation itself grants no write. |
+| S72/S75/S78/S80/S81 and current code/tests                      | Implementation truth      | Supply six-step evidence, waiting truth, cohort/query compatibility, authority, and exact destinations. S82 extends their projection; it does not duplicate state.                              |
+| Current RentVine export mapper and live desk/workspace loader   | Source truth              | Supply address/party/date and canonical `unit.rent` base rent. Missing facts remain missing; table enrichment cannot add per-row reads.                                                         |
+| Current Sheet reconciliation/resolution and source-link readers | Verification truth        | Supply rent agreement/blocker and trusted link evidence without replacing the table's RentVine amount or writing either source.                                                                 |
+| User's two renewal UI notes and clarification                   | Intent evidence           | Require a table-first verbose desk, no separate search, persistent filters, clickable values/blockers, a focused workspace, and RentVine lease-price truth; `sale` means lease.                 |
+| Missing provider mapping or source URL                          | External dependency       | Use exact internal fallback; never guess a URL or block the independently implementable table/workspace slice.                                                                                  |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -468,6 +537,13 @@ provider-call-count gates. No provider effect owns table state.
   communications, and packet/signature/compliance evidence in bounded shared/bulk reads. Table
   render/navigation adds no per-row provider or app-store call, mutation, action-key shortcut, or
   second workflow state.
+- **ARCH-S82-6** — Primary portfolio, scope/retention, and dependent workflow completeness remain
+  separate. An unreadable progress store retains possible tracked work and suppresses process/action
+  projection rather than substituting an empty map as truth.
+- **ARCH-S82-7** — One versioned source-candidate fingerprint and resolution version bind the
+  displayed decision, persisted resolution, queued proposal, exact Admin review token, current-
+  authorization projection, preview, and durable Sheet claim. Every server boundary rereads current
+  truth and rejects legacy, malformed, missing, or drifted bindings before persistence or effect.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -486,10 +562,18 @@ provider-call-count gates. No provider effect owns table state.
   the canonical default without redirecting externally.
 - **BEH-S82-5** — Every current blocker/action and trusted evidence status is directly reachable,
   while navigation itself causes no verification, progress, source write, send, or authority change.
+  Review and out-of-window leases with a stable id remain inspectable; a definitive cohort `skip`
+  exposes no link to a renewal workspace the server will reject.
 - **BEH-S82-6** — Table density, header controls, state/action hierarchy, focus, keyboard semantics,
   announcements, contrast, zoom, and narrow layout remain usable without color or motion.
 - **BEH-S82-7** — An individual workspace shows clickable six-phase navigation, one safe next action,
   one selected phase, and only current blockers instead of the full operational engine.
+- **BEH-S82-8** — The desk and workspace classify the same lease against the same current 120-day
+  window. Opening a review or out-of-window row cannot make it actionable, and a non-positive
+  corrected rent cannot produce a Verified state.
+- **BEH-S82-9** — An operator can resolve only the candidate snapshot currently displayed, an Admin
+  can approve only the exact queued proposal displayed, and any intervening source or resolution
+  change returns a stale-state recovery instead of reusing the old choice or authorization.
 
 **Human litmus outcome.**
 
@@ -522,15 +606,17 @@ six phases, and follows verified evidence without interpreting backend evidence-
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                      | Architecture outcome                     | Behavior outcome         | Human litmus            | Deterministic evidence / falsification                                                                                                                                                               |
-| ------------------------------------------------ | ---------------------------------------- | ------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One data-rich, non-duplicated table              | `ARCH-S82-1`, `ARCH-S82-5`               | `BEH-S82-1`, `BEH-S82-3` | Filter a month or owner | Real export/process fixtures assert one row/lease, exact required cells, source refs, and absence of retired desk components/text.                                                                   |
-| RentVine source-of-truth current base rent       | `ARCH-S82-1`, `ARCH-S82-5`               | `BEH-S82-3`              | Filter a month or owner | Fixtures separate RentVine rent, Sheet disagreement, resolution, charges, suggestion, and offer; displayed money stays exact RentVine or missing.                                                    |
-| Sort/filter criteria live in columns             | `ARCH-S82-2`                             | `BEH-S82-2`              | Filter a month or owner | Query/component matrix covers every header control, opaque party key, bounded range, shortcut, AND/OR rule, direction, null-last behavior, stable tie, legacy `q`, and no displayed name in v2 URLs. |
-| Persistent state and obvious clear               | `ARCH-S82-2`, `ARCH-S82-3`               | `BEH-S82-2`, `BEH-S82-4` | Work a blocked lease    | Route/browser tests cover refresh, Back/Forward, copied URL, lease mutation/return, individual chip removal, Clear filters retaining sort, invalid/oversized deskView, and default entry.            |
-| All current blockers/statuses directly clickable | `ARCH-S82-1`, `ARCH-S82-4`               | `BEH-S82-5`              | Work a blocked lease    | Destination tables cover every blocker and evidence source, missing fallback, new-tab security, and provider/store spies proving zero effects.                                                       |
-| Guided phase-selected workspace                  | `ARCH-S82-1`, `ARCH-S82-3`, `ARCH-S82-4` | `BEH-S82-7`              | Navigate one lease      | Tests cover all six steps, current/selected/upcoming/completed states, exact back view, focus, and absence of dense process/authority prose.                                                         |
-| Modern accessible table/workspace                | `ARCH-S82-2`, `ARCH-S82-4`               | `BEH-S82-6`, `BEH-S82-7` | All litmus entries      | Semantic table, keyboard, screen reader, contrast, target-size, zoom, contained-scroll, reduced-motion, retired-block absence, and preserved-copy-role checks fail first.                            |
+| Requirement                                      | Architecture outcome                     | Behavior outcome         | Human litmus            | Deterministic evidence / falsification                                                                                                                                                                  |
+| ------------------------------------------------ | ---------------------------------------- | ------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One data-rich, non-duplicated table              | `ARCH-S82-1`, `ARCH-S82-5`               | `BEH-S82-1`, `BEH-S82-3` | Filter a month or owner | Real export/process fixtures assert one row/lease, exact required cells, source refs, and absence of retired desk components/text.                                                                      |
+| RentVine source-of-truth current base rent       | `ARCH-S82-1`, `ARCH-S82-5`               | `BEH-S82-3`              | Filter a month or owner | Fixtures separate RentVine rent, Sheet disagreement, resolution, charges, suggestion, and offer; displayed money stays exact RentVine or missing.                                                       |
+| Sort/filter criteria live in columns             | `ARCH-S82-2`                             | `BEH-S82-2`              | Filter a month or owner | Query/component matrix covers every header control, opaque party key, bounded range, shortcut, AND/OR rule, direction, null-last behavior, stable tie, legacy `q`, and no displayed name in v2 URLs.    |
+| Persistent state and obvious clear               | `ARCH-S82-2`, `ARCH-S82-3`               | `BEH-S82-2`, `BEH-S82-4` | Work a blocked lease    | Route/browser tests cover refresh, Back/Forward, copied URL, lease mutation/return, individual chip removal, Clear filters retaining sort, invalid/oversized deskView, and default entry.               |
+| All current blockers/statuses directly clickable | `ARCH-S82-1`, `ARCH-S82-4`               | `BEH-S82-5`              | Work a blocked lease    | Destination tables cover every blocker and evidence source, missing fallback, new-tab security, and provider/store spies proving zero effects.                                                          |
+| Guided phase-selected workspace                  | `ARCH-S82-1`, `ARCH-S82-3`, `ARCH-S82-4` | `BEH-S82-7`              | Navigate one lease      | Tests cover all six steps, current/selected/upcoming/completed states, exact back view, focus, and absence of dense process/authority prose.                                                            |
+| Modern accessible table/workspace                | `ARCH-S82-2`, `ARCH-S82-4`               | `BEH-S82-6`, `BEH-S82-7` | All litmus entries      | Semantic table, keyboard, screen reader, contrast, target-size, zoom, contained-scroll, reduced-motion, retired-block absence, and preserved-copy-role checks fail first.                               |
+| Fail-closed dependent reads and parity           | `ARCH-S82-1`, `ARCH-S82-5`, `ARCH-S82-6` | `BEH-S82-5`, `BEH-S82-8` | Work a blocked lease    | Progress failure, out-of-window open, exact resolution-link, and zero-rent fixtures prove retained rows, no invented phase/action, identical classification, and exact recovery.                        |
+| Current decision and write authorization         | `ARCH-S82-7`                             | `BEH-S82-9`              | Work a blocked lease    | Render-to-decision, decision-to-approval, preview-to-claim, duplicate-record, legacy-record, and same-value/source re-resolution races all reject stale identity before persistence or provider effect. |
 
 **Preservation set.**
 
@@ -570,6 +656,29 @@ connection status; PII/secret, copy, responsive, and provider-call gates remain 
   scroll, phase selection, retired-block absence, and preserved-copy-role checks.
 - **AC-S82-7** — Provider/store/action spies prove table/query/return/status/phase navigation performs
   zero progress, reconciliation, draft, send, source, action-key, or access mutations.
+- **AC-S82-8** — Desk rows and the workspace loader use the same eligibility rule: review and
+  out-of-window rows resolve, definitive skips expose no workspace-phase destination and resolve
+  `not_found`, and production assurance selects only rows explicitly marked workspace-available.
+  A route that retains a visible `aria-busy="true"` state past the bounded settle window fails the
+  canary; the browser check also exercises a 340-CSS-pixel, device-scale-2 layout as the 200-percent
+  reflow equivalent and refuses page-level overflow.
+- **AC-S82-9** — S51 fixture and managed reconciliation fail when the root source-currency/read-
+  completeness markers or any row's rent-verification, resolution-difference, overall/blocked,
+  workspace-eligibility, blocker/action/destination-kind markers disagree with the external
+  RentVine/Sheet/`live-review`/tracked-progress oracle and separately validated S72 process markers,
+  including independently derived disposition and tracked-incomplete retention, or when an expected
+  phase, access, blocker, or source link has the wrong cardinality or target. S72 markers prove
+  process-to-guidance parity; they are not independent Gmail/policy/packet corroboration.
+- **AC-S82-10** — A production-sized deterministic fixture loads and renders at least 320 unique
+  leases within bounded budgets, with one row per lease and exact workspace/source-link cardinality.
+  The bounded local browser smoke validates the full rendered cohort's count parity, unique ids and
+  destinations, keyboard activation/focus, 44-pixel targets, and layout behavior without hardcoding a
+  mutable live portfolio total.
+- **AC-S82-11** — Render-to-resolution, resolution-to-approval, preview-to-claim, and same-value/source
+  re-resolution races all refuse on fingerprint or resolution-version drift. Tests prove the exact
+  queued proposal is displayed, bulk approval is bound per item, legacy records never appear
+  current, one valid resolution clears every matching desk/workspace blocker, and source drift
+  reopens every matching status and blocker.
 
 **Forbidden actions / hard gates.**
 
@@ -590,10 +699,13 @@ provider links remain honest internal fallbacks and do not block the local slice
 The dedicated party-filter derivation key must be Secret Manager-bound and read back before v2 owner/
 tenant shortcut exposure; missing configuration leaves only those filters unavailable rather than
 leaking names or blocking all other table behavior.
+The reopened remediation additionally joins the expanded S51 production-assurance and S54
+verification contracts before release. That join does not reopen S97-S99 or widen any S100 effect.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** enriched projection, table, integrated sort/filter, legacy-query compatibility,
+- **Deliverable now:** the deployed baseline plus the bounded conformance remediation: enriched
+  projection, table, integrated sort/filter, legacy-query compatibility,
   filter persistence/clear behavior, trusted destinations, guided workspace, copy/visual/accessibility
   contract, and all refusal/recovery paths can be implemented without provider activation or data
   migration. Full-surface `ALL_GATES_GREEN` requires S85/S86 presentation checks and the reachable S83
@@ -622,8 +734,9 @@ leaking names or blocking all other table behavior.
    links, query logs, exact action gates, runtime config, provider-call counts, protected paths, and
    traceability before authorized delivery.
 5. Report `ALL_GATES_GREEN` only when projection, table, filters, persistence, links, workspace,
-   accessibility, and preservation pass. `BLOCKED` names only an exact protected-path issue after all
-   independent work is complete.
+   accessibility, preservation, S51/S54 candidate assurance, promotion, observation, and exact served
+   readback pass. Local green evidence alone does not close the reopened remediation. `BLOCKED` names
+   only an exact protected-path issue after all independent work is complete.
 6. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only if a future
    user supplies an explicit budget; or `BLOCKED` only for one exact unavailable input/authority after
    every independent fail-closed path is complete. Human review and live provider effects remain
@@ -644,6 +757,6 @@ leaking names or blocking all other table behavior.
 
 **Deletion/merge recommendation.**
 
-Remove after the table-first desk and guided workspace are deployed, all three human litmus entries
-pass, and durable product documentation/tests own the enriched projection, query/return, destination,
-copy, and accessibility contracts.
+Retain while the conformance remediation is active. Remove only after its exact serving revision,
+managed authenticated checks, source reconciliation, monitoring readback, and observation window are
+green and durable product documentation/tests own the corrected projection and failure contracts.

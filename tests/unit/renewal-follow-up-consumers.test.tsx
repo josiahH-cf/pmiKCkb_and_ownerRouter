@@ -159,7 +159,9 @@ describe("S75 shared follow-up consumers", () => {
       />,
     );
     expect(screen.getByText("4821 Maple Ct, Unit 4")).toBeInTheDocument();
-    expect(screen.getByText(/Showing 1 of \d+ renewals/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Matching: 1 · Selected scope: \d+ · Total loaded:/),
+    ).toBeInTheDocument();
   });
 
   it("renders that same projection in the guided workspace's current tenant phase", () => {

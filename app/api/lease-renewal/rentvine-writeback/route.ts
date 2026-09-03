@@ -16,7 +16,12 @@ import {
   assertRenewalRoleAuthority,
   renewalRoleCapability,
 } from "@/lib/lease-renewal/role-action-governance";
-import { invalidateLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import { refreshLiveLeaseSnapshotFromProvider } from "@/lib/lease-renewal/live-lease-cache";
+import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import {
+  RENEWAL_SOURCE_REFRESH_COOKIE,
+  RENEWAL_SOURCE_REFRESH_COOKIE_MAX_AGE_SECONDS,
+} from "@/lib/lease-renewal/post-write-freshness";
 import {
   RenewalWritebackService,
   RenewalWritebackServiceError,
@@ -30,12 +35,13 @@ import {
 import {
   RENEWAL_WRITEBACK_ACCOUNT,
   RenewalWritebackContractError,
+  buildRecurringChargeCreateBaseline,
   buildRenewalWritebackProposal,
   projectRecurringCharge,
-  renewalWritebackExecutionId,
   renewalWritebackReversalExecutionId,
   type RenewalWritebackEffectInput,
   type RenewalWritebackProposal,
+  type RecurringChargeProjection,
   type ValidatedRenewalWritebackEffect,
 } from "@/lib/lease-renewal/writeback/proposal-contract";
 import {
@@ -45,11 +51,53 @@ import {
 import {
   discardRenewalWritebackProposal,
   getRenewalWritebackProposal,
+  getRenewalWritebackProposalGeneration,
+  listRenewalWritebackProposalHistory,
   saveRenewalWritebackProposal,
 } from "@/lib/lease-renewal/writeback/proposal-store";
 
 const LeaseIdSchema = z.string().regex(/^[1-9]\d*$/);
 const HashSchema = z.string().regex(/^[a-f0-9]{64}$/);
+
+async function refreshProjectionAfterWrite(writeCompletedAtMs: number) {
+  const config = buildLiveRentVineConfig();
+  if (!config.ok) return { status: "unavailable" as const };
+  try {
+    const { snapshot } = await refreshLiveLeaseSnapshotFromProvider(
+      config.rentvineClient,
+      writeCompletedAtMs,
+      Date.now(),
+    );
+    return {
+      status: "current" as const,
+      read_at_iso: new Date(snapshot.readAtMs).toISOString(),
+      complete: snapshot.complete,
+    };
+  } catch {
+    // The exact provider receipt/readback remains the write outcome. A failed broader projection
+    // refresh is reported separately and must never turn a succeeded write into false ambiguity.
+    return { status: "failed" as const };
+  }
+}
+
+/**
+ * Carry a short-lived, value-free source-generation barrier back to the browser. The next workspace
+ * render must meet it even if that render lands on a different Cloud Run instance with an older
+ * module cache.
+ */
+function postWriteResponse(payload: unknown, writeCompletedAtMs: number) {
+  const response = NextResponse.json(payload);
+  response.cookies.set({
+    name: RENEWAL_SOURCE_REFRESH_COOKIE,
+    value: String(writeCompletedAtMs),
+    httpOnly: true,
+    maxAge: RENEWAL_SOURCE_REFRESH_COOKIE_MAX_AGE_SECONDS,
+    path: "/lease-renewal",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  return response;
+}
 
 const ProposedDatesSchema = z
   .object({
@@ -111,6 +159,7 @@ const BodySchema = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("propose"),
       leaseId: LeaseIdSchema,
+      expectedPriorPreviewHash: HashSchema.nullable(),
       evidenceRef: z.string().trim().min(1).max(500),
       effects: z
         .array(
@@ -125,7 +174,13 @@ const BodySchema = z.discriminatedUnion("operation", [
     })
     .strict(),
   z.object({ operation: z.literal("status"), leaseId: LeaseIdSchema }).strict(),
-  z.object({ operation: z.literal("discard"), leaseId: LeaseIdSchema }).strict(),
+  z
+    .object({
+      operation: z.literal("discard"),
+      leaseId: LeaseIdSchema,
+      previewHash: HashSchema,
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("execute"),
@@ -139,6 +194,7 @@ const BodySchema = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("reconcile"),
       leaseId: LeaseIdSchema,
+      previewHash: HashSchema,
       effectHash: HashSchema,
     })
     .strict(),
@@ -146,6 +202,15 @@ const BodySchema = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("reverse_preview"),
       leaseId: LeaseIdSchema,
+      previewHash: HashSchema,
+      effectHash: HashSchema,
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal("reverse_reconcile"),
+      leaseId: LeaseIdSchema,
+      previewHash: HashSchema,
       effectHash: HashSchema,
     })
     .strict(),
@@ -153,6 +218,7 @@ const BodySchema = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("reverse_execute"),
       leaseId: LeaseIdSchema,
+      previewHash: HashSchema,
       effectHash: HashSchema,
       reversal: z
         .object({
@@ -185,6 +251,20 @@ async function loadProposalOr404(
   return proposal;
 }
 
+async function loadProposalGenerationOr404(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
+  leaseId: string,
+  previewHash: string,
+): Promise<RenewalWritebackProposal> {
+  const proposal = await getRenewalWritebackProposalGeneration(
+    user,
+    leaseId,
+    previewHash,
+  );
+  if (!proposal) throw new RenewalWritebackServiceError("effect_missing");
+  return proposal;
+}
+
 function effectByHash(
   proposal: RenewalWritebackProposal,
   effectHash: string,
@@ -199,8 +279,35 @@ async function assembleProposal(
   body: Extract<Body, { operation: "propose" }>,
   deps: RenewalWritebackDependencies,
 ): Promise<RenewalWritebackProposal> {
-  const sourceReadAtIso = new Date().toISOString();
   const leaseState = leaseDateStateOf(await deps.reads.getLease(body.leaseId));
+  const needsCreateBaseline = body.effects.some(
+    (effect) => effect.kind === "recurring_charge_create",
+  );
+  const chargeSnapshot: RecurringChargeProjection[] = [];
+  if (needsCreateBaseline) {
+    const listed = await deps.reads.listRecurringCharges(body.leaseId);
+    const listedIds = listed.map(
+      (entry) => (entry as Record<string, unknown>)["leaseRecurringChargeID"],
+    );
+    if (
+      listedIds.some((id) => typeof id !== "string" || !/^[1-9]\d*$/.test(id)) ||
+      new Set(listedIds).size !== listedIds.length
+    ) {
+      throw new RenewalWritebackServiceError("provider_shape");
+    }
+    for (const id of listedIds as string[]) {
+      const projection = projectRecurringCharge(
+        await deps.reads.getRecurringCharge(body.leaseId, id),
+      );
+      if (
+        projection.leaseRecurringChargeID !== id ||
+        projection.leaseID !== body.leaseId
+      ) {
+        throw new RenewalWritebackServiceError("provider_shape");
+      }
+      chargeSnapshot.push(projection);
+    }
+  }
   const effects: RenewalWritebackEffectInput[] = [];
   for (const proposed of body.effects) {
     if (proposed.kind === "renewal_dates_update") {
@@ -216,7 +323,15 @@ async function assembleProposal(
         changes: proposed.changes,
       });
     } else {
-      effects.push({ kind: proposed.kind, create: proposed.create });
+      effects.push({
+        kind: proposed.kind,
+        create: proposed.create,
+        baseline: buildRecurringChargeCreateBaseline({
+          leaseId: body.leaseId,
+          create: proposed.create,
+          projections: chargeSnapshot,
+        }),
+      });
     }
   }
   return buildRenewalWritebackProposal({
@@ -226,7 +341,7 @@ async function assembleProposal(
     actorEmail: user.email ?? "",
     actorRole: user.role,
     leaseState,
-    sourceReadAtIso,
+    sourceReadAtIso: new Date().toISOString(),
     evidenceRef: body.evidenceRef,
     effects,
     nowMs: Date.now(),
@@ -238,9 +353,12 @@ async function effectStatuses(
   deps: RenewalWritebackDependencies,
 ) {
   const statuses = [];
+  const service = new RenewalWritebackService(deps);
   for (const entry of proposal.effects) {
-    const executionId = renewalWritebackExecutionId(proposal, entry);
-    const record = await deps.store.get(executionId);
+    const { executionId, record } = await service.readEffectExecution(
+      proposal,
+      entry.effectHash,
+    );
     let reversalState: string | null = null;
     if (record?.state === "succeeded" && record.receipt) {
       const reversal = await deps.store.get(
@@ -266,6 +384,30 @@ async function effectStatuses(
     });
   }
   return statuses;
+}
+
+async function archivedGenerationStatuses(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
+  leaseId: string,
+  deps: RenewalWritebackDependencies,
+) {
+  const history = await listRenewalWritebackProposalHistory(user, leaseId);
+  return Promise.all(
+    history.map(async (entry) => {
+      const succeeded = new Set(
+        entry.succeededEffects.map((effect) => effect.effectHash),
+      );
+      return {
+        generation_preview_hash: entry.proposal.previewHash,
+        archived_at: entry.archivedAtIso,
+        archived_reason: entry.archivedReason,
+        proposal: clientRenewalWritebackProposal(entry.proposal),
+        effects: (await effectStatuses(entry.proposal, deps)).filter((effect) =>
+          succeeded.has(effect.effect_hash),
+        ),
+      };
+    }),
+  );
 }
 
 /** Project the value-free receipt evidence; a failure never re-writes the provider (ARCH-S97-4). */
@@ -307,7 +449,7 @@ export async function POST(request: Request) {
 
     if (body.operation === "discard") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
-      await discardRenewalWritebackProposal(user, body.leaseId);
+      await discardRenewalWritebackProposal(user, body.leaseId, body.previewHash);
       return NextResponse.json({ status: "discarded" });
     }
 
@@ -319,7 +461,7 @@ export async function POST(request: Request) {
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
       const proposal = await assembleProposal(user, body, deps);
-      await saveRenewalWritebackProposal(user, proposal);
+      await saveRenewalWritebackProposal(user, proposal, body.expectedPriorPreviewHash);
       return NextResponse.json({
         status: "proposed",
         proposal: clientRenewalWritebackProposal(proposal),
@@ -328,17 +470,38 @@ export async function POST(request: Request) {
 
     if (body.operation === "status") {
       const proposal = await getRenewalWritebackProposal(user, body.leaseId);
-      if (!proposal) return NextResponse.json({ status: "ok", proposal: null });
+      const historyPromise = archivedGenerationStatuses(user, body.leaseId, deps);
+      if (!proposal) {
+        return NextResponse.json({
+          status: "ok",
+          proposal: null,
+          effects: [],
+          lifecycle_locked: false,
+          history: await historyPromise,
+        });
+      }
+      const effects = await effectStatuses(proposal, deps);
       return NextResponse.json({
         status: "ok",
         proposal: clientRenewalWritebackProposal(proposal),
-        effects: await effectStatuses(proposal, deps),
+        effects,
+        lifecycle_locked: effects.some(
+          (effect) =>
+            effect.state === "running" ||
+            effect.state === "ambiguous" ||
+            effect.reversal_state === "running" ||
+            effect.reversal_state === "ambiguous",
+        ),
+        history: await historyPromise,
         expired: Date.now() > Date.parse(proposal.confirmationExpiresAtIso),
       });
     }
 
     assertRenewalRoleAuthority("execute_source_write", user.role);
-    const proposal = await loadProposalOr404(user, body.leaseId);
+    const proposal =
+      body.operation === "execute"
+        ? await loadProposalOr404(user, body.leaseId)
+        : await loadProposalGenerationOr404(user, body.leaseId, body.previewHash);
     const effect = effectByHash(proposal, body.effectHash);
     const service = new RenewalWritebackService(deps);
 
@@ -347,15 +510,34 @@ export async function POST(request: Request) {
         proposal,
         effectHash: body.effectHash,
       });
-      return NextResponse.json({
-        status: "reconciled",
-        receipt: {
-          provider_ref: receipt.providerRef,
-          result_hash: receipt.resultHash,
-          reconciled: receipt.reconciled,
-          ...(receipt.outcome ? { outcome: receipt.outcome } : {}),
+      const writeCompletedAtMs = Date.now();
+      const reconciledExecution = await service.readEffectExecution(
+        proposal,
+        body.effectHash,
+      );
+      const [sourceRefresh, projection] = await Promise.all([
+        refreshProjectionAfterWrite(writeCompletedAtMs),
+        projectReceiptEvidence(
+          user,
+          proposal.leaseId,
+          reconciledExecution.executionId,
+          receipt.resultHash,
+        ),
+      ]);
+      return postWriteResponse(
+        {
+          status: "reconciled",
+          receipt: {
+            provider_ref: receipt.providerRef,
+            result_hash: receipt.resultHash,
+            reconciled: receipt.reconciled,
+            ...(receipt.outcome ? { outcome: receipt.outcome } : {}),
+          },
+          projection,
+          source_refresh: sourceRefresh,
         },
-      });
+        writeCompletedAtMs,
+      );
     }
 
     if (body.operation === "reverse_preview") {
@@ -364,6 +546,27 @@ export async function POST(request: Request) {
         effectHash: body.effectHash,
       });
       return NextResponse.json({ status: "reversal_preview", reversal });
+    }
+
+    if (body.operation === "reverse_reconcile") {
+      const receipt = await service.reconcileReversal({
+        proposal,
+        effectHash: body.effectHash,
+      });
+      const writeCompletedAtMs = Date.now();
+      const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
+      return postWriteResponse(
+        {
+          status: "reversal_reconciled",
+          receipt: {
+            provider_ref: receipt.providerRef,
+            result_hash: receipt.resultHash,
+            reconciled: receipt.reconciled,
+          },
+          source_refresh: sourceRefresh,
+        },
+        writeCompletedAtMs,
+      );
     }
 
     // Mutating operations: the exact per-key committed-seed + runtime gate refuses before any
@@ -387,27 +590,31 @@ export async function POST(request: Request) {
           confirmedAtIso: new Date().toISOString(),
         },
       });
-      invalidateLiveLeaseCache();
-      const executionId = renewalWritebackExecutionId(proposal, effect);
+      const writeCompletedAtMs = Date.now();
+      const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
       const projection = await projectReceiptEvidence(
         user,
         proposal.leaseId,
-        executionId,
+        outcome.executionId,
         outcome.receipt.resultHash,
       );
-      return NextResponse.json({
-        status: "executed",
-        duplicate: outcome.duplicate,
-        receipt: {
-          provider_ref: outcome.receipt.providerRef,
-          result_hash: outcome.receipt.resultHash,
-          reconciled: outcome.receipt.reconciled,
+      return postWriteResponse(
+        {
+          status: "executed",
+          duplicate: outcome.duplicate,
+          receipt: {
+            provider_ref: outcome.receipt.providerRef,
+            result_hash: outcome.receipt.resultHash,
+            reconciled: outcome.receipt.reconciled,
+          },
+          ...(outcome.createdChargeId
+            ? { created_charge_id: outcome.createdChargeId }
+            : {}),
+          projection,
+          source_refresh: sourceRefresh,
         },
-        ...(outcome.createdChargeId
-          ? { created_charge_id: outcome.createdChargeId }
-          : {}),
-        projection,
-      });
+        writeCompletedAtMs,
+      );
     }
 
     const outcome = await service.executeReversal({
@@ -416,16 +623,21 @@ export async function POST(request: Request) {
       reversal: body.reversal,
       confirmedAtIso: new Date().toISOString(),
     });
-    invalidateLiveLeaseCache();
-    return NextResponse.json({
-      status: "reversed",
-      duplicate: outcome.duplicate,
-      receipt: {
-        provider_ref: outcome.receipt.providerRef,
-        result_hash: outcome.receipt.resultHash,
-        reconciled: outcome.receipt.reconciled,
+    const writeCompletedAtMs = Date.now();
+    const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
+    return postWriteResponse(
+      {
+        status: "reversed",
+        duplicate: outcome.duplicate,
+        receipt: {
+          provider_ref: outcome.receipt.providerRef,
+          result_hash: outcome.receipt.resultHash,
+          reconciled: outcome.receipt.reconciled,
+        },
+        source_refresh: sourceRefresh,
       },
-    });
+      writeCompletedAtMs,
+    );
   } catch (error) {
     if (
       error instanceof ActionNotExecutableError ||

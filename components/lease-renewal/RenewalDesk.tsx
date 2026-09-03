@@ -9,7 +9,12 @@ import Link from "next/link";
 
 import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
 import {
+  RenewalAuxiliaryNotice,
+  type RenewalAuxiliaryFailure,
+} from "@/components/lease-renewal/RenewalAuxiliaryNotice";
+import {
   RenewalDeskTable,
+  buildDeskPartyFilterOptions,
   type DeskPartyShortcuts,
 } from "@/components/lease-renewal/RenewalDeskTable";
 import { Card, ModeChip, PageHeader } from "@/components/ui";
@@ -92,18 +97,33 @@ export function RenewalDesk({
   query = { ...DEFAULT_RENEWAL_DESK_QUERY_V2 },
   role = "Editor",
   partyFilters = NO_PARTY_ACCESS,
+  auxiliaryFailures = [],
 }: Readonly<{
   view: RenewalDeskView;
   liveReviewHref?: string;
   query?: RenewalDeskQueryV2State;
   role?: Role;
   partyFilters?: DeskPartyFilterAccess;
+  auxiliaryFailures?: readonly RenewalAuxiliaryFailure[];
 }>) {
-  const { summary } = view.cohort;
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
+  const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
+  const supportingReadsComplete = auxiliaryFailures.length === 0;
+  const scopeLabel =
+    query.scope === "active"
+      ? "current window and tracked incomplete"
+      : query.scope === "tracked"
+        ? "tracked incomplete outside the window"
+        : "all loaded leases";
 
   return (
-    <div className="ui-stack">
+    <div
+      className="ui-stack"
+      data-source-currency-state={view.dataCurrency.state}
+      data-source-read-complete={view.readComplete ? "true" : "false"}
+      data-source-refresh-failed={view.dataCurrency.lastError ? "true" : "false"}
+      data-source-refreshing={view.dataCurrency.refreshing ? "true" : "false"}
+    >
       <PageHeader
         actions={
           <>
@@ -121,13 +141,15 @@ export function RenewalDesk({
         }
         subtitle={
           view.readComplete
-            ? `${summary.total} leases in your current renewal window`
-            : `${summary.total} leases loaded so far (partial read)`
+            ? `${result.totalLoaded} leases loaded · ${result.totalInScope} in ${scopeLabel}`
+            : `${result.totalLoaded} leases loaded from a partial source read · ${result.totalInScope} in ${scopeLabel}`
         }
         title="Renewals"
       />
 
       <DataCurrencyBanner currency={view.dataCurrency} />
+
+      <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
 
       {view.readComplete ? null : (
         <Card>
@@ -146,9 +168,13 @@ export function RenewalDesk({
         role={role}
         rows={result.items}
         shortcuts={partyFilters}
+        partyOptions={partyOptions}
         sourceReadOk={view.readComplete && !view.dataCurrency.lastError}
+        dependentStateComplete={supportingReadsComplete}
+        sourceReadComplete={view.readComplete}
         state={query}
-        totalBeforeQuery={result.totalBeforeQuery}
+        totalInScope={result.totalInScope}
+        totalLoaded={result.totalLoaded}
       />
     </div>
   );

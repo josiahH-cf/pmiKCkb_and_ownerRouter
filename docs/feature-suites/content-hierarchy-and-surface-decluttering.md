@@ -4,8 +4,9 @@
 # S87 — Product-wide content hierarchy and surface decluttering
 
 > Status: Specified and not implemented. The 2026-08-31 source audit inventories 29 current
-> experiences across 36 routes; the target manifest adds S83's new `/admin/access` experience as
-> SF-30. S82 owns renewal desk/workspace behavior; S83 owns access requests,
+> experiences across 36 routes; the target manifest includes the deployed S83 `/admin/access`
+> experience as SF-30. S82-S86 and S96 are deployed owners; S82 owns renewal desk/workspace behavior;
+> S83 owns access requests,
 > grants, and supported connector read-check behavior; S84 owns navbar destinations, terminology,
 > and within-navbar disclosure behavior; S96 owns connector disconnect/reconciliation and S86 owns
 > generic interaction feedback plus connection-store degradation presentation. S88-S95 own the later Dashboard assistant,
@@ -27,7 +28,8 @@ subtitle-like source occurrences across app/components; that count shows density
 that every node should be removed. Admin currently combines more than 19 panels; Connections repeats
 authority and setup explanations; Communications repeats its workflow-only boundary; Dashboard
 repeats its Ask example; Maintenance and My Work repeat operational boundaries; renewal surfaces
-still show Renewal Authority and backend process detail; Vendor pages repeat a Gmail boundary and
+still expose dense phase/evidence/action detail and require S91's shared-projection conformance;
+Vendor pages repeat a Gmail boundary and
 offer no visible sign-out. Empty and unavailable states vary, and some collections can render a blank
 region.
 
@@ -51,8 +53,8 @@ path. Every applicable empty/loading/error/permission state names a safe next st
   retain current non-disclosure behavior.
 - First-time and occasional users must understand a surface from its visible title, controls, state,
   and next action. Experienced users must not traverse introductions before acting.
-- S85 theme and S86 interaction primitives are available before each migration cohort. If not, the
-  cohort remains on current presentation rather than creating a second temporary pattern.
+- Deployed S85 theme and S86 interaction primitives are mandatory for every migration cohort; a
+  cohort fails rather than creating a second temporary presentation pattern.
 
 **What it is / how it functions.**
 
@@ -236,8 +238,8 @@ long-content, narrow/zoom, keyboard/focus, and assistive-technology states there
 | SF-23   | `L/U`: migration/preflight report read.                                                         | `{surfaceLabel}=migration readiness`; `U`: `Migration readiness is unavailable.` Blocker, warning, healthy, generated-at, and environment truth are `PRESERVE-V1`.                                                                                                                                                                                            | `U`: reload the report or `Back to Admin`; no action is inferred from a blocker.                                                                                                                                                                                                        |
 | SF-24   | `L/E/U/P/X/A`: prior requests, current plan, runtime availability, and exact lifecycle actions. | `E`: `No Space requests have been saved.`; `{sourceLabel}=Space requests`; `{capabilityLabel}=provision or retire this Space`; `{actionLabel}=Space request action`; `A` is `OWNER-PRESERVE(S86)`.                                                                                                                                                            | `E`: existing create request action; `U`: `Retry`; `P`: keep exact runtime refusal with no unavailable control; `X/A`: owning recovery only.                                                                                                                                            |
 | SF-25   | `L/U`: governance, connection, model, artifact, and evaluator reads.                            | `{surfaceLabel}=Workflow Communications governance`; `U`: `Workflow Communications readiness is unavailable.` Existing immutable-artifact and synthetic-only truth is `PRESERVE-V1`.                                                                                                                                                                          | `U`: `Open Workflow Communications` when that route remains authorized, or `Back to Admin`; no Gmail effect is added.                                                                                                                                                                   |
-| SF-26   | `L/E/F/U/P/X`: renewal desk source/filter/action states.                                        | `OWNER-PRESERVE(S82/S83/S86)` for every code; S87 supplies no alternate renewal copy.                                                                                                                                                                                                                                                                         | Consume S82's exact desk recovery and S83 access handoff; otherwise preserve the frozen desk DOM/action state.                                                                                                                                                                          |
-| SF-27   | `L/E/U/P/X/N/A`: exact lease workspace source, blocker, action, and reconciliation states.      | `OWNER-PRESERVE(S82/S83/S86)` for every code; S87 supplies no alternate lease or effect copy.                                                                                                                                                                                                                                                                 | Consume the exact S82/S83/S86 recovery; no S87 retry, authority handoff, or missing-lease wording is introduced.                                                                                                                                                                        |
+| SF-26   | `L/E/F/U/P/X`: renewal desk source/filter/action states.                                        | `OWNER-PRESERVE(S82/S83/S86/S91)` only after S91's shared-projection conformance passes; S87 supplies no alternate renewal truth. Missing rent remains unavailable rather than `$0`, and an auxiliary failure cannot become empty, verified, or unblocked.                                                                                                    | Consume the exact conformed desk recovery, visible default date scope, discoverable sort/filter controls, direct blocker/source destinations, and S83 access handoff; otherwise the renewal cohort cannot migrate.                                                                      |
+| SF-27   | `L/E/U/P/X/N/A`: exact lease workspace source, blocker, action, and reconciliation states.      | `OWNER-PRESERVE(S82/S83/S86/S91)` only after desk/workspace/assistant parity passes; S87 supplies no alternate lease or effect copy.                                                                                                                                                                                                                          | Consume the exact conformed recovery and phase truth. Place an S97/S98 write Review/Confirm control only inside its owning selected phase; no top-level, unrelated-phase, or table navigation control may execute it.                                                                   |
 | SF-28   | Current reconciliation source, filter, role, and action states.                                 | `PRESERVE-V1` for every state/copy/control/ARIA relationship in this version.                                                                                                                                                                                                                                                                                 | Preserve existing exact destinations and recovery; no S87 declutter or S82 ownership is inferred until a later CB row exists.                                                                                                                                                           |
 | SF-29   | `L/E/U/N`: exact property projection/history reads.                                             | `E1`: `No current decision or write-back authorization is attributable to this property yet. Legacy or name-joined records are not guessed onto a property.`; `E2`: `No decisions have been recorded for this property yet.`; `U` keeps the current Firestore-unavailable copy exactly; `{resourceLabel}=property decision history`; `{parentLabel}=renewal`. | `U`: reload once the connection is back; `N`: sanitized `Back to renewal`; all property-key non-disclosure and role behavior is `PRESERVE-V1`.                                                                                                                                          |
 | SF-30   | `L/E/U/P/X/A`: S83 effective-access, catalog, own-history, request, and reconciliation states.  | `OWNER-PRESERVE(S83/S86)` for every state and exact requester-facing copy. S87 defines no alternate empty, reviewer, grant, or completion claim.                                                                                                                                                                                                              | Consume S83's exact current-access, empty-history, submission, cancellation, unavailable-review, denied/superseded, applied/readback, and reconciliation recovery; navigation remains S84-owned.                                                                                        |
@@ -323,10 +325,12 @@ buttons use S83 destinations. A connection link navigates; an actual supported r
 business behavior and S86 feedback. S87 owns only the card hierarchy: provider powers, setup notes,
 action-key independence, and diagnostics sit in one labelled `Connection details` disclosure.
 
-S97-S100 are implemented before S87. Their delivered source-action, receipt, reconciliation, and
-manual-sync/draft surfaces remain with their owning renewal or Maintenance workflow and follow S86's
-shared feedback hierarchy; S87 may remove duplicate explanatory copy but cannot move, merge, hide, or
-relabel an exact effect, confirmation, ambiguity, reversal, or mark-read disclosure.
+S97-S100 owning implementations must be delivered to their verified present state before S87 begins. Their
+source-action, receipt, reconciliation, and manual-sync/draft surfaces remain with their owning
+renewal or Maintenance workflow and follow S86's shared feedback hierarchy. Any exact key that has
+not passed proof/activation remains visibly unavailable and cannot be described as active. S87 may
+remove duplicate explanatory copy but cannot move, merge, hide, or relabel an exact effect,
+confirmation, ambiguity, reversal, or mark-read disclosure.
 
 ### Empty, unavailable, and recovery states
 
@@ -338,6 +342,45 @@ managed-user cases use their exact `E` rows; process/run empty states expose onl
 authorized create/start action; Vendor empty retains its exact PMI-assignment recovery. No state may
 fabricate zero data, a disconnected provider, access, an Admin reviewer, a setup action, a safe retry,
 or a completed effect.
+
+### Final authenticated conformance and stability gate
+
+S87 is the final integration gate, not a claim that component/unit/build success proves the product is
+error-free. Before each cohort promotion, use existing managed Editor and Admin sessions supplied
+outside Git to exercise that cohort's populated, empty, filtered-empty, unavailable, denied, error,
+not-found, pending, applied, and ambiguous states on the exact zero-traffic candidate. The complete
+final matrix covers staff sign-in and both Dashboard aliases; My Work; Internal Processes, Processes,
+and a workflow run; Maintenance and one exact ticket; Workflow Communications; Notifications;
+Connections; Admin, Access, People, and Approval Queue; the renewal desk, one lease workspace, and
+reconciliation. Vendor list/detail/sign-out use the existing assigned Vendor test boundary without
+sharing a staff session. Each direct destination re-runs its own guard.
+
+The final gate consumes S89/S93/S95's content-free browser-error and request-failure evidence and
+S91's candidate/post-promotion RentVine/Sheet/application reconciliation. It fails on an uncaught
+console error, unhandled rejection, unexplained failed same-origin request, route 5xx, blank task
+region, false empty/zero/disconnected/no-proposal state, stale post-write renewal row, cross-page
+status/blocker/rent/action/link drift, dead destination, hidden required recovery, or client-error
+signal whose delivery was not read back. Routine evidence retains only actor class, surface/state
+code, route family, pass/fail, exact revision, aggregate timing, and finite error code; it stores no
+uid, URL parameter, record id, question/answer, customer value, body, screenshot, provider payload, or
+secret.
+
+Renewal conformance has additional observable gates. The default desk date scope is visible and never
+described as all renewals; owner, tenant, renewal-date, status, blocker, and rent-verification controls
+are keyboard/touch discoverable, reject invalid values without losing valid state, and retain one
+obvious Clear filters control. Missing rent stays unavailable rather than `$0`. Every causal blocker
+and verified-source destination resolves through the owning validated route/link contract. Navigation
+never writes. An S97 or S98 Review/Confirm control appears only inside the selected phase that owns
+that exact effect, with pending, receipt, reconciliation, and correction/reversal state local to that
+phase; no table cell, phase label, page load, or unrelated phase can execute it.
+
+The loaded-cohort performance check uses the owning page's maximum supported row/result fixture and
+fails on a per-row provider/store request, repeated source load, unbounded render/event growth,
+page-level overflow, missed current runtime timeout, or missing pending feedback. Candidate and stable
+post-promotion aggregate timings are recorded for regression review without inventing a user promise.
+The full keyboard, touch, screen-reader, forced-colors, reduced-motion, 320-pixel, and 200%-zoom matrix
+must pass for every materially changed cohort. Anonymous route smoke, server-only 5xx monitoring, a
+single test lease, or an implementation runner's visual assertion cannot replace these gates.
 
 ### Vendor session control and style integration
 
@@ -391,7 +434,9 @@ out; consumption of S84 terminology; content migration ledger and tests.
 
 Out of scope: deleting capabilities based on assumed low use; changing routes/roles/Spaces/actions;
 new analytics; UI mockups as authority; S82 renewal desk/workspace behavior; S83 access requests and
-connection checks; S84 navigation mechanics; S85 visual tokens; S86 interaction primitives; general
+connection checks; S84 navigation mechanics; S85 visual tokens; S86 interaction primitives;
+cross-application assistant coverage beyond S88's eight-intent V1; executable assistant actions
+beyond S94's one self-task contract; general
 Gmail inbox; autonomous communication; provider/source writes; or hiding labels, status, safety,
 errors, and recovery solely to meet a percentage.
 
@@ -444,6 +489,10 @@ workbench. No provider, source, action, role, or production data change.
   semantics.
 - **ARCH-S87-4** — One vendor shell consumes shared presentation/session behavior across list/detail
   while preserving exact assigned-ticket and staff/vendor session boundaries.
+- **ARCH-S87-5** — One final release-conformance manifest binds every changed cohort to authenticated
+  Admin/Editor state journeys, S89 client/server observability, S91 renewal source/projection
+  reconciliation, direct-destination guards, bounded loaded-cohort behavior, accessibility, exact
+  candidate/revision, and rollback. Local/unit/build or anonymous smoke cannot satisfy it.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -458,6 +507,11 @@ workbench. No provider, source, action, role, or production data change.
   recovery remains reachable and truthful after its cohort; no hover is required for essential copy.
 - **BEH-S87-5** — A vendor can identify their account, sign out, return to vendor sign-in, and never
   access an unassigned ticket or affect a staff session.
+- **BEH-S87-6** — On the exact candidate and stable promoted revision, an authenticated user can load
+  and act through every changed cohort without a blank page, console/network failure, false empty or
+  zero, stale renewal projection, dead link, hidden recovery, misplaced source-write control, or lost
+  input/filter state; a detected failure reaches the verified operator channel and blocks/rolls back
+  the release.
 
 **Human litmus outcome.**
 
@@ -468,7 +522,9 @@ what needs attention, and the one action to take next. Internal policy and provi
 compete with the task, but source, safety, and recovery information is visible where it matters.
 
 - Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
-- Human verdict: PASS | FAIL - why:
+- Human verdict: PASS | FAIL - why; when no human observer is present, use the manifest's exact
+  `Human verdict: NOT RUN — no human observer` value and continue unless the owner explicitly makes
+  that verdict a completion gate.
 
 ### Find detail without losing the task
 
@@ -488,17 +544,28 @@ the user is allowed to take.
 - Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
 - Human verdict: PASS | FAIL - why:
 
+### Complete the authenticated product journey without hidden failure
+
+**If this was built correctly:** An Editor and Admin can traverse the changed pages, see the same
+current renewal facts wherever one lease appears, use filters and exact destinations, and encounter
+truthful unavailable/denied states without a blank page or silent error. A browser or source mismatch
+stops the release and reaches the operator instead of being presented as success.
+
+- Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
+- Human verdict: PASS | FAIL - why:
+
 **Requirement-to-outcome traceability.**
 
-| Requirement                                | Architecture outcome | Behavior outcome | Human litmus            | Deterministic evidence / falsification                                                                                        |
-| ------------------------------------------ | -------------------- | ---------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Complete surface/content disposition       | `ARCH-S87-1`         | `BEH-S87-1/2/4`  | Start work; Find detail | 30-surface/six-alias manifest and frozen-block parity reject missing/duplicate dispositions.                                  |
-| Task-first visible hierarchy               | `ARCH-S87-2`         | `BEH-S87-1/4`    | Start work              | Manifest/DOM checks require one primary outcome per surface and at most one primary-emphasis action per bounded region/state. |
-| Accessible progressive detail              | `ARCH-S87-1/2`       | `BEH-S87-2/4`    | Find detail             | Keyboard/touch/zoom/theme tests plus exact moved-content reachability assertions.                                             |
-| Truthful empty/unavailable/recovery states | `ARCH-S87-3`         | `BEH-S87-3/4`    | Recover                 | All 30 state rows materialize listed fixtures and exact copy/recovery or fail on any drift from `PRESERVE-V1`/owner output.   |
-| Admin/Connections decluttering             | `ARCH-S87-1/2/3`     | `BEH-S87-1/2/4`  | Start work; Find detail | Panel/action/anchor parity, store-read-error, S81/S83 route, and no-dead-link tests.                                          |
-| Vendor shell and sign out                  | `ARCH-S87-4`         | `BEH-S87-3/5`    | Recover                 | List/detail/empty/sign-out/failure/session-isolation/assignment-guard tests.                                                  |
-| No safety/access/source meaning lost       | `ARCH-S87-1/2/3`     | `BEH-S87-4`      | All                     | Required-content role assertions and existing action/source/permission preservation suites.                                   |
+| Requirement                                | Architecture outcome | Behavior outcome | Human litmus                   | Deterministic evidence / falsification                                                                                                                                                  |
+| ------------------------------------------ | -------------------- | ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Complete surface/content disposition       | `ARCH-S87-1`         | `BEH-S87-1/2/4`  | Start work; Find detail        | 30-surface/six-alias manifest and frozen-block parity reject missing/duplicate dispositions.                                                                                            |
+| Task-first visible hierarchy               | `ARCH-S87-2`         | `BEH-S87-1/4`    | Start work                     | Manifest/DOM checks require one primary outcome per surface and at most one primary-emphasis action per bounded region/state.                                                           |
+| Accessible progressive detail              | `ARCH-S87-1/2`       | `BEH-S87-2/4`    | Find detail                    | Keyboard/touch/zoom/theme tests plus exact moved-content reachability assertions.                                                                                                       |
+| Truthful empty/unavailable/recovery states | `ARCH-S87-3`         | `BEH-S87-3/4`    | Recover                        | All 30 state rows materialize listed fixtures and exact copy/recovery or fail on any drift from `PRESERVE-V1`/owner output.                                                             |
+| Admin/Connections decluttering             | `ARCH-S87-1/2/3`     | `BEH-S87-1/2/4`  | Start work; Find detail        | Panel/action/anchor parity, store-read-error, S81/S83 route, and no-dead-link tests.                                                                                                    |
+| Vendor shell and sign out                  | `ARCH-S87-4`         | `BEH-S87-3/5`    | Recover                        | List/detail/empty/sign-out/failure/session-isolation/assignment-guard tests.                                                                                                            |
+| No safety/access/source meaning lost       | `ARCH-S87-1/2/3`     | `BEH-S87-4`      | All                            | Required-content role assertions and existing action/source/permission preservation suites.                                                                                             |
+| Authenticated full-product stability       | `ARCH-S87-3/5`       | `BEH-S87-3/4/6`  | Complete authenticated journey | Admin/Editor candidate and post-promotion matrices, S91 source parity, client-error delivery, loaded-cohort, direct-guard, accessibility, and rollback evidence all pass independently. |
 
 **Preservation set.**
 
@@ -539,6 +606,21 @@ guards, and no-secrets/PII rules. Content-reduction results never average away a
   implementation. Compatible routes and internal data identifiers remain unchanged.
 - **AC-S87-8** — Provider/store/action spies prove opening disclosures, help, tabs, filters, or moved
   detail causes no workflow transition, source write, role grant, connection check, or client send.
+- **AC-S87-9** — `ARCH-S87-5` runs the complete managed Editor/Admin surface/state matrix on the exact
+  candidate and the bounded stable post-promotion path. Any console error, unhandled rejection,
+  unexplained same-origin failure, route 5xx, missing terminal, blank region, dead destination,
+  guard drift, content-bearing evidence, or unverified error-delivery path fails the cohort and
+  restores the captured predecessor.
+- **AC-S87-10** — SF-26/SF-27 fixtures consume S91's one source generation and reject missing-rent-to-
+  zero, catch-to-empty/no-proposal, desk/workspace/assistant status or blocker drift, stale post-write
+  state, hidden default scope, undiscoverable/invalid filter loss, unvalidated blocker/source link, or
+  an S97/S98 Review/Confirm control outside its selected owning phase. Candidate and post-promotion
+  read-only reconciliation must report zero mismatches and no customer values.
+- **AC-S87-11** — Every materially changed cohort passes its maximum supported row/result fixture with
+  no per-row provider/store request, repeated source load, unbounded DOM/event growth, runtime timeout,
+  missing pending feedback, or page overflow, plus the full keyboard/touch/screen-reader/forced-color/
+  reduced-motion/320-pixel/200%-zoom matrix. Aggregate timing is recorded, but no unevidenced latency
+  promise is presented to users.
 
 **Forbidden actions / hard gates.**
 
@@ -556,8 +638,13 @@ the canonical unattended queue so every owner contract is concrete before conten
 six cohorts remain separately reversible and ordered: public/vendor; Dashboard/My Work; Internal
 Processes/processes/runs; Maintenance/Communications/Notifications; Connections/Admin/Approval;
 renewal conformance. S87-wide `ALL_GATES_GREEN` requires S36, every owning S82-S100 contract, the
-S88-S95 SF-06 result, and all six cohorts. Do not hold safe copy classification on unavailable
+S88-S95 SF-06 result, S91 projection/source reconciliation, S89/S93/S95 authenticated browser and
+error-delivery evidence, and all six cohorts. Do not hold safe copy classification on unavailable
 analytics; usage-based claims remain unmade.
+
+S101 starts only after S87 is green. It may expand deterministic read-only assistant coverage, but
+no S101 intent, domain adapter, help example, or copy belongs in the S87 migration. Broader executable
+assistant actions require a separate future exact-action program and are not implied by S87 or S101.
 
 **Standalone delivery contract.**
 
@@ -566,19 +653,22 @@ analytics; usage-based claims remain unmade.
   accessibility/theme/preservation checks can be specified without provider writes or usage
   analytics. The full suite reaches `ALL_GATES_GREEN` only after S36, S82-S100, the applicable S88-S95
   Dashboard contracts, and every cohort pass their deterministic gates.
-- **Consumes:** S36 and S82-S100, including S88-S95 for SF-06. A cohort whose required owner is absent remains current
-  and fail-closed while unrelated cohorts proceed; moved content never points to a guessed route.
+- **Consumes:** S36 and S82-S100, including S88-S95 for SF-06. A cohort whose required owner is absent
+  remains current and fail-closed while unrelated cohorts proceed; moved content never points to a
+  guessed route.
 - **Externally blocked effect:** claims that usage, task time, first-click success, or user preference
   improved require separately gathered analytics/moderated evidence. They do not block structural
   and accessibility conformance but remain unclaimed.
 - **Produces for downstream suites:** stable surface IDs, content-disposition manifest, page hierarchy,
-  state/recovery contract, and before/after preservation evidence.
+  state/recovery contract, authenticated stability evidence, and before/after preservation evidence.
+  S101 consumes those stable owning surfaces only after S87 closes.
 
 **Verification and delivery contract.**
 
-1. Freeze the 29 current audited experiences plus S83's delivered SF-30, six aliases, route/actor/state matrices, one primary outcome
-   per surface, bounded task regions and action emphasis per state, persistent content blocks,
-   actions, facts, and representative desktop/narrow screenshots before edits.
+1. Freeze the 29 current audited experiences plus S83's delivered SF-30, six aliases, route/actor/
+   state matrices, one primary outcome per surface, bounded task regions and action emphasis per
+   state, persistent content blocks, actions, facts, and representative desktop/narrow screenshots
+   before edits.
 2. Materialize fail-first manifest completeness, all 30 state truth/copy/recovery rows, CB survivor/
    destination parity, one-outcome/region-action cardinality, required-content preservation,
    vendor-session, terminology, theme, and accessibility checks.

@@ -8,6 +8,7 @@ import { RenewalDecider } from "@/components/lease-renewal/RenewalDecider";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 const refresh = vi.fn();
+const AUTHORIZATION_TOKEN = `rwat1_${"a".repeat(64)}`;
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
@@ -25,6 +26,7 @@ beforeEach(() => {
 function flag(key: string, label: string): RenewalFlagView {
   return {
     sourceTriggerKey: key,
+    candidateFingerprint: `rcf1_${"b".repeat(64)}`,
     fieldKey: key,
     fieldLabel: label,
     severity: "Medium",
@@ -146,6 +148,7 @@ describe("RenewalDecider", () => {
           ok: true,
           json: async () => ({
             resolution: { reason_code: "accepted_suggestion" },
+            authorization_token: AUTHORIZATION_TOKEN,
           }),
         };
       }
@@ -175,6 +178,7 @@ describe("RenewalDecider", () => {
     expect(JSON.parse(String((resolveCall?.[1] as RequestInit).body))).toEqual({
       run_id: "run-1",
       source_trigger_key: "rent",
+      candidate_fingerprint: `rcf1_${"b".repeat(64)}`,
       kind: "pick_source",
       chosen_source: "rentvine",
       reason_code: "accepted_suggestion",
@@ -194,6 +198,7 @@ describe("RenewalDecider", () => {
               reason_code: "accepted_suggestion",
               proposed_writeback: { status: "Queued" },
             },
+            authorization_token: AUTHORIZATION_TOKEN,
           }),
         };
       }
@@ -225,6 +230,7 @@ describe("RenewalDecider", () => {
     expect(JSON.parse(String((approvalCall?.[1] as RequestInit).body))).toEqual({
       run_id: "run-1",
       source_trigger_key: "rent",
+      authorization_token: AUTHORIZATION_TOKEN,
       decision: "approve",
       reason_code: "accepted_suggestion",
     });
@@ -282,6 +288,7 @@ describe("RenewalDecider", () => {
               reason_code: "accepted_suggestion",
               proposed_writeback: { status: "Queued" },
             },
+            authorization_token: AUTHORIZATION_TOKEN,
           }),
         };
       }
@@ -323,6 +330,7 @@ describe("RenewalDecider", () => {
         queued: true,
         state: "Awaiting Approval",
         stale: false,
+        authorizationToken: AUTHORIZATION_TOKEN,
       },
     };
     renderDecider(view([queued]), false);
@@ -350,6 +358,7 @@ describe("RenewalDecider", () => {
         queued: true,
         state: "Awaiting Approval",
         stale: false,
+        authorizationToken: AUTHORIZATION_TOKEN,
       },
     };
     renderDecider(view([queued]));
@@ -361,5 +370,15 @@ describe("RenewalDecider", () => {
       screen.queryByRole("button", { name: "Approve write-back" }),
     ).not.toBeInTheDocument();
     expect(document.querySelector(".lr-approve-form textarea")).not.toBeNull();
+    expect(
+      screen.getByText(/Operating Sheet phase for an exact missing-row append/),
+    ).toHaveTextContent("Fixed-row field updates remain unavailable");
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.some(
+          ([url]) => String(url) === "/api/lease-renewal/writeback-execute",
+        ),
+    ).toBe(false);
   });
 });

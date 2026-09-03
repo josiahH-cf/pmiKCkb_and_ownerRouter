@@ -133,18 +133,43 @@ export function parseReleaseArgs(argv = []) {
   }
 
   const candidateRevision = readArg("--candidate-revision");
+  const candidateAssuranceReceipt = readArg("--candidate-assurance-receipt");
+  const promotionReceipt = readArg("--promotion-receipt");
+  const operatorEmail = readArg("--operator-email");
+  const adminProfile = readArg("--admin-profile");
+  const editorProfile = readArg("--editor-profile");
   const priorRevision = readArg("--prior-revision");
   if (promote && !candidateRevision) {
     errors.push("--promote requires --candidate-revision=<exact revision name>.");
   }
+  if (promote && environment === "production" && !candidateAssuranceReceipt) {
+    errors.push("--promote requires --candidate-assurance-receipt=<exact receipt path>.");
+  }
+  if (promote && environment === "production" && !promotionReceipt) {
+    errors.push("--promote requires --promotion-receipt=<new receipt path>.");
+  }
+  if (
+    promote &&
+    environment === "production" &&
+    (!operatorEmail || !adminProfile || !editorProfile)
+  ) {
+    errors.push(
+      "Production promotion requires --operator-email, --admin-profile, and --editor-profile for rollback recovery.",
+    );
+  }
 
   return {
     candidateRevision,
+    candidateAssuranceReceipt,
+    adminProfile,
+    editorProfile,
     environment,
     errors,
     execute,
     planOnly,
+    operatorEmail,
     priorRevision,
+    promotionReceipt,
     promote,
     project: readArg("--project"),
     region: readArg("--region"),
@@ -326,6 +351,9 @@ export function buildReleasePlan({
     region: args.region,
     service: args.service,
   };
+  const production = args.environment === "production";
+  const candidateReceiptPath = "<new-candidate-assurance-receipt-path>";
+  const promotionReceiptPath = "<new-promotion-receipt-path>";
   const steps = [
     {
       name: "capture-prior-revision",
@@ -344,14 +372,36 @@ export function buildReleasePlan({
         "Run the bounded read-only smoke against the candidate tag URL and prove its exact commit/revision before any traffic moves.",
       command: `npm run smoke:release-candidate -- --base-url=<candidate tag url for ${candidate.candidateTag}> --expected-tag=${candidate.candidateTag} --expected-service=${target.service} --expected-revision=${revisionName} --expected-commit=<git rev-parse HEAD>`,
     },
+    ...(production
+      ? [
+          {
+            name: "assure-candidate",
+            description:
+              "Run the complete Admin, Editor, source-reconciliation, origin-binding, and monitoring gate and write its exclusive candidate receipt.",
+            command: `npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --candidate-assurance-receipt=${candidateReceiptPath}`,
+          },
+        ]
+      : []),
     {
       name: "promote-exact-revision",
       description: `Send 100% of traffic to the exact revision ${revisionName}.`,
-      command: formatCommand(
-        command,
-        buildPromotionPlan({ ...target, revision: revisionName }).args,
-      ),
+      command: production
+        ? `npm run release -- --environment=production --promote --candidate-revision=${revisionName} --candidate-assurance-receipt=${candidateReceiptPath} --promotion-receipt=${promotionReceiptPath} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path>`
+        : formatCommand(
+            command,
+            buildPromotionPlan({ ...target, revision: revisionName }).args,
+          ),
     },
+    ...(production
+      ? [
+          {
+            name: "observe-promoted-revision",
+            description:
+              "Consume the bound promotion receipt for the fixed post-promotion observation and exact-predecessor decision.",
+            command: `npm run assure:production-observation -- --live --base-url=<canonical-service-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --promotion-receipt=${promotionReceiptPath}`,
+          },
+        ]
+      : []),
     {
       name: "rollback",
       description:

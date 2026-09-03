@@ -7,17 +7,22 @@ import {
   hashSheetHeader,
   sheetCellValueMatches,
   type SheetWritebackDependencies,
+  type SheetWritebackReversalPreview,
   type SheetWritebackWriter,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "@/lib/lease-renewal/headers";
 import {
   buildSheetWritebackProposal,
   normalRowNote,
+  sheetWritebackExecutionId,
+  sheetWritebackReversalExecutionId,
   type SheetWritebackProposal,
   type SheetWritebackProposalInput,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import { mintSheetReversalPreviewHash } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 
 const NOW = Date.parse("2026-09-02T12:00:00.000Z");
+process.env.RENEWAL_DESK_PARTY_FILTER_KEY = Buffer.alloc(32, 19).toString("base64url");
 
 // A compact live-shaped header: the real Renewals phrases for the columns the tests exercise.
 const HEADER = [
@@ -44,6 +49,7 @@ interface Harness {
   flags: { gateOpen: boolean; writeFlag: boolean };
   headerHash: string;
   tenantColumnIndex: number;
+  appendLifecycles: Map<string, string>;
 }
 
 function parseRange(range: string): {
@@ -83,6 +89,7 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
   const calls: Harness["calls"] = [];
   const record = (method: string, ...args: unknown[]) => calls.push({ method, args });
   const flags = { gateOpen: true, writeFlag: true };
+  const appendLifecycles = new Map<string, string>();
 
   const writer: SheetWritebackWriter = {
     async getValues(_spreadsheetId, range) {
@@ -172,6 +179,18 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
       },
     }),
     writeFlagEnabled: () => flags.writeFlag,
+    claimLeaseScopedAppend: async (input) => {
+      const key = `${input.spreadsheetId}:${input.tabTitle}:${input.leaseId}`;
+      if (appendLifecycles.has(key)) return "blocked";
+      const claim = await store.claim(input.executionId, input.previewHash);
+      if (claim === "claimed") appendLifecycles.set(key, "running");
+      return claim;
+    },
+    settleLeaseScopedAppend: async (input) => {
+      const key = `${input.spreadsheetId}:${input.tabTitle}:${input.leaseId}`;
+      if (!appendLifecycles.has(key)) throw new Error("missing append lifecycle");
+      appendLifecycles.set(key, input.state);
+    },
     now: () => NOW,
   };
   return {
@@ -183,6 +202,7 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
     flags,
     headerHash,
     tenantColumnIndex: columns.get("tenant_name") ?? 2,
+    appendLifecycles,
   };
 }
 
@@ -191,11 +211,13 @@ function appendProposal(
   overrides: Partial<SheetWritebackProposalInput> = {},
 ): SheetWritebackProposal {
   return buildSheetWritebackProposal({
+    generationId: "proposal-append-12345678",
     spreadsheetId: "sheet-1",
     tabTitle: "Lease Renewal",
     headerHash: h.headerHash,
     headerWidth: h.state.header.length,
     tenantColumnIndex: h.tenantColumnIndex,
+    scope: { kind: "lease_workspace", leaseId: "115", propertyId: "84" },
     actorUid: "admin-1",
     actorEmail: "admin@pmikcmetro.com",
     actorRole: "Admin",
@@ -220,6 +242,7 @@ function appendProposal(
 function updateProposal(
   h: Harness,
   overrides: Partial<{
+    generationId: string;
     rowNumber: number;
     expectedValue: string;
     afterValue: string;
@@ -228,11 +251,13 @@ function updateProposal(
   }> = {},
 ): SheetWritebackProposal {
   return buildSheetWritebackProposal({
+    generationId: overrides.generationId ?? "proposal-update-12345678",
     spreadsheetId: "sheet-1",
     tabTitle: "Lease Renewal",
     headerHash: h.headerHash,
     headerWidth: h.state.header.length,
     tenantColumnIndex: h.tenantColumnIndex,
+    scope: { kind: "lease_workspace", leaseId: "115", propertyId: "84" },
     actorUid: "admin-1",
     actorEmail: "admin@pmikcmetro.com",
     actorRole: "Admin",
@@ -248,6 +273,48 @@ function updateProposal(
         expectedValue: overrides.expectedValue ?? "",
         afterValue: overrides.afterValue ?? "1200",
         source: "RentVine base rent",
+        authorization: {
+          sourceTriggerKey: "lease_renewal:reconcile:live-review:key:current_rent",
+          runId: "live-review",
+          fieldKey: "current_rent",
+          proposedValue: overrides.afterValue ?? "1200",
+          sourceOfValue: "RentVine base rent",
+          candidateFingerprint: `rcf1_${"a".repeat(64)}`,
+          resolutionUpdatedAt: "2026-09-02T11:58:00.000Z",
+          authorizationToken: `rwat1_${"b".repeat(64)}`,
+          approvalId: "approval-current-rent",
+          approvalUpdatedAt: "2026-09-02T11:59:00.000Z",
+          approvalDecidedByUid: "admin-2",
+        },
+      },
+    ],
+    nowMs: NOW,
+  });
+}
+
+function proofAppendProposal(h: Harness): SheetWritebackProposal {
+  return buildSheetWritebackProposal({
+    generationId: "proposal-proof-12345678",
+    spreadsheetId: "sheet-1",
+    tabTitle: "Lease Renewal",
+    headerHash: h.headerHash,
+    headerWidth: h.state.header.length,
+    tenantColumnIndex: h.tenantColumnIndex,
+    scope: { kind: "sealed_proof", leaseId: "115", propertyId: "84" },
+    actorUid: "admin-1",
+    actorEmail: "admin@pmikcmetro.com",
+    actorRole: "Admin",
+    sourceReadAtIso: new Date(NOW - 1_000).toISOString(),
+    evidenceRef: "completed-proof:immutable",
+    effects: [
+      {
+        kind: "row_append",
+        mode: "proof",
+        operationId: "op-proof-12345678",
+        leaseId: "115",
+        propertyId: "84",
+        tenantName: "Fresh Real Tenant",
+        fields: {},
       },
     ],
     nowMs: NOW,
@@ -265,6 +332,35 @@ function confirmed(proposal: SheetWritebackProposal, index = 0) {
       confirmedAtIso: new Date(NOW).toISOString(),
     },
   };
+}
+
+async function signedAppendReversal(
+  h: Harness,
+  proposal: SheetWritebackProposal,
+  currentRowNumber = 2,
+): Promise<SheetWritebackReversalPreview> {
+  const effect = proposal.effects[0];
+  const forwardExecutionId = sheetWritebackExecutionId(proposal, effect);
+  const forward = await h.store.get(forwardExecutionId);
+  if (!forward?.receipt) throw new Error("forward receipt missing in test harness");
+  const reversalExecutionId = sheetWritebackReversalExecutionId(
+    forwardExecutionId,
+    forward.receipt.resultHash,
+  );
+  const expiresAtIso = new Date(NOW + 10 * 60_000).toISOString();
+  const binding = {
+    proposalPreviewHash: proposal.previewHash,
+    effectHash: effect.effectHash,
+    forwardExecutionId,
+    forwardReceiptHash: forward.receipt.resultHash,
+    reversalExecutionId,
+    kind: "delete_appended_row" as const,
+    currentRowNumber,
+    expiresAtIso,
+  };
+  const previewHash = mintSheetReversalPreviewHash(binding);
+  if (!previewHash) throw new Error("reversal key unavailable in test harness");
+  return { ...binding, previewHash };
 }
 
 async function expectCode(promise: Promise<unknown>, code: string): Promise<void> {
@@ -293,7 +389,6 @@ it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
   },
 );
 
-// S51_DYNAMIC_REFUSAL:s98-sheet-reversal-writer
 it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
   "does not construct the Sheets writer for a confirmed reversal when runtime state is %s",
   async (gateRefusalState) => {
@@ -301,10 +396,7 @@ it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
     void gateRefusalState;
     const proposal = appendProposal(h);
     await h.service.executeEffect(confirmed(proposal));
-    const reversal = await h.service.previewReversal({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-    });
+    const reversal = await signedAppendReversal(h, proposal);
     h.flags.gateOpen = false;
     h.createWriterSpy.mockClear();
     await expectCode(
@@ -335,28 +427,6 @@ describe("S98 live-format value matching (2026-09-02 proof finding)", () => {
     expect(sheetCellValueMatches("1.00", "1.05")).toBe(false);
     expect(sheetCellValueMatches("TEST", "$1.00")).toBe(false);
     expect(sheetCellValueMatches("1.00", "one dollar")).toBe(false);
-  });
-
-  it("reconciles an ambiguous update whose cell reads back currency-formatted", async () => {
-    const h = harness({
-      rows: [{ values: ["", "", "Existing Tenant", "", ""], note: "" }],
-      failure: {
-        onMethod: "replaceCellIfExactMatch",
-        error: new Error("socket closed"),
-        afterApply: true,
-      },
-    });
-    const proposal = updateProposal(h);
-    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
-    // The provider applied the write and the column formatting re-rendered it as currency.
-    h.state.rows[0].values[4] = "$1,200.00";
-    h.state.failure = undefined;
-    const receipt = await h.service.reconcileEffect({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-    });
-    expect(receipt.reconciled).toBe(true);
-    expect(receipt.providerRef).toBe("s98-cell:current_rent");
   });
 });
 
@@ -439,37 +509,25 @@ describe("S98 one-attempt sheet execution", () => {
     expect(h.calls.filter((call) => call.method === "appendRowWithNote")).toHaveLength(1);
   });
 
-  it("updates one anchored cell via CAS and treats collaborator drift as definite", async () => {
+  it("refuses fixed-row field mutation before writer construction or claim", async () => {
     const h = harness({
       rows: [{ values: ["", "", "Existing Tenant", "", ""], note: "" }],
     });
     const proposal = updateProposal(h);
-    const outcome = await h.service.executeEffect(confirmed(proposal));
-    expect(outcome.receipt.providerRef).toBe("s98-cell:current_rent");
-    expect(h.state.rows[0].values[4]).toBe("1200");
-
-    const h2 = harness({
-      rows: [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }],
-    });
-    const drifted = updateProposal(h2);
-    await expectCode(h2.service.executeEffect(confirmed(drifted)), "cas_not_applied");
-    expect(h2.state.rows[0].values[4]).toBe("999");
-    const record = await h2.store.get(`s98:sheet-1:${drifted.effects[0].effectHash}`);
-    expect(record?.state).toBe("failed");
-  });
-
-  it("refuses a moved ordinary-row anchor before the write", async () => {
-    const h = harness({
-      rows: [{ values: ["", "", "Somebody Else", "", ""], note: "" }],
-    });
-    const proposal = updateProposal(h);
-    await expectCode(h.service.executeEffect(confirmed(proposal)), "row_anchor_drift");
+    await expectCode(
+      h.service.executeEffect(confirmed(proposal)),
+      "provider_capability_unavailable",
+    );
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
     expect(
       h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
     ).toHaveLength(0);
+    expect(
+      await h.store.get(sheetWritebackExecutionId(proposal, proposal.effects[0])),
+    ).toBeNull();
   });
 
-  it("deletes only the exact unchanged appended row, tracking it by note across moves", async () => {
+  it("binds reversal preview terms but refuses unsafe fixed-row deletion", async () => {
     const h = harness();
     const proposal = appendProposal(h);
     await h.service.executeEffect(confirmed(proposal));
@@ -478,87 +536,62 @@ describe("S98 one-attempt sheet execution", () => {
       values: ["", "", "Human Added", "", ""],
       note: "",
     });
-    const preview = await h.service.previewReversal({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-    });
+    const preview = await signedAppendReversal(h, proposal, 3);
     expect(preview.kind).toBe("delete_appended_row");
     expect(preview.currentRowNumber).toBe(3);
-    const outcome = await h.service.executeReversal({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-      reversal: preview,
-      confirmedAtIso: new Date(NOW).toISOString(),
-    });
-    expect(outcome.receipt.providerRef).toBe("s98-row-deleted:op-12345678");
-    expect(h.state.rows).toHaveLength(1);
-    expect(h.state.rows[0].values[2]).toBe("Human Added");
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal: preview,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "provider_capability_unavailable",
+    );
+    expect(h.state.rows).toHaveLength(2);
+    expect(h.calls.filter((call) => call.method === "deleteExactRow")).toHaveLength(0);
+
+    for (const reversal of [
+      { ...preview, forwardExecutionId: `${preview.forwardExecutionId}:foreign` },
+      { ...preview, previewHash: "f".repeat(64) },
+      {
+        ...preview,
+        expiresAtIso: new Date(NOW + 30 * 60_000).toISOString(),
+      },
+    ]) {
+      await expectCode(
+        h.service.executeReversal({
+          proposal,
+          effectHash: proposal.effects[0].effectHash,
+          reversal,
+          confirmedAtIso: new Date(NOW).toISOString(),
+        }),
+        "confirmation_invalid",
+      );
+    }
   });
 
-  it("refuses reversal when the appended row content drifted", async () => {
+  it("refuses reversal preview before fixed-row provider reads", async () => {
     const h = harness();
     const proposal = appendProposal(h);
     await h.service.executeEffect(confirmed(proposal));
-    h.state.rows[0].values[4] = "edited-by-human";
+    h.createWriterSpy.mockClear();
     await expectCode(
       h.service.previewReversal({
         proposal,
         effectHash: proposal.effects[0].effectHash,
       }),
-      "reversal_target_drift",
+      "provider_capability_unavailable",
     );
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
     expect(h.state.rows).toHaveLength(1);
   });
 
-  it("restores an updated cell under a new confirmation and reconciles a lost delete", async () => {
-    const h = harness({
-      rows: [{ values: ["", "", "Existing Tenant", "", ""], note: "" }],
-    });
-    const proposal = updateProposal(h);
-    await h.service.executeEffect(confirmed(proposal));
-    const preview = await h.service.previewReversal({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-    });
-    expect(preview.kind).toBe("restore_field");
-    const outcome = await h.service.executeReversal({
-      proposal,
-      effectHash: proposal.effects[0].effectHash,
-      reversal: preview,
-      confirmedAtIso: new Date(NOW).toISOString(),
-    });
-    expect(outcome.receipt.providerRef).toBe("s98-cell:current_rent");
-    expect(h.state.rows[0].values[4]).toBe("");
-
-    // Lost delete response: applied on the provider, ambiguous locally, reconciled from absence.
-    const h2 = harness();
-    const appendP = appendProposal(h2);
-    await h2.service.executeEffect(confirmed(appendP));
-    const preview2 = await h2.service.previewReversal({
-      proposal: appendP,
-      effectHash: appendP.effects[0].effectHash,
-    });
-    h2.state.failure = {
-      onMethod: "deleteExactRow",
-      error: new Error("socket closed"),
-      afterApply: true,
-    };
-    await expectCode(
-      h2.service.executeReversal({
-        proposal: appendP,
-        effectHash: appendP.effects[0].effectHash,
-        reversal: preview2,
-        confirmedAtIso: new Date(NOW).toISOString(),
-      }),
-      "provider_ambiguous",
-    );
-    h2.state.failure = undefined;
-    const receipt = await h2.service.reconcileReversal({
-      proposal: appendP,
-      effectHash: appendP.effects[0].effectHash,
-    });
-    expect(receipt.reconciled).toBe(true);
-    expect(receipt.providerRef).toBe("s98-row-deleted:op-12345678");
-    expect(h2.calls.filter((call) => call.method === "deleteExactRow")).toHaveLength(1);
+  it("permanently retires sealed-proof mutation before writer construction", async () => {
+    const h = harness();
+    const proposal = proofAppendProposal(h);
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "proof_retired");
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
+    expect(h.state.rows).toHaveLength(0);
   });
 });

@@ -71,6 +71,15 @@ export interface LiveLeaseSnapshotResult {
   currency: LiveLeaseCurrency;
 }
 
+/**
+ * Result of a route-level source-read attempt. Passing `unavailable` into a downstream loader is a
+ * durable instruction not to retry inside the same render; omission means no upstream attempt was
+ * made and preserves the loader's direct-call behavior.
+ */
+export type AttemptedLiveLeaseSnapshotResult =
+  | { status: "available"; value: LiveLeaseSnapshotResult }
+  | { status: "unavailable" };
+
 /** Thrown by requireCurrentLeaseViews when the served data is at or beyond the hard max age. */
 export class LeaseDataExpiredError extends Error {
   readonly ageMs: number;
@@ -263,13 +272,66 @@ export async function requireCurrentLeaseViews(
 /**
  * Invalidate after OUR OWN successful write to a system the export reflects: the next read goes to
  * the provider instead of waiting out the TTL, while the last good rows remain the failure
- * fallback. Today the Sheet write-back is the only caller; a future RentVine write path joins the
- * same point.
+ * fallback. Sheet reconciliation invalidation and the protected RentVine write paths share this
+ * boundary; a RentVine write also performs the stronger explicit post-write refresh below.
  */
 export function invalidateLiveLeaseCache(): void {
   if (entry) entry.invalidated = true;
   // A deliberate write wants its refresh now; a prior provider failure must not defer it.
   failure = null;
+}
+
+/**
+ * After an exact provider write/readback, perform one additional complete export that cannot be
+ * satisfied by a pre-write cache entry or pre-write in-flight read. The returned timestamp is safe
+ * to expose as the freshness receipt; source rows remain only in memory.
+ */
+export async function refreshLiveLeaseSnapshotFromProvider(
+  reader: LeaseExportReader,
+  writeCompletedAtMs: number,
+  nowMs: number,
+): Promise<LiveLeaseSnapshotResult> {
+  if (!Number.isFinite(writeCompletedAtMs) || !Number.isFinite(nowMs)) {
+    throw new Error("A finite write and refresh timestamp are required.");
+  }
+  // A read already in flight may have started before the write. Let it settle, then force a new
+  // read; never reuse it as post-write proof.
+  const preWriteInflight = inflight;
+  if (preWriteInflight) await preWriteInflight.catch(() => undefined);
+  invalidateLiveLeaseCache();
+  const readAtMs = Math.max(nowMs, writeCompletedAtMs);
+  const snapshot = await readOnce(reader, readAtMs);
+  if (snapshot.readAtMs < writeCompletedAtMs) {
+    throw new Error("The post-write lease refresh predates the source write.");
+  }
+  return {
+    snapshot,
+    currency: currencyFor(snapshot, readAtMs, "fresh"),
+  };
+}
+
+/**
+ * Resolve a workspace read at or after a confirmed source-write barrier. The barrier is carried by a
+ * short-lived, value-free browser cookie so a server-component refresh that lands on another Cloud
+ * Run instance cannot reuse that instance's pre-write module cache. An already-current generation is
+ * reused; otherwise this performs the same complete, post-inflight provider read as the write route.
+ */
+export async function getLiveLeaseSnapshotAtOrAfter(
+  reader: LeaseExportReader,
+  nowMs: number,
+  minimumReadAtMs: number,
+): Promise<LiveLeaseSnapshotResult> {
+  if (!Number.isFinite(minimumReadAtMs)) {
+    throw new Error("A finite minimum lease-read timestamp is required.");
+  }
+  if (entry && !entry.invalidated && entry.snapshot.readAtMs >= minimumReadAtMs) {
+    return getLiveLeaseSnapshot(reader, nowMs);
+  }
+  return refreshLiveLeaseSnapshotFromProvider(
+    reader,
+    minimumReadAtMs,
+    Math.max(nowMs, minimumReadAtMs),
+  );
 }
 
 /** Reset the module cache. Test-only; production relies on the age contract. */

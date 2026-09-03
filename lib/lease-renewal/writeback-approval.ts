@@ -10,7 +10,12 @@
 // Written) are unreachable from here BY CONSTRUCTION. Pure + deterministic (no I/O).
 
 import { EditableLayerError } from "@/lib/firestore/errors";
+import type {
+  LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalRecord,
+} from "@/lib/firestore/types";
 import type { WriteBackState } from "@/lib/lease-renewal/writeback";
+import { isCompleteLeaseRenewalResolutionRecord } from "@/lib/lease-renewal/effective-data-check";
 
 /**
  * The approval states, pinned to the audited FSM's non-executing states via `Extract`. This will not
@@ -52,6 +57,39 @@ export interface WritebackApprovalPlan {
   /** Invariants surfaced on the plan so persistence and the UI cannot misrepresent them. */
   productionAllowed: false;
   executed: false;
+}
+
+function nonBlank(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * One fail-closed current-authorization predicate shared by every read projection. Legacy records
+ * without both source fingerprints and the exact resolution version are stale even when their
+ * optional fields happen to compare equal as `undefined`.
+ */
+export function writebackApprovalMatchesResolution(
+  resolution: LeaseRenewalResolutionRecord,
+  approval: LeaseRenewalWritebackApprovalRecord,
+): boolean {
+  const proposal = resolution.proposed_writeback;
+  return (
+    isCompleteLeaseRenewalResolutionRecord(resolution) &&
+    resolution.status === "Resolved" &&
+    proposal?.status === "Queued" &&
+    nonBlank(resolution.candidate_fingerprint) &&
+    nonBlank(resolution.updated_at) &&
+    nonBlank(approval.candidate_fingerprint) &&
+    nonBlank(approval.resolution_updated_at) &&
+    approval.source_trigger_key === resolution.source_trigger_key &&
+    approval.run_id === resolution.run_id &&
+    approval.field_key === resolution.field_key &&
+    approval.field_label === resolution.field_label &&
+    approval.candidate_fingerprint === resolution.candidate_fingerprint &&
+    approval.resolution_updated_at === resolution.updated_at &&
+    approval.proposed_value === proposal.value &&
+    approval.source_of_value === proposal.source_of_value
+  );
 }
 
 /**

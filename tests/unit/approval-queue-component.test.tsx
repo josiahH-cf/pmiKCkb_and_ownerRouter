@@ -146,6 +146,22 @@ describe("ApprovalQueue default inbox (B1)", () => {
     ).toBeInTheDocument();
   });
 
+  it("never calls the decision inbox empty when renewal status is unavailable", () => {
+    render(
+      <ApprovalQueue
+        currentUser={{ role: "Admin", uid: "admin-1" }}
+        initialActivity={[]}
+        initialItems={[]}
+        renewalStatusUnavailable
+      />,
+    );
+
+    expect(
+      screen.getByText(/Renewal review and write-back status are unavailable/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Nothing needs your decision right now.")).toBeNull();
+  });
+
   it("keeps the inbox stable when the All items list is filtered to a subset", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {

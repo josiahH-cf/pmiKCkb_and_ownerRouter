@@ -6,6 +6,11 @@ import {
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
+import {
+  claimAuthorizedS98FieldUpdate,
+  claimLeaseScopedS98Append,
+  settleLeaseScopedS98Append,
+} from "@/lib/firestore/s98-sheet-writeback-claim";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { GoogleSheetsApiWriter } from "@/lib/google-sheets/write-client";
 import {
@@ -47,14 +52,18 @@ export function buildLiveSheetWritebackDeps(
 ): SheetWritebackDependencies | { status: "not_configured" } {
   const spreadsheetId = liveOperatingSheetId();
   if (!spreadsheetId) return { status: "not_configured" };
+  const db = getAdminFirestore();
   return {
     descriptor,
-    store: new FirestoreExternalExecutionStore(getAdminFirestore()),
+    store: new FirestoreExternalExecutionStore(db),
     createWriter: () => new GoogleSheetsApiWriter(),
     gateFor: (actionKey) => ({
       isExecutable: () => isProductionRuntimeActionExecutable(actionKey),
       run: (effect) => runProductionRuntimeGatedAction(actionKey, effect),
     }),
     writeFlagEnabled: isSheetWritebackEnabled,
+    claimAuthorizedFieldUpdate: (input) => claimAuthorizedS98FieldUpdate(db, input),
+    claimLeaseScopedAppend: (input) => claimLeaseScopedS98Append(db, input),
+    settleLeaseScopedAppend: (input) => settleLeaseScopedS98Append(db, input),
   };
 }

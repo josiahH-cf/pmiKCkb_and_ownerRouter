@@ -42,6 +42,7 @@ describe("reconciliation deep-link redirect (C1)", () => {
 function flag(fieldKey: string, fieldLabel: string): RenewalFlagView {
   return {
     sourceTriggerKey: `lease_renewal:reconcile:run-1:${fieldKey}`,
+    candidateFingerprint: `rcf1_${"a".repeat(64)}`,
     fieldKey,
     fieldLabel,
     severity: "High",

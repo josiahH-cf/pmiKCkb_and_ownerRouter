@@ -1,6 +1,8 @@
 .next
+.claude
 coverage
 node_modules
+output
 package-lock.json
 docs/spec.md
 docs/context_and_calls

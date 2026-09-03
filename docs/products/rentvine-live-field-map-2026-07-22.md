@@ -1,11 +1,11 @@
 # RentVine live field map
 
-Re-derived and corrected: 2026-08-26.
+Re-derived and corrected from the 2026-08-26 measured export; write state updated 2026-09-02.
 
 The old filename is retained because code comments reference it. The old 25-row/305-row narrative is
 superseded.
 
-## Complete export
+## Measured complete export
 
 - 306 distinct leases returned through paginated export.
 - Lease id: `lease.leaseID`.
@@ -17,8 +17,10 @@ superseded.
 - Current rent for this live shape: `unit.rent` on 306/306.
 - Lease-level current-rent keys in the 2026-08-26 diagnostic: 0/306.
 
-The mapper resolves `unit.rent` first, then legacy lease-level fallbacks. Recipient handling
-iterates all owner/tenant records and keeps owner and tenant channels separate.
+For export-shaped rows, the mapper accepts only `unit.rent` as contractual base rent and does not
+fall through to lease-level rent lookalikes when that field is absent. Flat legacy fixtures without
+an explicit unit retain the configurable fallback. Recipient handling iterates all owner/tenant
+records and keeps owner and tenant channels separate.
 
 ## Evidence rule
 
@@ -27,7 +29,8 @@ emails, rents, balances, or raw provider responses.
 
 ## Write state
 
-The currently deployed restricted client contains partial lease/recurring-charge POST support, but
-production renewal write remains closed and live-unproven. S97 specifies the complete exact renewal-
-date and recurring-charge create/update contracts, readbacks, receipts, ambiguity recovery,
-reversal, one-record proof, and protected activation. No generic provider request is authorized.
+S97's exact renewal-date update, recurring-charge create, and recurring-charge update contracts are
+proved, deployed, and active. Each normal action still requires current authority, exact preview and
+confirmation, an at-most-once claim, receipt, provider readback, and a separately confirmed reversal
+or correction. The completed proof is not rerun. The broad compatibility action remains closed and
+retired; no generic provider request is authorized.

@@ -106,6 +106,54 @@ describe("buildOwnerRenewalDraft", () => {
     expect(draft.facts.some((f) => f.key === "market_number")).toBe(false);
   });
 
+  it("renders an explicit marker when current rent is absent and never invents $0", () => {
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "100 Birchwood Ln",
+      currentRent: null,
+      currentRentEvidence: {
+        agreement: "missing",
+        currencyState: "fresh",
+        readAtIso: "2026-08-26T12:00:00.000Z",
+      },
+    });
+
+    expect(draft.body).toContain("[Needs Verification: current rent]");
+    expect(draft.body).not.toContain("$0");
+    expect(draft.facts.find((fact) => fact.key === "current_rent")).toMatchObject({
+      value: "[Needs Verification: current rent]",
+      confidence: "Needs Verification",
+    });
+    expect(draft.missingInputs).toContain("current rent confirmation");
+  });
+
+  it.each([
+    ["zero", 0, "$0"],
+    ["negative", -1250, "$-1,250"],
+    ["NaN", Number.NaN, "$NaN"],
+    ["infinite", Number.POSITIVE_INFINITY, "$Infinity"],
+  ])(
+    "treats a %s current-rent value as missing even when the source evidence agrees",
+    (_label, currentRent, unsafeDisplay) => {
+      const draft = buildOwnerRenewalDraft({
+        addressLabel: "100 Birchwood Ln",
+        currentRent,
+        currentRentEvidence: {
+          agreement: "agree",
+          currencyState: "fresh",
+          readAtIso: "2026-08-26T12:00:00.000Z",
+        },
+      });
+
+      expect(draft.body).toContain("[Needs Verification: current rent]");
+      expect(draft.body).not.toContain(unsafeDisplay);
+      expect(draft.facts.find((fact) => fact.key === "current_rent")).toMatchObject({
+        value: "[Needs Verification: current rent]",
+        confidence: "Needs Verification",
+      });
+      expect(draft.missingInputs).toContain("current rent confirmation");
+    },
+  );
+
   it("handles a PARTIAL market input (range present, number + screenshot absent)", () => {
     const draft = buildOwnerRenewalDraft({
       addressLabel: "100 Birchwood Ln",

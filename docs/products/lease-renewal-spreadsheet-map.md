@@ -1,6 +1,6 @@
 # Renewal Sheet semantic map
 
-Updated: 2026-08-31.
+Updated: 2026-09-02.
 
 This is a sanitized connector contract. The operating spreadsheet is a client source of truth and
 contains sensitive operational data. Raw rows, credentials, names, addresses, and values never enter
@@ -34,18 +34,25 @@ workbook must not be exported into the repository.
 - Current rent may represent different semantics across sources; disagreement is not automatically a
   RentVine error.
 - A resolution binds to the exact lease, row, and source versions.
-- Operating Sheet writes remain off in current production. S98 owns the exact target contract:
-  source-backed row append and one supported-field expected-value update.
+- Both S98 exact keys and the operating write switch remain on, but the hardened normal product path
+  executes only a source-backed row append. Field update and fixed-row delete/restore refuse before
+  writer construction until the provider supplies a stable logical-row and expected-generation
+  mutation seam. The broad compatibility key remains closed.
 
 ## Approved writeback target
 
-S98 resolves the live schema and authoritative row identity server-side. An append sets only fresh
-source-backed or exact human-confirmed fields; an update changes only one supported field when the
-exact anchored row/header/current value still match. `renewal_date` is never silently inferred from
-RentVine `endDate`.
+S98 resolves the live schema and authoritative lease/row association server-side. An append sets only
+fresh source-backed or exact human-confirmed fields and requires a fresh one-to-one proof that no row
+already represents the lease. `renewal_date` is never silently inferred from RentVine `endDate`.
+Fixed-row update/delete/restore is not offered: read-then-write against an A1 row cannot prove the row
+still represents the same lease after collaborator movement.
 
-The one authorized proof appends a temporary real-data row at the logical end, places a visible test
-marker plus an opaque cell note, excludes that exact marker from downstream projections, reads the
-row back, separately updates its blank `current_rent` from the fresh source, then separately deletes
-only the unchanged marked row and proves final absence. No copy-only Sheet, fake identity/value,
-arbitrary range, bulk update, formula overwrite, or blind retry is used.
+The one authorized proof appended a temporary real-data row at the logical end, placed a visible test
+marker plus an opaque cell note, excluded that exact marker from downstream projections, read the
+row back, separately updated its blank `current_rent` from the fresh source, then separately deleted
+only the unchanged marked row and proved final absence. That proof is complete and must not be rerun
+or replaced. The proof receipts remain historical evidence, not a reusable mutation path. Normal
+append still requires exact preview, confirmation, lease-scoped one-attempt claim, header/source
+readback, and the active exact key. It is manually correctable from its receipt and Sheet destination;
+the app does not automate a fixed-row delete. No copy-only Sheet, fake identity/value, arbitrary
+range, bulk update, formula overwrite, or blind retry is authorized.

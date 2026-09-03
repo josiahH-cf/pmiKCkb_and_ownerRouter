@@ -2,6 +2,10 @@ import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
+import { writebackApprovalMatchesResolution } from "@/lib/lease-renewal/writeback-approval";
+import { isCompleteLeaseRenewalResolutionRecord } from "@/lib/lease-renewal/effective-data-check";
+import { currentResolutionForRenewalRun } from "@/lib/lease-renewal/effective-data-check";
+import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
 
 export const LIVE_RENEWAL_DECISION_RUN_ID = "live-review";
 
@@ -29,6 +33,8 @@ export interface LeaseRenewalDecisionProjection {
 
 export interface BuildLeaseRenewalDecisionProjectionOptions {
   runId?: string;
+  /** Fresh current-source runs. A persisted Live decision is never called current without this join. */
+  currentRuns: readonly RenewalRunResult[];
 }
 
 /**
@@ -39,23 +45,27 @@ export interface BuildLeaseRenewalDecisionProjectionOptions {
 export function buildLeaseRenewalDecisionProjections(
   resolutions: readonly LeaseRenewalResolutionRecord[],
   approvals: readonly LeaseRenewalWritebackApprovalRecord[],
-  options: BuildLeaseRenewalDecisionProjectionOptions = {},
+  options: BuildLeaseRenewalDecisionProjectionOptions,
 ): LeaseRenewalDecisionProjection[] {
   const approvalsByTrigger = new Map(
     approvals.map((approval) => [approval.source_trigger_key, approval]),
   );
 
   return resolutions
-    .filter((resolution) => !options.runId || resolution.run_id === options.runId)
+    .filter(
+      (resolution) =>
+        isCompleteLeaseRenewalResolutionRecord(resolution) &&
+        options.currentRuns.some((run) =>
+          Boolean(currentResolutionForRenewalRun(resolution, run)),
+        ) &&
+        (!options.runId || resolution.run_id === options.runId),
+    )
     .map((resolution) => {
       const proposal = resolution.proposed_writeback;
       const candidateApproval = approvalsByTrigger.get(resolution.source_trigger_key);
       const approval =
         candidateApproval &&
-        candidateApproval.run_id === resolution.run_id &&
-        proposal?.status === "Queued" &&
-        candidateApproval.proposed_value === proposal.value &&
-        candidateApproval.source_of_value === proposal.source_of_value
+        writebackApprovalMatchesResolution(resolution, candidateApproval)
           ? candidateApproval
           : undefined;
       const proposalQueued = proposal?.status === "Queued";

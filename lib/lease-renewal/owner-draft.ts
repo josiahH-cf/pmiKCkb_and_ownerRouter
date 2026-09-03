@@ -92,7 +92,7 @@ export interface OwnerDraftInput {
   /** Property address label (in-boundary; never written to git). */
   addressLabel: string;
   /** Current base rent, from RentVine (read-authoritative). */
-  currentRent: number;
+  currentRent: number | null;
   currentRentSource?: string;
   /**
    * Evidence that earns (or refuses) the current-rent confidence label. Missing evidence is
@@ -120,6 +120,10 @@ export interface OwnerRenewalDraft {
 }
 
 const NEEDS_VERIFICATION = "Needs Verification";
+
+function isUsableCurrentRent(value: number | null): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
 
 export const OWNER_RENEWAL_V1_BASE_COPY = Object.freeze({
   subject: "Renewal coming up for {{address}}",
@@ -308,7 +312,9 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
 
   const replacements = {
     address: input.addressLabel,
-    current_rent: formatUsd(input.currentRent),
+    current_rent: isUsableCurrentRent(input.currentRent)
+      ? formatUsd(input.currentRent)
+      : `[${NEEDS_VERIFICATION}: current rent]`,
     range_line: rangeLine,
     trend_line: trendLine,
     suggestion_line: suggestionLine,
@@ -344,6 +350,7 @@ export function deriveCurrentRentFact(
 ): DraftFact {
   const evidence = input.currentRentEvidence;
   const earned =
+    isUsableCurrentRent(input.currentRent) &&
     evidence?.currencyState === "fresh" &&
     (evidence.agreement === "agree" || evidence.agreement === "resolved");
   const baseSource =
@@ -356,7 +363,9 @@ export function deriveCurrentRentFact(
   return {
     key: "current_rent",
     label: "Current rent",
-    value: formatUsd(input.currentRent),
+    value: isUsableCurrentRent(input.currentRent)
+      ? formatUsd(input.currentRent)
+      : `[${NEEDS_VERIFICATION}: current rent]`,
     source,
     confidence: earned ? "Verified" : NEEDS_VERIFICATION,
   };

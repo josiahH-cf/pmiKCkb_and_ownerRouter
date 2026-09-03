@@ -6,6 +6,7 @@ import {
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
+import { claimActiveS97RenewalEffect } from "@/lib/firestore/s97-renewal-writeback-claim";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import {
   RentVineClient,
@@ -57,6 +58,7 @@ export function buildLiveRenewalWritebackDeps(
 ): RenewalWritebackDependencies | { status: "not_configured" } {
   const config = liveRentVineConfig();
   if (!config) return { status: "not_configured" };
+  const db = getAdminFirestore();
   let readClient: RentVineClient | null = null;
   const reader = () =>
     (readClient ??= new RentVineClient(
@@ -65,7 +67,7 @@ export function buildLiveRenewalWritebackDeps(
     ));
   return {
     descriptor,
-    store: new FirestoreExternalExecutionStore(getAdminFirestore()),
+    store: new FirestoreExternalExecutionStore(db),
     reads: {
       getLease: (leaseId) => reader().getLease(leaseId),
       getRecurringCharge: (leaseId, chargeId) =>
@@ -81,5 +83,6 @@ export function buildLiveRenewalWritebackDeps(
       isExecutable: () => isProductionRuntimeActionExecutable(actionKey),
       run: (effect) => runProductionRuntimeGatedAction(actionKey, effect),
     }),
+    claimActiveEffect: (input) => claimActiveS97RenewalEffect(db, input),
   };
 }

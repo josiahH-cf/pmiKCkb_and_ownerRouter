@@ -59,7 +59,10 @@ export async function fetchMonitoringState(config, dependencies = {}) {
   let request = dependencies.request;
   if (request === undefined) {
     try {
-      request = await resolveAuthenticatedRequest(dependencies.authFactory);
+      request = await resolveAuthenticatedRequest(
+        dependencies.authFactory,
+        dependencies.signal,
+      );
     } catch {
       return {
         ...emptyState,
@@ -85,6 +88,7 @@ export async function fetchMonitoringState(config, dependencies = {}) {
         collection,
         request,
         dependencies.maxPages ?? MAX_PAGES_PER_COLLECTION,
+        dependencies.signal,
       );
     } catch {
       state.errors.push(`${collection.key}_read_failed`);
@@ -209,6 +213,7 @@ export async function main(
       request: dependencies.request,
       authFactory: dependencies.authFactory,
       maxPages: dependencies.maxPages,
+      signal: dependencies.signal,
     });
     const report = evaluateMonitoringState(config, state, bundle);
     const output = config.json
@@ -229,7 +234,7 @@ export async function main(
   }
 }
 
-async function resolveAuthenticatedRequest(authFactory) {
+async function resolveAuthenticatedRequest(authFactory, signal) {
   let auth;
   if (authFactory) {
     auth = await authFactory();
@@ -251,10 +256,10 @@ async function resolveAuthenticatedRequest(authFactory) {
   if (typeof client.getAccessToken === "function") {
     await client.getAccessToken();
   }
-  return (options) => client.request(options);
+  return (options) => client.request({ ...options, ...(signal ? { signal } : {}) });
 }
 
-async function readCollectionPages(project, collection, request, maxPages) {
+async function readCollectionPages(project, collection, request, maxPages, signal) {
   if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > 1000) {
     throw new Error("Invalid pagination bound.");
   }
@@ -273,7 +278,11 @@ async function readCollectionPages(project, collection, request, maxPages) {
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     assertReadRequest("GET", url);
 
-    const response = await request({ method: "GET", url: url.toString() });
+    const response = await request({
+      method: "GET",
+      url: url.toString(),
+      ...(signal ? { signal } : {}),
+    });
     const data = response?.data ?? response;
     if (!isPlainObject(data)) throw new Error("Malformed API response.");
     const pageRecords = data[collection.responseKey] ?? [];

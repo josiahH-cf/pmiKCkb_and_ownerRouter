@@ -5,6 +5,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
+import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
 import {
   RENEWAL_COMPLETION_REQUIREMENTS,
   buildRenewalEvidenceReference,
@@ -95,5 +96,146 @@ describe("RenewalWorkspace live mode", () => {
       screen.queryByRole("button", { name: "Prepare tenant email" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/Composes an unsent Gmail draft/)).toBeInTheDocument();
+  });
+
+  it("pauses progress-dependent draft controls when saved progress cannot be verified", () => {
+    const workspace = tenantPhaseWorkspace();
+    render(
+      <RenewalWorkspace
+        auxiliaryFailures={[{ key: "progress", status: "failed" }]}
+        selectedStepId="tenant-decision"
+        workspace={workspace}
+      />,
+    );
+
+    expect(screen.getByText("Supporting information unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Saved progress unavailable" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Waiting on the tenant")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
+    expect(screen.getAllByText("State unavailable")).toHaveLength(7);
+    expect(document.querySelector('[data-current="true"]')).not.toBeInTheDocument();
+    expect(document.querySelectorAll('[data-state="unavailable"]')).toHaveLength(6);
+    expect(screen.getAllByRole("link", { name: /State unavailable/ })).toHaveLength(6);
+    expect(screen.getAllByText(/Dependent actions are paused/i).length).toBeGreaterThan(
+      0,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Preview review-only copy" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders source-update controls only inside the verification phase", () => {
+    const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2");
+    if (!workspace) throw new Error("Missing sample workspace.");
+
+    const { rerender } = render(
+      <RenewalWorkspace
+        operatingSheetPanel={<div>Sheet proposal controls</div>}
+        rentvineUpdatesPanel={<div>RentVine proposal controls</div>}
+        resolutionDestinations={[
+          {
+            fieldKey: "current_rent",
+            href: "/lease-renewal/live#renewal-review-item-current-rent",
+          },
+        ]}
+        selectedStepId="owner-decision"
+        workspace={workspace}
+      />,
+    );
+    expect(screen.queryByText("Sheet proposal controls")).not.toBeInTheDocument();
+    expect(screen.queryByText("RentVine proposal controls")).not.toBeInTheDocument();
+
+    rerender(
+      <RenewalWorkspace
+        operatingSheetPanel={<div>Sheet proposal controls</div>}
+        rentvineUpdatesPanel={<div>RentVine proposal controls</div>}
+        resolutionDestinations={[
+          {
+            fieldKey: "current_rent",
+            href: "/lease-renewal/live#renewal-review-item-current-rent",
+          },
+        ]}
+        selectedStepId="verify-renewal"
+        workspace={workspace}
+      />,
+    );
+    expect(screen.getByText("Sheet proposal controls")).toBeInTheDocument();
+    expect(screen.getByText("RentVine proposal controls")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Review and resolve this source item" }),
+    ).toHaveAttribute("href", "/lease-renewal/live#renewal-review-item-current-rent");
+  });
+
+  it("keeps an untracked out-of-window workspace inspection-only", () => {
+    const current = getRenewalLeaseWorkspace("lease-1207-walnut-2");
+    if (!current) throw new Error("Missing sample workspace.");
+    const workspace: RenewalLeaseWorkspace = {
+      ...current,
+      workflowAvailable: false,
+      live: undefined,
+      tenantDraft: null,
+      summary: {
+        ...current.summary,
+        disposition: "out_of_window",
+        reason: "out_of_window",
+        reasonLabel: "Outside this window",
+        retention: { state: "outside", label: "Outside the active renewal window" },
+        processVersion: null,
+        workflowStepId: null,
+        stageIndex: -1,
+        stageLabel: null,
+        nextAction: null,
+        sourceDestinations: {
+          rentvine: {
+            kind: "external",
+            href: "https://pmikcmetro.rentvine.com/leases/4821",
+            label: "RentVine lease 4821",
+          },
+        },
+      },
+    };
+
+    render(
+      <RenewalWorkspace
+        discrepancyPanel={<div>Discrepancy controls</div>}
+        operatingSheetPanel={<div>Sheet proposal controls</div>}
+        rentvineUpdatesPanel={<div>RentVine proposal controls</div>}
+        resolutionDestinations={[
+          {
+            fieldKey: "current_rent",
+            href: "/lease-renewal/live#renewal-review-item-current-rent",
+          },
+        ]}
+        selectedStepId="owner-decision"
+        sheetDestination={{
+          kind: "external",
+          href: "https://docs.google.com/spreadsheets/d/sheet-id/edit",
+          label: "Operating renewal Sheet",
+        }}
+        workspace={workspace}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Inspection only" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Renewal phases" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Do this next" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Discrepancy controls")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sheet proposal controls")).not.toBeInTheDocument();
+    expect(screen.queryByText("RentVine proposal controls")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Review and resolve this source item" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open this lease in RentVine" }),
+    ).toHaveAttribute("href", "https://pmikcmetro.rentvine.com/leases/4821");
+    expect(
+      screen.getByRole("link", { name: "Open the operating renewal Sheet" }),
+    ).toBeInTheDocument();
   });
 });

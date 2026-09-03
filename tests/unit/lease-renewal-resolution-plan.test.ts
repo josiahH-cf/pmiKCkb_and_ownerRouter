@@ -13,6 +13,7 @@ const FLAG: ResolvableFlag = {
   run_id: "run-1",
   field_key: "renewal_date",
   field_label: "Renewal date",
+  candidate_fingerprint: "candidate-fingerprint-1",
   severity: "High",
   suggested_source: "rentvine",
   candidate_sources: [
@@ -27,7 +28,10 @@ const MEDIUM_FLAG: ResolvableFlag = {
 };
 
 function parse(input: Record<string, unknown>) {
-  return ResolveLeaseRenewalFlagInputSchema.parse(input);
+  return ResolveLeaseRenewalFlagInputSchema.parse({
+    candidate_fingerprint: FLAG.candidate_fingerprint,
+    ...input,
+  });
 }
 
 describe("planLeaseRenewalResolution", () => {
@@ -66,6 +70,27 @@ describe("planLeaseRenewalResolution", () => {
     expect(() => planLeaseRenewalResolution(FLAG, input)).toThrow(EditableLayerError);
   });
 
+  it("rejects a source label that maps to more than one candidate", () => {
+    const ambiguousFlag: ResolvableFlag = {
+      ...FLAG,
+      candidate_sources: [
+        ...FLAG.candidate_sources,
+        { source: "rentvine", value: "2026-11-01" },
+      ],
+    };
+    const input = parse({
+      run_id: ambiguousFlag.run_id,
+      source_trigger_key: ambiguousFlag.source_trigger_key,
+      kind: "pick_source",
+      chosen_source: "rentvine",
+      reason: "Attempting to choose an ambiguous provider candidate.",
+    });
+
+    expect(() => planLeaseRenewalResolution(ambiguousFlag, input)).toThrow(
+      "The chosen source is ambiguous for this record.",
+    );
+  });
+
   it("resolves with a corrected value (neither source is right)", () => {
     const plan = planLeaseRenewalResolution(
       FLAG,
@@ -84,6 +109,28 @@ describe("planLeaseRenewalResolution", () => {
     expect(plan.proposed_writeback?.source_of_value).toBe("corrected_value");
     expect(plan.proposed_writeback?.production_allowed).toBe(false);
   });
+
+  it.each(["not rent", "0", "-25", "1e3", "$1,2.00"])(
+    "refuses invalid corrected current rent %s",
+    (correctedValue) => {
+      const rentFlag: ResolvableFlag = {
+        ...FLAG,
+        field_key: "current_rent",
+        field_label: "Current rent",
+      };
+      const input = parse({
+        run_id: rentFlag.run_id,
+        source_trigger_key: rentFlag.source_trigger_key,
+        kind: "corrected_value",
+        corrected_value: correctedValue,
+        reason: "Neither source reflects the executed lease.",
+      });
+
+      expect(() => planLeaseRenewalResolution(rentFlag, input)).toThrow(
+        "Current rent requires a positive currency value.",
+      );
+    },
+  );
 
   it("dismisses a false-positive flag with no proposed write-back", () => {
     const plan = planLeaseRenewalResolution(

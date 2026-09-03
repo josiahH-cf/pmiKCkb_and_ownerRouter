@@ -58,7 +58,7 @@ export const RENTVINE_SOURCE_SYSTEM = "Rentvine (read-authoritative)";
  * Flatten Rentvine lease-EXPORT rows into flat lease "views" the field map can read. Confirmed live:
  * the plain /leases list omits tenant names and carries no rent, so the live read uses /leases/export
  * — where the tenant names live on `lease.tenants[].name` and the contractual rent on `unit.rent`.
- * This lifts `unit.rent` onto the lease view as `currentRent` (without clobbering a real field) and
+ * This lifts `unit.rent` onto the lease view as canonical `currentRent` and
  * keeps `lease.tenants[]` for the name join. It also preserves the export row's measured unit/property
  * and owner-bearing siblings (`unit`, `property`, `portfolio`, `owner`, `owners`) on the view. The unit
  * sibling carries the authoritative bedroom/bathroom facts used by the RentCast query, while the lease
@@ -71,17 +71,23 @@ export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
     // export endpoint must never deny the whole read (matches the per-lease graceful-skip contract).
     if (!row || typeof row !== "object" || Array.isArray(row)) return [];
     const record = row as Record<string, unknown>;
-    const lease = (
-      record.lease && typeof record.lease === "object" ? record.lease : record
-    ) as Record<string, unknown>;
+    const nestedLease =
+      record.lease && typeof record.lease === "object" && !Array.isArray(record.lease);
+    const lease = (nestedLease ? record.lease : record) as Record<string, unknown>;
     const unit = (
-      record.unit && typeof record.unit === "object" ? record.unit : {}
+      record.unit && typeof record.unit === "object" && !Array.isArray(record.unit)
+        ? record.unit
+        : {}
     ) as Record<string, unknown>;
     const view: Record<string, unknown> = { ...lease };
+    // A nested export row's top-level `unit` sibling is the contractual unit. Never retain a
+    // rent-shaped `lease.unit` object from the nested payload: doing so lets the nested object shadow
+    // the top-level export value in `currentRentHit`. An explicit empty object also preserves the
+    // fail-closed rule when the top-level unit is missing or malformed.
+    if (nestedLease) view.unit = unit;
     // Export contract: unit.rent is the documented contractual rent. Canonicalize it even when a
-    // lease-level rent-shaped field is also present so every consumer uses the same unit-first
-    // precedence as the Console. The original lease keys remain available for the bodyless
-    // discrepancy diagnostic; they simply cannot shadow the canonical currentRent.
+    // lease-level rent-shaped field is also present. The canonical reader below treats the explicit
+    // unit object as authoritative, so an absent unit.rent never falls through to a lookalike.
     if (unit.rent !== undefined && unit.rent !== null) {
       view.currentRent = unit.rent;
     }
@@ -121,7 +127,7 @@ export function leaseCurrentRent(
   lease: RawLease,
   fieldMap: RentVineLeaseFieldMap = DEFAULT_RENTVINE_LEASE_FIELD_MAP,
 ): number | undefined {
-  const hit = firstPresentKey(lease, fieldMap.currentRent);
+  const hit = currentRentHit(lease, fieldMap.currentRent);
   return hit ? (toRentNumber(hit.value) ?? undefined) : undefined;
 }
 
@@ -235,6 +241,21 @@ function firstPresentKey(
   return null;
 }
 
+/**
+ * Export-shaped views carry an explicit `unit` object and therefore accept only `unit.rent` as
+ * contractual base rent. Flat legacy fixtures without a unit retain the configurable fallback.
+ */
+function currentRentHit(
+  lease: RawLease,
+  fallbackKeys: string[],
+): { key: string; value: unknown } | null {
+  if (lease.unit && typeof lease.unit === "object" && !Array.isArray(lease.unit)) {
+    const unit = lease.unit as Record<string, unknown>;
+    return isPresent(unit.rent) ? { key: "currentRent", value: unit.rent } : null;
+  }
+  return firstPresentKey(lease, fallbackKeys);
+}
+
 /** Resolve a tenant name from the lease, falling back to a nested tenants[] array (export shape). */
 function resolveTenant(
   lease: RawLease,
@@ -314,7 +335,7 @@ export function mapLeasesToNonSheetCandidates(
   for (const lease of leases) {
     const tenant = resolveTenant(lease, fieldMap.tenantName);
     const dateHit = firstPresentKey(lease, fieldMap.renewalDate);
-    const rentHit = firstPresentKey(lease, fieldMap.currentRent);
+    const rentHit = currentRentHit(lease, fieldMap.currentRent);
     const leaseIdHit = firstPresentKey(lease, ["leaseID", "leaseId", "id"]);
     // Canonical join id ("lease:123") — byte-identical to rentvineJoinIdFromCell so a sheet row's
     // hyperlink id and this candidate's id match exactly (lease-renewal/rentvine-link).

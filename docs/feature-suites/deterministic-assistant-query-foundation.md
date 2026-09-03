@@ -110,21 +110,46 @@ call `/api/ask` as an HTTP service or construct a second query pipeline.
 
 Create one versioned `AssistantIntentRegistryV1` whose allowed intent keys are:
 
-| Intent key                       | Observable question family                                             | Adapter composition boundary                                                        |
-| -------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `work.today`                     | Work assigned to the actor for the resolved business date              | S90 actor-scoped My Work adapter                                                    |
-| `work.blocked`                   | Work currently blocked for the actor                                   | S90 actor-scoped blocked-work adapter                                               |
-| `approval.needs_my_decision`     | Decisions or approvals that the actor may review                       | S90 availability-aware actor-visible decision adapter                               |
-| `approval.my_submitted_requests` | Requester-visible approvals the actor is waiting on                    | S90 registered owning-domain histories; S83 access requests are the initial family  |
-| `renewal.window`                 | Lease renewals in an explicit deterministic time window                | S91 canonical renewal adapter; dates resolve in the documented business timezone    |
-| `renewal.blocked`                | Canonical renewal items with current causal blockers                   | S91 adapter consuming S82 blocker truth or its explicit partial compatibility state |
-| `access.mine`                    | Current session role and Spaces; inherited capability labels after S83 | S90 session projection; S83 may add only its verified effective-access projection   |
-| `guidance.knowledge`             | How-to, policy, or published-process guidance                          | S92 source-backed knowledge adapter                                                 |
+| Intent key                       | Observable question family                                 | Adapter composition boundary                                                                |
+| -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `work.today`                     | Work assigned to the actor for the resolved business date  | S90 actor-scoped My Work adapter                                                            |
+| `work.blocked`                   | Work currently blocked for the actor                       | S90 actor-scoped blocked-work adapter                                                       |
+| `approval.needs_my_decision`     | Decisions or approvals that the actor may review           | S90 availability-aware actor-visible decision adapter                                       |
+| `approval.my_submitted_requests` | Requester-visible approvals the actor is waiting on        | S90 registered owning-domain histories; S83 access requests are the initial family          |
+| `renewal.window`                 | Lease renewals in an explicit deterministic time window    | S91 canonical renewal adapter; dates resolve in the documented business timezone            |
+| `renewal.blocked`                | Canonical renewal items with current causal blockers       | S91 adapter consuming S82 blocker truth or its explicit partial compatibility state         |
+| `access.mine`                    | Current session role and Spaces plus S83 capability labels | S90 session projection; deployed S83 supplies only its verified effective-access projection |
+| `guidance.knowledge`             | How-to, policy, or published-process guidance              | S92 source-backed knowledge adapter                                                         |
 
 `unsupported` and `ambiguous` are router outcomes, not intents. An adapter or another suite cannot
 add an intent by accepting a free-form name at runtime; registry parity fails until a new key has an
 owner, deterministic matcher and parser, authorization declaration, adapter composition, result
 schema, safe recovery, test corpus, and documentation.
+
+### Public V1 capability manifest and representative-language corpus
+
+The same registry also owns one value-only `AssistantCapabilityManifestV1` projection for S93. It
+contains only `schema_version: "assistant-capability-manifest-v1"`,
+`question_context: "independent"`, the eight intent keys above in registry order, one short
+user-facing title and one or more exact example questions for each intent, and the fixed action
+boundary `Only an eligible renewal result can offer Create my task after Review and Confirm.` It
+contains no actor id, role, Space membership, source availability, customer value, result count,
+route parameter, model field, or runtime registration. The manifest explains what V1 recognizes; it
+does not claim that the current actor may read every domain or that a source is healthy. S93 renders
+this projection as its compact `What can I ask?` disclosure and renders the independent-question
+statement beside it. No UI-maintained example list or broader marketing copy may diverge from the
+registry.
+
+The registry test package owns a versioned, non-production `AssistantRepresentativeLanguageV1`
+corpus. For every intent it includes the exact examples named in the approved feature notes and suite
+litmus checks, plus supported case, Unicode punctuation, whitespace, approved contraction, and
+declared filler-word variants. It also includes intentionally rejected near misses: misspellings,
+abbreviated or locale-ambiguous dates, fuzzy owner/tenant labels, unregistered domains, unsupported
+follow-ups, and phrases that tie two intent families. Each row declares only `intent_key` or the exact
+`clarification_required`/`unsupported` outcome and its symbolic filters; it contains no live customer
+data. The deterministic evaluation report lists accepted and rejected counts by intent and variant
+class, rather than hiding one weak family inside an aggregate score. A rejected representative phrase
+cannot be made green by a model, fuzzy match, silent grammar expansion, or test deletion.
 
 The matcher operates on a normalized matching copy of the question and retains the original only for
 the in-memory transcript. Normalization is exact: Unicode NFC; Unicode case fold; trim; collapse every
@@ -372,7 +397,7 @@ envelope: AssistantAdapterEnvelopeV1 or null
 `allowed` has null denial/handoff fields and may invoke the adapter, then carries its validated
 four-state envelope. `denied` has null envelope and invokes no adapter/source; it never becomes a
 result group, source summary, count, or existence signal. A handoff is non-null only for the first
-two codes after S83's server catalog proves that exact capability/Space is requestable, the actor is
+two codes when S83's server catalog proves that exact capability/Space is requestable, the actor is
 eligible to request it, and the guarded route exists. `not_authorized`, disabled S83, record-level
 denial, malformed claims, and nonrequestable authority expose no handoff. Vendor/anonymous/domain
 failures remain pre-query refusals rather than invocation outcomes.
@@ -566,10 +591,9 @@ absolute/protocol-relative URLs, credentials, encoded path traversal, control ch
 unsupported query keys, raw customer text, question text, email, address, reason, and model-provided
 strings.
 
-S83's specified `/admin/access` destination may be registered only after that route exists and its
-direct guard/return-state tests pass. Before then, access results use only current authorized
-destinations or omit the route ref with typed unavailable recovery; S88 never treats the specified
-future path as current route truth.
+S83's deployed `/admin/access` destination is registered only through its current direct guard and
+return-state contract. An S83-absent rollback fixture omits the route ref and uses typed unavailable
+recovery; S88 never invents a replacement path.
 
 S83's general first-party `access.request` builder may accept a larger nested `return_to`, but its S88
 import is the strict intersection with this contract: the complete percent-encoded href must be at
@@ -624,7 +648,8 @@ In scope: strict transport-independent request; request/body bounds; server quer
 deterministic V1 intent manifest and ambiguity behavior; actor-scoped adapter registry/interface;
 complete/partial/unavailable/not-applicable adapter semantics; query terminal/completeness derivation;
 deterministic result groups and empty/error copy; canonical same-origin route-reference registry;
-model-independent authoritative answers; zero product mutation; compatibility seam; focused
+model-independent authoritative answers; the public capability projection and representative-language
+corpus; zero product mutation; compatibility seam; focused
 architecture, role/scope, error, and no-write tests.
 
 Out of scope: streaming event framing/rendering; Dashboard layout; persistent conversation memory;
@@ -632,7 +657,10 @@ free-form follow-up context; model classification; narration or hidden reasoning
 KB prompt/citation behavior; implementation of each domain adapter; task/process/approval/access-
 request creation; any action candidate or execution; notifications/reminders; provider writes;
 external links other than S92 citations; new roles, Spaces, action keys, source semantics, route
-authority, model/provider, analytics product, or production budget change.
+authority, model/provider, analytics product, or production budget change. Operational questions
+outside the eight-key registry—including Maintenance, Workflow Communications, Connections, Internal
+Processes, Notifications, and Admin-readiness state—belong only to the post-S87 S101 expansion and
+must remain `unsupported` in V1.
 
 **Open questions & assumptions.**
 
@@ -641,8 +669,8 @@ finite. `What is blocking me?` resolves to the registered actor-work family; the
 separate source-owned groups rather than fabricating one cross-product status. A question that names
 two unrelated domains receives clarification unless the registry explicitly owns that composite.
 
-`Current access` means the exact role/Space/capability projection in the authenticated session until
-S83 supplies an authorized self-readback service. The answer must label that currency and may tell a
+`Current access` means the exact role/Space/capability projection in the authenticated session plus
+the deployed S83 authorized self-readback contract. The answer must label that currency and may tell a
 user to refresh authentication after a verified grant; it cannot claim the latest Firebase directory
 state from client claims alone.
 
@@ -695,6 +723,10 @@ No provider, source, Firebase claim, action gate, role, Space, or product record
 - **ARCH-S88-6** — Static import and effect-spy gates prove the query path has no product/business-
   data writer, provider-effect constructor, workflow runner, draft creator, generic executor, or
   Action Registry mutation. Only S89 bodyless telemetry is an allowed non-authoritative side channel.
+- **ARCH-S88-7** — The server-owned intent registry produces the complete public capability manifest
+  and representative-language corpus report. Registry/example/corpus parity fails on a missing or
+  extra intent, UI-authored example, undeclared grammar expansion, hidden per-intent failure, actor or
+  customer field, or action claim beyond S94's one exact V1 kind.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -716,6 +748,11 @@ No provider, source, Firebase claim, action gate, role, Space, or product record
   malformed, rate-limited, timed out, or cancelled before narration.
 - **BEH-S88-7** — Asking a question alone creates no task, process run, Placeholder, approval, access
   request, renewal progress, draft, notification, provider effect, or source/evidence change.
+- **BEH-S88-8** — A user can inspect all and only the eight supported V1 question families, understand
+  that each question is routed independently, and copy an exact example into the composer. An
+  unsupported or ambiguous result points back to that same bounded capability projection without
+  implying fuzzy matching, conversation memory, broader operational coverage, or current source
+  availability.
 
 **Human litmus outcome.**
 
@@ -756,15 +793,16 @@ process, creating a task or approval, changing a lease, or contacting anyone.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                       | Architecture outcome | Behavior outcome         | Human litmus                            | Deterministic evidence / falsification                                                                                                                                                                                                         |
-| ------------------------------------------------- | -------------------- | ------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Strict bounded request and server-owned actor     | `ARCH-S88-1`         | `BEH-S88-1`, `BEH-S88-4` | Ask an ambiguous question               | Schema/route tests reject unknown fields, unsupported versions, >2,000 code points, >16 KiB, arrays, client actor/role/scope/intent/filter/model/action, and prove no dependency call.                                                         |
-| Deterministic finite intent routing               | `ARCH-S88-2`         | `BEH-S88-1`              | Ask for work; Ask an ambiguous question | Golden phrase, punctuation/case/Unicode, tie, missing-filter, no-match, order, and registry parity tests run with a model-constructor spy.                                                                                                     |
-| Actor-scoped adapter and four-state truth         | `ARCH-S88-3`         | `BEH-S88-2/3/4`          | Ask for work; Recover                   | Role × Space × source-state matrices prove pre-load denial, complete empty, partial, unavailable, not-applicable, exception, timeout, malformed output, truncation, and that each closed private payload reaches only its registered consumer. |
-| Model-independent structured authoritative result | `ARCH-S88-4`         | `BEH-S88-2/3/6`          | Ask for work; Recover                   | Snapshot/property tests derive terminal/completeness/count/order/notices identically with no provider, failing provider, shuffled adapter completion, or absent/throwing/slow observer; milestones contain only validated public groups.       |
-| Server-authored clickable application links       | `ARCH-S88-5`         | `BEH-S88-5`              | Ask for work                            | Destination parity and malicious-string tests accept exact canonical routes and reject absolute/protocol-relative/traversal/control/customer/query/model inputs.                                                                               |
-| No write or effect from a query                   | `ARCH-S88-6`         | `BEH-S88-7`              | Ask without causing work                | Static dependency sentinels plus store/provider/action spies prove zero product writes/effects for success, empty, partial, denied, unsupported, retry, and cancellation.                                                                      |
-| Compatible incremental migration                  | `ARCH-S88-1/4/6`     | `BEH-S88-6/7`            | Ask without causing work                | Existing `/api/ask`, KB eval, capture/correction, workflow, Work, approval, renewal, and auth suites remain green while the new service is unreferenced by legacy UI.                                                                          |
+| Requirement                                       | Architecture outcome | Behavior outcome         | Human litmus                             | Deterministic evidence / falsification                                                                                                                                                                                                         |
+| ------------------------------------------------- | -------------------- | ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Strict bounded request and server-owned actor     | `ARCH-S88-1`         | `BEH-S88-1`, `BEH-S88-4` | Ask an ambiguous question                | Schema/route tests reject unknown fields, unsupported versions, >2,000 code points, >16 KiB, arrays, client actor/role/scope/intent/filter/model/action, and prove no dependency call.                                                         |
+| Deterministic finite intent routing               | `ARCH-S88-2`         | `BEH-S88-1`              | Ask for work; Ask an ambiguous question  | Golden phrase, punctuation/case/Unicode, tie, missing-filter, no-match, order, and registry parity tests run with a model-constructor spy.                                                                                                     |
+| Actor-scoped adapter and four-state truth         | `ARCH-S88-3`         | `BEH-S88-2/3/4`          | Ask for work; Recover                    | Role × Space × source-state matrices prove pre-load denial, complete empty, partial, unavailable, not-applicable, exception, timeout, malformed output, truncation, and that each closed private payload reaches only its registered consumer. |
+| Model-independent structured authoritative result | `ARCH-S88-4`         | `BEH-S88-2/3/6`          | Ask for work; Recover                    | Snapshot/property tests derive terminal/completeness/count/order/notices identically with no provider, failing provider, shuffled adapter completion, or absent/throwing/slow observer; milestones contain only validated public groups.       |
+| Server-authored clickable application links       | `ARCH-S88-5`         | `BEH-S88-5`              | Ask for work                             | Destination parity and malicious-string tests accept exact canonical routes and reject absolute/protocol-relative/traversal/control/customer/query/model inputs.                                                                               |
+| No write or effect from a query                   | `ARCH-S88-6`         | `BEH-S88-7`              | Ask without causing work                 | Static dependency sentinels plus store/provider/action spies prove zero product writes/effects for success, empty, partial, denied, unsupported, retry, and cancellation.                                                                      |
+| Compatible incremental migration                  | `ARCH-S88-1/4/6`     | `BEH-S88-6/7`            | Ask without causing work                 | Existing `/api/ask`, KB eval, capture/correction, workflow, Work, approval, renewal, and auth suites remain green while the new service is unreferenced by legacy UI.                                                                          |
+| Discoverable, honestly bounded V1 coverage        | `ARCH-S88-2/7`       | `BEH-S88-1/8`            | Ask an ambiguous or unsupported question | Manifest parity and per-intent corpus reports prove the UI exposes exactly eight families, every approved example routes deterministically, rejected near misses stay rejected, and no aggregate hides an uncovered family.                    |
 
 **Preservation set.**
 
@@ -774,7 +812,8 @@ canonical source links, ordering, idempotency, and truncation; approval queue vi
 transitions; S83 access semantics; S80/S82 renewal role/Space/source/action truth; S84 terminology;
 S85/S86 interaction/accessibility contracts; S87 content ownership; Firebase/session guards;
 Live-only environment; local Live-read-only refusal; Action Registry exact-key separation; permanent
-in-app send refusal; closed RentVine and operating-Sheet writes; secrets/PII scans; and canonical
+in-app send refusal; query-path zero-write behavior even when separately governed exact RentVine or
+operating-Sheet keys are executable; secrets/PII scans; and canonical
 verification remain green as separate gates.
 
 **Adversarial acceptance checks.**
@@ -815,6 +854,11 @@ verification remain green as separate gates.
 - **AC-S88-8** — Existing Ask/KB/process/capture/correction/Work/approval/renewal tests and the full
   preservation set pass independently; a legacy behavior passing cannot substitute for a missing S88
   outcome.
+- **AC-S88-9** — The capability-manifest schema, registry parity, S93 consumer snapshot, and
+  representative-language report fail on any ninth V1 intent, missing registered intent, UI-only
+  example, live-data field, action overclaim, aggregate-only result, model-routed corpus row, or
+  accepted misspelling/fuzzy/unsupported-domain phrase. Every approved example and declared supported
+  language variant passes under a model-constructor spy.
 
 **Forbidden actions / hard gates.**
 
@@ -839,6 +883,10 @@ must emit only S88 states and refs. S94 may project its own actor-bound sealed c
 from current authorized results; no result-local id/route ref becomes later authority, and S94 cannot
 add a write to `runAssistantQuery`. S83 must exist before `access.mine` can
 claim verified directory readback or offer an access request.
+
+S101 is deliberately downstream of S87. It may add deterministic read-only intent contracts only
+through a new registry version after the current eight-intent V1 is deployed and measured. No S101
+domain or example may enter this suite's manifest, tests, or release gate.
 
 **Standalone delivery contract.**
 

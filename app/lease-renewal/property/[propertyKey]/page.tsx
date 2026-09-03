@@ -77,6 +77,7 @@ export default async function LeaseRenewalPropertyPage({
     currentDecisionProjections = buildLeaseRenewalDecisionProjections(
       propertyResolutions,
       propertyApprovals,
+      { currentRuns: run ? [run] : [] },
     );
   } catch {
     activityUnavailable = true;

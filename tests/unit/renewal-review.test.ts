@@ -19,6 +19,7 @@ function makeFlag(
 ): RenewalFlagView {
   return {
     sourceTriggerKey: `lease_renewal:reconcile:run:${fieldKey}`,
+    candidateFingerprint: overrides.candidateFingerprint ?? `rcf1_${"a".repeat(64)}`,
     fieldKey,
     fieldLabel: overrides.fieldLabel ?? fieldKey,
     severity,

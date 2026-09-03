@@ -3,8 +3,10 @@
 
 # S95 — Minimal Dashboard composition and relocation
 
-> Status: Specified on 2026-08-31; Production still renders the current Console composition at both
-> `/` and `/ask`, and S82–S87 plus S93 remain specified dependencies rather than deployed behavior.
+> Status: Specified and not implemented. Production still renders the current Console composition at
+> both `/` and `/ask`; S82–S86 are deployed prerequisites, S88–S94 remain implementation
+> prerequisites, and S95 consumes S87's already-specified `SF-06`/`CB-01`/`CB-17` manifest before
+> S87 performs the final cross-suite reconciliation.
 
 **Goal.**
 
@@ -64,8 +66,8 @@ are retired from user-facing behavior. Record-specific Internal Process setup st
 The Dashboard body has this complete default order:
 
 1. one page H1 with exact visible text `Dashboard`;
-2. S93's bounded `AI` task region, including only its composer and exchanges created during this
-   mounted page session; and
+2. S93's bounded `AI` task region, including its composer, collapsed `What can I ask?` disclosure,
+   and exchanges created during this mounted page session; and
 3. one compact `My Work` handoff region.
 
 The `AI` region remains `OUT-SF-06`, S87's one primary Dashboard outcome. `My Work` is a secondary
@@ -80,8 +82,10 @@ padding—is the link target. Opening it in the current tab is unchanged ordinar
 new-tab result-link rule does not apply to this Dashboard handoff.
 
 No idle placeholder or empty result panel appears below AI. The page adds no purpose/subtitle below
-`Dashboard`, no “what this page does” text, and no explanation below My Work. S93 owns the assistant's
-field guidance, validation, current processing/result, and recovery at the point of use.
+`Dashboard`, no “what this page does” text, and no explanation below My Work. S93's collapsed
+capability disclosure and independent-question sentence are point-of-use composer help inside AI, not
+a third region or page introduction. S93 owns that help, field guidance, validation, current
+processing/result, and recovery.
 
 S84 has already removed the obsolete Dashboard description
 `See priorities, activity, and app-wide operating status.` S84 remains the navbar-manifest owner and
@@ -224,6 +228,28 @@ structure; there is no unlabeled generic panel. The full-card My Work focus/hove
 uses S85/S86 non-color cues, remains at least the shared target size, and works by keyboard, touch,
 and pointer. Reduced motion changes no information or reachability.
 
+### Authenticated cutover and rollback gate
+
+The two-region body cannot replace the current Console on the strength of build output or anonymous
+route smoke alone. On the exact zero-traffic candidate, run S89's content-free served-browser harness
+with one existing managed Editor and one existing managed Admin session supplied outside Git. At both
+`/` and `/ask`, each actor must see the same two-region order, open the S88 capability disclosure,
+submit every fixed V1 example for which that actor has access, receive the truthful denied/access
+handoff for one fixture outside their scope, open at least one validated result destination in a new
+tab, and open My Work in the current tab. The matrix also visits the relocated owning routes named in
+the disposition table and proves their direct guards and primary capability still work.
+
+The candidate gate fails on any uncaught browser error, unhandled promise rejection, unexplained
+failed same-origin request, route/guard mismatch, blank region, false empty/unavailable state, missing
+terminal, duplicate submit, stale S91 renewal projection, invalid destination, eager retired loader,
+content-bearing telemetry, or unverified client-error alert delivery. It records only actor class,
+route family, intent key, terminal category, pass/fail, and exact revision; no uid, URL parameter,
+question/answer, customer value, response body, screenshot, token, or provider payload is retained.
+After exact promotion, repeat the bounded root/Ask/help/My Work path, one allowed operational intent,
+one denied path, S91 read-only reconciliation, and client-error delivery readback during the stable
+observation window. Failure restores the captured predecessor; it never brings back a mixed old/new
+Dashboard composition or silently disables the gate.
+
 **In scope / out of scope.**
 
 In scope: final `/` and `/ask` body composition; exact H1/region order; compact `/work` handoff;
@@ -281,15 +307,15 @@ No material product question remains open.
 
 **Authority and evidence map.**
 
-| Input                                                                                                    | Classification                   | Use and limitation                                                                                                                                                      |
-| -------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router, `AGENTS.md`, committed code/tests, live readback, and `docs/facts.md`                            | Authority / implementation truth | Preserve current routes, managed-user guards, Live-only posture, role/Space boundaries, provider/action safety, and protected paths.                                    |
-| `ConsoleView`, its five child surfaces, current routes/loaders/providers, and Console/notification tests | Implementation truth             | Establish exact page blocks, eager reads, inline approval, renewal-only Live rows, placeholder anticipation, and cross-surface coverage footprint.                      |
-| `/work`, `/notifications`, `/approval-queue`, `/connections`, renewal, `/spaces`, and `/processes`       | Implementation truth             | Establish real guarded owners for relocated information/actions; their existence does not authorize copying data or bypassing guards.                                   |
-| S82 / S83 / S84 / S85 / S86 / S87                                                                        | Existing specified contracts     | Own renewal presentation, access/connections, navbar/terms, theme, interactions, and content hierarchy. S95 supersedes only the exact conflicting Dashboard rows named. |
-| S88–S94                                                                                                  | Dashboard assistant contracts    | Supply the complete S93 assistant region and typed read/action/privacy behavior. S95 composes them but does not redefine them.                                          |
-| Dashboard decluttering and deeper-AI feature notes                                                       | Intent evidence only             | Require an AI-first zero-clutter home, clickable My Work handoff, panel relocation, no process picker, and Space Coverage removal.                                      |
-| Missing S82/S83 presentation at cutover                                                                  | Adjacent dependency              | Use the current guarded owning route and truthful present state; never keep a duplicate Dashboard panel or guess future behavior.                                       |
+| Input                                                                                                    | Classification                    | Use and limitation                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router, `AGENTS.md`, committed code/tests, live readback, and `docs/facts.md`                            | Authority / implementation truth  | Preserve current routes, managed-user guards, Live-only posture, role/Space boundaries, provider/action safety, and protected paths.                                                      |
+| `ConsoleView`, its five child surfaces, current routes/loaders/providers, and Console/notification tests | Implementation truth              | Establish exact page blocks, eager reads, inline approval, renewal-only Live rows, placeholder anticipation, and cross-surface coverage footprint.                                        |
+| `/work`, `/notifications`, `/approval-queue`, `/connections`, renewal, `/spaces`, and `/processes`       | Implementation truth              | Establish real guarded owners for relocated information/actions; their existence does not authorize copying data or bypassing guards.                                                     |
+| S82 / S83 / S84 / S85 / S86 / S87                                                                        | Deployed owners plus S87 contract | S82–S86 own deployed renewal, access/connections, navbar/terms, theme, and interactions; S87 specifies content hierarchy. S95 supersedes only the exact conflicting Dashboard rows named. |
+| S88–S94                                                                                                  | Dashboard assistant contracts     | Supply the complete S93 assistant region and typed read/action/privacy behavior. S95 composes them but does not redefine them.                                                            |
+| Dashboard decluttering and deeper-AI feature notes                                                       | Intent evidence only              | Require an AI-first zero-clutter home, clickable My Work handoff, panel relocation, no process picker, and Space Coverage removal.                                                        |
+| Missing S82/S83 presentation at cutover                                                                  | Adjacent dependency               | Use the current guarded owning route and truthful present state; never keep a duplicate Dashboard panel or guess future behavior.                                                         |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -311,6 +337,9 @@ No material product question remains open.
 - **ARCH-S95-6** — Dead-code cleanup is reference-driven: Dashboard-only components/providers/tests
   can retire, but shared attention, connection, process, work, renewal, and notification contracts
   remain independently imported/tested on their owning surfaces.
+- **ARCH-S95-7** — One content-free authenticated release matrix binds Admin/Editor browser journeys,
+  S91 reconciliation, S89 client/server telemetry, owning-route reachability, exact revision, and
+  rollback. Anonymous smoke, local fixtures, build success, or server 5xx counts cannot substitute.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -330,6 +359,9 @@ No material product question remains open.
 - **BEH-S95-6** — Dashboard/Internal Processes visible aliases, route compatibility, current guards,
   keyboard/touch/focus behavior, 320px/200%-zoom layout, reduced motion, and AppShell utilities remain
   correct across Editor/Approver/Admin and Space-scope combinations.
+- **BEH-S95-7** — An authenticated Editor and Admin can load either Dashboard alias, understand the
+  bounded assistant, receive allowed and denied results, open exact work destinations, and continue
+  on My Work without a page error, stale renewal answer, lost capability, or leaked browser evidence.
 
 **Human litmus outcome.**
 
@@ -364,25 +396,26 @@ setup.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                      | Architecture outcome | Behavior outcome | Human litmus                                      | Deterministic evidence / falsification                                                                                                                  |
-| ------------------------------------------------ | -------------------- | ---------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exactly AI plus clickable My Work                | `ARCH-S95-1`         | `BEH-S95-1/2`    | Land on a simple Dashboard                        | Exact DOM manifest/order/absence snapshots at both aliases and full-card link interaction tests.                                                        |
-| Remove purpose, picker, panels, and idle clutter | `ARCH-S95-1/2/6`     | `BEH-S95-1`      | Land on a simple Dashboard                        | Named-block absence/static-reference checks; no unnamed CB-17 block survives or moves.                                                                  |
-| Preserve capability at authoritative owners      | `ARCH-S95-2/5/6`     | `BEH-S95-3/6`    | Continue work on the owning surface               | Destination/guard/role/Space matrix and action component tests remain green independently.                                                              |
-| Remove obsolete eager reads                      | `ARCH-S95-3/6`       | `BEH-S95-4`      | Land on a simple Dashboard                        | Server-loader/provider/store call spies at `/` and `/ask`; AppShell polling is separately allow-listed.                                                 |
-| Resolve current Ask controls without hidden loss | `ARCH-S95-2/6`       | `BEH-S95-1/3/4`  | Continue work on the owning surface               | Draft/composer/capture/correction matrix proves exact Dashboard absence or knowledge-only preservation and the named owning survivor/API compatibility. |
-| Retire Space Coverage globally                   | `ARCH-S95-4`         | `BEH-S95-5`      | Remove Space Coverage without breaking real truth | Producer/feed/catalog/UI/API/assistant/static-copy matrix; legacy query returns exact 410 without reads.                                                |
-| Preserve Internal Process setup state            | `ARCH-S95-4/6`       | `BEH-S95-5/6`    | Remove Space Coverage without breaking real truth | `/spaces` state matrix still calls `computeSpaceCardState` and renders process/connection-ready/unavailable fixtures.                                   |
-| Preserve aliases, routes, and internal terms     | `ARCH-S95-1/5`       | `BEH-S95-6`      | Continue work on the owning surface               | `/`, `/ask`, `/spaces`, active-link, H1/copy, stored-provenance, source-symbol, and direct-guard compatibility tests.                                   |
-| Preserve AppShell and accessible layout          | `ARCH-S95-1/5`       | `BEH-S95-1/2/6`  | All                                               | Keyboard/touch/focus/landmark/target-size/forced-color/reduced-motion/320px/200%-zoom plus shell-utility preservation tests.                            |
-| Localize assistant failure                       | `ARCH-S95-1/3`       | `BEH-S95-4`      | Land on a simple Dashboard                        | S93 unavailable/denied/timeout fixtures leave exact My Work link enabled and do not restore/load retired panels.                                        |
-| No new data, authority, or effects               | `ARCH-S95-2/3/6`     | `BEH-S95-2/3/4`  | Continue work on the owning surface               | Network/store/provider/action spies prove only navigation/query-on-submit and no copies, inline approval, runs, checks, writes.                         |
+| Requirement                                      | Architecture outcome | Behavior outcome | Human litmus                                      | Deterministic evidence / falsification                                                                                                                                              |
+| ------------------------------------------------ | -------------------- | ---------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exactly AI plus clickable My Work                | `ARCH-S95-1`         | `BEH-S95-1/2`    | Land on a simple Dashboard                        | Exact DOM manifest/order/absence snapshots at both aliases and full-card link interaction tests.                                                                                    |
+| Remove purpose, picker, panels, and idle clutter | `ARCH-S95-1/2/6`     | `BEH-S95-1`      | Land on a simple Dashboard                        | Named-block absence/static-reference checks; no unnamed CB-17 block survives or moves.                                                                                              |
+| Preserve capability at authoritative owners      | `ARCH-S95-2/5/6`     | `BEH-S95-3/6`    | Continue work on the owning surface               | Destination/guard/role/Space matrix and action component tests remain green independently.                                                                                          |
+| Remove obsolete eager reads                      | `ARCH-S95-3/6`       | `BEH-S95-4`      | Land on a simple Dashboard                        | Server-loader/provider/store call spies at `/` and `/ask`; AppShell polling is separately allow-listed.                                                                             |
+| Resolve current Ask controls without hidden loss | `ARCH-S95-2/6`       | `BEH-S95-1/3/4`  | Continue work on the owning surface               | Draft/composer/capture/correction matrix proves exact Dashboard absence or knowledge-only preservation and the named owning survivor/API compatibility.                             |
+| Retire Space Coverage globally                   | `ARCH-S95-4`         | `BEH-S95-5`      | Remove Space Coverage without breaking real truth | Producer/feed/catalog/UI/API/assistant/static-copy matrix; legacy query returns exact 410 without reads.                                                                            |
+| Preserve Internal Process setup state            | `ARCH-S95-4/6`       | `BEH-S95-5/6`    | Remove Space Coverage without breaking real truth | `/spaces` state matrix still calls `computeSpaceCardState` and renders process/connection-ready/unavailable fixtures.                                                               |
+| Preserve aliases, routes, and internal terms     | `ARCH-S95-1/5`       | `BEH-S95-6`      | Continue work on the owning surface               | `/`, `/ask`, `/spaces`, active-link, H1/copy, stored-provenance, source-symbol, and direct-guard compatibility tests.                                                               |
+| Preserve AppShell and accessible layout          | `ARCH-S95-1/5`       | `BEH-S95-1/2/6`  | All                                               | Keyboard/touch/focus/landmark/target-size/forced-color/reduced-motion/320px/200%-zoom plus shell-utility preservation tests.                                                        |
+| Localize assistant failure                       | `ARCH-S95-1/3`       | `BEH-S95-4`      | Land on a simple Dashboard                        | S93 unavailable/denied/timeout fixtures leave exact My Work link enabled and do not restore/load retired panels.                                                                    |
+| No new data, authority, or effects               | `ARCH-S95-2/3/6`     | `BEH-S95-2/3/4`  | Continue work on the owning surface               | Network/store/provider/action spies prove only navigation/query-on-submit and no copies, inline approval, runs, checks, writes.                                                     |
+| Authenticated production-safe cutover            | `ARCH-S95-7`         | `BEH-S95-3/6/7`  | All                                               | Exact-candidate Admin/Editor matrix, post-promotion bounded rerun, S91 reconciliation, console/network capture, alert-delivery readback, and predecessor restoration gate all pass. |
 
 **Preservation set.**
 
 - Existing `/` and `/ask` page guards, AppShell composition, smoke reachability, and shared-body
   equivalence remain green.
-- S84 wordmark, environment badge, grouped nav when implemented, NotificationMenu count/poll/open,
+- S84 wordmark, environment badge, deployed grouped nav, NotificationMenu count/poll/open,
   S85 Appearance, role chip, Sign out, active-route aliases, and narrow-shell behavior remain.
 - `/work` continues to render the full actor-filtered `WorkAccountabilityBoard`, its source links,
   session/task states, mutation gates, empty/error/retry, and Admin team separation.
@@ -397,8 +430,9 @@ setup.
   guards, and provider/action contracts remain green.
 - `computeSpaceCardState`, `SPACE_CARD_STATE_LABEL`, `SPACE_CARD_STATE_TONE`, `SPACE_CONNECTOR_IDS`,
   record-specific setup-state tests, and unrelated meanings of coverage remain.
-- S82–S94 outcomes and all closed action keys, unsent-draft rules, exact-confirm/idempotency/readback,
-  no-autonomous-send, Live-only, identity, cost, and protected-path boundaries remain separate gates.
+- S82–S94 outcomes and all exact action-key gates, unsent-draft rules, exact-confirm/idempotency/
+  readback, no-autonomous-send, Live-only, identity, cost, and protected-path boundaries remain
+  separate gates; Dashboard query/help/navigation invokes no executable source key.
 
 **Adversarial acceptance checks.**
 
@@ -448,6 +482,11 @@ setup.
   exposes the collapsed S93 correction control, Cancel writes nothing, explicit submit uses the
   current guarded correction schema once, and all operational results omit it. Canonical renewal
   surfaces retain their guarded unsent-draft composer independently.
+- **AC-S95-13** — `ARCH-S95-7` runs the exact candidate with managed Editor/Admin sessions across both
+  aliases, all actor-eligible fixed V1 examples, one denied scope, help/example copy, new-tab result,
+  current-tab My Work, and every relocated owner route. The gate fails on console/unhandled/network/
+  guard/terminal/link/reconciliation/eager-read/alert-delivery drift or any retained identity/content;
+  post-promotion smoke repeats the bounded matrix and restores the exact predecessor on failure.
 
 **Forbidden actions / hard gates.**
 
@@ -478,10 +517,13 @@ setup.
    states, cancellation, mandatory narration, links, Dictate, correction, receipt, and recovery.
 4. After the complete S93 region has a bounded unavailable state, atomically cut both Dashboard
    aliases to S95 composition, retire panel-era reads/components, and apply non-destructive coverage
-   compatibility behavior.
+   compatibility behavior only in an exact candidate.
 5. S95 consumes S87's already-specified `SF-06`, `CB-01`, and `CB-17` manifest contract; it does not
    require S87 implementation. S87 executes once, last, and reconciles all cohorts to the delivered
    S95 Dashboard without reopening this suite.
+6. Promotion requires AC-S95-13: the S89/S93 authenticated browser matrix, S91 source/projection
+   reconciliation, relocated-owner reachability, bodyless monitoring delivery, and exact rollback
+   target all pass. Build, local browser, or unauthenticated route smoke alone cannot advance S95.
 
 S95 is the later, narrower Dashboard content contract. It consumes and preserves S84's already-
 reconciled Dashboard description and supersedes only S87's conflicting SF-06/CB-01/CB-17 Dashboard

@@ -24,6 +24,7 @@
     "smoke:navbar-browser": "node scripts/smoke-navbar-browser.mjs",
     "smoke:renewal-desk-browser": "node scripts/smoke-renewal-desk-browser.mjs",
     "smoke:theme-browser": "node scripts/smoke-theme-browser.mjs",
+    "smoke:work-browser": "node scripts/smoke-work-accountability-browser.mjs",
     "test:watch": "vitest",
     "verify": "bash scripts/verify.sh",
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
@@ -47,6 +48,9 @@
     "killswitch:plan": "node scripts/setup-budget-killswitch.mjs",
     "monitoring:plan": "node scripts/setup-monitoring.mjs",
     "monitoring:verify": "node scripts/verify-monitoring.mjs",
+    "assure:production-canary": "tsx scripts/run-production-canary.ts",
+    "assure:production-reconciliation": "tsx scripts/run-production-reconciliation.ts",
+    "assure:production-observation": "tsx scripts/observe-production-release.ts",
     "rehearse:rollback": "node scripts/rehearse-rollback.mjs",
     "rehearse-rollback": "node scripts/rehearse-rollback.mjs",
     "s56:test-records:count": "node --import tsx scripts/retire-production-test-records.ts count",
@@ -139,7 +143,7 @@
     "vitest": "^4.1.8"
   },
   "overrides": {
-    "fast-uri": "3.1.5",
+    "fast-uri": "3.1.6",
     "hono": "4.12.34",
     "ip-address": "10.3.1",
     "minimatch@>=9": {
@@ -147,6 +151,7 @@
     },
     "nanoid": "3.3.18",
     "postcss": "8.5.25",
+    "qs": "6.16.0",
     "sharp": "0.35.3",
     "uuid": "11.1.1"
   }

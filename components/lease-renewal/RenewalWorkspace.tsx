@@ -24,6 +24,10 @@ import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowU
 import { RenewalFollowUpThreadControl } from "@/components/lease-renewal/RenewalFollowUpThreadControl";
 import { RenewalFollowUpAttentionControl } from "@/components/lease-renewal/RenewalFollowUpAttentionControl";
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
+import {
+  RenewalAuxiliaryNotice,
+  type RenewalAuxiliaryFailure,
+} from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -58,6 +62,8 @@ const READINESS_STATUS_LABEL: Record<ReadinessStatus, string> = {
 const RECON_PILL: Record<DeskReconItem["agreement"], { value: string; label: string }> = {
   conflict: { value: "Action Required", label: "Needs your decision" },
   agree: { value: "Low", label: "Agrees" },
+  resolved: { value: "Low", label: "Resolved" },
+  dismissed: { value: "Low", label: "Disposition recorded" },
   single_source: { value: "Needs Verification", label: "One source" },
   missing: { value: "Needs Verification", label: "Needs input" },
 };
@@ -69,11 +75,13 @@ export function renewalStepTargetId(stepId: string): string {
 function resolveSelectedStep(
   workspace: RenewalLeaseWorkspace,
   requested: string | undefined,
+  progressStateAvailable: boolean,
 ): RenewalProcessStepId {
   const ids = workspace.process.steps.map((step) => step.id);
   if (requested && (ids as string[]).includes(requested)) {
     return requested as RenewalProcessStepId;
   }
+  if (!progressStateAvailable) return ids[0];
   return workspace.process.steps[workspace.process.currentStepIndex]?.id ?? ids[0];
 }
 
@@ -88,6 +96,8 @@ export function RenewalWorkspace({
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
   sheetDestination = null,
+  auxiliaryFailures = [],
+  resolutionDestinations = [],
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -99,19 +109,30 @@ export function RenewalWorkspace({
   deskView?: string | null;
   /** The page-supplied discrepancy resolution panel, rendered inside the verify phase. */
   discrepancyPanel?: ReactNode;
-  /** S97: the page-supplied RentVine update proposal/review panel, phase-independent. */
+  /** S97: the page-supplied RentVine update proposal/review panel, shown only in verification. */
   rentvineUpdatesPanel?: ReactNode;
-  /** S98: the page-supplied operating-Sheet proposal/review panel, phase-independent. */
+  /** S98: the page-supplied operating-Sheet proposal/review panel, shown only in verification. */
   operatingSheetPanel?: ReactNode;
   /** Server-validated operating-Sheet link for the verify phase's source evidence. */
   sheetDestination?: ExternalDeskDestination | null;
+  /** Symbolic supporting-read failures. Values/errors never enter this client-safe projection. */
+  auxiliaryFailures?: readonly RenewalAuxiliaryFailure[];
+  /** Exact Live-review anchors for unresolved source items in this lease. */
+  resolutionDestinations?: readonly {
+    fieldKey: string;
+    href: string;
+  }[];
 }>) {
   const { summary } = workspace;
   const process = workspace.process;
-  const currentStep = process.steps[process.currentStepIndex];
-  const selected = resolveSelectedStep(workspace, selectedStepId);
-  const selectedStep = process.steps.find((step) => step.id === selected) ?? currentStep;
   const dataExpired = workspace.dataCurrency?.state === "expired";
+  const unavailableKeys = new Set(auxiliaryFailures.map((failure) => failure.key));
+  const progressStateAvailable = !unavailableKeys.has("progress");
+  const projectedCurrentStep = process.steps[process.currentStepIndex];
+  const currentStep = progressStateAvailable ? projectedCurrentStep : undefined;
+  const selected = resolveSelectedStep(workspace, selectedStepId, progressStateAvailable);
+  const selectedStep =
+    process.steps.find((step) => step.id === selected) ?? projectedCurrentStep;
 
   return (
     <div className="ui-stack">
@@ -121,45 +142,92 @@ export function RenewalWorkspace({
         title={summary.addressLabel}
       />
 
-      <PhaseRail
-        currentIndex={process.currentStepIndex}
-        deskView={deskView}
-        leaseId={summary.id}
-        selectedId={selectedStep.id}
-        steps={process.steps}
-      />
+      <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
 
-      <DoThisNext deskView={deskView} leaseId={summary.id} workspace={workspace} />
-
-      {dataExpired ? (
-        <Card>
-          <div role="status">
-            <h2 className="ui-card-title">Data too old to act on</h2>
-            <p className="muted">
-              This lease data is past the freshness limit, so recording a decision and
-              composing drafts are paused. Open the Renewals desk and refresh the data,
-              then come back to this lease.
+      {!workspace.workflowAvailable ? (
+        <>
+          <Card title="Inspection only">
+            <p className="muted" role="status">
+              {summary.reasonLabel}. This lease is available for source inspection, but
+              renewal progress, decisions, drafts, and source updates are unavailable
+              here.
             </p>
-          </div>
-        </Card>
-      ) : null}
+          </Card>
+          <section aria-label="Source facts" className="ui-stack">
+            <PhaseContent
+              compScreenshotExecutable={false}
+              dataExpired={dataExpired}
+              discrepancyPanel={null}
+              followUpControlsAvailable={false}
+              packetSnapshot={null}
+              packetStateAvailable={false}
+              progressStateAvailable={false}
+              rentSuggestionAvailable={false}
+              rentvineUpdatesPanel={null}
+              resolutionDestinations={[]}
+              role={role}
+              sheetProposalPanel={null}
+              sheetDestination={sheetDestination}
+              stepId="verify-renewal"
+              workspace={workspace}
+            />
+          </section>
+        </>
+      ) : (
+        <>
+          <PhaseRail
+            currentIndex={process.currentStepIndex}
+            deskView={deskView}
+            leaseId={summary.id}
+            progressStateAvailable={progressStateAvailable}
+            selectedId={selectedStep.id}
+            steps={process.steps}
+          />
 
-      <SelectedPhase
-        compScreenshotExecutable={compScreenshotExecutable}
-        currentStep={currentStep}
-        dataExpired={dataExpired}
-        deskView={deskView}
-        discrepancyPanel={discrepancyPanel}
-        packetSnapshot={packetSnapshot}
-        role={role}
-        selectedStep={selectedStep}
-        sheetDestination={sheetDestination}
-        workspace={workspace}
-      />
+          <DoThisNext
+            deskView={deskView}
+            leaseId={summary.id}
+            progressStateAvailable={progressStateAvailable}
+            workspace={workspace}
+          />
 
-      {rentvineUpdatesPanel}
+          {dataExpired ? (
+            <Card>
+              <div role="status">
+                <h2 className="ui-card-title">Data too old to act on</h2>
+                <p className="muted">
+                  This lease data is past the freshness limit, so recording a decision and
+                  composing drafts are paused. Open the Renewals desk and refresh the
+                  data, then come back to this lease.
+                </p>
+              </div>
+            </Card>
+          ) : null}
 
-      {operatingSheetPanel}
+          <SelectedPhase
+            compScreenshotExecutable={compScreenshotExecutable}
+            currentStep={currentStep}
+            dataExpired={dataExpired}
+            deskView={deskView}
+            discrepancyPanel={discrepancyPanel}
+            followUpControlsAvailable={
+              !unavailableKeys.has("communications") &&
+              !unavailableKeys.has("dismissed_attention")
+            }
+            packetSnapshot={packetSnapshot}
+            packetStateAvailable={!unavailableKeys.has("packet")}
+            progressStateAvailable={progressStateAvailable}
+            rentSuggestionAvailable={!unavailableKeys.has("rent_suggestion")}
+            rentvineUpdatesPanel={rentvineUpdatesPanel}
+            resolutionDestinations={resolutionDestinations}
+            role={role}
+            selectedStep={selectedStep}
+            sheetProposalPanel={operatingSheetPanel}
+            sheetDestination={sheetDestination}
+            workspace={workspace}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -170,19 +238,22 @@ function PhaseRail({
   selectedId,
   leaseId,
   deskView,
+  progressStateAvailable,
 }: Readonly<{
   steps: readonly RenewalStepProjection[];
   currentIndex: number;
   selectedId: string;
   leaseId: string;
   deskView: string | null;
+  progressStateAvailable: boolean;
 }>) {
   return (
     <nav aria-label="Renewal phases" className="renewal-phase-rail">
       <ol>
         {steps.map((step, index) => {
-          const stateLabel =
-            step.state === "complete"
+          const stateLabel = !progressStateAvailable
+            ? "State unavailable"
+            : step.state === "complete"
               ? "Complete"
               : index === currentIndex
                 ? "Current"
@@ -191,9 +262,11 @@ function PhaseRail({
                   : "Upcoming";
           return (
             <li
-              data-current={index === currentIndex || undefined}
+              data-current={
+                (progressStateAvailable && index === currentIndex) || undefined
+              }
               data-selected={step.id === selectedId || undefined}
-              data-state={step.state}
+              data-state={progressStateAvailable ? step.state : "unavailable"}
               key={step.id}
             >
               <Link
@@ -219,13 +292,25 @@ function DoThisNext({
   workspace,
   leaseId,
   deskView,
+  progressStateAvailable,
 }: Readonly<{
   workspace: RenewalLeaseWorkspace;
   leaseId: string;
   deskView: string | null;
+  progressStateAvailable: boolean;
 }>) {
   const process = workspace.process;
   const currentStep = process.steps[process.currentStepIndex];
+  if (!progressStateAvailable) {
+    return (
+      <Card title="Saved progress unavailable">
+        <p className="muted">
+          Saved renewal progress could not be read. Refresh this page before relying on
+          the current phase or taking a progress-dependent action.
+        </p>
+      </Card>
+    );
+  }
   if (process.status === "complete") {
     return (
       <Card title="Renewal complete">
@@ -269,7 +354,7 @@ function DoThisNext({
       ) : null}
       <p>
         <Link
-          className="text-link"
+          className="text-link renewal-workspace-link"
           href={buildWorkspaceHref({ leaseId, step: currentStep.id, deskView })}
         >
           Go to {currentStep.shortLabel}
@@ -289,7 +374,13 @@ function SelectedPhase({
   packetSnapshot,
   discrepancyPanel,
   sheetDestination,
-  leaseId,
+  progressStateAvailable,
+  packetStateAvailable,
+  followUpControlsAvailable,
+  rentSuggestionAvailable,
+  rentvineUpdatesPanel,
+  sheetProposalPanel,
+  resolutionDestinations,
   deskView,
 }: Readonly<{
   workspace: RenewalLeaseWorkspace;
@@ -301,15 +392,24 @@ function SelectedPhase({
   packetSnapshot: RenewalPacketSnapshot | null;
   discrepancyPanel: ReactNode;
   sheetDestination: ExternalDeskDestination | null;
-  leaseId?: string;
+  progressStateAvailable: boolean;
+  packetStateAvailable: boolean;
+  followUpControlsAvailable: boolean;
+  rentSuggestionAvailable: boolean;
+  rentvineUpdatesPanel: ReactNode;
+  sheetProposalPanel: ReactNode;
+  resolutionDestinations: readonly { fieldKey: string; href: string }[];
   deskView: string | null;
 }>) {
   const process = workspace.process;
   const selectedIndex = process.steps.findIndex((step) => step.id === selectedStep.id);
-  const isCurrent = selectedIndex === process.currentStepIndex;
-  const isCompleted = selectedStep.state === "complete";
+  const isCurrent = progressStateAvailable && selectedIndex === process.currentStepIndex;
+  const isCompleted = progressStateAvailable && selectedStep.state === "complete";
   const isUpcoming =
-    !isCurrent && !isCompleted && selectedIndex > process.currentStepIndex;
+    progressStateAvailable &&
+    !isCurrent &&
+    !isCompleted &&
+    selectedIndex > process.currentStepIndex;
 
   return (
     <section
@@ -321,24 +421,28 @@ function SelectedPhase({
         <h2 className="section-subtitle">{selectedStep.shortLabel}</h2>
         <StatusPill
           value={
-            isCompleted
-              ? "Low"
-              : selectedStep.state === "blocked"
-                ? "Action Required"
-                : "Needs Verification"
+            !progressStateAvailable
+              ? "Needs Verification"
+              : isCompleted
+                ? "Low"
+                : selectedStep.state === "blocked"
+                  ? "Action Required"
+                  : "Needs Verification"
           }
         >
-          {isCompleted
-            ? "Complete"
-            : isCurrent
-              ? "Current phase"
-              : isUpcoming
-                ? "Upcoming"
-                : "Selected"}
+          {!progressStateAvailable
+            ? "State unavailable"
+            : isCompleted
+              ? "Complete"
+              : isCurrent
+                ? "Current phase"
+                : isUpcoming
+                  ? "Upcoming"
+                  : "Selected"}
         </StatusPill>
       </div>
 
-      {isCompleted && !isCurrent ? (
+      {isCompleted && !isCurrent && selectedStep.id !== "verify-renewal" ? (
         <CompletedPhaseSummary step={selectedStep} />
       ) : isUpcoming ? (
         <UpcomingPhaseSummary
@@ -349,7 +453,7 @@ function SelectedPhase({
         />
       ) : (
         <>
-          {isCurrent && selectedStep.state === "blocked" ? (
+          {progressStateAvailable && isCurrent && selectedStep.state === "blocked" ? (
             <Card title="Current blockers">
               <ul className="renewal-blocker-list">
                 {[
@@ -368,8 +472,15 @@ function SelectedPhase({
             compScreenshotExecutable={compScreenshotExecutable}
             dataExpired={dataExpired}
             discrepancyPanel={discrepancyPanel}
+            followUpControlsAvailable={followUpControlsAvailable}
             packetSnapshot={packetSnapshot}
+            packetStateAvailable={packetStateAvailable}
+            progressStateAvailable={progressStateAvailable}
+            rentSuggestionAvailable={rentSuggestionAvailable}
+            rentvineUpdatesPanel={rentvineUpdatesPanel}
+            resolutionDestinations={resolutionDestinations}
             role={role}
+            sheetProposalPanel={sheetProposalPanel}
             sheetDestination={sheetDestination}
             stepId={selectedStep.id}
             workspace={workspace}
@@ -425,7 +536,7 @@ function UpcomingPhaseSummary({
       {currentStep ? (
         <p>
           <Link
-            className="text-link"
+            className="text-link renewal-workspace-link"
             href={buildWorkspaceHref({ leaseId, step: currentStep.id, deskView })}
           >
             Go to current phase
@@ -445,6 +556,13 @@ function PhaseContent({
   packetSnapshot,
   discrepancyPanel,
   sheetDestination,
+  progressStateAvailable,
+  packetStateAvailable,
+  followUpControlsAvailable,
+  rentSuggestionAvailable,
+  rentvineUpdatesPanel,
+  sheetProposalPanel,
+  resolutionDestinations,
 }: Readonly<{
   stepId: RenewalProcessStepId;
   workspace: RenewalLeaseWorkspace;
@@ -454,6 +572,13 @@ function PhaseContent({
   packetSnapshot: RenewalPacketSnapshot | null;
   discrepancyPanel: ReactNode;
   sheetDestination: ExternalDeskDestination | null;
+  progressStateAvailable: boolean;
+  packetStateAvailable: boolean;
+  followUpControlsAvailable: boolean;
+  rentSuggestionAvailable: boolean;
+  rentvineUpdatesPanel: ReactNode;
+  sheetProposalPanel: ReactNode;
+  resolutionDestinations: readonly { fieldKey: string; href: string }[];
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
   const openItems = readiness.flags.length + readiness.needsInput.length;
@@ -464,32 +589,45 @@ function PhaseContent({
         <>
           <Card title="Data check">
             <ul className="ui-rows">
-              {dataCheck.map((item) => (
-                <li className="ui-stack-tight" key={item.fieldKey}>
-                  <div className="ui-spread">
-                    <strong>{item.fieldLabel}</strong>
-                    <StatusPill value={RECON_PILL[item.agreement].value}>
-                      {RECON_PILL[item.agreement].label}
-                    </StatusPill>
-                  </div>
-                  <div className="ui-row">
-                    {item.candidates.map((candidate, index) => (
-                      <span key={`${candidate.source}-${index}`}>
-                        <strong>{candidate.value}</strong>{" "}
-                        <SourceTag
-                          confidence={candidate.confidence}
-                          source={candidate.sourceSystem}
-                        />
-                      </span>
-                    ))}
-                  </div>
-                </li>
-              ))}
+              {dataCheck.map((item) => {
+                const resolutionDestination = resolutionDestinations.find(
+                  (destination) => destination.fieldKey === item.fieldKey,
+                );
+                return (
+                  <li className="ui-stack-tight" key={item.fieldKey}>
+                    <div className="ui-spread">
+                      <strong>{item.fieldLabel}</strong>
+                      <StatusPill value={RECON_PILL[item.agreement].value}>
+                        {RECON_PILL[item.agreement].label}
+                      </StatusPill>
+                    </div>
+                    <div className="ui-row">
+                      {item.candidates.map((candidate, index) => (
+                        <span key={`${candidate.source}-${index}`}>
+                          <strong>{candidate.value}</strong>{" "}
+                          <SourceTag
+                            confidence={candidate.confidence}
+                            source={candidate.sourceSystem}
+                          />
+                        </span>
+                      ))}
+                    </div>
+                    {resolutionDestination ? (
+                      <Link
+                        className="text-link renewal-workspace-link"
+                        href={resolutionDestination.href}
+                      >
+                        Review and resolve this source item
+                      </Link>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
             {sheetDestination ? (
               <p>
                 <a
-                  className="text-link"
+                  className="text-link renewal-workspace-link"
                   href={sheetDestination.href}
                   rel={EXTERNAL_LINK_REL}
                   target={EXTERNAL_LINK_TARGET}
@@ -499,14 +637,29 @@ function PhaseContent({
                 <span className="muted">{sheetDestination.label}</span>
               </p>
             ) : null}
+            {summary.sourceDestinations?.rentvine ? (
+              <p>
+                <a
+                  className="text-link renewal-workspace-link"
+                  href={summary.sourceDestinations.rentvine.href}
+                  rel={EXTERNAL_LINK_REL}
+                  target={EXTERNAL_LINK_TARGET}
+                >
+                  Open this lease in RentVine
+                </a>{" "}
+                <span className="muted">{summary.sourceDestinations.rentvine.label}</span>
+              </p>
+            ) : null}
           </Card>
           {discrepancyPanel}
+          {rentvineUpdatesPanel}
+          {sheetProposalPanel}
         </>
       );
     case "owner-decision":
       return (
         <Card title="Owner decision">
-          {workspace.live && !dataExpired ? (
+          {workspace.live && !dataExpired && progressStateAvailable ? (
             <div className="ui-stack">
               <p className="muted">
                 Record the owner’s rent decision to unlock the tenant offer.
@@ -518,7 +671,14 @@ function PhaseContent({
                 currentRent={workspace.currentRent}
                 leaseId={workspace.live.leaseId}
               />
-              <RentSuggestionApproval leaseId={workspace.live.leaseId} />
+              {rentSuggestionAvailable ? (
+                <RentSuggestionApproval leaseId={workspace.live.leaseId} />
+              ) : (
+                <RenewalAuxiliaryNotice
+                  compact
+                  failures={[{ key: "rent_suggestion", status: "failed" }]}
+                />
+              )}
             </div>
           ) : null}
           {workspace.live && dataExpired ? (
@@ -526,6 +686,12 @@ function PhaseContent({
               Recording is paused while the lease data is past the freshness limit.
               Refresh the desk data first.
             </p>
+          ) : null}
+          {!progressStateAvailable ? (
+            <RenewalAuxiliaryNotice
+              compact
+              failures={[{ key: "progress", status: "failed" }]}
+            />
           ) : null}
           <p className="muted">{DRAFT_BANNER}</p>
           <ul className="ui-rows">
@@ -564,11 +730,11 @@ function PhaseContent({
                 </p>
               ) : null}
               <RenewalFollowUpAttentionControl
-                canEdit={can(role, "edit")}
+                canEdit={can(role, "edit") && followUpControlsAvailable}
                 projection={workspace.followUp}
               />
               <RenewalFollowUpThreadControl
-                canEdit={can(role, "edit")}
+                canEdit={can(role, "edit") && followUpControlsAvailable}
                 leaseId={summary.id}
                 projection={workspace.followUp}
               />
@@ -607,6 +773,7 @@ function PhaseContent({
             )}
             {workspace.live?.ownerDecisionCurrent &&
             workspace.live.tenantOfferDraftId &&
+            progressStateAvailable &&
             !dataExpired ? (
               <RenewalTenantOutcomeControl
                 current={workspace.live.tenantOutcome}
@@ -622,6 +789,11 @@ function PhaseContent({
                 Composing is paused while the lease data is past the freshness limit.
                 Refresh the desk data first.
               </p>
+            ) : !progressStateAvailable ? (
+              <RenewalAuxiliaryNotice
+                compact
+                failures={[{ key: "progress", status: "failed" }]}
+              />
             ) : (
               <RenewalNoticeDraftComposer
                 initialOffer={
@@ -641,11 +813,18 @@ function PhaseContent({
     case "document-packet":
       return (
         <Card title="Build docs readiness">
-          <PacketTruthPanel
-            initialSnapshot={packetSnapshot}
-            leaseId={summary.id}
-            transactionId={summary.id}
-          />
+          {packetStateAvailable ? (
+            <PacketTruthPanel
+              initialSnapshot={packetSnapshot}
+              leaseId={summary.id}
+              transactionId={summary.id}
+            />
+          ) : (
+            <RenewalAuxiliaryNotice
+              compact
+              failures={[{ key: "packet", status: "failed" }]}
+            />
+          )}
           <p className="muted">
             {readiness.allClear
               ? "Existing build-out checks clear. Packet truth above still governs document readiness."
@@ -679,11 +858,11 @@ function PhaseContent({
                 </p>
               ) : null}
               <RenewalFollowUpAttentionControl
-                canEdit={can(role, "edit")}
+                canEdit={can(role, "edit") && followUpControlsAvailable}
                 projection={workspace.followUp}
               />
               <RenewalFollowUpThreadControl
-                canEdit={can(role, "edit")}
+                canEdit={can(role, "edit") && followUpControlsAvailable}
                 leaseId={summary.id}
                 projection={workspace.followUp}
               />

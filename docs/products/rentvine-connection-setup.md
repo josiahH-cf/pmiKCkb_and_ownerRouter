@@ -1,37 +1,42 @@
-# RentVine connection and proof
+# RentVine connection and exact-effect operations
 
-Updated: 2026-08-31.
+Updated: 2026-09-02.
 
 ## Reads
 
-Production credentials are Secret Manager-bound. Complete lease export reads work and currently return
-306 distinct leases. Work-order reads use the verified documented account path. Read diagnostics must
-remain bodyless/value-minimized.
+Production credentials are Secret Manager-bound. Complete paginated lease export reads work; 306
+distinct leases was the 2026-08-26 measured result, not a permanent count. Work-order reads use the
+verified documented account path. Read diagnostics remain bodyless/value-minimized.
 
 ## Renewal write seam
 
-The separate write client exposes only:
+The restricted provider clients expose only their verified exact operation contracts:
 
 - documented lease update POST for allowlisted renewal-date fields;
-- documented existing recurring-charge update POST for allowlisted amount/date fields.
+- documented recurring-charge create and existing-charge update operations for their allowlisted
+  terms;
+- documented work-order read, create, and status-update operations; and
+- one manual bounded work-order-chat GET whose disclosed provider consequence marks retrieved
+  manager messages read.
 
-It has no generic route or production construction path. The current broad action key remains
-closed. S97 specifies the successor exact renewal-date, recurring-charge-create, and recurring-charge-
-update product contracts; S99 separately specifies exact work-order read/create/status operations.
+No generic route or production construction path exists. S97's three exact renewal keys, S99's three
+exact work-order keys, and S100's chat-sync key are proved, deployed, and active. The broad renewal
+compatibility key remains closed and retired. Chat posting, vendor assignment, attachments, provider
+notifications, and unlisted effects remain closed.
 
-## Required proof
+## Completed proof and normal execution
 
-1. Resolve only the owner-designated real lease supplied securely to the S97 execution.
-2. Read exact current provider state.
-3. Produce exact proposed and rollback payloads.
-4. Build/release the successor exact keys closed, then review the protected per-key activation after
-   the bounded proof succeeds.
-5. Human confirms the exact preview.
-6. Execute one provider attempt under the durable application claim; do not infer provider
-   idempotency.
-7. Read back provider state and write a bodyless receipt.
-8. Roll back and read back again.
+S97 completed its bounded renewal-date, charge-create, and charge-update proofs. S99 completed its
+work-order proofs; proof work order 1731 is `Cancelled`. S100 completed its chat-sync proof. Do not
+rerun those proofs, reuse their proof records as new proof targets, or select substitutes.
 
-A writable credential alone is not permission to write. S97's final product supports only its exact
-field/key matrix and uses a separate confirmation for normal reversal; S30's automatic proof closeout
-is not the business workflow.
+For every normal action, resolve the current managed actor and exact record, read fresh provider
+state, produce an exact preview, require exact confirmation, claim at most one provider attempt,
+store a bodyless receipt, and read the result back. A reversal or correction requires a new exact
+confirmation. Ambiguous provider outcomes are reconciled by read only and never retried blindly.
+S100 chat sync additionally requires the explicit mark-read consequence warning and confirmation;
+the provider documents no unread restoration.
+
+A writable credential alone is not permission to write. The final products support only their exact
+field/key matrices and use a separate confirmation for normal reversal/correction. S30 is retired;
+its proof closeout is not the business workflow or an activation path.

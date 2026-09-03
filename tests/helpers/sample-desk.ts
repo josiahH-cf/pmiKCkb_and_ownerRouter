@@ -351,6 +351,7 @@ export function getRenewalDeskView(): RenewalDeskView {
     // inputs the builder yields honest fail-closed states rather than fabricated readiness.
     return {
       ...summary,
+      processState: null,
       guidance: buildDeskLeaseGuidance({
         summary,
         process: null,
@@ -465,6 +466,7 @@ export function getRenewalLeaseWorkspace(
 
   return {
     summary,
+    workflowAvailable: true,
     steps: RENEWAL_STEPS,
     currentStepIndex: process.currentStepIndex,
     process,

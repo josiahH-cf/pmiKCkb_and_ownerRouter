@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +15,10 @@ import {
 } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { RentVineAuthError } from "@/lib/integrations/rentvine/client";
+import {
+  buildLiveRenewalReviewItemHref,
+  liveRenewalReviewItemId,
+} from "@/lib/lease-renewal/live-review-destination";
 
 // The reused resolve + approval controls call useRouter(); stub it so they render in jsdom.
 vi.mock("next/navigation", () => ({
@@ -24,6 +28,11 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${window.location.search}`,
+  );
 });
 
 // A synthetic view (no real PII) shaped exactly like buildRenewalRunView's output.
@@ -47,6 +56,7 @@ const SAMPLE_VIEW: RenewalRunView = {
       flags: [
         {
           sourceTriggerKey: "trigger-1",
+          candidateFingerprint: `rcf1_${"a".repeat(64)}`,
           fieldKey: "renewal_date",
           fieldLabel: "Lease end date",
           severity: "High",
@@ -135,6 +145,10 @@ describe("LiveRenewalReview", () => {
     expect(screen.getAllByText(/2026-09-30/).length).toBeGreaterThan(0);
     // Agreement label is humanized, not jargon.
     expect(screen.getByText("Two sources disagree")).toBeInTheDocument();
+    expect(document.getElementById(liveRenewalReviewItemId("trigger-1")!)).toBeTruthy();
+    expect(buildLiveRenewalReviewItemHref("trigger-1")).toBe(
+      "/lease-renewal/live#renewal-review-item-trigger-1",
+    );
 
     // Actionable now: the reused resolve form renders for an Admin on this High flag (slice 1b).
     // LR-9 (§F/§A): the required Reason is marked (aria-required + asterisk) and the primary
@@ -220,6 +234,61 @@ describe("LiveRenewalReview", () => {
     );
     expect(screen.getByText("No open items")).toBeInTheDocument();
   });
+
+  it("keeps a valid exact-item hash visible and focuses that item on a phone viewport", async () => {
+    const media = {
+      matches: true,
+      media: "(max-width: 720px)",
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => media),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ progress: [] }) }),
+    );
+
+    const firstFlag = SAMPLE_VIEW.groups[0].flags[0];
+    const targetFlag = {
+      ...firstFlag,
+      sourceTriggerKey: "trigger-2",
+      fieldKey: "current_rent",
+      fieldLabel: "Current rent",
+    };
+    const targetId = liveRenewalReviewItemId(targetFlag.sourceTriggerKey)!;
+    window.history.replaceState(null, "", `#${targetId}`);
+
+    render(
+      <LiveRenewalReview
+        canResolve={false}
+        isAdmin={false}
+        meta={SAMPLE_META}
+        resolutionsError={false}
+        view={{
+          ...SAMPLE_VIEW,
+          totalFlags: 2,
+          groups: [{ severity: "High", flags: [firstFlag, targetFlag] }],
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(document.getElementById(targetId)).toHaveFocus());
+    expect(
+      document.getElementById(liveRenewalReviewItemId("trigger-1")!),
+    ).not.toHaveFocus();
+    expect(document.querySelector(".lr-decider-card")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View all flags" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
 });
 
 describe("RenewalDesk live link", () => {
@@ -252,7 +321,10 @@ describe("buildLiveRenewalConfig", () => {
   it("returns ok with the spreadsheet id when fully configured", () => {
     const config = buildLiveRenewalConfig(FULL_ENV);
     expect(config.ok).toBe(true);
-    if (config.ok) expect(config.spreadsheetId).toBe("sheet-id");
+    if (config.ok) {
+      expect(config.spreadsheetId).toBe("sheet-id");
+      expect(config.rentvineHost).toBe("pmikcmetro.rentvine.com");
+    }
   });
 
   it("reports not_configured when any required value is missing", () => {

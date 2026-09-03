@@ -7,6 +7,7 @@ const eslintConfig = [
       ".next/**",
       ".next-dev/**",
       // Local-only scratch and user-owned output; gitignored, absent in CI, never product code.
+      ".claude/**",
       "temp/**",
       "output/**",
       "coverage/**",

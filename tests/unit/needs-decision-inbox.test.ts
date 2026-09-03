@@ -51,6 +51,7 @@ function makeFlag(
   const approvalState = options.approvalState ?? null;
   return {
     sourceTriggerKey: `lease_renewal:reconcile:run:${fieldKey}`,
+    candidateFingerprint: `rcf1_${"a".repeat(64)}`,
     fieldKey,
     fieldLabel: `Label ${fieldKey}`,
     severity,

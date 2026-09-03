@@ -26,6 +26,7 @@ import type { LiveReviewMeta } from "@/lib/lease-renewal/live-review";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
 import { buildPropertyHistoryHref } from "@/lib/lease-renewal/property-history-link";
+import { liveRenewalReviewItemId } from "@/lib/lease-renewal/live-review-destination";
 
 // Humanize the reconciliation agreement label into the operator's language.
 const AGREEMENT_LABEL: Record<string, string> = {
@@ -46,7 +47,6 @@ export function LiveRenewalReview({
   canDefer,
   isAdmin,
   resolutionsError,
-  writebackEnabled = false,
 }: Readonly<{
   view: RenewalRunView;
   meta: LiveReviewMeta;
@@ -54,8 +54,6 @@ export function LiveRenewalReview({
   canDefer?: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
-  /** Admin feature flag: when on, an Approved proposal offers the live confirm-target Sheet write. */
-  writebackEnabled?: boolean;
 }>) {
   return (
     <div className="ui-stack">
@@ -116,7 +114,6 @@ export function LiveRenewalReview({
                   isAdmin={isAdmin}
                   key={flag.sourceTriggerKey}
                   runId={view.runId}
-                  writebackEnabled={writebackEnabled}
                 />
               ))}
             </section>
@@ -147,19 +144,21 @@ function LiveFlagCard({
   runId,
   canResolve,
   isAdmin,
-  writebackEnabled = false,
 }: Readonly<{
   flag: RenewalFlagView;
   runId: string;
   canResolve: boolean;
   isAdmin: boolean;
-  writebackEnabled?: boolean;
 }>) {
   const historyHref = isAdmin
     ? buildPropertyHistoryHref(flag.propertyKey, flag.directLink)
     : null;
   return (
-    <article className="lr-flag-card">
+    <article
+      className="lr-flag-card"
+      id={liveRenewalReviewItemId(flag.sourceTriggerKey) ?? undefined}
+      tabIndex={-1}
+    >
       <header className="lr-flag-head">
         <strong>{flag.fieldLabel}</strong>
         <StatusPill value={flag.severity} />
@@ -211,8 +210,8 @@ function LiveFlagCard({
           approval={flag.writebackApproval}
           isAdmin={isAdmin}
           runId={runId}
+          showLegacyWritebackRecovery={false}
           sourceTriggerKey={flag.sourceTriggerKey}
-          writebackEnabled={writebackEnabled}
         />
       ) : null}
 

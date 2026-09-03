@@ -1,7 +1,12 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 
-import { RELEASE_STEP_TIMEOUT_MS, run } from "@/scripts/release.mjs";
+import {
+  RELEASE_STEP_TIMEOUT_MS,
+  RELEASE_TREE_TERMINATION_TIMEOUT_MS,
+  run,
+  terminateReleaseProcessTree,
+} from "@/scripts/release.mjs";
 
 /**
  * Regression cover for the 2026-08-01 cutover hang: a real release run sat for 89 minutes with zero
@@ -57,9 +62,9 @@ describe("release step runner never waits on input", () => {
     const promise = run("gcloud", ["run", "deploy"], { timeoutMs: 1000, spawnFn });
     const assertion = expect(promise).rejects.toThrow(/produced no result within/);
     vi.advanceTimersByTime(1001);
-    await assertion;
-
     expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+    child.emit("close", null);
+    await assertion;
     vi.useRealTimers();
   });
 
@@ -71,22 +76,83 @@ describe("release step runner never waits on input", () => {
     await expect(promise).rejects.toThrow(/exited with code 1/);
   });
 
-  it("cannot settle twice when a close follows a timeout", async () => {
+  it("does not settle the timeout until the killed child has closed", async () => {
     vi.useFakeTimers();
     const child = fakeChild();
 
     const promise = run("gcloud", ["deploy"], { timeoutMs: 500, spawnFn: () => child });
+    let settled = false;
+    void promise.then(
+      () => (settled = true),
+      () => (settled = true),
+    );
     const assertion = expect(promise).rejects.toThrow(/produced no result within/);
     vi.advanceTimersByTime(501);
-    // A killed child still emits close; the first settlement must win.
-    child.emit("close", 0);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    child.emit("close", null);
     await assertion;
+    expect(settled).toBe(true);
 
+    vi.useRealTimers();
+  });
+
+  it("kills the POSIX process group rather than only its shell", async () => {
+    const child = fakeChild();
+    child.pid = 4242;
+    const killProcess = vi.fn();
+    const termination = terminateReleaseProcessTree(child, {
+      platform: "linux",
+      killProcess,
+      timeoutMs: 1000,
+    });
+    expect(killProcess).toHaveBeenCalledWith(-4242, "SIGKILL");
+    expect(child.kill).not.toHaveBeenCalled();
+    child.emit("close", null);
+    await expect(termination).resolves.toBeUndefined();
+  });
+
+  it("uses Windows taskkill tree mode and waits for its result", async () => {
+    const child = fakeChild();
+    child.pid = 4242;
+    const treeKiller = fakeChild();
+    const spawnTreeKiller = vi.fn(() => treeKiller);
+    const termination = terminateReleaseProcessTree(child, {
+      platform: "win32",
+      spawnTreeKiller,
+      timeoutMs: 1000,
+    });
+    expect(spawnTreeKiller).toHaveBeenCalledWith(
+      "taskkill",
+      ["/PID", "4242", "/T", "/F"],
+      expect.objectContaining({ shell: false }),
+    );
+    treeKiller.emit("close", 0);
+    await expect(termination).resolves.toBeUndefined();
+  });
+
+  it("bounds process-tree termination when the child never confirms close", async () => {
+    vi.useFakeTimers();
+    const child = fakeChild();
+    child.pid = 4242;
+    const termination = terminateReleaseProcessTree(child, {
+      platform: "linux",
+      killProcess: vi.fn(),
+      timeoutMs: 500,
+    });
+    const assertion = expect(termination).rejects.toThrow(
+      "release_process_tree_termination_unconfirmed",
+    );
+    vi.advanceTimersByTime(501);
+    await assertion;
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
     vi.useRealTimers();
   });
 
   it("bounds every step by default", () => {
     expect(RELEASE_STEP_TIMEOUT_MS).toBeGreaterThan(0);
     expect(RELEASE_STEP_TIMEOUT_MS).toBeLessThanOrEqual(60 * 60 * 1000);
+    expect(RELEASE_TREE_TERMINATION_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(RELEASE_TREE_TERMINATION_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
   });
 });

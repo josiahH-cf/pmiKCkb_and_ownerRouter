@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  RECURRING_CHARGE_CREATE_BASELINE_VERSION,
   RECURRING_CHARGE_CREATE_KEY,
   RECURRING_CHARGE_UPDATE_KEY,
   RENEWAL_DATES_UPDATE_KEY,
@@ -8,6 +9,7 @@ import {
   RenewalWritebackContractError,
   assertRenewalWritebackConfirmation,
   buildRenewalWritebackProposal,
+  legacyRenewalWritebackExecutionId,
   projectRecurringCharge,
   renewalWritebackExecutionId,
   renewalWritebackReversalExecutionId,
@@ -79,6 +81,10 @@ describe("S97 proposal validation and ordering", () => {
         effects: [
           {
             kind: "recurring_charge_create",
+            baseline: {
+              version: RECURRING_CHARGE_CREATE_BASELINE_VERSION,
+              candidates: [],
+            },
             create: {
               accountID: "9",
               amount: "45.00",
@@ -295,6 +301,26 @@ describe("S97 proposal validation and ordering", () => {
     "invalid_date",
   );
   reject(
+    "a create without an exact matching-candidate baseline",
+    (input) => ({
+      ...input,
+      effects: [
+        {
+          kind: "recurring_charge_create",
+          create: {
+            accountID: "9",
+            amount: "45.00",
+            description: "Fee",
+            dayDue: "1",
+            frequency: "1",
+            startDate: "09/01/2026",
+          },
+        },
+      ],
+    }),
+    "baseline_required",
+  );
+  reject(
     "a create missing a required field",
     (input) => ({
       ...input,
@@ -369,7 +395,10 @@ describe("S97 confirmation and attempt identity", () => {
     });
 
     const id = renewalWritebackExecutionId(proposal, effect);
-    expect(id).toBe(`s97:4821:${effect.effectHash}`);
+    expect(id).toBe(`s97:4821:${proposal.previewHash}:${effect.effectHash}`);
+    expect(legacyRenewalWritebackExecutionId(proposal, effect)).toBe(
+      `s97:4821:${effect.effectHash}`,
+    );
     expect(renewalWritebackReversalExecutionId(id, "a".repeat(64))).toBe(
       `${id}:reversal:${"a".repeat(16)}`,
     );

@@ -87,6 +87,21 @@ export const RENEWAL_DESK_V2_STEPS = [
 /** Inclusive calendar-day maximum for the `from`/`through` range. */
 export const RENEWAL_DESK_RANGE_MAX_DAYS = 120;
 
+/**
+ * Value-free diagnostics retained only for the current render. Invalid date URL values are still
+ * dropped from canonical state, but the desk can now explain why instead of silently changing the
+ * operator's request. No raw query value is retained in a diagnostic.
+ */
+export const RENEWAL_DESK_DATE_DIAGNOSTICS = [
+  "end_date_malformed",
+  "month_malformed",
+  "range_incomplete",
+  "range_malformed",
+  "range_reversed",
+  "range_too_long",
+] as const;
+export type RenewalDeskDateDiagnostic = (typeof RENEWAL_DESK_DATE_DIAGNOSTICS)[number];
+
 export interface RenewalDeskQueryV2State {
   /** Legacy-only bounded cross-field text; the v2 UI never creates it. */
   q: string;
@@ -108,6 +123,8 @@ export interface RenewalDeskQueryV2State {
   overallStatus: "all" | RenewalOverallStatus;
   blocked: "all" | "blocked" | "not_blocked";
   rentVerification: "all" | RenewalRentVerificationState;
+  /** Noncanonical render-only feedback; never serialized into a desk URL. */
+  readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
 
 export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = {
@@ -214,11 +231,16 @@ export function parseRenewalDeskQueryV2(
   input: URLSearchParams | SearchParamRecord = {},
   options: ParseRenewalDeskQueryV2Options = {},
 ): RenewalDeskQueryV2State {
-  const rawEndDate = boundedText(firstValue(input, "endDate"), 10);
-  const rawMonth = boundedText(firstValue(input, "month"), 7);
+  // Keep one extra sentinel code unit so an overlong value cannot be truncated into a valid date.
+  const endDateCandidate = boundedText(firstValue(input, "endDate"), 11);
+  const monthCandidate = boundedText(firstValue(input, "month"), 8);
+  const rawEndDate = endDateCandidate.slice(0, 10);
+  const rawMonth = monthCandidate.slice(0, 7);
   const rawStep = boundedText(firstValue(input, "step"), 64);
-  const rawFrom = boundedText(firstValue(input, "from"), 10);
-  const rawThrough = boundedText(firstValue(input, "through"), 10);
+  const fromCandidate = boundedText(firstValue(input, "from"), 11);
+  const throughCandidate = boundedText(firstValue(input, "through"), 11);
+  const rawFrom = fromCandidate.slice(0, 10);
+  const rawThrough = throughCandidate.slice(0, 10);
 
   const versionValue = firstValue(input, "v");
   const isLegacy = versionValue === undefined;
@@ -240,13 +262,42 @@ export function parseRenewalDeskQueryV2(
     }
   }
 
-  const endDate = rawEndDate === "missing" || isIsoDate(rawEndDate) ? rawEndDate : "";
-  const month = /^\d{4}-(?:0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : "";
+  const dateDiagnostics: RenewalDeskDateDiagnostic[] = [];
+  const endDateValid =
+    endDateCandidate.length <= 10 &&
+    (rawEndDate === "" || rawEndDate === "missing" || isIsoDate(rawEndDate));
+  const monthValid =
+    monthCandidate.length <= 7 &&
+    (rawMonth === "" || /^\d{4}-(?:0[1-9]|1[0-2])$/.test(rawMonth));
+  if (!endDateValid) dateDiagnostics.push("end_date_malformed");
+  if (!monthValid) dateDiagnostics.push("month_malformed");
+
+  const hasFrom = rawFrom !== "";
+  const hasThrough = rawThrough !== "";
+  const rangeIncomplete = hasFrom !== hasThrough;
+  const rangeMalformed =
+    hasFrom &&
+    hasThrough &&
+    (fromCandidate.length > 10 ||
+      throughCandidate.length > 10 ||
+      !isIsoDate(rawFrom) ||
+      !isIsoDate(rawThrough));
+  const rangeReversed = hasFrom && hasThrough && !rangeMalformed && rawThrough < rawFrom;
+  const rangeTooLong =
+    hasFrom &&
+    hasThrough &&
+    !rangeMalformed &&
+    !rangeReversed &&
+    inclusiveRangeDays(rawFrom, rawThrough) > RENEWAL_DESK_RANGE_MAX_DAYS;
+  if (rangeIncomplete) dateDiagnostics.push("range_incomplete");
+  if (rangeMalformed) dateDiagnostics.push("range_malformed");
+  if (rangeReversed) dateDiagnostics.push("range_reversed");
+  if (rangeTooLong) dateDiagnostics.push("range_too_long");
+
+  const endDate = endDateValid ? rawEndDate : "";
+  const month = monthValid ? rawMonth : "";
   const rangeValid =
-    isIsoDate(rawFrom) &&
-    isIsoDate(rawThrough) &&
-    rawThrough >= rawFrom &&
-    inclusiveRangeDays(rawFrom, rawThrough) <= RENEWAL_DESK_RANGE_MAX_DAYS;
+    hasFrom && hasThrough && !rangeMalformed && !rangeReversed && !rangeTooLong;
 
   // The date dimension is mutually exclusive: a valid range wins, then a valid exact date, then the
   // month. An incomplete/invalid range is dropped as a pair and never suppresses the other keys.
@@ -297,6 +348,7 @@ export function parseRenewalDeskQueryV2(
       ["all", ...RENEWAL_RENT_VERIFICATION_STATES] as const,
       "all",
     ),
+    ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
 }
@@ -591,7 +643,15 @@ function compareItems(
 
 export interface RenewalDeskQueryV2Result<T extends RenewalDeskV2Item> {
   items: T[];
+  /** Every lease in the current authorized source projection. */
+  totalLoaded: number;
+  /** Leases remaining after the selected worklist scope, before column filters. */
+  totalInScope: number;
+  /** Leases remaining after scope and every column filter. */
+  totalMatching: number;
+  /** @deprecated Compatibility alias for totalLoaded. */
   totalBeforeQuery: number;
+  /** @deprecated Compatibility alias for totalMatching. */
   totalAfterQuery: number;
 }
 
@@ -601,10 +661,14 @@ export function applyRenewalDeskQueryV2<T extends RenewalDeskV2Item>(
   query: RenewalDeskQueryV2State,
   matchParty: PartyTokenMatcher,
 ): RenewalDeskQueryV2Result<T> {
+  const scoped = items.filter((item) => inScope(item, query.scope));
   const filtered = items.filter((item) => matchesQuery(item, query, matchParty));
   const ordered = [...filtered].sort((left, right) => compareItems(left, right, query));
   return {
     items: ordered,
+    totalLoaded: items.length,
+    totalInScope: scoped.length,
+    totalMatching: ordered.length,
     totalBeforeQuery: items.length,
     totalAfterQuery: ordered.length,
   };

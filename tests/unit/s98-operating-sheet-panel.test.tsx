@@ -11,6 +11,7 @@ import {
 import type { SheetWritebackClientProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
 
 const fetchMock = vi.fn();
+const WORKSPACE_CONTEXT = "signed-workspace-context-token";
 
 function appendProposal(
   overrides: Partial<SheetWritebackClientProposal> = {},
@@ -56,6 +57,8 @@ function statusFor(
     state,
     attempt_count: state === "not_started" ? 0 : 1,
     reversal_state: null,
+    effect_executable: true,
+    reversal_executable: false,
   }));
 }
 
@@ -83,13 +86,13 @@ describe("S98 operating-sheet panel", () => {
       <OperatingSheetPanel
         hasSheetRow={false}
         initialProposal={null}
-        leaseId="115"
         role="Editor"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     expect(screen.getByText("Add Sheet row")).toBeInTheDocument();
     expect(screen.queryByText("Update in Sheet")).not.toBeInTheDocument();
-    expect(screen.getByText(/no exact Sheet row/i)).toBeInTheDocument();
+    expect(screen.getByText(/no exact row/i)).toBeInTheDocument();
   });
 
   it("offers only the field-update form when the lease has an exact Sheet row", () => {
@@ -97,48 +100,51 @@ describe("S98 operating-sheet panel", () => {
       <OperatingSheetPanel
         hasSheetRow
         initialProposal={null}
-        leaseId="115"
         role="Editor"
-        sheetRowNumber={41}
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
-    expect(screen.getByText("Update in Sheet")).toBeInTheDocument();
+    expect(screen.getByText("Sheet row update unavailable")).toBeInTheDocument();
     expect(screen.queryByText("Add Sheet row")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Exact Sheet row number")).toHaveValue("41");
+    expect(screen.queryByLabelText("Exact Sheet row number")).not.toBeInTheDocument();
+    expect(screen.getByText(/fixed-cell write is not used/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /approved rent correction/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("submits an append proposal with the exact typed body", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ status: "proposed", proposal: appendProposal() }),
     );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        proposal: appendProposal(),
+        effects: statusFor(appendProposal(), "not_started"),
+      }),
+    );
     render(
       <OperatingSheetPanel
         hasSheetRow={false}
         initialProposal={null}
-        leaseId="115"
         role="Editor"
-        tenantNameSuggestion="Fresh Real Tenant"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
-    fireEvent.click(screen.getByText("Save proposal from fresh Sheet state"));
+    fireEvent.click(screen.getByText("Prepare exact missing-row append"));
     await waitFor(() => {
       expect(
         screen.getByText(/Proposal saved from the fresh Sheet header/),
       ).toBeInTheDocument();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const [, init] = fetchMock.mock.calls[0] as [string, { body: string }];
     expect(JSON.parse(init.body)).toEqual({
       operation: "propose",
-      evidenceRef: "workspace:115",
-      effects: [
-        {
-          kind: "row_append",
-          leaseId: "115",
-          tenantName: "Fresh Real Tenant",
-          fields: {},
-        },
-      ],
+      workspaceContext: WORKSPACE_CONTEXT,
+      intent: "append_missing_row",
+      expectedPriorPreviewHash: null,
     });
   });
 
@@ -157,9 +163,10 @@ describe("S98 operating-sheet panel", () => {
     render(
       <OperatingSheetPanel
         hasSheetRow={false}
+        initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
-        leaseId="115"
         role="Admin"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     expect(screen.queryByText("Confirm this exact effect once")).not.toBeInTheDocument();
@@ -173,6 +180,7 @@ describe("S98 operating-sheet panel", () => {
     const [, init] = fetchMock.mock.calls[0] as [string, { body: string }];
     expect(JSON.parse(init.body)).toEqual({
       operation: "execute",
+      workspaceContext: WORKSPACE_CONTEXT,
       previewHash: proposal.preview_hash,
       effectHash: proposal.effects[0].effect_hash,
       confirm: true,
@@ -186,8 +194,8 @@ describe("S98 operating-sheet panel", () => {
         hasSheetRow={false}
         initialEffects={statusFor(proposal, "ambiguous")}
         initialProposal={proposal}
-        leaseId="115"
         role="Admin"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     expect(screen.getByText(/The Sheet outcome is unproven/)).toBeInTheDocument();
@@ -196,56 +204,50 @@ describe("S98 operating-sheet panel", () => {
     expect(screen.queryByText(/retry/i)).not.toBeInTheDocument();
   });
 
-  it("requires a separate preview and confirmation for the receipted reversal", async () => {
+  it("truthfully withholds reversal when no atomic stable-row provider seam exists", () => {
     const proposal = appendProposal();
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        status: "reversal_preview",
-        reversal: {
-          reversalExecutionId: "rev-1",
-          forwardExecutionId: "fwd-1",
-          previewHash: "e".repeat(64),
-          expiresAtIso: new Date(Date.now() + 5 * 60_000).toISOString(),
-          kind: "delete_appended_row",
-          currentRowNumber: 41,
-        },
-      }),
-    );
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({ status: "reversed", duplicate: false, receipt: {} }),
-    );
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({ status: "ok", proposal, effects: statusFor(proposal, "succeeded") }),
-    );
     render(
       <OperatingSheetPanel
         hasSheetRow={false}
         initialEffects={statusFor(proposal, "succeeded")}
         initialProposal={proposal}
-        leaseId="115"
         role="Admin"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     expect(
       screen.queryByText("Confirm the reversal exactly once"),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Review reversal…"));
-    await waitFor(() => {
-      expect(screen.getByText("Confirm the reversal exactly once")).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText("Confirm the reversal exactly once"));
-    await waitFor(() => {
-      expect(
-        screen.getByText("Reversal applied with its own receipt."),
-      ).toBeInTheDocument();
-    });
-    const [, executeInit] = fetchMock.mock.calls[1] as [string, { body: string }];
-    const executeBody = JSON.parse(executeInit.body) as Record<string, unknown>;
-    expect(executeBody.operation).toBe("reverse_execute");
-    expect(executeBody.confirm).toBe(true);
-    expect((executeBody.reversal as Record<string, unknown>).reversalExecutionId).toBe(
-      "rev-1",
+    expect(screen.queryByText("Review reversal…")).not.toBeInTheDocument();
+    expect(screen.getByText(/In-app reversal is unavailable/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("loads durable ambiguous status for an Editor instead of rendering ready", async () => {
+    const proposal = appendProposal();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        proposal,
+        effects: statusFor(proposal, "ambiguous"),
+      }),
     );
+    render(
+      <OperatingSheetPanel
+        hasSheetRow={false}
+        initialProposal={proposal}
+        role="Editor"
+        workspaceContext={WORKSPACE_CONTEXT}
+      />,
+    );
+    expect(screen.getByText(/Checking durable status/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Needs reconciliation/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Ready to confirm/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Discard the saved proposal" }),
+    ).toBeDisabled();
   });
 
   it("announces a declined write as an alert without changing state", async () => {
@@ -259,9 +261,10 @@ describe("S98 operating-sheet panel", () => {
     render(
       <OperatingSheetPanel
         hasSheetRow={false}
+        initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
-        leaseId="115"
         role="Admin"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     fireEvent.click(screen.getByText("Review and confirm…"));
@@ -277,9 +280,10 @@ describe("S98 operating-sheet panel", () => {
       const { unmount } = render(
         <OperatingSheetPanel
           hasSheetRow={false}
+          initialEffects={statusFor(proposal, "not_started")}
           initialProposal={proposal}
-          leaseId="115"
           role={role}
+          workspaceContext={WORKSPACE_CONTEXT}
         />,
       );
       expect(screen.getByText("Add Sheet row")).toBeInTheDocument();
@@ -298,9 +302,10 @@ describe("S98 operating-sheet panel", () => {
     render(
       <OperatingSheetPanel
         hasSheetRow={false}
+        initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
-        leaseId="115"
         role="Admin"
+        workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
     expect(screen.getByText(/confirmation window has expired/)).toBeInTheDocument();

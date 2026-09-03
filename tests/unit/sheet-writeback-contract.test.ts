@@ -22,6 +22,8 @@ function preview(overrides: Record<string, unknown> = {}) {
     fieldKey: "current_rent",
     approvalId: "approval-1",
     approvalVersion: "2026-07-30T00:00:00.000Z",
+    candidateFingerprint: "candidate-fingerprint-1",
+    resolutionUpdatedAt: "2026-07-29T23:00:00.000Z",
     sourceOfValue: "RentVine",
     descriptor: {
       environmentKind: "production",
@@ -55,6 +57,8 @@ function authorizationFor(
     fieldKey: prepared.binding.fieldKey,
     approvalId: prepared.binding.approvalId,
     approvalVersion: prepared.binding.approvalVersion,
+    candidateFingerprint: prepared.binding.candidateFingerprint,
+    resolutionUpdatedAt: prepared.binding.resolutionUpdatedAt,
     sourceOfValue: prepared.binding.sourceOfValue,
     proposedValueHash: prepared.binding.proposedValueHash,
   };
@@ -78,6 +82,10 @@ describe("Sheet write-back immutable contract", () => {
     const actorDrift = preview({ actorUid: "admin-2" });
     const propertyDrift = preview({ propertyKey: "4900-oak-st" });
     const fieldDrift = preview({ fieldKey: "renewal_rent" });
+    const fingerprintDrift = preview({ candidateFingerprint: "candidate-fingerprint-2" });
+    const resolutionVersionDrift = preview({
+      resolutionUpdatedAt: "2026-07-29T23:30:00.000Z",
+    });
     const sourceDrift = preview({ sourceOfValue: "Google Sheet" });
     const valueDrift = preview({ proposedValue: "1400" });
     const environmentDrift = preview({
@@ -93,6 +101,8 @@ describe("Sheet write-back immutable contract", () => {
     expect(actorDrift.bindingHash).not.toBe(base.bindingHash);
     expect(propertyDrift.executionId).not.toBe(base.executionId);
     expect(fieldDrift.executionId).not.toBe(base.executionId);
+    expect(fingerprintDrift.executionId).not.toBe(base.executionId);
+    expect(resolutionVersionDrift.executionId).not.toBe(base.executionId);
     expect(sourceDrift.executionId).not.toBe(base.executionId);
     expect(valueDrift.executionId).not.toBe(base.executionId);
     expect(environmentDrift.executionId).not.toBe(base.executionId);
@@ -391,6 +401,8 @@ describe("Sheet write-back immutable contract", () => {
       { propertyKey: "wrong-property" },
       { fieldKey: "wrong-field" },
       { approvalVersion: "2026-07-29T23:59:59.000Z" },
+      { candidateFingerprint: "candidate-fingerprint-2" },
+      { resolutionUpdatedAt: "2026-07-29T23:30:00.000Z" },
       { sourceOfValue: "Google Sheet" },
       { proposedValueHash: "f".repeat(64) },
     ]) {
@@ -466,6 +478,8 @@ describe("Sheet write-back immutable contract", () => {
       fieldKey: prepared.binding.fieldKey,
       approvalId: prepared.binding.approvalId,
       approvalVersion: prepared.binding.approvalVersion,
+      candidateFingerprint: prepared.binding.candidateFingerprint,
+      resolutionUpdatedAt: prepared.binding.resolutionUpdatedAt,
       sourceOfValue: prepared.binding.sourceOfValue,
       descriptor: prepared.binding.descriptor,
       target: prepared.binding.target,

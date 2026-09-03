@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
@@ -8,7 +9,15 @@ import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rul
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
+import { listCurrentRenewalPacketSnapshots } from "@/lib/firestore/lease-document-packet-snapshots";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
+import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import {
+  getLiveLeaseSnapshot,
+  getLiveLeaseSnapshotAtOrAfter,
+  type LiveLeaseSnapshotResult,
+} from "@/lib/lease-renewal/live-lease-cache";
+import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import {
   buildRenewalDeskWindow,
   normalizeRenewalDeskText,
@@ -19,6 +28,16 @@ import {
   readPartyFilterKeyConfig,
 } from "@/lib/lease-renewal/party-filter-key";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import {
+  readRenewalAuxiliary,
+  renewalAuxiliaryFailures,
+  renewalAuxiliaryValue,
+} from "@/lib/lease-renewal/auxiliary-read";
+import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import {
+  RENEWAL_SOURCE_REFRESH_COOKIE,
+  parseRenewalSourceRefreshAfter,
+} from "@/lib/lease-renewal/post-write-freshness";
 
 // Renewals-space Editors and up. Reads live RentVine + the renewal sheet on each render, so it is never
 // statically cached. It is read-only and draft-only: no send, no sheet write-back. This is the
@@ -62,39 +81,105 @@ export default async function LiveRenewalDeskPage({
   const now = new Date();
   const window = buildRenewalDeskWindow(now.toISOString().slice(0, 10), WINDOW_DAYS);
   const rawSearchParams = (await searchParams) ?? {};
-
-  const [progressByLease, policy, communications, dismissedAttentionKeys, resolutions] =
-    await Promise.all([
-      listAllRenewalProgress(user),
-      readNoticeRuleSnapshot(),
-      (async () => {
-        try {
-          return {
-            state: "current" as const,
-            links: await createGmailHubService(user).listCommunications(),
-          };
-        } catch {
-          return { state: "unreadable" as const, links: [] };
-        }
-      })(),
-      listDismissedRenewalFollowUpKeys(user),
-      // S82: one bulk read of record-specific human resolutions so the table's rent verification
-      // reflects exact current decisions. A missing decision store never makes a value look resolved.
-      listResolutionsForRun(user, "live-review").catch(() => []),
-    ]);
-  const outcome = await loadLiveRenewalDesk(
-    [window],
-    now.toISOString(),
-    undefined,
-    progressByLease,
-    {
-      communicationState: communications.state,
-      links: communications.links,
-      policy,
-      dismissedAttentionKeys,
-    },
-    resolutions,
+  const liveConfig = buildLiveRenewalConfig();
+  const sourceRefreshAfter = parseRenewalSourceRefreshAfter(
+    (await cookies()).get(RENEWAL_SOURCE_REFRESH_COOKIE)?.value,
+    now.getTime(),
   );
+  let leaseSnapshotResult: LiveLeaseSnapshotResult | undefined;
+  if (liveConfig.ok) {
+    try {
+      leaseSnapshotResult =
+        sourceRefreshAfter === null
+          ? await getLiveLeaseSnapshot(liveConfig.rentvineClient, now.getTime())
+          : await getLiveLeaseSnapshotAtOrAfter(
+              liveConfig.rentvineClient,
+              now.getTime(),
+              sourceRefreshAfter,
+            );
+    } catch {
+      leaseSnapshotResult = undefined;
+    }
+  }
+
+  const [
+    progressRead,
+    policyRead,
+    communicationsRead,
+    dismissedRead,
+    resolutionsRead,
+    packetRead,
+  ] = await Promise.all([
+    readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
+    readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
+    readRenewalAuxiliary("communications", () =>
+      createGmailHubService(user).listCommunications(),
+    ),
+    readRenewalAuxiliary("dismissed_attention", () =>
+      listDismissedRenewalFollowUpKeys(user),
+    ),
+    // S82: one bulk read of record-specific human resolutions so the table's rent verification
+    // reflects exact current decisions. A missing decision store never makes a value look resolved.
+    readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
+    readRenewalAuxiliary("packet", async () => {
+      if (!liveConfig.ok || !leaseSnapshotResult) {
+        throw new Error("Live renewal sources are unavailable.");
+      }
+      return listCurrentRenewalPacketSnapshots(
+        user,
+        leaseSnapshotResult.snapshot.views.flatMap((view) => {
+          const leaseId = leaseViewId(view);
+          return leaseId ? [leaseId] : [];
+        }),
+      );
+    }),
+  ]);
+  const progressByLease = renewalAuxiliaryValue(progressRead, new Map());
+  const policy = renewalAuxiliaryValue(policyRead, {
+    state: "unreadable" as const,
+    ruleSet: DEFAULT_NOTICE_RULE_SET,
+    version: null,
+    updatedAtIso: null,
+  });
+  const communications = {
+    state:
+      communicationsRead.status === "available"
+        ? ("current" as const)
+        : ("unreadable" as const),
+    links: renewalAuxiliaryValue(communicationsRead, []),
+  };
+  const dismissedAttentionKeys = renewalAuxiliaryValue(dismissedRead, []);
+  const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
+  const packetSnapshotsByLease =
+    packetRead.status === "available" ? packetRead.value : undefined;
+  const auxiliaryFailures = renewalAuxiliaryFailures([
+    progressRead,
+    policyRead,
+    communicationsRead,
+    dismissedRead,
+    resolutionsRead,
+    packetRead,
+  ]);
+  const outcome = !liveConfig.ok
+    ? ({ status: liveConfig.reason } as const)
+    : !leaseSnapshotResult
+      ? ({ status: "read_error" } as const)
+      : await loadLiveRenewalDesk(
+          [window],
+          now.toISOString(),
+          liveConfig,
+          progressByLease,
+          {
+            communicationState: communications.state,
+            links: communications.links,
+            policy,
+            dismissedAttentionKeys,
+          },
+          resolutions,
+          packetSnapshotsByLease,
+          progressRead.status === "available",
+          leaseSnapshotResult,
+        );
 
   // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these
   // shortcuts closed; the unfiltered table stays usable.
@@ -134,6 +219,8 @@ export default async function LiveRenewalDeskPage({
         </Link>
         {outcome.status === "ok" ? (
           <RenewalDesk
+            auxiliaryFailures={auxiliaryFailures}
+            liveReviewHref="/lease-renewal/live"
             partyFilters={partyFilters}
             query={query}
             role={user.role}

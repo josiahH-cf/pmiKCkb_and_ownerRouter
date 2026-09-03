@@ -76,6 +76,7 @@ describe("S68 privacy and zero-effect structural sentinel", () => {
     expect(source).toContain('action: "heartbeat"');
     expect(source).toContain("session_id: session.id");
     expect(source).toContain("expected_version: session.record_version");
+    expect(source).not.toContain('addEventListener("scroll"');
   });
 
   it("rejects any extra heartbeat telemetry field", () => {

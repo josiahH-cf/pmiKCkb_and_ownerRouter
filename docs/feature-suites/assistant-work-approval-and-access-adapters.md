@@ -3,9 +3,8 @@
 
 # S90 — Assistant work, approval, and access read adapters
 
-> Status: Specified and not implemented. Current My Work, Approval Queue, and authenticated-session
-> services exist, but the current Ask pipeline does not query them. S83's access-request catalog,
-> self-service request history, and Admin access lane are also specified but not implemented.
+> Status: Specified and not implemented. Current My Work, Approval Queue, authenticated-session, and
+> deployed S83 access-request services exist, but the current Ask pipeline does not query them.
 
 **Goal.**
 
@@ -27,8 +26,8 @@ outage from a real zero.
 
 The intended adapters call the same actor-scoped domain services as their owning pages, preserve
 empty versus partial versus unavailable truth, and return S88 evidence envelopes with S88 canonical
-link references. Exact operational answers remain useful without a model. S83, when implemented,
-extends only the access/request adapter; it does not become a second role authority or generic
+link references. Exact operational answers remain useful without a model. The deployed S83 contract
+supplies access/request truth to that adapter; it does not become a second role authority or generic
 approval system.
 
 **Actors and entry conditions.**
@@ -37,12 +36,12 @@ approval system.
   access. The server derives the actor from the authenticated session; the request cannot name a uid.
 - Approval results contain only items the existing queue/renewal visibility contracts permit the
   actor to see. Approval/denial capability is reported separately from visibility.
-- A current session with valid claims can answer current role and Space reach. Until S83 supplies its
-  effective-access projection, the answer is labelled `Session access`; it is not represented as a
-  fresh Firebase directory readback.
-- S83 is required before the adapter can list the actor's submitted access requests or offer an exact
-  access-request destination. Its absence yields a typed unsupported dependency for that subquery,
-  not an invented empty history.
+- A current session with valid claims can answer current role and Space reach. Deployed S83 supplies
+  its effective-access projection without representing current session truth as a newer Firebase
+  directory grant.
+- The adapter uses S83 to list the actor's submitted access requests and offer the exact access-
+  request destination. A rollback fixture in which S83 is absent yields a typed unsupported
+  dependency for that subquery, not an invented empty history.
 - A source outage, capped My Work snapshot, or failed approval-family read is a partial/unavailable
   entry condition and cannot produce `Nothing is waiting` or `All clear`.
 
@@ -58,7 +57,7 @@ S88 registers these exact adapter intents and no free-form database query:
 | `work.today`                     | `What should I work on today?`, `Show my daily work`     | Current active session, open tasks due on or before the resolved local date, blocked tasks, and a count/link for remaining future or undated open work.         |
 | `approval.needs_my_decision`     | `What needs my approval?`, `What decisions are waiting?` | An availability-aware projection over the same owning queue and renewal source services used to build their decision surfaces, with eligibility stated per row. |
 | `approval.my_submitted_requests` | `What approvals am I waiting on?`                        | Only requester-visible statuses supplied by an owning domain request service; S83 access requests are the initial supported family.                             |
-| `access.mine`                    | `What role do I have?`, `What can I access?`             | Current authenticated role and Space representation; after S83, its exhaustive capability labels and request handoffs.                                          |
+| `access.mine`                    | `What role do I have?`, `What can I access?`             | Current authenticated role and Space representation plus deployed S83 capability labels and request handoffs.                                                   |
 
 The deterministic router combines `work.today` and `approval.needs_my_decision` only for S88's
 registered broad phrase family such as `What needs my attention today?`; `What is my work today?`
@@ -149,7 +148,7 @@ exists.
 
 ### Access adapter
 
-Before S83, `access.mine` reports exactly:
+In the required S83-absent rollback/compatibility state, `access.mine` reports exactly:
 
 - the current session role (`Editor`, `Approver`, or `Admin`);
 - the optional exact Space-scope claim, or `All spaces` only when the claim is absent under the
@@ -157,7 +156,7 @@ Before S83, `access.mine` reports exactly:
 - `Session access can remain unchanged until your sign-in session refreshes after an Admin update.`
 
 It does not infer a plural role list, individual capability override, renewal authority, action-key
-readiness, provider access, or another user's claims. Once S83 exists, the adapter consumes S83's
+readiness, provider access, or another user's claims. In the current deployed baseline, the adapter consumes S83's
 `AccessEffectiveProjectionV1`: current-session authority facts, catalog-derived capability labels,
 and directory comparison state. It never substitutes newer directory claims for the current ID-token
 role/Spaces or says a newly applied grant is usable before authentication refresh. Request history is
@@ -223,8 +222,8 @@ exactly where named.
 | `access.current_unavailable`         | `unavailable` | `Current access is temporarily unavailable.`                                              | `/admin/access` required             | authenticated claims/effective-access projection cannot be verified               |
 | `access.session_refresh_required`    | `information` | `Your access was updated. Sign out and back in to use the latest access.`                 | `/admin/access` required             | S83 projection has `directory_sync_state=refresh_required`                        |
 | `access.directory_check_unavailable` | `partial`     | `Current session access is shown. Newer access changes could not be checked.`             | `/admin/access` required             | S83 projection has `directory_sync_state=unavailable`                             |
-| `access.details_truncated`           | `truncated`   | `Some access details are summarized. Open Access to review the complete list.`            | `/admin/access` required             | post-S83 effective-access labels require byte compaction                          |
-| `access.session_details_truncated`   | `truncated`   | `Some Space access details are summarized.`                                               | none                                 | pre-S83 compatibility-only session Space labels require byte compaction           |
+| `access.details_truncated`           | `truncated`   | `Some access details are summarized. Open Access to review the complete list.`            | `/admin/access` required             | deployed-S83 effective-access labels require byte compaction                      |
+| `access.session_details_truncated`   | `truncated`   | `Some Space access details are summarized.`                                               | none                                 | S83-absent compatibility-only session Space labels require byte compaction        |
 
 If a condition does not match one row, S90 emits no substitute notice. Multiple legal notices use
 the table order after group order and exact-code de-duplication. Complete zero results carry no
@@ -272,12 +271,12 @@ never follows its cursor. `has_more=false` permits a complete group with exact m
 total. A page read failure remains `approval.history_unavailable`, not a zero or truncated result.
 
 - `session_access` and `effective_access` are the only item kinds in `access.mine`, and exactly one
-  item is returned. `session_access` is the pre-S83 projection with exactly `role`
+  item is returned. `session_access` is the S83-absent rollback projection with exactly `role`
   (`Editor|Approver|Admin`), `space_access` (`{ kind: "all_spaces" }` or
   `{ kind: "named", labels: string[] }` with 0-50 distinct 1-120-code-point labels retained in
   canonical registry order), `space_labels_truncated` (boolean; `false` for `all_spaces` and when
   every named label is present), and
-  `detail_scope: "role_and_spaces_only"`. `effective_access` is legal only after S83 and has exactly
+  `detail_scope: "role_and_spaces_only"`. `effective_access` is the normal deployed-S83 projection and has exactly
   the same `role`, `space_access`, and `space_labels_truncated` fields plus `capability_labels` (the
   retained canonical-order labels from the exact current S83 catalog entries for which
   `can(role, capability)` is true; the source subset contains 0 through 7 distinct
@@ -300,7 +299,7 @@ splits a Unicode code point, removes role/scope truth, or emits an over-limit it
 
 Any byte-driven removal makes the group `partial`. An `effective_access` result adds exactly
 `access.details_truncated` and its Access recovery; the compatibility-only `session_access` result
-adds exactly `access.session_details_truncated` without inventing an S83 route. The item is exhaustive
+adds exactly `access.session_details_truncated` without inventing an unavailable S83 route. The item is exhaustive
 only when both applicable truncation flags are false. The route remains the authoritative complete
 view when compaction occurred. A consumer validates both the discriminated fields/flags and final
 4-KiB byte bound; a field-valid but un-compacted oversized combination is not a legal producer output.
@@ -316,14 +315,14 @@ Every item has the supporting S88 evidence refs and only the route refs permitte
 `work_task` may reference its My Work task and verified source; `work_open_aggregate` may reference
 My Work; `approval_decision` may reference only the owning decision detail;
 `submitted_access_request` may reference only S83's `/admin/access#my-requests` owning region; and access items may
-reference `/admin/access` only after S83's route and direct guard exist. There is no unowned generic
+reference the deployed `/admin/access` route only through S83's direct guard. There is no unowned generic
 row URL, provider URL, model-authored recovery, or request id in the URL. Multiple request rows may therefore
 share the same owning-region route; S93 renders each row's current safe summary before that handoff.
 
 Group-level `route_ref_ids` are also closed. Every `work.*` group references the canonical My Work
 surface; `approval.needs_my_decision` references the Approval Queue; the S83-backed submitted-request
-group references only `access.my_requests`; the post-S83 effective-access group references only
-`access.home`; and pre-S83 `session_access` has no group route.
+group references only `access.my_requests`; the deployed-S83 effective-access group references only
+`access.home`; and the S83-absent rollback `session_access` has no group route.
 These refs remain valid for complete-empty groups and are the only owning-surface links the renderer
 may add outside an item. An unavailable/denied dependency uses its typed recovery notice instead of
 silently adding a different group destination.
@@ -348,12 +347,12 @@ supporting evidence and the group-level owning route; it cannot widen the regist
 | `approval.renewal_reconciliation` | `Open renewal reconciliation` | `/lease-renewal/runs/{encoded run id}/reconciliation/{encoded field key}` only when the owning renewal mapping proves both ids       |
 | `approval.process_definition`     | `Open internal process`       | `/processes/{encoded definition id}` only for a queue item produced by the current process-definition review owner                   |
 | `approval.vendor_admin`           | `Open vendor review`          | fixed `/admin/vendors` only for a queue item produced by the current vendor-lifecycle approval owner and an actor authorized on open |
-| `access.home`                     | `Open Access`                 | fixed `/admin/access`, registered only after S83 direct-route/guard parity is green                                                  |
-| `access.my_requests`              | `Open my access requests`     | fixed `/admin/access#my-requests`, registered only after the same S83 gate                                                           |
+| `access.home`                     | `Open Access`                 | fixed `/admin/access`, using the deployed S83 direct-route/guard contract                                                            |
+| `access.my_requests`              | `Open my access requests`     | fixed `/admin/access#my-requests`, using the same deployed S83 guard                                                                 |
 
 `manual` Work sources deliberately have no destination key. `approval.my_submitted_requests` uses
-only `access.my_requests`; `access.mine` after S83 uses only `access.home`; and no access route is
-registered for pre-S83 `session_access`. Registry parity tests enumerate every table row, reject an
+only `access.my_requests`; normal `access.mine` uses only `access.home`; and no access route is
+registered for the S83-absent rollback `session_access`. Registry parity tests enumerate every table row, reject an
 unknown key/label/builder combination, and prove each item/group/notice kind can reference only the
 keys stated here.
 
@@ -387,8 +386,9 @@ query behavior (S91); UI/streaming (S93); action proposals (S94).
 - Decision: `What approvals am I waiting on?` means requester-visible domain requests, while `What
 needs my approval?` means items awaiting the actor's decision. The assistant asks a clarification
   when the wording does not distinguish them.
-- Decision: before S83, current role/Space answers are explicitly session truth; submitted access
-  requests and exhaustive effective capability explanations remain unavailable rather than guessed.
+- Decision: normal access answers use deployed S83 current-session/effective-access truth. In the
+  required S83-absent rollback fixture, submitted requests and exhaustive capability explanations
+  remain unavailable rather than guessed.
 - Assumption: the existing stable `work-task-<id>` anchor remains the canonical My Work record
   destination. If an owning My Work route contract replaces it, S88's route-manifest parity check
   must update atomically.
@@ -396,7 +396,7 @@ needs my approval?` means items awaiting the actor's decision. The assistant ask
 **Cross-product impacts.**
 
 My Work snapshot service and record anchors; merged decision sources and Approval Queue links;
-current session role/Space projection; future S83 effective-access catalog plus requester history
+current session role/Space projection; deployed S83 effective-access catalog plus requester history
 owned only by `approval.my_submitted_requests`; S88 intent/adapter/link
 contracts; S92 narration; S93 result UI; S94 proposals; bodyless assistant telemetry. Existing exact
 owning provider reads may occur while resolving renewal decisions. No provider write, new provider
@@ -407,7 +407,7 @@ query class, source write, queue transition, role change, or production data mig
 | Input                                                              | Classification                   | Use and limitation                                                                                                                                       |
 | ------------------------------------------------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Router, `docs/facts.md`, current auth/work/approval code and tests | Authority / implementation truth | Establish roles, Space filtering, current task schema, actor-owned snapshots, approval visibility, and permanent no-model-triggered-effect boundaries.   |
-| S83                                                                | Specified dependency             | Owns effective access, access requests, Admin review, claim changes, and request history; none is described as current until implemented.                |
+| S83                                                                | Deployed prerequisite            | Owns effective access, access requests, Admin review, claim changes, request history, and the guarded Access destinations consumed here.                 |
 | S88, S89, S92-S95                                                  | Active bundle contracts          | Own query envelopes/links, telemetry, narration, presentation, action proposals, and final Dashboard composition without duplicating this adapter logic. |
 | Current Dashboard AI integration notes                             | Intent evidence                  | Require blocked/daily work, approvals, and role answers; do not authorize arbitrary reads, automated reminders, approvals, grants, or writes.            |
 | A future domain requester-history service                          | Missing dependency               | Must supply explicit requester visibility/status/version/route before that approval family can register.                                                 |
@@ -488,7 +488,7 @@ exists. No closed provider action is presented as a missing role.
 
 Keep current My Work source verification, assignment restrictions, state transitions, idempotency,
 activity history, record limits, and time/session truth; Approval Queue visibility, risk, scope,
-transition, and renewal-decision contracts; authenticated domain/role/Space guards; S83's future
+transition, and renewal-decision contracts; authenticated domain/role/Space guards; S83's deployed
 catalog and claim lifecycle; S86 interaction semantics; current route authorization; bodyless data
 boundaries. Existing `/api/work`, Approval Queue, and Admin behaviors remain their owners.
 
@@ -529,7 +529,7 @@ client communication, RentVine/Sheet write, or Action Registry change is authori
 
 **Dependencies / sequencing.**
 
-Implement S83, S88, and S89 first in the canonical queue. S90 then ships all five intended families,
+Re-verify deployed S83, then implement S88 and S89 first in the remaining canonical queue. S90 then ships all five intended families,
 including submitted access requests, exhaustive capability labels, and the exact access handoff.
 The S83-absent form remains a required rollback/compatibility refusal, not the desired queued terminal.
 S92 may add narration after deterministic adapter tests pass. S93 renders the groups. S94 consumes
@@ -546,7 +546,7 @@ removes old Dashboard summaries only after the owning destinations and S90 resul
   typed S83-absent rollback refusal;
   minimized canonical links; complete/partial/empty/error tests can reach `ALL_GATES_GREEN` without
   any provider write/effect or model availability.
-- **Consumes:** the queued green S83 effective-access contract for `access.mine` and requester-history
+- **Consumes:** the deployed green S83 effective-access contract for `access.mine` and requester-history
   contract for `approval.my_submitted_requests`. Absence remains the intent-specific typed rollback
   state, not a fabricated empty result or a reason to merge the two families.
 - **Externally blocked effect:** None. Access-request creation and claim application belong to S83 and

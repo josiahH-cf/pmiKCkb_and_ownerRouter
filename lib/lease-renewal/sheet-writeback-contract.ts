@@ -39,6 +39,8 @@ export interface SheetWritebackActionBinding {
   fieldKey: string;
   approvalId: string;
   approvalVersion: string;
+  candidateFingerprint: string;
+  resolutionUpdatedAt: string;
   sourceOfValue: string;
   descriptor: EnvironmentDescriptor;
   target: SheetWritebackTargetReference;
@@ -93,6 +95,8 @@ export interface SheetWritebackExecutionRecord {
   fieldKey: string;
   approvalId: string;
   approvalVersion: string;
+  candidateFingerprint: string;
+  resolutionUpdatedAt: string;
   sourceOfValue: string;
   descriptor: EnvironmentDescriptor;
   target: SheetWritebackTargetReference;
@@ -121,6 +125,8 @@ export interface SheetWritebackClaimAuthorization {
   fieldKey: string;
   approvalId: string;
   approvalVersion: string;
+  candidateFingerprint: string;
+  resolutionUpdatedAt: string;
   sourceOfValue: string;
   proposedValueHash: string;
 }
@@ -171,6 +177,8 @@ export interface BuildWritebackPreviewInput {
   fieldKey: string;
   approvalId: string;
   approvalVersion: string;
+  candidateFingerprint: string;
+  resolutionUpdatedAt: string;
   sourceOfValue: string;
   descriptor: EnvironmentDescriptor;
   target: SheetWritebackTargetReference;
@@ -193,6 +201,8 @@ export function buildSheetWritebackPreview(
       fieldKey: input.fieldKey,
       approvalId: input.approvalId,
       approvalVersion: input.approvalVersion,
+      candidateFingerprint: input.candidateFingerprint,
+      resolutionUpdatedAt: input.resolutionUpdatedAt,
       sourceOfValue: input.sourceOfValue,
       descriptor: input.descriptor,
       target: input.target,
@@ -244,6 +254,8 @@ export function buildSheetWritebackCorrectionPreview(input: {
       fieldKey: input.original.fieldKey,
       approvalId: input.original.approvalId,
       approvalVersion: input.original.approvalVersion,
+      candidateFingerprint: input.original.candidateFingerprint,
+      resolutionUpdatedAt: input.original.resolutionUpdatedAt,
       sourceOfValue: input.original.sourceOfValue,
       descriptor: input.descriptor,
       target,
@@ -292,6 +304,8 @@ export function executionRecordFromPreview(
     fieldKey: preview.binding.fieldKey,
     approvalId: preview.binding.approvalId,
     approvalVersion: preview.binding.approvalVersion,
+    candidateFingerprint: preview.binding.candidateFingerprint,
+    resolutionUpdatedAt: preview.binding.resolutionUpdatedAt,
     sourceOfValue: preview.binding.sourceOfValue,
     descriptor: preview.binding.descriptor,
     target: preview.binding.target,
@@ -606,6 +620,8 @@ function claimAuthorizationMatchesPreview(
     authorization.fieldKey === preview.binding.fieldKey &&
     authorization.approvalId === preview.binding.approvalId &&
     authorization.approvalVersion === preview.binding.approvalVersion &&
+    authorization.candidateFingerprint === preview.binding.candidateFingerprint &&
+    authorization.resolutionUpdatedAt === preview.binding.resolutionUpdatedAt &&
     authorization.sourceOfValue === preview.binding.sourceOfValue &&
     authorization.proposedValueHash === preview.binding.proposedValueHash
   );

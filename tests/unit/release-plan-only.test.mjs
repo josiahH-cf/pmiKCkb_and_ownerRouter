@@ -35,7 +35,9 @@ describe("release --plan-only never executes", () => {
       "capture-prior-revision",
       "deploy-candidate",
       "smoke-candidate",
+      "assure-candidate",
       "promote-exact-revision",
+      "observe-promoted-revision",
       "rollback",
     ]);
 

@@ -9,7 +9,11 @@ import {
   type RenewalWritebackWriter,
 } from "@/lib/lease-renewal/writeback/execution-service";
 import {
+  RECURRING_CHARGE_CREATE_BASELINE_VERSION,
+  buildRecurringChargeCreateBaseline,
   buildRenewalWritebackProposal,
+  legacyRenewalWritebackExecutionId,
+  renewalWritebackReversalExecutionId,
   type RecurringChargeProjection,
   type RenewalWritebackProposal,
   type RenewalWritebackProposalInput,
@@ -20,6 +24,11 @@ const DESCRIPTOR = {
   environmentKind: "production",
   dataContext: "live",
   source: "explicit",
+} as const;
+
+const EMPTY_CREATE_BASELINE = {
+  version: RECURRING_CHARGE_CREATE_BASELINE_VERSION,
+  candidates: [],
 } as const;
 
 function charge(
@@ -105,7 +114,10 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
     },
     async updateExistingRecurringCharge(leaseId, chargeId, payload) {
       record("updateExistingRecurringCharge", leaseId, chargeId, payload);
-      if (state.writerFailure?.onMethod === "updateExistingRecurringCharge") {
+      if (
+        state.writerFailure?.onMethod === "updateExistingRecurringCharge" &&
+        !state.writerFailure.afterApply
+      ) {
         throw state.writerFailure.error;
       }
       const existing = state.charges.get(chargeId);
@@ -125,6 +137,10 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         ...existing,
         ...applied,
       } as RecurringChargeProjection);
+      state.readbackOverride?.();
+      if (state.writerFailure?.onMethod === "updateExistingRecurringCharge") {
+        throw state.writerFailure.error;
+      }
       return { recurringCharge: { leaseRecurringChargeID: chargeId } };
     },
     async createRecurringCharge(leaseId, payload) {
@@ -210,6 +226,10 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         return effect();
       },
     }),
+    claimActiveEffect: async ({ record }) => {
+      if (!(await store.get(record.id))) await store.create(record);
+      return store.claim(record.id, record.previewHash);
+    },
     now: () => NOW,
   };
   return {
@@ -263,6 +283,27 @@ function confirmed(proposal: RenewalWritebackProposal, index = 0) {
       effectHash: effect.effectHash,
       confirmedAtIso: new Date(NOW).toISOString(),
     },
+  };
+}
+
+const CREATE_FIELDS = {
+  accountID: "9",
+  amount: "45.00",
+  description: "Renewal admin fee",
+  dayDue: "1",
+  frequency: "1",
+  startDate: "09/01/2026",
+} as const;
+
+function createEffectFromCurrentBaseline(h: Harness) {
+  return {
+    kind: "recurring_charge_create" as const,
+    create: CREATE_FIELDS,
+    baseline: buildRecurringChargeCreateBaseline({
+      leaseId: "4821",
+      create: CREATE_FIELDS,
+      projections: [...h.state.charges.values()],
+    }),
   };
 }
 
@@ -324,6 +365,7 @@ describe("S97 reversal reconciliation", () => {
         effects: [
           {
             kind: "recurring_charge_create",
+            baseline: EMPTY_CREATE_BASELINE,
             create: {
               accountID: "9",
               amount: "45.00",
@@ -386,6 +428,105 @@ describe("S97 reversal reconciliation", () => {
       h.calls.filter((call) => call.method === "deleteRecurringCharge"),
     ).toHaveLength(1);
   });
+
+  it("does not reconcile an ambiguous field restore after collateral provider drift", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    await h.service.executeEffect(confirmed(proposal));
+    const reversal = await h.service.previewReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    h.state.writerFailure = {
+      error: new Error("socket closed after provider applied the restore"),
+      onMethod: "updateExistingRecurringCharge",
+      afterApply: true,
+    };
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "provider_ambiguous",
+    );
+    h.state.writerFailure = undefined;
+    h.state.charges.set("701", {
+      ...h.state.charges.get("701")!,
+      description: "Collateral provider mutation",
+    });
+
+    await expectCode(
+      h.service.reconcileReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_drift",
+    );
+    expect(
+      h.calls.filter((call) => call.method === "updateExistingRecurringCharge"),
+    ).toHaveLength(2);
+  });
+
+  it("does not classify a collateral-drifted forward projection as an unapplied reversal", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    await h.service.executeEffect(confirmed(proposal));
+    const reversal = await h.service.previewReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    h.state.writerFailure = {
+      error: new Error("provider refused before applying the restore"),
+      onMethod: "updateExistingRecurringCharge",
+      afterApply: false,
+    };
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "provider_ambiguous",
+    );
+    h.state.writerFailure = undefined;
+    h.state.charges.set("701", {
+      ...h.state.charges.get("701")!,
+      description: "Collateral provider mutation",
+    });
+
+    await expectCode(
+      h.service.reconcileReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_drift",
+    );
+  });
 });
 
 describe("S97 one-attempt execution", () => {
@@ -416,6 +557,7 @@ describe("S97 one-attempt execution", () => {
         effects: [
           {
             kind: "recurring_charge_create",
+            baseline: EMPTY_CREATE_BASELINE,
             create: {
               accountID: "9",
               amount: "45.00",
@@ -508,6 +650,176 @@ describe("S97 one-attempt execution", () => {
     const proposal = buildRenewalWritebackProposal(proposalInput());
     await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
   });
+
+  it("does not bless a charge update that changes an untouched provider field", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    h.state.readbackOverride = () => {
+      h.state.charges.set("701", {
+        ...h.state.charges.get("701")!,
+        recurringStatusID: 3,
+      });
+    };
+
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+  });
+
+  it("rejects duplicate and reversal recovery after collateral charge drift", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    await h.service.executeEffect(confirmed(proposal));
+    h.state.charges.set("701", {
+      ...h.state.charges.get("701")!,
+      recurringStatusID: 3,
+    });
+
+    await expectCode(
+      h.service.executeEffect(confirmed(proposal)),
+      "provider_state_drift",
+    );
+    await expectCode(
+      h.service.previewReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reversal_target_drift",
+    );
+  });
+
+  it("keeps ambiguous charge-update reconciliation unproven after collateral drift", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    h.state.writerFailure = {
+      onMethod: "updateExistingRecurringCharge",
+      error: new ProviderHttpError(504),
+      afterApply: true,
+    };
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+    h.state.writerFailure = undefined;
+    h.state.charges.set("701", {
+      ...h.state.charges.get("701")!,
+      recurringStatusID: 3,
+    });
+
+    await expectCode(
+      h.service.reconcileEffect({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_drift",
+    );
+  });
+
+  it("refuses a stale duplicate receipt after external restore without issuing another write", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(proposalInput());
+    await h.service.executeEffect(confirmed(proposal));
+    h.state.lease = { ...h.state.lease, endDate: "2026-08-31" };
+
+    await expectCode(
+      h.service.executeEffect(confirmed(proposal)),
+      "provider_state_drift",
+    );
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
+  });
+
+  it("uses a new generation-bound attempt for a fresh identical proposal after external restore", async () => {
+    const h = harness();
+    const first = buildRenewalWritebackProposal(proposalInput());
+    const firstResult = await h.service.executeEffect(confirmed(first));
+    h.state.lease = { ...h.state.lease, endDate: "2026-08-31" };
+    const second = buildRenewalWritebackProposal(
+      proposalInput({ sourceReadAtIso: "2026-09-01T11:59:30.000Z" }),
+    );
+
+    const secondResult = await h.service.executeEffect(confirmed(second));
+    expect(secondResult.duplicate).toBe(false);
+    expect(secondResult.executionId).not.toBe(firstResult.executionId);
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(2);
+  });
+
+  it("uses a durable legacy execution only when its context hash matches this proposal", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(proposalInput());
+    const effect = proposal.effects[0];
+    const legacyId = legacyRenewalWritebackExecutionId(proposal, effect);
+    h.state.lease = { ...h.state.lease, endDate: "2027-08-31" };
+    const receipt = {
+      actionKey: effect.actionKey,
+      dataMode: "live" as const,
+      liveEvidenceEligible: true,
+      providerRef: "s97-lease:4821",
+      resultHash: hashExecutionPreview({
+        version: "s97-dates-readback/v1",
+        leaseId: "4821",
+        readback: h.state.lease,
+      }),
+      reconciled: false,
+      createdAt: new Date(NOW).toISOString(),
+    };
+    h.store.records.set(legacyId, {
+      id: legacyId,
+      dataMode: "live",
+      workflowId: "s97:4821",
+      actionId: legacyId,
+      actionKey: effect.actionKey,
+      contextHash: proposal.previewHash,
+      previewHash: effect.effectHash,
+      idempotencyKey: legacyId,
+      state: "succeeded",
+      attemptCount: 1,
+      receipt,
+      createdAt: new Date(NOW).toISOString(),
+      updatedAt: new Date(NOW).toISOString(),
+    });
+
+    const replay = await h.service.executeEffect(confirmed(proposal));
+    expect(replay.duplicate).toBe(true);
+    expect(replay.executionId).toBe(legacyId);
+    expect(h.calls).toEqual([]);
+
+    h.store.records.set(legacyId, {
+      ...h.store.records.get(legacyId)!,
+      contextHash: "f".repeat(64),
+    });
+    h.state.lease = { ...h.state.lease, endDate: "2026-08-31" };
+    const fresh = await h.service.executeEffect(confirmed(proposal));
+    expect(fresh.duplicate).toBe(false);
+    expect(fresh.executionId).not.toBe(legacyId);
+  });
 });
 
 describe("S97 reconciliation", () => {
@@ -555,9 +867,122 @@ describe("S97 reconciliation", () => {
       "reconcile_drift",
     );
   });
+
+  it("never attributes a pre-existing identical charge to an ambiguous create or authorizes reversal", async () => {
+    const existing = charge({
+      leaseRecurringChargeID: "701",
+      amount: CREATE_FIELDS.amount,
+      description: CREATE_FIELDS.description,
+      startDate: "2026-09-01",
+      endDate: null,
+    });
+    const h = harness({ charges: new Map([["701", existing]]) });
+    h.state.writerFailure = {
+      onMethod: "createRecurringCharge",
+      error: new ProviderHttpError(504),
+    };
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({ effects: [createEffectFromCurrentBaseline(h)] }),
+    );
+
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+    h.state.writerFailure = undefined;
+    await expectCode(
+      h.service.reconcileEffect({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_not_proven",
+    );
+    await expectCode(
+      h.service.previewReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reversal_forward_unproven",
+    );
+    expect(
+      h.calls.filter((call) => call.method === "createRecurringCharge"),
+    ).toHaveLength(1);
+  });
+
+  it("keeps an ambiguous create manual even when one newly matching provider id appears", async () => {
+    const existing = charge({
+      leaseRecurringChargeID: "701",
+      amount: CREATE_FIELDS.amount,
+      description: CREATE_FIELDS.description,
+      startDate: "2026-09-01",
+      endDate: null,
+    });
+    const h = harness({ charges: new Map([["701", existing]]) });
+    h.state.writerFailure = {
+      onMethod: "createRecurringCharge",
+      error: new ProviderHttpError(504),
+    };
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({ effects: [createEffectFromCurrentBaseline(h)] }),
+    );
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+    h.state.writerFailure = undefined;
+    h.state.charges.set(
+      "900",
+      charge({
+        leaseRecurringChargeID: "900",
+        amount: CREATE_FIELDS.amount,
+        description: CREATE_FIELDS.description,
+        startDate: "2026-09-01",
+        endDate: null,
+      }),
+    );
+
+    await expectCode(
+      h.service.reconcileEffect({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_drift",
+    );
+    await expectCode(
+      h.service.previewReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reversal_forward_unproven",
+    );
+  });
 });
 
 describe("S97 separately confirmed reversal", () => {
+  it("refuses a reversal token bound to another proposal generation's forward record", async () => {
+    const h = harness();
+    const first = buildRenewalWritebackProposal(proposalInput());
+    const forward = await h.service.executeEffect(confirmed(first));
+    const second = buildRenewalWritebackProposal(
+      proposalInput({ sourceReadAtIso: "2026-09-01T11:59:30.000Z" }),
+    );
+    const forgedReversalId = renewalWritebackReversalExecutionId(
+      forward.executionId,
+      forward.receipt.resultHash,
+    );
+
+    await expectCode(
+      h.service.executeReversal({
+        proposal: second,
+        effectHash: second.effects[0].effectHash,
+        reversal: {
+          forwardExecutionId: forward.executionId,
+          reversalExecutionId: forgedReversalId,
+          previewHash: "a".repeat(64),
+          expiresAtIso: new Date(NOW + 60_000).toISOString(),
+          kind: "restore_dates",
+        },
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "reversal_forward_unproven",
+    );
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
+  });
+
   it("restores dates only through a new preview/confirmation and exact readback", async () => {
     const h = harness();
     const proposal = buildRenewalWritebackProposal(proposalInput());
@@ -568,6 +993,21 @@ describe("S97 separately confirmed reversal", () => {
       effectHash: proposal.effects[0].effectHash,
     });
     expect(preview.kind).toBe("restore_dates");
+    const expirySubstitution = {
+      ...preview,
+      expiresAtIso: new Date(NOW + 5 * 60_000).toISOString(),
+    };
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal: expirySubstitution,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "confirmation_invalid",
+    );
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
+
     const result = await h.service.executeReversal({
       proposal,
       effectHash: proposal.effects[0].effectHash,
@@ -576,6 +1016,17 @@ describe("S97 separately confirmed reversal", () => {
     });
     expect(result.duplicate).toBe(false);
     expect(h.state.lease.endDate).toBe("2026-08-31");
+
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal: expirySubstitution,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "confirmation_invalid",
+    );
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(2);
 
     const replay = await h.service.executeReversal({
       proposal,
@@ -608,6 +1059,7 @@ describe("S97 separately confirmed reversal", () => {
         effects: [
           {
             kind: "recurring_charge_create",
+            baseline: EMPTY_CREATE_BASELINE,
             create: {
               accountID: "9",
               amount: "45.00",
@@ -648,6 +1100,7 @@ describe("S97 separately confirmed reversal", () => {
         effects: [
           {
             kind: "recurring_charge_create",
+            baseline: EMPTY_CREATE_BASELINE,
             create: {
               accountID: "9",
               amount: "45.00",
@@ -704,6 +1157,91 @@ describe("S97 separately confirmed reversal", () => {
       confirmedAtIso: new Date(NOW).toISOString(),
     });
     expect(h.state.charges.get("701")?.amount).toBe("1250.00");
+  });
+
+  it("rejects a succeeded field-reversal replay after collateral provider drift", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    await h.service.executeEffect(confirmed(proposal));
+    const preview = await h.service.previewReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    await h.service.executeReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+      reversal: preview,
+      confirmedAtIso: new Date(NOW).toISOString(),
+    });
+    h.state.charges.set("701", {
+      ...h.state.charges.get("701")!,
+      description: "Collateral provider mutation",
+    });
+
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal: preview,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "reversal_target_drift",
+    );
+    expect(
+      h.calls.filter((call) => call.method === "updateExistingRecurringCharge"),
+    ).toHaveLength(2);
+  });
+
+  it("refuses reversal success when an untouched charge field changes during readback", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    await h.service.executeEffect(confirmed(proposal));
+    const preview = await h.service.previewReversal({
+      proposal,
+      effectHash: proposal.effects[0].effectHash,
+    });
+    h.state.readbackOverride = () => {
+      h.state.charges.set("701", {
+        ...h.state.charges.get("701")!,
+        description: "Collateral provider mutation",
+      });
+    };
+
+    await expectCode(
+      h.service.executeReversal({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+        reversal: preview,
+        confirmedAtIso: new Date(NOW).toISOString(),
+      }),
+      "provider_readback_mismatch",
+    );
+    expect(h.store.records.get(preview.reversalExecutionId)).toMatchObject({
+      state: "ambiguous",
+      attemptCount: 1,
+    });
   });
 });
 

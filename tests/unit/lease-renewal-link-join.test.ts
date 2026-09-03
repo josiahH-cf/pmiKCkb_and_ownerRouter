@@ -5,6 +5,7 @@ import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 import {
   formulaResponseToTablesWithJoinIds,
   readRenewalSheetGridsWithLinks,
+  sheetResponsesToTablesWithJoinIds,
 } from "@/lib/lease-renewal/sheet-links";
 import { runFullyLiveRenewalReview } from "@/lib/lease-renewal/live-run";
 import { PROOF_NOTE_PREFIX } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
@@ -84,6 +85,149 @@ describe("pipeline id-join via tableJoinIds (record.joinId)", () => {
     });
     expect(run.flags.map((f) => f.fieldKey)).not.toContain("current_rent");
   });
+
+  it("never fuzzy-joins a different explicit lease id even when tenant names match", () => {
+    const sameNameWrongLease: NonSheetCandidate = {
+      ...candidate,
+      joinValue: "Sheet Spelling",
+      joinId: "lease:888",
+    };
+    const run = runRenewalPipeline({
+      runId: "tji-3",
+      tables,
+      nonSheetCandidates: [sameNameWrongLease],
+      tableJoinIds: [[null, "lease:777"]],
+    });
+
+    expect(run.flags.map((flag) => flag.fieldKey)).not.toContain("current_rent");
+    expect(
+      run.outcomes
+        .find((outcome) => outcome.fieldKey === "current_rent")
+        ?.reconciliation.candidates.map((entry) => entry.source),
+    ).toEqual(["sheet_tab3"]);
+  });
+
+  it("fails a no-id row closed when two leases share its fallback name", () => {
+    const sameName = "Shared Household";
+    const ambiguousTables = [
+      [HEADER, renewalsRow({ [TENANT]: sameName, [CURRENT_RENT]: "$1,300" })],
+    ];
+    const run = runRenewalPipeline({
+      runId: "tji-fuzzy-one-to-many",
+      tables: ambiguousTables,
+      nonSheetCandidates: [
+        { ...candidate, joinId: "lease:1", joinValue: sameName },
+        { ...candidate, joinId: "lease:2", joinValue: sameName },
+      ],
+    });
+
+    const rent = run.outcomes.find((outcome) => outcome.fieldKey === "current_rent");
+    expect(rent?.reconciliation.candidates.map((entry) => entry.source)).toEqual([
+      "sheet_tab3",
+    ]);
+    expect(rent?.matchedCandidateJoinIds).toBeUndefined();
+  });
+
+  it("counts a same-name lease as ambiguous even when only the other lease carries rent", () => {
+    const sameName = "Asymmetric Household";
+    const ambiguousTables = [
+      [HEADER, renewalsRow({ [TENANT]: sameName, [CURRENT_RENT]: "$1,300" })],
+    ];
+    const run = runRenewalPipeline({
+      runId: "tji-fuzzy-asymmetric-field",
+      tables: ambiguousTables,
+      nonSheetCandidates: [
+        { ...candidate, joinId: "lease:1", joinValue: sameName },
+        {
+          ...candidate,
+          joinId: "lease:2",
+          joinValue: sameName,
+          fields: { renewal_date: { value: "2026-08-31", confidence: "Verified" } },
+        },
+      ],
+    });
+
+    const rent = run.outcomes.find((outcome) => outcome.fieldKey === "current_rent");
+    expect(rent?.reconciliation.candidates.map((entry) => entry.source)).toEqual([
+      "sheet_tab3",
+    ]);
+    expect(rent?.matchedCandidateJoinIds).toBeUndefined();
+    expect(run.flags.map((flag) => flag.fieldKey)).not.toContain("current_rent");
+  });
+
+  it("fails a no-id lease closed when two Sheet rows share its fallback name", () => {
+    const sameName = "Repeated Household";
+    const ambiguousTables = [
+      [
+        HEADER,
+        renewalsRow({ [TENANT]: sameName, [CURRENT_RENT]: "$1,300" }),
+        renewalsRow({ [TENANT]: sameName, [CURRENT_RENT]: "$1,350" }),
+      ],
+    ];
+    const run = runRenewalPipeline({
+      runId: "tji-fuzzy-many-to-one",
+      tables: ambiguousTables,
+      nonSheetCandidates: [{ ...candidate, joinId: "lease:1", joinValue: sameName }],
+    });
+
+    expect(
+      run.outcomes
+        .filter((outcome) => outcome.fieldKey === "current_rent")
+        .every(
+          (outcome) =>
+            outcome.reconciliation.candidates.length === 1 &&
+            outcome.reconciliation.candidates[0].source === "sheet_tab3",
+        ),
+    ).toBe(true);
+  });
+
+  it("fails duplicate exact Sheet ids closed instead of selecting the first row", () => {
+    const duplicateIdTables = [
+      [
+        HEADER,
+        renewalsRow({ [TENANT]: "First", [CURRENT_RENT]: "$1,300" }),
+        renewalsRow({ [TENANT]: "Second", [CURRENT_RENT]: "$1,350" }),
+      ],
+    ];
+    const run = runRenewalPipeline({
+      runId: "tji-duplicate-id",
+      tables: duplicateIdTables,
+      nonSheetCandidates: [candidate],
+      tableJoinIds: [[null, "lease:777", "lease:777"]],
+    });
+
+    expect(
+      run.outcomes
+        .filter((outcome) => outcome.fieldKey === "current_rent")
+        .every((outcome) => outcome.matchedCandidateJoinIds === undefined),
+    ).toBe(true);
+  });
+
+  it("binds the candidate fingerprint to the exact lease identity", () => {
+    const sameName = "Stable Household";
+    const identityTables = [
+      [HEADER, renewalsRow({ [TENANT]: sameName, [CURRENT_RENT]: "$1,300" })],
+    ];
+    const fingerprintFor = (joinId: string) =>
+      runRenewalPipeline({
+        runId: "tji-fingerprint",
+        tables: identityTables,
+        nonSheetCandidates: [
+          {
+            ...candidate,
+            joinId,
+            joinValue: sameName,
+            fields: { current_rent: { value: 1400, confidence: "Verified" } },
+          },
+        ],
+      }).outcomes.find((outcome) => outcome.fieldKey === "current_rent")!;
+
+    const first = fingerprintFor("lease:1");
+    const second = fingerprintFor("lease:2");
+    expect(first.matchedCandidateJoinIds).toEqual(["lease:1"]);
+    expect(second.matchedCandidateJoinIds).toEqual(["lease:2"]);
+    expect(first.candidateFingerprint).not.toBe(second.candidateFingerprint);
+  });
 });
 
 describe("formulaResponseToTablesWithJoinIds", () => {
@@ -100,9 +244,15 @@ describe("formulaResponseToTablesWithJoinIds", () => {
         },
       ],
     };
-    const { tables, tableJoinIds } = formulaResponseToTablesWithJoinIds(response);
+    const { tables, tableJoinIds, tableRentvineSourceUrls } =
+      formulaResponseToTablesWithJoinIds(response);
     expect(tables[0][1][0]).toBe("Guy"); // display text, not the formula
     expect(tableJoinIds[0]).toEqual([null, "lease:5", null]);
+    expect(tableRentvineSourceUrls[0]).toEqual([
+      null,
+      "https://pmikcmetro.rentvine.com/leases/5",
+      null,
+    ]);
   });
 });
 
@@ -121,13 +271,25 @@ const FORMULA_RESPONSE: SheetsBatchGetResponse = {
   ],
 };
 
+const EVALUATED_RESPONSE: SheetsBatchGetResponse = {
+  valueRanges: [
+    {
+      range: "Lease Renewal",
+      values: [
+        HEADER.map((h) => h),
+        renewalsRow({ [TENANT]: "Guy", [CURRENT_RENT]: "$1,100" }),
+      ],
+    },
+  ],
+};
+
 function readerWithFormulas(): SheetsValuesReader {
   return {
     async listTabTitles() {
       return ["Lease Renewal"];
     },
     async batchGet() {
-      return { valueRanges: [] };
+      return EVALUATED_RESPONSE;
     },
     async batchGetFormulas() {
       return FORMULA_RESPONSE;
@@ -144,6 +306,72 @@ describe("readRenewalSheetGridsWithLinks", () => {
     });
     expect(read.titles).toEqual(["Lease Renewal"]);
     expect(read.tableJoinIds[0]).toContain("lease:5");
+    expect(read.tableRentvineSourceUrls[0]).toContain(
+      "https://pmikcmetro.rentvine.com/leases/5",
+    );
+  });
+
+  it("keeps an ordinary formula's evaluated value while extracting hyperlinks", () => {
+    const evaluated: SheetsBatchGetResponse = {
+      valueRanges: [
+        {
+          range: "Lease Renewal",
+          values: [
+            ["Tenant", "Rent"],
+            ["Guy", "$1,225"],
+          ],
+        },
+      ],
+    };
+    const formulas: SheetsBatchGetResponse = {
+      valueRanges: [
+        {
+          range: "Lease Renewal",
+          values: [
+            ["Tenant", "Rent"],
+            [
+              '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/5","Guy")',
+              "=SUM(1200,25)",
+            ],
+          ],
+        },
+      ],
+    };
+    const read = sheetResponsesToTablesWithJoinIds(evaluated, formulas);
+    expect(read.tables[0][1]).toEqual(["Guy", "$1,225"]);
+    expect(read.tableJoinIds[0][1]).toBe("lease:5");
+  });
+
+  it("fails the Sheet read closed when one row links to two different leases", () => {
+    const evaluated: SheetsBatchGetResponse = {
+      valueRanges: [
+        {
+          range: "Lease Renewal",
+          values: [
+            ["Tenant", "RentVine"],
+            ["Guy", "Open"],
+          ],
+        },
+      ],
+    };
+    const formulas: SheetsBatchGetResponse = {
+      valueRanges: [
+        {
+          range: "Lease Renewal",
+          values: [
+            ["Tenant", "RentVine"],
+            [
+              '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/5","Guy")',
+              '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/6","Open")',
+            ],
+          ],
+        },
+      ],
+    };
+
+    expect(() => sheetResponsesToTablesWithJoinIds(evaluated, formulas)).toThrow(
+      /multiple RentVine lease destinations/,
+    );
   });
 
   it("drops proof-marked rows (and their join ids) when the note layer is present", async () => {
@@ -152,7 +380,18 @@ describe("readRenewalSheetGridsWithLinks", () => {
         return ["Lease Renewal"];
       },
       async batchGet() {
-        return { valueRanges: [] };
+        return {
+          valueRanges: [
+            {
+              range: "Lease Renewal",
+              values: [
+                HEADER.map((h) => h),
+                renewalsRow({ [TENANT]: "Guy" }),
+                renewalsRow({ [TENANT]: "Proof Only" }),
+              ],
+            },
+          ],
+        };
       },
       async batchGetFormulas() {
         return {
@@ -193,6 +432,10 @@ describe("readRenewalSheetGridsWithLinks", () => {
     });
     expect(read.tables[0]).toHaveLength(2); // header + the one normal row
     expect(read.tableJoinIds[0]).toEqual([null, "lease:5"]);
+    expect(read.tableRentvineSourceUrls[0]).toEqual([
+      null,
+      "https://pmikcmetro.rentvine.com/leases/5",
+    ]);
     expect(JSON.stringify(read.tables)).not.toContain("Proof Only");
   });
 

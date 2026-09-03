@@ -3,7 +3,16 @@
 
 # S97 — Governed RentVine renewal writeback
 
-> Status: COMPLETE and deployed. Closed slice at commit `f2153b00087516cf06c4f9776f2fc3562e146c83` (CI `33583463885`); three serial per-key live proofs passed 2026-09-02 on the owner-designated test lease with receipts, exact readback, duplicate-replay proof, honest ambiguity reconciliation, receipt-bound delete with absence proof, and restores (the update restore hash equals the original creation receipt); protected activation promoted at commit `642269cab5afba563c41ce769541680c04d5c60c` with the mirror read back at 44 keys/ten open. The retired broad identifier stays closed.
+> Status: Baseline COMPLETE and deployed. Closed slice at commit
+> `f2153b00087516cf06c4f9776f2fc3562e146c83` (CI `33583463885`); three serial
+> per-key live proofs passed 2026-09-02 on the owner-designated test lease with receipts, exact
+> readback, duplicate-replay proof, honest ambiguity reconciliation, receipt-bound delete with
+> absence proof, and restores (the update restore hash equals the original creation receipt);
+> protected activation promoted at commit `642269cab5afba563c41ce769541680c04d5c60c` with the
+> then-current mirror read back at 44 keys/ten open. The current registry is 48 keys/16 open. The
+> retired broad identifier stays closed. A current integrity remediation adds generation-bound
+> replay, fresh duplicate verification, and fail-closed ambiguous-create handling; it is
+> implemented in the working tree but remains unreleased until the current S51/S54 gate passes.
 
 **Goal.**
 
@@ -13,18 +22,14 @@ receipts, exact readback, explicit partial-failure recovery, and no autonomous o
 
 **Current state / intended end state.**
 
-Current production can read complete lease data and contains a CLI-only S30 proof runner for one
-existing lease `endDate`. The reusable transport also represents `increaseEligibilityDate` and three
-fields on one existing recurring charge, but those wider operations have no production product route,
-typed proposal, complete receipt projection, or live proof. The Action Registry's composite preview
-shape does not match either S30 or the real provider payload. The broad
-`rentvine.lease.renewal_writeback` key is closed.
-
-The target is a normal product workflow, distinct from S30's proof-and-restore lifecycle. A renewal
-proposal is built from fresh RentVine state plus exact human-entered/approved renewal terms, reviewed
-in the lease workspace, and executed only through the exact operation key named below. A successful
-business update remains applied; reversal is a separately previewed and confirmed correction, not an
-automatic S30 closeout.
+Production has the normal S97 product workflow and all three exact action keys below are proven,
+activated, deployed, and executable. A renewal proposal is built from fresh RentVine state plus exact
+human-entered or approved terms, reviewed in the lease workspace, and executed only through its exact
+operation key. A successful business update remains applied; reversal is a separately previewed and
+confirmed correction. The completed proof windows are closed and must not be rerun or assigned a new
+target. The broad `rentvine.lease.renewal_writeback` compatibility key remains closed and retired.
+The active unreleased correction does not repeat a proof or widen a key: it closes replay and
+ambiguous-create attribution gaps in the normal product path.
 
 **Actors and entry conditions.**
 
@@ -33,11 +38,8 @@ automatic S30 closeout.
 - Execution requires an authenticated managed `pmikcmetro.com` Admin with Renewals Space access, the
   exact production-allowed operation key, no applicable runtime suspension, fresh provider/account
   readback, and an unexpired exact confirmation. Missing access links to S83's request workflow.
-- The live proofs use only the owner-designated real lease supplied outside Git and resolved exactly
-  from its owner-provided property anchor plus the matching operating-Sheet row.
-  Its secure packet binds the exact account, lease, fresh before state, a temporary one-calendar-day
-  `endDate` delta, rollback to the exact original value, actor, evidence reference, and expiry. If any
-  designation or state no longer matches, the proof stops and never substitutes another record.
+- The owner-designated proof lease and proof windows are historical completed evidence, not an entry
+  condition for normal product use. Never rerun them or substitute another record.
 
 **What it is / how it functions.**
 
@@ -78,7 +80,7 @@ primitives but never opens the broad key; it cannot grant or prove any of the th
 
 In scope: typed proposal and source mapping; exact operation previews; normal product execution;
 per-effect claims/receipts/readback; separately confirmed reversal; response-loss reconciliation;
-workspace status/action links; protected per-key activation; S30 proof reuse; retirement of the
+workspace status/action links; exact per-key activation; retired-S30 safety primitives; retirement of the
 superseded multi-record proof machinery; removal of the synthetic composite RentVine executor from production reachability;
 and current-doc/governance reconciliation.
 
@@ -88,15 +90,14 @@ LeadSimple, autonomous execution, model-triggered execution, or client-facing se
 
 **Open questions & assumptions.**
 
-No product decision remains open. Runtime values are deliberately supplied at execution: a proposal
-must contain the actual approved dates/charge terms and exact current provider identifiers. The
-proof target arrives through the fresh-context owner instruction or an equivalent secure
-untracked packet and is never committed.
+No product decision remains open. Runtime values are deliberately supplied for each normal execution:
+a proposal must contain the actual approved dates or charge terms and exact current provider
+identifiers. Completed proof targets and receipts are not reusable execution authority.
 
 **Cross-product impacts.**
 
 Canonical renewal workspace and evidence projection; S80/S83 role and request matrices; Action
-Registry seed/preview schemas/gates; RentVine transport; S30 proof lifecycle; Firestore attempts,
+Registry seed/preview schemas/gates; RentVine transport; retired-S30 safety primitives; Firestore attempts,
 receipts, and renewal evidence; S82 action/link presentation; S86 feedback/recovery; S91 read-only
 assistant evidence; cache invalidation; runtime suspension; Admin action status; integration and
 environment documentation.
@@ -105,7 +106,7 @@ environment documentation.
 
 | Input                                                                      | Classification                   | Use and limitation                                                                                                                                                          |
 | -------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router, current code/tests, live readback, and `docs/facts.md`             | Authority / implementation truth | Establish the currently closed broad key, S30's one-field proof, managed identity, one-attempt ambiguity rule, and current provider/account state.                          |
+| Router, current code/tests, live readback, and `docs/facts.md`             | Authority / implementation truth | Establish the three exact open keys, retired broad key, managed identity, one-attempt ambiguity rule, and current provider/account state.                                   |
 | Owner decisions of 2026-08-31                                              | Product/effect authority         | Authorize all renewal-relevant RentVine writeback, the designated ended lease proof, protected per-key activation after gates, and cloud mutation; not a generic API grant. |
 | Current official RentVine OpenAPI contract at `https://docs.rentvine.com/` | Provider contract                | Establish the exact lease and recurring-charge POST/GET fields. Snapshot/hash the consumed operations in tests; do not infer undocumented semantics or idempotency.         |
 | Fresh provider state and exact operator-entered/approved proposal          | Runtime authority                | Supplies customer values and identifiers. Missing, stale, conflicting, or unmapped values block only that operation.                                                        |
@@ -134,6 +135,14 @@ environment documentation.
   are removed after dependency inventory proves no generic source reader/evidence utility is lost.
   S30's reusable safety primitives remain; its proof-only CLI/closeout is not exposed as the product
   route.
+- **ARCH-S97-7** — A create proposal captures the exact canonical ids/hashes of every currently
+  matching charge and revalidates that baseline immediately before claim and again inside the action
+  gate. RentVine exposes no provider-owned idempotency or attempt receipt that can attribute a newly
+  observed matching charge to a lost response, so every ambiguous create remains unproven and cannot
+  mint a success receipt or receipt-bound delete authority. Forward execution identity includes the
+  exact proposal generation; legacy records are accepted only when their stored context hash matches
+  it. Every duplicate success rereads the provider after-state, and every reversal preview/confirmation
+  binds the exact resolved forward execution, effect, receipt, expiry, and reversal kind.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -148,7 +157,8 @@ environment documentation.
   state refuses before writer construction.
 - **BEH-S97-4** — An ambiguous attempt shows `Needs reconciliation`, the last known before/after
   observations, and no Retry control. Reconciliation may report before, after, or drift but never claims
-  causality from matching data alone.
+  causality from matching data alone. For recurring-charge create, any newly observed matching charge
+  remains drift/unproven and cannot become a causal receipt.
 - **BEH-S97-5** — Reversal requires a new exact preview and confirmation. Date reversal restores the
   receipted prior fields; an existing-charge update is offered only when every changed field has a
   supported exact inverse and restores that prior record; created-charge reversal may delete only the
@@ -161,6 +171,10 @@ environment documentation.
   reversible fields. If either safe charge proposal or target is absent, that exact key remains blocked
   rather than inventing values. Every proof key is closed/read back before the next window, and final
   activation opens only keys whose own deterministic and live gates passed.
+- **BEH-S97-7** — A pre-existing identical charge, any newly observed matching charge after an
+  ambiguous create, changed baseline, missing baseline on a legacy create proposal, stale duplicate
+  receipt, different proposal generation, or cross-forward reversal token fails closed. No such state
+  can produce a causal create receipt or authorize deletion.
 
 **Human litmus outcome.**
 
@@ -176,20 +190,21 @@ cannot execute the write.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                            | Architecture outcome                     | Behavior outcome         | Human litmus                                    | Deterministic evidence / falsification                                                                                         |
-| ------------------------------------------------------ | ---------------------------------------- | ------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Exact supported field/key matrix                       | `ARCH-S97-1`, `ARCH-S97-2`               | `BEH-S97-1`, `BEH-S97-3` | Preview contains only supported changes         | Schema/static/provider-spy matrices reject every other key, route, method, field, and caller-supplied target.                  |
-| One-attempt receipt/readback and projection            | `ARCH-S97-3`, `ARCH-S97-4`               | `BEH-S97-2`, `BEH-S97-4` | Success or recovery is truthful                 | Claim races, duplicate confirmation, timeout, response loss, receipt loss, and projection-failure fixtures prove no retry.     |
-| Ordered partial effects and independent reversal       | `ARCH-S97-5`                             | `BEH-S97-4`, `BEH-S97-5` | User can explain what did and did not happen    | Failure at every effect boundary proves later effects stop and reverse order remains separately confirmed.                     |
-| Per-key proof and exact protected activation           | `ARCH-S97-2`, `ARCH-S97-3`, `ARCH-S97-6` | `BEH-S97-6`              | Test target returns to its exact original state | Secure-packet, per-key provider readback, reversal, closeout, release, and post-release key inventory evidence all must agree. |
-| Retire superseded multi-record and composite machinery | `ARCH-S97-2`, `ARCH-S97-6`               | `BEH-S97-1`, `BEH-S97-6` | No obsolete run or duplicate write UI remains   | Import/reference/package/docs inventory fails on legacy-proof-only reachability or the synthetic composite product executor.   |
+| Requirement                                            | Architecture outcome                     | Behavior outcome                      | Human litmus                                      | Deterministic evidence / falsification                                                                                                                             |
+| ------------------------------------------------------ | ---------------------------------------- | ------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Exact supported field/key matrix                       | `ARCH-S97-1`, `ARCH-S97-2`               | `BEH-S97-1`, `BEH-S97-3`              | Preview contains only supported changes           | Schema/static/provider-spy matrices reject every other key, route, method, field, and caller-supplied target.                                                      |
+| One-attempt receipt/readback and projection            | `ARCH-S97-3`, `ARCH-S97-4`               | `BEH-S97-2`, `BEH-S97-4`              | Success or recovery is truthful                   | Claim races, duplicate confirmation, timeout, response loss, receipt loss, and projection-failure fixtures prove no retry.                                         |
+| Ordered partial effects and independent reversal       | `ARCH-S97-5`                             | `BEH-S97-4`, `BEH-S97-5`              | User can explain what did and did not happen      | Failure at every effect boundary proves later effects stop and reverse order remains separately confirmed.                                                         |
+| Per-key proof and exact protected activation           | `ARCH-S97-2`, `ARCH-S97-3`, `ARCH-S97-6` | `BEH-S97-6`                           | Test target returns to its exact original state   | Secure-packet, per-key provider readback, reversal, closeout, release, and post-release key inventory evidence all must agree.                                     |
+| Retire superseded multi-record and composite machinery | `ARCH-S97-2`, `ARCH-S97-6`               | `BEH-S97-1`, `BEH-S97-6`              | No obsolete run or duplicate write UI remains     | Import/reference/package/docs inventory fails on legacy-proof-only reachability or the synthetic composite product executor.                                       |
+| Create causality, replay, and reversal binding         | `ARCH-S97-3`, `ARCH-S97-7`               | `BEH-S97-4`, `BEH-S97-5`, `BEH-S97-7` | No old or unrelated charge can be claimed/deleted | Pre-existing-identical, response-loss, changed/multiple-match, stale-duplicate, fresh-generation, legacy-context, and cross-forward reversal fixtures fail closed. |
 
 **Preservation set.**
 
 RentVine/read-only renewal behavior, S72 process/evidence meaning, S74/S77 unsent-draft boundary,
 S78/S82 identity and query contracts, S80/S83 access separation, S86 recovery, S30 one-attempt
-primitives, runtime suspension, exact account/managed identities, seven currently open keys until
-activation, no-send rules, cache/source truth, secrets/PII hygiene, and all unrelated provider keys.
+primitives, runtime suspension, exact account/managed identities, the current 48-key/16-open registry,
+no-send rules, cache/source truth, secrets/PII hygiene, and all unrelated provider keys.
 
 **Adversarial acceptance checks.**
 
@@ -208,6 +223,11 @@ activation, no-send rules, cache/source truth, secrets/PII hygiene, and all unre
   values; no broad or sibling proof is accepted.
 - **AC-S97-6** — Complete-tree inventory proves legacy-proof-only machinery and old composite production
   execution are gone while generic read/evidence paths and S30 safety primitives remain green.
+- **AC-S97-7** — Create ambiguity tests seed an identical charge before proposal, inject response
+  loss, and prove reconciliation and reversal both refuse. Separate fixtures prove even one newly
+  matching absent id stays unproven, provider drift invalidates duplicate success, a fresh identical
+  proposal after external restoration receives a new attempt identity, legacy fallback requires exact
+  context, and a reversal token cannot cross proposal generations.
 
 **Forbidden actions / hard gates.**
 
@@ -220,64 +240,48 @@ that proposal, process position, provider response, or matching readback alone p
 **Dependencies / sequencing.**
 
 S97 runs after S82 and consumes S83 access, S85/S86 presentation, S72/S78/S80 renewal truth, and the
-deployed S30 safety primitives. S98 consumes its canonical lease/source receipt identity. S91/S87
+retained one-attempt/readback safety primitives first established by retired S30. S98 consumes its canonical lease/source receipt identity. S91/S87
 must consume S97's final read-only status/link surfaces. Dotloop and LeadSimple remain later work.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** closed-gate product architecture, exact three-key matrix, proposal/route/UI,
-  transport expansion, receipts/projection/recovery/reversal, legacy-proof retirement, deterministic tests,
-  and a deployed closed-state slice.
+- **Delivered:** exact three-key matrix, proposal/route/UI, transport, receipts, projection,
+  recovery/reversal, retired broad-key posture, deterministic tests, completed per-key proofs, and
+  activated production paths.
 - **Consumes, but does not assume:** proposal values and charge identifiers are runtime inputs;
   missing values produce an exact blocked effect without blocking unrelated renewal work.
-- **Externally blocked effect:** only an exact live proof is blocked if the secure designated target,
-  managed Admin session, credentials, or safe source-backed/staff-confirmed recurring-charge proposal
-  needed by that key cannot be read. All code and closed-state release work completes first; no
-  substitute record or value is chosen and sibling keys do not inherit proof.
+- **Externally blocked effect:** none for S97 delivery. Normal operations can still refuse on missing
+  actor authority, source values, provider state, runtime suspension, or exact confirmation; that is
+  expected per-operation safety, not an instruction to rerun a proof.
 - **Produces for downstream suites:** exact source-effect keys, proposal/receipt/status contracts,
   renewal evidence links, and retired legacy-proof/current-doc state.
 
 **Verification and delivery contract.**
 
-1. Freeze current S30/transport/registry/product-route truth and materialize failing matrix, product
-   proposal, projection, partial-failure, and legacy-proof-retirement checks before implementation.
-2. Implement and release the complete code slice with all new keys false. Run focused tests,
-   `bash scripts/verify.sh`, `npm run test:e2e:core`, secret/PII/protected-path/effect/diff audits, exact-
-   SHA CI, zero-traffic smoke, promotion, and stable closed-key readback.
-3. Validate the secure owner-designated target outside Git. Keep the retired broad key closed. In a
-   protected window, open only `rentvine.lease.renewal_dates.update`, perform the one-day `endDate`
-   forward call and separately confirmed rollback, prove exact restoration, then close/read back that
-   key. Stop as an incident if restoration or closeout cannot be proved.
-4. In separate protected windows, open only `rentvine.lease.recurring_charge.create`, then only
-   `rentvine.lease.recurring_charge.update`. The create proof requires exact source-backed,
-   staff-confirmed terms, exact readback, a separately confirmed receipt-bound DELETE of the unchanged
-   proof charge, and absence readback. The update proof requires a fresh existing charge, one exact
-   staff-confirmed reversible field delta, exact readback, separate restoration, and final exact
-   readback. Close/read back each key before the next window. Missing safe runtime input blocks only
-   that key; it never permits a substitute or an irreversible `endDate` transition.
-5. Apply the owner-authorized protected activation patch separately for each S97 key whose own proof
-   and remaining gates passed, rerun canonical gates and exact-SHA CI, release through a new zero-
-   traffic candidate, and read back code revision, runtime, roles, suspensions, retired broad-key state,
-   and exact per-key state. Roll back the release if any invariant fails.
-6. Record one terminal: `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` only with an explicit budget, or
-   `BLOCKED` only after all independent closed-safe work is green and one exact external prerequisite
-   is unavailable.
+1. Preserve the exact key/field/method matrix, one-attempt behavior, receipt/readback, correction,
+   actor, runtime-suspension, and no-send tests in every affected change.
+2. Keep the three exact keys and retired broad key aligned across the registry, route, UI, provider
+   transport, and current docs; a runtime flag or historical receipt grants nothing independently.
+3. Release changes through the normal exact-SHA, zero-traffic candidate, managed assurance,
+   promotion, and readback gates. Do not rerun any S97 proof window.
+4. Specify any new RentVine method, field, or product operation under a new exact contract and key;
+   never broaden or repurpose the completed S97 proof.
 
 **Ordered prompt sequence.**
 
-1. Re-read current S30, provider OpenAPI, registry overlays, product proposal gaps, live target state,
-   and protected-key authority; freeze fail-first and preservation evidence.
-2. Build the closed exact-key/product proposal/execution/receipt/reversal slice and retire legacy-proof-only
-   machinery without exposing any key.
-3. Falsify every operation, race, partial failure, recovery, role, and projection path; ship the
-   closed candidate and prove current production invariants.
-4. Run the date, create, and update proofs serially under the secure owner designation, opening only
-   the exact key under proof and closing/read backing it after its separately confirmed reversal.
-5. Review, test, deliver, and read back only each exact key's independently qualified activation
-   patch; update current docs and downstream manifests to observed truth.
+1. Reconcile the current three-key implementation, normal proposal lifecycle, and provider codecs
+   against this contract without rerunning any completed live proof.
+2. Run the focused S97 schema, route, concurrency, ambiguity, reversal, projection, and static-
+   inventory falsification, followed by every preservation test named above.
+3. Run the canonical verifier, exact-SHA CI, zero-traffic candidate smoke and assurance, exact
+   promotion, observation, and live configuration/version readback.
+4. Report exactly one terminal state: `ALL_GATES_GREEN` only when every applicable deterministic and
+   release gate passes; `BUDGET_EXHAUSTED` only when an explicit execution budget is actually
+   exhausted; or `BLOCKED` only when one exact required runtime input or authority remains unavailable
+   after unrelated in-scope work is complete. Never substitute a proof target or relax a hard gate.
 
 **Deletion/merge recommendation.**
 
-After S97 is deployed and its three exact keys/readbacks are represented in current code, tests, and
-facts, remove the active S30 suite narrative while preserving reusable safety contracts and durable
-receipts. Git retains proof provenance.
+Keep S97 as the current product contract. S30 is retired and should not remain an active execution
+dependency; Git retains its proof provenance while current code, tests, facts, and this contract own
+normal S97 behavior.

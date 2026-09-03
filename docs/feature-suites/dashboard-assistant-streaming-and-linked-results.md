@@ -80,6 +80,17 @@ primary control in the region is `Send` while idle and `Sending…` while dispat
 `Enter` submits when the user is not composing with an input method editor; `Shift+Enter` inserts a
 newline. The visible Send control remains the non-shortcut path.
 
+Directly below the composer, render one secondary S86 disclosure labelled `What can I ask?`. It is
+collapsed by default, remains keyboard/touch accessible without hover, and is part of the existing
+`AI` region rather than a third Dashboard region or an idle result panel. When expanded it renders
+only S88's validated `AssistantCapabilityManifestV1`: the eight supported V1 question families in
+registry order, their exact example-question controls, the one-action boundary, and the visible
+sentence `Each question is answered independently. Earlier turns are not sent as context.` Activating
+an example copies that exact question into the composer and returns focus there; it never submits,
+loads a source, starts a model, or creates work. The UI contains no separate example list, model-
+generated suggestion, unsupported-domain teaser, source-health claim, or implication that every actor
+can read every family.
+
 Submitting snapshots the trimmed question into a new exchange, clears the composer only after the
 request is accepted, and places that user turn immediately below the input. One tab may have at most
 one in-flight exchange. While it is pending, the user can `Stop`; a second dispatch is not allowed.
@@ -137,7 +148,8 @@ claims cancellation; the next exact query/projector lookup converges on an exist
 when one was created.
 
 The empty assistant has no `Results appear here` panel. A result region exists only after a
-submission. That keeps the idle Dashboard to the composer and S95's My Work handoff.
+submission. The compact capability disclosure is composer guidance, not a result or third task region;
+that keeps the idle Dashboard to the AI composer/help and S95's My Work handoff.
 
 ### Canonical stream request and response
 
@@ -288,9 +300,17 @@ becoming final truth. Render each terminal state distinctly:
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `answered`               | Show the source/completeness statement, structured groups, required validated narration envelope, and terminal S94 action projection. An authoritative empty set reads `No matching items.`                                                                                                          |
 | `clarification_required` | Heading `More detail is needed`, the one S88-owned clarification prompt, and no invented result. The user answers through a new independent query; V1 has no hidden conversational memory. S88's top-level clarification notice supplies the only typed Internal Processes recovery link when legal. |
-| `unsupported`            | Heading `No process found` and exact body `No supported process was found for that request.` Then show S88's bounded recovery/examples, if supplied.                                                                                                                                                 |
+| `unsupported`            | Heading `That question isn't supported yet` and exact body `Try one of the supported examples.` Show `What can I ask?` using the same S88 manifest; never describe the failure as a missing process or fabricate a broader suggestion.                                                               |
 | `denied`                 | Heading `Access needed`, a non-enumerating explanation, and only an S88/S83 server-authored access handoff when permitted. Do not reveal hidden record counts, names, routes, or source existence.                                                                                                   |
 | `unavailable`            | Heading `Results unavailable`, the affected public source label/completeness truth and one safe retry or owning-surface recovery from S88. Never render an unavailable read as zero.                                                                                                                 |
+
+`clarification_required` and `unsupported` retain the submitted wording in the user turn and add one
+secondary `Edit question` control. When the composer is empty and no request is in flight, activation
+copies that exact bounded wording back into the composer and focuses it without submitting. When the
+composer already contains text, the control is disabled with accessible description `Clear the current
+draft before editing this question.` The result also exposes `What can I ask?` by expanding/focusing
+the single disclosure above; it does not create a second example list. Retry, Edit, and example
+selection always start only through a later explicit Send and receive a new server query id.
 
 Immediately after the source/completeness statement and before result groups, render one labelled
 `Status` list from `result.notices` in its exact validated order. That array is the sole visible
@@ -761,6 +781,10 @@ No material product question remains open for V1.
   reload, navigation, or process restart. Route/store spies prove explicit
   `File correction` is the sole correction write and no model, query, action, or other exchange can
   supply or submit its context.
+- **ARCH-S93-8** — One compact capability/help renderer consumes only S88's public manifest and owns
+  example-to-composer, independent-question disclosure, unsupported/clarification recovery, focus,
+  and no-submit behavior. DOM/registry parity fails on UI-authored examples, a ninth V1 family, a
+  broader action claim, duplicate help, or hidden conversation-context behavior.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -788,6 +812,10 @@ No material product question remains open for V1.
   guarded Proposed-review path once for the same actor and exact normalized payload. One open/unknown
   correction remains pinned and recoverable with that same payload while Cancel and every automatic assistant lifecycle
   write nothing.
+- **BEH-S93-9** — At any time a user can open `What can I ask?`, inspect exactly eight V1 families,
+  copy an example without sending, and understand that visible prior turns are not query context. An
+  unsupported or ambiguous turn keeps its wording, offers Edit plus the same bounded help, and never
+  says that a process, source, or record is missing when only the question is unsupported.
 
 **Human litmus outcome.**
 
@@ -803,9 +831,10 @@ and no workflow or provider action starts.
 
 ### Understand a refusal or interruption
 
-**If this was built correctly:** An unsupported request says `No process found`; a source outage says
-results are unavailable rather than zero; a broken stream keeps any preview visibly incomplete and
-offers Retry; and Stop ends pending work without losing the submitted question.
+**If this was built correctly:** An unsupported request says that the question is not supported yet,
+keeps the submitted wording, and offers the exact supported examples; a source outage says results
+are unavailable rather than zero; a broken stream keeps any preview visibly incomplete and offers
+Retry; and Stop ends pending work without losing the submitted question.
 
 - Model verdict: PASS | FAIL - why: completed by the implementation runner with evidence.
 - Human verdict: PASS | FAIL - why:
@@ -822,20 +851,21 @@ the page clears the visible exchange history.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                        | Architecture outcome       | Behavior outcome         | Human litmus                         | Deterministic evidence / falsification                                                                                                                      |
-| -------------------------------------------------- | -------------------------- | ------------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One AI composer; no process picker or implicit run | `ARCH-S93-3`               | `BEH-S93-1`              | Ask for linked work                  | DOM/network spies assert exact controls and zero classify/process-run requests.                                                                             |
-| Strict actor-bound stream request                  | `ARCH-S93-1`, `ARCH-S93-6` | `BEH-S93-2`, `BEH-S93-3` | Understand a refusal or interruption | Schema/auth/body-size/unknown-field and one-orchestrator-call tests; client-supplied authority is rejected.                                                 |
-| True structured progressive delivery               | `ARCH-S93-2`, `ARCH-S93-5` | `BEH-S93-2`, `BEH-S93-6` | Ask for linked work                  | Delayed-adapter integration test receives accepted/progress/group bytes before terminal; timer-made chunks fail.                                            |
-| Exact terminal/error reconciliation                | `ARCH-S93-2`, `ARCH-S93-6` | `BEH-S93-3`              | Understand a refusal or interruption | Event permutation/truncation/duplicate/unknown-version fixtures retain incomplete truth and expose bounded recovery.                                        |
-| Typed actionable new-tab results                   | `ARCH-S93-4`               | `BEH-S93-4`              | Ask for linked work                  | Route-ref manifest and DOM tests assert exact href/target/rel/name; prompt/Markdown/foreign URL injection renders text.                                     |
-| Session-local independent exchanges                | `ARCH-S93-3`               | `BEH-S93-5`              | Trust what the assistant shows       | Storage/request-body/router spies prove no history persistence or prior-turn replay; reload removes exchanges.                                              |
-| Honest processing and accessible interaction       | `ARCH-S93-5`, `ARCH-S93-6` | `BEH-S93-6`, `BEH-S93-7` | Trust what the assistant shows       | Fake-clock, keyboard, live-region, reduced-motion, 320px, and 200%-zoom checks prove S86 timing and no noisy output.                                        |
-| Validated narration only                           | `ARCH-S93-2`, `ARCH-S93-4` | `BEH-S93-2`, `BEH-S93-7` | Trust what the assistant shows       | Buffered-provider and invalid-narration fixtures prove zero raw deltas and deterministic result survival.                                                   |
-| Human-confirmed task action only                   | `ARCH-S93-4`               | `BEH-S93-2`, `BEH-S93-6` | Ask for linked work                  | S94 projection/Review/Confirm schemas, expiry, and action spies prove display is inert until exact Confirm.                                                 |
-| Preserved explicit knowledge correction            | `ARCH-S93-7`               | `BEH-S93-8`              | Trust what the assistant shows       | Intent/state/body-capture/store spies prove only an expanded answered-knowledge form can append one Proposed correction per actor/exact normalized payload. |
-| Buffered Ask compatibility                         | `ARCH-S93-1`               | `BEH-S93-1`              | Ask for linked work                  | Existing `/api/ask` schema/route tests stay green while the Dashboard calls only the new stream route.                                                      |
-| No chain-of-thought or generic confidence          | `ARCH-S93-5`               | `BEH-S93-7`              | Trust what the assistant shows       | Static and DOM scans reject forbidden labels/fields, hidden prompt/reasoning, numeric confidence, and fake percentage.                                      |
+| Requirement                                        | Architecture outcome       | Behavior outcome         | Human litmus                         | Deterministic evidence / falsification                                                                                                                                                    |
+| -------------------------------------------------- | -------------------------- | ------------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One AI composer; no process picker or implicit run | `ARCH-S93-3`               | `BEH-S93-1`              | Ask for linked work                  | DOM/network spies assert exact controls and zero classify/process-run requests.                                                                                                           |
+| Strict actor-bound stream request                  | `ARCH-S93-1`, `ARCH-S93-6` | `BEH-S93-2`, `BEH-S93-3` | Understand a refusal or interruption | Schema/auth/body-size/unknown-field and one-orchestrator-call tests; client-supplied authority is rejected.                                                                               |
+| True structured progressive delivery               | `ARCH-S93-2`, `ARCH-S93-5` | `BEH-S93-2`, `BEH-S93-6` | Ask for linked work                  | Delayed-adapter integration test receives accepted/progress/group bytes before terminal; timer-made chunks fail.                                                                          |
+| Exact terminal/error reconciliation                | `ARCH-S93-2`, `ARCH-S93-6` | `BEH-S93-3`              | Understand a refusal or interruption | Event permutation/truncation/duplicate/unknown-version fixtures retain incomplete truth and expose bounded recovery.                                                                      |
+| Typed actionable new-tab results                   | `ARCH-S93-4`               | `BEH-S93-4`              | Ask for linked work                  | Route-ref manifest and DOM tests assert exact href/target/rel/name; prompt/Markdown/foreign URL injection renders text.                                                                   |
+| Session-local independent exchanges                | `ARCH-S93-3`               | `BEH-S93-5`              | Trust what the assistant shows       | Storage/request-body/router spies prove no history persistence or prior-turn replay; reload removes exchanges.                                                                            |
+| Honest processing and accessible interaction       | `ARCH-S93-5`, `ARCH-S93-6` | `BEH-S93-6`, `BEH-S93-7` | Trust what the assistant shows       | Fake-clock, keyboard, live-region, reduced-motion, 320px, and 200%-zoom checks prove S86 timing and no noisy output.                                                                      |
+| Validated narration only                           | `ARCH-S93-2`, `ARCH-S93-4` | `BEH-S93-2`, `BEH-S93-7` | Trust what the assistant shows       | Buffered-provider and invalid-narration fixtures prove zero raw deltas and deterministic result survival.                                                                                 |
+| Human-confirmed task action only                   | `ARCH-S93-4`               | `BEH-S93-2`, `BEH-S93-6` | Ask for linked work                  | S94 projection/Review/Confirm schemas, expiry, and action spies prove display is inert until exact Confirm.                                                                               |
+| Preserved explicit knowledge correction            | `ARCH-S93-7`               | `BEH-S93-8`              | Trust what the assistant shows       | Intent/state/body-capture/store spies prove only an expanded answered-knowledge form can append one Proposed correction per actor/exact normalized payload.                               |
+| Buffered Ask compatibility                         | `ARCH-S93-1`               | `BEH-S93-1`              | Ask for linked work                  | Existing `/api/ask` schema/route tests stay green while the Dashboard calls only the new stream route.                                                                                    |
+| No chain-of-thought or generic confidence          | `ARCH-S93-5`               | `BEH-S93-7`              | Trust what the assistant shows       | Static and DOM scans reject forbidden labels/fields, hidden prompt/reasoning, numeric confidence, and fake percentage.                                                                    |
+| Discoverable bounded capability and edit recovery  | `ARCH-S93-3/8`             | `BEH-S93-5/9`            | Understand a refusal or interruption | S88-manifest/DOM/focus tests prove one collapsed disclosure, exactly eight families, copy-without-send, independent-question copy, retained wording, and no model/UI-authored suggestion. |
 
 **Preservation set.**
 
@@ -858,8 +888,9 @@ the page clears the visible exchange history.
 - S82 canonical renewal links and return state; S83 access-request non-disclosure; S85 theme roles;
   S86 async/link/focus/dialog behavior; S88 deterministic authority; S89 privacy/cost controls;
   S90/S91 domain reads; S92 grounding; and S94 confirmation remain separate green gates.
-- Every current closed action key, unsent-draft rule, exact-confirm/readback/idempotency contract, and
-  no-autonomous-client-send boundary remains unchanged.
+- Every current exact action-key gate, unsent-draft rule, exact-confirm/readback/idempotency contract,
+  and no-autonomous-client-send boundary remains unchanged; query/help/link behavior invokes none of
+  the separately executable source keys.
 
 **Adversarial acceptance checks.**
 
@@ -928,6 +959,17 @@ status`, no second Proposed record, no actor/reviewer identity in the response, 
   activates the one mounted global reporter, passes only stable invoking-element identity, sends no
   correction/query/customer data, creates no second reporter, and returns focus to its S93 trigger;
   an intentionally unavailable reporter leaves the conflict pinned with zero fallback write.
+- **AC-S93-13** — `ARCH-S93-8`/`BEH-S93-9` registry/DOM fixtures render one collapsed `What can I
+ask?` inside AI, exactly S88's eight ordered families, fixed action boundary, and independent-question
+  sentence. Example activation and Edit copy text/focus only and make zero request; nonempty composer,
+  keyboard/touch/zoom, unsupported, ambiguity, reload, and duplicate-help fixtures preserve input and
+  reject overwrite, auto-submit, `No process found`, model-generated suggestions, a ninth family, or
+  any customer/source availability claim.
+- **AC-S93-14** — The S89 managed-session served-browser lane runs all eight fixed examples plus
+  unsupported, ambiguity, Stop, timeout, malformed stream, link, and action-tray states against the
+  exact candidate and promoted revision. Any console error, unhandled rejection, unexplained failed
+  same-origin request, missing terminal, post-terminal event, false empty, absent client-failure alert,
+  or content-bearing telemetry blocks Dashboard exposure.
 
 **Forbidden actions / hard gates.**
 
@@ -953,9 +995,10 @@ status`, no second Proposed record, no actor/reviewer identity in the response, 
 1. S85/S86 provide semantic visual roles, Icon/new-tab treatment, busy/progress, notices,
    Disclosure, focus, and responsive accessibility.
 2. S88 provides the strict request, deterministic read-only orchestrator, result groups, terminal
-   states, completeness, and actor-authorized route references.
+   states, completeness, actor-authorized route references, and the only V1 capability/example
+   manifest.
 3. S89 wraps the query with minimization, bodyless telemetry, budget/concurrency/timeout/cancellation,
-   and evaluation controls.
+   client-failure reporting, authenticated served-browser assurance, and evaluation controls.
 4. S90 and S91 supply Work/approval/access and canonical renewal read groups through the S88 adapter
    registry; their current-source fallback and completeness rules remain authoritative.
 5. S92 supplies exactly one completed validated narration envelope for an answered result and none
@@ -969,7 +1012,8 @@ status`, no second Proposed record, no actor/reviewer identity in the response, 
    empty entries, and empty notices remains the terminal value when S94 finds no eligible action; it
    is not a predecessor implementation milestone.
 8. Run one S93/S94 integration verification gate covering projection, Review, Confirm, receipt,
-   refusal, cancellation, response loss, and accessibility; this gate is not another suite execution.
+   refusal, cancellation, response loss, capability help, authenticated served-browser behavior,
+   client-error alert delivery, and accessibility; this gate is not another suite execution.
 9. S95 then makes S93 the sole AI region at both Dashboard aliases and removes the obsolete Dashboard
    panels/eager reads.
 

@@ -11,7 +11,7 @@ describe("S83 specialized access lane boundary", () => {
   it("branches and returns the Admin access lane before every Renewals guard or loader", () => {
     const branch = source.indexOf('resolvedSearchParams?.view === "access"');
     const renewalGuard = source.indexOf('requirePageSpaceAccess("renewals")');
-    const renewalLoader = source.indexOf("loadRenewalRunViews(user)");
+    const renewalLoader = source.indexOf("loadRenewalRunViewContext(user)");
     expect(branch).toBeGreaterThan(0);
     expect(branch).toBeLessThan(renewalGuard);
     expect(branch).toBeLessThan(renewalLoader);

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { RenewalDecider } from "@/components/lease-renewal/RenewalDecider";
+import { liveRenewalReviewItemId } from "@/lib/lease-renewal/live-review-destination";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 type ReviewMode = "decider" | "all";
@@ -24,6 +25,21 @@ function phoneViewportSnapshot(): boolean {
     typeof window.matchMedia === "function" &&
     window.matchMedia(PHONE_QUERY).matches
   );
+}
+
+function exactLinkedItemId(view: RenewalRunView): string | null {
+  if (typeof window === "undefined") return null;
+  const fragment = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : "";
+  if (fragment === "") return null;
+  for (const group of view.groups) {
+    for (const flag of group.flags) {
+      const itemId = liveRenewalReviewItemId(flag.sourceTriggerKey);
+      if (itemId === fragment) return itemId;
+    }
+  }
+  return null;
 }
 
 /**
@@ -50,7 +66,25 @@ export function RenewalReviewMode({
     () => false,
   );
   const [selectedMode, setSelectedMode] = useState<ReviewMode | null>(null);
+  const [linkedItemId, setLinkedItemId] = useState<string | null>(null);
   const mode = selectedMode ?? (phoneViewport ? "decider" : "all");
+
+  useEffect(() => {
+    function selectExactLinkedItem() {
+      const itemId = exactLinkedItemId(view);
+      setLinkedItemId(itemId);
+      if (itemId) setSelectedMode("all");
+    }
+
+    selectExactLinkedItem();
+    window.addEventListener("hashchange", selectExactLinkedItem);
+    return () => window.removeEventListener("hashchange", selectExactLinkedItem);
+  }, [view]);
+
+  useEffect(() => {
+    if (mode !== "all" || !linkedItemId) return;
+    document.getElementById(linkedItemId)?.focus();
+  }, [linkedItemId, mode]);
 
   return (
     <div className="lr-review-mode">

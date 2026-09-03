@@ -4,25 +4,31 @@ Updated from live readback and approved target contracts: 2026-09-02.
 
 ## Production
 
-| Item                      | Value                                          |
-| ------------------------- | ---------------------------------------------- |
-| Project                   | `pmi-kc-kb-prod`                               |
-| Region                    | `us-central1`                                  |
-| Cloud Run service         | `pmi-kc-app`                                   |
-| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`   |
-| Serving revision          | `pmi-kc-app-rmtjwy7f4-c705ce297553`            |
-| Serving commit            | `642269cab5afba563c41ce769541680c04d5c60c`     |
-| Traffic                   | 100%                                           |
-| Descriptor                | Production + Live                              |
-| Runtime identity          | project-managed PMI KC runtime service account |
-| Spaces                    | 11                                             |
-| Sheet write-back          | false                                          |
-| Legacy copy-only Sheet id | not configured                                 |
-| RentCast                  | selected; allowance 50                         |
-| Retired broad RentVine id | non-executable (S97 exact keys are open)       |
-| Demo flags                | false                                          |
+| Item                      | Value                                           |
+| ------------------------- | ----------------------------------------------- |
+| Project                   | `pmi-kc-kb-prod`                                |
+| Region                    | `us-central1`                                   |
+| Cloud Run service         | `pmi-kc-app`                                    |
+| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
+| Serving revision          | `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`             |
+| Serving commit            | `d243911cb20ffb01773072c0e27c723648eeea34`      |
+| Traffic                   | 100%                                            |
+| Descriptor                | Production + Live                               |
+| Runtime identity          | project-managed PMI KC runtime service account  |
+| Spaces                    | 11                                              |
+| Sheet write-back          | true for two exact S98 keys (serving baseline)  |
+| Legacy copy-only Sheet id | not configured                                  |
+| RentCast                  | selected; allowance 50                          |
+| Action Registry           | 48 exact keys; 16 open and 32 closed            |
+| Retired broad action ids  | non-executable; only exact proven keys are open |
+| Demo flags                | false                                           |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
+
+The active unreleased S98 correction preserves the two open keys and this switch but makes the
+normal product path append-only. Its field-update and fixed-row reversal routes must fail before
+writer construction; do not describe that behavior as serving until candidate promotion and
+readback pass.
 
 ## Local host and authentication
 
@@ -30,181 +36,194 @@ Secret names are bound through Secret Manager. Values never belong in this file.
 - Keep `GOOGLE_APPLICATION_CREDENTIALS` unset.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
   from source uploads.
-- On 2026-09-01 identity preflight resolved gcloud and fresh ADC to the managed
-  `josiah@pmikcmetro.com` account. The default gcloud refresh credential still fails non-interactively.
-- Every release through S97 used a short-lived ADC token only in a task-specific shell variable passed through
-  `CLOUDSDK_AUTH_ACCESS_TOKEN`. It was neither printed nor written. This established bridge is usable
-  only after fresh ADC and exact managed-principal readback; otherwise a person must reauthenticate.
-  Authentication dialogs must never be automated.
-- The Windows Cloud SDK profile at `/mnt/c/Users/josia/AppData/Roaming/gcloud` had no active account
-  when last inspected. Do not mutate authentication merely to satisfy a local label; use managed
-  identity and read back the selected principal before a cloud mutation.
+- Current preflight finds fresh Application Default Credentials for the managed
+  `josiah@pmikcmetro.com` account. The default gcloud refresh credential remains stale and cannot
+  refresh non-interactively.
+- For gcloud commands, the established bridge obtains the fresh ADC token in process and passes it
+  only through a task-specific `CLOUDSDK_AUTH_ACCESS_TOKEN` environment value. It must never print,
+  log, or persist the token. Re-run both identity preflights immediately before cloud work and refuse
+  unless the selected principal is the exact managed account.
+- Never automate an authentication dialog, password, or MFA challenge. If ADC is not fresh or the
+  managed principal cannot be read back, a person must reauthenticate.
+- Browser assurance uses two explicit persistent profile directories outside the repository, one
+  for the expected managed Admin and one for the expected managed Editor. Never guess or copy a
+  default/personal profile or infer a role from a cookie.
 
 ## Preflight
 
 ```bash
 npm run preflight:identity
 npm run preflight:adc
-npm run release -- --environment=production --plan-only --budget-confirmed --allow-multiple-spaces
+npm run release -- --environment=production --plan-only \
+  --budget-confirmed --allow-multiple-spaces
 ```
 
 The bare `preflight:production` command is not the authoritative release projection: the release
-wrapper injects the explicit descriptor and evaluates the exact replacing runtime map. Never bypass a
-release-wrapper refusal. If default gcloud refresh is stale but ADC is fresh and read back as the
-managed account, use only the non-persistent token bridge above. Never print or persist an access
-token.
+wrapper injects the explicit descriptor and evaluates the exact replacing runtime map. Never bypass
+a release-wrapper refusal. If default gcloud refresh is stale but ADC is fresh and read back as the
+managed account, use only the non-persistent token bridge above.
 
-## Release
+## Candidate release
 
 ```bash
 npm run release -- --environment=production --execute \
   --budget-confirmed --allow-multiple-spaces
 ```
 
-Smoke the returned tag URL with exact tag, service, revision, and 40-character commit. Compare the
-candidate's normalized runtime spec to the captured predecessor, allowing only the reviewed image
-and `APP_COMMIT_SHA` identity differences; inspect provider-generated per-build provenance metadata
-separately. Then:
+Capture the returned exact candidate revision, candidate tag, candidate origin, and predecessor.
+Compare the candidate's normalized runtime spec to the captured predecessor, allowing only reviewed
+image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
+provider-generated per-build provenance metadata separately.
+
+Run the anonymous, GET-only candidate smoke before any authenticated browser check:
+
+```bash
+npm run smoke:release-candidate -- \
+  --base-url=<candidate-origin> --expected-tag=<candidate-tag> \
+  --expected-service=pmi-kc-app --expected-revision=<candidate-revision> \
+  --expected-commit=<exact-40-character-sha>
+```
+
+Do not promote until the anonymous smoke and the complete S51 candidate assurance below pass.
+
+## S51 candidate and post-promotion assurance
+
+Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA. Add
+the exact candidate hostname to Firebase authorized domains through a reviewed managed cloud change
+and read it back. Two distinct browser-profile directories outside the repository must then be
+authenticated on that exact origin as the expected Admin and Editor; canonical-host-only sessions,
+copied cookies, guessed/default profiles, and automated password/MFA are not evidence.
+
+Capture the immutable revision-configuration fingerprint:
+
+```bash
+npm run assure:production-observation -- \
+  --capture-config-fingerprint --live \
+  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
+  --expected-revision=<candidate-revision>
+```
+
+Choose two new, explicit receipt paths outside the repository. Run the aggregate candidate gate; it
+serially runs the exact Admin and Editor canaries, independent Admin source reconciliation, origin/
+traffic/configuration binding, predecessor recovery baseline, and monitoring readback. Production
+promotion does not accept independently run diagnostic commands as a substitute for this receipt:
+
+```bash
+npm run assure:production-observation -- \
+  --prepare-candidate-receipt --live \
+  --base-url=<candidate-origin> \
+  --expected-commit=<exact-sha> --expected-revision=<candidate-revision> \
+  --expected-config-fingerprint=<sha256-fingerprint> \
+  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
+  --operator-email=<managed-operator@pmikcmetro.com> \
+  --admin-profile=<absolute-external-admin-profile> \
+  --editor-profile=<absolute-external-editor-profile> \
+  --candidate-assurance-receipt=<new-absolute-external-candidate-receipt-path>
+```
+
+The canary/reconciliation browser starts offline with service workers blocked, installs its
+GET/HEAD-only firewall, then connects. It must use the exact candidate revision's bound Sheet
+configuration and fail closed on mutation, identity drift, partial reads, or source/application
+disagreement.
+
+The monitoring setup generator is print-only. If the exact managed S51 resource set is absent,
+render its fully targeted plan, review every emitted mutation and rollback command, run the approved
+commands, complete the internal email-channel verification, and then use the read-only verifier:
+
+```bash
+npm run monitoring:plan -- \
+  --operator-email=<managed-operator@pmikcmetro.com> \
+  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app
+
+npm run monitoring:verify -- \
+  --live --operator-email=<managed-operator@pmikcmetro.com> \
+  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app
+```
+
+`monitoring:verify` must report the exact policy/metric set and one enabled, verified internal
+notification channel before promotion.
+
+Before promotion, establish the versioned recovery baseline on the still-serving predecessor. Read
+its exact commit, revision, configuration fingerprint, and 100% traffic, then run the Admin and
+Editor canaries against the canonical origin with `--phase=rollback`. That phase alone may select a
+workspace through the predecessor's existing `.renewal-lease-link` when the newer
+`data-workspace-available` marker does not exist. It still requires exact version/configuration,
+both complete role manifests, no browser diagnostic, and ready monitoring. Do not run the
+candidate-era semantic reconciliation against a predecessor that does not publish its markers.
+
+## Promotion and observation
+
+Promote only the exact passed candidate. The release command validates the fresh aggregate receipt
+and reserves the new promotion-receipt path before traffic changes:
 
 ```bash
 npm run release -- --environment=production --promote \
-  --candidate-revision=<exact> --budget-confirmed --allow-multiple-spaces
+  --candidate-revision=<candidate-revision> \
+  --candidate-assurance-receipt=<absolute-external-candidate-receipt-path> \
+  --promotion-receipt=<new-absolute-external-promotion-receipt-path> \
+  --budget-confirmed --allow-multiple-spaces
 ```
 
-After promotion, read back traffic, Ready state, service account, Production+Live descriptor, exact
-Space maps, expected secret references, allowance 50, the suite-owned Sheet/action/runtime state,
-bounded routes, and `/api/version`. Before S98 activation, Sheet writeback remains false. S98 removes
-the legacy copy-only setting and may enable only the exact operating actions after its temporary-row
-proof. S97/S99/S100 releases read back every named exact key and confirm every broad/unlisted key
-remains closed. S36 additionally proves its temporary store/object absent, eleven predecessor stores
-unchanged, and its runtime flag false at closeout.
+The command reads back exact 100-percent traffic before it durably commits the promotion receipt. If
+any post-traffic readback or receipt-persistence step fails, it restores the receipt-bound
+predecessor and verifies that restoration before reporting failure.
+
+Run the canonical-origin observation with the bound promotion receipt, fingerprint, managed
+operator, and both explicit profiles. The observer rejects caller-supplied predecessor or promotion
+time:
+
+```bash
+npm run assure:production-observation -- \
+  --live --base-url=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app \
+  --expected-commit=<exact-sha> --expected-revision=<candidate-revision> \
+  --expected-config-fingerprint=<sha256-fingerprint> \
+  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
+  --promotion-receipt=<absolute-external-promotion-receipt-path> \
+  --operator-email=<managed-operator@pmikcmetro.com> \
+  --admin-profile=<absolute-external-admin-profile> \
+  --editor-profile=<absolute-external-editor-profile>
+```
+
+The runner executes immediate and end-of-300,000-ms Admin/Editor canaries and reconciliation. It may
+wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision
+and never changes traffic. A `rollback_required` result requires restoring the exact captured
+predecessor, then repeating its recorded `--phase=rollback` Admin/Editor canaries plus exact
+commit/revision/configuration, ready monitoring, and 100% stable-traffic readback. Do not claim that
+an older predecessor implements the candidate's new Renewal Desk reconciliation schema.
+
+After a passed observation, independently read back traffic, Ready state, service account,
+Production + Live descriptor, exact Space maps, expected secret references, allowance 50, current
+Sheet/action/runtime state, bounded routes, and `/api/version`. The operating-Sheet switch remains
+enabled for S98's two activated keys; the legacy copy-only setting and broad Sheet action remain
+absent/closed. Candidate assurance must also prove that normal field update and fixed-row reversal
+return the typed provider-capability refusal without constructing a writer, while normal row append
+remains behind its exact lease-scoped claim. The Registry must remain 48 keys/16 open unless a
+separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtjhew5f-125876b4ff5b` from commit
-`f2153b00087516cf06c4f9776f2fc3562e146c83`.
+Captured predecessor: `pmi-kc-app-rmtkgn08q-db89a37c43dc` from commit
+`e69e913acaf1d507f1b228d2064138a6a55e8629`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtjhew5f-125876b4ff5b=100 --quiet
+  --to-revisions=pmi-kc-app-rmtkgn08q-db89a37c43dc=100 --quiet
 ```
 
-Forward restoration:
+Forward restoration to the current serving revision:
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtjwy7f4-c705ce297553=100 --quiet
+  --to-revisions=pmi-kc-app-rmtkmhj1z-8855e4c6dbfb=100 --quiet
 ```
 
-The 2026-08-27 rehearsal switched the predecessor to 100%:
-`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48` passed exact version and bounded-route smoke, then
-`pmi-kc-app-rmtbh280n-61b78ef991cc` was restored and passed the same smoke again. Verified release
-lineage then included S77 revision `pmi-kc-app-rmtep3ke9-9d3ecafb0c2e` from commit
-`2d7903d42dce9dbfad49338b959e467f6c333ccc`, S59 revision
-`pmi-kc-app-rmtew9a2z-46a2353b6491` from commit
-`64031f8ee028f09930660060c8f5f627ca5ccde1`, and S80 revision
-`pmi-kc-app-rmtf01asj-4b3665ad072f` from commit
-`d2dfbcc2a865af1f92103083c2a49714c2dc3977`. These identities are retained as verified provenance,
-not current traffic instructions.
-
-The S30 release did not repeat that traffic movement; it captured its immediate predecessor, proved
-normalized candidate/predecessor parity, promoted the exact candidate, and
-passed stable smoke/readback. No client-data or provider effect occurred.
-
-The S96 release captured `pmi-kc-app-rmtg73suu-fe8734d35330`, proved exact commit/revision and
-bounded routes on zero-traffic candidate `pmi-kc-app-rmtic5vib-8774cfecd0c8`, matched normalized
-runtime configuration, promoted only that revision, and passed stable traffic/configuration/action
-readback. Production had no connector records; no credential, vault, provider, or client-data effect
-occurred.
-
-The S85 release captured `pmi-kc-app-rmtic5vib-8774cfecd0c8`, passed exact-SHA CI run
-`33496148515`, proved exact commit/revision and bounded routes on zero-traffic candidate
-`pmi-kc-app-rmtiii4il-dcf1708c88b8`, matched the predecessor runtime spec after excluding only image
-and `APP_COMMIT_SHA`, promoted only that revision, and passed repeated stable version, theme-markup,
-traffic, identity, Space-map, secret-reference, and runtime-state readback. No store, provider,
-action-key, client-data, credential, or message effect occurred.
-
-The S86 release captured `pmi-kc-app-rmtiii4il-dcf1708c88b8`, passed focused interaction and S96-
-preservation suites, the canonical gate, core E2E, the real Chromium theme/viewport/accessibility
-matrix, and exact-SHA CI run `33506372579`. Zero-traffic candidate
-`pmi-kc-app-rmtimspsj-ee9bbf50108f` matched exact commit
-`72f926d96aead0b5b6826494713203672a18a40a`, bounded routes, and the predecessor runtime spec after
-excluding only image and `APP_COMMIT_SHA`; its provider-generated build id/source metadata was
-reviewed separately. Only that revision was promoted. Two stable readbacks proved Ready/100%
-traffic, exact version, managed identity, Production + Live, eleven matching Space maps, three
-expected secret references, allowance 50, closed Sheet/Space write switches, and healthy bounded
-routes. No store, provider, action-key, role, permission, client-data, credential, draft, or message
-effect occurred.
-
-The S83 release captured `pmi-kc-app-rmtimspsj-ee9bbf50108f`, passed focused access and interaction-
-preservation coverage, full unit/Firestore/core-E2E/policy/build gates, and exact-SHA CI run
-`33533250900`. One zero-traffic revision failed closed at the platform startup probe and never served
-traffic. The clean zero-traffic candidate `pmi-kc-app-rmtiwwud5-993818fec846` then matched exact
-commit `796879d6e95834a749b8f11f998ff5c76e6d0459`, bounded routes, and normalized predecessor runtime
-configuration after excluding only image and `APP_COMMIT_SHA`; provider-generated build metadata was
-reviewed separately. Only that candidate was promoted. Two stable canonical passes and independent
-Cloud Run/Firestore readback proved Ready/100% traffic, exact version, managed identity, Production +
-Live, eleven matching Space maps, three expected secret references, allowance 50, closed Sheet/Space
-write switches, and the then-current reconciled Action Registry mirror. No role, claim, access
-request, provider, credential, client-data, draft, or message effect occurred.
-
-The S84 release captured `pmi-kc-app-rmtiwwud5-993818fec846`, passed focused navigation
-manifest/interaction/terminology suites, the real-Chromium responsive/accessibility matrix, the
-canonical gate, core E2E, and exact-SHA CI run `33562996950`. Zero-traffic candidate
-`pmi-kc-app-rmtj7bhzf-61f4736bdb6b` passed the bounded read-only smoke at its exact tag URL with the
-exact commit `c4e9845d1ae81a08c01e6a50e16fa7da54caeb12`, and its normalized runtime configuration
-equalled the predecessor after excluding only image and exact `APP_COMMIT_SHA` — eleven Space maps,
-three expected secret references, the closed Sheet write switch, Production + Live, and the managed
-runtime identity all preserved. Only that revision was promoted. Two stable canonical passes proved
-Ready/100% traffic on the exact revision, exact version identity, and healthy bounded routes. No
-provider, role, store, client-data, draft, message, Action Registry, or protected-path effect
-occurred.
-
-The S82 release captured `pmi-kc-app-rmtj7bhzf-61f4736bdb6b`, passed focused desk/query/
-continuation/guidance/destination/access-return/table/copy suites, the real-Chromium production-
-build desk and workspace matrix over live-read-only rehearsal data, the canonical gate, core E2E,
-and exact-SHA CI run `33575465575`. Before the deploy it created Secret Manager secret
-`RENEWAL_DESK_PARTY_FILTER_KEY`, granted the runtime service account
-`roles/secretmanager.secretAccessor`, read back the name, IAM member, and 43-character canonical
-payload shape without printing the value, and added the reviewed
-`RENEWAL_DESK_PARTY_FILTER_KEY_SECRET_ID` signal to the production env file. Zero-traffic candidate
-`pmi-kc-app-rmtjd24ee-17d334db377f` passed the bounded read-only smoke at its exact tag URL with
-exact commit `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`, and its normalized runtime configuration
-equalled the predecessor after excluding only image, exact `APP_COMMIT_SHA`, and that one specified
-new secret binding - eleven Space maps, the closed Sheet write switch, Production + Live, and the
-managed runtime identity all preserved. Only that revision was promoted. Two stable canonical
-passes proved Ready/100% traffic on the exact revision, exact version identity, and healthy bounded
-routes including the guarded desk route. No client-data, provider-write, role, draft, message, or
-Action Registry effect occurred.
-
-The S97 closed-slice release captured `pmi-kc-app-rmtjd24ee-17d334db377f`, passed the retirement
-inventory plus proposal/execution/route/panel suites, the 600-file/5,515-test canonical run,
-complete verify gates, core E2E, and exact-SHA CI run `33583463885`. Zero-traffic candidate
-`pmi-kc-app-rmtjhew5f-125876b4ff5b` passed the bounded read-only smoke at its exact tag URL with
-exact commit `f2153b00087516cf06c4f9776f2fc3562e146c83`, and its normalized runtime configuration
-equalled the predecessor after excluding only image and exact `APP_COMMIT_SHA` - eleven Space maps,
-four expected secret references, the closed Sheet write switch, Production + Live, and the managed
-runtime identity all preserved. Only that revision was promoted. Two stable canonical passes proved
-100% traffic on the exact revision and exact version identity, and the reseeded Action Registry
-mirror read back 44 keys/seven open with the three exact S97 keys and the retired broad identifier
-all closed. No client-data, provider-write, role, draft, or message effect occurred.
-
-The S97 proof-and-activation release (2026-09-02) captured `pmi-kc-app-rmtjhew5f-125876b4ff5b`.
-Under the owner grant it ran three serial per-key bounded proof windows on the designated test
-lease (each window a reviewed commit, exact-SHA CI, and zero-traffic candidate release, closed and
-read back before the next): the dates proof applied and separately restored the one-day endDate
-delta with duplicate-replay proof; the create proof exercised the full honest recovery story
-(response-shape ambiguity, fresh-state reconciliation, receipt-bound DELETE, delete
-reconciliation from the provider's HTTP-400 absence signal plus list absence) and cleanly created
-the approved durable update-target charge; the update proof applied and exactly restored a charge
-amount with a readback hash equal to the original creation receipt. The activation commit
-`642269cab5afba563c41ce769541680c04d5c60c` (with the official-brand S85 source values) passed the
-canonical gates, core E2E, exact-SHA CI, bounded candidate smoke, and normalized predecessor
-parity excluding only image and exact `APP_COMMIT_SHA`; only that revision was promoted; two
-stable version readbacks passed; and the reseeded Action Registry mirror read back 44 keys/ten
-open with all three proven keys among the open set.
+The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
+`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
+then-current `pmi-kc-app-rmtbh280n-61b78ef991cc`, and passed the same smoke again. Later suite and
+release lineage remains recoverable from Git and release receipts; it is provenance, not current
+traffic instruction.
 
 ## Configuration invariants
 
@@ -214,12 +233,12 @@ A routine release preserves:
 - managed runtime service account;
 - eleven Space maps;
 - existing Secret Manager bindings, including the S82 `RENEWAL_DESK_PARTY_FILTER_KEY` reference;
-- current operating-Sheet action/runtime state (false until the S98 activation gate changes and
-  reads it back);
+- current operating-Sheet action/runtime state: both exact keys and the switch stay on, while the
+  hardened route permits normal append only and refuses fixed-row update/delete/restore;
 - local/Demo auth false;
 - RentCast provider and allowance 50;
-- no legacy copy-only Sheet setting after S98; renewal-comp storage unchanged unless separately
-  authorized; and
+- no legacy copy-only Sheet setting; renewal-comp storage unchanged unless separately authorized;
+  and
 - canonical HTTPS base URL.
 
 A difference requires explicit review; do not let stale local state replace current production

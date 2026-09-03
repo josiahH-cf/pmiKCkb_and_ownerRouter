@@ -107,6 +107,10 @@ export function FlagResolveForm({
 
   async function performSubmit() {
     if (requestInFlight.current) return;
+    if (!flag.candidateFingerprint) {
+      setError("The source snapshot is unavailable. Reload before saving a decision.");
+      return;
+    }
     requestInFlight.current = true;
     setSubmitting(true);
     try {
@@ -116,6 +120,7 @@ export function FlagResolveForm({
         body: JSON.stringify({
           run_id: runId,
           source_trigger_key: flag.sourceTriggerKey,
+          candidate_fingerprint: flag.candidateFingerprint,
           kind,
           chosen_source: kind === "pick_source" ? chosenSource : undefined,
           corrected_value: kind === "corrected_value" ? correctedValue : undefined,
@@ -369,6 +374,7 @@ export function WritebackProposalCard({
   queued: boolean;
 }) {
   const ready = proposal.status === "Proposed";
+  const exactQueued = queued && !proposal.suggestionOnly;
   return (
     <div className="lr-writeback" aria-label="Append-only write-back proposal">
       <p className="lr-writeback-head">
@@ -378,11 +384,14 @@ export function WritebackProposalCard({
         >
           {ready ? "Proposal ready" : "Needs input"}
         </span>{" "}
-        <strong>Append-only sheet write-back</strong>
+        <strong>
+          {exactQueued ? "Exact queued Sheet write-back" : "Append-only Sheet suggestion"}
+        </strong>
       </p>
       {proposal.proposedValue !== null ? (
         <p>
-          Would append <strong>{proposal.proposedValue}</strong> from{" "}
+          {exactQueued ? "Queued to append" : "Would append"}{" "}
+          <strong>{proposal.proposedValue}</strong> from{" "}
           <strong>{displaySourceLabel(proposal.sourceSystem)}</strong> to a new{" "}
           <strong>{proposal.proposedColumnHeader}</strong> column.
         </p>
@@ -390,8 +399,9 @@ export function WritebackProposalCard({
         <p className="muted">{proposal.rationale}</p>
       )}
       <p className="muted">
-        Suggestion only: appends to a new column and keeps existing cells intact; not
-        executed here (writing to the operating Sheet needs an approved action spec).
+        {exactQueued
+          ? "This is the exact value and source saved by the human resolution. Approval authorizes this snapshot only; writing remains a separate exact-preview action."
+          : "Suggestion only: appends to a new column and keeps existing cells intact; it is not approved or written here."}
       </p>
       {ready && !queued ? (
         <p className="muted">
@@ -413,6 +423,7 @@ export function WritebackApprovalControl({
   sourceTriggerKey,
   isAdmin,
   writebackEnabled = false,
+  showLegacyWritebackRecovery = false,
 }: {
   approval: RenewalWritebackApprovalView;
   runId: string;
@@ -420,6 +431,8 @@ export function WritebackApprovalControl({
   isAdmin: boolean;
   /** When true (admin feature flag on), an Approved proposal offers the live confirm-target write. */
   writebackEnabled?: boolean;
+  /** Opt-in historical recovery only; current review surfaces keep the retired broad action hidden. */
+  showLegacyWritebackRecovery?: boolean;
 }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -429,6 +442,10 @@ export function WritebackApprovalControl({
 
   async function decide(decision: "approve" | "return") {
     setError(null);
+    if (!approval.authorizationToken) {
+      setError("The proposal snapshot is unavailable. Reload and review it again.");
+      return;
+    }
     if (!reason.trim()) {
       setError("A plain-English reason is required.");
       return;
@@ -441,6 +458,7 @@ export function WritebackApprovalControl({
         body: JSON.stringify({
           run_id: runId,
           source_trigger_key: sourceTriggerKey,
+          authorization_token: approval.authorizationToken,
           decision,
           reason: reason.trim(),
           reason_code: reasonCode || undefined,
@@ -465,7 +483,7 @@ export function WritebackApprovalControl({
 
   const stateLabel =
     approval.state === "Approved"
-      ? "Approved: ready to write (not executed)"
+      ? "Approved: authorization recorded (not executed)"
       : approval.state === "Returned for Revision"
         ? "Returned for revision: re-resolve or re-approve"
         : approval.stale
@@ -505,7 +523,7 @@ export function WritebackApprovalControl({
             {approval.state !== "Approved" ? (
               <button
                 type="button"
-                disabled={submitting !== null}
+                disabled={submitting !== null || !approval.authorizationToken}
                 onClick={() => decide("approve")}
               >
                 {submitting === "approve" ? "Saving…" : "Approve proposal"}
@@ -515,7 +533,7 @@ export function WritebackApprovalControl({
               <button
                 type="button"
                 className="secondary-button"
-                disabled={submitting !== null}
+                disabled={submitting !== null || !approval.authorizationToken}
                 onClick={() => decide("return")}
               >
                 {submitting === "return"
@@ -527,15 +545,15 @@ export function WritebackApprovalControl({
             ) : null}
           </div>
           <p className="muted">
-            Approving records your authorization for the future append-only Sheet write.
-            The write itself stays gated behind an approved action spec.
+            Approving records authorization for this exact snapshot. It does not make an
+            unavailable Sheet operation executable.
           </p>
         </div>
       ) : (
         <p className="muted">An Admin approves the queued write-back proposal.</p>
       )}
 
-      {isAdmin ? (
+      {isAdmin && showLegacyWritebackRecovery ? (
         <SheetWritebackButton
           approvalUpdatedAt={approval.updatedAt}
           key={`${approval.updatedAt ?? "unknown"}:${approval.state}:${String(approval.stale)}:${String(writebackEnabled)}`}
@@ -546,6 +564,12 @@ export function WritebackApprovalControl({
           runId={runId}
           sourceTriggerKey={sourceTriggerKey}
         />
+      ) : isAdmin ? (
+        <p className="muted">
+          This legacy broad Sheet action is retired. Use the lease workspace’s Operating
+          Sheet phase for an exact missing-row append. Fixed-row field updates remain
+          unavailable.
+        </p>
       ) : null}
 
       <WritebackApprovalTimeline activity={approval.activity} />

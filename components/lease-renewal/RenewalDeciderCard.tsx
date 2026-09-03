@@ -47,6 +47,7 @@ export function RenewalDeciderCard({
   onComplete,
   onFollowOnQueued,
   optimisticFollowOnReasonCode,
+  optimisticFollowOnAuthorizationToken,
 }: Readonly<{
   flag: RenewalFlagView;
   manifest: RenewalManifestView;
@@ -57,8 +58,9 @@ export function RenewalDeciderCard({
   skipping: boolean;
   onSkip: () => void;
   onComplete: () => void;
-  onFollowOnQueued: (reasonCode: DecisionReasonCode) => void;
+  onFollowOnQueued: (reasonCode: DecisionReasonCode, authorizationToken?: string) => void;
   optimisticFollowOnReasonCode?: DecisionReasonCode;
+  optimisticFollowOnAuthorizationToken?: string;
 }>) {
   const suggestedSource = flag.suggestedWinner?.source ?? null;
   const alternativeSource = useMemo(
@@ -82,6 +84,9 @@ export function RenewalDeciderCard({
   const [resolvedReasonCode, setResolvedReasonCode] = useState<
     DecisionReasonCode | undefined
   >(optimisticFollowOnReasonCode ?? flag.resolution?.reasonCode);
+  const [optimisticAuthorizationToken, setOptimisticAuthorizationToken] = useState<
+    string | undefined
+  >(optimisticFollowOnAuthorizationToken);
 
   const isLowOrMedium = flag.severity === "Low" || flag.severity === "Medium";
   const isUnresolved = !flag.resolution || flag.resolution.status === "Open";
@@ -103,7 +108,8 @@ export function RenewalDeciderCard({
     isLowOrMedium &&
     (queuedAfterResolve ||
       optimisticFollowOnReasonCode === "accepted_suggestion" ||
-      storedCodeOnlyResolution);
+      storedCodeOnlyResolution) &&
+    Boolean(optimisticAuthorizationToken ?? flag.writebackApproval?.authorizationToken);
 
   function clearManualState() {
     setManualKind(null);
@@ -115,17 +121,22 @@ export function RenewalDeciderCard({
 
   async function postResolution(body: Record<string, string>) {
     setError(null);
+    if (!flag.candidateFingerprint) {
+      throw new Error("The source snapshot is unavailable. Reload before deciding.");
+    }
     const response = await fetch("/api/lease-renewal/resolve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         run_id: runId,
         source_trigger_key: flag.sourceTriggerKey,
+        candidate_fingerprint: flag.candidateFingerprint,
         ...body,
       }),
     });
     const payload = (await response.json().catch(() => null)) as {
       error?: string;
+      authorization_token?: string;
       resolution?: {
         proposed_writeback?: { status?: string };
         reason_code?: DecisionReasonCode;
@@ -134,7 +145,10 @@ export function RenewalDeciderCard({
     if (!response.ok) {
       throw new Error(responseError(payload, "Could not save the resolution."));
     }
-    return payload?.resolution;
+    return {
+      resolution: payload?.resolution,
+      authorizationToken: payload?.authorization_token,
+    };
   }
 
   async function acceptSuggestion() {
@@ -142,17 +156,18 @@ export function RenewalDeciderCard({
     setSubmitting("accept");
     setError(null);
     try {
-      const resolution = await postResolution({
+      const outcome = await postResolution({
         kind: "pick_source",
         chosen_source: suggestedSource,
         reason_code: "accepted_suggestion",
       });
-      const queuedWriteback = resolution?.proposed_writeback?.status === "Queued";
+      const queuedWriteback = outcome.resolution?.proposed_writeback?.status === "Queued";
       setResolvedReasonCode("accepted_suggestion");
       clearManualState();
       if (queuedWriteback) {
+        setOptimisticAuthorizationToken(outcome.authorizationToken);
         setQueuedAfterResolve(true);
-        onFollowOnQueued("accepted_suggestion");
+        onFollowOnQueued("accepted_suggestion", outcome.authorizationToken);
       } else {
         onComplete();
       }
@@ -204,6 +219,12 @@ export function RenewalDeciderCard({
 
   async function approveWriteback() {
     if (!resolvedReasonCode) return;
+    const authorizationToken =
+      optimisticAuthorizationToken ?? flag.writebackApproval?.authorizationToken;
+    if (!authorizationToken) {
+      setError("The proposal snapshot is unavailable. Reload and review it again.");
+      return;
+    }
     setSubmitting("approve");
     setError(null);
     try {
@@ -213,6 +234,7 @@ export function RenewalDeciderCard({
         body: JSON.stringify({
           run_id: runId,
           source_trigger_key: flag.sourceTriggerKey,
+          authorization_token: authorizationToken,
           decision: "approve",
           reason_code: resolvedReasonCode,
         }),
@@ -403,6 +425,7 @@ export function RenewalDeciderCard({
           approval={flag.writebackApproval}
           isAdmin={isAdmin}
           runId={runId}
+          showLegacyWritebackRecovery={false}
           sourceTriggerKey={flag.sourceTriggerKey}
         />
       ) : null}

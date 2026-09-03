@@ -404,6 +404,28 @@ Cloud Run request envelope; prove that only four assistant coordinators and two 
 work receives the declared refusal/fallback, all permits release after completion/throw/abort, and no
 test waits beyond the declared deadline.
 
+Before Dashboard exposure, add one privacy-safe served-browser assurance lane. It uses an existing
+owner-authorized managed `pmikcmetro.com` staff session supplied outside Git; creates no synthetic
+Production identity or record; asks only the fixed, non-customer-valued S88 capability examples; and
+captures no response body, rendered customer value, cookie, token, uid, URL query, or screenshot. The
+lane proves that the user turn appears on acceptance, S93's indeterminate busy state appears by 400 ms
+when work remains pending, the first legal server event precedes the 50-second deadline, and every
+request reaches one terminal/refusal/interrupted outcome without a browser console error, unhandled
+rejection, failed same-origin request, or late event. It records aggregate p50/p95 total and stage
+durations from the bodyless server events for each registered intent; those measurements are evidence,
+not an invented latency promise. The exact 10/20/30/50-second ceilings and declared refusal behavior
+remain the release thresholds.
+
+Assistant-specific browser failures use one allow-listed, best-effort
+`AssistantClientTelemetryEventV1` with only `schema_version`, fixed event name
+`assistant_client_failure`, finite `phase` (`transport`, `decode`, `render`, `link`, or
+`action_tray`), finite stable error code, and sanitized service/revision/commit. It carries no query
+id, request or response value, actor/session/network value, route parameter, stack, free text, or
+customer field. Only an actual caught assistant failure emits it; success and ordinary domain
+unavailable/empty/denied states do not. Its sink failure never changes the user result. The served
+lane must read back both a bounded injected canary event and the configured operator delivery path
+before exposure; a metric with no verified delivery/readback cannot satisfy observability.
+
 Roll out in this order:
 
 1. land bodyless event schema/redaction tests, request/concurrency/deadline utilities, provider
@@ -510,6 +532,10 @@ created.
 - **ARCH-S89-6** — One synthetic evaluation and rollout gate maps every intent, actor/scope, source
   state, route, prompt/output attack, limit, timeout, cancellation, telemetry, model fallback, and
   no-effect invariant to fail-first evidence before exposure.
+- **ARCH-S89-7** — One bounded authenticated served-browser lane and one closed client-failure event
+  schema prove the deployed assistant's transport/render path, stage limits, privacy, alert delivery,
+  and exact revision without recording a transcript, identity, response, route parameter, or customer
+  value.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -531,6 +557,10 @@ created.
 - **BEH-S89-6** — Candidate/release proceeds only after synthetic evaluation, privacy scans,
   cost/capacity readback, zero-write proof, exact revision smoke, and preservation gates pass; rollback
   leaves no assistant transcript/business-data cleanup.
+- **BEH-S89-7** — A real authorized browser either renders one bounded terminal result or a truthful
+  refusal/interruption inside the existing deadlines. Operators can detect a client transport,
+  decoder, render, link, or action-tray failure and receive its finite alert without learning the
+  actor, question, result, target, or customer data.
 
 **Human litmus outcome.**
 
@@ -581,6 +611,7 @@ links, customer values, or model prompt from routine telemetry.
 | Bodyless useful telemetry                     | `ARCH-S89-5`         | `BEH-S89-5`      | Diagnose without conversations | Exact event-schema snapshots and canary-secret/PII scans reject every forbidden field/value, cap label cardinality, tolerate sink failure, and produce declared counters/timing/token aggregates.                               |
 | Stop new body-bearing Ask logs                | `ARCH-S89-5`         | `BEH-S89-1/5`    | Use and clear; Diagnose        | Firestore/log spies prove new assistant and migrated legacy calls create no question/answer/draft/citation/user record; legacy calls create no S88 telemetry; historical records remain untouched and are not labelled current. |
 | Comprehensive safe rollout                    | `ARCH-S89-6`         | `BEH-S89-6`      | All                            | Synthetic matrix, ten-request load rehearsal, zero-effect spies, canonical gate, budget/capacity/config readback, exact candidate/post-promotion smoke, and rollback proof are independently green.                             |
+| Authenticated served-browser assurance        | `ARCH-S89-7`         | `BEH-S89-7`      | Keep working; Diagnose         | Managed-session fixed-example journeys, console/network capture, hard-deadline checks, p50/p95 bodyless metrics, client-event canary, alert-delivery readback, and exact revision proof pass without retaining content.         |
 
 **Preservation set.**
 
@@ -589,7 +620,8 @@ compatibility until its owner retires it; KB source/citation/sensitivity and 50-
 Production Gemini/local non-Production fencing; server auth/Space isolation; current Cloud Run max
 instances/concurrency/timeout; $25 alert, $100 project hard stop, $100 account backstop, cap-100
 guardrail, and provider quotas; current direct route/action permissions; S80/S82 renewal truth; S83
-access truth; S86 feedback/accessibility; permanent in-app send refusal; closed source writes;
+access truth; S86 feedback/accessibility; permanent in-app send refusal; assistant query-path zero
+writes even where separately governed exact source keys are executable;
 historical `ask_logs` unchanged; secrets/PII gates; and canonical verification remain green separately.
 
 **Adversarial acceptance checks.**
@@ -640,6 +672,12 @@ historical `ask_logs` unchanged; secrets/PII gates; and canonical verification r
 - **AC-S89-9** — `BEH-S89-6` reads back exact budgets, guardrail, Cloud Run envelope, provider/model,
   secrets-by-reference, Production+Live descriptor, and zero product/provider writes for candidate
   and stable revisions. Any drift blocks exposure without modifying the control.
+- **AC-S89-10** — `ARCH-S89-7` runs every S88 intent plus refusal, Stop, timeout, malformed-stream,
+  link, and action-tray fixtures in the served browser matrix. The gate fails on a missing terminal,
+  post-terminal byte, console error, unhandled rejection, unexplained same-origin failure, missed
+  400-ms pending state, exceeded stage/total ceiling, absent p50/p95 aggregation, unverified alert
+  delivery, or any client event containing a query id, actor/session value, URL parameter, content,
+  stack, free text, or customer canary.
 
 **Forbidden actions / hard gates.**
 
@@ -661,7 +699,10 @@ minimized fact envelope, one-call seam, validation, and fallback. S93 consumes t
 request admission, abort/deadline, and bodyless events; it owns stream framing and the Stop/Clear UI.
 S94 action projection and confirmation remain separate and may emit only their own bodyless action-
 state metrics, never payload/target values. S95 does not expose the Dashboard assistant until S88-S93
-gates pass.
+gates pass. S95 consumes the authenticated served-browser evidence and reruns it against the exact
+two-region Dashboard candidate; a local or unauthenticated route smoke cannot substitute for this
+gate. S101 reuses these privacy, capacity, and served-browser contracts after S87 but cannot widen
+their telemetry fields or current V1 intent registry.
 
 **Standalone delivery contract.**
 

@@ -23,12 +23,12 @@ the current code and live service. Date-stamped history is not authority.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtjwy7f4-c705ce297553`, 100% traffic.
-- Deployed code: `642269cab5afba563c41ce769541680c04d5c60c`.
+- Serving revision: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`, 100% traffic.
+- Deployed code: `d243911cb20ffb01773072c0e27c723648eeea34`.
 - The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
   `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
   then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtjhew5f-125876b4ff5b` as its immediate rollback target.
+  current release captured `pmi-kc-app-rmtkgn08q-db89a37c43dc` as its immediate rollback target.
 - Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
 - Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
   are not production features.
@@ -47,17 +47,17 @@ the current code and live service. Date-stamped history is not authority.
 - S83's capability-guided access-request workflow is deployed. Every managed staff user can inspect
   and request additive role/Space access; only a different current Admin can deny or exact-confirm
   application, and Firebase directory readback is required before a request becomes applied. The
-  Firestore Admin mirror matches the authoritative 44-key/ten-open registry.
+  Firestore Admin mirror matches the authoritative 48-key/16-open registry.
 - S84's grouped navbar navigation is deployed. One actor-filtered manifest renders the My Work,
   Operations, and Admin disclosure groups with descriptive rows over unchanged routes and guards;
   visible navigation/landing terminology is Dashboard and Internal Processes while `/`, `/ask`,
   `/spaces`, internal Console/Space contracts, and stored provenance values are unchanged.
-- S82's table-first renewal desk and guided workspace are deployed. One sortable, filterable
-  semantic table is the only renewal worklist; the canonical `renewal-desk-query/v2` URL carries
-  owner/tenant filters only as opaque Secret Manager-derived `p1_` tokens; every current causal
-  blocker links to its exact phase; the workspace shows a six-phase rail, one next action, and one
-  selected phase; and navigation performs no verification, progress, source write, or send. The
-  `RENEWAL_DESK_PARTY_FILTER_KEY` binding is the suite's one added runtime secret reference.
+- S82's original table-first renewal desk and guided workspace are deployed. Its canonical
+  `renewal-desk-query/v2` URL carries owner/tenant filters only as opaque Secret Manager-derived
+  `p1_` tokens, and navigation performs no verification, progress, source write, or send. A current
+  adversarial review reopened S82 conformance: nullable rent, typed auxiliary-read failure,
+  desk/workspace evidence parity, source destinations, phase-local controls, freshness, filter
+  discoverability, and browser-assurance corrections are active in the worktree but are not deployed.
 - S97 is COMPLETE and deployed. Each exact key passed its own bounded serial live proof on the
   owner-designated test lease 115 (property 84) before its protected activation: dates
   forward/readback/duplicate-replay/restore; charge create with honest ambiguity reconciliation,
@@ -67,14 +67,40 @@ the current code and live service. Date-stamped history is not authority.
   still requires the runtime-suspension term, Admin role, exact preview/confirm, one-attempt
   claim, receipt, readback, and reversal-by-new-confirmation. The permanent labeled TEST row in
   the operating Sheet (below a spacer at the tab tail) anchors the designated lease.
+  That historical proof used the then-serving bounded contract; it does not authorize current
+  normal-product attribution from matching observations. Generation-bound replay, fresh duplicate
+  after-state verification, and fail-closed ambiguous-create handling are active in the worktree but
+  are not deployed: without provider-owned causality, a matching charge cannot mint a success receipt
+  or receipt-bound delete authority.
+- S98's proof-qualified baseline is deployed: both exact operating-Sheet keys are open, its write
+  switch is on, and the temporary proof row was deleted and read back absent. The serving revision
+  still exposes its historical fixed-row update/delete contract. An active unreleased correction
+  keeps normal server-derived row append but refuses normal field update and every fixed-row
+  delete/restore before writer construction because the current Google Sheets integration has no
+  provider-owned stable-logical-row, expected-generation, idempotency/status, and tombstone seam.
+  Historical proof receipts remain evidence and the completed proof runner must not mutate again.
+- S99 is COMPLETE and deployed. Its exact RentVine work-order read, create, and status-update keys
+  passed bounded live proofs and are executable. Proof work order 1731 is in its final Cancelled
+  state; Vendor assignment, attachments, chat posting, provider notifications, and sends remain out
+  of scope.
+- S100's closed-safe implementation is deployed, and `rentvine.work_order.chat.sync` passed its live
+  proof and is executable. `gmail.maintenance_resident_reply.draft_create` remains closed and S100
+  remains BLOCKED on one exact runtime input: a synchronized resident message mapped to a verified
+  resident email. No eligible record currently exists on the designated proof thread.
 - Eleven production Spaces are configured.
-- The operating renewal Sheet is a read source. Its write-back runtime switch is off.
+- The operating renewal Sheet is a read source and an exact human-confirmed write target. Its
+  write-back runtime switch and two exact Registry keys are on; that configuration never overrides
+  the operation-level capability refusal described for the active S98 correction.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
   open.
 - RentVine read credentials are Secret Manager-bound. The retired S30 broad proof identifier
   remains closed; the S97 proof runner and the three proven exact keys supersede it.
 - Budget controls are live: $25 alert-only budget, $100 project hard stop, $100 account backstop, and
   active Node.js 22 guardrail with `KILL_SWITCH_CAP_USD=100`.
+- S36 has not started because its S100 prerequisite is incomplete. S82 conformance, S97 integrity,
+  S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
+  assurance are the active unreleased remediation. S87-S95 and S101 remain specification-only
+  desired behavior.
 
 ## Product boundary
 
@@ -133,6 +159,11 @@ Production activation is per exact Action Registry key. Never infer a category g
 
 Open keys as of 2026-09-02:
 
+- `rentvine.work_order.create`
+- `rentvine.work_order.read`
+- `rentvine.work_order.update_status`
+- `google_sheets.renewal_checklist.row_append`
+- `google_sheets.renewal_checklist.field_update`
 - `gmail.mailbox.read`
 - `gmail.thread.reply`
 - `gmail.label.apply`
@@ -143,42 +174,41 @@ Open keys as of 2026-09-02:
 - `rentvine.lease.renewal_dates.update` (S97 proof-qualified activation, 2026-09-02)
 - `rentvine.lease.recurring_charge.create` (includes only its receipt-bound reversal DELETE)
 - `rentvine.lease.recurring_charge.update`
+- `rentvine.work_order.chat.sync`
 
-The other 34 keys are closed. In particular:
+The other 32 keys are closed. In particular:
 
 - `gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`, and
   `gmail.message.send` remain permanently closed under D33;
+- `gmail.maintenance_resident_reply.draft_create` remains closed pending its exact S100 live proof;
 - the retired `rentvine.lease.renewal_writeback` compatibility identifier remains closed;
 - `google_sheets.renewal_checklist.writeback` remains closed.
 
-A runtime flag never outranks the committed per-key gate.
+A runtime flag or open Registry key never outranks an operation-level provider-capability refusal.
 
-### Owner-authorized activation program — specified, not current
+### Owner-authorized activation program — current boundary
 
-The owner directed on 2026-08-31 that the application graduate from read-only provider posture to
-human-confirmed source-of-truth updates. That direction authorizes a future runner to prepare,
-review, test, push, release, and read back two protected changes for each exact S97-S100 key: a
-bounded temporary proof window after the suite's closed implementation and deterministic gates pass,
-followed by close/readback; and final activation only after that key's applicable live proof and all
-remaining suite gates pass. It does not make any key executable now and is not a generic
-method/path/body, bulk, autonomous, or send grant.
+The owner directed on 2026-08-31 that the application graduate from categorical read-only posture
+to exact human-confirmed source-of-truth updates. S97, S98, S99, and the S100 chat-sync action passed
+their bounded per-key proof windows, mandatory close/readback, and separate final activations. An
+open key is authority, not proof that the provider currently exposes every safety primitive. The
+active S98 correction therefore refuses field update and fixed-row reversal even though their
+historical keys/receipts remain registered. No activation is a generic method/path/body, bulk,
+autonomous, model-triggered, or send grant.
 
-- S97: `rentvine.lease.renewal_dates.update`,
-  `rentvine.lease.recurring_charge.create`, and
-  `rentvine.lease.recurring_charge.update`.
-- S98: `google_sheets.renewal_checklist.row_append` and
-  `google_sheets.renewal_checklist.field_update`.
-- S99: `rentvine.work_order.read`, `rentvine.work_order.create`, and
-  `rentvine.work_order.update_status`.
-- S100: `rentvine.work_order.chat.sync` and
-  `gmail.maintenance_resident_reply.draft_create`.
+The sole remaining activation-program key is
+`gmail.maintenance_resident_reply.draft_create`. It may receive one bounded proof window only after
+the S100 contract resolves a synchronized resident message to a verified resident email, followed by
+mandatory close/readback and a separate protected activation only after proof. Its absence blocks
+S100 completion and therefore S36, not the already delivered S97-S99 or chat-sync actions.
 
 The broad `rentvine.lease.renewal_writeback` and
 `google_sheets.renewal_checklist.writeback` compatibility keys remain closed and are retired rather
-than activated as product or proof actions. S97-S100 proof windows use only the exact new key under
-proof plus its suite's required runtime switch; each is closed and read back before another key's
-window or the final activation patch. Receipt-bound reversal under a create/append key is allowed only
-when that suite explicitly defines the exact inverse operation; it is not general delete authority.
+than activated as product or proof actions. Completed proof windows used only the exact new key under
+proof plus its suite's required runtime switch, and every executed window was closed and read back
+before final activation. Receipt-bound reversal under a create/append key is allowed only when that
+suite defines the exact inverse operation and the current provider seam can bind it safely; it is not
+general delete authority. S98's active correction finds no such fixed-row Sheet seam and refuses it.
 `rentvine.work_order.assign_vendor`, RentVine chat posting, attachment upload, direct Gmail sends, and
 every unlisted provider key remain closed. S36 separately authorizes one temporary, bounded Space
 provision/import/readback/retirement pilot under its exact lifecycle; it is not Action Registry
@@ -197,9 +227,9 @@ Prepare and surface, but do not push without explicit owner direction:
 
 The owner-directed 2026-08-31 documentation reconciliation authorizes present-truth edits to this
 router and `docs/facts.md`. The activation program above is also explicit owner direction for its
-future exact protected-path proof-window and final-activation patches at the gates stated above. It
-does not authorize a new identity, safety exception, cost change, premature key opening, or any
-effect outside those suite contracts.
+remaining resident-draft proof-window and final-activation patches at the gates stated above. It does
+not authorize a new identity, safety exception, cost change, premature key opening, or any effect
+outside that exact suite contract.
 
 ## Cost and cloud controls
 
@@ -211,25 +241,24 @@ safety control, alert, domain in use, or guardrail still requires owner directio
 
 Routine deployments use the existing production service and reviewed production environment.
 Preserve the runtime service account, eleven-Space configuration, secret bindings, Production+Live
-descriptor, and closed Sheet-write switch unless the requested change explicitly targets one of
+descriptor, and enabled Sheet-write switch unless the requested change explicitly targets one of
 them.
 
 ## Live-write proof policy
 
 - Production remains Live-only. Do not create a fake person, lease, work order, provider record, or
   customer value for a proof.
-- S97 may use only the one unmistakable owner-designated ended lease supplied through secure
-  execution context. Its proof is one temporary one-calendar-day `endDate` change, exact readback,
-  separately confirmed rollback, and exact final restoration. If the target or state drifts, stop;
-  never substitute another record.
-- S98 may append one temporary row at the end of the operating `Renewals` table using fresh real
-  source values. Mark it visibly and in a cell note as a writeback proof, exclude it from every
-  downstream projection, read it back, separately set its blank `current_rent` to the fresh source-
-  backed value through the exact field-update key, then separately delete only that unchanged marked
-  row and prove final absence. The retired rehearsal-copy route is not a prerequisite or fallback.
-- S99 live effects require one staff-selected real work order or an exact staff-confirmed creation
-  proposal; S100 synchronization is manually initiated and discloses that the official read marks
-  manager messages read. Missing or ambiguous mappings fail only the exact action.
+- S97's designated-lease proofs, S98's temporary-row append/update/delete proof, S99's work-order
+  proofs, and S100's chat-sync proof are complete. Their receipts and final readbacks govern; do not
+  rerun or substitute a new proof target.
+- Normal S97 and S99 effects remain bounded by their activated exact-key contracts. After the active
+  S98 correction is released, only its server-derived normal row append reaches Sheets; field update,
+  delete, and restore remain unavailable until a separately reviewed stable-row provider seam exists.
+  S100 synchronization remains manual and discloses that the official read marks manager messages
+  read. Missing or ambiguous mappings fail only the exact action.
+- The remaining S100 resident-draft proof may use only a synchronized message with an exact mapped
+  resident and verified email, and may create only an unsent draft in the signed-in managed mailbox.
+  Until that runtime input exists and the key passes proof and activation, it remains unavailable.
 - S36 may copy one already-approved source object byte-for-byte into its isolated temporary prefix,
   provision/import/read back one temporary store, retire it, delete only that copied object, and
   prove the original eleven-store/config state restored.

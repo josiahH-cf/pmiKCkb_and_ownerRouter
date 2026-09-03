@@ -12,6 +12,8 @@
 // not accept it.
 
 import { spawn } from "node:child_process";
+import { accessSync, constants, realpathSync, statSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
 
 import {
   buildDemoDeployCommand,
@@ -26,6 +28,15 @@ import {
   parseServingRevision,
   parseReleaseArgs,
 } from "./release-candidate.mjs";
+import {
+  buildPromotionReceipt,
+  claimCandidateAssuranceReceipt,
+  commitReservedReceipt,
+  discardReceiptReservation,
+  exactExternalReceiptPath,
+  readCandidateAssuranceReceipt,
+  reserveReceipt,
+} from "./production-assurance-receipts.mjs";
 
 // A release step must FAIL rather than wait. Two properties make that true, and this cutover proved
 // both are needed: on 2026-08-01 a real run sat for 89 minutes with zero output while the same
@@ -38,20 +49,119 @@ import {
 // 2. Every step is bounded. A hang that outlives its own timeout is reported as a hang, naming the
 //    command, so the failure is diagnosable instead of looking like a slow build.
 export const RELEASE_STEP_TIMEOUT_MS = 30 * 60 * 1000;
+export const RELEASE_TREE_TERMINATION_TIMEOUT_MS = 10_000;
+
+/**
+ * Kill the whole process group, not only the shell returned by `spawn`. A timed-out gcloud shell
+ * can otherwise leave a grandchild applying traffic after the release harness starts rollback.
+ */
+export function terminateReleaseProcessTree(
+  child,
+  {
+    platform = process.platform,
+    killProcess = process.kill,
+    spawnTreeKiller = spawn,
+    timeoutMs = RELEASE_TREE_TERMINATION_TIMEOUT_MS,
+  } = {},
+) {
+  return new Promise((resolveTermination, rejectTermination) => {
+    let settled = false;
+    let treeKiller = null;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.off?.("close", childClosed);
+      fn(value);
+    };
+    const childClosed = () => finish(resolveTermination);
+    const timer = setTimeout(() => {
+      try {
+        treeKiller?.kill?.("SIGKILL");
+      } catch {
+        // Surface the bounded, non-secret failure below.
+      }
+      try {
+        child.kill?.("SIGKILL");
+      } catch {
+        // Surface the bounded, non-secret failure below.
+      }
+      finish(
+        rejectTermination,
+        new Error("release_process_tree_termination_unconfirmed"),
+      );
+    }, timeoutMs);
+    child.once?.("close", childClosed);
+
+    const pid = Number(child.pid);
+    if (platform === "win32" && Number.isSafeInteger(pid) && pid > 0) {
+      try {
+        treeKiller = spawnTreeKiller("taskkill", ["/PID", String(pid), "/T", "/F"], {
+          stdio: "ignore",
+          shell: false,
+          windowsHide: true,
+        });
+        treeKiller.once("error", () => {
+          try {
+            child.kill?.("SIGKILL");
+          } catch {
+            // The confirmation timeout remains authoritative.
+          }
+        });
+        treeKiller.once("close", (code) => {
+          if (code === 0) finish(resolveTermination);
+        });
+        return;
+      } catch {
+        // Fall through to the direct last-resort kill and bounded close confirmation.
+      }
+    }
+
+    if (platform !== "win32" && Number.isSafeInteger(pid) && pid > 0) {
+      try {
+        // Non-Windows release children are detached process-group leaders (see `run`).
+        killProcess(-pid, "SIGKILL");
+        return;
+      } catch (error) {
+        if (error?.code === "ESRCH") {
+          finish(resolveTermination);
+          return;
+        }
+      }
+    }
+    try {
+      child.kill?.("SIGKILL");
+    } catch {
+      // The confirmation timeout remains authoritative.
+    }
+  });
+}
 
 export function run(
   command,
   args,
-  { capture = false, timeoutMs = RELEASE_STEP_TIMEOUT_MS, spawnFn = spawn } = {},
+  {
+    capture = false,
+    timeoutMs = RELEASE_STEP_TIMEOUT_MS,
+    spawnFn = spawn,
+    terminateTreeFn = terminateReleaseProcessTree,
+  } = {},
 ) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawnFn(command, args, {
       // stdin is ignored deliberately; see (1) above. Never change this to "inherit".
       stdio: ["ignore", capture ? "pipe" : "inherit", "inherit"],
       shell: process.platform === "win32",
+      // Creates a killable process group on POSIX. Windows uses taskkill /T above.
+      detached: process.platform !== "win32",
     });
     let out = "";
     let settled = false;
+    let timedOut = false;
+    const timeoutError = new Error(
+      `${command} produced no result within ${Math.round(timeoutMs / 60000)} minutes and was killed. ` +
+        `A release step must never wait on input; check for a provider prompt or a stalled build.`,
+    );
     const finish = (fn, value) => {
       if (settled) return;
       settled = true;
@@ -59,23 +169,27 @@ export function run(
       fn(value);
     };
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      finish(
-        rejectRun,
-        new Error(
-          `${command} produced no result within ${Math.round(timeoutMs / 60000)} minutes and was killed. ` +
-            `A release step must never wait on input; check for a provider prompt or a stalled build.`,
-        ),
+      timedOut = true;
+      void Promise.resolve(terminateTreeFn(child)).then(
+        () => finish(rejectRun, timeoutError),
+        () =>
+          finish(
+            rejectRun,
+            new Error(
+              `${timeoutError.message} Process-tree termination could not be confirmed; provider state is ambiguous and must be read back.`,
+            ),
+          ),
       );
     }, timeoutMs);
-    if (timer.unref) timer.unref();
     if (capture) child.stdout.on("data", (chunk) => (out += String(chunk)));
-    child.on("error", (error) => finish(rejectRun, error));
-    child.on("close", (code) =>
-      code === 0
-        ? finish(resolveRun, out.trim())
-        : finish(rejectRun, new Error(`${command} exited with code ${code}.`)),
-    );
+    child.on("error", (error) => {
+      if (!timedOut) finish(rejectRun, error);
+    });
+    child.on("close", (code) => {
+      if (timedOut) return;
+      if (code === 0) finish(resolveRun, out.trim());
+      else finish(rejectRun, new Error(`${command} exited with code ${code}.`));
+    });
   });
 }
 
@@ -156,6 +270,49 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   }
 
   if (args.promote) {
+    const candidateReceipt =
+      args.environment === "production"
+        ? readCandidateAssuranceReceipt(args.candidateAssuranceReceipt, {
+            project: target.project,
+            region: target.region,
+            service: target.service,
+            expectedRevision: args.candidateRevision,
+          })
+        : null;
+    if (candidateReceipt) {
+      const result = await promoteProductionCandidate({
+        candidateReceipt,
+        candidateReceiptPath: args.candidateAssuranceReceipt,
+        candidateRevision: args.candidateRevision,
+        deployCommand: deploy.command,
+        env,
+        promotionReceiptPath: args.promotionReceipt,
+        target,
+        argv,
+        verifyRecovery: () =>
+          runPredecessorRecoveryGate({
+            argv,
+            candidateReceiptPath: args.candidateAssuranceReceipt,
+          }),
+      });
+      console.log(`\nPromoted ${args.candidateRevision}.`);
+      console.log(
+        `Rollback: ${formatCommand(
+          deploy.command,
+          buildRevisionTrafficCommand({
+            argv,
+            env,
+            revision: result.rollbackRevision,
+          }).args,
+        )}\n`,
+      );
+      return {
+        promoted: args.candidateRevision,
+        rollbackRevision: result.rollbackRevision,
+        promotionReceipt: args.promotionReceipt,
+      };
+    }
+
     const prior = parseServingRevision(
       await run(deploy.command, buildPriorRevisionQueryPlan(target).args, {
         capture: true,
@@ -167,6 +324,14 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       revision: args.candidateRevision,
     });
     await run(promotion.command, promotion.args);
+    const promoted = parseServingRevision(
+      await run(deploy.command, buildPriorRevisionQueryPlan(target).args, {
+        capture: true,
+      }),
+    );
+    if (promoted !== args.candidateRevision) {
+      throw new Error("Promotion readback did not return the exact candidate revision.");
+    }
     console.log(`\nPromoted ${args.candidateRevision}.`);
     console.log(
       `Rollback: ${formatCommand(
@@ -174,7 +339,11 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
         buildRevisionTrafficCommand({ argv, env, revision: prior }).args,
       )}\n`,
     );
-    return { promoted: args.candidateRevision, rollbackRevision: prior };
+    return {
+      promoted: args.candidateRevision,
+      rollbackRevision: prior,
+      promotionReceipt: null,
+    };
   }
 
   // Capture the rollback target BEFORE the candidate exists, so the recorded revision is the one
@@ -194,13 +363,288 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   console.log(`\nCandidate ${deploy.revision} deployed at ZERO traffic.`);
   console.log(`Prior serving revision (rollback target): ${priorRevision}`);
-  console.log(
-    `Smoke the candidate at its "${candidate.candidateTag}" tag URL, then promote:`,
-  );
-  console.log(
-    `  npm run release -- --environment=${args.environment} --promote --candidate-revision=${deploy.revision}\n`,
-  );
+  if (args.environment === "production") {
+    console.log(
+      `Smoke the candidate at its "${candidate.candidateTag}" tag URL, then run the complete candidate assurance gate:`,
+    );
+    console.log(
+      `  npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${deploy.revision} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --candidate-assurance-receipt=<new-candidate-assurance-receipt-path>`,
+    );
+    console.log(
+      "Promote only with that fresh receipt and reserve a new promotion receipt:",
+    );
+    console.log(
+      `  npm run release -- --environment=production --promote --candidate-revision=${deploy.revision} --candidate-assurance-receipt=<candidate-assurance-receipt-path> --promotion-receipt=<new-promotion-receipt-path> --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path>\n`,
+    );
+  } else {
+    console.log(
+      `Smoke the candidate at its "${candidate.candidateTag}" tag URL, then promote:`,
+    );
+    console.log(
+      `  npm run release -- --environment=${args.environment} --promote --candidate-revision=${deploy.revision}\n`,
+    );
+  }
   return { candidateRevision: deploy.revision, priorRevision, promoted: false };
+}
+
+export async function runPredecessorRecoveryGate({
+  argv,
+  candidateReceiptPath,
+  runCommand = run,
+}) {
+  const required = ["--operator-email", "--admin-profile", "--editor-profile"]
+    .map((name) => argv.find((entry) => entry.startsWith(`${name}=`)))
+    .filter(Boolean);
+  if (required.length !== 3) throw new Error("predecessor_recovery_inputs_required");
+  await runCommand(process.platform === "win32" ? "npm.cmd" : "npm", [
+    "run",
+    "assure:production-observation",
+    "--",
+    "--verify-rollback-recovery",
+    "--live",
+    `--recovery-receipt=${candidateReceiptPath}`,
+    ...required,
+  ]);
+}
+
+function resolveRecoveryProfile(path, repositoryRoot) {
+  if (typeof path !== "string" || !isAbsolute(path)) {
+    throw new Error("managed_profile_required");
+  }
+  let profile;
+  let root;
+  try {
+    profile = realpathSync(path);
+    root = realpathSync(repositoryRoot);
+    if (!statSync(profile).isDirectory()) throw new Error("managed_profile_invalid");
+    accessSync(profile, constants.R_OK | constants.W_OK);
+  } catch (error) {
+    if (error instanceof Error && error.message === "managed_profile_invalid") {
+      throw error;
+    }
+    throw new Error("managed_profile_required");
+  }
+  const fromRoot = relative(root, profile);
+  if (fromRoot === "" || (!fromRoot.startsWith("..") && !isAbsolute(fromRoot))) {
+    throw new Error("managed_profile_must_be_outside_repository");
+  }
+  return profile;
+}
+
+/**
+ * Prove that rollback can at least start before any traffic command is attempted. The full live
+ * recovery gate still runs after a rollback; these local checks prevent a known-bad operator or
+ * missing/shared browser profile from making recovery impossible after mutation.
+ */
+export function preflightProductionPromotionRecovery({
+  argv,
+  candidateReceiptPath,
+  promotionReceiptPath,
+  repositoryRoot = process.cwd(),
+}) {
+  const operatorEmail = readFlag(argv, "--operator-email")?.trim().toLowerCase();
+  if (
+    !operatorEmail ||
+    !/^[a-z0-9][a-z0-9._%+-]{0,63}@pmikcmetro\.com$/i.test(operatorEmail)
+  ) {
+    throw new Error("internal_operator_required");
+  }
+  const adminProfile = resolveRecoveryProfile(
+    readFlag(argv, "--admin-profile"),
+    repositoryRoot,
+  );
+  const editorProfile = resolveRecoveryProfile(
+    readFlag(argv, "--editor-profile"),
+    repositoryRoot,
+  );
+  if (adminProfile === editorProfile) {
+    throw new Error("distinct_managed_profiles_required");
+  }
+
+  const candidatePath = exactExternalReceiptPath(candidateReceiptPath, repositoryRoot);
+  exactExternalReceiptPath(promotionReceiptPath, repositoryRoot);
+  try {
+    if (!statSync(candidatePath).isFile()) throw new Error("candidate_receipt_invalid");
+    accessSync(candidatePath, constants.R_OK);
+  } catch {
+    throw new Error("candidate_receipt_invalid");
+  }
+  return Object.freeze({ adminProfile, editorProfile, operatorEmail });
+}
+
+/** Verify that the identity which will invoke gcloud is the managed recovery operator named. */
+export async function verifyPromotionOperatorAccount({
+  deployCommand,
+  operatorEmail,
+  runCommand = run,
+}) {
+  const raw = await runCommand(
+    deployCommand,
+    ["auth", "list", "--filter=status:ACTIVE", "--format=value(account)"],
+    { capture: true, timeoutMs: 30_000 },
+  );
+  const accounts = String(raw)
+    .split(/\r?\n/u)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (accounts.length !== 1 || accounts[0] !== operatorEmail) {
+    throw new Error("promotion_operator_identity_mismatch");
+  }
+}
+
+/**
+ * Execute the production traffic mutation as one compensating transaction. Once the provider says
+ * the mutation returned, every later failure restores and reads back the exact captured predecessor
+ * before the original promotion failure is surfaced.
+ */
+export async function promoteProductionCandidate({
+  candidateReceipt,
+  candidateReceiptPath,
+  candidateRevision,
+  deployCommand,
+  env,
+  promotionReceiptPath,
+  target,
+  argv,
+  runCommand = run,
+  verifyCandidate = verifyCandidateReceiptVersion,
+  reserveReceiptOutput = reserveReceipt,
+  commitReceiptOutput = commitReservedReceipt,
+  discardReceiptOutput = discardReceiptReservation,
+  buildTrafficCommand = buildRevisionTrafficCommand,
+  claimCandidateReceipt = claimCandidateAssuranceReceipt,
+  preflightRecovery = preflightProductionPromotionRecovery,
+  verifyOperatorAccount = verifyPromotionOperatorAccount,
+  verifyRecovery = async () => {
+    throw new Error("predecessor_recovery_gate_required");
+  },
+  now = Date.now,
+}) {
+  const recoveryReadiness = await preflightRecovery({
+    argv,
+    candidateReceiptPath,
+    promotionReceiptPath,
+  });
+  await verifyOperatorAccount({
+    deployCommand,
+    operatorEmail: recoveryReadiness.operatorEmail,
+    runCommand,
+  });
+  const reservation = reserveReceiptOutput(promotionReceiptPath);
+  let prior = null;
+  let trafficMutationAttempted = false;
+  let promotionStartedAtMs = null;
+  try {
+    prior = parseServingRevision(
+      await runCommand(deployCommand, buildPriorRevisionQueryPlan(target).args, {
+        capture: true,
+      }),
+    );
+    if (prior !== candidateReceipt.predecessorRevision) {
+      throw new Error("Candidate assurance receipt predecessor no longer serves.");
+    }
+    await verifyCandidate(candidateReceipt);
+    const promotion = buildTrafficCommand({
+      argv,
+      env,
+      revision: candidateRevision,
+    });
+    // Candidate evidence is consumed durably at the last safe boundary before a traffic attempt.
+    // A failed or ambiguous attempt can never reuse it, while preflight failures consume nothing.
+    claimCandidateReceipt(candidateReceiptPath, candidateReceipt, now());
+    promotionStartedAtMs = now();
+    trafficMutationAttempted = true;
+    await runCommand(promotion.command, promotion.args);
+    const promoted = parseServingRevision(
+      await runCommand(deployCommand, buildPriorRevisionQueryPlan(target).args, {
+        capture: true,
+      }),
+    );
+    if (promoted !== candidateRevision) {
+      throw new Error("Promotion readback did not return the exact candidate revision.");
+    }
+    const promotionReceipt = buildPromotionReceipt(
+      candidateReceipt,
+      promotionStartedAtMs,
+      now(),
+    );
+    commitReceiptOutput(reservation, promotionReceipt);
+    return { rollbackRevision: prior, promotionReceipt };
+  } catch (error) {
+    if (!trafficMutationAttempted) {
+      discardReceiptOutput(reservation);
+      throw error;
+    }
+
+    let rollbackCommandError = false;
+    try {
+      const rollback = buildTrafficCommand({ argv, env, revision: prior });
+      await runCommand(rollback.command, rollback.args);
+    } catch {
+      rollbackCommandError = true;
+    }
+    let restored;
+    try {
+      restored = parseServingRevision(
+        await runCommand(deployCommand, buildPriorRevisionQueryPlan(target).args, {
+          capture: true,
+        }),
+      );
+    } catch {
+      throw new Error(
+        "Production promotion failed after traffic mutation and predecessor restoration could not be verified.",
+      );
+    }
+    if (restored !== prior) {
+      throw new Error(
+        "Production promotion failed after traffic mutation and predecessor restoration could not be verified.",
+      );
+    }
+    try {
+      await verifyRecovery(candidateReceipt.predecessorBaseline);
+    } catch {
+      throw new Error(
+        "Production promotion failed after traffic mutation and predecessor recovery gate did not pass.",
+      );
+    }
+    try {
+      discardReceiptOutput(reservation);
+    } catch {
+      throw new Error(
+        "Production promotion failed after traffic mutation; exact predecessor restored but receipt cleanup failed.",
+      );
+    }
+    const rollbackQualifier = rollbackCommandError
+      ? " despite an ambiguous rollback command result"
+      : "";
+    throw new Error(
+      `Production promotion failed after traffic mutation; exact predecessor restored and recovery verified${rollbackQualifier}.`,
+    );
+  }
+}
+
+export async function verifyCandidateReceiptVersion(receipt, fetchFn = fetch) {
+  let response;
+  try {
+    response = await fetchFn(`${receipt.candidateOrigin}/api/version`, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    throw new Error("Candidate receipt version read failed.");
+  }
+  if (!response?.ok) throw new Error("Candidate receipt version read failed.");
+  const body = await response.json().catch(() => null);
+  if (
+    !body ||
+    body.commit !== receipt.expectedCommit ||
+    body.revision !== receipt.expectedRevision ||
+    body.service !== receipt.service ||
+    body.environment !== "production"
+  ) {
+    throw new Error("Candidate assurance receipt no longer matches the candidate.");
+  }
 }
 
 function readFlag(args, name) {

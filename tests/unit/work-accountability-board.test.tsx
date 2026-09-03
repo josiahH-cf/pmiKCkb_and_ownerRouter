@@ -192,6 +192,37 @@ describe("My work and Team work surfaces", () => {
     expect(screen.getByLabelText("Title")).toHaveValue("Preserved task title");
   });
 
+  it("loads My Work read-only and reconciles only after the explicit operator action", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") return jsonResponse({ session: null });
+      return jsonResponse({ snapshot: emptySnapshot() });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(
+      <WorkAccountabilityBoard
+        mode="mine"
+        mutationAllowed
+        spaces={[{ id: "lease-renewals", name: "Lease Renewals" }]}
+      />,
+    );
+
+    await screen.findByText("No tasks assigned");
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "POST"),
+    ).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Reconcile activity" }));
+
+    expect(
+      await screen.findByText("Work activity was reconciled and refreshed."),
+    ).toBeInTheDocument();
+    const postCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(postCalls).toHaveLength(1);
+    expect(JSON.parse(String(postCalls[0]?.[1]?.body))).toEqual({ action: "reconcile" });
+  });
+
   it("announces a task switch and restores focus to the newly started task", async () => {
     const first = taskRecord({ state: "In progress", record_version: 2 });
     const second = taskRecord({

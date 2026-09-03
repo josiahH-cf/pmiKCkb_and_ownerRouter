@@ -19,13 +19,13 @@ description without weakening route permissions or moving unrelated topbar contr
 
 **Current state / intended end state.**
 
-The current AppShell renders up to nine flat text links between the wordmark/environment badge and
+Before S84, AppShell rendered up to nine flat text links between the wordmark/environment badge and
 the notification, role, and sign-out controls. The links have no hierarchy, icon, or explanation;
 their active treatment is only bold underlined text; and the entire list wraps as the viewport
 narrows. The server correctly filters Lease Renewal, Maintenance, Approval Queue, and Admin entries
 using current Space/role truth, while direct pages enforce their own guards.
 
-The intended desktop navbar renders exactly three primary disclosure buttons—`My Work`,
+The deployed desktop navbar renders exactly three primary disclosure buttons—`My Work`,
 `Operations`, and `Admin`—in that order. Each opens one shallow, single-column panel containing the
 three user-requested destinations. Every destination is a full-row link with a unique local icon,
 short title, exact explanatory subtext, group-coded accent treatment, and visible hover/focus/current
@@ -228,8 +228,9 @@ Color communicates the group, not status or permission:
 
 Every destination therefore carries a stable group color while its unique icon/title supplies the
 non-color distinction. Do not reuse verified, warning, conflict, error, or reference status colors
-as navigation categories. Do not add literal color values or claim the provisional orange as an
-official PMI value. Top-level triggers use S85 `--topbar-text` on `--topbar-surface`; open/current
+as navigation categories. Do not add literal color values; consume S85 semantic roles, including its
+contrast-derived accessible action tone, rather than hard-coding official orange where it fails a
+contrast floor. Top-level triggers use S85 `--topbar-text` on `--topbar-surface`; open/current
 state uses weight, chevron, surface, and the semantic selected marker rather than color alone.
 
 Panels use the existing surface, border, radius, shadow, type, focus, and spacing tokens. Titles are
@@ -458,19 +459,19 @@ that dependency but do not push it without the required direction.
 **Dependencies / sequencing.**
 
 S84 consumes the deployed S81 route/anchor ownership, the deployed S83 role-aware Admin/access-
-queue contract, S85 Appearance/theme roles, and S86 Icon/transient-layer behavior. Close S96, then
-implement S85, S86, and S83 before S84. Dashboard/Internal Processes terminology, the base
-manifest, desktop disclosure, and mobile presentation can be developed behind fail-first tests, but
-S84 is not complete until non-Admin Admin access and Admin-without-Renewals Approval Queue behavior
-match S83. S82 is independent except that its Lease Renewal destination and access handoffs must
-remain reachable through this navbar.
+queue contract, S85 Appearance/theme roles, and S86 Icon/transient-layer behavior. Its delivery
+followed S96, S85, S86, and S83. Dashboard/Internal Processes terminology, the base manifest,
+desktop disclosure, and mobile presentation remain protected by direct-route and browser tests,
+including non-Admin Admin access and Admin-without-Renewals Approval Queue behavior. S82 is
+independent except that its Lease Renewal destination and access handoffs remain reachable through
+this navbar.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** manifest, exact copy/icon keys/tone mapping, actor filtering, desktop/mobile
+- **Delivered:** manifest, exact copy/icon keys/tone mapping, actor filtering, desktop/mobile
   within-navbar disclosure behavior, visible terminology aliases, coordinator registration,
-  accessibility/responsive behavior, and preservation/refusal tests can reach `ALL_GATES_GREEN`
-  after S85, S86, and S83 without external provider or cloud work.
+  accessibility/responsive behavior, and preservation/refusal tests reached `ALL_GATES_GREEN`
+  after S85, S86, and S83 without external provider or cloud effects.
 - **Consumes, but does not assume during fail-first development:** S81 destinations, S83 access
   routes/count projection, S85 roles, and S86 interaction primitives. An unavailable count omits its
   badge and retains S83's review-health recovery; an unavailable required S83 route blocks S84

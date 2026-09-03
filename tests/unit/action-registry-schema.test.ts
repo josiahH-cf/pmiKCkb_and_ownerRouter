@@ -418,7 +418,7 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(reconcile.expected_action).toMatch(/flags only/i);
   });
 
-  it("retires the broad Sheet identifier and documents the two exact S98 keys", () => {
+  it("retires the broad Sheet identifier and records the append-only S98 capability boundary", () => {
     const retired = entry("google_sheets.renewal_checklist.writeback");
     expect(retired.production_allowed).toBe(false);
     expect(retired.expected_action).toContain("retired");
@@ -431,18 +431,24 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(append.production_allowed).toBe(true);
     expect(append.required_permissions.join(" ")).toContain("ACTIVATED 2026-09-02");
     expect(append.expected_action).toContain("appendCells");
-    // The append key's committed capability alone owns the paired receipt-bound row reversal.
-    expect(append.expected_action).toContain("deleteDimension ROWS");
-    expect(append.expected_action).toContain("no other key or category can delete a row");
+    expect(append.expected_action).toContain(
+      "No product route may issue a fixed-row delete",
+    );
+    expect(append.rollback_note).toContain("does not automate row deletion");
     expect(append.documented_evidence).toContain("never retries");
     expect(append.documented_evidence).toContain("renewal_date is never inferred");
 
     const update = entry("google_sheets.renewal_checklist.field_update");
     expect(update.production_allowed).toBe(true);
-    expect(update.required_permissions.join(" ")).toContain("ACTIVATED 2026-09-02");
-    expect(update.expected_action).toContain("matchEntireCell");
-    expect(update.documented_evidence).toContain("occurrencesChanged");
-    expect(update.documented_evidence).toContain("19-field Renewals semantic schema");
+    expect(update.required_permissions.join(" ")).toContain(
+      "Historically activated after the bounded 2026-09-02 proof",
+    );
+    expect(update.expected_action).toContain("No current product mutation");
+    expect(update.expected_action).toContain("refuses before writer construction");
+    expect(update.documented_evidence).toContain("findReplace");
+    expect(update.documented_evidence).toContain(
+      "normal field update and restore paths report",
+    );
   });
 
   it("gives field_update a cell-addressed preview schema that validatePreviewPayload accepts", () => {

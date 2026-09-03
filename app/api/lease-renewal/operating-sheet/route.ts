@@ -17,12 +17,10 @@ import {
   renewalRoleCapability,
 } from "@/lib/lease-renewal/role-action-governance";
 import { invalidateLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
-import { RentVineClient, createFetchTransport } from "@/lib/integrations/rentvine/client";
 import {
   SheetWritebackService,
   SheetWritebackServiceError,
   hashSheetHeader,
-  type SheetWritebackDependencies,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import {
   OPERATING_SHEET_TAB,
@@ -30,92 +28,93 @@ import {
   buildLiveSheetWritebackDeps,
   liveOperatingSheetId,
 } from "@/lib/lease-renewal/sheet-writeback/live";
-import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "@/lib/lease-renewal/headers";
 import {
   SheetWritebackContractError,
   buildSheetWritebackProposal,
-  sheetWritebackExecutionId,
-  sheetWritebackReversalExecutionId,
   type SheetWritebackEffectInput,
   type SheetWritebackProposal,
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
-import {
-  clientSheetWritebackEffect,
-  clientSheetWritebackProposal,
-} from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import { clientSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
 import {
   discardSheetWritebackProposal,
   getSheetWritebackProposal,
+  listSheetWritebackProposalHistory,
   saveSheetWritebackProposal,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
+import {
+  SheetWorkspaceContextError,
+  verifySheetWorkspaceContext,
+} from "@/lib/lease-renewal/sheet-writeback/workspace-context";
+import {
+  SheetWorkspaceResolutionError,
+  assertProposalMatchesFreshLeaseContext,
+  effectForFreshLeaseContext,
+  resolveAuthorizedCurrentRentUpdate,
+  resolveFreshOperatingSheetLeaseContext,
+} from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
+import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 
 const HashSchema = z.string().regex(/^[a-f0-9]{64}$/);
-const LeaseIdSchema = z.string().regex(/^[1-9]\d*$/);
-
-const ProposedAppendSchema = z
-  .object({
-    kind: z.literal("row_append"),
-    leaseId: LeaseIdSchema,
-    tenantName: z.string().trim().min(1).max(200),
-    fields: z
-      .record(
-        z.string().max(60),
-        z
-          .object({
-            value: z.string().min(1).max(500),
-            source: z.string().min(1).max(500),
-          })
-          .strict(),
-      )
-      .default({}),
-    renewalDateHumanConfirmed: z.boolean().optional(),
-  })
-  .strict();
-
-const ProposedUpdateSchema = z
-  .object({
-    kind: z.literal("field_update"),
-    field: z.string().min(1).max(60),
-    rowNumber: z.number().int().min(2).max(100_000),
-    afterValue: z.string().max(500),
-    source: z.string().trim().min(1).max(500),
-  })
-  .strict();
+const WorkspaceContextSchema = z.string().min(40).max(1_000);
 
 const BodySchema = z.discriminatedUnion("operation", [
   z
     .object({
       operation: z.literal("propose"),
-      evidenceRef: z.string().trim().min(1).max(500),
-      effects: z
-        .array(z.discriminatedUnion("kind", [ProposedAppendSchema, ProposedUpdateSchema]))
-        .min(1)
-        .max(5),
+      workspaceContext: WorkspaceContextSchema,
+      intent: z.enum(["append_missing_row", "update_approved_current_rent"]),
+      expectedPriorPreviewHash: HashSchema.nullable(),
     })
     .strict(),
-  z.object({ operation: z.literal("status") }).strict(),
-  z.object({ operation: z.literal("discard") }).strict(),
+  z
+    .object({ operation: z.literal("status"), workspaceContext: WorkspaceContextSchema })
+    .strict(),
+  z
+    .object({
+      operation: z.literal("discard"),
+      workspaceContext: WorkspaceContextSchema,
+      previewHash: HashSchema,
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("execute"),
+      workspaceContext: WorkspaceContextSchema,
       previewHash: HashSchema,
       effectHash: HashSchema,
       confirm: z.literal(true),
     })
     .strict(),
-  z.object({ operation: z.literal("reconcile"), effectHash: HashSchema }).strict(),
-  z.object({ operation: z.literal("reverse_preview"), effectHash: HashSchema }).strict(),
+  z
+    .object({
+      operation: z.literal("reconcile"),
+      workspaceContext: WorkspaceContextSchema,
+      effectHash: HashSchema,
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal("reverse_preview"),
+      workspaceContext: WorkspaceContextSchema,
+      effectHash: HashSchema,
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("reverse_execute"),
+      workspaceContext: WorkspaceContextSchema,
       effectHash: HashSchema,
       reversal: z
         .object({
           reversalExecutionId: z.string().min(1).max(300),
           forwardExecutionId: z.string().min(1).max(300),
           previewHash: HashSchema,
-          expiresAtIso: z.string().min(20).max(40),
+          expiresAtIso: z
+            .string()
+            .min(20)
+            .max(40)
+            .refine((value) => Number.isFinite(Date.parse(value))),
           kind: z.enum(["delete_appended_row", "restore_field"]),
           currentRowNumber: z.number().int().min(2).optional(),
         })
@@ -134,11 +133,13 @@ function serviceError(code: SheetWritebackServiceError["code"]): never {
 async function loadProposalOr404(
   user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
   spreadsheetId: string,
+  leaseId: string,
 ): Promise<SheetWritebackProposal> {
   const proposal = await getSheetWritebackProposal(
     user,
     spreadsheetId,
     OPERATING_SHEET_TAB,
+    { kind: "lease_workspace", leaseId },
   );
   if (!proposal) serviceError("effect_missing");
   return proposal;
@@ -153,156 +154,58 @@ function effectByHash(
   return effect;
 }
 
-function rentvineReader() {
-  const baseUrl = process.env.RENTVINE_API_BASE_URL?.trim();
-  const apiKey = process.env.RENTVINE_API_KEY?.trim();
-  const apiSecret = process.env.RENTVINE_API_SECRET?.trim();
-  if (!baseUrl || !apiKey || !apiSecret) return null;
-  return new RentVineClient(
-    { baseUrl, apiKey, apiSecret },
-    createFetchTransport({ timeoutMs: 30_000 }),
-  );
-}
-
 async function assembleProposal(
   user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
   spreadsheetId: string,
-  body: Extract<Body, { operation: "propose" }>,
-  deps: SheetWritebackDependencies,
+  leaseId: string,
+  intent: Extract<Body, { operation: "propose" }>["intent"],
 ): Promise<SheetWritebackProposal> {
-  const writer = deps.createWriter();
-  const headerRows = await writer.getValues(
-    spreadsheetId,
-    `'${OPERATING_SHEET_TAB}'!A1:AZ1`,
-  );
-  const header = headerRows[0] ?? [];
-  const resolution = resolveHeaders([header], RENEWAL_TAB_SCHEMAS.Renewals);
-  const columns = new Map<string, number>();
-  for (const column of resolution.columns) {
-    if (column.field !== null && column.status === "resolved") {
-      columns.set(column.field, column.index);
-    }
+  const context = await resolveFreshOperatingSheetLeaseContext(leaseId);
+  if (
+    (intent === "append_missing_row" && context.row !== null) ||
+    (intent === "update_approved_current_rent" && context.row === null)
+  ) {
+    throw new SheetWorkspaceResolutionError("row_state_mismatch");
   }
-  const tenantColumnIndex = columns.get("tenant_name");
-  if (tenantColumnIndex === undefined) serviceError("header_drift");
-
-  const reader = rentvineReader();
-  const effects: SheetWritebackEffectInput[] = [];
-  for (const proposed of body.effects) {
-    if (proposed.kind === "row_append") {
-      // Provider ids are server-resolved: the lease read supplies its own property id.
-      if (!reader) serviceError("provider_read_failed");
-      const lease = (await reader.getLease(proposed.leaseId)) as Record<string, unknown>;
-      const inner =
-        lease["lease"] && typeof lease["lease"] === "object"
-          ? (lease["lease"] as Record<string, unknown>)
-          : lease;
-      const propertyId = String(inner["propertyID"] ?? "");
-      effects.push({
-        kind: "row_append",
-        mode: "normal",
-        operationId: `op-${randomUUID()}`,
-        leaseId: proposed.leaseId,
-        propertyId,
-        tenantName: proposed.tenantName,
-        fields: proposed.fields,
-        ...(proposed.renewalDateHumanConfirmed !== undefined
-          ? { renewalDateHumanConfirmed: proposed.renewalDateHumanConfirmed }
-          : {}),
-      });
-    } else {
-      const fieldColumn = columns.get(proposed.field);
-      if (fieldColumn === undefined) serviceError("header_drift");
-      const letterFor = (index: number) => {
-        let value = index;
-        let letters = "";
-        do {
-          letters = String.fromCharCode(65 + (value % 26)) + letters;
-          value = Math.floor(value / 26) - 1;
-        } while (value >= 0);
-        return letters;
-      };
-      const fieldLetter = letterFor(fieldColumn);
-      const tenantLetter = letterFor(tenantColumnIndex);
-      const cellRows = await writer.getValues(
-        spreadsheetId,
-        `'${OPERATING_SHEET_TAB}'!${fieldLetter}${proposed.rowNumber}:${fieldLetter}${proposed.rowNumber}`,
-      );
-      const tenantRows = await writer.getValues(
-        spreadsheetId,
-        `'${OPERATING_SHEET_TAB}'!${tenantLetter}${proposed.rowNumber}:${tenantLetter}${proposed.rowNumber}`,
-      );
-      const noteEntries = await writer.getColumnNotes({
-        spreadsheetId,
-        tabTitle: OPERATING_SHEET_TAB,
-        columnIndex: tenantColumnIndex,
-        startRowNumber: proposed.rowNumber,
-        endRowNumber: proposed.rowNumber,
-      });
-      const note = noteEntries[0]?.note ?? "";
-      const parsedNote = /operation ([a-z0-9-]+) /.exec(note);
-      effects.push({
-        kind: "field_update",
-        field: proposed.field,
-        rowNumber: proposed.rowNumber,
-        rowKey: parsedNote ? parsedNote[1] : null,
-        anchorTenantName: tenantRows[0]?.[0] ?? "",
-        expectedValue: cellRows[0]?.[0] ?? "",
-        afterValue: proposed.afterValue,
-        source: proposed.source,
-      });
-    }
-  }
+  const authorized = context.row
+    ? await resolveAuthorizedCurrentRentUpdate(user, context)
+    : null;
+  const effects: SheetWritebackEffectInput[] = [
+    effectForFreshLeaseContext(context, authorized, `op-${randomUUID()}`),
+  ];
 
   return buildSheetWritebackProposal({
+    generationId: `proposal-${randomUUID()}`,
     spreadsheetId,
     tabTitle: OPERATING_SHEET_TAB,
-    headerHash: hashSheetHeader(header, columns),
-    headerWidth: header.length,
-    tenantColumnIndex,
+    headerHash: hashSheetHeader(context.header, context.columns),
+    headerWidth: context.header.length,
+    tenantColumnIndex: context.tenantColumnIndex,
+    scope: {
+      kind: "lease_workspace",
+      leaseId: context.leaseId,
+      propertyId: context.propertyId,
+    },
     actorUid: user.uid,
     actorEmail: user.email ?? "",
     actorRole: user.role,
-    sourceReadAtIso: new Date().toISOString(),
-    evidenceRef: body.evidenceRef,
+    sourceReadAtIso: context.sourceReadAtIso,
+    evidenceRef: `workspace:${context.leaseId}:fresh-live-join`,
     effects,
     nowMs: Date.now(),
   });
 }
 
-async function effectStatuses(
+async function assertProposalCurrent(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
   proposal: SheetWritebackProposal,
-  deps: SheetWritebackDependencies,
-) {
-  const statuses = [];
-  for (const entry of proposal.effects) {
-    const executionId = sheetWritebackExecutionId(proposal, entry);
-    const record = await deps.store.get(executionId);
-    let reversalState: string | null = null;
-    if (record?.state === "succeeded" && record.receipt) {
-      const reversal = await deps.store.get(
-        sheetWritebackReversalExecutionId(executionId, record.receipt.resultHash),
-      );
-      reversalState = reversal?.state ?? null;
-    }
-    statuses.push({
-      ...clientSheetWritebackEffect(entry),
-      execution_id: executionId,
-      state: record?.state ?? "not_started",
-      attempt_count: record?.attemptCount ?? 0,
-      ...(record?.receipt
-        ? {
-            receipt: {
-              provider_ref: record.receipt.providerRef,
-              result_hash: record.receipt.resultHash,
-              reconciled: record.receipt.reconciled,
-            },
-          }
-        : {}),
-      reversal_state: reversalState,
-    });
-  }
-  return statuses;
+): Promise<void> {
+  const context = await resolveFreshOperatingSheetLeaseContext(proposal.scope.leaseId);
+  const authorized =
+    proposal.effects[0]?.effect.kind === "field_update"
+      ? await resolveAuthorizedCurrentRentUpdate(user, context)
+      : null;
+  assertProposalMatchesFreshLeaseContext(proposal, context, authorized);
 }
 
 /**
@@ -319,6 +222,8 @@ export async function POST(request: Request) {
     const descriptor = requireEnvironmentDescriptor();
     await assertSheetWritebackV2ExecutionAllowed(descriptor, "recovery");
     const body = await parseJsonBody(request, BodySchema);
+    const { leaseId } = verifySheetWorkspaceContext(body.workspaceContext, user.uid);
+    const proposalScope = { kind: "lease_workspace" as const, leaseId };
 
     const spreadsheetId = liveOperatingSheetId();
     if (!spreadsheetId) {
@@ -327,7 +232,13 @@ export async function POST(request: Request) {
 
     if (body.operation === "discard") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
-      await discardSheetWritebackProposal(user, spreadsheetId, OPERATING_SHEET_TAB);
+      await discardSheetWritebackProposal(
+        user,
+        spreadsheetId,
+        OPERATING_SHEET_TAB,
+        proposalScope,
+        body.previewHash,
+      );
       return NextResponse.json({ status: "discarded" });
     }
 
@@ -338,8 +249,16 @@ export async function POST(request: Request) {
 
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
-      const proposal = await assembleProposal(user, spreadsheetId, body, deps);
-      await saveSheetWritebackProposal(user, proposal);
+      if (body.intent === "update_approved_current_rent") {
+        serviceError("provider_capability_unavailable");
+      }
+      const proposal = await assembleProposal(user, spreadsheetId, leaseId, body.intent);
+      await saveSheetWritebackProposal(
+        user,
+        proposal,
+        proposalScope,
+        body.expectedPriorPreviewHash,
+      );
       return NextResponse.json({
         status: "proposed",
         proposal: clientSheetWritebackProposal(proposal),
@@ -347,22 +266,56 @@ export async function POST(request: Request) {
     }
 
     if (body.operation === "status") {
-      const proposal = await getSheetWritebackProposal(
-        user,
-        spreadsheetId,
-        OPERATING_SHEET_TAB,
+      const [proposal, history] = await Promise.all([
+        getSheetWritebackProposal(
+          user,
+          spreadsheetId,
+          OPERATING_SHEET_TAB,
+          proposalScope,
+        ),
+        listSheetWritebackProposalHistory(
+          user,
+          spreadsheetId,
+          OPERATING_SHEET_TAB,
+          proposalScope,
+        ),
+      ]);
+      const archived = await Promise.all(
+        history.map(async (entry) => ({
+          proposal: clientSheetWritebackProposal(entry.proposal),
+          effects: await loadSheetWritebackEffectStatuses(entry.proposal, deps.store),
+          archived_at: entry.archivedAtIso,
+          archived_reason: entry.archivedReason,
+        })),
       );
-      if (!proposal) return NextResponse.json({ status: "ok", proposal: null });
+      if (!proposal) {
+        return NextResponse.json({
+          status: "ok",
+          proposal: null,
+          archived,
+          capabilities: {
+            row_append: true,
+            field_update: false,
+            reversal: false,
+          },
+        });
+      }
       return NextResponse.json({
         status: "ok",
         proposal: clientSheetWritebackProposal(proposal),
-        effects: await effectStatuses(proposal, deps),
+        effects: await loadSheetWritebackEffectStatuses(proposal, deps.store),
+        archived,
         expired: Date.now() > Date.parse(proposal.confirmationExpiresAtIso),
+        capabilities: {
+          row_append: true,
+          field_update: false,
+          reversal: false,
+        },
       });
     }
 
     assertRenewalRoleAuthority("execute_source_write", user.role);
-    const proposal = await loadProposalOr404(user, spreadsheetId);
+    const proposal = await loadProposalOr404(user, spreadsheetId, leaseId);
     const effect = effectByHash(proposal, body.effectHash);
     const service = new SheetWritebackService(deps);
 
@@ -382,11 +335,8 @@ export async function POST(request: Request) {
     }
 
     if (body.operation === "reverse_preview") {
-      const reversal = await service.previewReversal({
-        proposal,
-        effectHash: body.effectHash,
-      });
-      return NextResponse.json({ status: "reversal_preview", reversal });
+      // Do not mint a confirmation for an operation the live provider cannot safely execute.
+      serviceError("provider_capability_unavailable");
     }
 
     // Mutating operations: the exact per-key gate refuses before any writer construction.
@@ -407,6 +357,13 @@ export async function POST(request: Request) {
           previewHash: body.previewHash,
           effectHash: body.effectHash,
           confirmedAtIso: new Date().toISOString(),
+        },
+        revalidateBeforeEffect: async () => {
+          try {
+            await assertProposalCurrent(user, proposal);
+          } catch {
+            throw new SheetWritebackServiceError("authorization_stale");
+          }
         },
       });
       invalidateLiveLeaseCache();
@@ -457,6 +414,15 @@ export async function POST(request: Request) {
       );
     }
     if (error instanceof SheetWritebackContractError) {
+      return NextResponse.json(
+        { error: error.message, error_type: error.code },
+        { status: 409 },
+      );
+    }
+    if (
+      error instanceof SheetWorkspaceContextError ||
+      error instanceof SheetWorkspaceResolutionError
+    ) {
       return NextResponse.json(
         { error: error.message, error_type: error.code },
         { status: 409 },

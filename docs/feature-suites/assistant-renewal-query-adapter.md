@@ -3,9 +3,10 @@
 
 # S91 — Canonical lease-renewal assistant query adapter
 
-> Status: Specified and not implemented. Production has S78's canonical role-consistent live renewal
-> worklist and six-step projection. S82's enriched table, one causal-blocker projection, and trusted
-> blocker/source destination manifest are specified but not implemented.
+> Status: Specified and not implemented. S82's original table and causal-blocker baseline is
+> deployed; its nullable-rent, auxiliary-state, packet-parity, source-destination, and freshness
+> conformance remediation is active and unreleased. This suite cannot register either renewal intent
+> until that remediation is promoted and read back.
 
 **Goal.**
 
@@ -15,12 +16,18 @@ deterministic date interpretation, exact lease/table links, and explicit partial
 
 **Current state / intended end state.**
 
-The live renewal page currently orchestrates progress, notice policy, workflow-linked Gmail state,
-dismissed follow-up keys, RentVine, and the operating Sheet before calling `loadLiveRenewalDesk`.
-The current Dashboard instead performs an abbreviated 120-day load without progress or communication
-inputs. Ask queries neither. S78 already provides stable lease ids, date/month/owner/tenant/workflow/
-waiting/conflict query keys, `readComplete`, data currency, deterministic ordering, and workspace
-links. It does not expose S82's future unified overall status and every causal blocker.
+The live renewal desk currently orchestrates progress, notice policy, workflow-linked Gmail state,
+dismissed follow-up keys, RentVine, the operating Sheet, and bulk human resolutions before calling
+`loadLiveRenewalDesk`. Its row projection passes no current packet snapshot into the evidence engine.
+The lease workspace separately loads the current packet snapshot and performs additional reads; some
+of those reads convert failure to an empty list or null proposal, and the shared desk path currently
+coerces a missing current-rent value to zero. Those differences can make the same lease appear to have
+different blocker, verification, proposal, or rent truth depending on the page. The current Dashboard
+also performs an abbreviated 120-day load without progress or communication inputs. Ask queries none
+of these sources. S78/S82 already provide stable lease ids, unified status/blockers, date/month/owner/
+tenant/workflow/waiting/conflict query keys, `readComplete`, data currency, deterministic ordering,
+workspace links, and trusted blocker destinations; the missing work is one shared current projection
+and truthful dependency-state propagation.
 
 The intended adapter extracts the canonical page orchestration into one reusable server read service,
 then applies the existing desk query/projection contracts. The assistant never reads RentVine or the
@@ -33,9 +40,11 @@ are complete without model narration.
 - A managed user must satisfy the existing Renewals Space and `read_workspace` capability guards.
   Authentication and Space filtering occur before a live source read or row construction.
 - RentVine remains the authoritative lease source, including the contractual lease end date and
-  property-owner identity. The operating renewal Sheet remains a read source; no write is added.
-- `renewal.window` can use current S78 fields. A complete `renewal.blocked` result consumes S82's
-  exact causal-blocker projection when implemented; its absence is an explicit partial capability.
+  property-owner identity. S98's exact operating-Sheet writes remain separately governed; this query
+  adapter and every desk/workspace load are read-only and invoke no write action.
+- `renewal.window` can use current S78/S82 fields. A complete `renewal.blocked` result consumes S82's
+  deployed exact causal-blocker projection only after the conformance gate below passes; until then,
+  the intent is unavailable rather than presenting divergent page truth as complete.
 - A source result is complete only when every source required by the selected query succeeded, the
   RentVine paged read is complete, and current currency policy permits the claim.
 - An actor without Renewals access receives the ordinary non-enumerating denial/S83 handoff contract;
@@ -64,6 +73,41 @@ stale entry the assistant uses the owning abortable direct-read path under its r
 the desk may retain its existing bounded refresh behavior. No cross-user row cache or unscoped
 service-account result may be introduced. Provider failures return typed states; raw errors,
 credentials, and provider payloads do not cross the boundary.
+
+### Renewal projection conformance gate
+
+Before either renewal intent can register, extract one actor-scoped, abortable
+`CanonicalRenewalEvidenceSnapshotV2` whose rows are the only input to the S82 desk table, one-lease
+workspace projection, and S91 adapter. For every included lease it carries the exact source generation
+and currency, RentVine lease/unit facts, operating-Sheet row state, current packet snapshot, progress,
+notice policy, communication state, dismissed-attention state, human resolutions, and active
+RentVine/Sheet proposal state needed by any of the three consumers. Each auxiliary read returns an
+explicit `complete`, `empty`, `unavailable`, or `not_applicable` state. A caught exception cannot become
+an empty resolution list, no-proposal claim, verified field, zero count, or unblocked lease.
+
+Contractual current rent is `number | null` throughout the snapshot and public projection. `null`
+renders the owning missing/unavailable state and is never converted to `0`, `$0`, a verified value, an
+offer, or an owner-draft input. A proposal state is `none` only after a successful current lookup;
+failure is `unavailable` and keeps every proposal-dependent action hidden or disabled with its owning
+recovery. The same rule applies to packet, resolution, communication, progress, policy, RentVine, and
+Sheet reads.
+
+The desk may load snapshots in a bounded batch and the workspace may select one row, but both must
+project the same lease source generation byte-equivalently for overall status, causal blockers and
+order, verification state, current rent, next action, selected phase eligibility, proposal
+availability, and destination references. The assistant consumes that same row without recalculating
+any field. A source write completed through S97 or S98 must advance or invalidate the affected source
+generation before a later page or assistant read can claim current data; no stale-while-revalidate
+branch may return a pre-write row as current.
+
+Run one read-only authenticated reconciliation over the canonical desk window in the exact release
+candidate and again after promotion. Compare each actor-visible row with fresh RentVine lease/unit and
+operating-Sheet source reads using stable ids and normalized field hashes in memory. Persist only
+bodyless totals by outcome (`matched`, `mismatch`, `unavailable`, `excluded`) plus revision, source
+generation, and timestamp; never persist lease ids, labels, addresses, tenant/owner values, rent,
+dates, Sheet cells, provider payloads, or per-row hashes. Any mismatch, silent omission, unexpected
+duplicate, false zero, or source-unavailable-as-empty result blocks renewal-intent exposure. This
+reconciliation reads only; it cannot trigger S97/S98, verification, progress, proposal, draft, or send.
 
 ### Closed renewal intents and date semantics
 
@@ -103,9 +147,9 @@ RentVine owner.
 
 ### Blocked versus needs-attention compatibility
 
-Current S78 can deterministically list leases with source conflicts, due follow-up attention, and
-early-stage next actions. Those are `Needs attention`; they are not all necessarily `Blocked`.
-Before S82's causal-blocker projection exists, `renewal.blocked` returns `partial` with exact copy:
+In the exact S82-absent rollback-compatibility fixture, S78 can deterministically list leases with
+source conflicts, due follow-up attention, and early-stage next actions. Those are `Needs attention`;
+they are not all necessarily `Blocked`. In that fixture, `renewal.blocked` returns `partial` with exact copy:
 `Complete blocked status is not available from the current renewal projection.` It returns the
 `renewal_known_source_conflicts` group described below, whose `matched_count` is the exact number of
 current rows with `sourceConflictCount > 0` and may truthfully be zero. This is a usable aggregate over
@@ -113,10 +157,10 @@ the explicitly labelled known-conflict subset, never the total number of blocked
 to the canonical renewal desk, but it cannot relabel stage-zero/owner-decision work as blocked or
 claim the subset is complete.
 
-After S82 exists, the adapter consumes its blocker/status/link fields byte-for-byte and removes the
-compatibility warning only when the projection reports complete coverage. The adapter does not
-reimplement the six-step evidence engine, current-rent reconciliation, verification, or blocker
-ordering.
+After the conformance gate passes, the adapter consumes S82 blocker/status/link fields byte-for-byte
+and removes the compatibility warning only when the shared projection reports complete coverage. The
+adapter does not reimplement the six-step evidence engine, current-rent reconciliation, verification,
+or blocker ordering.
 
 ### Completeness and degradation
 
@@ -383,13 +427,13 @@ live-panel removal. No provider, action-key, role, production-data, or source-wr
 
 **Authority and evidence map.**
 
-| Input                                                               | Classification                   | Use and limitation                                                                                                                                              |
-| ------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router, `docs/facts.md`, S72/S75/S78 code/tests and live-desk route | Authority / implementation truth | Establish canonical RentVine/Sheet reads, stable ids, six-step/query/currency/completeness behavior, and closed write/send gates.                               |
-| S82                                                                 | Specified dependency             | Owns enriched table rows, overall status, every causal blocker, persistent filters, and validated blocker/evidence destinations; not current production.        |
-| S88-S90 and S92-S95                                                 | Active bundle contracts          | Own generic query envelope/limits, telemetry, adjacent adapters, narration, UI, actions, and final Dashboard placement without duplicating renewal logic.       |
-| Dashboard AI integration notes                                      | Intent evidence                  | Require next-month and blocked-renewal questions with clickable results; do not authorize invented assignments, bulk tabs, provider writes, or background work. |
-| Future internal lease-assignment source                             | Missing dependency               | Required before `my renewals` can be mapped to a staff actor.                                                                                                   |
+| Input                                                               | Classification                          | Use and limitation                                                                                                                                                                                                   |
+| ------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router, `docs/facts.md`, S72/S75/S78 code/tests and live-desk route | Authority / implementation truth        | Establish canonical RentVine/Sheet reads, stable ids, six-step/query/currency/completeness behavior, and closed write/send gates.                                                                                    |
+| S82                                                                 | Deployed dependency / conformance input | Owns enriched table rows, overall status, every causal blocker, persistent filters, and validated blocker/evidence destinations; S91 must unify its currently divergent desk/workspace evidence inputs before reuse. |
+| S88-S90 and S92-S95                                                 | Active bundle contracts                 | Own generic query envelope/limits, telemetry, adjacent adapters, narration, UI, actions, and final Dashboard placement without duplicating renewal logic.                                                            |
+| Dashboard AI integration notes                                      | Intent evidence                         | Require next-month and blocked-renewal questions with clickable results; do not authorize invented assignments, bulk tabs, provider writes, or background work.                                                      |
+| Future internal lease-assignment source                             | Missing dependency                      | Required before `my renewals` can be mapped to a staff actor.                                                                                                                                                        |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -410,6 +454,10 @@ live-panel removal. No provider, action-key, role, production-data, or source-wr
   only from the current canonical lease id/end date, binds it to the S88-generated item ref, and
   exposes it only through S88's registered S94 carrier. Public-schema, observer, model, log, and stream
   scans fail on any private field or authority leak.
+- **ARCH-S91-7** — One versioned canonical evidence snapshot and source-generation contract drives
+  desk, workspace, and assistant. It preserves nullable rent and typed auxiliary states, invalidates
+  post-write stale rows, and produces a privacy-safe read-only source reconciliation; any consumer-
+  specific evidence read or projection difference fails the gate.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -426,6 +474,10 @@ live-panel removal. No provider, action-key, role, production-data, or source-wr
 - **BEH-S91-6** — An eligible current row can later offer S94's inert `Create my task` candidate using
   a stable renewal-term binding; a missing/conflicted term or incomplete preview fact offers no
   candidate and never weakens the read-only answer.
+- **BEH-S91-7** — Opening the desk, the same lease workspace, and an assistant result against one
+  source generation shows the same rent availability, verification state, overall status, ordered
+  blockers, next action, proposal availability, and destinations. A missing rent or failed auxiliary
+  read is visibly unavailable, never `$0`, empty, no proposal, verified, or unblocked.
 
 **Human litmus outcome.**
 
@@ -458,22 +510,24 @@ recovery the owning surface supports.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                 | Architecture outcome | Behavior outcome | Human litmus                   | Deterministic evidence / falsification                                                                                                                          |
-| ------------------------------------------- | -------------------- | ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical source parity                     | `ARCH-S91-1/4`       | `BEH-S91-1/2/3`  | All                            | Page/adapter orchestration parity, injected source-outcome matrix, and no-second-direct-provider-read spies.                                                    |
-| Exact date-window interpretation            | `ARCH-S91-2/5`       | `BEH-S91-1/4`    | Open next month's renewals     | Clock/time-zone/DST/month-year/invalid-date fixtures compared with serialized desk filters and ordering.                                                        |
-| Exact blocked semantics and S82 integration | `ARCH-S91-3/4/5`     | `BEH-S91-2/3`    | Trust a blocked-renewal answer | S82 present/absent, conflict-only, verification, early-stage-not-blocked, and blocker-link parity tests.                                                        |
-| Complete/partial/unavailable truth          | `ARCH-S91-1/4`       | `BEH-S91-1/3/5`  | Recover from incomplete data   | Complete/partial-page/stale/expired/unreadable/unconfigured/account-mismatch/read-error fixtures reject false empty.                                            |
-| Authorized minimized clickable results      | `ARCH-S91-5`         | `BEH-S91-1/4/5`  | Open next month's renewals     | Role/Space/filter/cap/link/new-tab/model-injection/provider-write sentinels and destination reauthorization.                                                    |
-| Stable private renewal action binding       | `ARCH-S91-6`         | `BEH-S91-6`      | Open next month's renewals     | Canonical-hash, reread stability, changed-term, missing/conflicted field, actor binding, truncation, carrier isolation, and public/model/log/stream leak tests. |
+| Requirement                                 | Architecture outcome | Behavior outcome | Human litmus                   | Deterministic evidence / falsification                                                                                                                                                               |
+| ------------------------------------------- | -------------------- | ---------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical source parity                     | `ARCH-S91-1/4`       | `BEH-S91-1/2/3`  | All                            | Page/adapter orchestration parity, injected source-outcome matrix, and no-second-direct-provider-read spies.                                                                                         |
+| Exact date-window interpretation            | `ARCH-S91-2/5`       | `BEH-S91-1/4`    | Open next month's renewals     | Clock/time-zone/DST/month-year/invalid-date fixtures compared with serialized desk filters and ordering.                                                                                             |
+| Exact blocked semantics and S82 integration | `ARCH-S91-3/4/5`     | `BEH-S91-2/3`    | Trust a blocked-renewal answer | S82 present/absent, conflict-only, verification, early-stage-not-blocked, and blocker-link parity tests.                                                                                             |
+| Complete/partial/unavailable truth          | `ARCH-S91-1/4`       | `BEH-S91-1/3/5`  | Recover from incomplete data   | Complete/partial-page/stale/expired/unreadable/unconfigured/account-mismatch/read-error fixtures reject false empty.                                                                                 |
+| Authorized minimized clickable results      | `ARCH-S91-5`         | `BEH-S91-1/4/5`  | Open next month's renewals     | Role/Space/filter/cap/link/new-tab/model-injection/provider-write sentinels and destination reauthorization.                                                                                         |
+| Stable private renewal action binding       | `ARCH-S91-6`         | `BEH-S91-6`      | Open next month's renewals     | Canonical-hash, reread stability, changed-term, missing/conflicted field, actor binding, truncation, carrier isolation, and public/model/log/stream leak tests.                                      |
+| Shared projection and source reconciliation | `ARCH-S91-1/4/7`     | `BEH-S91-3/7`    | All                            | Desk/workspace/assistant byte-parity, null-rent, auxiliary-failure, post-write generation, and candidate/post-promotion RentVine/Sheet reconciliation gates reject divergent or falsely empty state. |
 
 **Preservation set.**
 
 Keep S78 canonical worklist, current-month-plus-120 default desk behavior, exact URL query parsing/
 serialization, stable ordering, data currency and partial-export truth, retention, source conflict,
-six-step progress, S75 follow-up, role/Space guards, S82 future table/filter/blocker ownership,
+six-step progress, S75 follow-up, role/Space guards, deployed S82 table/filter/blocker ownership,
 workspace/evidence links, current-rent and offer separation, unsent-draft/human-send boundaries,
-RentVine/operating-Sheet read-only posture, Action Registry gates, and existing cache/allowance rules.
+zero writes from every desk/workspace/assistant read, separately governed S97/S98 actions, Action
+Registry gates, and existing cache/allowance rules.
 
 **Adversarial acceptance checks.**
 
@@ -508,6 +562,17 @@ tenant "Example Tenant"?` match S88's closed grammar and this adapter's exact fi
   digest, and missing/conflicted/expired/truncated preview inputs emit no binding. A 50-binding result
   stays private and ordered; S88 public envelopes, observer milestones, S89 model inputs/telemetry,
   and S93 stream captures contain none of its ids, versions, labels, or fingerprint fields.
+- **AC-S91-8** — For each success/empty/unavailable combination of packet, resolutions,
+  communications, progress, policy, proposals, RentVine, and Sheet, the desk row, selected workspace,
+  and S91 item consume one source generation and match byte-for-byte on status, blocker order,
+  verification, nullable rent, next action, proposal state, and route refs. Tests fail on
+  `packetSnapshot: undefined`, catch-to-`[]`, catch-to-`null`, missing-rent-to-zero, consumer-local
+  recomputation, or an auxiliary failure labelled empty/none/verified/unblocked.
+- **AC-S91-9** — A completed S97 or S98 fixture advances/invalidates the affected source generation;
+  the next desk/workspace/assistant read cannot serve the prior row as current. Exact-candidate and
+  post-promotion managed-actor reconciliation cover the complete canonical window and fail on a
+  duplicate, omission, mismatch, false zero, or unavailable-as-empty result while persisted evidence
+  contains only the allowed outcome totals, revision, generation, and timestamp.
 
 **Forbidden actions / hard gates.**
 
@@ -520,9 +585,11 @@ filter, URL, status, source, or effect.
 
 **Dependencies / sequencing.**
 
-Implement S88/S89 and S82 first. The canonical S78/S82 window adapter, exact public manifest, private
-S94 binding, and explicit S82-absent rollback compatibility state can then land. The queued S91
-completion consumes S82 rather than reimplementing it and must prove complete blocked-renewal behavior. S92 narration follows
+Implement S88/S89 first and treat deployed S82 as an input whose conformance is not assumed. The
+canonical snapshot, desk/workspace repair, read-only reconciliation, window adapter, exact public
+manifest, private S94 binding, and explicit S82-absent rollback compatibility state land in this
+suite. S91 cannot register a renewal intent or report `ALL_GATES_GREEN` until AC-S91-8/9 prove the
+shared projection and current source truth. S92 narration follows
 deterministic parity. S93 renders links/states. S94 may consume only the private current verified
 bindings declared here. S95 may remove the duplicate Dashboard anticipated/live panels once the
 current guarded canonical renewal route and this adapter are reachable. Under the canonical queue,
@@ -532,47 +599,62 @@ renewal worklist or partial desired-state release.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Canonical orchestration extraction; exact date/window adapter and v2 range link;
+- **Deliverable now:** One canonical evidence-snapshot/source-generation contract shared by the S82
+  desk, lease workspace, and assistant; truthful nullable-rent and auxiliary-source states; candidate
+  and post-promotion read-only source reconciliation; exact date/window adapter and v2 range link;
   complete source/currency/blocker states; ordered/capped/minimized lease links; S82-absent rollback
-  compatibility; role/Space/privacy/cancellation/zero-effect tests can reach `ALL_GATES_GREEN` without
-  a provider write or model after the queued S82 prerequisite is green.
-- **Consumes, but does not duplicate:** S82 enriched blocker/status/link and opaque party-filter
-  projection. Its absence remains a tested partial rollback state, never the queued desired terminal.
+  compatibility; and role/Space/privacy/cancellation/zero-effect tests. This slice can reach
+  `ALL_GATES_GREEN` without a provider write or model only after desk/workspace/assistant parity and
+  reconciliation are green.
+- **Consumes, but does not duplicate:** S82's deployed enriched blocker/status/link and opaque party-
+  filter projection. S91 replaces divergent evidence acquisition with one shared snapshot; it does not
+  create a second blocker algorithm. S82 absence remains a tested partial rollback state, never the
+  queued desired terminal.
 - **Externally blocked effect:** none. Missing live sources render S88's truthful unavailable/partial
   runtime state; they do not authorize another blocker algorithm or provider write.
-- **Produces for downstream suites:** Reusable canonical renewal read service, deterministic renewal
-  intent/filter receipts, exact public source-completeness/group/item/notice envelope, verified lease/
-  table/blocker route refs, and private `AssistantRenewalActionBindingV1` inputs for S94.
+- **Produces for downstream suites:** Reusable canonical renewal evidence/read service, privacy-safe
+  reconciliation evidence, deterministic renewal intent/filter receipts, exact public source-
+  completeness/group/item/notice envelope, verified lease/table/blocker route refs, and private
+  `AssistantRenewalActionBindingV1` inputs for S94.
 
 **Verification and delivery contract.**
 
-1. Freeze the canonical desk orchestration, S78 query/order/currency/partial behavior, current
-   Dashboard abbreviated calls, actor guards, workspace links, and zero-write/provider-effect counts.
-2. Add fail-first page/adapter parity, date resolver, source matrix, S82 present/absent, blocked
+1. Freeze the desk/workspace source orchestration, S78/S82 query/order/currency/blocker behavior,
+   current Dashboard abbreviated calls, actor guards, route refs, source generations, and zero-write/
+   provider-effect counts. Record current desk/workspace differences as fail-first evidence.
+2. Add fail-first desk/workspace/assistant parity, nullable-rent, auxiliary-state, post-write
+   invalidation, source-reconciliation, date resolver, source matrix, S82 present/absent, blocked
    semantics, minimization, route, role/Space, malicious-data, and no-effect checks.
-3. Run focused renewal model/query/live-desk/adapter/route tests with injected clocks and sources;
-   prove the current desk output is unchanged and the assistant never turns an incomplete read into
-   all-clear.
-4. Run `bash scripts/verify.sh`, inspect the diff, and audit secrets/PII, provider constructors,
+3. Run focused renewal snapshot/query/live-desk/workspace/adapter/route tests with injected clocks and
+   sources. Prove all three consumers project one source generation identically, an incomplete read
+   never becomes all-clear, and the reconciliation record contains no customer or row identity.
+4. Run the authenticated read-only reconciliation in the exact candidate and after promotion; require
+   zero mismatches and retain only the bodyless aggregate evidence allowed by this suite.
+5. Run `bash scripts/verify.sh`, inspect the diff, and audit secrets/PII, provider constructors,
    RentVine/Sheet/RentCast/Gmail calls, roles/Spaces, action gates, cache/allowance behavior, and route
    compatibility before authorized delivery.
-5. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only if a future
+6. Report one implementation terminal state: `ALL_GATES_GREEN`; `BUDGET_EXHAUSTED` only if a future
    user supplies an explicit budget; or `BLOCKED` only for one exact unavailable input/authority after
    every independent fail-closed path is complete. Adapter partial/unavailable is runtime truth, not a
    custom implementation status.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current S78/S82 implementation state and freeze canonical desk orchestration/output.
-2. Materialize failing orchestration-parity, date, completeness, route, authorization, and zero-effect
-   checks.
-3. Extract the shared server read and add window queries, then the exact S82 compatibility/integration
-   path without changing the owning renewal projection.
-4. Falsify dates, source failures, partial/expired data, roles/Spaces, malicious fields, link targets,
-   and model outage; run canonical verification and update current docs to verified truth.
+1. Re-verify current S78/S82 implementation and freeze the desk, workspace, assistant-placeholder,
+   and fresh-source outputs for the same fixtures and source generations.
+2. Materialize failing three-consumer parity, nullable-rent, auxiliary-state, post-write invalidation,
+   reconciliation, date, completeness, route, authorization, and zero-effect checks.
+3. Extract the canonical evidence snapshot, migrate desk and workspace to it, and make the source-
+   generation and unavailable-state contracts green before registering an assistant intent.
+4. Add window queries and the exact S82 compatibility/integration path without duplicating the owning
+   renewal projection; then run exact-candidate and post-promotion reconciliation.
+5. Falsify dates, source failures, partial/expired data, source drift, roles/Spaces, malicious fields,
+   link targets, and model outage; run canonical verification and update current docs to verified
+   truth.
 
 **Deletion/merge recommendation.**
 
-Remove S91 when the live desk and assistant share one tested canonical source, window and blocked
-queries pass with S82's exact projection, all completeness/link/authorization gates are code-owned,
-and current facts describe only the deployed result.
+Remove S91 when the desk, workspace, and assistant share one tested canonical source generation;
+candidate and post-promotion source reconciliation are green; window and blocked queries pass with
+S82's exact projection; all completeness/link/authorization gates are code-owned; and current facts
+describe only the deployed result.

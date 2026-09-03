@@ -12,7 +12,10 @@ import {
   buildWritebackProposal,
   type WritebackProposal,
 } from "@/lib/lease-renewal/writeback-proposal";
-import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
+import {
+  writebackApprovalMatchesResolution,
+  type WritebackApprovalState,
+} from "@/lib/lease-renewal/writeback-approval";
 import type { DecisionReasonCode } from "@/lib/lease-renewal/reason-codes";
 import type {
   LeaseRenewalResolutionRecord,
@@ -20,6 +23,9 @@ import type {
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 import { buildRunPropertyKeyIndex } from "@/lib/lease-renewal/property-repository";
+import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
+import { WRITEBACK_METHOD_APPEND_ONLY } from "@/lib/lease-renewal/writeback-proposal";
+import { currentResolutionForRenewalRun } from "@/lib/lease-renewal/effective-data-check";
 
 export interface RenewalCandidateView {
   source: string;
@@ -71,6 +77,8 @@ export interface RenewalWritebackApprovalView {
   reasonRecorded?: boolean;
   /** An approval exists but its snapshot no longer matches the queued value — re-approval needed. */
   stale: boolean;
+  /** Exact queued resolution snapshot required by every approve/return request. */
+  authorizationToken?: string;
   productionAllowed?: false;
   executed?: false;
   updatedAt?: string;
@@ -83,6 +91,8 @@ export interface RenewalWritebackApprovalView {
 
 export interface RenewalFlagView {
   sourceTriggerKey: string;
+  /** Versioned digest of the exact candidates rendered on this card. */
+  candidateFingerprint: string;
   fieldKey: string;
   fieldLabel: string;
   severity: Severity;
@@ -162,6 +172,7 @@ function toWritebackApprovalView(
 ): RenewalWritebackApprovalView | null {
   const proposal = resolution?.proposed_writeback;
   if (!proposal || proposal.status !== "Queued") return null;
+  const authorizationToken = writebackAuthorizationTokenForResolution(resolution);
 
   // Full ordered decision history (newest last). Present regardless of staleness so the trail never
   // hides a revoked/superseded decision; empty until a decision is recorded.
@@ -184,11 +195,10 @@ function toWritebackApprovalView(
       reasonRecorded: false,
       productionAllowed: false,
       executed: false,
+      ...(authorizationToken ? { authorizationToken } : {}),
     });
   }
-  const stale =
-    approval.proposed_value !== proposal.value ||
-    approval.source_of_value !== proposal.source_of_value;
+  const stale = !resolution || !writebackApprovalMatchesResolution(resolution, approval);
   const state: WritebackApprovalState = stale ? "Awaiting Approval" : approval.state;
   return withActivity({
     queued: true,
@@ -198,10 +208,33 @@ function toWritebackApprovalView(
     reason: approval.reason,
     reasonRecorded: Boolean(approval.reason.trim()),
     stale,
+    ...(authorizationToken ? { authorizationToken } : {}),
     productionAllowed: false,
     executed: false,
     updatedAt: approval.updated_at,
   });
+}
+
+function queuedWritebackProposal(
+  resolution: LeaseRenewalResolutionRecord,
+): WritebackProposal | null {
+  const proposal = resolution.proposed_writeback;
+  if (proposal?.status !== "Queued") return null;
+  const proposedColumnHeader = `KB Proposed — ${resolution.field_label}`;
+  return {
+    fieldKey: resolution.field_key,
+    fieldLabel: resolution.field_label,
+    method: WRITEBACK_METHOD_APPEND_ONLY,
+    proposedColumnHeader,
+    proposedValue: proposal.value,
+    sourceSystem: proposal.source_of_value,
+    rationale: `Exact queued value from the saved human resolution for ${resolution.field_label}.`,
+    status: "Proposed",
+    requiresApproval: true,
+    autoApplyAllowed: false,
+    suggestionOnly: false,
+    valueReady: true,
+  };
 }
 
 function toFlagView(
@@ -210,13 +243,19 @@ function toFlagView(
   approvalsByKey: Map<string, LeaseRenewalWritebackApprovalRecord>,
   activityByKey: ReadonlyMap<string, LeaseRenewalWritebackApprovalActivityRecord[]>,
   propertyKeyByTrigger: ReadonlyMap<string, string | null>,
+  run: RenewalRunResult,
 ): RenewalFlagView | null {
   const queueItem = outcome.queueMapping?.queueItem;
   if (!queueItem) return null;
   const reconciliation = outcome.reconciliation;
-  const resolution = resolutionsByKey.get(queueItem.source_trigger_key);
+  const candidateResolution = resolutionsByKey.get(queueItem.source_trigger_key);
+  const resolution =
+    candidateResolution && currentResolutionForRenewalRun(candidateResolution, run)
+      ? candidateResolution
+      : undefined;
   return {
     sourceTriggerKey: queueItem.source_trigger_key,
+    candidateFingerprint: outcome.candidateFingerprint,
     fieldKey: outcome.fieldKey,
     fieldLabel: outcome.fieldLabel,
     severity: reconciliation.severity,
@@ -241,7 +280,9 @@ function toFlagView(
       locationRef: candidate.location_ref,
     })),
     resolution: toResolutionView(resolution),
-    writeback: buildWritebackProposal(reconciliation, { fieldLabel: outcome.fieldLabel }),
+    writeback: resolution
+      ? queuedWritebackProposal(resolution)
+      : buildWritebackProposal(reconciliation, { fieldLabel: outcome.fieldLabel }),
     writebackApproval: toWritebackApprovalView(
       resolution,
       approvalsByKey.get(queueItem.source_trigger_key),
@@ -284,6 +325,7 @@ export function buildRenewalRunView(
           approvalsByKey,
           activityByKey,
           propertyKeyByTrigger,
+          run,
         ),
       )
       .filter((flag): flag is RenewalFlagView => flag !== null);
@@ -294,7 +336,7 @@ export function buildRenewalRunView(
   const resolvedCount = run.flags.filter((outcome) => {
     const key = outcome.queueMapping?.queueItem.source_trigger_key;
     const record = key ? resolutionsByKey.get(key) : undefined;
-    return record !== undefined && record.status !== "Open";
+    return Boolean(record && currentResolutionForRenewalRun(record, run));
   }).length;
 
   return {

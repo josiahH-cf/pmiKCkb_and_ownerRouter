@@ -35,6 +35,7 @@ import {
 } from "@/lib/lease-renewal/reconciliation";
 import type { FieldContext, Severity } from "@/lib/lease-renewal/severity";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
+import { renewalResolutionCandidateFingerprint } from "@/lib/lease-renewal/resolution-fingerprint";
 import { createHash } from "node:crypto";
 
 /** One field value carried by a non-sheet source (Rentvine / building level / Google Form). */
@@ -120,6 +121,8 @@ export interface ReconciledFieldOutcome {
   fieldKey: string;
   fieldLabel: string;
   reconciliation: FieldReconciliation;
+  /** Exact versioned source-fact digest; persisted resolutions must match it to remain current. */
+  candidateFingerprint: string;
   /** Non-null exactly when the reconciliation raised a flag. */
   queueMapping: ReconciliationQueueMapping | null;
   /**
@@ -128,6 +131,8 @@ export interface ReconciledFieldOutcome {
    * board/queue.
    */
   propertyKey?: string;
+  /** Exact non-Sheet join ids accepted for this row after one-to-one association. */
+  matchedCandidateJoinIds?: readonly string[];
 }
 
 export interface RenewalRunResult {
@@ -218,7 +223,10 @@ function reconciliationEvidenceLink(runId: string, fieldKey: string): string {
 }
 
 /** PII-free stable token for one sheet record. Exact provider id wins; row coordinate is fallback. */
-function decisionRecordKey(recordId: string | undefined, recordRef: RecordRef): string {
+export function renewalDecisionRecordKey(
+  recordId: string | undefined,
+  recordRef: RecordRef,
+): string {
   return createHash("sha256")
     .update(
       recordId
@@ -238,9 +246,130 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
   const fieldSpecs = input.fieldSpecs ?? DEFAULT_FIELD_SPECS;
   const { records, manifest, excludedTabs } = ingestTables(tables, input.tableJoinIds);
 
+  type IngestedRecord = (typeof records)[number];
+  const recordIdFor = (record: IngestedRecord): string | undefined =>
+    record.joinId ?? input.recordJoinIds?.[record.sourceRowIndex];
+
+  type EntityJoinContract = Pick<
+    ReconcilableFieldSpec,
+    "tab" | "joinKind" | "joinFieldKey"
+  >;
+  const entityContractKey = (contract: EntityJoinContract): string =>
+    JSON.stringify([contract.tab ?? null, contract.joinKind, contract.joinFieldKey]);
+
+  // Associate entities before projecting any individual field. A same-name RentVine lease still
+  // participates in ambiguity detection when that lease lacks the field currently being
+  // reconciled; otherwise the one lease that happens to carry a rent/date could be accepted as
+  // falsely unique. Exact ids win. Duplicate exact ids and fuzzy one-to-many/many-to-one relations
+  // fail closed. Independent source systems may each contribute one unique entity.
+  const buildEntityAssociations = (contract: EntityJoinContract) => {
+    const recordIndexes = records.flatMap((record, index) =>
+      (contract.tab === undefined || contract.tab === record.tab) &&
+      record.fields[contract.joinFieldKey] !== undefined
+        ? [index]
+        : [],
+    );
+    const candidateIndexesBySource = new Map<string, number[]>();
+    nonSheetCandidates.forEach((candidate, index) => {
+      if (candidate.joinKind !== contract.joinKind) return;
+      candidateIndexesBySource.set(candidate.source, [
+        ...(candidateIndexesBySource.get(candidate.source) ?? []),
+        index,
+      ]);
+    });
+    const recordIndexesById = new Map<string, number[]>();
+    for (const recordIndex of recordIndexes) {
+      const id = recordIdFor(records[recordIndex]);
+      if (id)
+        recordIndexesById.set(id, [...(recordIndexesById.get(id) ?? []), recordIndex]);
+    }
+
+    const accepted = new Map<number, number[]>();
+    for (const candidateIndexes of candidateIndexesBySource.values()) {
+      const candidateIndexesById = new Map<string, number[]>();
+      for (const candidateIndex of candidateIndexes) {
+        const id = nonSheetCandidates[candidateIndex].joinId;
+        if (id)
+          candidateIndexesById.set(id, [
+            ...(candidateIndexesById.get(id) ?? []),
+            candidateIndex,
+          ]);
+      }
+
+      const recordsWithExactEvidence = new Set<number>();
+      const candidatesWithExactEvidence = new Set<number>();
+      for (const [id, matchingRecords] of recordIndexesById) {
+        const matchingCandidates = candidateIndexesById.get(id) ?? [];
+        if (matchingCandidates.length === 0) continue;
+        matchingRecords.forEach((index) => recordsWithExactEvidence.add(index));
+        matchingCandidates.forEach((index) => candidatesWithExactEvidence.add(index));
+        if (matchingRecords.length === 1 && matchingCandidates.length === 1) {
+          accepted.set(matchingRecords[0], [
+            ...(accepted.get(matchingRecords[0]) ?? []),
+            matchingCandidates[0],
+          ]);
+        }
+      }
+
+      const fuzzyCandidatesByRecord = new Map<number, number[]>();
+      const fuzzyRecordsByCandidate = new Map<number, number[]>();
+      for (const recordIndex of recordIndexes) {
+        if (recordsWithExactEvidence.has(recordIndex)) continue;
+        const record = records[recordIndex];
+        const recordId = recordIdFor(record);
+        const joinRaw = record.fields[contract.joinFieldKey]?.raw ?? "";
+        if (joinRaw.trim() === "") continue;
+        for (const candidateIndex of candidateIndexes) {
+          if (candidatesWithExactEvidence.has(candidateIndex)) continue;
+          const candidate = nonSheetCandidates[candidateIndex];
+          if (recordId !== undefined && candidate.joinId !== undefined) continue;
+          if (
+            proposeJoin(joinRaw, candidate.joinValue, contract.joinKind).status !==
+            "match"
+          ) {
+            continue;
+          }
+          fuzzyCandidatesByRecord.set(recordIndex, [
+            ...(fuzzyCandidatesByRecord.get(recordIndex) ?? []),
+            candidateIndex,
+          ]);
+          fuzzyRecordsByCandidate.set(candidateIndex, [
+            ...(fuzzyRecordsByCandidate.get(candidateIndex) ?? []),
+            recordIndex,
+          ]);
+        }
+      }
+      for (const recordIndex of recordIndexes) {
+        if (recordsWithExactEvidence.has(recordIndex)) continue;
+        const candidates = fuzzyCandidatesByRecord.get(recordIndex) ?? [];
+        if (
+          candidates.length === 1 &&
+          (fuzzyRecordsByCandidate.get(candidates[0]) ?? []).length === 1
+        ) {
+          accepted.set(recordIndex, [
+            ...(accepted.get(recordIndex) ?? []),
+            candidates[0],
+          ]);
+        }
+      }
+    }
+    return accepted;
+  };
+
+  const associationsByEntityContract = new Map<
+    string,
+    ReturnType<typeof buildEntityAssociations>
+  >();
+  for (const spec of fieldSpecs) {
+    const key = entityContractKey(spec);
+    if (!associationsByEntityContract.has(key)) {
+      associationsByEntityContract.set(key, buildEntityAssociations(spec));
+    }
+  }
+
   const outcomes: ReconciledFieldOutcome[] = [];
 
-  for (const record of records) {
+  for (const [recordIndex, record] of records.entries()) {
     for (const spec of fieldSpecs) {
       if (spec.tab !== undefined && spec.tab !== record.tab) continue;
       const sheetField = record.fields[spec.fieldKey];
@@ -260,35 +389,28 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
 
       // Prefer the id carried on the record (from tableJoinIds, survives ingest's re-stitch); fall
       // back to the sourceRowIndex map.
-      const recordId = record.joinId ?? input.recordJoinIds?.[record.sourceRowIndex];
+      const recordId = recordIdFor(record);
       const joinRaw = record.fields[spec.joinFieldKey]?.raw ?? "";
       // Canonical property key for ADDRESS-joined fields only (name-joined lifecycle fields carry no
       // address, so no property). In-boundary only; never projected onto the value-free board/queue.
       const propertyKey =
         spec.joinKind === "address" ? deriveAddressKey(joinRaw).key : undefined;
       const matched: ReconCandidate[] = [];
-      for (const candidate of nonSheetCandidates) {
+      const matchedSources: NonSheetCandidate[] = [];
+      const entityAssociations = associationsByEntityContract.get(
+        entityContractKey(spec),
+      );
+      for (const candidateIndex of entityAssociations?.get(recordIndex) ?? []) {
+        const candidate = nonSheetCandidates[candidateIndex];
         const candidateField = candidate.fields[spec.fieldKey];
-        if (candidateField === undefined) continue;
-        // A joined source that carries no value for this field contributes nothing — don't count it
-        // as a match, so the §2.1 worklist suppression and §2.3 downgrade key on values actually
-        // contributed (reconcileField drops empty candidates anyway). Mirrors reconciliation's hasValue.
-        if (candidateField.value === null || String(candidateField.value).trim() === "") {
+        if (
+          candidateField === undefined ||
+          candidateField.value === null ||
+          String(candidateField.value).trim() === ""
+        ) {
           continue;
         }
-        // An exact RentVine-id match is definitive (bypasses the fuzzy join). Otherwise fall back to
-        // the fuzzy name/address join, which never auto-merges: only an above-threshold "match"
-        // becomes a candidate; "ambiguous"/"no_match" leave the record single-source / unmerged.
-        const idMatch =
-          recordId !== undefined &&
-          candidate.joinId !== undefined &&
-          candidate.joinId === recordId;
-        const fuzzyMatch =
-          !idMatch &&
-          candidate.joinKind === spec.joinKind &&
-          joinRaw.trim() !== "" &&
-          proposeJoin(joinRaw, candidate.joinValue, spec.joinKind).status === "match";
-        if (!idMatch && !fuzzyMatch) continue;
+        matchedSources.push(candidate);
         matched.push({
           source: candidate.source,
           source_system: candidate.source_system,
@@ -347,7 +469,7 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
       const queueMapping = mapReconciliationToQueueItem(reconciliation, {
         runId,
         fieldLabel,
-        recordKey: decisionRecordKey(recordId, recordRef),
+        recordKey: renewalDecisionRecordKey(recordId, recordRef),
       });
 
       outcomes.push({
@@ -355,8 +477,30 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         fieldKey: spec.fieldKey,
         fieldLabel,
         reconciliation,
+        candidateFingerprint: renewalResolutionCandidateFingerprint(
+          spec.fieldKey,
+          reconciliation.candidates,
+          {
+            recordIdentity: recordId
+              ? `join:${recordId}`
+              : `row:${recordRef.tabNumber ?? "x"}:${recordRef.sourceRowIndex}`,
+            sourceIdentities: matchedSources.map((candidate) => ({
+              source: candidate.source,
+              joinKind: candidate.joinKind,
+              joinId: candidate.joinId ?? null,
+              joinValue: candidate.joinValue,
+            })),
+          },
+        ),
         queueMapping,
         propertyKey,
+        ...(matchedSources.some((candidate) => candidate.joinId)
+          ? {
+              matchedCandidateJoinIds: matchedSources.flatMap((candidate) =>
+                candidate.joinId ? [candidate.joinId] : [],
+              ),
+            }
+          : {}),
       });
     }
   }

@@ -28,6 +28,8 @@ export const RETIRED_BROAD_WRITEBACK_KEY = "rentvine.lease.renewal_writeback";
 
 export const RENEWAL_WRITEBACK_ACCOUNT = "pmikcmetro";
 export const RENEWAL_WRITEBACK_CONFIRMATION_TTL_MS = 10 * 60 * 1_000;
+export const RECURRING_CHARGE_CREATE_BASELINE_VERSION =
+  "s97-recurring-charge-create-baseline/v1";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const US_DATE_RE = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/;
@@ -103,6 +105,21 @@ export interface RecurringChargeProjection {
   readonly recurringStatusID: 1 | 2 | 3;
 }
 
+export interface RecurringChargeCreateBaselineCandidate {
+  readonly chargeId: string;
+  readonly projectionHash: string;
+}
+
+/**
+ * Exact proposal-time set of existing charges that already match one requested create. This
+ * baseline establishes only the before-state and later drift; because RentVine supplies no
+ * provider-owned attempt identity, no newly observed match establishes create causality.
+ */
+export interface RecurringChargeCreateBaseline {
+  readonly version: typeof RECURRING_CHARGE_CREATE_BASELINE_VERSION;
+  readonly candidates: readonly RecurringChargeCreateBaselineCandidate[];
+}
+
 const CHARGE_REQUIRED_STRING_FIELDS = [
   "leaseRecurringChargeID",
   "leaseID",
@@ -160,6 +177,69 @@ export function projectRecurringCharge(raw: unknown): RecurringChargeProjection 
   return projection as unknown as RecurringChargeProjection;
 }
 
+export function recurringChargeProjectionHash(
+  projection: RecurringChargeProjection,
+): string {
+  return hashExecutionPreview({ version: "s97-charge-projection/v1", projection });
+}
+
+function normalizedRecurringChargeDate(value: string | null): string | null {
+  if (value === null) return null;
+  const us = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  return us ? `${us[3]}-${us[1]}-${us[2]}` : value.slice(0, 10);
+}
+
+/** Exact submitted-field match shared by proposal baseline capture and execution reconciliation. */
+export function recurringChargeMatchesCreate(
+  projection: RecurringChargeProjection,
+  create: RecurringChargeCreateEffectInput["create"],
+): boolean {
+  return (
+    projection.accountID === create.accountID &&
+    projection.amount === create.amount &&
+    projection.description === create.description &&
+    projection.dayDue === create.dayDue &&
+    projection.frequency === create.frequency &&
+    normalizedRecurringChargeDate(projection.startDate) ===
+      normalizedRecurringChargeDate(create.startDate) &&
+    normalizedRecurringChargeDate(projection.endDate) ===
+      normalizedRecurringChargeDate(create.endDate ?? null)
+  );
+}
+
+function compareCanonicalIntegerIds(left: string, right: string): number {
+  return left.length - right.length || left.localeCompare(right);
+}
+
+/** Build the immutable matching-candidate baseline from canonical detail projections. */
+export function buildRecurringChargeCreateBaseline(input: {
+  leaseId: string;
+  create: RecurringChargeCreateEffectInput["create"];
+  projections: readonly RecurringChargeProjection[];
+}): RecurringChargeCreateBaseline {
+  const candidates = input.projections
+    .filter((projection) => {
+      if (projection.leaseID !== input.leaseId) {
+        fail("identity_mismatch", "A recurring-charge baseline crossed lease identity.");
+      }
+      return recurringChargeMatchesCreate(projection, input.create);
+    })
+    .map((projection) => ({
+      chargeId: projection.leaseRecurringChargeID,
+      projectionHash: recurringChargeProjectionHash(projection),
+    }))
+    .sort((left, right) => compareCanonicalIntegerIds(left.chargeId, right.chargeId));
+  if (
+    new Set(candidates.map((candidate) => candidate.chargeId)).size !== candidates.length
+  ) {
+    fail(
+      "provider_shape",
+      "A recurring-charge baseline contains duplicate provider ids.",
+    );
+  }
+  return { version: RECURRING_CHARGE_CREATE_BASELINE_VERSION, candidates };
+}
+
 /** Exact lease date state consumed and preserved by the dates effect. */
 export interface LeaseDateState {
   readonly startDate: string;
@@ -209,6 +289,8 @@ export interface RecurringChargeCreateEffectInput {
     readonly startDate: string;
     readonly endDate?: string;
   };
+  /** Required for new proposals; omitted only by durable legacy records, which fail closed. */
+  readonly baseline?: RecurringChargeCreateBaseline;
 }
 
 export type RenewalWritebackEffectInput =
@@ -300,13 +382,22 @@ function validateDatesEffect(
   }
 }
 
-function validateChargeUpdateEffect(input: RecurringChargeUpdateEffectInput): void {
+function validateChargeUpdateEffect(
+  input: RecurringChargeUpdateEffectInput,
+  leaseId: string,
+): void {
   assertIntegerId(input.chargeId, "Recurring-charge id");
   const before = projectRecurringCharge(input.before);
   if (before.leaseRecurringChargeID !== input.chargeId) {
     fail(
       "identity_mismatch",
       "The charge before-state does not belong to the targeted charge id.",
+    );
+  }
+  if (before.leaseID !== leaseId) {
+    fail(
+      "identity_mismatch",
+      "The charge before-state does not belong to the proposal lease.",
     );
   }
   const changes = input.changes;
@@ -393,6 +484,30 @@ function validateChargeCreateEffect(input: RecurringChargeCreateEffectInput): vo
   assertUsDate(create.startDate, "Recurring-charge startDate");
   if (create.endDate !== undefined)
     assertUsDate(create.endDate, "Recurring-charge endDate");
+  const baseline = input.baseline;
+  if (!baseline || baseline.version !== RECURRING_CHARGE_CREATE_BASELINE_VERSION) {
+    fail(
+      "baseline_required",
+      "A recurring-charge create requires an exact matching-candidate baseline.",
+    );
+  }
+  let priorId: string | null = null;
+  for (const candidate of baseline.candidates) {
+    assertIntegerId(candidate.chargeId, "Baseline recurring-charge id");
+    if (!/^[a-f0-9]{64}$/.test(candidate.projectionHash)) {
+      fail("baseline_invalid", "A recurring-charge baseline hash is invalid.");
+    }
+    if (
+      priorId !== null &&
+      compareCanonicalIntegerIds(priorId, candidate.chargeId) >= 0
+    ) {
+      fail(
+        "baseline_invalid",
+        "Recurring-charge baseline candidates must be unique and canonically ordered.",
+      );
+    }
+    priorId = candidate.chargeId;
+  }
 }
 
 function actionKeyFor(effect: RenewalWritebackEffectInput): RenewalWritebackActionKey {
@@ -465,7 +580,7 @@ export function buildRenewalWritebackProposal(
         validateDatesEffect(effect, input.leaseState);
         break;
       case "recurring_charge_update":
-        validateChargeUpdateEffect(effect);
+        validateChargeUpdateEffect(effect, input.leaseId);
         break;
       case "recurring_charge_create":
         validateChargeCreateEffect(effect);
@@ -482,6 +597,18 @@ export function buildRenewalWritebackProposal(
     .map((effect) => effect.chargeId);
   if (new Set(chargeIds).size !== chargeIds.length) {
     fail("duplicate_effect", "Each existing charge may be updated at most once.");
+  }
+  const createKeys = input.effects
+    .filter(
+      (effect): effect is RecurringChargeCreateEffectInput =>
+        effect.kind === "recurring_charge_create",
+    )
+    .map((effect) => canonicalJson(effect.create));
+  if (new Set(createKeys).size !== createKeys.length) {
+    fail(
+      "duplicate_effect",
+      "An exact recurring charge may be created at most once per proposal.",
+    );
   }
 
   const ordered = [...input.effects].sort(
@@ -567,6 +694,14 @@ export function assertRenewalWritebackConfirmation(input: {
 
 /** One opaque durable attempt identity per exact effect (duplicate confirmation maps back to it). */
 export function renewalWritebackExecutionId(
+  proposal: RenewalWritebackProposal,
+  effect: ValidatedRenewalWritebackEffect,
+): string {
+  return `s97:${proposal.leaseId}:${proposal.previewHash}:${effect.effectHash}`;
+}
+
+/** Durable pre-generation identity retained only for contextHash-checked compatibility reads. */
+export function legacyRenewalWritebackExecutionId(
   proposal: RenewalWritebackProposal,
   effect: ValidatedRenewalWritebackEffect,
 ): string {

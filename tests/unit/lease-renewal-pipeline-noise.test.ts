@@ -96,11 +96,12 @@ describe("§2.3 a current_rent gap explained by RBP + insurance is not a real co
 });
 
 describe("§2.3 downgrade is directional and considers every joined amount", () => {
-  it("keeps the flag when a SECOND joined amount is a real (non-add-on) difference", () => {
+  it("fails closed when two same-source records have only the same fuzzy name", () => {
     const tables = [
       [HEADER, renewalsRow({ [TENANT]: "Two Cand", [CURRENT_RENT]: "$1,289.95" })],
     ];
-    // Both join the row by name; one is add-on-explained (1250), the other is a real difference (1500).
+    // Both could join the row by name, so neither may be treated as the authoritative lease. An
+    // explicit id is required before either value can raise or suppress a reconciliation flag.
     const mk = (rent: number): NonSheetCandidate => ({
       source: "rentvine",
       source_system: "Rentvine (read-authoritative)",
@@ -113,7 +114,12 @@ describe("§2.3 downgrade is directional and considers every joined amount", () 
       tables,
       nonSheetCandidates: [mk(1250), mk(1500)],
     });
-    expect(flagKeys(run)).toContain("current_rent");
+    expect(flagKeys(run)).not.toContain("current_rent");
+    const rentOutcome = run.outcomes.find(
+      (outcome) => outcome.fieldKey === "current_rent",
+    );
+    expect(rentOutcome?.reconciliation.candidates).toHaveLength(1);
+    expect(rentOutcome?.reconciliation.candidates[0]?.source).not.toBe("rentvine");
   });
 
   it("keeps the flag when the sheet is LOWER than the base by an add-on sum (not add-on folding)", () => {

@@ -45,6 +45,7 @@ function flagView(overrides: Partial<RenewalFlagView>): RenewalFlagView {
     writeback: null,
     writebackApproval: null,
     ...overrides,
+    candidateFingerprint: overrides.candidateFingerprint ?? `rcf1_${"a".repeat(64)}`,
   };
 }
 

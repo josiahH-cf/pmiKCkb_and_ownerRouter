@@ -18,15 +18,17 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
-  getLeaseRenewalResolution,
+  LEASE_RENEWAL_COLLECTIONS,
   resolutionDocId,
 } from "@/lib/firestore/lease-renewal-resolutions";
 import type {
+  LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalActivityRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 import {
   planWritebackApprovalDecision,
+  writebackApprovalMatchesResolution,
   WRITEBACK_AWAITING_APPROVAL,
   type WritebackApprovalState,
 } from "@/lib/lease-renewal/writeback-approval";
@@ -34,6 +36,7 @@ import {
   DECISION_REASON_CODES,
   DECISION_REASON_CODE_LABELS,
 } from "@/lib/lease-renewal/reason-codes";
+import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 
 export const LEASE_RENEWAL_WRITEBACK_COLLECTIONS = {
   approvals: "lease_renewal_writeback_approvals",
@@ -44,6 +47,7 @@ export const DecideWritebackApprovalInputSchema = z
   .object({
     run_id: z.string().min(1),
     source_trigger_key: z.string().min(1),
+    authorization_token: z.string().regex(/^rwat1_[a-f0-9]{64}$/),
     decision: z.enum(["approve", "return"]),
     // A one-tap approval may reuse the resolution's reason code; returns still require free text.
     reason: z.string().trim().min(1, "A plain-English reason is required.").optional(),
@@ -67,7 +71,15 @@ export type DecideWritebackApprovalInput = z.input<
 // upper bound only guards against a runaway request — a run's queued proposals stay far below it.
 export const DecideWritebackApprovalsBulkInputSchema = z.object({
   run_id: z.string().min(1),
-  source_trigger_keys: z.array(z.string().min(1)).min(1).max(200),
+  proposals: z
+    .array(
+      z.object({
+        source_trigger_key: z.string().min(1),
+        authorization_token: z.string().regex(/^rwat1_[a-f0-9]{64}$/),
+      }),
+    )
+    .min(1)
+    .max(200),
   decision: z.enum(["approve", "return"]),
   reason: z.string().trim().min(1, "A plain-English reason is required."),
   reason_code: z.enum(DECISION_REASON_CODES).optional(),
@@ -108,55 +120,71 @@ export async function decideWritebackApproval(
   assertCan(actor, "manageAdmin");
   const parsed = DecideWritebackApprovalInputSchema.parse(input);
 
-  const resolution = await getLeaseRenewalResolution(
-    actor,
-    parsed.source_trigger_key,
-    db,
-  );
-  if (!resolution) {
-    throw new EditableLayerError(
-      "No resolution exists for this flag. Resolve it before approving a write-back.",
-      404,
-    );
-  }
-  if (resolution.run_id !== parsed.run_id) {
-    throw new EditableLayerError("This proposal belongs to a different run.", 400);
-  }
-
-  const proposal = resolution.proposed_writeback;
-  if (resolution.status !== "Resolved" || !proposal || proposal.status !== "Queued") {
-    throw new EditableLayerError(
-      "There is no queued write-back proposal to approve for this flag.",
-      400,
-    );
-  }
-
-  // The code-only relaxation is deliberately narrower than the schema can express: it is valid
-  // only as the second tap after a Low/Medium accept-suggested resolution. The resolution must carry
-  // the same fixed code and its exact stamped label. Every High/Blocked or manual-resolution
-  // approval still requires fresh free text, even if the caller supplies an arbitrary code.
-  const codeOnlyFollowOn =
-    !parsed.reason &&
-    parsed.decision === "approve" &&
-    (resolution.severity === "Low" || resolution.severity === "Medium") &&
-    resolution.resolution_kind === "pick_source" &&
-    parsed.reason_code === "accepted_suggestion" &&
-    resolution.reason_code === parsed.reason_code &&
-    resolution.reason === DECISION_REASON_CODE_LABELS[parsed.reason_code];
-  if (!parsed.reason && !codeOnlyFollowOn) {
-    throw new EditableLayerError("A plain-English reason is required.", 400);
-  }
-  const reason = parsed.reason ?? DECISION_REASON_CODE_LABELS[parsed.reason_code!];
-
   const docId = resolutionDocId(parsed.source_trigger_key);
 
-  // Read the existing approval, validate the transition, and write — all inside ONE transaction, so a
-  // concurrent second Admin decision cannot both read "Awaiting Approval" and bypass the
-  // double-approve / re-return guard. An illegal transition throws inside the transaction and aborts
-  // it, so no duplicate record or Activity row lands.
+  // Read the exact resolution and existing approval in the same transaction that records the
+  // decision. The client token binds what the Admin actually reviewed, and the transaction prevents
+  // a concurrent re-resolution from swapping the proposal between validation and persistence.
   await db.runTransaction(async (transaction) => {
     const ref = approvalRef(db, docId);
-    const snapshot = await transaction.get(ref);
+    const resolutionRef = db.collection(LEASE_RENEWAL_COLLECTIONS.resolutions).doc(docId);
+    const [resolutionSnapshot, snapshot] = await Promise.all([
+      transaction.get(resolutionRef),
+      transaction.get(ref),
+    ]);
+    if (!resolutionSnapshot.exists) {
+      throw new EditableLayerError(
+        "No resolution exists for this flag. Resolve it before approving a write-back.",
+        404,
+      );
+    }
+    const resolution = readRecord<LeaseRenewalResolutionRecord>(
+      resolutionSnapshot.id,
+      resolutionSnapshot.data()!,
+    );
+    if (resolution.run_id !== parsed.run_id) {
+      throw new EditableLayerError("This proposal belongs to a different run.", 400);
+    }
+    const proposal = resolution.proposed_writeback;
+    if (resolution.status !== "Resolved" || !proposal || proposal.status !== "Queued") {
+      throw new EditableLayerError(
+        "There is no queued write-back proposal to approve for this flag.",
+        400,
+      );
+    }
+    if (!resolution.candidate_fingerprint?.trim() || !resolution.updated_at?.trim()) {
+      throw new EditableLayerError(
+        "The resolution predates current source binding. Review the current flag again before approving.",
+        409,
+      );
+    }
+    const currentAuthorizationToken =
+      writebackAuthorizationTokenForResolution(resolution);
+    if (
+      !currentAuthorizationToken ||
+      parsed.authorization_token !== currentAuthorizationToken
+    ) {
+      throw new EditableLayerError(
+        "The queued proposal changed after it was displayed. Review the current value and source before deciding.",
+        409,
+      );
+    }
+
+    // The code-only relaxation is deliberately narrower than the schema can express: it is valid
+    // only as the second tap after a Low/Medium accept-suggested resolution.
+    const codeOnlyFollowOn =
+      !parsed.reason &&
+      parsed.decision === "approve" &&
+      (resolution.severity === "Low" || resolution.severity === "Medium") &&
+      resolution.resolution_kind === "pick_source" &&
+      parsed.reason_code === "accepted_suggestion" &&
+      resolution.reason_code === parsed.reason_code &&
+      resolution.reason === DECISION_REASON_CODE_LABELS[parsed.reason_code];
+    if (!parsed.reason && !codeOnlyFollowOn) {
+      throw new EditableLayerError("A plain-English reason is required.", 400);
+    }
+    const reason = parsed.reason ?? DECISION_REASON_CODE_LABELS[parsed.reason_code!];
+
     const existing = snapshot.exists
       ? (snapshot.data() as LeaseRenewalWritebackApprovalRecord | undefined)
       : undefined;
@@ -164,8 +192,7 @@ export async function decideWritebackApproval(
     // A re-resolution that changed the queued value makes a prior approval stale: ignore it (allow a
     // fresh decision) rather than silently authorizing a different value.
     const stale = existing
-      ? existing.proposed_value !== proposal.value ||
-        existing.source_of_value !== proposal.source_of_value
+      ? !writebackApprovalMatchesResolution(resolution, existing)
       : false;
     const priorState: WritebackApprovalState | undefined =
       existing && !stale ? existing.state : undefined;
@@ -186,6 +213,8 @@ export async function decideWritebackApproval(
         property_key: resolution.property_key,
         field_key: resolution.field_key,
         field_label: resolution.field_label,
+        candidate_fingerprint: resolution.candidate_fingerprint,
+        resolution_updated_at: resolution.updated_at,
         severity: resolution.severity,
         state: plan.state,
         proposed_value: proposal.value,
@@ -208,6 +237,8 @@ export async function decideWritebackApproval(
         source_trigger_key: parsed.source_trigger_key,
         run_id: resolution.run_id,
         property_key: resolution.property_key,
+        candidate_fingerprint: resolution.candidate_fingerprint,
+        resolution_updated_at: resolution.updated_at,
         actor_uid: actor.uid,
         action: parsed.decision,
         previous_state: priorState,
@@ -245,16 +276,22 @@ export async function decideWritebackApprovalsBulk(
   const parsed = DecideWritebackApprovalsBulkInputSchema.parse(input);
 
   // Dedupe while preserving order so a doubled key cannot record two Activity rows for one decision.
-  const keys = [...new Set(parsed.source_trigger_keys)];
+  const proposals = [
+    ...new Map(
+      parsed.proposals.map((proposal) => [proposal.source_trigger_key, proposal]),
+    ).values(),
+  ];
 
   const results: WritebackApprovalBulkItemResult[] = [];
-  for (const key of keys) {
+  for (const proposal of proposals) {
+    const key = proposal.source_trigger_key;
     try {
       const approval = await decideWritebackApproval(
         actor,
         {
           run_id: parsed.run_id,
           source_trigger_key: key,
+          authorization_token: proposal.authorization_token,
           decision: parsed.decision,
           reason: parsed.reason,
           reason_code: parsed.reason_code,

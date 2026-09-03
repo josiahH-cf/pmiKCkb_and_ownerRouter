@@ -64,9 +64,16 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 
 ## Active feature contracts
 
-Use `docs/feature-suites/README.md`. It is the sole queue for the S36 and S82-S100 initiative. S96,
-S85, S86, S83, S84, S82, and S97 are complete and deployed; S98 is the active suite. Completed suite narratives
-are removed once current code, tests, and facts own their contract; Git history retains provenance.
+Use `docs/feature-suites/README.md`. It is the sole queue for the current initiative. S96, S85, S86,
+S83, S84, and S99 are complete and deployed. S82, S97, and S98 each have a deployed baseline plus a
+bounded integrity/conformance remediation that is active and unreleased. S98's correction preserves
+safe normal append while refusing fixed-row update/delete/restore operations unsupported by a stable
+provider seam. The expanded S51/S54 production-assurance gate owns their shared release. S100 chat
+sync is deployed; its resident-draft
+action remains blocked on the exact live input named in `docs/facts.md`. S36 is queued behind
+complete S100, and S87-S95 plus S101 remain specification-only desired behavior. Completed suite
+narratives are removed once current code, tests, and facts own their contract; Git history retains
+provenance.
 
 ## Current evidence and templates
 

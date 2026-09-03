@@ -58,26 +58,43 @@ export function rentvineJoinIdFromCell(cell: string): string | null {
   return rentvineRefId(parseRentvineRef(url));
 }
 
+export interface RentvineRowReference {
+  joinId: string;
+  sourceUrl: string;
+}
+
 /**
- * The first RentVine join id found on a sheet row. Prefers an explicit hyperlink url (from the
- * FORMULA read's link layer), then scans the displayed cell text for a bare RentVine url. Null when
- * the row carries no RentVine link.
+ * Resolve the row's complete RentVine reference layer. A formula hyperlink owns its cell; the
+ * evaluated display text is inspected only when no formula URL exists. More than one valid
+ * reference is an ambiguous entity/destination even when the URLs repeat, so the whole Sheet read
+ * fails closed instead of silently selecting the first or falling back to a fuzzy name join.
  */
+export function rentvineReferenceForRow(
+  cells: readonly string[],
+  linkUrls: readonly (string | null)[],
+): RentvineRowReference | null {
+  const references: RentvineRowReference[] = [];
+  const width = Math.max(cells.length, linkUrls.length);
+  for (let index = 0; index < width; index += 1) {
+    const linkedUrl = linkUrls[index]?.trim() ?? "";
+    const sourceUrl =
+      linkedUrl || hyperlinkUrl(cells[index] ?? "") || (cells[index] ?? "").trim();
+    if (!sourceUrl) continue;
+    const joinId = rentvineRefId(parseRentvineRef(sourceUrl));
+    if (joinId) references.push({ joinId, sourceUrl });
+  }
+  if (references.length > 1) {
+    throw new Error("A Sheet data row has multiple RentVine lease destinations.");
+  }
+  return references[0] ?? null;
+}
+
+/** The row's sole exact RentVine join id; zero returns null and multiple references throw. */
 export function rentvineJoinIdForRow(
   cells: readonly string[],
   linkUrls: readonly (string | null)[],
 ): string | null {
-  for (const url of linkUrls) {
-    if (url) {
-      const id = rentvineRefId(parseRentvineRef(url));
-      if (id) return id;
-    }
-  }
-  for (const cell of cells) {
-    const id = rentvineJoinIdFromCell(cell);
-    if (id) return id;
-  }
-  return null;
+  return rentvineReferenceForRow(cells, linkUrls)?.joinId ?? null;
 }
 
 /** Per-row RentVine join ids for a display grid + its parallel hyperlink-url grid. */
@@ -86,4 +103,12 @@ export function rentvineJoinIdsForGrid(
   links: readonly (readonly (string | null)[])[],
 ): (string | null)[] {
   return grid.map((row, index) => rentvineJoinIdForRow(row, links[index] ?? []));
+}
+
+/** Per-row exact references used to project the join id and destination from one decision. */
+export function rentvineReferencesForGrid(
+  grid: readonly (readonly string[])[],
+  links: readonly (readonly (string | null)[])[],
+): (RentvineRowReference | null)[] {
+  return grid.map((row, index) => rentvineReferenceForRow(row, links[index] ?? []));
 }

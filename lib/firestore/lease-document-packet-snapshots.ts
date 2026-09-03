@@ -156,6 +156,112 @@ export async function getCurrentPacketSnapshot(
   return head ? getPacketSnapshot(actor, head.snapshotId, db) : null;
 }
 
+/**
+ * Read the current renewal packet for a bounded desk cohort without an N+1 query pattern.
+ *
+ * The renewal transaction id is the canonical lease id in the current product contract. Missing
+ * heads are represented by an explicit `null`; an exception means packet truth is unavailable and
+ * callers must not reuse historical packet evidence.
+ */
+export async function listCurrentRenewalPacketSnapshots(
+  actor: AuthenticatedUser,
+  leaseIds: readonly string[],
+  db: Firestore = getAdminFirestore(),
+): Promise<Map<string, RenewalPacketSnapshot | null>> {
+  assertCan(actor, "read");
+  const ids = [...new Set(leaseIds.map((value) => value.trim()).filter(Boolean))];
+  if (ids.length > 500) {
+    throw new EditableLayerError(
+      "The packet snapshot read is limited to 500 leases per request.",
+      400,
+    );
+  }
+  const result = new Map<string, RenewalPacketSnapshot | null>(
+    ids.map((leaseId) => [leaseId, null]),
+  );
+  if (ids.length === 0) return result;
+
+  const headDocs = await db.getAll(
+    ...ids.map((leaseId) =>
+      db
+        .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.heads)
+        .doc(packetHeadId(leaseId, leaseId)),
+    ),
+  );
+  const heads = headDocs.flatMap((doc, index) => {
+    if (!doc.exists) return [];
+    const head = normalizeFirestoreValue(doc.data()) as StoredPacketHead;
+    const requestedLeaseId = ids[index];
+    if (
+      !requestedLeaseId ||
+      head.lease_id !== requestedLeaseId ||
+      head.transaction_id !== requestedLeaseId
+    ) {
+      throw new EditableLayerError(
+        "A current packet head does not match its requested lease.",
+        409,
+      );
+    }
+    return [head];
+  });
+  if (heads.length === 0) return result;
+
+  const uniqueSnapshotIds = new Set(heads.map((head) => head.snapshot_id));
+  if (uniqueSnapshotIds.size !== heads.length) {
+    throw new EditableLayerError(
+      "Two current packet heads reference the same immutable snapshot.",
+      409,
+    );
+  }
+
+  const snapshotDocs = await db.getAll(
+    ...heads.map((head) =>
+      db.collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.snapshots).doc(head.snapshot_id),
+    ),
+  );
+  const executionDocs = await db.getAll(
+    ...heads.map((head) =>
+      db
+        .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.executionProjections)
+        .doc(head.snapshot_id),
+    ),
+  );
+  const executionsBySnapshot = new Map(
+    executionDocs
+      .filter((doc) => doc.exists)
+      .map((doc) => [
+        doc.id,
+        normalizeFirestoreValue(doc.data()) as StoredExecutionProjection,
+      ]),
+  );
+  const headsBySnapshot = new Map(heads.map((head) => [head.snapshot_id, head]));
+  for (const doc of snapshotDocs) {
+    if (!doc.exists) {
+      throw new EditableLayerError(
+        "A current packet head references a missing immutable snapshot.",
+        409,
+      );
+    }
+    const data = normalizeFirestoreValue(doc.data()) as StoredPacketSnapshot;
+    const head = headsBySnapshot.get(doc.id);
+    if (
+      !head ||
+      head.lease_id !== data.leaseId ||
+      head.transaction_id !== data.transactionId
+    ) {
+      throw new EditableLayerError(
+        "A current packet head does not match its immutable snapshot.",
+        409,
+      );
+    }
+    result.set(
+      data.leaseId,
+      toRenewalPacketSnapshot(data, true, executionsBySnapshot.get(doc.id) ?? null),
+    );
+  }
+  return result;
+}
+
 export async function getPacketHead(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -206,7 +312,14 @@ export async function getPacketSnapshot(
   const execution = executionDoc.exists
     ? (normalizeFirestoreValue(executionDoc.data()) as StoredExecutionProjection)
     : null;
-  const current = head?.snapshot_id === snapshotId;
+  return toRenewalPacketSnapshot(data, head?.snapshot_id === snapshotId, execution);
+}
+
+function toRenewalPacketSnapshot(
+  data: StoredPacketSnapshot,
+  current: boolean,
+  execution: StoredExecutionProjection | null,
+): RenewalPacketSnapshot {
   const visibleState: PacketVisibleState = !current
     ? "Superseded"
     : (execution?.state ?? data.state);

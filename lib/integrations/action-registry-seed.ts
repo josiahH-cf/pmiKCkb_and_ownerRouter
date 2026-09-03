@@ -576,12 +576,12 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     label: "Retired broad Sheet writeback identifier (non-executable)",
     target_system: "Google Sheets",
     expected_action:
-      "None. This broad identifier is retired and permanently non-executable; the exact S98 keys google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update own every operating-Sheet write.",
+      "None. This broad identifier is retired and permanently non-executable. The exact S98 row-append key owns the only currently executable operating-Sheet write; the historically activated field-update key remains registered for receipt compatibility but its product execution path fails closed until a provider-owned stable-row and generation-bound mutation seam exists.",
     product_lane: "Lease Renewal Agent",
     readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
-      "Retired by S98 (2026-09-02). The historical KB-Proposed abstraction required a provider-owned stable-row transaction/status/tombstone seam Google Sheets does not expose; S98 replaced it with a Sheets-native app-at-most-once contract under the exact google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update keys. This identifier remains only so historical dispositions and receipts keep parsing; it cannot grant, prove, or inherit any Sheet write and no window or activation may open it.",
+      "Retired by S98 (2026-09-02). The historical KB-Proposed abstraction required a provider-owned stable-row transaction/status/tombstone seam Google Sheets does not expose. S98 retains google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update so historical dispositions and receipts keep parsing, but only the append-only product path currently reaches a provider mutation; fixed-row update, delete, and restore operations fail closed before writer construction. This broad identifier cannot grant, prove, or inherit any Sheet write and no window or activation may open it.",
     required_permissions: [
       "None. This identifier is retired and permanently non-executable.",
     ],
@@ -656,44 +656,44 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     label: "Append one operating renewal Sheet row",
     target_system: "Google Sheets",
     expected_action:
-      "One atomic spreadsheets.batchUpdate whose single appendCells request appends one exact row after the current logical Renewals table with the system note on the resolved tenant_name cell (PMI KC writeback — operation <opaque id> — lease <provider id> — property <provider id>; the sealed proof mode uses the TEST — PMI KC writeback proof — prefix). The same capability owns ONLY the separately confirmed receipt-bound reversal of that exact unchanged app-appended row through one batchUpdate deleteDimension ROWS request; no other key or category can delete a row.",
+      "One atomic spreadsheets.batchUpdate whose single appendCells request appends one exact row after the current logical Renewals table with the system note on the resolved tenant_name cell (PMI KC writeback — operation <opaque id> — lease <provider id> — property <provider id>). No product route may issue a fixed-row delete: Sheets does not expose the stable logical-row, expected-generation, idempotency, and durable-status seam required for a safe automated reversal.",
     product_lane: "Lease Renewal Agent",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "The official Sheets batchUpdate/appendCells contract applies its single subrequest atomically and writes RowData values plus the note in one call; deleteDimension removes exactly one ROW range. Sheets exposes no operation-status or idempotency ledger for these requests, so the app claims one attempt before the call, an uncertain response parks ambiguous and never retries, and reconciliation searches the exact opaque note identity, reporting observed state without claiming causality. The append requires server-resolved provider lease/property ids and a nonblank source-backed tenant_name; renewal_date is never inferred from RentVine endDate; the browser cannot select mode, note, ids, or the row key.",
+      "The official Sheets batchUpdate/appendCells contract applies its single append subrequest atomically and writes RowData values plus the note in one call. Sheets exposes no operation-status or idempotency ledger, so the app transactionally claims one lease-scoped proposal generation before the call, an uncertain response parks ambiguous and never retries, and reconciliation searches the exact opaque note identity while reporting observed state without claiming causality. The append requires server-resolved provider lease/property ids and a nonblank source-backed tenant_name; renewal_date is never inferred from RentVine endDate; the browser cannot select mode, note, ids, or the row key. Historical proof included a bounded fixed-row delete, but the hardened product route no longer treats read-then-deleteDimension as a safe stable-row reversal.",
     required_permissions: [
-      "ACTIVATED 2026-09-02 after its passed bounded live proofs on the owner-designated lease 115/property 84: one sealed proof-mode append with the TEST note prefix, exact receipt, and durable succeeded state, then the separately previewed and confirmed receipt-bound deleteDimension reversal of the exact unchanged row with absence readback by the stable note key.",
+      "ACTIVATED 2026-09-02 after its bounded live proof on the owner-designated lease 115/property 84. That historical proof and receipt remain evidence and must not be rerun; current normal execution is append-only and every fixed-row reversal is unavailable.",
       "Sheets DWD write scope on the approved operating sheet plus the reviewed operating-write runtime switch",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
       "Show the tab, server-resolved lease/property identity, tenant label, every nonblank field with its exact source, the mode-correct note, and the correction rule. Preview performs zero writes.",
     rollback_note:
-      "Only the exact unchanged receipt-bound appended row may be deleted, under a new preview/confirmation, with final readback proving the stable key and note absent.",
+      "The app does not automate row deletion. A successful append exposes its durable bodyless receipt and exact Sheet destination for separately authorized manual correction; any future in-app reversal requires a new provider-owned stable-row, expected-generation, idempotency/status contract and a separate reviewed activation.",
     connection_health_check_ref: "health.google_sheets.api",
     production_allowed: true,
   },
   {
     key: "google_sheets.renewal_checklist.field_update",
-    label: "Update one supported operating renewal Sheet field",
+    label: "Reserved operating renewal Sheet field update",
     target_system: "Google Sheets",
     expected_action:
-      "One exact-cell server-side find/replace (matchEntireCell, single GridRange) that replaces one supported checklist cell only while the exact anchored row, resolved header, and expected current value still match; zero occurrences means collaborator drift and nothing changed.",
+      "No current product mutation. The exact key remains registered and open for historical receipt compatibility, but the route refuses before writer construction until a provider-owned operation can atomically bind the logical lease row, expected generation, idempotency key, and durable operation status.",
     product_lane: "Lease Renewal Agent",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "The official Sheets findReplace subrequest is scoped to one grid cell and returns occurrencesChanged, giving a provider-side compare-and-set: 1 means the exact expected value was replaced, 0 means drift with no change. The supported-field allowlist is exactly the 19-field Renewals semantic schema; murky/missing/duplicate headers, protected or merged targets, formulas, ambiguous row identity, and type mismatch refuse before the call. A correction restores the exact receipted prior value under a new confirmation through the same primitive.",
+      "A Sheets findReplace request can atomically compare and replace a fixed grid cell, but it cannot prove that the fixed row still represents the intended logical lease after a collaborator inserts, deletes, sorts, or moves rows between reads. The live Google client also exposes no generation-bound mutation status or tombstone protocol. Therefore normal field update and restore paths report provider capability unavailable and issue no Sheets write. The historical bounded proof receipt remains valid evidence of what occurred at that time, not authority to use the unsafe fixed-row product path.",
     required_permissions: [
-      "ACTIVATED 2026-09-02 after its passed bounded live proofs on the proof row: the blank current_rent compare-and-set to the fresh source-backed charge amount, honestly parked when the Sheet's currency rendering defeated exact readback and reconciled to a durable receipt from fresh provider state under the committed format tolerance, then a separately confirmed forward correction that captured the live formatted rendering as its expected value and restored the receipted prior blank with exact readback.",
+      "Historically activated after the bounded 2026-09-02 proof; that proof is complete and cannot be rerun. Registry activation alone does not override the current provider-capability refusal.",
       "Sheets DWD write scope on the approved operating sheet plus the reviewed operating-write runtime switch",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
-      "Show the tab, stable row identity or anchored row, field, exact expected and proposed values, the value source, and the correction rule. Preview performs zero writes.",
+      "The product surfaces the capability as unavailable rather than offering a confirmation. Historical records may still display their bodyless receipt and status.",
     rollback_note:
-      "A separately previewed and confirmed correction compare-and-sets the exact receipted prior value back into the same cell and requires exact readback.",
+      "No new normal field effect can execute, so no automated correction is offered. A future product path requires a separately reviewed stable-row and expected-generation provider contract.",
     connection_health_check_ref: "health.google_sheets.api",
     production_allowed: true,
   },

@@ -32,14 +32,14 @@ authority.
 
 The approved `renewal-v1` process is:
 
-| Step                                                          | Responsible operational role                                 | Required substeps                                                                                                                                                                                                                                                                                                                                                                                                                                    | Completion evidence / branch rule                                                                                                                                                                                                                                                 |
-| ------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. Find and verify the renewal**                            | Renewal operator                                             | Identify current-month/upcoming/tracked-incomplete work; verify lease/property/unit/tenant/owner identity; verify end date and contractual **base rent**; show recurring charges separately; reconcile RentVine/Sheet conflicts or record an exact disposition; confirm data currency/completeness and required recipient/source availability.                                                                                                       | Exact lease/source snapshot is current; base rent is verified by fresh agreement or exact resolution; every blocking conflict is resolved or explicitly held; missing/ambiguous identity remains blocked.                                                                         |
-| **2. Analyze market evidence and record the owner decision**  | Renewal operator; human property owner supplies the decision | Run S59 under the two-mile/15-request policy; review query basis/range/comparables and any screenshot; prepare approved owner copy; exact-preview and create an unsent Gmail draft; a person sends in Gmail; deliberately refresh the linked thread; record the actual owner response, approved base rent, separately labeled charges/terms, and evidence source.                                                                                    | Completion requires the human owner's recorded decision and exact values/evidence. Draft creation or a RentCast number alone never completes the step. No response stays waiting.                                                                                                 |
-| **3. Prepare the tenant offer and track the decision**        | Renewal operator                                             | Build the offer only from the recorded owner decision; resolve authoritative tenant/co-tenant recipients; render approved copy and optional constrained S74 tailoring; exact-preview/create an unsent Gmail draft; a person sends in Gmail; refresh linked communication; record waiting/last-contact/follow-up truth; record tenant outcome as awaiting response, accepted, counter/change requested, declined/non-renewing, or Needs Verification. | Accepted advances to documents. Counter/change requested reopens the relevant owner-decision substeps and invalidates stale downstream previews. Declined/non-renewing exits to a documented non-renewal handoff rather than Build docs. Awaiting/unknown stays incomplete.       |
-| **4. Build the required document packet**                     | Document coordinator                                         | Load the approved S66 artifact/participant/field/signature/form catalog; verify exact parties/property/terms; assemble an immutable hash-bound packet snapshot; surface missing inputs; review/create/read back a Dotloop packet only through S34 when official mappings and authority exist; keep any RentVine source write in the separate S30 lifecycle.                                                                                          | A complete current S66 snapshot plus required artifact/Dotloop readback proves completion. Missing catalog/mapping/OAuth or a closed key is a visible blocker, not locally asserted completion; a RentVine write is not step-completion evidence.                                 |
-| **5. Obtain signatures and perform follow-up**                | Document coordinator / renewal operator                      | Track each required signer and artifact; refresh provider state or authoritative signed-artifact evidence; surface waiting party and last verified contact; apply only client-confirmed timing rules; handle correction/reissue through a new exact packet snapshot; retain prior receipts without treating them as current.                                                                                                                         | Every required signature has provider/artifact evidence tied to the current packet version. A proposed “45-day” follow-up remains non-operative until entered as client-confirmed S75 policy. Partial/old signatures do not complete the step.                                    |
-| **6. Complete final compliance checks and close the renewal** | Renewal reviewer / operator                                  | Verify all required documents/signatures; pet/animal terms; Rhino/security-deposit applicability; insurance and separately labeled charges; owner-inspection applicability and date/evidence; effective lease dates/terms; unresolved exceptions; exact external write previews where separately authorized; record app completion and audit evidence.                                                                                               | Every required item is Verified or explicitly Not Applicable with source/reason. App completion may be recorded without a provider write. RentVine/Sheet updates remain separate closed/exact actions; “hide row” or provider completion is claimed only from a receipt/readback. |
+| Step                                                          | Responsible operational role                                 | Required substeps                                                                                                                                                                                                                                                                                                                                                                                                                                    | Completion evidence / branch rule                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Find and verify the renewal**                            | Renewal operator                                             | Identify current-month/upcoming/tracked-incomplete work; verify lease/property/unit/tenant/owner identity; verify end date and contractual **base rent**; show recurring charges separately; reconcile RentVine/Sheet conflicts or record an exact disposition; confirm data currency/completeness and required recipient/source availability.                                                                                                       | Exact lease/source snapshot is current; base rent is verified by fresh agreement or exact resolution; every blocking conflict is resolved or explicitly held; missing/ambiguous identity remains blocked.                                                                                            |
+| **2. Analyze market evidence and record the owner decision**  | Renewal operator; human property owner supplies the decision | Run S59 under the two-mile/15-request policy; review query basis/range/comparables and any screenshot; prepare approved owner copy; exact-preview and create an unsent Gmail draft; a person sends in Gmail; deliberately refresh the linked thread; record the actual owner response, approved base rent, separately labeled charges/terms, and evidence source.                                                                                    | Completion requires the human owner's recorded decision and exact values/evidence. Draft creation or a RentCast number alone never completes the step. No response stays waiting.                                                                                                                    |
+| **3. Prepare the tenant offer and track the decision**        | Renewal operator                                             | Build the offer only from the recorded owner decision; resolve authoritative tenant/co-tenant recipients; render approved copy and optional constrained S74 tailoring; exact-preview/create an unsent Gmail draft; a person sends in Gmail; refresh linked communication; record waiting/last-contact/follow-up truth; record tenant outcome as awaiting response, accepted, counter/change requested, declined/non-renewing, or Needs Verification. | Accepted advances to documents. Counter/change requested reopens the relevant owner-decision substeps and invalidates stale downstream previews. Declined/non-renewing exits to a documented non-renewal handoff rather than Build docs. Awaiting/unknown stays incomplete.                          |
+| **4. Build the required document packet**                     | Document coordinator                                         | Load the approved S66 artifact/participant/field/signature/form catalog; verify exact parties/property/terms; assemble an immutable hash-bound packet snapshot; surface missing inputs; review/create/read back a Dotloop packet only through S34 when official mappings and authority exist; keep any RentVine source write in the separate activated S97 workflow.                                                                                 | A complete current S66 snapshot plus required artifact/Dotloop readback proves completion. Missing catalog/mapping/OAuth or a closed key is a visible blocker, not locally asserted completion; a RentVine write is not step-completion evidence.                                                    |
+| **5. Obtain signatures and perform follow-up**                | Document coordinator / renewal operator                      | Track each required signer and artifact; refresh provider state or authoritative signed-artifact evidence; surface waiting party and last verified contact; apply only client-confirmed timing rules; handle correction/reissue through a new exact packet snapshot; retain prior receipts without treating them as current.                                                                                                                         | Every required signature has provider/artifact evidence tied to the current packet version. A proposed “45-day” follow-up remains non-operative until entered as client-confirmed S75 policy. Partial/old signatures do not complete the step.                                                       |
+| **6. Complete final compliance checks and close the renewal** | Renewal reviewer / operator                                  | Verify all required documents/signatures; pet/animal terms; Rhino/security-deposit applicability; insurance and separately labeled charges; owner-inspection applicability and date/evidence; effective lease dates/terms; unresolved exceptions; exact external write previews where separately authorized; record app completion and audit evidence.                                                                                               | Every required item is Verified or explicitly Not Applicable with source/reason. App completion may be recorded without a provider write. Activated RentVine/Sheet updates remain separate exact human-confirmed actions; “hide row” or provider completion is claimed only from a receipt/readback. |
 
 Each substep has `not_started`, `blocked`, `ready`, or `complete` derived from evidence. Manual notes may
 explain a state but cannot substitute for required provider/source proof. Changing an upstream fact,
@@ -73,7 +73,7 @@ current product/facts documentation.
 | Pre-S72 desk-model, renewal-progress schema/store, process-definition seed, workspace, and decision projections | Verified compatibility baseline       | The four broad steps and coarse evidence remain migration inputs under `legacy-four-step-v0`, not the deployed meaning of `renewal-v1`.                                   |
 | Process-definition, progress, workspace, decision, current-rent, provider-boundary, and Firestore tests         | Verification baseline                 | They preserve identity/audit/current behavior while new definition/version/branch/invalidation tests fail against the four-step baseline.                                 |
 | Stabilization intake and meeting record                                                                         | Intent evidence only                  | They supply the operational substeps and desired path to documents/Dotloop; they do not approve copy, timing values, provider mappings, writes, or automated sends.       |
-| S74, S75, S66, S34, and S30 external inputs                                                                     | Named dependencies                    | Missing copy/policy/catalog/OAuth/mapping/write authority blocks only the exact dependent substep and remains visible.                                                    |
+| S74, S75, S66, S34, and S97 external inputs                                                                     | Named dependencies                    | Missing copy/policy/catalog/OAuth/mapping/write authority blocks only the exact dependent substep and remains visible.                                                    |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -174,47 +174,49 @@ or action-gate inference.
 
 **Dependencies / sequencing.**
 
-S72 can be implemented independently with missing S74/S75/S66/S34 inputs represented as explicit
-blocked substeps. Implement S59 base-rent/query truth and S77 exact draft lifecycle first when running
-the whole bundle; S78 then projects the model into the canonical desk.
+S72 is deployed. Missing S74/S75/S66/S34 runtime inputs remain explicit blocked substeps rather than
+suite-level implementation blockers. S59 and S77 supply evidence to the current model, and S78/S82
+project it into the canonical desk; later changes must preserve those versioned interfaces.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** immutable `renewal-v1` definition, pinned progress version, evidence predicates,
-  alternate branches, dependency invalidation, compatibility/migration plan, workspace projection,
-  audit, and fail-closed readiness can reach `ALL_GATES_GREEN` independently.
-- **Consumes, but does not assume:** S59/S74/S75/S66/S34/S30 outputs enter through named evidence
+- **Delivered:** immutable `renewal-v1` definition, pinned progress version, evidence predicates,
+  alternate branches, dependency invalidation, compatibility behavior, workspace projection, audit,
+  and fail-closed readiness.
+- **Consumes, but does not assume:** S59/S74/S75/S66/S34/S97 outputs enter through named evidence
   interfaces; when absent, the corresponding substep is `blocked` with its missing dependency and all
   unrelated steps remain functional.
-- **Externally blocked effect:** approved copy, confirmed timing, document catalog/OAuth/mappings, and
-  write authority may leave named operational substeps `BLOCKED`; they do not block the six-step model
-  or permit simulated production completion.
+- **Runtime-local blockers:** approved copy, confirmed timing, document catalog/OAuth/mappings, and
+  exact write readiness may leave named operational substeps `blocked`; they do not make S72
+  incomplete or permit simulated production completion.
 - **Produces for downstream suites:** stable process/step/substep ids, version pin, state/evidence and
   invalidation contracts, branch outcomes, and desk/work-item projection consumed by S75/S78/S82/S97.
 
 **Verification and delivery contract.**
 
-1. Before editing, snapshot the four-step baseline and make exact-definition, version pin, branch,
-   and invalidation tests fail for the expected missing six-step behavior; record preservation passes.
-2. Run `npm run test:direct -- tests/unit/lease-renewal-progress.test.ts tests/unit/lease-renewal-process-definition-seed.test.ts tests/unit/renewal-workspace-live.test.tsx tests/unit/lease-renewal-decision-projection.test.tsx tests/unit/lease-renewal-rent.test.ts tests/unit/lease-renewal-send-boundary.test.ts` plus new migration/graph tests.
-3. Run any required Firestore emulator checks and `bash scripts/verify.sh`; inspect the diff and audit
-   live-data migration, PII, process-version compatibility, protected Rules, gates, and provider
-   imports before delivery.
-4. Report `ALL_GATES_GREEN` only when the independently implementable model and preservation gates
-   pass; `BUDGET_EXHAUSTED` requires an explicit budget. Report `BLOCKED` only for exact external
-   substep inputs or protected migration delivery, never for the core model.
+1. Preserve exact-definition, version-pin, branch, dependency-invalidation, base-rent, and
+   provider-effect-refusal tests whenever the renewal workflow changes.
+2. Run the focused S72 progress/process/workspace/decision/rent/send-boundary matrix, required
+   Firestore checks, and the canonical verification gate before release.
+3. Treat a new step definition as a new immutable version with an explicit compatibility and live-
+   record migration decision; never reinterpret `renewal-v1` in place.
+4. Audit PII, protected rules/gates, exact action boundaries, and provider imports, then ship only
+   through the authorized exact-SHA and release-assurance path.
 
 **Ordered prompt sequence.**
 
-1. Freeze the approved table above and capture the four-step baseline with fail-first definition,
-   migration, dependency, and branch tests.
-2. Pin progress/current-rent/draft/provider-write preservation separately.
-3. Implement the versioned definition, evidence predicates, transitions, invalidation, persistence,
-   and UI projection without provider activation.
-4. Exercise every primary/alternate/blocked path, run focused and canonical gates, migrate no live
-   record without a reviewed compatibility plan, and ship only through the authorized release path.
+1. Inspect the deployed `renewal-v1` definition, pinned progress records, dependency graph, branch
+   projection, and provider-effect boundaries before changing the process model.
+2. Implement one bounded compatibility-preserving change and run the focused definition, evidence,
+   branch, invalidation, base-rent, workspace, and provider-spy falsification.
+3. Run the canonical verifier, exact-SHA CI, zero-traffic candidate assurance, exact promotion,
+   observation, and live readback for every code-bearing release.
+4. Report exactly one terminal state: `ALL_GATES_GREEN` only after every applicable gate passes;
+   `BUDGET_EXHAUSTED` only when an explicit execution budget is actually exhausted; or `BLOCKED` only
+   for one exact unavailable external input or authority after all independent work is complete.
+   Runtime-local blocked substeps do not make the already delivered S72 suite incomplete.
 
 **Deletion/merge recommendation.**
 
-Remove after `renewal-v1` is deployed, existing lease migration is proven, human litmus passes, and
-the durable process contract lives in product/process documentation and deterministic tests.
+Retain while it is the active versioned-process contract. It may be merged into durable product and
+process documentation only after the same requirements and deterministic evidence remain discoverable.

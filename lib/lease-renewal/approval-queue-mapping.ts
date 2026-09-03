@@ -47,6 +47,15 @@ export interface QueueMappingContext {
  */
 export const RENEWAL_RECONCILE_ACTION = "google_sheets.renewal_checklist.reconcile";
 
+/** Stable bodyless identity for one exact run + joined record + field. */
+export function renewalReconciliationSourceTriggerKey(
+  runId: string,
+  recordKey: string | undefined,
+  fieldKey: string,
+): string {
+  return `lease_renewal:reconcile:${runId}:${recordKey ? `${recordKey}:` : ""}${fieldKey}`;
+}
+
 function audienceFor(severity: QueueRiskLevel): QueueAudienceGroup {
   switch (severity) {
     case "High":
@@ -93,7 +102,11 @@ export function mapReconciliationToQueueItem(
 
   const queueItem: ApprovalQueueItemDraft = {
     item_type: "SourceFactConflict",
-    source_trigger_key: `lease_renewal:reconcile:${runId}:${context.recordKey ? `${context.recordKey}:` : ""}${reconciliation.field_key}`,
+    source_trigger_key: renewalReconciliationSourceTriggerKey(
+      runId,
+      context.recordKey,
+      reconciliation.field_key,
+    ),
     status: reconciliation.severity === "Blocked" ? "Blocked" : "Ready for Approval",
     risk: reconciliation.severity,
     audience_group: audienceFor(reconciliation.severity),

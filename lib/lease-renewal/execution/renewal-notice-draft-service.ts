@@ -85,7 +85,7 @@ export interface RenewalNoticeDraftDeps {
    * Optional only so a missing seam fails closed as Needs Verification; Production supplies it.
    */
   loadOwnerCurrentRentDecision?(leaseId: string): Promise<{
-    currentRent: number;
+    currentRent: number | null;
     currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
   } | null>;
   /** Current delivered same-lease screenshot receipt; no browser reference participates. */
@@ -405,7 +405,7 @@ function buildOwnerDecision(
   facts: LeaseRenewalFacts,
   offer: OwnerRenewalOffer,
   currentRentDecision: {
-    currentRent: number;
+    currentRent: number | null;
     currentRentEvidence: NonNullable<OwnerDraftInput["currentRentEvidence"]>;
   } | null,
 ): DecisionResult<OwnerDraftInput> {
@@ -413,7 +413,9 @@ function buildOwnerDecision(
   if (!facts.addressLabel) {
     reasons.push("Property address was not found in the live RentVine lease.");
   }
-  const currentRent = currentRentDecision?.currentRent ?? facts.currentRent;
+  const currentRent = currentRentDecision
+    ? currentRentDecision.currentRent
+    : facts.currentRent;
   if (
     typeof currentRent !== "number" ||
     !Number.isFinite(currentRent) ||
