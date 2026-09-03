@@ -46,6 +46,7 @@ import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
+import { LEASE_TERM_LABELS, type LeaseTerm } from "@/lib/lease-renewal/lease-term";
 
 export interface DeskPartyShortcuts {
   readonly available: boolean;
@@ -118,8 +119,16 @@ const STEP_FILTER_LABELS: Record<(typeof RENEWAL_DESK_V2_STEPS)[number], string>
 const SCOPE_LABELS: Record<RenewalDeskQueryV2State["scope"], string> = {
   active: "Current window and tracked incomplete",
   tracked: "Tracked incomplete outside the window",
+  periodic_review: "Month-to-month periodic review due",
   all: "All loaded leases",
 };
+
+/** S103: attention-first term ordering for the header filter. */
+const TERM_FILTER_ORDER: readonly LeaseTerm[] = [
+  "needs_review",
+  "month_to_month",
+  "fixed_term",
+];
 
 const DATE_DIAGNOSTIC_MESSAGES: Record<RenewalDeskDateDiagnostic, string> = {
   end_date_malformed: "The exact renewal date was not valid and was not applied.",
@@ -400,6 +409,20 @@ function RenewalDateFilters({ state }: Readonly<{ state: RenewalDeskQueryV2State
           Apply range
         </RenewalDeskSubmitButton>
       </RenewalDeskGetForm>
+
+      <SelectFilter
+        label="Lease term"
+        name="term"
+        options={[
+          { value: "all", label: "All lease terms" },
+          ...TERM_FILTER_ORDER.map((value) => ({
+            value,
+            label: LEASE_TERM_LABELS[value],
+          })),
+        ]}
+        state={state}
+        value={state.term}
+      />
     </HeaderFilter>
   );
 }
@@ -715,8 +738,8 @@ export function RenewalDeskTable({
         <table className="renewal-table">
           <caption className="sr-only">
             Current renewal worklist: one row per lease with location, parties, renewal
-            date, RentVine current base rent, overall status, rent verification, and the
-            current action.
+            date, lease term, RentVine current base rent, overall status, rent
+            verification, and the current action.
           </caption>
           <thead>
             <tr>
@@ -869,6 +892,10 @@ export function RenewalDeskTable({
                     options={[
                       { value: "active", label: "Current window and tracked incomplete" },
                       { value: "tracked", label: "Tracked incomplete outside window" },
+                      {
+                        value: "periodic_review",
+                        label: "Month-to-month periodic review due",
+                      },
                       { value: "all", label: "All loaded leases" },
                     ]}
                     state={state}
@@ -1049,6 +1076,24 @@ function DeskRow({
             Needs Verification
           </Link>
         )}
+        <span
+          className="renewal-td-secondary"
+          data-renewal-field="lease-term"
+          data-lease-term={row.leaseTerm.term}
+        >
+          <Link
+            className="text-link"
+            href={href({ ...state, term: row.leaseTerm.term })}
+            title="Show only this lease term"
+          >
+            {LEASE_TERM_LABELS[row.leaseTerm.term]}
+          </Link>
+          {row.leaseTerm.term === "month_to_month"
+            ? row.leaseTerm.nextReviewIso
+              ? ` · review due ${row.leaseTerm.nextReviewIso}`
+              : " · review date needs review"
+            : ""}
+        </span>
       </td>
       <td className="renewal-td-rent">
         {guidance.currentBaseRent !== null ? (

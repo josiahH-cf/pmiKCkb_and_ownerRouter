@@ -30,6 +30,7 @@ import {
   type CohortLease,
   type DateWindow,
 } from "@/lib/lease-renewal/cohort";
+import type { LeaseTermReviewFact } from "@/lib/lease-renewal/lease-term";
 import {
   buildLiveRenewalConfig,
   type LiveRenewalConfig,
@@ -490,6 +491,27 @@ function retentionFor(
   if (classification.disposition === "skip") {
     return { state: "outside", label: "Excluded from the renewal workflow" };
   }
+  // S103: a month-to-month lease follows the annual review rhythm instead of the monthly cohort.
+  // Without an anchor its review date is unknown, so it stays visible for the operator to record.
+  if (classification.disposition === "periodic_review") {
+    const nextReviewIso = classification.termProjection.nextReviewIso;
+    if (nextReviewIso === null) {
+      return {
+        state: "needs_verification",
+        label: "Month-to-month review date needs verification; retained for review",
+      };
+    }
+    if (inRenewalWindow(nextReviewIso, windows)) {
+      return {
+        state: "periodic_review",
+        label: `Periodic review due ${nextReviewIso}`,
+      };
+    }
+    return {
+      state: "outside",
+      label: `Periodic review scheduled ${nextReviewIso}, outside the active window`,
+    };
+  }
   const endDateIso = classification.endDateIso;
   if (!endDateIso) {
     return {
@@ -562,6 +584,7 @@ function toLiveSummary(
     disposition: classification.disposition,
     reason: classification.reason,
     reasonLabel: humanizeCohortReason(classification.reason),
+    leaseTerm: classification.termProjection,
     retention,
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
@@ -1064,6 +1087,8 @@ export async function loadLiveRenewalDesk(
   progressStateAvailable = true,
   /** Exact lease generation already used to choose packet ids; avoids a second cache generation. */
   leaseSnapshotResult?: LiveLeaseSnapshotResult,
+  /** S103: current app-owned term reviews by lease id; a drifted record is ignored as stale. */
+  termReviews: ReadonlyMap<string, LeaseTermReviewFact> | undefined = undefined,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1083,7 +1108,11 @@ export async function loadLiveRenewalDesk(
       readTimestamp,
       tableJoinIds,
     );
-    const cohort = classifyRenewalCohort(views, { windows });
+    const cohort = classifyRenewalCohort(views, {
+      windows,
+      referenceDateIso: readTimestamp.slice(0, 10),
+      termReviews,
+    });
     // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
     const toRow = (
       summary: DeskLeaseSummary,
@@ -1292,6 +1321,7 @@ export async function loadLiveRenewalDesk(
         review: summaries.filter((s) => s.disposition === "review"),
         skipped: summaries.filter((s) => s.disposition === "skip"),
         outOfWindow: summaries.filter((s) => s.disposition === "out_of_window"),
+        periodicReview: summaries.filter((s) => s.disposition === "periodic_review"),
       },
     };
   } catch {
@@ -1327,6 +1357,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   sourceRefreshAfterMs: number | null = null,
   /** Typed page-level attempt: success reuses one generation; failure forbids an intra-render retry. */
   leaseSnapshotAttempt?: AttemptedLiveLeaseSnapshotResult,
+  /** S103: this lease's current app-owned term review, when one was read. */
+  termReview: LeaseTermReviewFact | null = null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1353,7 +1385,13 @@ export async function loadLiveRenewalLeaseWorkspace(
     // because it was opened: review and out-of-window leases remain inspectable with their original
     // disposition, while definitive skip signals still have no renewal workspace.
     const windows: DateWindow[] = [buildRenewalDeskWindow(readTimestamp.slice(0, 10))];
-    const classification = classifyRenewalCohort([view], { windows }).classifications[0];
+    const classification = classifyRenewalCohort([view], {
+      windows,
+      referenceDateIso: readTimestamp.slice(0, 10),
+      ...(termReview ? { termReviews: new Map([[leaseId, termReview]]) } : {}),
+    }).classifications[0];
+    // S103: a month-to-month lease keeps an inspection-only workspace so its term, anchor, and
+    // review date stay visible and correctable; a definitive skip signal still has no workspace.
     if (classification.disposition === "skip") return { status: "not_found" };
 
     const { tables, tableJoinIds, tableRentvineSourceUrls } =

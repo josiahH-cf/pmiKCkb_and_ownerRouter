@@ -85,7 +85,7 @@ function correctedRentResolution(
 //   4821 Jordan Maple  rent 1250 → agrees with the sheet ($1,250)          → actionable, no conflict
 //   5001 Casey Rivers  rent 1400 → conflicts with the sheet ($1,300)       → actionable, 1 conflict
 //   6002 Nomatch Tenant rent 1100 → no matching sheet row                  → actionable, "Needs input"
-//   7003 Mtm Tenant    month-to-month                                      → skip
+//   7003 Mtm Tenant    month-to-month since 2025-08-15                     → periodic_review
 //   8004 Future Tenant ends 2026-12-31                                     → out of window
 const EXPORT_ROWS = [
   {
@@ -129,6 +129,10 @@ const EXPORT_ROWS = [
       leaseID: 7003,
       endDate: "2026-08-31",
       leaseType: "Month to Month",
+      // S103: the exact provider signal lives on the lease DETAIL; the fake detail reader serves
+      // these back from the fixture row.
+      isMonthToMonth: "1",
+      monthToMonthStartDate: "2025-08-15",
       tenants: [{ name: "Mtm Tenant" }],
     },
     unit: { rent: "900.00" },
@@ -289,7 +293,8 @@ describe("loadLiveRenewalDesk", () => {
     expect(result.view.cohort.summary).toMatchObject({
       total: 5,
       actionable: 3,
-      skipped: 1,
+      skipped: 0,
+      periodicReview: 1,
       outOfWindow: 1,
       needsReview: 0,
     });
@@ -298,7 +303,8 @@ describe("loadLiveRenewalDesk", () => {
       "5001",
       "6002",
     ]);
-    expect(result.view.skipped.map((s) => s.id)).toEqual(["7003"]);
+    expect(result.view.skipped).toEqual([]);
+    expect(result.view.periodicReview.map((s) => s.id)).toEqual(["7003"]);
     expect(result.view.outOfWindow.map((s) => s.id)).toEqual(["8004"]);
 
     const identity = result.view.items.find((summary) => summary.id === "4821");
@@ -318,7 +324,7 @@ describe("loadLiveRenewalDesk", () => {
         },
       },
     });
-    expect(result.view.skipped[0]).toMatchObject({
+    expect(result.view.periodicReview[0]).toMatchObject({
       sourceDestinations: {
         rentvine: {
           kind: "external",
@@ -416,7 +422,7 @@ describe("loadLiveRenewalDesk", () => {
     expect(trackedWorkspace.workspace.summary.retention.state).toBe("tracked_incomplete");
   });
 
-  it("lets a definitive skip outrank stale incomplete progress without exposing a process", async () => {
+  it("lets an exact month-to-month term outrank stale incomplete progress without exposing a process", async () => {
     const staleProgress: RenewalProgress = {
       leaseId: "7003",
       processVersion: RENEWAL_PROCESS_VERSION,
@@ -438,8 +444,9 @@ describe("loadLiveRenewalDesk", () => {
 
     const skipped = result.view.items.find((row) => row.id === "7003");
     expect(skipped).toMatchObject({
-      disposition: "skip",
-      retention: { state: "outside" },
+      disposition: "periodic_review",
+      leaseTerm: { term: "month_to_month", nextReviewIso: "2026-08-15" },
+      retention: { state: "periodic_review" },
       processVersion: null,
       workflowStepId: null,
       stageIndex: -1,
@@ -824,7 +831,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     ).toBe(result.workspace.readiness.checks.length);
   });
 
-  it("keeps review leases inspectable but returns not_found for unknown or skipped leases", async () => {
+  it("keeps review and periodic-review leases inspectable but returns not_found for unknown or skipped leases", async () => {
     const unknown = await loadLiveRenewalLeaseWorkspace(
       "does-not-exist",
       READ_TS,
@@ -833,11 +840,42 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(unknown).toEqual({ status: "not_found" });
 
     clearLiveLeaseCache();
-    // 7003 is month-to-month → skip → not an actionable workspace.
-    const skipped = await loadLiveRenewalLeaseWorkspace(
+    // S103: 7003 is month-to-month → periodic_review → inspection-only, never an actionable
+    // renewal workspace, but its term, anchor, and review date stay visible and correctable.
+    const periodic = await loadLiveRenewalLeaseWorkspace(
       "7003",
       READ_TS,
       okConfig() as unknown as WorkspaceConfigArg,
+    );
+    if (periodic.status !== "ok") throw new Error(periodic.status);
+    expect(periodic.workspace.workflowAvailable).toBe(false);
+    expect(periodic.workspace.summary.leaseTerm).toMatchObject({
+      term: "month_to_month",
+      anchorDateIso: "2025-08-15",
+      nextReviewIso: "2026-08-15",
+      reviewState: "scheduled",
+    });
+
+    clearLiveLeaseCache();
+    // A definitive cohort exclusion still has no workspace at all.
+    const skipped = await loadLiveRenewalLeaseWorkspace(
+      "9007",
+      READ_TS,
+      okConfig(async () => ({
+        rows: [
+          {
+            lease: {
+              leaseID: 9007,
+              endDate: "2026-08-31",
+              program: "PadSplit",
+              tenants: [{ name: "Program Tenant" }],
+            },
+            unit: { rent: "1200.00" },
+          },
+        ],
+        pages: 1,
+        complete: true,
+      })) as unknown as WorkspaceConfigArg,
     );
     expect(skipped).toEqual({ status: "not_found" });
 

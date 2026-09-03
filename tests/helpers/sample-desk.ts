@@ -77,6 +77,7 @@ const REASON_LABEL: Record<CohortReason, string> = {
   no_end_date: "No end date on file",
   off_cycle_date: "Off-cycle end date",
   out_of_window: "Outside this window",
+  term_needs_review: "Lease term needs review",
 };
 
 /** Humanized label for a cohort skip/review reason (Desk chips). */
@@ -322,6 +323,7 @@ function toSummary(
     disposition: classification.disposition,
     reason: classification.reason,
     reasonLabel: REASON_LABEL[classification.reason],
+    leaseTerm: classification.termProjection,
     retention:
       classification.endDateIso === null
         ? {
@@ -330,7 +332,18 @@ function toSummary(
           }
         : classification.disposition === "out_of_window"
           ? { state: "outside", label: "Outside the active renewal window" }
-          : { state: "window", label: "Inside the current-month renewal window" },
+          : classification.disposition === "periodic_review"
+            ? classification.termProjection.nextReviewIso === null
+              ? {
+                  state: "needs_verification",
+                  label:
+                    "Month-to-month review date needs verification; retained for review",
+                }
+              : {
+                  state: "periodic_review",
+                  label: `Periodic review due ${classification.termProjection.nextReviewIso}`,
+                }
+            : { state: "window", label: "Inside the current-month renewal window" },
     processVersion: isActionable ? RENEWAL_PROCESS_VERSION : null,
     workflowStepId: step?.id ?? null,
     stageIndex,
@@ -380,6 +393,7 @@ export function getRenewalDeskView(): RenewalDeskView {
     review: summaries.filter((s) => s.disposition === "review"),
     skipped: summaries.filter((s) => s.disposition === "skip"),
     outOfWindow: summaries.filter((s) => s.disposition === "out_of_window"),
+    periodicReview: summaries.filter((s) => s.disposition === "periodic_review"),
   };
 }
 

@@ -19,6 +19,7 @@ const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   rent_suggestion: "approved rent suggestion",
   comp_screenshot: "comparable-rent screenshot status",
   dispositions: "source discrepancy decisions",
+  term_reviews: "recorded lease term reviews",
   rentvine_proposal: "RentVine update proposal status",
   sheet_proposal: "renewal Sheet update proposal status",
   sheet_effect_status: "renewal Sheet action status",

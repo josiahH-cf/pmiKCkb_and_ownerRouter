@@ -15,6 +15,7 @@ export const RENEWAL_AUXILIARY_READ_KEYS = [
   "rent_suggestion",
   "comp_screenshot",
   "dispositions",
+  "term_reviews",
   "rentvine_proposal",
   "sheet_proposal",
   "sheet_effect_status",

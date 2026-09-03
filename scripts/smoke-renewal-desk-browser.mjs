@@ -176,6 +176,36 @@ async function verifyDeskAndWorkspace() {
   );
   await table.waitFor();
 
+  // S103: the lease term header filter narrows the table to exactly that term.
+  await page
+    .locator(".renewal-th-filter summary")
+    .filter({ hasText: "Filter renewal date" })
+    .first()
+    .click();
+  const termSelect = page.locator("#renewal-filter-term");
+  await termSelect.waitFor();
+  await termSelect.selectOption("fixed_term");
+  await termSelect
+    .locator("xpath=ancestor::form")
+    .getByRole("button", { name: "Apply" })
+    .click();
+  await page.waitForURL(/term=fixed_term/);
+  await table.waitFor();
+  const filteredTerms = await page
+    .locator('table.renewal-table tbody [data-renewal-field="lease-term"]')
+    .evaluateAll((cells) => cells.map((cell) => cell.getAttribute("data-lease-term")));
+  assert(
+    filteredTerms.every((term) => term === "fixed_term"),
+    "The lease term filter left a row with a different term.",
+  );
+  assert(
+    (await page.getByText("Lease term: fixed term").count()) === 1,
+    "The active lease-term filter chip is missing.",
+  );
+  await page.getByRole("link", { name: "Clear filters" }).click();
+  await page.waitForURL((url) => !url.toString().includes("term="));
+  await table.waitFor();
+
   // Owner/tenant filters are discoverable header controls. Choices submit only opaque p1_ tokens.
   for (const kind of ["owner", "tenant"]) {
     await page.getByText(`Filter ${kind}`, { exact: true }).click();
@@ -224,7 +254,9 @@ async function verifyDeskAndWorkspace() {
     `${baseUrl}/lease-renewal/live/desk?v=2&sort=base_rent&from=2026-12-30&through=2026-09-01`,
     { waitUntil: "domcontentloaded" },
   );
-  await page.getByRole("alert").waitFor();
+  // Scope the wait to the desk's own validation alert: a served Next build also renders the
+  // framework route announcer with role="alert", which an unscoped locator matches too.
+  await page.getByRole("alert", { name: "Renewal date filter problems" }).waitFor();
   assert(
     (await page
       .getByText("The range end must be on or after the range start.")
@@ -324,6 +356,10 @@ async function verifyNarrowAndZoom() {
     DESK_ROUTE_DOM_BUDGET_MS,
     "Narrow Renewal Desk route and DOM",
   );
+  // S84's responsive navigation resolves on the client, so a heavy server-rendered page briefly
+  // paints the desktop group before the compact trigger replaces it. Measure the settled layout:
+  // this assertion is about the responsive desk, not the pre-hydration frame.
+  await page.locator(".primary-nav-menu-trigger").waitFor();
   assert(
     (await pageOverflow(page)) <= 1,
     "320px desk produced page-level horizontal overflow.",
@@ -459,6 +495,21 @@ async function assertFullCohortIntegrity(page) {
     rowFacts.length === totalLoaded,
     `The table rendered ${rowFacts.length} rows for ${totalLoaded} loaded leases.`,
   );
+  // S103: every rendered row states its lease term in the documented vocabulary.
+  const terms = await page
+    .locator('table.renewal-table tbody [data-renewal-field="lease-term"]')
+    .evaluateAll((cells) => cells.map((cell) => cell.getAttribute("data-lease-term")));
+  assert(
+    terms.length === rowFacts.length,
+    `The table rendered ${terms.length} lease terms for ${rowFacts.length} rows.`,
+  );
+  assert(
+    terms.every((term) =>
+      ["fixed_term", "month_to_month", "needs_review"].includes(term ?? ""),
+    ),
+    "A row rendered a lease term outside the documented vocabulary.",
+  );
+
   const stableIds = rowFacts.map((row) => row.id).filter(Boolean);
   assert(
     new Set(stableIds).size === stableIds.length,

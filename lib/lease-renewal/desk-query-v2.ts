@@ -7,6 +7,7 @@
 // display labels may be resolved once — against the current authorized projection only — into exact
 // opaque `p1_` tokens; no display label is ever echoed into a v2 URL.
 
+import { LEASE_TERMS, type LeaseTerm } from "@/lib/lease-renewal/lease-term";
 import {
   RENEWAL_DESK_DUE_STATES,
   RENEWAL_DESK_WAITING_STATES,
@@ -109,7 +110,7 @@ export interface RenewalDeskQueryV2State {
   lease: string;
   sort: RenewalDeskV2Sort;
   direction: "asc" | "desc";
-  scope: "active" | "tracked" | "all";
+  scope: "active" | "tracked" | "all" | "periodic_review";
   endDate: "" | "missing" | string;
   month: "" | string;
   due: RenewalDeskDueFilter;
@@ -123,6 +124,8 @@ export interface RenewalDeskQueryV2State {
   overallStatus: "all" | RenewalOverallStatus;
   blocked: "all" | "blocked" | "not_blocked";
   rentVerification: "all" | RenewalRentVerificationState;
+  /** S103: filter the table by the one shared lease-term projection. */
+  term: "all" | LeaseTerm;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
@@ -146,6 +149,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   overallStatus: "all",
   blocked: "all",
   rentVerification: "all",
+  term: "all",
 };
 
 /** Fixed canonical key order; serialization emits nondefault values in exactly this order. */
@@ -168,6 +172,7 @@ const V2_KEY_ORDER = [
   "overallStatus",
   "blocked",
   "rentVerification",
+  "term",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -308,7 +313,7 @@ export function parseRenewalDeskQueryV2(
     direction: oneOf(firstValue(input, "direction"), ["asc", "desc"] as const, "asc"),
     scope: oneOf(
       firstValue(input, "scope"),
-      ["active", "tracked", "all"] as const,
+      ["active", "tracked", "all", "periodic_review"] as const,
       "active",
     ),
     endDate: rangeValid ? "" : endDate,
@@ -348,6 +353,7 @@ export function parseRenewalDeskQueryV2(
       ["all", ...RENEWAL_RENT_VERIFICATION_STATES] as const,
       "all",
     ),
+    term: oneOf(firstValue(input, "term"), ["all", ...LEASE_TERMS] as const, "all"),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -414,6 +420,8 @@ export interface RenewalDeskV2Item {
     readonly dueState: string;
     readonly dueAtIso: string | null;
     readonly sourceConflictCount: number | null;
+    readonly leaseTerm: LeaseTerm;
+    readonly nextReviewIso: string | null;
   };
   readonly identity: {
     readonly address: { readonly label: string } | null;
@@ -459,6 +467,10 @@ const WAITING_RANK: Record<string, number> = {
 function inScope(item: RenewalDeskV2Item, scope: RenewalDeskQueryV2State["scope"]) {
   if (scope === "all") return true;
   if (scope === "tracked") return item.retention.state === "tracked_incomplete";
+  // S103: the periodic-review scope isolates month-to-month leases whose annual review is due
+  // inside the current window. They also remain in the default active worklist, so an operator
+  // sees the review without switching scopes; they are never in the monthly actionable cohort.
+  if (scope === "periodic_review") return item.retention.state === "periodic_review";
   return item.retention.state !== "outside";
 }
 
@@ -552,6 +564,7 @@ function matchesQuery(
   ) {
     return false;
   }
+  if (query.term !== "all" && item.queryKeys.leaseTerm !== query.term) return false;
   return true;
 }
 
@@ -686,7 +699,11 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     q: (value) => `Legacy search: ${value}`,
     lease: (value) => `Lease/location: ${value}`,
     scope: (value) =>
-      value === "tracked" ? "Scope: tracked incomplete" : "Scope: all loaded leases",
+      value === "tracked"
+        ? "Scope: tracked incomplete"
+        : value === "periodic_review"
+          ? "Scope: periodic review"
+          : "Scope: all loaded leases",
     endDate: (value) =>
       value === "missing" ? "Renewal date: missing" : `Renewal date: ${value}`,
     month: (value) => `Renewal month: ${value}`,
@@ -700,6 +717,7 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     overallStatus: (value) => `Status: ${value.replaceAll("_", " ")}`,
     blocked: (value) => (value === "blocked" ? "Blocked" : "Not blocked"),
     rentVerification: (value) => `Rent verification: ${value.replaceAll("_", " ")}`,
+    term: (value) => `Lease term: ${value.replaceAll("_", " ")}`,
   };
 
 /** Sort and direction are view state, not filters; a range renders as one removable chip. */

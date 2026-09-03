@@ -1,8 +1,10 @@
 // Renewal candidate detection + skip-classification (Phase-1 live read; design §1 stage "Candidate
 // detection"). Mirrors what Dan does by hand in Rentvine: filter leases by end date for the active
 // batch (e.g. end of August / September), then set aside the ones that should NOT be auto-worked —
-// no end date, month-to-month, an owner-authorized hold, or a program lease — and surface the
-// off-cycle dates that fall outside the standard month-end batch (the ones he has missed before).
+// no end date, an owner-authorized hold, or a program lease — and surface the off-cycle dates that
+// fall outside the standard month-end batch (the ones he has missed before). S103 moved
+// month-to-month leases out of the skip set entirely: they now carry their own `periodic_review`
+// disposition and an annual review date instead of leaving the workflow.
 //
 // CONSERVATIVE by construction: a lease is only `actionable` when it ends inside a requested window
 // on a month boundary AND carries no skip signal. Anything uncertain (no end date, off-cycle date,
@@ -14,6 +16,12 @@
 
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { DEFAULT_RENTVINE_LEASE_FIELD_MAP } from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  projectLeaseTerm,
+  type LeaseTerm,
+  type LeaseTermProjection,
+  type LeaseTermReviewFact,
+} from "@/lib/lease-renewal/lease-term";
 
 /** An inclusive end-date window (ISO YYYY-MM-DD), e.g. the "end of August" batch. */
 export interface DateWindow {
@@ -21,7 +29,13 @@ export interface DateWindow {
   endIso: string;
 }
 
-export type CohortDisposition = "actionable" | "skip" | "review" | "out_of_window";
+export type CohortDisposition =
+  | "actionable"
+  | "skip"
+  | "review"
+  | "out_of_window"
+  /** S103: month-to-month leases leave the monthly cycle for an annual review instead. */
+  | "periodic_review";
 
 export type CohortReason =
   | "actionable"
@@ -30,13 +44,19 @@ export type CohortReason =
   | "program"
   | "no_end_date"
   | "off_cycle_date"
-  | "out_of_window";
+  | "out_of_window"
+  /** S103: the lease term itself is unresolved, so the lease is never silently worked. */
+  | "term_needs_review";
 
 /** How a skip signal's candidate values are matched. */
 export type SkipMatch = "truthy" | { containsAnyOf: string[] };
 
 export interface SkipSignal {
-  reason: Extract<CohortReason, "month_to_month" | "owner_authorized" | "program">;
+  /**
+   * S103: month-to-month is no longer a heuristic skip signal. The exact provider lease-detail
+   * signal owns it through `projectLeaseTerm`, which routes those leases to `periodic_review`.
+   */
+  reason: Extract<CohortReason, "owner_authorized" | "program">;
   /** Lease keys to inspect (first present wins). */
   keys: string[];
   match: SkipMatch;
@@ -52,24 +72,16 @@ export interface CohortConfig {
 }
 
 /**
- * Best-effort defaults. The skip signals are heuristic until the live lease shape is confirmed; they
- * are deliberately specific (so a false skip is unlikely) and anything they do not catch falls through
- * to `actionable`/`review`, never a silent drop. Tune here once the real keys/values are observed.
+ * Best-effort defaults. The remaining skip signals are heuristic (the live lease shape carries no
+ * documented owner-hold or program field); they are deliberately specific (so a false skip is
+ * unlikely) and anything they do not catch falls through to `actionable`/`review`, never a silent
+ * drop. Month-to-month is NOT here: S103 reads the documented lease-detail `isMonthToMonth` signal
+ * through `projectLeaseTerm` and routes those leases to `periodic_review`.
  */
 export const DEFAULT_COHORT_CONFIG: CohortConfig = {
   endDateKeys: DEFAULT_RENTVINE_LEASE_FIELD_MAP.renewalDate,
   leaseIdKeys: ["leaseID", "leaseId", "id"],
   skipSignals: [
-    {
-      reason: "month_to_month",
-      keys: ["isMonthToMonth", "monthToMonth", "mtm"],
-      match: "truthy",
-    },
-    {
-      reason: "month_to_month",
-      keys: ["leaseType", "leaseTypeName", "term", "frequency", "leaseTerm", "status"],
-      match: { containsAnyOf: ["month to month", "month-to-month", "monthly", "m2m"] },
-    },
     {
       reason: "owner_authorized",
       keys: ["status", "leaseStatus", "note", "notes", "tags"],
@@ -94,6 +106,9 @@ export interface CohortLease {
   endDateIso: string | null;
   disposition: CohortDisposition;
   reason: CohortReason;
+  /** S103: the one shared term projection; callers never reclassify a term from dates. */
+  term: LeaseTerm;
+  termProjection: LeaseTermProjection;
 }
 
 export interface RenewalCohort {
@@ -103,12 +118,15 @@ export interface RenewalCohort {
   skipped: CohortLease[];
   needsReview: CohortLease[];
   outOfWindow: CohortLease[];
+  /** S103: month-to-month leases awaiting their annual review. */
+  periodicReview: CohortLease[];
   summary: {
     total: number;
     actionable: number;
     skipped: number;
     needsReview: number;
     outOfWindow: number;
+    periodicReview: number;
     byReason: Record<CohortReason, number>;
   };
 }
@@ -203,15 +221,28 @@ function matchedSkipReason(
 export interface ClassifyCohortOptions {
   windows: DateWindow[];
   config?: Partial<CohortConfig>;
+  /**
+   * S103: ISO YYYY-MM-DD read date. Supplied, it lets the term projection call an end date expired;
+   * omitted, the expiry rule is simply not evaluated (never guessed from a clock).
+   */
+  referenceDateIso?: string;
+  /** S103: current app-owned term reviews by lease id; a drifted record is ignored as stale. */
+  termReviews?: ReadonlyMap<string, LeaseTermReviewFact>;
 }
 
 /**
  * Classify each lease for the active renewal batch. Order of decision (first wins):
- *   1. a definitive skip signal (month-to-month / owner-authorized / program) -> skip
- *   2. no resolvable end date -> review ("no_end_date")
- *   3. end date outside every window -> out_of_window
- *   4. end date in a window but not a month-end -> review ("off_cycle_date")
- *   5. otherwise -> actionable
+ *   1. an exact month-to-month term (S103) -> periodic_review ("month_to_month")
+ *   2. a definitive skip signal (owner-authorized / program) -> skip
+ *   3. no resolvable end date -> review ("no_end_date")
+ *   4. end date outside every window -> out_of_window
+ *   5. end date in a window but not a month-end -> review ("off_cycle_date")
+ *   6. an unresolved TERM on an otherwise workable lease -> review ("term_needs_review")
+ *   7. otherwise -> actionable
+ *
+ * Step 6 keeps the module's conservative rule intact: when the term evidence is missing, unreadable,
+ * or self-contradictory, the lease could still be month-to-month, so it surfaces for review instead
+ * of entering the monthly cohort. Its date-driven place in the worklist is otherwise unchanged.
  */
 export function classifyRenewalCohort(
   leases: RawLease[],
@@ -228,45 +259,56 @@ export function classifyRenewalCohort(
     const leaseId = idHit ? String(idHit.value) : null;
     const endHit = firstPresent(lease, config.endDateKeys);
     const endDateIso = endHit ? toCohortIsoDate(endHit.value) : null;
-
-    const skipReason = matchedSkipReason(lease, config.skipSignals);
-    if (skipReason) {
-      return { index, leaseId, endDateIso, disposition: "skip", reason: skipReason };
-    }
-    if (endDateIso === null) {
-      return { index, leaseId, endDateIso, disposition: "review", reason: "no_end_date" };
-    }
-    if (!inAnyWindow(endDateIso, options.windows)) {
-      return {
-        index,
-        leaseId,
-        endDateIso,
-        disposition: "out_of_window",
-        reason: "out_of_window",
-      };
-    }
-    if (!isMonthEnd(endDateIso)) {
-      return {
-        index,
-        leaseId,
-        endDateIso,
-        disposition: "review",
-        reason: "off_cycle_date",
-      };
-    }
-    return {
+    const termProjection = projectLeaseTerm(
+      lease,
+      (leaseId === null ? undefined : options.termReviews?.get(leaseId)) ?? null,
+      options.referenceDateIso === undefined
+        ? {}
+        : { referenceDateIso: options.referenceDateIso },
+    );
+    const base = {
       index,
       leaseId,
       endDateIso,
-      disposition: "actionable",
-      reason: "actionable",
+      term: termProjection.term,
+      termProjection,
     };
+
+    if (termProjection.term === "month_to_month") {
+      return { ...base, disposition: "periodic_review", reason: "month_to_month" };
+    }
+    const skipReason = matchedSkipReason(lease, config.skipSignals);
+    if (skipReason) {
+      return { ...base, disposition: "skip", reason: skipReason };
+    }
+    if (endDateIso === null) {
+      return { ...base, disposition: "review", reason: "no_end_date" };
+    }
+    if (!inAnyWindow(endDateIso, options.windows)) {
+      return { ...base, disposition: "out_of_window", reason: "out_of_window" };
+    }
+    if (!isMonthEnd(endDateIso)) {
+      return { ...base, disposition: "review", reason: "off_cycle_date" };
+    }
+    // The provider itself reported something unclear (an expired or missing end date, a pending
+    // month-to-month conversion, or a signal that contradicts the dates). An unreadable detail is a
+    // separate, already-surfaced read failure and does not move the lease out of the cohort.
+    if (
+      termProjection.term === "needs_review" &&
+      termProjection.evidence === "provider_detail"
+    ) {
+      return { ...base, disposition: "review", reason: "term_needs_review" };
+    }
+    return { ...base, disposition: "actionable", reason: "actionable" };
   });
 
   const actionable = classifications.filter((c) => c.disposition === "actionable");
   const skipped = classifications.filter((c) => c.disposition === "skip");
   const needsReview = classifications.filter((c) => c.disposition === "review");
   const outOfWindow = classifications.filter((c) => c.disposition === "out_of_window");
+  const periodicReview = classifications.filter(
+    (c) => c.disposition === "periodic_review",
+  );
 
   // Typed seed (not an `as` cast) so adding a CohortReason without a count is a compile error —
   // mirrors the cast-free bySeverity map in pipeline.ts.
@@ -278,6 +320,7 @@ export function classifyRenewalCohort(
     no_end_date: 0,
     off_cycle_date: 0,
     out_of_window: 0,
+    term_needs_review: 0,
   };
   for (const c of classifications) byReason[c.reason] += 1;
 
@@ -287,12 +330,14 @@ export function classifyRenewalCohort(
     skipped,
     needsReview,
     outOfWindow,
+    periodicReview,
     summary: {
       total: leases.length,
       actionable: actionable.length,
       skipped: skipped.length,
       needsReview: needsReview.length,
       outOfWindow: outOfWindow.length,
+      periodicReview: periodicReview.length,
       byReason,
     },
   };

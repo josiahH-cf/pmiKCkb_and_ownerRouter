@@ -19,6 +19,11 @@ import type {
 } from "@/lib/lease-renewal/desk-model";
 import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
 import {
+  fixedTermProjection,
+  monthToMonthProjection,
+  needsReviewTermProjection,
+} from "@/tests/helpers/lease-term-fixtures";
+import {
   DEFAULT_RENEWAL_DESK_QUERY_V2,
   OVERALL_STATUS_URGENCY_RANK,
   type RenewalDeskQueryV2State,
@@ -87,6 +92,7 @@ function row(
     disposition: "actionable",
     reason: "actionable",
     reasonLabel: "Ready to work",
+    leaseTerm: fixedTermProjection("2026-10-15"),
     retention: { state: "window", label: "Inside the current-month renewal window" },
     processVersion: "renewal-v1",
     workflowStepId: "owner-decision",
@@ -110,6 +116,74 @@ function row(
 const state: RenewalDeskQueryV2State = { ...DEFAULT_RENEWAL_DESK_QUERY_V2 };
 
 afterEach(cleanup);
+
+describe("S103 visible lease term (BEH-S103-2 / BEH-S103-3)", () => {
+  it("shows each row's term and, for month-to-month, its next review date", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row("L1"),
+          row("L2", {
+            leaseTerm: monthToMonthProjection("2025-09-15"),
+            retention: {
+              state: "periodic_review",
+              label: "Periodic review due 2026-09-15",
+            },
+          }),
+          row("L3", { leaseTerm: needsReviewTermProjection() }),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={3}
+      />,
+    );
+
+    const cells = Array.from(
+      document.querySelectorAll('[data-renewal-field="lease-term"]'),
+    );
+    expect(cells.map((cell) => cell.getAttribute("data-lease-term"))).toEqual([
+      "fixed_term",
+      "month_to_month",
+      "needs_review",
+    ]);
+    expect(cells[0]).toHaveTextContent("Fixed-term");
+    expect(cells[1]).toHaveTextContent("Month-to-month · review due 2026-09-15");
+    expect(cells[2]).toHaveTextContent("Needs review");
+  });
+
+  it("says the review date needs review when a month-to-month lease has no anchor", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1", { leaseTerm: monthToMonthProjection(null) })]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={1}
+      />,
+    );
+    expect(document.querySelector('[data-renewal-field="lease-term"]')).toHaveTextContent(
+      "Month-to-month · review date needs review",
+    );
+  });
+
+  it("offers a term header filter and renders an active term filter as a removable chip", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1")]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={{ ...state, term: "month_to_month" }}
+        totalBeforeQuery={1}
+      />,
+    );
+    expect(screen.getByLabelText("Lease term")).toBeInTheDocument();
+    expect(screen.getByText("Lease term: month to month")).toBeInTheDocument();
+  });
+});
 
 describe("S82 table structure and sorting semantics", () => {
   it("renders the caption, sortable headers with aria-sort, and no menu roles", () => {

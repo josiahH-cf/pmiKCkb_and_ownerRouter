@@ -120,8 +120,8 @@ The only executable order is in `docs/feature-suites/README.md`:
 11. S51/S54 — production assurance expansion. Committed; owns the shared release gate for steps 6-8.
 12. S102 — tenant current rent from the RentVine lease detail. Committed and candidate-deployed,
     not promoted.
-13. S103, S104, S105, S106, S34, S107, S108, S109, S110, S111 — the renewal-completion program in
-    that order (owner direction 2026-09-03).
+13. S103 — lease term and renewal eligibility. Implemented and unreleased. Then S104, S105, S106,
+    S34, S107, S108, S109, S110, S111 in that order (owner direction 2026-09-03).
 14. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
 15. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.

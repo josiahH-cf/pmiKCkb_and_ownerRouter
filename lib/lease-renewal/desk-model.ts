@@ -14,6 +14,7 @@ import type {
   RenewalOverallStatus,
   RenewalRentVerificationState,
 } from "@/lib/lease-renewal/desk-query-v2";
+import type { LeaseTerm, LeaseTermProjection } from "@/lib/lease-renewal/lease-term";
 import type {
   RenewalProcessStatus,
   RenewalProcessStepId,
@@ -47,6 +48,7 @@ const REASON_LABEL: Record<CohortReason, string> = {
   no_end_date: "No end date on file",
   off_cycle_date: "Off-cycle end date",
   out_of_window: "Outside this window",
+  term_needs_review: "Lease term needs review",
 };
 
 /** Humanized label for a cohort skip/review reason. */
@@ -95,6 +97,8 @@ export type RenewalDeskRetentionState =
   | { state: "window"; label: string }
   | { state: "needs_verification"; label: string }
   | { state: "tracked_incomplete"; label: string }
+  /** S103: a month-to-month lease whose annual review falls inside the current window. */
+  | { state: "periodic_review"; label: string }
   | { state: "outside"; label: string };
 
 export type RenewalDeskWaitingKey =
@@ -119,6 +123,10 @@ export interface RenewalDeskQueryKeys {
   dueAtIso: string | null;
   /** Null means source conflicts were not evaluated; it never masquerades as zero. */
   sourceConflictCount: number | null;
+  /** S103: the one shared lease term, so the table filter never reclassifies from dates. */
+  leaseTerm: LeaseTerm;
+  /** S103: the month-to-month annual review date, or null when the term or anchor is unresolved. */
+  nextReviewIso: string | null;
 }
 
 export interface DeskLeaseSummaryBase {
@@ -133,6 +141,8 @@ export interface DeskLeaseSummaryBase {
   disposition: CohortDisposition;
   reason: CohortReason;
   reasonLabel: string;
+  /** S103: the one lease-term projection shared by desk, workspace, query, and assistant. */
+  leaseTerm: LeaseTermProjection;
   retention: RenewalDeskRetentionState;
   processVersion: string | null;
   workflowStepId: string | null;
@@ -285,6 +295,8 @@ export interface RenewalDeskView {
   review: DeskLeaseRow[];
   skipped: DeskLeaseRow[];
   outOfWindow: DeskLeaseRow[];
+  /** S103: month-to-month leases on the annual review rhythm, never in the monthly cohort. */
+  periodicReview: DeskLeaseRow[];
 }
 
 export interface RenewalWorkspaceLiveState {

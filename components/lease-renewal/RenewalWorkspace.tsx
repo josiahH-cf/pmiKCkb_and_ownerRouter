@@ -38,6 +38,7 @@ import {
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
 import { buildWorkspaceHref } from "@/lib/lease-renewal/desk-view-continuation";
+import { LEASE_TERM_LABELS } from "@/lib/lease-renewal/lease-term";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
@@ -101,6 +102,7 @@ export function RenewalWorkspace({
   discrepancyPanel = null,
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
+  termReviewPanel = null,
   sheetDestination = null,
   auxiliaryFailures = [],
   resolutionDestinations = [],
@@ -119,6 +121,12 @@ export function RenewalWorkspace({
   rentvineUpdatesPanel?: ReactNode;
   /** S98: the page-supplied operating-Sheet proposal/review panel, shown only in verification. */
   operatingSheetPanel?: ReactNode;
+  /**
+   * S103: the page-supplied lease term review control, shown in verification for every openable
+   * lease — including an inspection-only month-to-month row, where recording the anchor is the
+   * whole point of the visit.
+   */
+  termReviewPanel?: ReactNode;
   /** Server-validated operating-Sheet link for the verify phase's source evidence. */
   sheetDestination?: ExternalDeskDestination | null;
   /** Symbolic supporting-read failures. Values/errors never enter this client-safe projection. */
@@ -175,6 +183,7 @@ export function RenewalWorkspace({
               sheetProposalPanel={null}
               sheetDestination={sheetDestination}
               stepId="verify-renewal"
+              termReviewPanel={termReviewPanel}
               workspace={workspace}
             />
           </section>
@@ -230,6 +239,7 @@ export function RenewalWorkspace({
             selectedStep={selectedStep}
             sheetProposalPanel={operatingSheetPanel}
             sheetDestination={sheetDestination}
+            termReviewPanel={termReviewPanel}
             workspace={workspace}
           />
         </>
@@ -387,6 +397,7 @@ function SelectedPhase({
   rentvineUpdatesPanel,
   sheetProposalPanel,
   resolutionDestinations,
+  termReviewPanel,
   deskView,
 }: Readonly<{
   workspace: RenewalLeaseWorkspace;
@@ -405,6 +416,7 @@ function SelectedPhase({
   rentvineUpdatesPanel: ReactNode;
   sheetProposalPanel: ReactNode;
   resolutionDestinations: readonly { fieldKey: string; href: string }[];
+  termReviewPanel: ReactNode;
   deskView: string | null;
 }>) {
   const process = workspace.process;
@@ -489,6 +501,7 @@ function SelectedPhase({
             sheetProposalPanel={sheetProposalPanel}
             sheetDestination={sheetDestination}
             stepId={selectedStep.id}
+            termReviewPanel={termReviewPanel}
             workspace={workspace}
           />
         </>
@@ -569,6 +582,7 @@ function PhaseContent({
   rentvineUpdatesPanel,
   sheetProposalPanel,
   resolutionDestinations,
+  termReviewPanel,
 }: Readonly<{
   stepId: RenewalProcessStepId;
   workspace: RenewalLeaseWorkspace;
@@ -585,14 +599,57 @@ function PhaseContent({
   rentvineUpdatesPanel: ReactNode;
   sheetProposalPanel: ReactNode;
   resolutionDestinations: readonly { fieldKey: string; href: string }[];
+  termReviewPanel: ReactNode;
 }>) {
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
+  const term = summary.leaseTerm;
   const openItems = readiness.flags.length + readiness.needsInput.length;
 
   switch (stepId) {
     case "verify-renewal":
       return (
         <>
+          <Card title="Lease term">
+            <ul className="ui-rows">
+              <li className="ui-spread">
+                <strong>Term</strong>
+                <span data-renewal-field="lease-term" data-lease-term={term.term}>
+                  {LEASE_TERM_LABELS[term.term]}
+                </span>
+              </li>
+              <li className="ui-spread">
+                <span>Lease dates</span>
+                <span>
+                  {term.startDateIso ?? "Needs Verification"} to{" "}
+                  {term.endDateIso ?? "Needs Verification"}
+                </span>
+              </li>
+              {term.term === "month_to_month" ? (
+                <>
+                  <li className="ui-spread">
+                    <span>Month-to-month since</span>
+                    <span data-renewal-field="lease-term-anchor">
+                      {term.anchorDateIso ?? "Needs Verification"}
+                    </span>
+                  </li>
+                  <li className="ui-spread">
+                    <span>Next review</span>
+                    <span data-renewal-field="lease-term-next-review">
+                      {term.nextReviewIso ?? "Needs review"}
+                    </span>
+                  </li>
+                </>
+              ) : null}
+            </ul>
+            {term.recordedReviewStale ? (
+              <p className="muted" role="status">
+                A recorded term review exists for a different version of these lease
+                facts, so it is not applied. Record the term again against the current
+                facts.
+              </p>
+            ) : null}
+            {termReviewPanel}
+          </Card>
           <Card title="Data check">
             <ul className="ui-rows">
               {dataCheck.map((item) => {

@@ -19,7 +19,8 @@ const LOADER_BUDGET_MS = 15_000;
 const RENDER_BUDGET_MS = 5_000;
 const ACTIONABLE_ROW_COUNT = 32;
 const REVIEW_ROW_COUNT = 16;
-const SKIPPED_ROW_COUNT = 16;
+// S103: month-to-month leases now carry the `periodic_review` disposition, not `skip`.
+const PERIODIC_REVIEW_ROW_COUNT = 16;
 
 type DeskConfig = NonNullable<Parameters<typeof loadLiveRenewalDesk>[2]>;
 
@@ -31,6 +32,7 @@ function rowShape(index: number): {
   endDateIso: string;
   endDateDisplay: string;
   leaseType: string;
+  isMonthToMonth: "0" | "1";
 } {
   if (index < ACTIONABLE_ROW_COUNT) {
     return index % 2 === 0
@@ -38,11 +40,13 @@ function rowShape(index: number): {
           endDateIso: "2026-08-31",
           endDateDisplay: "8/31/2026",
           leaseType: "Fixed Term",
+          isMonthToMonth: "0",
         }
       : {
           endDateIso: "2026-09-30",
           endDateDisplay: "9/30/2026",
           leaseType: "Fixed Term",
+          isMonthToMonth: "0",
         };
   }
   if (index < ACTIONABLE_ROW_COUNT + REVIEW_ROW_COUNT) {
@@ -50,19 +54,22 @@ function rowShape(index: number): {
       endDateIso: "2026-09-15",
       endDateDisplay: "9/15/2026",
       leaseType: "Fixed Term",
+      isMonthToMonth: "0",
     };
   }
-  if (index < ACTIONABLE_ROW_COUNT + REVIEW_ROW_COUNT + SKIPPED_ROW_COUNT) {
+  if (index < ACTIONABLE_ROW_COUNT + REVIEW_ROW_COUNT + PERIODIC_REVIEW_ROW_COUNT) {
     return {
       endDateIso: "2026-09-30",
       endDateDisplay: "9/30/2026",
       leaseType: "Month to Month",
+      isMonthToMonth: "1",
     };
   }
   return {
     endDateIso: "2027-12-31",
     endDateDisplay: "12/31/2027",
     leaseType: "Fixed Term",
+    isMonthToMonth: "0",
   };
 }
 
@@ -109,6 +116,8 @@ function buildScaleFixture() {
         leaseID: Number(leaseId),
         endDate: shape.endDateIso,
         leaseType: shape.leaseType,
+        isMonthToMonth: shape.isMonthToMonth,
+        monthToMonthStartDate: shape.isMonthToMonth === "1" ? "2025-09-15" : null,
         tenants: [{ name: `Scale Tenant ${String(index).padStart(3, "0")}` }],
       },
       property: {
@@ -166,10 +175,14 @@ describe("S82 production-sized loader and render coverage", () => {
     expect(result.view.cohort.summary).toMatchObject({
       total: SCALE_ROW_COUNT,
       actionable: ACTIONABLE_ROW_COUNT,
-      skipped: SKIPPED_ROW_COUNT,
+      skipped: 0,
+      periodicReview: PERIODIC_REVIEW_ROW_COUNT,
       needsReview: REVIEW_ROW_COUNT,
       outOfWindow:
-        SCALE_ROW_COUNT - ACTIONABLE_ROW_COUNT - REVIEW_ROW_COUNT - SKIPPED_ROW_COUNT,
+        SCALE_ROW_COUNT -
+        ACTIONABLE_ROW_COUNT -
+        REVIEW_ROW_COUNT -
+        PERIODIC_REVIEW_ROW_COUNT,
     });
     expect(result.view.items).toHaveLength(SCALE_ROW_COUNT);
     expect(new Set(result.view.items.map((row) => row.id)).size).toBe(SCALE_ROW_COUNT);
@@ -239,7 +252,9 @@ describe("S82 production-sized loader and render coverage", () => {
           )
           .filter((href): href is string => Boolean(href)),
       ).size,
-    ).toBe(SCALE_ROW_COUNT - SKIPPED_ROW_COUNT);
+      // S103: a periodic-review lease keeps its inspection-only workspace, so every loaded row
+      // still carries exactly one unique destination.
+    ).toBe(SCALE_ROW_COUNT);
     expect(
       new Set(
         rows.map(

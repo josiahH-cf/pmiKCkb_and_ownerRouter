@@ -70,6 +70,17 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to record a discrepancy disposition.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  record_term_review: {
+    label: "Record an app-owned lease term review",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to record a lease term review.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   manage_follow_up_attention: {
     label: "Dismiss or reopen one exact renewal follow-up attention item",
     roleCapability: "edit",
@@ -309,6 +320,17 @@ export function renewalRoleCapability(key: RenewalCapabilityKey): Capability {
   return RENEWAL_GOVERNANCE_MATRIX[key].roleCapability;
 }
 
+/**
+ * True when this role carries the capability's application authority. Server components use it to
+ * choose between a control and its read-only explanation without importing the raw role table.
+ */
+export function hasRenewalRoleAuthority(key: RenewalCapabilityKey, role: Role): boolean {
+  const row = RENEWAL_GOVERNANCE_MATRIX[key];
+  return (
+    row.externalRequirement !== "permanently_closed" && can(role, row.roleCapability)
+  );
+}
+
 /** Route-level role refusal with the same reason and safe next action rendered by the UI. */
 export function assertRenewalRoleAuthority(key: RenewalCapabilityKey, role: Role): void {
   const row = RENEWAL_GOVERNANCE_MATRIX[key];
@@ -439,6 +461,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RenewalFollowUpAttentionControl.tsx",
     capability: "manage_follow_up_attention",
     enforcementSources: ["app/api/lease-renewal/follow-up-attention/route.ts"],
+  },
+  {
+    control: "Record or correct the lease term review",
+    source: "components/lease-renewal/LeaseTermReviewControl.tsx",
+    capability: "record_term_review",
+    enforcementSources: ["app/api/lease-renewal/term-review/route.ts"],
   },
   {
     control: "Request reference comps",
@@ -655,6 +683,18 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/operating-sheet/route.ts",
     method: "POST",
     capability: "execute_source_write",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/term-review/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/term-review/route.ts",
+    method: "POST",
+    capability: "record_term_review",
   },
   {
     kind: "api",

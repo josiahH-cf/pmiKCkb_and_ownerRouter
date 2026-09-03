@@ -13,6 +13,7 @@ import {
   withRenewalDeskQueryKeys,
 } from "@/lib/lease-renewal/desk-query";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import { fixedTermProjection } from "@/tests/helpers/lease-term-fixtures";
 
 function followUp(
   input: {
@@ -79,6 +80,7 @@ function deskItem(id: string, overrides: Partial<DeskLeaseSummaryBase> = {}) {
     disposition: "actionable",
     reason: "actionable",
     reasonLabel: "Ready to work",
+    leaseTerm: fixedTermProjection(),
     retention,
     processVersion: "renewal-v1",
     workflowStepId: "verify-renewal",

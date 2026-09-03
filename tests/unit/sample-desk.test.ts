@@ -12,21 +12,21 @@ describe("getRenewalDeskView", () => {
       total: 7,
       actionable: 3,
       needsReview: 1,
-      skipped: 2,
+      skipped: 1,
+      periodicReview: 1,
       outOfWindow: 1,
     });
     expect(view.actionable).toHaveLength(3);
     expect(view.review).toHaveLength(1);
-    expect(view.skipped).toHaveLength(2);
+    expect(view.skipped).toHaveLength(1);
+    expect(view.periodicReview).toHaveLength(1);
     expect(view.outOfWindow).toHaveLength(1);
   });
 
-  it("surfaces the skip reasons and an off-cycle review reason as human labels", () => {
+  it("surfaces the skip, periodic-review, and off-cycle review reasons as human labels", () => {
     const view = getRenewalDeskView();
-    expect(view.skipped.map((s) => s.reasonLabel).sort()).toEqual([
-      "Month-to-month",
-      "Program lease",
-    ]);
+    expect(view.skipped.map((s) => s.reasonLabel)).toEqual(["Program lease"]);
+    expect(view.periodicReview.map((s) => s.reasonLabel)).toEqual(["Month-to-month"]);
     expect(view.review[0].reasonLabel).toBe("Off-cycle end date");
     expect(view.outOfWindow[0].reasonLabel).toBe("Outside this window");
   });

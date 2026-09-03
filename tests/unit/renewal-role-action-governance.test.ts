@@ -62,6 +62,8 @@ const API_EXPECTATIONS = [
   ],
   ["app/api/lease-renewal/rentvine-writeback/route.ts", "POST", "execute_source_write"],
   ["app/api/lease-renewal/operating-sheet/route.ts", "POST", "execute_source_write"],
+  ["app/api/lease-renewal/term-review/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/term-review/route.ts", "POST", "record_term_review"],
   ["app/api/lease-renewal/resolve/route.ts", "POST", "resolve_reconciliation"],
   [
     "app/api/lease-renewal/writeback-approvals/bulk/route.ts",

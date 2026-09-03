@@ -31,6 +31,8 @@ import { getCurrentPacketSnapshot } from "@/lib/firestore/lease-document-packet-
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { listRenewalDiscrepancyDispositions } from "@/lib/firestore/renewal-discrepancy-dispositions";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
+import { getLeaseTermReview } from "@/lib/firestore/lease-renewal-term-reviews";
+import { LeaseTermReviewControl } from "@/components/lease-renewal/LeaseTermReviewControl";
 import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-screenshot-action";
 import {
   findLeaseViewById,
@@ -53,7 +55,10 @@ import {
   buildDeskReturnHref,
   validateDeskView,
 } from "@/lib/lease-renewal/desk-view-continuation";
-import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import {
+  hasRenewalRoleAuthority,
+  renewalRoleCapability,
+} from "@/lib/lease-renewal/role-action-governance";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import {
@@ -192,6 +197,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
     readRenewalAuxiliary("comp_screenshot", () => getRenewalCompScreenshotActionView()),
     readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
   ]);
+  // S103: this lease's recorded term review. An unavailable store projects no review, so the term
+  // stays at its provider-evidence value rather than looking resolved.
+  const termReviewRead = await readRenewalAuxiliary("term_reviews", () =>
+    getLeaseTermReview(user, leaseId),
+  );
   const approvedSuggestion = renewalAuxiliaryValue(suggestionRead, null);
   const compScreenshotExecutable =
     compScreenshotRead.status === "available"
@@ -200,6 +210,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // An unavailable resolution store deliberately projects no resolution while also surfacing the
   // failed state below. It can only keep an item blocked; it can never turn a value verified.
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
+  const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     readTimestamp,
@@ -216,6 +227,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     },
     sourceRefreshAfter,
     leaseSnapshotAttempt,
+    termReview,
   );
   const [dispositionsRead, writebackProposalRead] = await Promise.all([
     readRenewalAuxiliary("dispositions", () =>
@@ -260,6 +272,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     suggestionRead,
     compScreenshotRead,
     resolutionsRead,
+    termReviewRead,
     dispositionsRead,
     writebackProposalRead,
     sheetProposalRead,
@@ -351,6 +364,18 @@ export default async function LiveRenewalLeaseWorkspacePage({
             sheetDestination={buildOperatingSheetDestination(
               process.env.RENEWAL_SHEET_ID,
             )}
+            termReviewPanel={
+              termReviewRead.status === "available" ? (
+                <LeaseTermReviewControl
+                  canEdit={hasRenewalRoleAuthority("record_term_review", user.role)}
+                  leaseId={leaseId}
+                  recordedTerm={termReview?.term ?? null}
+                  term={outcome.workspace.summary.leaseTerm}
+                />
+              ) : (
+                <RenewalAuxiliaryNotice compact failures={[termReviewRead]} />
+              )
+            }
             workspace={outcome.workspace}
           />
         ) : outcome.status === "not_found" ? (

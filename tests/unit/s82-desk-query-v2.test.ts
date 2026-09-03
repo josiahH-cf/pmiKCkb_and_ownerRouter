@@ -18,6 +18,7 @@ import {
   type RenewalOverallStatus,
 } from "@/lib/lease-renewal/desk-query-v2";
 import { normalizeRenewalDeskText } from "@/lib/lease-renewal/desk-query";
+import type { LeaseTerm } from "@/lib/lease-renewal/lease-term";
 
 const TOKEN_A = `p1_${"a".repeat(43)}`;
 const TOKEN_B = `p1_${"b".repeat(43)}`;
@@ -52,6 +53,8 @@ function item(
     dueAtIso?: string | null;
     sourceConflictCount?: number | null;
     retention?: string;
+    leaseTerm?: LeaseTerm;
+    nextReviewIso?: string | null;
     currentBaseRent?: number | null;
     rentVerification?: "verified" | "needs_verification" | "unavailable";
     overallStatus?: RenewalOverallStatus;
@@ -87,6 +90,8 @@ function item(
       dueAtIso: overrides.dueAtIso ?? null,
       sourceConflictCount:
         overrides.sourceConflictCount === undefined ? 0 : overrides.sourceConflictCount,
+      leaseTerm: overrides.leaseTerm ?? "fixed_term",
+      nextReviewIso: overrides.nextReviewIso ?? null,
     },
     identity: {
       address: address === null ? null : { label: address },
@@ -549,6 +554,64 @@ describe("S82 v2 filter application", () => {
       expect(result.items).toHaveLength(4);
     }
     expect(frozen.map((entry) => entry.id)).toEqual(["L1", "L2", "L3", "L4"]);
+  });
+});
+
+describe("S103 lease term filter and periodic-review scope", () => {
+  const rows = [
+    item("F1"),
+    item("M1", {
+      leaseTerm: "month_to_month",
+      nextReviewIso: "2026-09-15",
+      retention: "periodic_review",
+    }),
+    item("M2", { leaseTerm: "month_to_month", retention: "outside" }),
+    item("R1", { leaseTerm: "needs_review" }),
+  ];
+
+  it("filters by the one shared term projection", () => {
+    for (const [term, expected] of [
+      ["fixed_term", ["F1"]],
+      ["month_to_month", ["M1"]],
+      ["needs_review", ["R1"]],
+    ] as const) {
+      const result = applyRenewalDeskQueryV2(
+        rows,
+        { ...DEFAULT_RENEWAL_DESK_QUERY_V2, term, scope: "active" },
+        testMatcher,
+      );
+      expect(result.items.map((row) => row.id)).toEqual(expected);
+    }
+  });
+
+  it("isolates due periodic reviews in their own scope while keeping them in the active worklist", () => {
+    expect(
+      applyRenewalDeskQueryV2(
+        rows,
+        { ...DEFAULT_RENEWAL_DESK_QUERY_V2, scope: "periodic_review" },
+        testMatcher,
+      ).items.map((row) => row.id),
+    ).toEqual(["M1"]);
+    expect(
+      applyRenewalDeskQueryV2(
+        rows,
+        { ...DEFAULT_RENEWAL_DESK_QUERY_V2 },
+        testMatcher,
+      ).items.map((row) => row.id),
+    ).toEqual(["F1", "M1", "R1"]);
+  });
+
+  it("round-trips the term filter and the periodic-review scope through the canonical URL", () => {
+    const state = parseRenewalDeskQueryV2(
+      new URLSearchParams("v=2&scope=periodic_review&term=month_to_month"),
+    );
+    expect(state).toMatchObject({ scope: "periodic_review", term: "month_to_month" });
+    expect(serializeRenewalDeskQueryV2(state)).toBe(
+      "v=2&scope=periodic_review&term=month_to_month",
+    );
+    expect(parseRenewalDeskQueryV2(new URLSearchParams("v=2&term=weekly")).term).toBe(
+      "all",
+    );
   });
 });
 

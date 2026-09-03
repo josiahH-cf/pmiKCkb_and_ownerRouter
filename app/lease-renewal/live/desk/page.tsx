@@ -7,6 +7,7 @@ import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-g
 import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
+import { listLeaseTermReviews } from "@/lib/firestore/lease-renewal-term-reviews";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import { listCurrentRenewalPacketSnapshots } from "@/lib/firestore/lease-document-packet-snapshots";
@@ -108,6 +109,7 @@ export default async function LiveRenewalDeskPage({
     communicationsRead,
     dismissedRead,
     resolutionsRead,
+    termReviewsRead,
     packetRead,
   ] = await Promise.all([
     readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
@@ -121,6 +123,9 @@ export default async function LiveRenewalDeskPage({
     // S82: one bulk read of record-specific human resolutions so the table's rent verification
     // reflects exact current decisions. A missing decision store never makes a value look resolved.
     readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
+    // S103: one bulk read of recorded lease term reviews. An unavailable store projects no review,
+    // so a lease with absent provider evidence stays visibly unresolved rather than resolved.
+    readRenewalAuxiliary("term_reviews", () => listLeaseTermReviews(user)),
     readRenewalAuxiliary("packet", async () => {
       if (!liveConfig.ok || !leaseSnapshotResult) {
         throw new Error("Live renewal sources are unavailable.");
@@ -150,6 +155,7 @@ export default async function LiveRenewalDeskPage({
   };
   const dismissedAttentionKeys = renewalAuxiliaryValue(dismissedRead, []);
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
+  const termReviews = renewalAuxiliaryValue(termReviewsRead, new Map());
   const packetSnapshotsByLease =
     packetRead.status === "available" ? packetRead.value : undefined;
   const auxiliaryFailures = renewalAuxiliaryFailures([
@@ -158,6 +164,7 @@ export default async function LiveRenewalDeskPage({
     communicationsRead,
     dismissedRead,
     resolutionsRead,
+    termReviewsRead,
     packetRead,
   ]);
   const outcome = !liveConfig.ok
@@ -179,6 +186,7 @@ export default async function LiveRenewalDeskPage({
           packetSnapshotsByLease,
           progressRead.status === "available",
           leaseSnapshotResult,
+          termReviews,
         );
 
   // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these

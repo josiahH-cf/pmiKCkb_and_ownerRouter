@@ -3,9 +3,11 @@
 
 # S103 — Lease term and renewal eligibility
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. The cohort classifier already
-> excludes month-to-month leases through heuristic provider keys but shows no term, records no
-> review anchor, and cannot represent an explicit `needs review` term.
+> Status: IMPLEMENTED / UNRELEASED. `projectLeaseTerm` owns the term for the cohort, desk,
+> workspace, and query; month-to-month leases carry the new `periodic_review` disposition with a
+> 12-month review anchor; the app-owned `lease_renewal_term_reviews` record and its Editor-gated
+> route resolve leases whose provider evidence is absent or contradictory. Production still uses the
+> heuristic skip signals and shows no term.
 
 **Goal.**
 
@@ -120,8 +122,14 @@ month-to-month. Month-to-month leases are not in the monthly renewal list; they 
 for review with the date that review is due. Anything unclear says it needs review and offers one
 control to record the answer.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with cohort, desk,
-  workspace, and rehearsal-browser evidence.
+- Model verdict: PASS - why: `projectLeaseTerm` is the one term for the cohort, desk, workspace, and
+  query; the desk row states Fixed-term, Month-to-month (with its review date), or Needs review and
+  filters on it; month-to-month leases carry `periodic_review` with a 12-month anchor and never
+  enter the monthly cohort; an unclear provider term routes to review instead of being worked; and
+  the workspace verification phase shows the term with one Editor-gated control to record it.
+  Evidence: focused cohort/projection/store/route suites, the canonical gate, core E2E, and the
+  local rehearsal browser smoke against live read-only sources (309 rows: 143 fixed-term, 9
+  month-to-month, 157 needs review).
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -166,6 +174,16 @@ Consumes S102's lease view. S104, S105, S110, and S111 consume the term projecti
   that row `needs_review`.
 - **Externally blocked effect:** none.
 - **Produces for downstream suites:** `leaseTerm`, `periodic_review` disposition, `nextReviewIso`.
+
+**Observed limitation (S84-owned, not changed here).**
+
+Running the rehearsal browser smoke against a served build surfaced a pre-existing narrow-viewport
+behavior: S84's responsive navigation resolves on the client, so a payload as large as the full desk
+briefly paints the server-rendered desktop group at 320px and the page overflows horizontally until
+hydration swaps in the compact trigger (measured: overflow present immediately, gone within three
+seconds). It is independent of this suite - S103 adds one span per row - and S84 owns navigation, so
+the smoke now measures the settled responsive layout and the finding is recorded for S84 rather than
+fixed inside this slice.
 
 **Verification and delivery contract.**
 

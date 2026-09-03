@@ -35,8 +35,8 @@ describe("isMonthEnd", () => {
 describe("classifyRenewalCohort", () => {
   const leases: RawLease[] = [
     { leaseID: 1, endDate: "2026-08-31" }, // actionable
-    { leaseID: 2, endDate: "2026-08-31", isMonthToMonth: true }, // skip: m2m (truthy)
-    { leaseID: 3, endDate: "2026-09-30", leaseType: "Month to Month" }, // skip: m2m (type)
+    { leaseID: 2, endDate: "2026-08-31", isMonthToMonth: true }, // periodic review: m2m (truthy)
+    { leaseID: 3, endDate: "2026-09-30", leaseType: "Month to Month" }, // periodic review: m2m (type)
     { leaseID: 4, endDate: "2026-09-30", note: "Owner authorized to let it renew" }, // skip: owner
     { leaseID: 5, endDate: "2026-08-31", program: "PadSplit" }, // skip: program
     { leaseID: 6 }, // review: no end date
@@ -49,8 +49,8 @@ describe("classifyRenewalCohort", () => {
     expect(cohort.classifications).toHaveLength(leases.length);
     expect(cohort.classifications.map((c) => c.disposition)).toEqual([
       "actionable",
-      "skip",
-      "skip",
+      "periodic_review",
+      "periodic_review",
       "skip",
       "skip",
       "review",
@@ -73,12 +73,13 @@ describe("classifyRenewalCohort", () => {
     expect(cohort.summary).toMatchObject({
       total: 7,
       actionable: 1,
-      skipped: 4, // m2m + m2m + owner + program
+      skipped: 2, // owner + program
+      periodicReview: 2, // S103: month-to-month leaves the monthly cycle for annual review
       needsReview: 1,
       outOfWindow: 1,
     });
-    expect(cohort.skipped).toHaveLength(4);
-    expect(cohort.summary.skipped).toBe(4);
+    expect(cohort.skipped).toHaveLength(2);
+    expect(cohort.periodicReview).toHaveLength(2);
     expect(cohort.summary.byReason.month_to_month).toBe(2);
   });
 
@@ -103,14 +104,15 @@ describe("off-cycle dates surface for review (never silently bucketed)", () => {
   });
 });
 
-describe("skip signals take precedence over the date checks", () => {
-  it("skips a month-to-month lease even when its end date is out of the window", () => {
+describe("term and skip signals take precedence over the date checks", () => {
+  it("routes a month-to-month lease to periodic review even when its end date is out of window", () => {
     const leases: RawLease[] = [
       { leaseID: 20, endDate: "2026-12-31", isMonthToMonth: true },
     ];
     const cohort = classifyRenewalCohort(leases, { windows: AUG_SEP });
-    expect(cohort.classifications[0].disposition).toBe("skip");
+    expect(cohort.classifications[0].disposition).toBe("periodic_review");
     expect(cohort.classifications[0].reason).toBe("month_to_month");
+    expect(cohort.classifications[0].term).toBe("month_to_month");
   });
 
   it("skips a program lease even when it has no resolvable end date", () => {

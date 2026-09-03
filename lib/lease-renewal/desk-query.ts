@@ -213,6 +213,8 @@ export function withRenewalDeskQueryKeys(
     dueState,
     dueAtIso: summary.followUp?.due.atIso ?? null,
     sourceConflictCount: summary.workflowStepId === null ? null : summary.openConflicts,
+    leaseTerm: summary.leaseTerm.term,
+    nextReviewIso: summary.leaseTerm.nextReviewIso,
   };
   return { ...summary, queryKeys };
 }
