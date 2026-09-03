@@ -121,18 +121,19 @@ The only executable order is in `docs/feature-suites/README.md`:
 12. S102 — tenant current rent from the RentVine lease detail. Committed and candidate-deployed,
     not promoted.
 13. S103 — lease term and renewal eligibility. Committed and candidate-deployed, not promoted.
-    Then S104, S105, S106, S34, S107, S108, S109, S110, S111 in that order (owner direction
-    2026-09-03).
-14. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
-15. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
+14. S104 — renewal desk and workspace parity closure. Implemented and unreleased.
+15. S105, S106, S34, S107, S108, S109, S110, S111 — the rest of the renewal-completion program in
+    that order (owner direction 2026-09-03).
+16. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
+17. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.
-16. S90 and S91 — Work/access and renewal query adapters.
-17. S92 — knowledge and bounded grounded narration.
-18. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
-19. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
-20. S95 — atomic minimal Dashboard composition and relocation.
-21. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
-22. S101 — post-S87 read-only cross-application assistant expansion.
+18. S90 and S91 — Work/access and renewal query adapters.
+19. S92 — knowledge and bounded grounded narration.
+20. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
+21. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
+22. S95 — atomic minimal Dashboard composition and relocation.
+23. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
+24. S101 — post-S87 read-only cross-application assistant expansion.
 
 The correction slice is an explicit S82 conformance, S97/S98 integrity, and release-assurance
 intercept; it does not pretend a dependent feature suite advanced. Default to serialization. Only

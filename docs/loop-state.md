@@ -71,12 +71,24 @@ record goes stale. No provider write, timer, draft, or send derives from it. The
 core E2E, exact-SHA CI, and the local rehearsal browser smoke against live read-only sources all
 passed; the browser run also recorded one pre-existing S84 narrow-viewport behavior, left to S84.
 
+## S104 implemented, not yet released
+
+S104 (renewal desk and workspace parity closure) plumbs the lease-scoped `currentRent`, the labelled
+`unitListedRent` reference, and S103's term projection onto the one shared summary, and returns the
+same `buildDeskLeaseGuidance` result on the lease workspace, so status, blockers, and the next
+action cannot differ between the row and the lease page and no rendering component recomputes them.
+Parity is asserted for a fixed-term and a periodic-review lease; the continuation checks prove a
+filtered, sorted `renewal-desk-query/v2` view returns byte-identically and that a damaged
+continuation falls back to the default desk. The rehearsal browser smoke now carries the term from
+a row into its workspace and back after a phase navigation.
+
 ## Next exact action
 
-Begin S104 (`docs/feature-suites/renewal-desk-workspace-parity-closure.md`): desk and workspace
-parity plus the open/write/return continuation proof, consuming S102's rent and S103's term. Then
-continue the renewal-completion order (S105, S106, S34, S107, S108, S109, S110, S111), one green
-suite at a time with a zero-traffic candidate and smoke after each. Promotion of any candidate waits on the two
+Require exact-SHA aggregate CI for the S104 commit, deploy one zero-traffic candidate from that
+clean HEAD, and pass `npm run smoke:release-candidate` at its exact commit and revision. Then begin
+S105 (`docs/feature-suites/end-to-end-renewal-lifecycle.md`) and continue the renewal-completion
+order (S106, S34, S107, S108, S109, S110, S111), one green suite at a time with a zero-traffic
+candidate and smoke after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
 fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
@@ -90,9 +102,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 5. S51/S54 — assurance expansion committed; live candidate gate pending owner inputs
 6. S102 — committed and candidate-deployed, not promoted (renewal-completion R1)
 7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
-8. S104, S105, S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
-9. S36 — queued behind complete S100
-10. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+8. S104 — implemented, unreleased (renewal-completion R3)
+9. S105, S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
+10. S36 — queued behind complete S100
+11. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.

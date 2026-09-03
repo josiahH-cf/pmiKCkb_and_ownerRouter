@@ -143,6 +143,13 @@ export interface DeskLeaseSummaryBase {
   reasonLabel: string;
   /** S103: the one lease-term projection shared by desk, workspace, query, and assistant. */
   leaseTerm: LeaseTermProjection;
+  /**
+   * S102/S104: the tenant's contractual base rent from the lease detail, and the export unit's
+   * listed rent as a labelled reference. Both surfaces read these from this one projection, so a
+   * row and its lease workspace can never disagree about which rent they show.
+   */
+  currentRent: number | null;
+  unitListedRent: number | null;
   retention: RenewalDeskRetentionState;
   processVersion: string | null;
   workflowStepId: string | null;
@@ -311,6 +318,12 @@ export interface RenewalWorkspaceLiveState {
 
 export interface RenewalLeaseWorkspace {
   summary: DeskLeaseSummary;
+  /**
+   * S104: the same guidance projection the desk row carries, built once by `buildDeskLeaseGuidance`
+   * from the same process/data-check/rent inputs. Surfaces read it; they never recompute status,
+   * blockers, or the next action locally.
+   */
+  guidance: DeskLeaseGuidance;
   /** False only when this stable lease is open for source inspection outside an active/tracked flow. */
   workflowAvailable: boolean;
   steps: typeof RENEWAL_STEPS;

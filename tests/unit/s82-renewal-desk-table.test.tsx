@@ -93,6 +93,8 @@ function row(
     reason: "actionable",
     reasonLabel: "Ready to work",
     leaseTerm: fixedTermProjection("2026-10-15"),
+    currentRent: 1500,
+    unitListedRent: 1500,
     retention: { state: "window", label: "Inside the current-month renewal window" },
     processVersion: "renewal-v1",
     workflowStepId: "owner-decision",

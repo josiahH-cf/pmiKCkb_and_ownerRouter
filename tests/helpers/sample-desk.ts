@@ -324,6 +324,8 @@ function toSummary(
     reason: classification.reason,
     reasonLabel: REASON_LABEL[classification.reason],
     leaseTerm: classification.termProjection,
+    currentRent: null,
+    unitListedRent: null,
     retention:
       classification.endDateIso === null
         ? {
@@ -480,6 +482,17 @@ export function getRenewalLeaseWorkspace(
 
   return {
     summary,
+    // S104: the sample workspace carries the same guidance projection the sample desk row does,
+    // built by the one shared builder rather than a second local status derivation.
+    guidance: buildDeskLeaseGuidance({
+      summary,
+      process,
+      dataCheck: seed.dataCheck,
+      rentvineCurrentRent: summary.currentRent,
+      rentDecision: null,
+      currencyState: "fresh",
+      readComplete: true,
+    }),
     workflowAvailable: true,
     steps: RENEWAL_STEPS,
     currentStepIndex: process.currentStepIndex,

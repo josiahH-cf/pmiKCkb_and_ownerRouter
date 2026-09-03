@@ -39,7 +39,7 @@ try {
 }
 
 process.stdout.write(
-  `S82 renewal desk browser smoke passed: full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace phases, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
+  `S82 renewal desk browser smoke passed: full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace phases, desk/workspace term parity, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
 );
 
 async function verifyDeskAndWorkspace() {
@@ -292,6 +292,17 @@ async function verifyDeskAndWorkspace() {
     .locator('tbody tr[data-workspace-available="true"] a.renewal-lease-link')
     .first();
   assert((await leaseLink.count()) > 0, "No lease link rendered.");
+  // S104: capture the row's own term so the workspace can be compared against it, then compared
+  // again after the return trip.
+  const parityRow = page.locator('tbody tr[data-workspace-available="true"]').first();
+  const rowTermBefore = await parityRow
+    .locator('[data-renewal-field="lease-term"]')
+    .getAttribute("data-lease-term");
+  const parityLeaseId = await parityRow.getAttribute("data-lease-id");
+  assert(
+    Boolean(rowTermBefore) && Boolean(parityLeaseId),
+    "The desk row exposed no lease term to compare.",
+  );
   await leaseLink.focus();
   assert(await isFocused(leaseLink), "The lease workspace link did not receive focus.");
   interactionStartedAt = performance.now();
@@ -328,9 +339,27 @@ async function verifyDeskAndWorkspace() {
     (await page.getByText("Data check").count()) >= 1,
     "The verify phase lost its data check.",
   );
+  // S104 parity: the workspace states the same term the row it was opened from stated.
+  const workspaceTerm = await page
+    .locator('[data-renewal-field="lease-term"]')
+    .first()
+    .getAttribute("data-lease-term");
+  assert(
+    workspaceTerm === rowTermBefore,
+    `The workspace term (${workspaceTerm}) disagrees with its desk row (${rowTermBefore}).`,
+  );
   await page.getByRole("link", { name: "← Back to renewals" }).click();
   await page.waitForURL((url) => url.toString() === deskUrlBefore);
   await table.waitFor();
+  // S104 continuity: the same row is back in the same view, still stating the same term.
+  const rowTermAfter = await page
+    .locator(`tbody tr[data-lease-id="${parityLeaseId}"]`)
+    .locator('[data-renewal-field="lease-term"]')
+    .getAttribute("data-lease-term");
+  assert(
+    rowTermAfter === rowTermBefore,
+    "The returned desk row lost or changed its lease term.",
+  );
 
   // Browser Back restores the workspace, then the desk again, without state invention.
   await page.goBack();

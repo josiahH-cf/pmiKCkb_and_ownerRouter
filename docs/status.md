@@ -87,11 +87,13 @@ carried by the current candidate, and not promoted. S103 (one lease-term project
 lease-detail `isMonthToMonth` signal, a `periodic_review` disposition with a 12-month review anchor,
 a visible desk/workspace term with its own filter and scope, and an Editor-gated app-owned term
 review bound to the lease view fingerprint) is committed in `0158c90` with exact-SHA CI green,
-carried by the current candidate, and not promoted; production still uses the
+carried by the current candidate, and not promoted. S104 (one shared rent, term, and guidance
+projection across the desk row and the lease workspace, with parity and view-continuation proofs) is
+implemented and unreleased; production still uses the
 heuristic skip signals and shows no term. Its local rehearsal browser smoke ran against live
 read-only sources and also surfaced one pre-existing S84 behavior that is not changed here: because
 the responsive navigation resolves on the client, a payload as large as the full desk briefly paints
-the desktop navigation group at 320px and overflows horizontally until hydration completes. S104-S111 and S34 remain specified only. The S51
+the desktop navigation group at 320px and overflows horizontally until hydration completes. S105-S111 and S34 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

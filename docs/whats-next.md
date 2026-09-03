@@ -4,11 +4,12 @@ Updated: 2026-09-03.
 
 ## Immediate action
 
-Continue the renewal-completion program at S104 (renewal desk and workspace parity closure) from
+Continue the renewal-completion program at S105 (end-to-end renewal lifecycle closure) from
 `docs/loop-state.md`. S102 is committed in `ff200d3` with exact-SHA CI green and deployed in the
 current zero-traffic candidate. S103 (lease term and annual month-to-month review) is committed in
 `0158c90` with exact-SHA CI green and deployed as zero-traffic candidate
-`pmi-kc-app-rmtm1dmg7-98fa238467b3`, which passed its anonymous smoke and is not promoted.
+`pmi-kc-app-rmtm1dmg7-98fa238467b3`, which passed its anonymous smoke and is not promoted. S104
+(desk and workspace parity closure) is implemented and awaits its own exact-SHA CI and candidate.
 
 Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its immediate rollback is
@@ -21,8 +22,8 @@ package as user-owned content.
 
 Use only the canonical queue in `docs/feature-suites/README.md`. The owner's 2026-09-03 direction
 executes S102-S111 and the rewritten S34 (rows 12-22) before S36 and the S88-S95 program. S102 is
-committed and candidate-deployed but not promoted; S103 is committed and candidate-deployed, and
-S104 is next. S96, S85, S86, S83, S84, and S99 are complete and
+committed and candidate-deployed but not promoted; S103 is committed and candidate-deployed; S104 is
+implemented and unreleased, and S105 is next. S96, S85, S86, S83, S84, and S99 are complete and
 deployed; S82/S97/S98 remediation is committed and awaits promotion; S100 remains blocked on the
 exact eligible resident message; S36 has not started.
 

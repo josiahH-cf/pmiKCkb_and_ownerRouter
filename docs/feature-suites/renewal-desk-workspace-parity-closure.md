@@ -3,9 +3,10 @@
 
 # S104 — Renewal desk and workspace parity closure
 
-> Status: Mostly satisfied by the deployed S82 baseline and its active unreleased remediation. This
-> suite closes only the residual gaps the 2026-09-03 owner package adds: rent and term parity from
-> S102/S103 and one proof that filters, sort, and return position survive a workspace change.
+> Status: IMPLEMENTED / UNRELEASED. The lease-scoped rent, the unit reference, the term projection,
+> and the guidance projection now reach the desk row and the lease workspace from one builder, and
+> parity plus continuation are asserted at the unit layer and in the rehearsal browser. Production
+> still serves the S82 baseline.
 
 **Goal.**
 
@@ -14,16 +15,16 @@ next action for a lease, and an operator returns from a lease to the same filter
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-03)                                           | Classification    | Evidence                                                                                                                                        |
-| ---------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Table and workspace consume one projection                             | Already satisfied | `loadLiveRenewalDesk` attaches `buildDeskLeaseGuidance` per row; the workspace reads the same summary (`lib/lease-renewal/live-desk.ts`)        |
-| Owner, tenant, location, rent, timing, status, blocker, action columns | Already satisfied | S82 required-column table (`docs/feature-suites/guided-renewal-desk-and-workspace.md`)                                                          |
-| Lease term column                                                      | Missing           | Delivered by S103                                                                                                                               |
-| Filters, sort, period, and return position survive a lease             | Already satisfied | `deskView` continuation (`lib/lease-renewal/desk-view-continuation.ts`, `access-return.ts`) and `tests/unit/s82-desk-view-continuation.test.ts` |
-| Corrected rent and term in both surfaces                               | Missing           | Delivered by S102/S103; parity assertion added here                                                                                             |
-| Specific blockers, not generic `blocked`                               | Already satisfied | Causal blocker links per phase (`desk-guidance.ts`); status precedence in S82                                                                   |
-| Row refresh after a workspace change keeps context                     | Partially         | Post-write freshness reloads the projection; the return link preserves `deskView`; no test proves both together after a write                   |
-| Failed supporting read shows unavailable, not empty                    | Already satisfied | Typed auxiliary-read results (`lib/lease-renewal/auxiliary-read.ts`)                                                                            |
+| Package requirement (PMI-03)                                           | Classification    | Evidence                                                                                                                                                                            |
+| ---------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Table and workspace consume one projection                             | Already satisfied | `loadLiveRenewalDesk` attaches `buildDeskLeaseGuidance` per row; the workspace reads the same summary (`lib/lease-renewal/live-desk.ts`)                                            |
+| Owner, tenant, location, rent, timing, status, blocker, action columns | Already satisfied | S82 required-column table (`docs/feature-suites/guided-renewal-desk-and-workspace.md`)                                                                                              |
+| Lease term column                                                      | Already satisfied | Delivered by S103 and asserted equal on both surfaces here                                                                                                                          |
+| Filters, sort, period, and return position survive a lease             | Already satisfied | `deskView` continuation (`lib/lease-renewal/desk-view-continuation.ts`, `access-return.ts`) and `tests/unit/s82-desk-view-continuation.test.ts`                                     |
+| Corrected rent and term in both surfaces                               | Already satisfied | Delivered by S102/S103; `currentRent`, `unitListedRent`, `leaseTerm`, and `guidance` now come from one projection and are asserted equal here                                       |
+| Specific blockers, not generic `blocked`                               | Already satisfied | Causal blocker links per phase (`desk-guidance.ts`); status precedence in S82                                                                                                       |
+| Row refresh after a workspace change keeps context                     | Already satisfied | Post-write freshness reloads the projection and the return link preserves `deskView`; `tests/unit/s104-desk-workspace-parity.test.ts` and the browser smoke now prove both together |
+| Failed supporting read shows unavailable, not empty                    | Already satisfied | Typed auxiliary-read results (`lib/lease-renewal/auxiliary-read.ts`)                                                                                                                |
 
 Intended end state: no new component; S102/S103 fields render in both surfaces and one integration
 check proves table/workspace equality plus context preservation across a workspace write.
@@ -86,8 +87,12 @@ Desk table, workspace, desk query serialization, S110 adapters, and S111 proof.
 and returns to exactly the same filtered and sorted table with that row updated. The lease page and
 the table row never disagree about rent, term, status, or what to do next.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with parity, continuation,
-  and browser evidence.
+- Model verdict: PASS - why: the desk row and the lease workspace read one summary and one
+  `buildDeskLeaseGuidance` result, so rent, unit reference, term, status, blockers, and next action
+  are asserted byte-equal for both a fixed-term and a periodic-review lease; a filtered, sorted view
+  survives the trip into a lease and back byte-identically, a damaged continuation falls back to the
+  default desk instead of a partially restored one, and the rehearsal browser proves term parity
+  from row to workspace and back after a phase navigation.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

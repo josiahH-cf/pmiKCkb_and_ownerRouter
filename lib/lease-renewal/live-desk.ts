@@ -585,6 +585,8 @@ function toLiveSummary(
     reason: classification.reason,
     reasonLabel: humanizeCohortReason(classification.reason),
     leaseTerm: classification.termProjection,
+    currentRent: leaseCurrentRent(view) ?? null,
+    unitListedRent: leaseUnitListedRent(view) ?? null,
     retention,
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
@@ -1116,7 +1118,6 @@ export async function loadLiveRenewalDesk(
     // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
     const toRow = (
       summary: DeskLeaseSummary,
-      view: RawLease,
       guidanceInputs: {
         process: Parameters<typeof buildDeskLeaseGuidance>[0]["process"];
         dataCheck: DeskReconItem[] | null;
@@ -1139,7 +1140,7 @@ export async function loadLiveRenewalDesk(
           summary,
           process,
           dataCheck: guidanceInputs.dataCheck,
-          rentvineCurrentRent: leaseCurrentRent(view) ?? null,
+          rentvineCurrentRent: summary.currentRent,
           rentDecision: guidanceInputs.rentDecision,
           currencyState: currency.state,
           readComplete: complete,
@@ -1206,14 +1207,14 @@ export async function loadLiveRenewalDesk(
       ) {
         const summary = sourceAwareSummary;
         if (!leaseId) {
-          return toRow(withRenewalDeskQueryKeys(summary), view, {
+          return toRow(withRenewalDeskQueryKeys(summary), {
             process: null,
             dataCheck,
             rentDecision: currentRentDecision,
           });
         }
         if (!effectiveDataCheck || !dataCheck || !currentRentDecision) {
-          return toRow(withRenewalDeskQueryKeys(summary), view, {
+          return toRow(withRenewalDeskQueryKeys(summary), {
             process: null,
             dataCheck,
             rentDecision: currentRentDecision,
@@ -1275,7 +1276,6 @@ export async function loadLiveRenewalDesk(
               ...(progressStateAvailable ? { process } : {}),
             }),
           }),
-          view,
           { process, dataCheck, rentDecision: currentRentDecision },
         );
       }
@@ -1297,7 +1297,6 @@ export async function loadLiveRenewalDesk(
               }
             : summary,
         ),
-        view,
         { process: null, dataCheck, rentDecision: currentRentDecision },
       );
     });
@@ -1418,7 +1417,6 @@ export async function loadLiveRenewalLeaseWorkspace(
       currency,
     );
     const currentRent = currentRentDecision.currentRent;
-    const unitListedRent = leaseUnitListedRent(view);
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
     let summary = toLiveSummary(view, classification, windows, dataCheck, progress);
@@ -1518,6 +1516,18 @@ export async function loadLiveRenewalLeaseWorkspace(
 
     const workspace: RenewalLeaseWorkspace = {
       summary: deskSummary,
+      // S104: the desk row and this workspace read ONE guidance projection, from the same builder
+      // and the same process/data-check/rent inputs, so the two surfaces cannot disagree about
+      // status, blockers, or the next action for this lease.
+      guidance: buildDeskLeaseGuidance({
+        summary: deskSummary,
+        process: workflowAvailable ? process : null,
+        dataCheck,
+        rentvineCurrentRent: deskSummary.currentRent,
+        rentDecision: currentRentDecision,
+        currencyState: currency.state,
+        readComplete: complete,
+      }),
       workflowAvailable,
       steps: RENEWAL_STEPS,
       currentStepIndex: process.currentStepIndex,
@@ -1586,8 +1596,9 @@ export async function loadLiveRenewalLeaseWorkspace(
       ...(compAttributes ? { compAttributes } : {}),
       // S60: the authoritative rent for the internal under-market signal (never a draft input).
       ...(typeof currentRent === "number" && currentRent > 0 ? { currentRent } : {}),
-      ...(typeof unitListedRent === "number" && unitListedRent > 0
-        ? { unitListedRent }
+      // S104: the labelled unit reference comes from the one shared projection, not a second read.
+      ...(typeof deskSummary.unitListedRent === "number" && deskSummary.unitListedRent > 0
+        ? { unitListedRent: deskSummary.unitListedRent }
         : {}),
     };
     return { status: "ok", workspace };

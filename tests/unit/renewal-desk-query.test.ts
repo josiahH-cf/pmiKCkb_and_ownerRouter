@@ -81,6 +81,8 @@ function deskItem(id: string, overrides: Partial<DeskLeaseSummaryBase> = {}) {
     reason: "actionable",
     reasonLabel: "Ready to work",
     leaseTerm: fixedTermProjection(),
+    currentRent: 1500,
+    unitListedRent: 1500,
     retention,
     processVersion: "renewal-v1",
     workflowStepId: "verify-renewal",
