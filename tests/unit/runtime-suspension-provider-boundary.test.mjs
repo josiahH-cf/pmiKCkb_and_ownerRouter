@@ -169,6 +169,7 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/work-accountability/source-resolver.ts:readLiveRenewalLeaseVersion:buildLiveRentVineConfig",
   // 2026-08-26: bodyless, read-only operator discrepancy diagnostic.
   "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+  "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
   // S51: operator-run read-only source oracle, independent from the desk projection.
   "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
 ].sort();
@@ -177,6 +178,7 @@ const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+  "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
   "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
 ]);
 
@@ -1131,6 +1133,7 @@ describe("runtime suspension provider-construction boundary", () => {
       "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
       "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
       "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
+      "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
       "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
     ]);
     expect(PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS.size).toBeGreaterThan(0);
