@@ -59,7 +59,7 @@ staff. Entry needs `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_CLIENT_SECRET`, and
    the code server-side, stores access and refresh tokens only as `ConnectorSecretVault` refs, creates
    the `connector_connections` record through `createConnectedConnection`, and never returns a token
    to the browser. Denial or callback error records a bodyless failure and leaves no connection.
-2. **Client.** `lib/integrations/dotloop/client.ts`: typed GET/POST/PATCH with bearer token from the
+2. **Client.** A new Dotloop client module under the integrations library: typed GET/POST/PATCH with bearer token from the
    vault, automatic one-time refresh on 401, rate-limit backoff on 429, and no generic request
    function. A refresh failure marks the connection `refresh_needed`.
 3. **Discovery and selection.** `GET /profile` and `GET /profile/{id}/loop-template` populate a

@@ -54,7 +54,7 @@ exact preview/confirmation, and the existing approval tier for High-risk effects
 
 **What it is / how it functions.**
 
-1. **Provider implementation.** `lib/integrations/dotloop/provider.ts` implements `DotloopProvider`
+1. **Provider implementation.** A new Dotloop provider module under the integrations library implements `DotloopProvider`
    over the S106 client: `createLoop` uses the selected template with an app-chosen loop name that
    embeds the packet snapshot id (the provider-observable identity for reconciliation), sets
    `transactionType` and initial `status` from the selection record (owner-selected from the
