@@ -26,6 +26,7 @@
     "smoke:maintenance-blockers-browser": "node scripts/smoke-maintenance-blockers-browser.mjs",
     "smoke:maintenance-intake-browser": "node scripts/smoke-maintenance-intake-browser.mjs",
     "smoke:dashboard-assistant-browser": "node scripts/smoke-dashboard-assistant-browser.mjs",
+    "smoke:renewal-guide-controls-browser": "node scripts/smoke-renewal-guide-controls-browser.mjs",
     "smoke:theme-browser": "node scripts/smoke-theme-browser.mjs",
     "smoke:work-browser": "node scripts/smoke-work-accountability-browser.mjs",
     "test:watch": "vitest",

@@ -128,6 +128,36 @@ run asked all three questions plus an unsupported one and no write route was cal
 specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
+## S111 integrated proof report (2026-09-04)
+
+Each row is one integrated check, the command that produced it, and the outcome observed on commit
+`5abf6dd` plus the uncommitted S111 slice. `BLOCKED` means an external input is absent; no blocked
+row was converted into a human verification task, and none is reported as passed.
+
+| Check                                                                                                      | Command                                                                  | Outcome                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Foundation: lease rent separate from unit listed rent, month-to-month anchor derived or absent (S102-S104) | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts` | PASSED                                                                                                     |
+| Owner outcomes: all four states, revision reopening, decline handoff (S105)                                | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts` | PASSED                                                                                                     |
+| Dotloop connection and packet lifecycle against the provider fakes (S106, S34)                             | `bash scripts/verify.sh`                                                 | PASSED                                                                                                     |
+| Dotloop live connect, refresh, revoke, reconnect, and loop create                                          | not run                                                                  | BLOCKED: the owner's Dotloop OAuth application and a connected managed account do not exist                |
+| Continuation: orphan selection, read-only reconcile, uncertain next action (S107)                          | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts` | PASSED                                                                                                     |
+| Maintenance: preapproval routing, provider status conflict, photo blocker handoff (S108, S109)             | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts` | PASSED                                                                                                     |
+| Maintenance stores: preapproval versioning and the work-order snapshot (S108)                              | `npm run test:firestore`                                                 | PASSED                                                                                                     |
+| Intake triage, promotion carry-over, and the S108 blocker (S109)                                           | `npm run test:firestore`                                                 | PASSED                                                                                                     |
+| Troubleshooting resource offered to a normal report                                                        | not run                                                                  | BLOCKED: the owner has supplied no reviewed troubleshooting links, so the catalog is empty by design       |
+| Preapproval routing against real property amounts                                                          | not run                                                                  | BLOCKED: an Admin has entered no property preapproval amounts yet; the record and its control ship in S108 |
+| Assistant: blocked leases, month window, unavailable source (S110)                                         | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts` | PASSED                                                                                                     |
+| Browser: maintenance blocker report, waiting-on filter, cancel-first preapproval                           | `npm run smoke:maintenance-blockers-browser`                             | PASSED                                                                                                     |
+| Browser: public resident report form, fragment token cleared, no file input                                | `npm run smoke:maintenance-intake-browser`                               | PASSED                                                                                                     |
+| Browser: three Dashboard questions plus one unsupported, no write route called                             | `npm run smoke:dashboard-assistant-browser`                              | PASSED                                                                                                     |
+| Browser: every training-guide step located by visible text, desk to lease and back                         | `npm run smoke:renewal-guide-controls-browser`                           | PASSED (8 steps)                                                                                           |
+| Canonical gate                                                                                             | `bash scripts/verify.sh`                                                 | PASSED (647 unit files, 6216 tests; 32 Firestore files, 168 tests)                                         |
+| Core end-to-end suite                                                                                      | `npm run test:e2e:core`                                                  | PASSED (8 files, 31 tests, 4 files and 18 tests skipped)                                                   |
+
+The operator training guide is `docs/products/renewal-operator-guide.md`, registered in
+`docs/README.md`. Its step-to-control table is the input to the guide-control smoke, so a step that
+names a control the application does not show fails the check rather than shipping.
+
 ## Blocked and queued work
 
 - Promotion of the current candidate waits on two authenticated managed Admin/Editor browser

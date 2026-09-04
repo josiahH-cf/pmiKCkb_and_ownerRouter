@@ -61,6 +61,9 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 - `docs/products/rentvine-live-field-map-2026-07-22.md`
 - `docs/products/move-in-move-out-process.md`
 - `docs/products/rentvine-connection-setup.md`
+- `docs/products/renewal-operator-guide.md` — the operator training guide; its step-to-control table
+  is read by `npm run smoke:renewal-guide-controls-browser`, so a step cannot name a control the
+  application does not show.
 
 ## Active feature contracts
 

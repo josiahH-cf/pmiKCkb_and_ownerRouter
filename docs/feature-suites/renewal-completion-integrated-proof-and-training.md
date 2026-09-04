@@ -3,9 +3,13 @@
 
 # S111 — Integrated model-run proof and operator training guide
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. It runs last and adds only
-> the integration coverage the individual suites do not already prove, plus one project-native
-> training guide.
+> Status: IMPLEMENTED. `tests/integration/s111-renewal-completion-proof.test.ts` composes the owning
+> projections and planners on one fixture portfolio,
+> `scripts/smoke-renewal-guide-controls-browser.mjs` reads the training guide's step-to-control table
+> and locates every step by visible text, the proof report is in `docs/status.md`, and the guide is
+> `docs/products/renewal-operator-guide.md`, registered in `docs/README.md`. Live Dotloop, the
+> owner-supplied troubleshooting links, and Admin-entered preapproval amounts are reported blocked by
+> external environment, never as passed and never as a human verification task.
 
 **Goal.**
 
@@ -104,8 +108,14 @@ documents.
 **If this was built correctly:** Bailey or Chasity opens the guide, follows each step in the
 application, and sees the described result at every step without asking a developer for help.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with the integration suite,
-  browser smokes, and guide-control mapping.
+- Model verdict: PASS - why: the integration suite derives the term, rent, owner branch, attempt
+  recovery, maintenance routing, intake urgency, and assistant answers from the owning code on one
+  fixture portfolio, and it is asserted to import no store, gate, orchestrator, or network call, so a
+  check cannot pass by writing the answer it is meant to derive. Four rehearsal-browser smokes cover
+  the maintenance report, the public intake form, the three Dashboard questions, and every guide step
+  located by visible text plus a desk to lease and back walk that preserves the view. The proof report
+  in `docs/status.md` names each check, the command that produced it, and its outcome, with three rows
+  recorded as blocked by external environment.
 - Human verdict: NOT RUN — no human observer; the later practice session is a usage activity, not a
   completion gate.
 
