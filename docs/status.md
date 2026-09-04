@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, S105, S106, S34, S107, and S108 are committed through `03f7eee` and deployed as
-zero-traffic candidate `pmi-kc-app-rmtmm6d33-fb90a28a26a1` from commit
-`03f7eee3283cc90d71a7e3fe1691fe71ec463d81`; its
+identity-read fix, S103, S104, S105, S106, S34, S107, S108, and S109 are committed through `9b2c829` and deployed as
+zero-traffic candidate `pmi-kc-app-rmtmq9qye-f7e5437a209b` from commit
+`9b2c829e1d94b1a489bacf76a7074e8b9b43ed80`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -113,7 +113,15 @@ with exact-SHA CI green, carried by the current candidate, and not promoted; its
 run proved the report, the waiting-on filter, and the cancel-first preapproval confirmation with no
 provider call from a page render. Two constraints stay recorded rather than resolved: photo and
 attachment synchronization into RentVine is closed, and the report links to the ticket because no
-RentVine work-order dashboard URL is documented. S109-S111 remain specified only. The S51
+RentVine work-order dashboard URL is documented. S109 (structured resident intake, the deterministic
+triage that owns urgency, evidence, copy, and completion, the reviewed troubleshooting catalog, the
+suggestion-only model adapter, the promotion handoff, and the public report form) is committed in
+`9b2c829` with exact-SHA CI green, carried by the current candidate, and not promoted; its
+rehearsal-browser run proved the form is reachable with no session, that the token never enters a
+request URL, and that a link with no token refuses. Public file upload stays forbidden, so the form
+names the photos needed instead, and the owner still supplies the troubleshooting links and any
+extension of the required-evidence table; their absence disables only the resource offer. S110 and
+S111 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

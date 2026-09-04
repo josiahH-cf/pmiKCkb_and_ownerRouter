@@ -18,10 +18,10 @@ provider or action authority.
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
   through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
-  S34 through `7b26107`, S107 through `ae93742`, and S108 through `03f7eee`; all are exact-SHA CI
-  green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtmm6d33-fb90a28a26a1` (tag `cand-rmtmm6d33-fb90a28a26a1`)
-  was deployed from commit `03f7eee3283cc90d71a7e3fe1691fe71ec463d81` and passed the anonymous
+  S34 through `7b26107`, S107 through `ae93742`, S108 through `03f7eee`, and S109 through `9b2c829`;
+  all are exact-SHA CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtmq9qye-f7e5437a209b` (tag `cand-rmtmq9qye-f7e5437a209b`)
+  was deployed from commit `9b2c829e1d94b1a489bacf76a7074e8b9b43ed80` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
@@ -46,41 +46,35 @@ provider or action authority.
 
 ## Renewal-completion work carried by the candidate, not promoted
 
-- S102 (`ff200d3`) makes the documented lease detail the shared `currentRent` across every export
-  view. S103 (`0158c90`) gives the cohort, desk, workspace, and `renewal-desk-query/v2` one
-  `projectLeaseTerm`, a `periodic_review` disposition with a twelve-month anchor, and an
-  Editor-gated term review bound to the lease view fingerprint. S104 (`0f01353`) makes the desk row
-  and the workspace read one summary and one `buildDeskLeaseGuidance` result. S105 (`13523c5`) types
-  the owner response and its reopening, decline, and supersede paths.
-- S106 (`af23da4`) adds one server-owned Dotloop connection service: single-use authorization state,
-  the documented server-side code exchange, both tokens only as opaque vault refs, and an S96
-  connection record; every failure path ends with no connection, and `signatureApiAvailable` stays
-  false because the documentation lists no e-signature operation. S34 (`7b26107`) binds one loop to
-  one approved packet snapshot hash, reconciles a lost create by exact loop name instead of creating
-  a second loop, and hands the operator to Dotloop for signature. Only their live checks are blocked,
-  on the owner's OAuth application and a connected account.
-- S107 (`ae93742`) adds no queue, scheduler, worker, or automatic retry: the recorded conflict with
-  the owner package stands. No renewal effect route forwards an abort signal into execution, so a
-  confirmed effect persists its receipt before any projection even when the caller leaves. On
-  workspace load `reconcileOrphanedRenewalAttempts` reconciles only covered, claimed, still-running
-  or ambiguous attempts older than the existing two-minute age through the S97/S98 services' own
-  `reconcileEffect`; the reconcile is injected, so the projection issues no provider call and never
-  writes, and an unprovable outcome leaves the attempt untouched. One `Confirmed external steps` card
-  names the last step, time, result, blocker, and next action.
-- S108 (`03f7eee`) records a `provider_snapshot` on the work-order link only from the human-initiated
-  `rentvine.work_order.read` path, onto an existing link for that exact work order, so a second read
-  updates and never duplicates. `projectMaintenanceWaitingOn` derives one blocker with its next
-  action for the queue, the report, and the S109 handoff. Absence is never authorization: no
-  estimate, no preapproval, or an estimate above it keeps the ticket on `owner_approval` with the
-  owner-notice draft; at or under it the control is withdrawn.
-  `maintenance_property_preapprovals` holds one `manageAdmin`-only versioned amount per property in
-  whole cents with an append-only history row in the same transaction and writes nothing to RentVine.
-  Two constraints stay recorded: RentVine photo and attachment sync is closed, and the report links
-  to the ticket because no RentVine work-order dashboard URL is documented.
-- The full claims for every slice above are in `docs/facts.md`.
+Full claims for every slice are in `docs/facts.md`; these are pointers.
+
+- S102 (`ff200d3`): the documented lease detail is the shared `currentRent`.
+- S103 (`0158c90`): one `projectLeaseTerm` for cohort, desk, workspace, and `renewal-desk-query/v2`,
+  a `periodic_review` disposition, and a fingerprint-bound Editor term review.
+- S104 (`0f01353`): the desk row and the workspace read one summary and one guidance result.
+- S105 (`13523c5`): typed owner responses with reopening, decline, and supersede paths.
+- S106 (`af23da4`) and S34 (`7b26107`): one server-owned Dotloop connection (single-use state,
+  server-side exchange, opaque vault refs) and one loop bound to one approved packet snapshot hash
+  that reconciles a lost create by exact name. No e-signature operation is claimed; the
+  documentation lists none. Only their live checks are blocked, on the owner's OAuth application and
+  a connected account.
+- S107 (`ae93742`): no queue, scheduler, worker, or automatic retry; the recorded conflict stands. No
+  effect route forwards an abort signal, so a confirmed effect persists its receipt before any
+  projection. On load, only covered claimed attempts older than the existing two-minute age reconcile
+  through the S97/S98 services' own `reconcileEffect`, injected so the projection never writes.
+- S108 (`03f7eee`): a `provider_snapshot` recorded only from the human-initiated work-order read, one
+  waiting-on projection, and a `manageAdmin`-only versioned property preapproval that writes nothing
+  to RentVine. Absence is never authorization. RentVine photo and attachment sync stays closed and no
+  work-order dashboard URL is built, because none is documented.
+- S109 (`9b2c829`): bounded structured intake on the unchanged S47 public boundary; pure triage owns
+  urgency, evidence, copy, and completion, and the writer ignores any of the three in the request
+  body. The catalog is empty until the owner supplies reviewed links; the optional model may only
+  suggest a trade. Promotion carries `photos_needed` onto the ticket, which S108 reads as the
+  resident blocker. `app/maintenance/report` clears its fragment token before any request and offers
+  no file input.
 - No provider write, timer, draft, or send derives from any of this work. Each slice passed the
-  canonical gate, core E2E, and exact-SHA CI; S103, S104, and S108 also passed a local rehearsal
-  browser smoke, and S103/S104 recorded one pre-existing S84 narrow-viewport behavior left to S84.
+  canonical gate, core E2E, and exact-SHA CI; S103, S104, S108, and S109 also passed a local
+  rehearsal browser smoke, which recorded one pre-existing S84 narrow-viewport behavior left to S84.
 - Every earlier renewal-completion candidate is superseded and carries no traffic.
 
 ## Next exact action
@@ -107,9 +101,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 11. S34 — committed and candidate-deployed; live proof blocked (renewal-completion R6)
 12. S107 — committed and candidate-deployed, not promoted (renewal-completion R7)
 13. S108 — committed and candidate-deployed, not promoted (renewal-completion R8)
-14. S109, S110, S111 — specified, next in that order
-15. S36 — queued behind complete S100
-16. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+14. S109 — committed and candidate-deployed, not promoted (renewal-completion R9)
+15. S110, S111 — specified, next in that order
+16. S36 — queued behind complete S100
+17. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.
@@ -121,7 +116,8 @@ domain work may parallelize.
 - S100: one real synchronized resident message with an exact verified resident email.
 - S106/S34: the Dotloop OAuth application and a connected managed Dotloop account.
 - S108/S109: Admin-entered property preapproval amounts (the record and its Admin control ship in
-  S108; the amounts themselves come from the owner's files) and owner-reviewed troubleshooting links.
+  S108; the amounts themselves come from the owner's files) and owner-reviewed troubleshooting links
+  (the S109 catalog ships empty; its absence disables only the resource offer).
 - S36: derives its saved request and copied source packet from current approved state.
 
 ## Safety invariants
