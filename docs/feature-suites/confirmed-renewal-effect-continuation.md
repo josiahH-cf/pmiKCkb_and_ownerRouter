@@ -3,10 +3,12 @@
 
 # S107 — Confirmed renewal effect continuation and recovery
 
-> Status: Specified from the 2026-09-03 owner package with one recorded authority conflict; mostly
-> satisfied by the existing claim, receipt, reconcile, and per-lease isolation model. The
-> repository has no durable job queue, scheduler, or worker, and `AGENTS.md` forbids autonomous or
-> model-triggered writes and sends.
+> Status: IMPLEMENTED. One recorded authority conflict stands: no automatic retry is added. The
+> repository still has no durable job queue, scheduler, or worker, and `AGENTS.md` still forbids
+> autonomous or model-triggered writes and sends. `lib/lease-renewal/execution/attempt-continuation.ts`
+> owns the read-only continuation projection, `attempt-loader.ts` reads the lease's attempts from the
+> durable store, `workspace-continuation.ts` binds the S97/S98 services' existing `reconcileEffect`,
+> and the live lease workspace renders one consolidated `Confirmed external steps` card.
 
 **Goal.**
 
@@ -100,8 +102,12 @@ S97/S98/S34 execution routes and stores, workspace card, desk guidance, S111 pro
 lease shows the update as done with its receipt, or says exactly what is uncertain and what to do.
 Clicking confirm twice never doubles anything, and another lease keeps working.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with abort, replay, and
-  isolation fixtures.
+- Model verdict: PASS - why: the abort, replay, concurrency, and two-lease isolation fixtures run
+  against the real orchestrator and memory store: a request that ends before the provider call
+  leaves the record `ready` with attempt count 0 and reconciles nothing; a caller that abandons the
+  request still gets a persisted receipt because no route forwards an abort signal into execution;
+  two concurrent confirmations and one replayed confirmation each yield one provider call and one
+  receipt; and one lease left `ambiguous` leaves the other lease `ready` with an empty summary.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

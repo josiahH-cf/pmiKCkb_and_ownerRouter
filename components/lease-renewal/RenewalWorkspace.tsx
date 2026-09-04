@@ -6,6 +6,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { RenewalAttemptSummaryCard } from "@/components/lease-renewal/RenewalAttemptSummaryCard";
+import type { RenewalAttemptSummary } from "@/lib/lease-renewal/execution/attempt-continuation";
+
 import {
   Card,
   Disclosure,
@@ -101,6 +104,7 @@ export function RenewalWorkspace({
   workspace,
   selectedStepId,
   deskView = null,
+  attemptSummary = null,
   discrepancyPanel = null,
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
@@ -117,6 +121,8 @@ export function RenewalWorkspace({
   selectedStepId?: string;
   /** Canonical desk continuation; phase links preserve it so Back to renewals restores the view. */
   deskView?: string | null;
+  /** S107: this lease's consolidated confirmed-effect summary; null when nothing was confirmed. */
+  attemptSummary?: RenewalAttemptSummary | null;
   /** The page-supplied discrepancy resolution panel, rendered inside the verify phase. */
   discrepancyPanel?: ReactNode;
   /** S97: the page-supplied RentVine update proposal/review panel, shown only in verification. */
@@ -207,6 +213,8 @@ export function RenewalWorkspace({
             progressStateAvailable={progressStateAvailable}
             workspace={workspace}
           />
+
+          {attemptSummary ? <RenewalAttemptSummaryCard summary={attemptSummary} /> : null}
 
           {dataExpired ? (
             <Card>

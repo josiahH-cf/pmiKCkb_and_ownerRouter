@@ -19,6 +19,7 @@ export const RENEWAL_AUXILIARY_READ_KEYS = [
   "rentvine_proposal",
   "sheet_proposal",
   "sheet_effect_status",
+  "attempt_summary",
 ] as const;
 
 export type RenewalAuxiliaryReadKey = (typeof RENEWAL_AUXILIARY_READ_KEYS)[number];

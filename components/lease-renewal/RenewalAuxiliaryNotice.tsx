@@ -23,6 +23,7 @@ const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   rentvine_proposal: "RentVine update proposal status",
   sheet_proposal: "renewal Sheet update proposal status",
   sheet_effect_status: "renewal Sheet action status",
+  attempt_summary: "confirmed external step summary",
 };
 
 export function RenewalAuxiliaryNotice({

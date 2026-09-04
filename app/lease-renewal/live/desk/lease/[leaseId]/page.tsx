@@ -19,6 +19,8 @@ import {
   OPERATING_SHEET_TAB,
   liveOperatingSheetId,
 } from "@/lib/lease-renewal/sheet-writeback/live";
+import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
+import { projectWorkspaceAttemptSummary } from "@/lib/lease-renewal/execution/workspace-continuation";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -263,6 +265,18 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const sheetEffects = sheetEffectsRead
     ? renewalAuxiliaryValue(sheetEffectsRead, null)
     : null;
+  // S107: reconcile only this lease's orphaned confirmed attempts, read-only, then project one
+  // summary. A reconcile that cannot prove an outcome leaves the attempt untouched.
+  const attemptSummaryRead = await readRenewalAuxiliary("attempt_summary", () =>
+    projectWorkspaceAttemptSummary({
+      descriptor: requireEnvironmentDescriptor(),
+      leaseId,
+      rentvineProposal: writebackProposal,
+      sheetProposal: sheetProposal,
+      store: new FirestoreExternalExecutionStore(getAdminFirestore()),
+    }),
+  );
+  const attemptSummary = renewalAuxiliaryValue(attemptSummaryRead, null);
   const auxiliaryFailures = renewalAuxiliaryFailures([
     progressRead,
     packetRead,
@@ -276,6 +290,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     dispositionsRead,
     writebackProposalRead,
     sheetProposalRead,
+    attemptSummaryRead,
     ...(sheetEffectsRead ? [sheetEffectsRead] : []),
   ]);
 
@@ -290,6 +305,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
         </Link>
         {outcome.status === "ok" ? (
           <RenewalWorkspace
+            attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
             compScreenshotExecutable={compScreenshotExecutable}
             deskView={deskView}
