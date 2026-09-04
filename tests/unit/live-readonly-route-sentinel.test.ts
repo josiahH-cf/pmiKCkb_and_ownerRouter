@@ -68,6 +68,10 @@ const REVIEWED_DIRECT_DEFENSE_BOUNDARIES = new Map([
     "app/api/vendor/tickets/route.ts:GET:confirmVendorPortalAccess",
     "vendor-portal-access",
   ],
+  [
+    "app/api/connections/dotloop/callback/route.ts:GET:completeDotloopConnection",
+    "dotloop-authorization-callback",
+  ],
   ["app/vendor/page.tsx:VendorPage:confirmVendorPortalAccess", "vendor-portal-access"],
 ]);
 
@@ -568,8 +572,19 @@ describe("Live-read-only route sentinel", () => {
       "assertLiveProviderActionAllowed(context.descriptor);",
     );
 
+    // S106: the Dotloop authorization callback arrives as a GET by protocol but exchanges a code
+    // and writes a connection record, so it asserts the Live provider fence before anything else.
+    const dotloop = parseFile(
+      join(ROOT, "lib", "connections", "dotloop-connection-service.ts"),
+    );
+    const complete = findFunction(dotloop.sourceFile, "completeDotloopConnection");
+    expect(compactText(complete!.body!.statements[0], dotloop.sourceFile)).toContain(
+      "assertLiveProviderActionAllowed(",
+    );
+
     expect(sorted(REVIEWED_DIRECT_DEFENSE_BOUNDARIES.values())).toEqual([
       "comp-screenshot-recovery",
+      "dotloop-authorization-callback",
       "vendor-portal-access",
       "vendor-portal-access",
     ]);

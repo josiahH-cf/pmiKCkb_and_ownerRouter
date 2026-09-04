@@ -76,11 +76,27 @@ provider or action authority.
 - The earlier candidates from `28a9253`, `ff200d3`, `0158c90`, and `0f01353` are superseded and
   carry no traffic.
 
+## S106 implemented, not yet released
+
+S106 (Dotloop connection and renewal readiness) adds one server-owned connection service: a
+single-use authorization state consumed before anything else, the documented `authorization_code`
+exchange server-side, both tokens stored only as opaque vault refs, and a connection record through
+the existing S96 lifecycle. A denial, callback error, forged or replayed state, exchange failure, or
+unconfigured secure storage each end with no connection. The typed client reads only the four
+documented endpoints, bounds pagination to `batch_size` 100, refreshes once on 401, reports
+`refresh_needed` on a revoked refresh token, backs off once on 429, and exposes no generic request
+function. Readiness never says `connected` without a profile probe success and names the exact
+missing resource; `signatureApiAvailable` stays false because the documentation lists no e-signature
+operation. The callback asserts the Live provider fence first, so local rehearsal refuses it. Only
+the LIVE readiness check is blocked, on the owner's OAuth application and a connected account.
+
 ## Next exact action
 
-Begin S106 (`docs/feature-suites/dotloop-connection-and-readiness.md`) and continue the
-renewal-completion order (S34, S107, S108, S109, S110, S111), one green suite at a time with a
-zero-traffic candidate and smoke after each. Promotion of any candidate waits on the two
+Require exact-SHA aggregate CI for the S106 commit, deploy one zero-traffic candidate from that
+clean HEAD, and pass `npm run smoke:release-candidate` at its exact commit and revision. Then begin
+S34 (`docs/feature-suites/dotloop-esign-activation.md`) and continue the renewal-completion order
+(S107, S108, S109, S110, S111), one green suite at a time with a zero-traffic candidate and smoke
+after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
 fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
@@ -96,9 +112,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
 8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
 9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
-10. S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
-11. S36 — queued behind complete S100
-12. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+10. S106 — implemented, unreleased; only its live check is blocked (renewal-completion R5)
+11. S34, S107, S108, S109, S110, S111 — specified, next in that order
+12. S36 — queued behind complete S100
+13. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.

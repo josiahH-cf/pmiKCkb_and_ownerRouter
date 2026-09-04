@@ -96,7 +96,10 @@ read-only sources and also surfaced one pre-existing S84 behavior that is not ch
 the responsive navigation resolves on the client, a payload as large as the full desk briefly paints
 the desktop navigation group at 320px and overflows horizontally until hydration completes. S105 (typed owner outcomes with reopening and non-renewal routing, a version-binding audit, and the
 lifecycle and branch proofs) is committed in `13523c5` with exact-SHA CI green, carried by the
-current candidate, and not promoted; its Dotloop phase link waits on S106 and S34. S106-S111 and S34 remain specified only. The S51
+current candidate, and not promoted; its Dotloop phase link waits on S106 and S34. S106 (the Dotloop connection service, typed client, vault-backed tokens and refresh, selection
+record, readiness projection, and health wiring) is implemented and unreleased; only its live
+readiness check is blocked on the owner's OAuth application and a connected account. S107-S111 and
+S34 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

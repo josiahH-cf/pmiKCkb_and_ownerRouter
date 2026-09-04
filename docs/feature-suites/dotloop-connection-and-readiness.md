@@ -3,10 +3,11 @@
 
 # S106 — Dotloop connection and renewal readiness
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. Dotloop exists only as
-> scaffolding: an authorize-URL builder and a token exchanger that refuses
-> (`lib/connections/dotloop-oauth.ts`), a catalog entry, a health-check definition, and two closed
-> keys. The owner's 2026-09-03 direction supersedes D-DOTLOOP-DEFER.
+> Status: IMPLEMENTED / UNRELEASED for the closed slice; the live readiness check is BLOCKED on the
+> owner's OAuth application registration and a connected Dotloop account. The connection service,
+> typed client, single-use state, vault-backed token refs, selection record, readiness projection,
+> and health wiring are in place and proved against the provider fake. Production still shows
+> Dotloop as details-provided-not-verified.
 
 **Goal.**
 
@@ -16,17 +17,17 @@ connection reconnects cleanly, and readiness blockers are exact.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-05)                   | Classification | Evidence                                                                                                                                                                                                |
-| ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dotloop in the existing connections area       | Partially      | `lib/connections/connector-catalog.ts` entry `dotloop` (`method: "oauth"`, config names only); Connection Center renders it as details-provided-not-verified                                            |
-| Provider authorization callback                | Missing        | `NotConnectedDotloopTokenExchanger` throws; no callback route; `resolveDotloopTokenExchanger` returns the stub                                                                                          |
-| Connection states                              | Partially      | `connector_connections` lifecycle `connected` → `revocation_pending` → `revoked` with receipts (`lib/firestore/connector-connections.ts`, S96); no `expired`/`refresh-needed`/`missing resources` state |
-| Profile and template discovery and selection   | Missing        | No client, no selection record                                                                                                                                                                          |
-| Verify loop/participant/folder/document access | Missing        | `health.dotloop.oauth_app` steps defined but never run live                                                                                                                                             |
-| Token refresh through one project-owned path   | Missing        | Token refs are typed (`DotloopTokenSet`) but nothing exchanges or refreshes                                                                                                                             |
-| Disconnect and reconnect without losing links  | Partially      | S96 revocation store and vault destroy exist; loop links live on packet snapshots (S34)                                                                                                                 |
-| Webhook and signature capability detection     | Missing        | Official docs list subscriptions; no e-signature endpoint is documented                                                                                                                                 |
-| Exact readiness blockers                       | Partially      | Missing config names reported; no account/profile/template readiness                                                                                                                                    |
+| Package requirement (PMI-05)                   | Classification    | Evidence                                                                                                                                                                                                                             |
+| ---------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dotloop in the existing connections area       | Partially         | `lib/connections/connector-catalog.ts` entry `dotloop` (`method: "oauth"`, config names only); Connection Center renders it as details-provided-not-verified                                                                         |
+| Provider authorization callback                | Already satisfied | `LiveDotloopTokenExchanger` posts the documented `authorization_code` grant server-side; `app/api/connections/dotloop/callback/route.ts` consumes one single-use state, stores both tokens as vault refs, and records the connection |
+| Connection states                              | Partially         | `connector_connections` lifecycle `connected` → `revocation_pending` → `revoked` with receipts (`lib/firestore/connector-connections.ts`, S96); no `expired`/`refresh-needed`/`missing resources` state                              |
+| Profile and template discovery and selection   | Already satisfied | `DotloopClient.listProfiles` / `listLoopTemplates` plus the Admin-gated `dotloop_renewal_settings` record, selected by stable provider id                                                                                            |
+| Verify loop/participant/folder/document access | Partially         | `dotloopHealthCheckTransport` runs the four `health.dotloop.oauth_app` steps against the client; only the LIVE run waits on the owner's account                                                                                      |
+| Token refresh through one project-owned path   | Already satisfied | The client refreshes exactly once on 401 through the injected token provider and reports `refresh_needed` when the refresh token is revoked                                                                                          |
+| Disconnect and reconnect without losing links  | Partially         | S96 revocation store and vault destroy exist; loop links live on packet snapshots (S34)                                                                                                                                              |
+| Webhook and signature capability detection     | Already satisfied | `readSubscriptionsAvailable` sets `webhooksAvailable`; `signatureApiAvailable` is always false because the official documentation lists no e-signature operation                                                                     |
+| Exact readiness blockers                       | Already satisfied | `projectDotloopReadiness` names client registration, callback configuration, secure storage, account connection, compatible profile, renewal template, and loop write scope                                                          |
 
 Intended end state: one server-owned Dotloop connection service reusing the connector store, vault,
 S96 lifecycle, and health-check contract; a profile/template selection record; a readiness
@@ -128,8 +129,16 @@ app showing the connection as connected. They pick the office profile and the re
 When Dotloop access lapses the app says so and offers reconnect, and existing renewal packets keep
 their links.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with fake-provider
-  lifecycle evidence and, when an account exists, one non-destructive live readiness check.
+- Model verdict: PASS for the closed slice - why: the whole lifecycle is proved against the provider
+  fake. Authorization mints a single-use state and returns the documented authorize URL with no
+  secret in it; the callback consumes that state before anything else, so a forged or replayed value
+  creates nothing; a denial, a callback error, an exchange failure, or unconfigured secure storage
+  each end with no connection; tokens exist only as vault refs; an expired token refreshes exactly
+  once for one read and the refreshed token is reused by the next; a revoked refresh token reports
+  `refresh_needed` instead of looping; a rate limit backs off once and is then surfaced; readiness
+  never says connected without a profile probe success and names the exact missing resource; and
+  webhook unavailability leaves loops usable while no signature API is ever claimed. The live
+  readiness check is BLOCKED on the owner's OAuth application and connected account.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
