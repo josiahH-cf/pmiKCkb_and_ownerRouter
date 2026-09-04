@@ -18,10 +18,10 @@ provider or action authority.
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
   through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
-  S34 through `7b26107`, S107 through `ae93742`, S108 through `03f7eee`, and S109 through `9b2c829`;
-  all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtmq9qye-f7e5437a209b` (tag `cand-rmtmq9qye-f7e5437a209b`)
-  was deployed from commit `9b2c829e1d94b1a489bacf76a7074e8b9b43ed80` and passed the anonymous
+  S34 through `7b26107`, S107 through `ae93742`, S108 through `03f7eee`, S109 through `9b2c829`, and
+  S110 through `5abf6dd`; all are exact-SHA CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtmuvjmp-b9f775e360aa` (tag `cand-rmtmuvjmp-b9f775e360aa`)
+  was deployed from commit `5abf6ddae9f46b9ccc32c99bd70b2e9b3beb7455` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
@@ -72,16 +72,23 @@ Full claims for every slice are in `docs/facts.md`; these are pointers.
   suggest a trade. Promotion carries `photos_needed` onto the ticket, which S108 reads as the
   resident blocker. `app/maintenance/report` clears its fragment token before any request and offers
   no file input.
+- S110 (`5abf6dd`): one `runAssistantQuery` boundary over a closed versioned three-intent registry;
+  the body carries only the question text and every other input is derived server-side. The Renewals
+  desk orchestration moved into `lib/lease-renewal/assistant-source.ts`, which the desk page and the
+  assistant both call, so the table and the answer cannot drift. A failed renewal read reports
+  `unavailable`, never `no renewals`, and an actor without Renewals access receives no lease detail.
+  No assistant module or its route can reach the action gate, an executor, a provider write client,
+  or a draft path.
 - No provider write, timer, draft, or send derives from any of this work. Each slice passed the
-  canonical gate, core E2E, and exact-SHA CI; S103, S104, S108, and S109 also passed a local
+  canonical gate, core E2E, and exact-SHA CI; S103, S104, S108, S109, and S110 also passed a local
   rehearsal browser smoke, which recorded one pre-existing S84 narrow-viewport behavior left to S84.
 - Every earlier renewal-completion candidate is superseded and carries no traffic.
 
 ## Next exact action
 
-Begin S108 (`docs/feature-suites/maintenance-sync-blockers-and-preapproval-routing.md` per the README bundle) and continue the
-renewal-completion order (S109, S110, S111), one green suite at a time with a zero-traffic candidate
-and smoke after each. Promotion of any candidate waits on the two
+Begin S111 (`docs/feature-suites/renewal-completion-integrated-proof-and-training.md`), the last
+suite in the renewal-completion order, with a zero-traffic candidate and smoke after it.
+Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
 fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
@@ -102,9 +109,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 12. S107 — committed and candidate-deployed, not promoted (renewal-completion R7)
 13. S108 — committed and candidate-deployed, not promoted (renewal-completion R8)
 14. S109 — committed and candidate-deployed, not promoted (renewal-completion R9)
-15. S110, S111 — specified, next in that order
-16. S36 — queued behind complete S100
-17. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+15. S110 — committed and candidate-deployed, not promoted (renewal-completion R10)
+16. S111 — specified, next
+17. S36 — queued behind complete S100
+18. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.

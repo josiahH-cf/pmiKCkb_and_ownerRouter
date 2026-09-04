@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, S105, S106, S34, S107, S108, and S109 are committed through `9b2c829` and deployed as
-zero-traffic candidate `pmi-kc-app-rmtmq9qye-f7e5437a209b` from commit
-`9b2c829e1d94b1a489bacf76a7074e8b9b43ed80`; its
+identity-read fix, S103, S104, S105, S106, S34, S107, S108, S109, and S110 are committed through `5abf6dd` and deployed
+as zero-traffic candidate `pmi-kc-app-rmtmuvjmp-b9f775e360aa` from commit
+`5abf6ddae9f46b9ccc32c99bd70b2e9b3beb7455`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -120,8 +120,12 @@ suggestion-only model adapter, the promotion handoff, and the public report form
 rehearsal-browser run proved the form is reachable with no session, that the token never enters a
 request URL, and that a link with no token refuses. Public file upload stays forbidden, so the form
 names the photos needed instead, and the owner still supplies the troubleshooting links and any
-extension of the required-evidence table; their absence disables only the resource offer. S110 and
-S111 remain specified only. The S51
+extension of the required-evidence table; their absence disables only the resource offer. S110 (the
+closed three-intent assistant boundary, the work and renewal adapters, the extracted desk
+orchestration, the result envelope, the route, and the Dashboard routing) is committed in `5abf6dd`
+with exact-SHA CI green, carried by the current candidate, and not promoted; its rehearsal-browser
+run asked all three questions plus an unsupported one and no write route was called. S111 remains
+specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work
