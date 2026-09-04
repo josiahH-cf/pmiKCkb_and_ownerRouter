@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   recordOwnerDecision: vi.fn(),
+  recordOwnerOutcome: vi.fn(),
   recordTenantOutcome: vi.fn(),
   markRenewalComplete: vi.fn(),
 }));
@@ -16,6 +17,7 @@ vi.mock("@/lib/auth/session", async (importActual) => {
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   recordOwnerDecision: mocks.recordOwnerDecision,
+  recordOwnerOutcome: mocks.recordOwnerOutcome,
   recordTenantOutcome: mocks.recordTenantOutcome,
   markRenewalComplete: mocks.markRenewalComplete,
 }));
@@ -191,6 +193,54 @@ describe("renewal-progress route", () => {
     expect(res.status).toBe(200);
     expect(mocks.markRenewalComplete).toHaveBeenCalledWith(user, "5001");
     expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
+  });
+
+  it("records a typed owner response without a provider action (S105)", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    mocks.recordOwnerOutcome.mockResolvedValue({
+      leaseId: "5001",
+      processVersion: "renewal-v1",
+      stageIndex: 1,
+      ownerOutcome: { state: "revision_requested" },
+      complete: false,
+    });
+
+    const evidence = {
+      ref: "gmail-thread:thread-5001:message-4",
+      source: "gmail_receipt",
+      disposition: "verified",
+    } as const;
+    const res = await post({
+      action: "owner_outcome",
+      leaseId: "5001",
+      outcome: "revision_requested",
+      evidence,
+    });
+
+    expect(res.status).toBe(200);
+    expect(mocks.recordOwnerOutcome).toHaveBeenCalledWith(
+      user,
+      "5001",
+      "revision_requested",
+      evidence,
+    );
+    expect(mocks.recordTenantOutcome).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown owner response state without touching the store (S105)", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    const res = await post({
+      action: "owner_outcome",
+      leaseId: "5001",
+      outcome: "maybe_later",
+      evidence: {
+        ref: "gmail-thread:thread-5001:message-4",
+        source: "gmail_receipt",
+        disposition: "verified",
+      },
+    });
+    expect(res.status).toBe(400);
+    expect(mocks.recordOwnerOutcome).not.toHaveBeenCalled();
   });
 
   it("records a source-backed accepted tenant outcome without a provider action", async () => {

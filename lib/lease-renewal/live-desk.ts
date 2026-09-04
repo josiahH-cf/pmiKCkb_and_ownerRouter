@@ -1059,6 +1059,9 @@ function effectiveProgressAfterEvidence(
     tenantOfferDraftId: evidence["tenant-draft-receipt"]
       ? progress.tenantOfferDraftId
       : null,
+    // S105: a recorded owner response that live evidence no longer supports cannot keep driving the
+    // owner branch, exactly as a stale tenant outcome cannot.
+    ownerOutcome: evidence["owner-response"] ? (progress.ownerOutcome ?? null) : null,
     tenantOutcome: evidence["tenant-outcome"] ? progress.tenantOutcome : null,
     complete: progress.complete && Boolean(evidence["app-completion"]),
   };
@@ -1244,6 +1247,7 @@ export async function loadLiveRenewalDesk(
           processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
           evidence,
           evidenceBlockers: processEvidence.blockers,
+          ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
         });
@@ -1466,6 +1470,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
       evidence,
       evidenceBlockers: processEvidence.blockers,
+      ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
       tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
       complete: effectiveProgress?.complete ?? false,
     });
@@ -1582,6 +1587,8 @@ export async function loadLiveRenewalLeaseWorkspace(
               leaseId,
               ownerDecision: effectiveProgress?.ownerDecision ?? null,
               ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
+              ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
+              ownerResponseRecordable: Boolean(evidence["owner-message-sent"]),
               tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
               tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
               processVersion:

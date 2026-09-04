@@ -130,6 +130,26 @@ export interface RenewalTenantOutcome {
   evidence: RenewalEvidenceReference;
 }
 
+/**
+ * S105: the typed owner response. `approved_terms` carries the recorded decision forward;
+ * `revision_requested` reopens owner copy onward and invalidates every downstream preview;
+ * `declined_non_renewal` routes to the same documented non-renewal handoff the tenant decline uses;
+ * `no_response` keeps the lease visibly waiting on the owner instead of quietly complete.
+ */
+export const RENEWAL_OWNER_OUTCOME_STATES = [
+  "approved_terms",
+  "revision_requested",
+  "declined_non_renewal",
+  "no_response",
+] as const;
+
+export type RenewalOwnerOutcomeState = (typeof RENEWAL_OWNER_OUTCOME_STATES)[number];
+
+export interface RenewalOwnerOutcome {
+  state: RenewalOwnerOutcomeState;
+  evidence: RenewalEvidenceReference;
+}
+
 export type RenewalSubstepState = "not_started" | "blocked" | "ready" | "complete";
 
 type RenewalBranchApplicability = "always" | "accepted_only" | "declined_only";
@@ -744,6 +764,8 @@ export interface RenewalProcessProjectionInput {
   evidence?: RenewalEvidenceMap;
   evidenceBlockers?: Partial<Record<RenewalEvidenceKey, RenewalEvidenceBlocker>>;
   externalDependencies?: RenewalExternalDependencies;
+  /** S105: the typed owner response; absent means no owner outcome has been recorded yet. */
+  ownerOutcome?: RenewalOwnerOutcome | null;
   tenantOutcome?: RenewalTenantOutcome | null;
   complete?: boolean;
 }
@@ -774,6 +796,10 @@ export interface RenewalStepProjection {
 export type RenewalProcessStatus =
   | "active"
   | "waiting"
+  /** S105: the owner has not answered the reviewed message yet. */
+  | "waiting_on_owner"
+  /** S105: the owner asked for changes, so owner copy onward is reopened. */
+  | "owner_revision_reopened"
   | "counter_reopened"
   | "needs_verification"
   | "non_renewal_handoff_required"
@@ -919,10 +945,57 @@ function evidenceAllowsNotApplicable(key: RenewalEvidenceKey): boolean {
 function branchApplicable(
   branch: RenewalBranchApplicability | undefined,
   outcome: RenewalTenantOutcome | null | undefined,
+  ownerDeclined: boolean,
 ): boolean {
   if (!branch || branch === "always") return true;
-  if (branch === "accepted_only") return outcome?.state === "accepted";
-  return outcome?.state === "declined_nonrenewing";
+  // An owner decline never reaches an accepted tenant answer, so accepted-only work stays inapplicable.
+  if (branch === "accepted_only") return !ownerDeclined && outcome?.state === "accepted";
+  // Either party's decline ends at the same documented non-renewal handoff.
+  return ownerDeclined || outcome?.state === "declined_nonrenewing";
+}
+
+/**
+ * S105 owner-outcome overrides. They mirror the tenant-outcome overrides: the recorded evidence
+ * proves the response was checked, while the typed state decides what an operator may act on next.
+ */
+function ownerOutcomeStateForSubstep(
+  substepDefinition: RenewalSubstepDefinition,
+  outcome: RenewalOwnerOutcome | null | undefined,
+): { state?: RenewalSubstepState; blocker?: string } {
+  if (!outcome) return {};
+  if (substepDefinition.id === "record-owner-response") {
+    if (outcome.state === "no_response") {
+      return { state: "blocked", blocker: "The owner response is still pending." };
+    }
+    if (outcome.state === "revision_requested") {
+      return {
+        state: "blocked",
+        blocker:
+          "The owner requested a revision; owner copy and every downstream preview must be rebuilt.",
+      };
+    }
+    return {};
+  }
+  if (
+    substepDefinition.id === "record-owner-decision" &&
+    outcome.state === "declined_non_renewal"
+  ) {
+    return {
+      state: "blocked",
+      blocker: "The owner declined renewal; record the non-renewal handoff instead.",
+    };
+  }
+  if (
+    substepDefinition.id === "bind-offer-to-owner-decision" &&
+    outcome.state === "revision_requested"
+  ) {
+    return {
+      state: "blocked",
+      blocker:
+        "The owner decision was superseded by a revision request; rebuild the offer from the current decision.",
+    };
+  }
+  return {};
 }
 
 function effectiveDependency(
@@ -982,12 +1055,14 @@ export function projectRenewalProcess(
   const migration = assessRenewalProcessMigration(input.processVersion);
   const migrationRequired = migration.status !== "current";
 
+  const ownerDeclined = input.ownerOutcome?.state === "declined_non_renewal";
   const steps: RenewalStepProjection[] = RENEWAL_PROCESS_DEFINITION.steps.map(
     (stepDefinition) => {
       const substeps = stepDefinition.substeps.map((substepDefinition) => {
         const applicable = branchApplicable(
           substepDefinition.branch,
           input.tenantOutcome,
+          ownerDeclined,
         );
         const requiredForStep = substepDefinition.requiredForStep !== false;
         const missingEvidence = substepDefinition.requiredEvidence.filter(
@@ -1010,15 +1085,25 @@ export function projectRenewalProcess(
           }
         }
 
-        const outcomeOverride = outcomeStateForSubstep(
+        const tenantOverride = outcomeStateForSubstep(
           substepDefinition,
           input.tenantOutcome,
         );
-        if (outcomeOverride.blocker) blockers.push(outcomeOverride.blocker);
-
-        const prerequisitesMet = (substepDefinition.prerequisiteEvidence ?? []).every(
-          (key) => hasEvidence(evidence, key, evidenceAllowsNotApplicable(key)),
+        const ownerOverride = ownerOutcomeStateForSubstep(
+          substepDefinition,
+          input.ownerOutcome,
         );
+        const outcomeOverride = ownerOverride.state ? ownerOverride : tenantOverride;
+        if (tenantOverride.blocker) blockers.push(tenantOverride.blocker);
+        if (ownerOverride.blocker) blockers.push(ownerOverride.blocker);
+
+        // S105: an owner decline reaches the same documented exit without a tenant answer, because
+        // no offer was ever put to the tenant. The handoff is then actionable from the owner branch.
+        const prerequisitesMet =
+          (ownerDeclined && substepDefinition.id === "record-non-renewal-handoff") ||
+          (substepDefinition.prerequisiteEvidence ?? []).every((key) =>
+            hasEvidence(evidence, key, evidenceAllowsNotApplicable(key)),
+          );
 
         let state: RenewalSubstepState;
         if (!applicable) state = "not_started";
@@ -1077,7 +1162,17 @@ export function projectRenewalProcess(
 
   let status: RenewalProcessStatus = "active";
   if (migrationRequired) status = "migration_required";
-  else if (input.tenantOutcome?.state === "counter_change_requested") {
+  // S105: an unresolved owner response precedes every tenant state; the lease cannot be waiting on
+  // a tenant answer that was never sent.
+  else if (input.ownerOutcome?.state === "revision_requested") {
+    status = "owner_revision_reopened";
+  } else if (input.ownerOutcome?.state === "no_response") {
+    status = "waiting_on_owner";
+  } else if (ownerDeclined) {
+    status = hasEvidence(evidence, "non-renewal-handoff", false)
+      ? "non_renewal_handoff"
+      : "non_renewal_handoff_required";
+  } else if (input.tenantOutcome?.state === "counter_change_requested") {
     status = "counter_reopened";
   } else if (input.tenantOutcome?.state === "awaiting_response") {
     status = "waiting";
@@ -1099,6 +1194,9 @@ export function projectRenewalProcess(
   let currentStepIndex = steps.findIndex((step) => step.state !== "complete");
   if (currentStepIndex < 0) currentStepIndex = steps.length - 1;
   if (status === "counter_reopened") currentStepIndex = 1;
+  if (status === "owner_revision_reopened" || status === "waiting_on_owner") {
+    currentStepIndex = 1;
+  }
   if (
     status === "non_renewal_handoff" ||
     status === "non_renewal_handoff_required" ||

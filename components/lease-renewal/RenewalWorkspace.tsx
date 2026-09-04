@@ -19,6 +19,7 @@ import {
 import { Icon } from "@/components/ui/Icon";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
+import { RenewalOwnerOutcomeControl } from "@/components/lease-renewal/RenewalOwnerOutcomeControl";
 import { RenewalTenantOutcomeControl } from "@/components/lease-renewal/RenewalTenantOutcomeControl";
 import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowUpStatus";
 import { RenewalFollowUpThreadControl } from "@/components/lease-renewal/RenewalFollowUpThreadControl";
@@ -728,6 +729,21 @@ function PhaseContent({
     case "owner-decision":
       return (
         <Card title="Owner decision">
+          {workspace.live &&
+          workspace.live.ownerResponseRecordable &&
+          !dataExpired &&
+          progressStateAvailable ? (
+            <div className="ui-stack">
+              <p className="muted">
+                Record what the owner actually answered. Asking for changes reopens the
+                owner copy and every preview built from it.
+              </p>
+              <RenewalOwnerOutcomeControl
+                current={workspace.live.ownerOutcome}
+                leaseId={workspace.live.leaseId}
+              />
+            </div>
+          ) : null}
           {workspace.live && !dataExpired && progressStateAvailable ? (
             <div className="ui-stack">
               <p className="muted">

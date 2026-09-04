@@ -38,6 +38,7 @@ import { decodeLegacyManualMarketBasis } from "@/lib/lease-renewal/legacy-market
 import {
   planMarkComplete,
   planRecordOwnerDecision,
+  planRecordOwnerOutcome,
   planRecordRenewalEvidence,
   planRecordTenantOutcome,
   planRecordTenantOfferDraft,
@@ -54,6 +55,7 @@ import {
   type RenewalEvidenceKey,
   type RenewalEvidenceMap,
   type RenewalEvidenceReference,
+  type RenewalOwnerOutcomeState,
   type RenewalTenantOutcomeState,
 } from "@/lib/lease-renewal/renewal-process";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
@@ -107,6 +109,28 @@ export async function recordOwnerDecision(
       };
     },
     "owner_decision",
+    db,
+  );
+}
+
+/**
+ * S105: record the typed owner response. App-owned only; no provider call, draft, or send.
+ */
+export async function recordOwnerOutcome(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  state: RenewalOwnerOutcomeState,
+  evidence: RenewalEvidenceReference,
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalProgress> {
+  return applyTransition(
+    actor,
+    leaseId,
+    (current, _transaction, currentAttachment) => ({
+      plan: planRecordOwnerOutcome(current, state, evidence),
+      ...(currentAttachment ? { attachment: currentAttachment } : {}),
+    }),
+    "owner_outcome",
     db,
   );
 }
@@ -342,6 +366,12 @@ async function applyTransition(
               })
             : undefined,
           owner_decision_revision: next.ownerDecisionRevision,
+          owner_outcome: next.ownerOutcome
+            ? {
+                state: next.ownerOutcome.state,
+                evidence: evidenceReferenceToRecord(next.ownerOutcome.evidence),
+              }
+            : undefined,
           tenant_offer_draft_id: next.tenantOfferDraftId ?? undefined,
           tenant_outcome: next.tenantOutcome
             ? {
@@ -719,6 +749,9 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
   const tenantOutcomeEvidence = evidenceReferenceFromRecord(
     record.tenant_outcome?.evidence,
   );
+  const ownerOutcomeEvidence = evidenceReferenceFromRecord(
+    record.owner_outcome?.evidence,
+  );
   return {
     leaseId: record.lease_id,
     processVersion:
@@ -762,6 +795,10 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
       (record.owner_decision_revision ?? 0) > 0
         ? (record.owner_decision_revision as number)
         : 0,
+    ownerOutcome:
+      record.owner_outcome && ownerOutcomeEvidence
+        ? { state: record.owner_outcome.state, evidence: ownerOutcomeEvidence }
+        : null,
     tenantOfferDraftId: record.tenant_offer_draft_id ?? null,
     tenantOutcome:
       record.tenant_outcome && tenantOutcomeEvidence

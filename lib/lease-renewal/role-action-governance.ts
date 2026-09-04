@@ -457,6 +457,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/renewal-progress/route.ts"],
   },
   {
+    control: "Record the typed owner response",
+    source: "components/lease-renewal/RenewalOwnerOutcomeControl.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/renewal-progress/route.ts"],
+  },
+  {
     control: "Dismiss or reopen exact follow-up attention",
     source: "components/lease-renewal/RenewalFollowUpAttentionControl.tsx",
     capability: "manage_follow_up_attention",

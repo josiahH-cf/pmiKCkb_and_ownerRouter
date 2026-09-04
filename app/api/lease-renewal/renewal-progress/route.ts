@@ -7,6 +7,7 @@ import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governanc
 import {
   markRenewalComplete,
   recordOwnerDecision,
+  recordOwnerOutcome,
   recordTenantOutcome,
 } from "@/lib/firestore/lease-renewal-progress";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
@@ -144,6 +145,40 @@ const MarkCompleteActionSchema = z
   })
   .strict();
 
+const EvidenceSchema = z
+  .object({
+    ref: z
+      .string()
+      .trim()
+      .min(1)
+      .max(240)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/),
+    source: z.enum(["gmail_receipt", "app_record"]),
+    disposition: z.literal("verified"),
+    observedAt: z.string().trim().min(1).max(40).optional(),
+    fingerprint: z
+      .string()
+      .trim()
+      .regex(/^[a-fA-F0-9]{64}$/)
+      .optional(),
+  })
+  .strict();
+
+/** S105: the typed owner response. It records app-owned state only; no provider is called. */
+const OwnerOutcomeActionSchema = z
+  .object({
+    action: z.literal("owner_outcome"),
+    leaseId: z.string().trim().min(1).max(120),
+    outcome: z.enum([
+      "approved_terms",
+      "revision_requested",
+      "declined_non_renewal",
+      "no_response",
+    ]),
+    evidence: EvidenceSchema,
+  })
+  .strict();
+
 const TenantOutcomeActionSchema = z
   .object({
     action: z.literal("tenant_outcome"),
@@ -178,6 +213,7 @@ const TenantOutcomeActionSchema = z
 
 const RenewalProgressBodySchema = z.discriminatedUnion("action", [
   OwnerDecisionActionSchema,
+  OwnerOutcomeActionSchema,
   TenantOutcomeActionSchema,
   MarkCompleteActionSchema,
 ]);
@@ -194,6 +230,7 @@ export async function POST(request: Request) {
 export interface RenewalProgressRouteDeps {
   requireCapabilityInSpace: typeof requireCapabilityInSpace;
   recordDecision: typeof recordOwnerDecision;
+  recordOwnerResponse: typeof recordOwnerOutcome;
   recordOutcome: typeof recordTenantOutcome;
   markComplete: typeof markRenewalComplete;
   /** S58: refuses (LeaseDataExpiredError) when the live lease snapshot is past the hard max age. */
@@ -215,6 +252,7 @@ async function defaultAssertLeaseDataCurrent(): Promise<void> {
 const DEFAULT_ROUTE_DEPS: RenewalProgressRouteDeps = {
   requireCapabilityInSpace,
   recordDecision: recordOwnerDecision,
+  recordOwnerResponse: recordOwnerOutcome,
   recordOutcome: recordTenantOutcome,
   markComplete: markRenewalComplete,
   assertLeaseDataCurrent: defaultAssertLeaseDataCurrent,
@@ -256,6 +294,16 @@ export function createRenewalProgressPostHandler(
           ...(body.infoFormUrl ? { infoFormUrl: body.infoFormUrl } : {}),
           ...(body.market ? { market: body.market } : {}),
         });
+        return NextResponse.json({ progress });
+      }
+
+      if (body.action === "owner_outcome") {
+        const progress = await deps.recordOwnerResponse(
+          user,
+          body.leaseId,
+          body.outcome,
+          body.evidence,
+        );
         return NextResponse.json({ progress });
       }
 

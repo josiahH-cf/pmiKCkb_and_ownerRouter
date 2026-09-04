@@ -3,10 +3,10 @@
 
 # S105 — End-to-end renewal lifecycle closure
 
-> Status: Largely satisfied by the deployed six-step `renewal-v1` process (S72), the S97/S98 exact
-> writes, the Gmail draft contracts, and the S82 desk/workspace. This suite adds the distinct owner
-> outcomes, the Dotloop packet phase link, and one lifecycle proof so a fixed-term renewal moves from
-> discovery to truthful completion through existing paths only.
+> Status: IMPLEMENTED / UNRELEASED, except the Dotloop phase link, which waits on S106 and S34. The
+> typed owner outcome, its reopening and exit routing, the version-binding audit, and the lifecycle
+> and branch proofs are in place through the existing paths. Production still serves the S72
+> baseline without typed owner outcomes.
 
 **Goal.**
 
@@ -16,18 +16,18 @@ external work, or a completion claim that lacks evidence.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-04)                            | Classification    | Evidence                                                                                                                                                                                                                    |
-| ------------------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One visible lifecycle with project-native phases        | Already satisfied | `lib/lease-renewal/renewal-process.ts` steps `verify-renewal`, `owner-decision`, `tenant-decision`, `document-packet`, `signatures-follow-up`, `compliance-close` with evidence-derived substeps                            |
-| No proposal or external work before verification clears | Already satisfied | Substeps `verify-base-rent`, `resolve-source-conflicts`, `confirm-source-currency`; S82 blocker precedence                                                                                                                  |
-| Distinct owner outcomes                                 | Partially         | `RenewalOwnerDecision.decision` is `keep_same` / `increase` / `custom` (`lib/lease-renewal/tenant-draft.ts`); `record-owner-response` records a reply but no typed `revision requested`, `declined`, or `no response` state |
-| Downstream work bound to the current proposal version   | Already satisfied | `ownerDecisionRevision`, S97 proposal generation claims (`lib/firestore/s97-renewal-writeback-claim.ts`), S98 lease-scoped claim, S66 packet snapshot hash                                                                  |
-| Dotloop packet phase                                    | Missing           | `document-packet` substep `read-back-document-packet` has no provider; delivered by S106 and S34                                                                                                                            |
-| Reuse RentVine, Sheet, approval, messaging paths        | Already satisfied | S97, S98, approval queue, `gmail.renewal_notice.draft_create`                                                                                                                                                               |
-| Safe retries, one effective result per version          | Already satisfied | One-attempt claims, receipts, readback, reconcile (`docs/integration-architecture.md` effect model)                                                                                                                         |
-| Uncertain external result stays in reconciliation       | Already satisfied | `ambiguous` execution state and reconcile operations in S97/S98/S99                                                                                                                                                         |
-| One lease's blocker never blocks another                | Already satisfied | Per-lease progress, claims, and guidance                                                                                                                                                                                    |
-| Completion only when required steps are complete        | Already satisfied | `record-app-completion` requires every required item Verified or Not Applicable                                                                                                                                             |
+| Package requirement (PMI-04)                            | Classification    | Evidence                                                                                                                                                                                                                              |
+| ------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One visible lifecycle with project-native phases        | Already satisfied | `lib/lease-renewal/renewal-process.ts` steps `verify-renewal`, `owner-decision`, `tenant-decision`, `document-packet`, `signatures-follow-up`, `compliance-close` with evidence-derived substeps                                      |
+| No proposal or external work before verification clears | Already satisfied | Substeps `verify-base-rent`, `resolve-source-conflicts`, `confirm-source-currency`; S82 blocker precedence                                                                                                                            |
+| Distinct owner outcomes                                 | Already satisfied | `RenewalOwnerOutcome` types `approved_terms`, `revision_requested`, `declined_non_renewal`, and `no_response` on the existing `record-owner-response` evidence, with `planRecordOwnerOutcome` and the `owner_outcome` progress action |
+| Downstream work bound to the current proposal version   | Already satisfied | `ownerDecisionRevision`, S97 proposal generation claims (`lib/firestore/s97-renewal-writeback-claim.ts`), S98 lease-scoped claim, S66 packet snapshot hash                                                                            |
+| Dotloop packet phase                                    | Missing           | `document-packet` substep `read-back-document-packet` still has no provider; S106 and S34 deliver it. The absent state is already a visible blocker with its exact next action, proved here                                           |
+| Reuse RentVine, Sheet, approval, messaging paths        | Already satisfied | S97, S98, approval queue, `gmail.renewal_notice.draft_create`                                                                                                                                                                         |
+| Safe retries, one effective result per version          | Already satisfied | One-attempt claims, receipts, readback, reconcile (`docs/integration-architecture.md` effect model)                                                                                                                                   |
+| Uncertain external result stays in reconciliation       | Already satisfied | `ambiguous` execution state and reconcile operations in S97/S98/S99                                                                                                                                                                   |
+| One lease's blocker never blocks another                | Already satisfied | Per-lease progress, claims, and guidance                                                                                                                                                                                              |
+| Completion only when required steps are complete        | Already satisfied | `record-app-completion` requires every required item Verified or Not Applicable                                                                                                                                                       |
 
 Intended end state: typed owner outcomes, the Dotloop phase wired to S34's packet state, and one
 fixture-driven lifecycle proof that exercises every branch through the owning services.
@@ -107,8 +107,15 @@ owner asks for changes, declines, or does not answer, the lease shows exactly th
 complete only when the documents, updates, and notice are done, and repeating a step never creates a
 duplicate.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with lifecycle and branch
-  fixture evidence.
+- Model verdict: PASS - why: the owner response is typed, so asking for changes reopens the owner
+  copy and every preview built from it, a decline continues through the documented non-renewal
+  handoff without inventing a tenant answer, and silence keeps the lease visibly waiting on the
+  owner. Completion is reachable only with the full accepted-path evidence set: removing any single
+  required item returns that exact key as missing. A new owner response or changed terms supersedes
+  the decision and every downstream preview, a confirmation captured against superseded terms is
+  refused, and two confirmations of the same effect map to one attempt identity. The Dotloop phase
+  link is the one part still outstanding; it waits on S106 and S34, and its absence is already a
+  visible blocker with its exact next action.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

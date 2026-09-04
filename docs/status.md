@@ -94,7 +94,9 @@ committed in `0f01353` with exact-SHA CI green, carried by the current candidate
 heuristic skip signals and shows no term. Its local rehearsal browser smoke ran against live
 read-only sources and also surfaced one pre-existing S84 behavior that is not changed here: because
 the responsive navigation resolves on the client, a payload as large as the full desk briefly paints
-the desktop navigation group at 320px and overflows horizontally until hydration completes. S105-S111 and S34 remain specified only. The S51
+the desktop navigation group at 320px and overflows horizontally until hydration completes. S105 (typed owner outcomes with reopening and non-renewal routing, a version-binding audit, and the
+lifecycle and branch proofs) is implemented and unreleased; its Dotloop phase link waits on S106 and
+S34. S106-S111 and S34 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

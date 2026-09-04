@@ -793,6 +793,15 @@ export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetenti
     };
   };
   owner_decision_revision?: number;
+  /** S105: the typed owner response to the reviewed owner message. */
+  owner_outcome?: {
+    state:
+      | "approved_terms"
+      | "revision_requested"
+      | "declined_non_renewal"
+      | "no_response";
+    evidence: LeaseRenewalProcessEvidenceRecord;
+  };
   tenant_offer_draft_id?: string;
   tenant_outcome?: {
     state:
@@ -816,6 +825,7 @@ export interface LeaseRenewalProgressActivityRecord {
   actor_uid: string;
   action:
     | "owner_decision"
+    | "owner_outcome"
     | "tenant_offer_drafted"
     | "tenant_outcome"
     | "process_evidence"

@@ -16,6 +16,7 @@ import type {
 } from "@/lib/lease-renewal/desk-query-v2";
 import type { LeaseTerm, LeaseTermProjection } from "@/lib/lease-renewal/lease-term";
 import type {
+  RenewalOwnerOutcome,
   RenewalProcessStatus,
   RenewalProcessStepId,
   RenewalSubstepState,
@@ -310,6 +311,10 @@ export interface RenewalWorkspaceLiveState {
   leaseId: string;
   ownerDecision: RenewalOwnerDecision | null;
   ownerDecisionCurrent: boolean;
+  /** S105: the typed owner response, or null before one is recorded. */
+  ownerOutcome: RenewalOwnerOutcome | null;
+  /** S105: true once the reviewed owner message is proven sent, so a response can be recorded. */
+  ownerResponseRecordable: boolean;
   tenantOfferDraftId: string | null;
   tenantOutcome: RenewalTenantOutcome | null;
   processVersion: string;

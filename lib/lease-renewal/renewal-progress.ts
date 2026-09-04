@@ -19,6 +19,8 @@ import {
   type RenewalEvidenceKey,
   type RenewalEvidenceMap,
   type RenewalEvidenceReference,
+  type RenewalOwnerOutcome,
+  type RenewalOwnerOutcomeState,
   type RenewalTenantOutcome,
   type RenewalTenantOutcomeState,
 } from "@/lib/lease-renewal/renewal-process";
@@ -149,6 +151,8 @@ export interface RenewalProgress {
   stageIndex: number;
   ownerDecision: RenewalOwnerDecision | null;
   ownerDecisionRevision: number;
+  /** S105: the typed owner response, or null before one is recorded. */
+  ownerOutcome?: RenewalOwnerOutcome | null;
   tenantOfferDraftId: string | null;
   tenantOutcome: RenewalTenantOutcome | null;
   evidence: RenewalEvidenceMap;
@@ -161,6 +165,7 @@ export interface RenewalProgressPlan {
   stageIndex: number;
   ownerDecision: RenewalOwnerDecision | null;
   ownerDecisionRevision: number;
+  ownerOutcome?: RenewalOwnerOutcome | null;
   tenantOfferDraftId: string | null;
   tenantOutcome: RenewalTenantOutcome | null;
   evidence: RenewalEvidenceMap;
@@ -644,6 +649,81 @@ export function planRecordTenantOfferDraft(
     tenantOfferDraftId: trimmed,
     tenantOutcome: null,
     evidence: changed.evidence,
+    complete: false,
+  };
+}
+
+/**
+ * S105: record the typed owner response to the reviewed owner message.
+ *
+ * `approved_terms` records the response and leaves the recorded decision and its downstream work in
+ * place. `revision_requested` reopens `prepare-owner-copy` onward and invalidates every downstream
+ * preview, retaining the prior decision VALUE for operator review. `declined_non_renewal` clears the
+ * accepted-path work and exits through the same documented non-renewal handoff. `no_response`
+ * records only that the response was checked, so the lease stays visibly waiting on the owner.
+ *
+ * App-owned and pure: it reaches no provider, creates no draft, and sends nothing.
+ */
+export function planRecordOwnerOutcome(
+  current: RenewalProgress | null,
+  state: RenewalOwnerOutcomeState,
+  evidenceReference: RenewalEvidenceReference,
+): RenewalProgressPlan {
+  const active = assertCurrentProcess(current);
+  const normalized = normalizeRenewalEvidenceMap(active.evidence);
+  if (!normalized["owner-message-sent"]) {
+    throw new EditableLayerError(
+      "Record the human-sent owner message before recording the owner response.",
+      409,
+    );
+  }
+  const evidence = buildRenewalEvidenceReference(evidenceReference);
+  if (evidence.disposition !== "verified") {
+    throw new EditableLayerError("An owner outcome needs verified evidence.", 400);
+  }
+  if (evidence.source !== "gmail_receipt" && evidence.source !== "app_record") {
+    throw new EditableLayerError(
+      "An owner outcome needs a linked Gmail receipt or verified app record.",
+      400,
+    );
+  }
+
+  const next = {
+    ...replaceRenewalEvidence(active.evidence, "owner-response", evidence).evidence,
+  };
+  let tenantOfferDraftId: string | null = active.tenantOfferDraftId;
+  let tenantOutcome: RenewalTenantOutcome | null = active.tenantOutcome;
+  let stageIndex: number = RENEWAL_STAGE.owner;
+
+  if (state === "revision_requested" || state === "declined_non_renewal") {
+    if (state === "revision_requested") {
+      // Reopen from the owner copy onward: the approved wording itself is what the owner asked to
+      // change, so every artifact built from it is no longer current.
+      delete next["owner-copy-version"];
+      for (const key of renewalEvidenceInvalidatedBy("owner-copy-version")) {
+        delete next[key];
+      }
+    }
+    delete next["owner-decision"];
+    for (const key of renewalEvidenceInvalidatedBy("owner-decision")) {
+      delete next[key];
+    }
+    // The recorded human response survives the reopening; only the work built on it is invalidated.
+    next["owner-response"] = evidence;
+    tenantOfferDraftId = null;
+    tenantOutcome = null;
+    if (state === "declined_non_renewal") stageIndex = RENEWAL_STAGE.tenant;
+  }
+
+  return {
+    processVersion: active.processVersion,
+    stageIndex,
+    ownerDecision: active.ownerDecision,
+    ownerDecisionRevision: active.ownerDecisionRevision,
+    ownerOutcome: { state, evidence },
+    tenantOfferDraftId,
+    tenantOutcome,
+    evidence: next,
     complete: false,
   };
 }

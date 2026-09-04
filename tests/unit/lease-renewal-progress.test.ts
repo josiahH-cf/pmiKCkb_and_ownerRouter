@@ -10,6 +10,7 @@ import {
   markRenewalComplete,
   progressDocId,
   recordOwnerDecision,
+  recordOwnerOutcome,
   recordRenewalProcessEvidence,
   recordTenantOutcome,
   recordTenantOfferDraft,
@@ -560,6 +561,56 @@ describe("lease-renewal-progress store", () => {
       action: "owner_decision",
       process_version: RENEWAL_PROCESS_VERSION,
     });
+  });
+
+  it("persists and reads back a typed owner response, reopening downstream work (S105)", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "increase", offeredRent: 1300 },
+      db as unknown as Firestore,
+    );
+    await recordEvidence(db, "owner-copy-version", "policy_version");
+    await recordEvidence(db, "owner-draft-receipt", "gmail_receipt");
+    await recordEvidence(db, "owner-message-sent", "gmail_receipt");
+
+    const progress = await recordOwnerOutcome(
+      editor,
+      LEASE_ID,
+      "revision_requested",
+      {
+        ref: "gmail_receipt:owner-response:revision-fixture",
+        source: "gmail_receipt",
+        disposition: "verified",
+      },
+      db as unknown as Firestore,
+    );
+    expect(progress.ownerOutcome).toMatchObject({ state: "revision_requested" });
+    expect(progress.evidence["owner-copy-version"]).toBeUndefined();
+    expect(progress.evidence["owner-response"]).toBeDefined();
+
+    const record = db.store.get(
+      `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`,
+    );
+    expect(record).toMatchObject({
+      owner_outcome: {
+        state: "revision_requested",
+        evidence: expect.objectContaining({ disposition: "verified" }),
+      },
+    });
+    const readBack = await getRenewalProgress(
+      editor,
+      LEASE_ID,
+      db as unknown as Firestore,
+    );
+    expect(readBack?.ownerOutcome).toMatchObject({ state: "revision_requested" });
+    const activity = [...db.store.entries()]
+      .filter(([path]) =>
+        path.startsWith(`${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity}/`),
+      )
+      .map(([, value]) => (value as { action?: string }).action);
+    expect(activity).toContain("owner_outcome");
   });
 
   it("persists operator comp fields but ignores a caller-nominated screenshot reference", async () => {

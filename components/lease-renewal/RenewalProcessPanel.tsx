@@ -14,6 +14,8 @@ const STATE_LABEL: Record<RenewalSubstepState, string> = {
 const PROCESS_STATUS: Record<RenewalProcessProjection["status"], string> = {
   active: "Active",
   waiting: "Waiting for tenant response",
+  waiting_on_owner: "Waiting for owner response",
+  owner_revision_reopened: "Owner requested a revision",
   counter_reopened: "Owner decision reopened",
   needs_verification: "Needs verification",
   non_renewal_handoff_required: "Non-renewal handoff required",
