@@ -25,10 +25,11 @@ seam exists. S100's closed-safe workflow and chat-sync action are deployed, prov
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
 expanded S51/S54 assurance harness are committed (`e6b76f9`) and deployed as zero-traffic
-candidate `pmi-kc-app-rmtmuvjmp-b9f775e360aa`; promotion waits on the managed Admin/Editor
+candidate `pmi-kc-app-rmtmy3z88-1fc4c3e29466`; promotion waits on the managed Admin/Editor
 browser profiles and the S51 monitoring resource set. S102 (`ff200d3`), S103 (`0158c90`), S104
 (`0f01353`), S105 (`13523c5`), S106 (`af23da4`), S34 (`7b26107`), S107 (`ae93742`), S108
-(`03f7eee`), S109 (`9b2c829`), and S110 (`5abf6dd`) are committed and carried by that candidate.
+(`03f7eee`), S109 (`9b2c829`), S110 (`5abf6dd`), and S111 (`5aa2a90`) are committed and carried by
+that candidate. The renewal-completion program is complete through S111 and awaits promotion.
 
 ## Active correction slice
 
@@ -142,7 +143,9 @@ The only executable order is in `docs/feature-suites/README.md`:
     candidate-deployed, not promoted; public file upload and unreviewed links stay out.
 21. S110 — Dashboard assistant V1, three read-only intents. Committed and candidate-deployed, not
     promoted; streaming, actions, and any fourth intent stay out.
-22. S111 — the renewal-completion integrated proof (owner direction 2026-09-03).
+22. S111 — the renewal-completion integrated proof and operator guide. Committed and
+    candidate-deployed, not promoted; live Dotloop and the owner-supplied maintenance inputs stay
+    recorded as blocked by external environment.
 23. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
 24. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.

@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, S105, S106, S34, S107, S108, S109, and S110 are committed through `5abf6dd` and deployed
-as zero-traffic candidate `pmi-kc-app-rmtmuvjmp-b9f775e360aa` from commit
-`5abf6ddae9f46b9ccc32c99bd70b2e9b3beb7455`; its
+identity-read fix, S103, S104, S105, S106, S34, S107, S108, S109, S110, and S111 are committed through `5aa2a90` and
+deployed as zero-traffic candidate `pmi-kc-app-rmtmy3z88-1fc4c3e29466` from commit
+`5aa2a90909c68ef414acb8791f166c8370fca0d2`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -124,8 +124,11 @@ extension of the required-evidence table; their absence disables only the resour
 closed three-intent assistant boundary, the work and renewal adapters, the extracted desk
 orchestration, the result envelope, the route, and the Dashboard routing) is committed in `5abf6dd`
 with exact-SHA CI green, carried by the current candidate, and not promoted; its rehearsal-browser
-run asked all three questions plus an unsupported one and no write route was called. S111 remains
-specified only. The S51
+run asked all three questions plus an unsupported one and no write route was called. S111 (the
+integrated proof over one fixture portfolio, the guide-control browser proof, the proof report below,
+and the operator training guide) is committed in `5aa2a90` with exact-SHA CI green, carried by the
+current candidate, and not promoted. Every suite in the owner's 2026-09-03 renewal-completion program
+is now committed and carried by one unpromoted candidate. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## S111 integrated proof report (2026-09-04)
