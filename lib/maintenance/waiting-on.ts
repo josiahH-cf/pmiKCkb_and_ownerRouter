@@ -68,6 +68,8 @@ export interface MaintenanceWaitingOnProjection {
   readonly estimateAmountCents: number | null;
   readonly preapprovalAmountCents: number | null;
   readonly providerWorkOrderId: string | null;
+  /** S109 handoff: the report still needs the photos the intake asked for. */
+  readonly photosNeeded: boolean;
 }
 
 function statusBlocker(
@@ -104,6 +106,7 @@ export function projectMaintenanceWaitingOn(
     estimateAmountCents: estimate,
     preapprovalAmountCents: preapproval?.amount_cents ?? null,
     providerWorkOrderId: link?.provider_work_order_id ?? null,
+    photosNeeded: ticket.photos_needed === true,
   };
 
   if (ticket.status === "Closed") {
@@ -123,6 +126,19 @@ export function projectMaintenanceWaitingOn(
       ownerDecisionRequired: !withinPreapproval && !providerApproved,
       ownerDecisionDetail:
         "This ticket has no verified RentVine unit, so its property preapproval cannot be applied.",
+    };
+  }
+
+  // S109: photos the intake asked for are the concrete next step, and no estimate is credible without
+  // them. The owner decision below is still reported as required; it just is not the next action.
+  if (base.photosNeeded) {
+    return {
+      ...base,
+      waitingOn: "resident",
+      nextAction: "Ask the resident for the photos this report still needs.",
+      ownerDecisionRequired: !withinPreapproval && !providerApproved,
+      ownerDecisionDetail:
+        "This report is still missing the photos the intake asked for, so the work cannot be sized yet.",
     };
   }
 

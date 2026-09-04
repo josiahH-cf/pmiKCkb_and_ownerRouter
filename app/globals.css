@@ -1613,6 +1613,14 @@ textarea:disabled {
   gap: var(--space-2) var(--space-3);
 }
 
+/* Shared stacked form field: the question sits above its control, matching the surface-scoped
+   label rules already used by the renewal resolve/approve forms. */
+.ui-field {
+  display: grid;
+  font-weight: 650;
+  gap: 6px;
+}
+
 /* Page header — title + optional subtitle, with right-aligned actions */
 .ui-page-header {
   align-items: flex-start;

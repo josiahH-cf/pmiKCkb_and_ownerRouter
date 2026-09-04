@@ -3,9 +3,15 @@
 
 # S109 — Maintenance intake triage and troubleshooting assistant
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. S47 tokenized intake accepts
-> summary, description, and contact only; urgency inference exists only on the staff capture path;
-> no troubleshooting catalog and no model use exists in maintenance.
+> Status: IMPLEMENTED. The S47 public route accepts bounded structured answers, the pure
+> `projectIntakeTriage` owns urgency, required evidence, expectation copy, and completion, the
+> reviewed troubleshooting catalog exists and is empty until the owner supplies links, an optional
+> model adapter may only suggest a trade, and promotion carries the triage onto the ticket where S108
+> reads `photos_needed` as a blocker. Public file upload stays forbidden: the recorded conflict is
+> unchanged, and the form states exactly which photos are needed instead. The resident-facing form is
+> `app/maintenance/report`, an inert public shell whose bridge clears the fragment-delivered token
+> before any request. The owner still supplies the troubleshooting links and any extension of the
+> required-evidence table; their absence disables only the resource offer.
 
 **Goal.**
 
@@ -119,8 +125,18 @@ told exactly which photos are needed. A flooding report is treated as urgent; a 
 to call emergency services. Staff see the structured report, the urgency, and the missing photos on
 the ticket.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with conversation fixtures
-  and route/browser checks.
+- Model verdict: PASS - why: a fire, smoke, gas, or carbon-monoxide report returns the exact
+  emergency-services line and is still recorded; active water reaches the urgent path with immediate
+  guidance, and a plain leak escalates only when the reporter says it is happening now; a water or
+  appliance report, or any report describing damage, records `photos_needed` with a focused photo
+  request and is not complete intake; an ordinary report receives calm copy with no completion
+  promise and at most one reviewed resource, and an ambiguous or unknown issue type receives none;
+  promotion carries urgency, issue type, and the photo blocker onto the ticket, where the S108
+  projection reads `resident` with the photo next action; and a model answer cannot downgrade a fire
+  report, select a resource, or return anything but a trade. The rehearsal browser proved the form is
+  reachable with no session, that the token never enters a request URL and its fragment is cleared
+  before anything can request, that no file input is offered, and that a link with no token refuses
+  instead of submitting.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

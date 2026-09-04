@@ -25,6 +25,9 @@ import {
   normalizeIntakePropertyKey,
   sanitizeIntakeText,
 } from "@/lib/maintenance/intake-sanitize";
+import { MAINTENANCE_TRADES, type MaintenanceTrade } from "@/lib/maintenance/constants";
+import { projectIntakeTriage } from "@/lib/maintenance/intake-triage";
+import { selectTroubleshootingResource } from "@/lib/maintenance/troubleshooting-catalog";
 
 // Re-export the client-safe record shape so server callers can keep importing it from here; the review
 // UI imports it directly from lib/maintenance/intake-model to avoid pulling this Admin-SDK module client-side.
@@ -55,6 +58,15 @@ export interface PublicIntakeSubmission {
   summary: string;
   description?: string;
   contact?: string;
+  // S109 structured intake, exactly as the reporter answered it. The writer sanitizes each field and
+  // derives urgency, evidence, and the resource from the pure triage rules; the reporter sets none of
+  // those three.
+  issueType?: string;
+  location?: string;
+  happeningNow?: boolean;
+  startedAt?: string;
+  damageOrAccess?: string;
+  attemptedSteps?: string;
   ipHash: string | null;
   dailyCap: number;
   // F-MAINT-3: the tighter per-property/day ceiling applied to reusable (signage) links, which do not
@@ -139,6 +151,28 @@ export async function createUnverifiedIntakeFromPublic(
   if (!summary) throw new IntakeValidationError();
   const description = sanitizeIntakeText(submission.description, "description");
   const contact = sanitizeIntakeText(submission.contact, "contact");
+  const location = sanitizeIntakeText(submission.location, "location");
+  const startedAt = sanitizeIntakeText(submission.startedAt, "startedAt");
+  const damageOrAccess = sanitizeIntakeText(submission.damageOrAccess, "damageOrAccess");
+  const attemptedSteps = sanitizeIntakeText(submission.attemptedSteps, "attemptedSteps");
+  const issueType = MAINTENANCE_TRADES.includes(submission.issueType as MaintenanceTrade)
+    ? (submission.issueType as MaintenanceTrade)
+    : null;
+  // S109: urgency, required evidence, and the offered resource are derived here from the pure rules,
+  // never accepted from the request body.
+  const triage = projectIntakeTriage({
+    summary,
+    description,
+    issueType,
+    location,
+    happeningNow:
+      typeof submission.happeningNow === "boolean" ? submission.happeningNow : null,
+    startedAt,
+    damageOrAccess,
+    attemptedSteps,
+    hasPhotos: false,
+  });
+  const resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
 
   const jti = submission.jti?.trim();
   if (!jti) throw new IntakeValidationError();
@@ -192,6 +226,19 @@ export async function createUnverifiedIntakeFromPublic(
       description,
       contact,
       reporter_kind: "external",
+      ...(issueType ? { issue_type: issueType } : {}),
+      ...(location ? { location } : {}),
+      ...(typeof submission.happeningNow === "boolean"
+        ? { happening_now: submission.happeningNow }
+        : {}),
+      ...(startedAt ? { started_at: startedAt } : {}),
+      ...(damageOrAccess ? { damage_or_access: damageOrAccess } : {}),
+      ...(attemptedSteps ? { attempted_steps: attemptedSteps } : {}),
+      urgency: triage.urgency,
+      required_evidence: triage.requiredEvidence,
+      photos_needed: triage.photosNeeded,
+      intake_complete: triage.intakeComplete,
+      ...(resource ? { resource_id: resource.id } : {}),
       ip_hash: submission.ipHash,
       created_at: createdAt,
       expires_at: new Date(now + INTAKE_RETENTION_MS).toISOString(),

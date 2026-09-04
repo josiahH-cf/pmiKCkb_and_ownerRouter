@@ -15,6 +15,19 @@ export interface UnverifiedIntakeRecord {
   description: string;
   contact: string;
   reporter_kind: "external";
+  // S109 structured intake plus its deterministic triage. Written by the public writer from the
+  // triage rules; the reporter never sets urgency, evidence, or the resource directly.
+  issue_type?: string;
+  location?: string;
+  happening_now?: boolean;
+  started_at?: string;
+  damage_or_access?: string;
+  attempted_steps?: string;
+  urgency?: "emergency_fire" | "urgent_flooding" | "normal";
+  required_evidence?: readonly "photos"[];
+  photos_needed?: boolean;
+  intake_complete?: boolean;
+  resource_id?: string;
   ip_hash: string | null;
   created_at: string;
   expires_at: string;

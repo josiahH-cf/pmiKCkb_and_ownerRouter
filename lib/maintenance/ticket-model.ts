@@ -69,6 +69,14 @@ export interface MaintenanceTicketRecord extends Partial<ProductRecordRetentionF
    * no estimate is recorded; absence is never treated as within a property preapproval.
    */
   estimate_amount_cents?: number;
+  /**
+   * S109 triage carried from the public intake. `photos_needed` stays true until a person attaches
+   * the photos through the staff photo action; S108 reads it as a blocker.
+   */
+  intake_urgency?: "emergency_fire" | "urgent_flooding" | "normal";
+  intake_issue_type?: string;
+  photos_needed?: boolean;
+  intake_resource_id?: string;
   estimate_recorded_at?: string;
   estimate_recorded_by_uid?: string;
   source_trigger_key?: string;

@@ -75,6 +75,10 @@ export async function POST(request: Request) {
       expiresAt: new Date(now + ttlMs).toISOString(),
       submitPath: "/api/maintenance/intake/public",
       tokenHeader: "X-Intake-Token",
+      // S109: the resident-facing form. The token belongs in the URL fragment, which browsers never
+      // send to a server and never put in a referrer; the page clears it before any request.
+      reportPath: "/maintenance/report",
+      reportLinkFragment: `#token=${encodeURIComponent(token)}`,
     });
   } catch (error) {
     return apiErrorResponse(error);

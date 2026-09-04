@@ -129,8 +129,14 @@ export async function promoteUnverifiedIntake(
     }
 
     // Priority: honor an operator override, else infer from the report text (transparent provenance).
+    // S109: a fire or active-water report already carries its urgency from the deterministic intake
+    // rules, so it promotes as Emergency rather than being re-derived from the text alone.
+    const triageUrgency = intake.urgency ?? null;
     const priority =
-      parsed.priority ?? inferPriority(`${intake.summary} ${intake.description}`);
+      parsed.priority ??
+      (triageUrgency === "emergency_fire" || triageUrgency === "urgent_flooding"
+        ? "Emergency"
+        : inferPriority(`${intake.summary} ${intake.description}`));
     const provenance: MaintenanceTicketRecord["priority_provenance"] = parsed.priority
       ? "operator-set"
       : "auto-inferred";
@@ -157,6 +163,12 @@ export async function promoteUnverifiedIntake(
           ...(intake.contact ? { contact: intake.contact } : {}),
         },
         labels: confirmedUnit ? [] : [NEEDS_VERIFICATION_LABEL],
+        // S109 handoff: the structured triage travels onto the ticket so S108 shows the same blocker
+        // the reporter was told about. No provider effect and no draft derives from it.
+        ...(triageUrgency ? { intake_urgency: triageUrgency } : {}),
+        ...(intake.issue_type ? { intake_issue_type: intake.issue_type } : {}),
+        ...(intake.photos_needed === true ? { photos_needed: true } : {}),
+        ...(intake.resource_id ? { intake_resource_id: intake.resource_id } : {}),
         space_id: "maintenance-work-order-intake",
         source_trigger_key: `maintenance:intake:${intake.id}`,
         created_at: timestamp,
@@ -169,9 +181,15 @@ export async function promoteUnverifiedIntake(
       actor_uid: actor.uid,
       action: "create",
       new_status: "Open",
-      text: confirmedUnit
-        ? `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
-        : "Promoted from a public intake report (unit needs verification).",
+      text: [
+        confirmedUnit
+          ? `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
+          : "Promoted from a public intake report (unit needs verification).",
+        triageUrgency ? `Intake urgency: ${triageUrgency}.` : "",
+        intake.photos_needed === true ? "Photos are still needed for this report." : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
       created_at: timestamp,
     };
     const promotedIntake: UnverifiedIntakeRecord = {

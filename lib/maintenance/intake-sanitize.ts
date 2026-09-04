@@ -46,6 +46,12 @@ export const INTAKE_FIELD_LIMITS = {
   description: 4000,
   contact: 200,
   propertyKey: 128,
+  // S109 structured intake. Each stays small so the whole body remains far under the 16 KiB cap and
+  // the queue stays readable; every one is sanitized on the same path as the free-text fields.
+  location: 200,
+  startedAt: 120,
+  damageOrAccess: 1000,
+  attemptedSteps: 1000,
 } as const;
 
 export type IntakeFieldName = keyof typeof INTAKE_FIELD_LIMITS;

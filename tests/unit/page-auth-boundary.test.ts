@@ -46,10 +46,15 @@ const PAGE_GUARD =
 //   - vendor/setup/page.tsx is the inert public shell for a fragment-delivered, one-time setup
 //     challenge. Its bridge strips the fragment before any request and the POST route performs the
 //     actual Production+Live and challenge checks.
+//   - maintenance/report/page.tsx is the S109 inert public shell for the S47 tokenized resident
+//     intake. It has no session to guard: its bridge reads the intake token from the fragment,
+//     clears the fragment before any request, and the public POST route performs the token, rate,
+//     epoch, and daily-cap checks and writes only to the unverified quarantine.
 const ALLOW_UNAUTHENTICATED = new Set([
   "sign-in/page.tsx",
   "vendor/sign-in/page.tsx",
   "vendor/setup/page.tsx",
+  "maintenance/report/page.tsx",
 ]);
 
 describe("App page auth-boundary invariant", () => {

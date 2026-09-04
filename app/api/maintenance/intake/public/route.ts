@@ -14,6 +14,9 @@ import {
   IntakeRevokedError,
   IntakeValidationError,
 } from "@/lib/firestore/maintenance-unverified-intake";
+import { MAINTENANCE_TRADES, type MaintenanceTrade } from "@/lib/maintenance/constants";
+import { projectIntakeTriage } from "@/lib/maintenance/intake-triage";
+import { selectTroubleshootingResource } from "@/lib/maintenance/troubleshooting-catalog";
 
 // The ONE unauthenticated write endpoint in the app: a tenant/vendor with a staff-minted, HMAC-signed
 // token can submit ONE maintenance report without signing in. It writes only to the UNVERIFIED
@@ -35,10 +38,19 @@ const INTAKE_TOKEN_HEADER = "x-intake-token";
 // daily counter in the writer). Module-level so it survives across requests on the same instance.
 const rateLimiter = new IntakeRateLimiter();
 
+// S109 adds bounded optional structured answers. Every field is a plain string or boolean, each is
+// sanitized and hard-capped downstream, and the reporter cannot set urgency, required evidence, or a
+// troubleshooting resource: those are derived from the pure triage rules inside the writer.
 const PublicIntakeBodySchema = z.object({
   summary: z.string(),
   description: z.string().optional(),
   contact: z.string().optional(),
+  issueType: z.string().optional(),
+  location: z.string().optional(),
+  happeningNow: z.boolean().optional(),
+  startedAt: z.string().optional(),
+  damageOrAccess: z.string().optional(),
+  attemptedSteps: z.string().optional(),
 });
 
 function generic(status: number, message: string, headers?: Record<string, string>) {
@@ -139,6 +151,12 @@ export async function POST(request: Request) {
         summary: shape.data.summary,
         description: shape.data.description,
         contact: shape.data.contact,
+        issueType: shape.data.issueType,
+        location: shape.data.location,
+        happeningNow: shape.data.happeningNow,
+        startedAt: shape.data.startedAt,
+        damageOrAccess: shape.data.damageOrAccess,
+        attemptedSteps: shape.data.attemptedSteps,
         ipHash,
         dailyCap: config.maintenanceIntakeDailyCap,
         signageCap: config.maintenanceIntakeSignageDailyCap,
@@ -163,10 +181,42 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  // 202 Accepted with a fresh random reference — NOT the intake doc id or the token jti — so the caller
-  // gets a confirmation code that reveals nothing about internal identifiers.
+  // 202 Accepted with a fresh random reference, NOT the intake doc id or the token jti, so the caller
+  // gets a confirmation code that reveals nothing about internal identifiers. S109 returns the
+  // reporter-facing triage too: the same pure rules the writer stored, recomputed here so the response
+  // reveals no stored record. It tells a fire reporter to call emergency services, states an urgent
+  // acknowledgement for active water, names the photos the team still needs, and offers at most one
+  // reviewed link. It promises no completion time and creates no ticket, draft, or provider effect.
+  const triage = projectIntakeTriage({
+    summary: shape.data.summary,
+    description: shape.data.description,
+    issueType: MAINTENANCE_TRADES.includes(shape.data.issueType as MaintenanceTrade)
+      ? (shape.data.issueType as MaintenanceTrade)
+      : null,
+    location: shape.data.location,
+    happeningNow: shape.data.happeningNow ?? null,
+    startedAt: shape.data.startedAt,
+    damageOrAccess: shape.data.damageOrAccess,
+    attemptedSteps: shape.data.attemptedSteps,
+    hasPhotos: false,
+  });
+  const resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
   return NextResponse.json(
-    { status: "received", reference: randomUUID() },
+    {
+      status: "received",
+      reference: randomUUID(),
+      urgency: triage.urgency,
+      message: triage.acknowledgement,
+      photos_needed: triage.photosNeeded,
+      photo_request: triage.evidenceRequest,
+      resource: resource
+        ? {
+            title: resource.title,
+            url: resource.url,
+            reviewed_on: resource.reviewedOnIso,
+          }
+        : null,
+    },
     { status: 202 },
   );
 }

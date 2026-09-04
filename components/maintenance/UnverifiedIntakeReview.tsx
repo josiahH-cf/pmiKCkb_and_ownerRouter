@@ -16,6 +16,12 @@ function formatWhen(iso: string): string {
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
 }
 
+const INTAKE_URGENCY_LABELS = {
+  emergency_fire: "Emergency: told to call 911",
+  urgent_flooding: "Urgent: active water",
+  normal: "Normal",
+} as const;
+
 export function UnverifiedIntakeReview({
   initialIntake,
   unavailableNote,
@@ -132,6 +138,56 @@ export function UnverifiedIntakeReview({
             </div>
           </div>
           {row.description ? <p>{row.description}</p> : null}
+          {/* S109: the deterministic triage the reporter already saw, shown before promotion so the
+              reviewer sees the same urgency, structured answers, and missing photos. */}
+          {row.urgency ? (
+            <ul className="ui-rows">
+              <li className="ui-spread">
+                <span>Urgency</span>
+                <span>{INTAKE_URGENCY_LABELS[row.urgency]}</span>
+              </li>
+              {row.issue_type ? (
+                <li className="ui-spread">
+                  <span>Issue type</span>
+                  <span>{row.issue_type}</span>
+                </li>
+              ) : null}
+              {row.location ? (
+                <li className="ui-spread">
+                  <span>Where</span>
+                  <span>{row.location}</span>
+                </li>
+              ) : null}
+              {typeof row.happening_now === "boolean" ? (
+                <li className="ui-spread">
+                  <span>Happening now</span>
+                  <span>{row.happening_now ? "Yes" : "No"}</span>
+                </li>
+              ) : null}
+              {row.started_at ? (
+                <li className="ui-spread">
+                  <span>Started</span>
+                  <span>{row.started_at}</span>
+                </li>
+              ) : null}
+              {row.damage_or_access ? (
+                <li className="ui-spread">
+                  <span>Damage or access</span>
+                  <span>{row.damage_or_access}</span>
+                </li>
+              ) : null}
+              {row.attempted_steps ? (
+                <li className="ui-spread">
+                  <span>Already tried</span>
+                  <span>{row.attempted_steps}</span>
+                </li>
+              ) : null}
+              <li className="ui-spread">
+                <span>Photos</span>
+                <span>{row.photos_needed ? "Still needed" : "Not required"}</span>
+              </li>
+            </ul>
+          ) : null}
           <UnitTypeahead
             id={`intake-unit-${row.id}`}
             label="Confirm unit (optional)"
