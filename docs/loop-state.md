@@ -18,9 +18,9 @@ provider or action authority.
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
   through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
-  all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtmaxi8r-f6190b47628d` (tag `cand-rmtmaxi8r-f6190b47628d`)
-  was deployed from commit `af23da456c5afdbba5dfaac1af69d7c18c6bec9f` and passed the anonymous
+  S34 through `7b26107`; all are exact-SHA CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtmedt51-9868d44ba383` (tag `cand-rmtmedt51-9868d44ba383`)
+  was deployed from commit `7b2610728b3fa080ce7d9ce9c62b969192139192` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
@@ -111,7 +111,7 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
 9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
 10. S106 — committed and candidate-deployed; only its live check is blocked (R5)
-11. S34 — implemented, unreleased; live proof blocked (renewal-completion R6)
+11. S34 — committed and candidate-deployed; live proof blocked (renewal-completion R6)
 12. S107, S108, S109, S110, S111 — specified, next in that order
 13. S36 — queued behind complete S100
 14. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified

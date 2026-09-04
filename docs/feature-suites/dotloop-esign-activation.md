@@ -3,7 +3,8 @@
 
 # S34 — Dotloop renewal packet lifecycle
 
-> Status: IMPLEMENTED / UNRELEASED for the closed slice. `LiveDotloopProvider` implements the typed
+> Status: COMMITTED (`7b26107`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
+> (`pmi-kc-app-rmtmedt51-9868d44ba383`, zero traffic, anonymous smoke passed); NOT PROMOTED. `LiveDotloopProvider` implements the typed
 > seam over the S106 client, loop identity is bound to the packet snapshot hash, the loop link rides
 > on the packet execution projection, and the workspace shows the link with an explicit signature
 > handoff. Live loop creation stays BLOCKED on the owner's OAuth application, connected account,

@@ -25,9 +25,10 @@ seam exists. S100's closed-safe workflow and chat-sync action are deployed, prov
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
 expanded S51/S54 assurance harness are committed (`e6b76f9`) and deployed as zero-traffic
-candidate `pmi-kc-app-rmtmaxi8r-f6190b47628d`; promotion waits on the managed Admin/Editor
+candidate `pmi-kc-app-rmtmedt51-9868d44ba383`; promotion waits on the managed Admin/Editor
 browser profiles and the S51 monitoring resource set. S102 (`ff200d3`), S103 (`0158c90`), S104
-(`0f01353`), S105 (`13523c5`), and S106 (`af23da4`) are committed and carried by that candidate.
+(`0f01353`), S105 (`13523c5`), S106 (`af23da4`), and S34 (`7b26107`) are committed and carried by
+that candidate.
 
 ## Active correction slice
 
@@ -128,7 +129,7 @@ The only executable order is in `docs/feature-suites/README.md`:
 16. S106 — Dotloop connection and renewal readiness. Committed and candidate-deployed, not
     promoted; only its live readiness check is blocked on the owner's OAuth application and
     connected account.
-17. S34 — Dotloop renewal packet lifecycle. Implemented and unreleased; live loop creation is
+17. S34 — Dotloop renewal packet lifecycle. Committed and candidate-deployed; live loop creation is
     blocked on the owner's OAuth application, connected account, artifact content source, and key
     activation.
 18. S107, S108, S109, S110, S111 — the rest of the renewal-completion program in that order (owner
