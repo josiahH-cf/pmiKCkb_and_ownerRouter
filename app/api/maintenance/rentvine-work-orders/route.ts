@@ -16,6 +16,8 @@ import { getActionExecution } from "@/lib/firestore/action-executions";
 import {
   claimMaintenanceWorkOrderLink,
   getMaintenanceWorkOrderLink,
+  recordMaintenanceWorkOrderSnapshot,
+  type MaintenanceWorkOrderProviderSnapshot,
   projectMaintenanceWorkOrderOutcome,
 } from "@/lib/firestore/maintenance-work-order-links";
 import {
@@ -119,7 +121,12 @@ export async function POST(request: Request) {
           kind: "detail",
           workOrderId: Number(body.workOrderId),
         });
-        return NextResponse.json({ status: "ok", ...serializeRead(result) });
+        const snapshot = await persistProviderSnapshot(user, body.ticketId, result);
+        return NextResponse.json({
+          status: "ok",
+          ...serializeRead(result),
+          provider_snapshot: snapshot,
+        });
       }
       if (!body.ticketId) {
         return NextResponse.json(
@@ -132,7 +139,12 @@ export async function POST(request: Request) {
       }
       const ticket = await requireTicket(user, body.ticketId);
       const result = await runWorkOrderRead(clients, { kind: "ticket", ticket });
-      return NextResponse.json({ status: "ok", ...serializeRead(result) });
+      const snapshot = await persistProviderSnapshot(user, ticket.id, result);
+      return NextResponse.json({
+        status: "ok",
+        ...serializeRead(result),
+        provider_snapshot: snapshot,
+      });
     }
 
     if (body.operation === "propose_create") {
@@ -434,6 +446,47 @@ async function requireTicket(
     throw new WorkOrderServiceError("ticket_not_eligible", "Unknown ticket.", 404);
   }
   return ticket;
+}
+
+/**
+ * S108: record the observed provider state on the ticket's existing link. The snapshot exists only
+ * because a person just ran the exact read key; nothing here re-reads, retries, or writes to
+ * RentVine, and a ticket without a link records nothing.
+ */
+async function persistProviderSnapshot(
+  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
+  ticketId: string | undefined,
+  result: Awaited<ReturnType<typeof runWorkOrderRead>>,
+): Promise<MaintenanceWorkOrderProviderSnapshot | null> {
+  if (!ticketId) return null;
+  const link = await getMaintenanceWorkOrderLink(user, ticketId);
+  const providerWorkOrderId = link?.provider_work_order_id;
+  if (!providerWorkOrderId) return null;
+  const observed =
+    result.detail?.workOrder.workOrderId === providerWorkOrderId
+      ? result.detail.workOrder
+      : (result.list?.rows.find((row) => row.workOrderId === providerWorkOrderId) ??
+        null);
+  if (!observed) return null;
+  const snapshot: MaintenanceWorkOrderProviderSnapshot = {
+    property_id: observed.propertyId,
+    work_order_status_id: observed.workOrderStatusId,
+    status_label:
+      result.statuses.find(
+        (status) => status.workOrderStatusId === observed.workOrderStatusId,
+      )?.name ?? `Status ${observed.workOrderStatusId}`,
+    priority_id: observed.priorityId,
+    is_owner_approved: observed.isOwnerApproved,
+    assigned_vendor_trade_id: observed.vendorTradeId,
+    updated_at_iso: null,
+    read_at_iso: new Date().toISOString(),
+  };
+  const outcome = await recordMaintenanceWorkOrderSnapshot(user, {
+    ticketRef: ticketId,
+    providerWorkOrderId,
+    snapshot,
+  });
+  return outcome === "recorded" ? snapshot : null;
 }
 
 function serializeRead(result: Awaited<ReturnType<typeof runWorkOrderRead>>) {

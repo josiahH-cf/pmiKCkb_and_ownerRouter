@@ -15,6 +15,23 @@ import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 import { getMaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
+import {
+  MaintenanceBlockerReport,
+  type MaintenanceBlockerRow,
+} from "@/components/maintenance/MaintenanceBlockerReport";
+import { MaintenancePreapprovalControl } from "@/components/maintenance/MaintenancePreapprovalControl";
+import {
+  getMaintenanceWorkOrderLink,
+  type MaintenanceWorkOrderLink,
+} from "@/lib/firestore/maintenance-work-order-links";
+import { listMaintenancePropertyPreapprovals } from "@/lib/firestore/maintenance-property-preapprovals";
+import type { MaintenancePropertyPreapproval } from "@/lib/maintenance/property-preapproval";
+import {
+  describeProviderStatusConflict,
+  projectMaintenanceWaitingOn,
+  type MaintenanceProviderStatusConflict,
+  type MaintenanceWaitingOnProjection,
+} from "@/lib/maintenance/waiting-on";
 
 interface MaintenancePageProps {
   searchParams?: Promise<{ ticket_id?: string }>;
@@ -58,6 +75,59 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
   }
   const photoAction = await getMaintenancePhotoActionView();
 
+  // S108: the blocker projection reads records this app already holds. It performs no provider read
+  // and no write; a supporting read that fails degrades to a note instead of hiding the queue.
+  let preapprovals: MaintenancePropertyPreapproval[] = [];
+  let links: Record<string, MaintenanceWorkOrderLink | null> = {};
+  let blockerUnavailableNote: string | undefined;
+  try {
+    preapprovals = await listMaintenancePropertyPreapprovals(user);
+    links = Object.fromEntries(
+      await Promise.all(
+        tickets.map(
+          async (ticket) =>
+            [ticket.id, await getMaintenanceWorkOrderLink(user, ticket.id)] as const,
+        ),
+      ),
+    );
+  } catch {
+    blockerUnavailableNote =
+      "The blocker view isn't available right now. The ticket queue below still shows current status.";
+  }
+  const preapprovalByProperty = new Map(
+    preapprovals.map((entry) => [entry.property_key, entry] as const),
+  );
+  const waitingOn: Record<string, MaintenanceWaitingOnProjection> = {};
+  const statusConflicts: Record<string, MaintenanceProviderStatusConflict> = {};
+  for (const ticket of tickets) {
+    const link = links[ticket.id] ?? null;
+    const propertyId = link?.provider_snapshot?.property_id ?? null;
+    waitingOn[ticket.id] = projectMaintenanceWaitingOn({
+      ticket,
+      link,
+      preapproval: propertyId ? (preapprovalByProperty.get(propertyId) ?? null) : null,
+    });
+    statusConflicts[ticket.id] = describeProviderStatusConflict({
+      appStatus: ticket.status,
+      snapshot: link?.provider_snapshot ?? null,
+    });
+  }
+  const assigneeLabels = new Map(
+    assignees.map((entry) => [entry.uid, entry.email] as const),
+  );
+  const blockerRows: MaintenanceBlockerRow[] = tickets
+    .filter((ticket) => ticket.data_mode === "live" && ticket.status !== "Closed")
+    .map((ticket) => ({
+      ticketId: ticket.id,
+      summary: ticket.summary,
+      unitLabel: ticket.unit?.label ?? null,
+      assigneeLabel: ticket.assignee_uid
+        ? (assigneeLabels.get(ticket.assignee_uid) ?? ticket.assignee_uid)
+        : null,
+      lastActivityIso: ticket.updated_at,
+      projection: waitingOn[ticket.id],
+    }));
+
   return (
     <AppShell user={user}>
       <section className="content ui-stack">
@@ -80,8 +150,18 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
           initialIntake={intake}
           unavailableNote={intakeUnavailableNote}
         />
+        <MaintenanceBlockerReport
+          rows={blockerRows}
+          unavailableNote={blockerUnavailableNote}
+        />
+        <MaintenancePreapprovalControl
+          canManage={can(user.role, "manageAdmin")}
+          initialPreapprovals={preapprovals}
+        />
         <MaintenanceQueue
           initialTickets={tickets}
+          statusConflicts={statusConflicts}
+          waitingOn={waitingOn}
           unavailableNote={unavailableNote}
           assignees={assignees}
           currentUid={user.uid}

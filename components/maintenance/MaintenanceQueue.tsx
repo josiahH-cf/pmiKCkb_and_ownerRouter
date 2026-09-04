@@ -9,6 +9,17 @@ import { WorkOrderChatPanel } from "@/components/maintenance/WorkOrderChatPanel"
 import { ConfirmationDialog } from "@/components/ui";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
+  formatPreapprovalAmount,
+  parsePreapprovalAmountCents,
+} from "@/lib/maintenance/property-preapproval";
+import {
+  MAINTENANCE_WAITING_ON,
+  MAINTENANCE_WAITING_ON_LABELS,
+  type MaintenanceProviderStatusConflict,
+  type MaintenanceWaitingOn,
+  type MaintenanceWaitingOnProjection,
+} from "@/lib/maintenance/waiting-on";
+import {
   MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
@@ -33,6 +44,8 @@ interface PendingTicketTransition {
 
 export function MaintenanceQueue({
   initialTickets,
+  waitingOn = {},
+  statusConflicts = {},
   unavailableNote,
   assignees = [],
   currentUid,
@@ -40,6 +53,10 @@ export function MaintenanceQueue({
   focusedTicketId,
 }: Readonly<{
   initialTickets: MaintenanceTicketRecord[];
+  /** S108: the server-projected blocker per ticket id. Absent means the projection is unavailable. */
+  waitingOn?: Readonly<Record<string, MaintenanceWaitingOnProjection>>;
+  /** S108: the app-versus-RentVine status comparison per ticket id, shown but never resolved here. */
+  statusConflicts?: Readonly<Record<string, MaintenanceProviderStatusConflict>>;
   unavailableNote?: string;
   assignees?: AssignableUser[];
   currentUid?: string;
@@ -61,6 +78,7 @@ export function MaintenanceQueue({
   const [transitionError, setTransitionError] = useState("");
   const [status, setStatus] = useState("");
   const [assignedToMe, setAssignedToMe] = useState(false);
+  const [waitingFilter, setWaitingFilter] = useState<MaintenanceWaitingOn | "all">("all");
 
   useEffect(() => {
     if (!focusedTicket) return;
@@ -162,10 +180,14 @@ export function MaintenanceQueue({
     void patch(ticket.id, { op: "assign", assigneeUid });
   }
 
-  const visible =
+  const mine =
     assignedToMe && currentUid
       ? tickets.filter((ticket) => ticket.assignee_uid === currentUid)
       : tickets;
+  const visible =
+    waitingFilter === "all"
+      ? mine
+      : mine.filter((ticket) => waitingOn[ticket.id]?.waitingOn === waitingFilter);
   const open = visible.filter((ticket) => ticket.status !== "Closed");
   const closed = visible.filter((ticket) => ticket.status === "Closed");
   const focusedTicketMissing = Boolean(focusedTicketId) && !focusedTicket;
@@ -184,6 +206,23 @@ export function MaintenanceQueue({
             Assigned to me
           </label>
         ) : null}
+        <label className="ui-row">
+          Waiting on
+          <select
+            aria-label="Waiting on filter"
+            onChange={(event) =>
+              setWaitingFilter(event.target.value as MaintenanceWaitingOn | "all")
+            }
+            value={waitingFilter}
+          >
+            <option value="all">Everything</option>
+            {MAINTENANCE_WAITING_ON.map((value) => (
+              <option key={value} value={value}>
+                {MAINTENANCE_WAITING_ON_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {tickets.length === 0 ? (
         <p className="muted">
@@ -204,11 +243,16 @@ export function MaintenanceQueue({
           assignees={assignees}
           canEdit={canEdit}
           onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
+          onEstimate={(amountCents) =>
+            void patch(ticket.id, { op: "estimate", amountCents })
+          }
           onNote={(text) => patch(ticket.id, { op: "note", text })}
           onReopen={() => reopen(ticket)}
           onStatus={(next) => changeStatus(ticket, next)}
           pending={pendingId === ticket.id}
+          statusConflict={statusConflicts[ticket.id] ?? null}
           ticket={ticket}
+          waitingOn={waitingOn[ticket.id] ?? null}
         />
       ))}
       {closed.length > 0 ? (
@@ -223,11 +267,16 @@ export function MaintenanceQueue({
               assignees={assignees}
               canEdit={canEdit}
               onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
+              onEstimate={(amountCents) =>
+                void patch(ticket.id, { op: "estimate", amountCents })
+              }
               onNote={(text) => patch(ticket.id, { op: "note", text })}
               onReopen={() => reopen(ticket)}
               onStatus={(next) => changeStatus(ticket, next)}
               pending={pendingId === ticket.id}
+              statusConflict={statusConflicts[ticket.id] ?? null}
               ticket={ticket}
+              waitingOn={waitingOn[ticket.id] ?? null}
             />
           ))}
         </details>
@@ -292,6 +341,8 @@ export function MaintenanceQueue({
 
 function TicketCard({
   ticket,
+  waitingOn = null,
+  statusConflict = null,
   pending,
   assignees,
   canEdit,
@@ -299,8 +350,11 @@ function TicketCard({
   onReopen,
   onAssign,
   onNote,
+  onEstimate,
 }: Readonly<{
   ticket: MaintenanceTicketRecord;
+  waitingOn?: MaintenanceWaitingOnProjection | null;
+  statusConflict?: MaintenanceProviderStatusConflict | null;
   pending: boolean;
   assignees: AssignableUser[];
   canEdit: boolean;
@@ -308,6 +362,7 @@ function TicketCard({
   onReopen: () => void;
   onAssign: (assigneeUid: string | null) => void;
   onNote: (text: string) => void;
+  onEstimate: (amountCents: number | null) => void;
 }>) {
   const [note, setNote] = useState("");
   const assigneeOffRoster =
@@ -331,6 +386,24 @@ function TicketCard({
         <span className="queue-pill" data-value={STATUS_PILL[ticket.status]}>
           {ticket.status}
         </span>
+      </div>
+      <div className="ui-rows">
+        {waitingOn ? (
+          <>
+            <p className="ui-spread">
+              <span>Waiting on</span>
+              <span>{MAINTENANCE_WAITING_ON_LABELS[waitingOn.waitingOn]}</span>
+            </p>
+            <p className="muted">{waitingOn.nextAction}</p>
+            <p className="muted">{waitingOn.ownerDecisionDetail}</p>
+          </>
+        ) : null}
+        {statusConflict?.differs ? (
+          <p role="status">
+            Differs from RentVine: this app says {statusConflict.appStatus}, the last read
+            said {statusConflict.providerStatus}. {statusConflict.nextAction}
+          </p>
+        ) : null}
       </div>
       <p>
         <span className="queue-pill" data-value="Scheduled">
@@ -430,7 +503,19 @@ function TicketCard({
           provider gate.
         </p>
       </section>
-      {canEdit ? <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} /> : null}
+      {canEdit ? (
+        <EstimateControl
+          currentCents={ticket.estimate_amount_cents ?? null}
+          onRecord={onEstimate}
+          pending={pending}
+        />
+      ) : null}
+      {canEdit && waitingOn?.ownerDecisionRequired !== false ? (
+        <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} />
+      ) : null}
+      {canEdit && waitingOn?.ownerDecisionRequired === false ? (
+        <p className="muted">{waitingOn.ownerDecisionDetail}</p>
+      ) : null}
       <details>
         <summary>RentVine work order</summary>
         <RentvineWorkOrderPanel
@@ -540,4 +625,66 @@ function describeActivity(entry: MaintenanceTicketActivityRecord): string {
     default:
       return entry.action;
   }
+}
+
+/**
+ * S108: record the exact estimate for this work. The amount decides whether the property's
+ * preapproval covers it; clearing it returns the ticket to needing an owner decision.
+ */
+function EstimateControl({
+  currentCents,
+  pending,
+  onRecord,
+}: Readonly<{
+  currentCents: number | null;
+  pending: boolean;
+  onRecord: (amountCents: number | null) => void;
+}>) {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+
+  return (
+    <div className="ui-rows">
+      <p className="ui-spread">
+        <span>Estimate</span>
+        <span>
+          {currentCents === null ? "Not recorded" : formatPreapprovalAmount(currentCents)}
+        </span>
+      </p>
+      <label className="ui-field">
+        <span>Record an estimate</span>
+        <input
+          inputMode="decimal"
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="400.00"
+          value={value}
+        />
+      </label>
+      <div className="ui-row">
+        <button
+          disabled={pending || value.trim() === ""}
+          onClick={() => {
+            try {
+              onRecord(parsePreapprovalAmountCents(value));
+              setValue("");
+              setError("");
+            } catch (caught) {
+              setError(
+                caught instanceof Error ? caught.message : "Enter an exact amount.",
+              );
+            }
+          }}
+          type="button"
+        >
+          Record this estimate
+        </button>
+        {currentCents === null ? null : (
+          <button disabled={pending} onClick={() => onRecord(null)} type="button">
+            Clear the estimate
+          </button>
+        )}
+      </div>
+      {error ? <p role="alert">{error}</p> : null}
+    </div>
+  );
 }

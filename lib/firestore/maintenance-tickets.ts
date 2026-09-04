@@ -27,6 +27,10 @@ import {
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
 } from "@/lib/maintenance/ticket-model";
+import {
+  MAX_PREAPPROVAL_AMOUNT_CENTS,
+  formatPreapprovalAmount,
+} from "@/lib/maintenance/property-preapproval";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 // Re-export the client-safe model so server callers (routes, page) can keep importing types from
@@ -86,6 +90,13 @@ export const TransitionMaintenanceTicketInputSchema = z.discriminatedUnion("op",
   z.object({ op: z.literal("label-add"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("label-remove"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("note"), text: z.string().trim().min(1) }),
+  // S108: the exact estimate for this work, in whole cents. `null` clears it, which returns the
+  // ticket to needing an owner decision; absence is never treated as within a preapproval.
+  z.object({
+    op: z.literal("estimate"),
+    amountCents: z.number().int().positive().max(MAX_PREAPPROVAL_AMOUNT_CENTS).nullable(),
+    note: z.string().trim().min(1).max(2_000).optional(),
+  }),
   z.object({ op: z.literal("reopen"), reason: z.string().trim().min(1) }),
 ]);
 export type TransitionMaintenanceTicketInput = z.input<
@@ -302,6 +313,24 @@ export async function transitionMaintenanceTicket(
           actor_uid: actor.uid,
           action: "label",
           text: `-${op.label}`,
+        };
+        break;
+      }
+      case "estimate": {
+        updated = {
+          ...updated,
+          estimate_amount_cents: op.amountCents ?? undefined,
+          estimate_recorded_at: op.amountCents === null ? undefined : updatedAt,
+          estimate_recorded_by_uid: op.amountCents === null ? undefined : actor.uid,
+        };
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "estimate",
+          text:
+            op.amountCents === null
+              ? "Cleared the estimate amount."
+              : `Recorded an estimate of ${formatPreapprovalAmount(op.amountCents)}.${op.note ? ` ${op.note}` : ""}`,
         };
         break;
       }

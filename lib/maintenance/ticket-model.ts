@@ -36,7 +36,9 @@ export type MaintenanceTicketActivityAction =
   | "vendor-assign"
   | "test-action"
   | "label"
-  | "note";
+  | "note"
+  // S108: the exact estimate amount an Editor recorded, and the preapproval routing it produced.
+  | "estimate";
 
 export interface MaintenanceTicketReporter {
   kind: "staff" | "external";
@@ -62,6 +64,13 @@ export interface MaintenanceTicketRecord extends Partial<ProductRecordRetentionF
   assignee_uid?: string;
   vendor_id?: string;
   space_id: string;
+  /**
+   * S108: the exact estimate for this work, in whole cents, as recorded by an Editor. Absent means
+   * no estimate is recorded; absence is never treated as within a property preapproval.
+   */
+  estimate_amount_cents?: number;
+  estimate_recorded_at?: string;
+  estimate_recorded_by_uid?: string;
   source_trigger_key?: string;
   created_at: string;
   updated_at: string;

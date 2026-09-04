@@ -15,6 +15,30 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 
 export const MAINTENANCE_WORK_ORDER_LINK_COLLECTION = "maintenance_work_order_links";
 
+/**
+ * S108: the last RentVine work-order state observed by a human-initiated read. It is a verbatim
+ * projection of that read, never a target: the app never sets any of these values in RentVine.
+ */
+export const MaintenanceWorkOrderProviderSnapshotSchema = z
+  .object({
+    property_id: z.string().regex(/^[1-9][0-9]*$/),
+    work_order_status_id: z.string().regex(/^[1-9][0-9]*$/),
+    status_label: z.string().min(1).max(200),
+    priority_id: z.string().regex(/^[1-9][0-9]*$/),
+    is_owner_approved: z.enum(["0", "1"]),
+    assigned_vendor_trade_id: z
+      .string()
+      .regex(/^[1-9][0-9]*$/)
+      .nullable(),
+    updated_at_iso: z.string().min(1).max(60).nullable(),
+    read_at_iso: z.string().min(1).max(60),
+  })
+  .strict();
+
+export type MaintenanceWorkOrderProviderSnapshot = z.infer<
+  typeof MaintenanceWorkOrderProviderSnapshotSchema
+>;
+
 export const MaintenanceWorkOrderLinkSchema = z
   .object({
     ticket_ref: z.string().min(1).max(200),
@@ -35,6 +59,7 @@ export const MaintenanceWorkOrderLinkSchema = z
       .optional(),
     created_by_uid: z.string().min(1).max(200),
     attempt_seq: z.number().int().min(0),
+    provider_snapshot: MaintenanceWorkOrderProviderSnapshotSchema.optional(),
   })
   .strict();
 
@@ -136,5 +161,42 @@ export async function projectMaintenanceWorkOrderOutcome(
         : {}),
       updated_at: FieldValue.serverTimestamp(),
     });
+  });
+}
+
+/**
+ * S108: record the provider snapshot observed by one human-initiated `rentvine.work_order.read`.
+ *
+ * It only ever updates an existing link, so a snapshot cannot appear without a create link and a
+ * read that produced it, and it touches no other field: link state, execution identity, and the
+ * receipt stay exactly as the S99 execution path left them. Reading is what authorizes this write,
+ * so it requires the same read capability the S99 read route requires and no more.
+ */
+export async function recordMaintenanceWorkOrderSnapshot(
+  actor: AuthenticatedUser,
+  input: {
+    ticketRef: string;
+    providerWorkOrderId: string;
+    snapshot: MaintenanceWorkOrderProviderSnapshot;
+  },
+  db: Firestore = getAdminFirestore(),
+): Promise<"recorded" | "no_link" | "different_work_order"> {
+  if (!can(actor.role, "read")) {
+    throw new EditableLayerError("Recording the work-order snapshot requires read.", 403);
+  }
+  const snapshot = MaintenanceWorkOrderProviderSnapshotSchema.parse(input.snapshot);
+  const ref = db.collection(MAINTENANCE_WORK_ORDER_LINK_COLLECTION).doc(input.ticketRef);
+  return db.runTransaction(async (transaction) => {
+    const current = await transaction.get(ref);
+    if (!current.exists) return "no_link" as const;
+    const data = current.data() as { provider_work_order_id?: string };
+    if (data.provider_work_order_id !== input.providerWorkOrderId) {
+      return "different_work_order" as const;
+    }
+    transaction.update(ref, {
+      provider_snapshot: snapshot,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+    return "recorded" as const;
   });
 }

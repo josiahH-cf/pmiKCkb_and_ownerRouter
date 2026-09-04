@@ -1972,6 +1972,10 @@ textarea:disabled {
   opacity: 0.55;
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
 .renewal-table-scroll {
   border: 1px solid var(--ui-border);
   border-radius: var(--radius-md);

@@ -23,6 +23,7 @@
     "test:e2e:core": "node scripts/run-e2e-tests.mjs --no-firestore",
     "smoke:navbar-browser": "node scripts/smoke-navbar-browser.mjs",
     "smoke:renewal-desk-browser": "node scripts/smoke-renewal-desk-browser.mjs",
+    "smoke:maintenance-blockers-browser": "node scripts/smoke-maintenance-blockers-browser.mjs",
     "smoke:theme-browser": "node scripts/smoke-theme-browser.mjs",
     "smoke:work-browser": "node scripts/smoke-work-accountability-browser.mjs",
     "test:watch": "vitest",

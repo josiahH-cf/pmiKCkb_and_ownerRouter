@@ -3,10 +3,13 @@
 
 # S108 — Maintenance work-order alignment, blockers, and preapproval routing
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. S99 exact work-order
-> read/create/status keys and S100 manual chat sync are deployed. There is no provider snapshot on
-> the app ticket, no waiting-on derivation beyond the ticket status enum, no property preapproval
-> setting, and no attachment path to RentVine.
+> Status: IMPLEMENTED. The link document now carries a `provider_snapshot` recorded only from the
+> human-initiated `rentvine.work_order.read` path, `projectMaintenanceWaitingOn` derives one blocker
+> for the queue, the report, and the S109 handoff, `maintenance_property_preapprovals` holds the
+> Admin-managed versioned amount, and the ticket carries an exact `estimate_amount_cents`. Photo and
+> attachment synchronization into RentVine remains closed, and the app never sets `isOwnerApproved`.
+> The report links to the ticket rather than to a RentVine dashboard URL: none is documented, and
+> this project never guesses one.
 
 **Goal.**
 
@@ -112,8 +115,14 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
 it waits on the owner, the resident, a vendor, scheduling, or an estimate, with a link to the
 RentVine work order. Small jobs at preapproved properties do not wait on the owner.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with fixture and
-  rehearsal-browser evidence.
+- Model verdict: PASS - why: the queue and report show each open ticket's blocker with its next
+  action; an estimate at or under the property preapproval reports `ownerDecisionRequired: false`
+  and withdraws the owner-notice control, while `600` against a `500` preapproval and any ticket
+  with no recorded estimate stay on `owner_approval` with the draft control offered; a differing
+  app and RentVine status renders both with the exact next action and overwrites neither. The
+  rehearsal browser proved the report columns, the waiting-on filter narrowing in place, the
+  cancel-first preapproval confirmation restating the exact amount and property, and zero calls to
+  the RentVine work-order route from a page render.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
