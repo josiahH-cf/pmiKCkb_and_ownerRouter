@@ -1,3 +1,5 @@
+import type { DotloopLoopLink } from "@/lib/lease-documents/dotloop-loop-link";
+
 /**
  * S66 lease-document packet truth types.
  *
@@ -298,6 +300,8 @@ export interface RenewalPacketSnapshot extends PacketEvaluation {
     state: PacketExecutionState;
     reconciledAt?: string;
     errorClass?: string;
+    /** S34: the one Dotloop loop this exact packet snapshot hash is linked to. */
+    loopLink?: DotloopLoopLink;
   };
 }
 

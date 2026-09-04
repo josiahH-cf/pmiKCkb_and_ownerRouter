@@ -111,9 +111,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
 9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
 10. S106 — committed and candidate-deployed; only its live check is blocked (R5)
-11. S34, S107, S108, S109, S110, S111 — specified, next in that order
-12. S36 — queued behind complete S100
-13. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+11. S34 — implemented, unreleased; live proof blocked (renewal-completion R6)
+12. S107, S108, S109, S110, S111 — specified, next in that order
+13. S36 — queued behind complete S100
+14. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.

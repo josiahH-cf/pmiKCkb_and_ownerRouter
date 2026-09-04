@@ -24,6 +24,7 @@ import { RenewalTenantOutcomeControl } from "@/components/lease-renewal/RenewalT
 import { RenewalFollowUpStatus } from "@/components/lease-renewal/RenewalFollowUpStatus";
 import { RenewalFollowUpThreadControl } from "@/components/lease-renewal/RenewalFollowUpThreadControl";
 import { RenewalFollowUpAttentionControl } from "@/components/lease-renewal/RenewalFollowUpAttentionControl";
+import { DotloopPacketLinkPanel } from "@/components/lease-renewal/DotloopPacketLinkPanel";
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
 import {
   RenewalAuxiliaryNotice,
@@ -899,11 +900,17 @@ function PhaseContent({
       return (
         <Card title="Build docs readiness">
           {packetStateAvailable ? (
-            <PacketTruthPanel
-              initialSnapshot={packetSnapshot}
-              leaseId={summary.id}
-              transactionId={summary.id}
-            />
+            <>
+              <PacketTruthPanel
+                initialSnapshot={packetSnapshot}
+                leaseId={summary.id}
+                transactionId={summary.id}
+              />
+              <DotloopPacketLinkPanel
+                link={packetSnapshot?.execution?.loopLink ?? null}
+                requiredSigners={summary.tenantNameLabels}
+              />
+            </>
           ) : (
             <RenewalAuxiliaryNotice
               compact

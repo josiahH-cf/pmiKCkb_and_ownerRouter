@@ -128,18 +128,21 @@ The only executable order is in `docs/feature-suites/README.md`:
 16. S106 — Dotloop connection and renewal readiness. Committed and candidate-deployed, not
     promoted; only its live readiness check is blocked on the owner's OAuth application and
     connected account.
-17. S34, S107, S108, S109, S110, S111 — the rest of the renewal-completion program in that order
-    (owner direction 2026-09-03).
-18. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
-19. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
+17. S34 — Dotloop renewal packet lifecycle. Implemented and unreleased; live loop creation is
+    blocked on the owner's OAuth application, connected account, artifact content source, and key
+    activation.
+18. S107, S108, S109, S110, S111 — the rest of the renewal-completion program in that order (owner
+    direction 2026-09-03).
+19. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
+20. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
     cost controls.
-20. S90 and S91 — Work/access and renewal query adapters.
-21. S92 — knowledge and bounded grounded narration.
-22. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
-23. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
-24. S95 — atomic minimal Dashboard composition and relocation.
-25. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
-26. S101 — post-S87 read-only cross-application assistant expansion.
+21. S90 and S91 — Work/access and renewal query adapters.
+22. S92 — knowledge and bounded grounded narration.
+23. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
+24. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
+25. S95 — atomic minimal Dashboard composition and relocation.
+26. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
+27. S101 — post-S87 read-only cross-application assistant expansion.
 
 The correction slice is an explicit S82 conformance, S97/S98 integrity, and release-assurance
 intercept; it does not pretend a dependent feature suite advanced. Default to serialization. Only

@@ -14,6 +14,9 @@
 //   100) and `batch_number`; 100 requests per minute per user with `X-RateLimit-*` headers.
 
 export const DOTLOOP_API_BASE = "https://api-gateway.dotloop.com/public/v2/";
+
+/** Multipart line separator, kept as a named constant so it survives formatting. */
+const CRLF = String.fromCharCode(13, 10);
 export const DOTLOOP_MAX_BATCH_SIZE = 100;
 
 /** The documented scopes this application requests. No scope is inferred or widened at runtime. */
@@ -87,6 +90,36 @@ export interface DotloopLoopTemplate {
   readonly name: string;
 }
 
+/** Documented lease transaction types. The owner selects one; the app never guesses. */
+export const DOTLOOP_TRANSACTION_TYPES = ["LISTING_FOR_LEASE", "LEASE_OFFER"] as const;
+export type DotloopTransactionType = (typeof DOTLOOP_TRANSACTION_TYPES)[number];
+
+/** Documented participant roles. */
+export const DOTLOOP_PARTICIPANT_ROLES = [
+  "TENANT",
+  "LANDLORD",
+  "PROPERTY_MANAGER",
+  "ADMIN",
+  "OTHER",
+] as const;
+export type DotloopParticipantRole = (typeof DOTLOOP_PARTICIPANT_ROLES)[number];
+
+/** The documented loop name limit. */
+export const DOTLOOP_LOOP_NAME_MAX_LENGTH = 200;
+
+export interface DotloopDocument {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface DotloopLoop {
+  readonly id: string;
+  readonly name: string;
+  readonly status: string | null;
+  readonly loopUrl: string | null;
+  readonly participantCount: number | null;
+}
+
 export interface DotloopBatchOptions {
   readonly batchSize?: number;
   readonly batchNumber?: number;
@@ -119,6 +152,26 @@ function readIdentity(raw: Record<string, unknown>): { id: string; name: string 
   if (id === "") return null;
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   return { id, name };
+}
+
+function readLoop(raw: Record<string, unknown> | null): DotloopLoop | null {
+  if (!raw) return null;
+  const rawId = raw.id ?? raw.loopId;
+  if (rawId === undefined || rawId === null) return null;
+  const id = String(rawId).trim();
+  if (id === "") return null;
+  const participants = raw.participants;
+  return {
+    id,
+    name: typeof raw.name === "string" ? raw.name : "",
+    status: typeof raw.status === "string" ? raw.status : null,
+    loopUrl: typeof raw.loopUrl === "string" ? raw.loopUrl : null,
+    participantCount: Array.isArray(participants)
+      ? participants.length
+      : typeof raw.participantCount === "number"
+        ? raw.participantCount
+        : null,
+  };
 }
 
 function retryAfterMs(headers: Readonly<Record<string, string>>): number {
@@ -194,6 +247,195 @@ export class DotloopClient {
     });
   }
 
+  /** One loop by id, or null when the profile has no such loop. */
+  async getLoop(profileId: string, loopId: string): Promise<DotloopLoop | null> {
+    try {
+      const body = await this.#get(
+        `profile/${encodeURIComponent(profileId.trim())}/loop/${encodeURIComponent(loopId.trim())}`,
+      );
+      return readLoop(readRecord(readRecord(body)?.data ?? body));
+    } catch (error) {
+      if (error instanceof DotloopClientError && error.kind === "not_found") return null;
+      throw error;
+    }
+  }
+
+  /** One documented batch of a profile's loops, for reconciliation by exact loop name. */
+  async listLoops(
+    profileId: string,
+    options: DotloopBatchOptions = {},
+  ): Promise<DotloopLoop[]> {
+    const body = await this.#get(
+      `profile/${encodeURIComponent(profileId.trim())}/loop`,
+      options,
+    );
+    return readDataArray(body).flatMap((raw) => {
+      const loop = readLoop(raw);
+      return loop ? [loop] : [];
+    });
+  }
+
+  /** Create one loop from the selected template. The name is the app's reconciliation identity. */
+  async createLoop(input: {
+    profileId: string;
+    name: string;
+    templateId: string;
+    transactionType: DotloopTransactionType;
+    status: string;
+  }): Promise<DotloopLoop> {
+    if (input.name.length > DOTLOOP_LOOP_NAME_MAX_LENGTH) {
+      throw new DotloopClientError(
+        "malformed_response",
+        "A Dotloop loop name is limited to 200 characters.",
+      );
+    }
+    const body = await this.#send(
+      "POST",
+      `profile/${encodeURIComponent(input.profileId.trim())}/loop`,
+      {
+        name: input.name,
+        status: input.status,
+        transactionType: input.transactionType,
+        templateId: input.templateId,
+      },
+    );
+    const loop = readLoop(readRecord(readRecord(body)?.data ?? body));
+    if (!loop) {
+      throw new DotloopClientError(
+        "malformed_response",
+        "The loop create response carried no loop id.",
+      );
+    }
+    return loop;
+  }
+
+  /** Patch one documented detail section, such as `Property Address`. */
+  async patchLoopDetail(input: {
+    profileId: string;
+    loopId: string;
+    sections: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  }): Promise<void> {
+    await this.#send(
+      "PATCH",
+      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/detail`,
+      input.sections,
+    );
+  }
+
+  /** Add one participant with a documented role. */
+  async addParticipant(input: {
+    profileId: string;
+    loopId: string;
+    fullName: string;
+    email: string;
+    role: DotloopParticipantRole;
+  }): Promise<void> {
+    await this.#send(
+      "POST",
+      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/participant`,
+      { fullName: input.fullName, email: input.email, role: input.role },
+    );
+  }
+
+  /** Create one folder inside a loop and return its id. */
+  async createFolder(input: {
+    profileId: string;
+    loopId: string;
+    name: string;
+  }): Promise<string> {
+    const body = await this.#send(
+      "POST",
+      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/folder`,
+      { name: input.name },
+    );
+    const record = readRecord(readRecord(body)?.data ?? body);
+    const id = record?.id;
+    if (id === undefined || id === null) {
+      throw new DotloopClientError(
+        "malformed_response",
+        "The folder create response carried no folder id.",
+      );
+    }
+    return String(id);
+  }
+
+  /** The documents in one loop folder, for readback after an upload. */
+  async listFolderDocuments(input: {
+    profileId: string;
+    loopId: string;
+    folderId: string;
+  }): Promise<DotloopDocument[]> {
+    const body = await this.#get(
+      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/folder/${encodeURIComponent(input.folderId.trim())}/document`,
+    );
+    return readDataArray(body).flatMap((raw) => {
+      const rawId = raw.id ?? raw.documentId;
+      if (rawId === undefined || rawId === null) return [];
+      return [
+        {
+          id: String(rawId),
+          name: typeof raw.name === "string" ? raw.name : "",
+        },
+      ];
+    });
+  }
+
+  /**
+   * Upload one approved artifact into a loop folder as the documented multipart POST. The caller
+   * supplies the exact approved bytes; this client adds no content of its own.
+   */
+  async uploadDocument(input: {
+    profileId: string;
+    loopId: string;
+    folderId: string;
+    fileName: string;
+    contentType: string;
+    content: Uint8Array;
+  }): Promise<DotloopDocument> {
+    const boundary = `pmi-kc-${input.folderId}-${input.fileName.length}`;
+    const body = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="${input.fileName}"`,
+      `Content-Type: ${input.contentType}`,
+      "",
+      Buffer.from(input.content).toString("binary"),
+      `--${boundary}--`,
+      "",
+    ].join(CRLF);
+    const response = await this.#transport.fetch({
+      url: new URL(
+        `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/folder/${encodeURIComponent(input.folderId.trim())}/document`,
+        this.#baseUrl,
+      ).toString(),
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${await this.#tokens.accessToken()}`,
+        accept: "application/json",
+        "content-type": `multipart/form-data; boundary=${boundary}`,
+      },
+      body,
+    });
+    if (response.status < 200 || response.status >= 300) {
+      throw new DotloopClientError(
+        response.status === 401 ? "refresh_needed" : "unavailable",
+        "Dotloop did not accept the document upload.",
+        response.status,
+      );
+    }
+    const record = readRecord(readRecord(await response.json())?.data ?? {});
+    const rawId = record?.id;
+    if (rawId === undefined || rawId === null) {
+      throw new DotloopClientError(
+        "malformed_response",
+        "The document upload response carried no document id.",
+      );
+    }
+    return {
+      id: String(rawId),
+      name: typeof record?.name === "string" ? record.name : input.fileName,
+    };
+  }
+
   /**
    * Subscription readability only. The official documentation lists webhook subscriptions but no
    * e-signature send or signature-status operation, so this client offers neither.
@@ -207,6 +449,11 @@ export class DotloopClient {
         throw error;
       return false;
     }
+  }
+
+  /** One documented write with the same one-refresh and one-backoff contract as a read. */
+  async #send(method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
+    return this.#call(method, new URL(path, this.#baseUrl), JSON.stringify(body));
   }
 
   async #get(path: string, options: DotloopBatchOptions = {}): Promise<unknown> {
@@ -225,6 +472,14 @@ export class DotloopClient {
       );
     }
 
+    return this.#call("GET", url);
+  }
+
+  async #call(
+    method: "GET" | "POST" | "PATCH",
+    url: URL,
+    body?: string,
+  ): Promise<unknown> {
     let refreshed = false;
     let backedOff = false;
     let token = await this.#tokens.accessToken();
@@ -232,8 +487,13 @@ export class DotloopClient {
     for (;;) {
       const response = await this.#transport.fetch({
         url: url.toString(),
-        method: "GET",
-        headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+        method,
+        headers: {
+          authorization: `Bearer ${token}`,
+          accept: "application/json",
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
+        },
+        ...(body === undefined ? {} : { body }),
       });
 
       if (response.status === 401) {

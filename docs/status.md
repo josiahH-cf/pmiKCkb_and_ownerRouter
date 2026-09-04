@@ -98,8 +98,10 @@ the desktop navigation group at 320px and overflows horizontally until hydration
 lifecycle and branch proofs) is committed in `13523c5` with exact-SHA CI green, carried by the
 current candidate, and not promoted; its Dotloop phase link waits on S106 and S34. S106 (the Dotloop connection service, typed client, vault-backed tokens and refresh, selection
 record, readiness projection, and health wiring) is committed in `af23da4` with exact-SHA CI green,
-carried by the current candidate, and not promoted; only its live readiness check is blocked on the owner's OAuth application and a connected account. S107-S111 and
-S34 remain specified only. The S51
+carried by the current candidate, and not promoted; only its live readiness check is blocked on the owner's OAuth application and a connected account. S34 (the concrete Dotloop provider, packet-snapshot-bound loop identity, durable loop link, readback,
+and explicit signature handoff) is implemented and unreleased; its live loop creation is blocked on
+the owner's OAuth application, connected account, approved artifact content source, and key
+activation, and both Dotloop keys remain closed. S107-S111 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

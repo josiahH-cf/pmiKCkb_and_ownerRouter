@@ -3,9 +3,11 @@
 
 # S34 — Dotloop renewal packet lifecycle
 
-> Status: Rewritten from the 2026-09-03 owner package; not implemented beyond the typed seam. The
-> `DotloopProvider` interface, `DotloopRenewalExecutor`, S66 packet binding, and two closed keys
-> exist with fakes only; no live Dotloop call exists.
+> Status: IMPLEMENTED / UNRELEASED for the closed slice. `LiveDotloopProvider` implements the typed
+> seam over the S106 client, loop identity is bound to the packet snapshot hash, the loop link rides
+> on the packet execution projection, and the workspace shows the link with an explicit signature
+> handoff. Live loop creation stays BLOCKED on the owner's OAuth application, connected account,
+> approved artifact content source, and key activation; both Dotloop keys remain closed.
 
 **Goal.**
 
@@ -15,18 +17,18 @@ Dotloop for signature work the API cannot perform.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-06)                      | Classification    | Evidence                                                                                                                  |
-| ------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Create only from an approved current proposal     | Already satisfied | `bindCurrentPacketForDotloop` refuses stale or incomplete S66 snapshots (`lib/lease-documents/dotloop-packet-binding.ts`) |
-| Selected profile and template                     | Missing           | Delivered by S106 selection record                                                                                        |
-| Populate property, participants, terms, documents | Missing           | `DotloopProvider` methods are typed but unimplemented (`lib/lease-renewal/execution/providers.ts`)                        |
-| Store loop id and URL on the owning record        | Partially         | `recordPacketExecutionProjection` exists (`lib/firestore/lease-document-packet-snapshots.ts`); no loop fields             |
-| Repeat creates no second loop                     | Partially         | One-attempt claim pattern exists for S97/S98; Dotloop has no idempotency key                                              |
-| Material change makes the relationship explicit   | Already satisfied | Packet snapshot hash and `Superseded` state (S66)                                                                         |
-| Readback and status link                          | Missing           | No client                                                                                                                 |
-| Webhooks optional                                 | Missing           | Subscription probe from S106                                                                                              |
-| Signature handoff, never assumed complete         | Partially         | `lib/lease-renewal/dotloop-followup-draft.ts` drafts a chase note; no loop link                                           |
-| Provider errors and missing data as blockers      | Already satisfied | `PacketBlocker` and `Failed`/`Partially executed` states                                                                  |
+| Package requirement (PMI-06)                      | Classification    | Evidence                                                                                                                                                                                                                                                         |
+| ------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create only from an approved current proposal     | Already satisfied | `bindCurrentPacketForDotloop` refuses stale or incomplete S66 snapshots (`lib/lease-documents/dotloop-packet-binding.ts`)                                                                                                                                        |
+| Selected profile and template                     | Missing           | Delivered by S106 selection record                                                                                                                                                                                                                               |
+| Populate property, participants, terms, documents | Partially         | `LiveDotloopProvider` creates the loop from the selected template, patches `Property Address`, adds documented-role participants, and creates the packet folder; the document upload refuses without the approved artifact content source rather than pretending |
+| Store loop id and URL on the owning record        | Partially         | `recordPacketExecutionProjection` exists (`lib/firestore/lease-document-packet-snapshots.ts`); no loop fields                                                                                                                                                    |
+| Repeat creates no second loop                     | Partially         | One-attempt claim pattern exists for S97/S98; Dotloop has no idempotency key                                                                                                                                                                                     |
+| Material change makes the relationship explicit   | Already satisfied | Packet snapshot hash and `Superseded` state (S66)                                                                                                                                                                                                                |
+| Readback and status link                          | Missing           | No client                                                                                                                                                                                                                                                        |
+| Webhooks optional                                 | Missing           | Subscription probe from S106                                                                                                                                                                                                                                     |
+| Signature handoff, never assumed complete         | Partially         | `lib/lease-renewal/dotloop-followup-draft.ts` drafts a chase note; no loop link                                                                                                                                                                                  |
+| Provider errors and missing data as blockers      | Already satisfied | `PacketBlocker` and `Failed`/`Partially executed` states                                                                                                                                                                                                         |
 
 Intended end state: a concrete `DotloopProvider` over the official API, one durable loop link per
 packet snapshot hash, readback-driven status, and an explicit signature handoff.
@@ -73,6 +75,14 @@ exact preview/confirmation, and the existing approval tier for High-risk effects
 4. **Signature handoff.** Because the API exposes no signature operation, the phase shows `Open in
 Dotloop to send for signature` with the exact loop URL and the required signers; signature
    completion is recorded only from the existing S72 signed-artifact evidence path, never inferred.
+
+**Observed limitation (recorded, not worked around).**
+
+`uploadDocument` refuses with an exact reason until an approved artifact content source is injected:
+the S66 binding supplies a document reference and content hash, not the artifact bytes, and this
+provider transports approved content rather than inventing it. The documented multipart upload and
+its folder readback are implemented and proved against the fake through an injected content reader,
+so wiring the real source is the only remaining step for that one operation.
 
 **In scope / out of scope.**
 
@@ -124,8 +134,16 @@ loop appears in Dotloop with the right people and documents, the workspace shows
 and repeating the action does not create another loop. The workspace tells the operator to open
 Dotloop to send for signatures.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with fake-provider
-  evidence and, when a connected account exists, one live create/readback proof.
+- Model verdict: PASS for the closed slice - why: one approved packet creates exactly one loop from
+  the selected profile and template with the documented transaction type, initial status,
+  documented-role participants, and the property address section; a repeat of the same confirmed
+  action finds the loop by its exact name and creates no second one; a mismatched template, an empty
+  participant list, or a participant without a verified email blocks before any provider call; the
+  loop reads back and an archived loop reads inactive; the stored link is reused for the same packet
+  snapshot hash without touching the provider and marked superseded for a different hash; and the
+  signature handoff shows the exact loop URL and required signers while claiming no signature state.
+  The document upload refuses outright until the approved artifact content source is wired. Live
+  creation is BLOCKED on the owner's OAuth application, connected account, and key activation.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

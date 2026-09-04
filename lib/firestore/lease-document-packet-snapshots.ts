@@ -50,6 +50,18 @@ interface StoredExecutionProjection {
   receipt_id?: string;
   reconciled_at?: string;
   error_class?: string;
+  /** S34: the durable Dotloop loop link for this exact packet snapshot hash. */
+  loop_link?: {
+    loop_id: string;
+    loop_url?: string;
+    profile_id: string;
+    template_id: string;
+    packet_snapshot_hash: string;
+    read_back_at?: string;
+    loop_status?: string;
+    participant_count?: number;
+    document_count?: number;
+  };
 }
 
 export interface SavePacketSnapshotInput {
@@ -350,6 +362,21 @@ function toRenewalPacketSnapshot(
             ...(execution.receipt_id ? { receiptId: execution.receipt_id } : {}),
             ...(execution.reconciled_at ? { reconciledAt: execution.reconciled_at } : {}),
             ...(execution.error_class ? { errorClass: execution.error_class } : {}),
+            ...(execution.loop_link
+              ? {
+                  loopLink: {
+                    loopId: execution.loop_link.loop_id,
+                    loopUrl: execution.loop_link.loop_url ?? null,
+                    profileId: execution.loop_link.profile_id,
+                    templateId: execution.loop_link.template_id,
+                    packetSnapshotHash: execution.loop_link.packet_snapshot_hash,
+                    readBackAtIso: execution.loop_link.read_back_at ?? null,
+                    loopStatus: execution.loop_link.loop_status ?? null,
+                    participantCount: execution.loop_link.participant_count ?? null,
+                    documentCount: execution.loop_link.document_count ?? null,
+                  },
+                }
+              : {}),
           },
         }
       : {}),
