@@ -3,7 +3,8 @@
 
 # S106 — Dotloop connection and renewal readiness
 
-> Status: IMPLEMENTED / UNRELEASED for the closed slice; the live readiness check is BLOCKED on the
+> Status: COMMITTED (`af23da4`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
+> (`pmi-kc-app-rmtmaxi8r-f6190b47628d`, zero traffic, anonymous smoke passed); NOT PROMOTED. The closed slice is complete; the live readiness check is BLOCKED on the
 > owner's OAuth application registration and a connected Dotloop account. The connection service,
 > typed client, single-use state, vault-backed token refs, selection record, readiness projection,
 > and health wiring are in place and proved against the provider fake. Production still shows

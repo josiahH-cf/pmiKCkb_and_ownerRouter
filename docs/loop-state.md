@@ -17,10 +17,10 @@ provider or action authority.
 - The formerly uncommitted remediation slice is committed and pushed as `e6b76f9` with exact-SHA CI
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
-  through `0158c90`, S104 through `0f01353`, and S105 through `13523c5`; all are exact-SHA CI
-  green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtm804ji-a548b423ad81` (tag `cand-rmtm804ji-a548b423ad81`)
-  was deployed from commit `13523c5df8825642b795c0e56dd8d7fddccc2125` and passed the anonymous
+  through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
+  all are exact-SHA CI green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtmaxi8r-f6190b47628d` (tag `cand-rmtmaxi8r-f6190b47628d`)
+  was deployed from commit `af23da456c5afdbba5dfaac1af69d7c18c6bec9f` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
@@ -76,7 +76,7 @@ provider or action authority.
 - The earlier candidates from `28a9253`, `ff200d3`, `0158c90`, and `0f01353` are superseded and
   carry no traffic.
 
-## S106 implemented, not yet released
+## S106 committed and candidate-deployed, not promoted
 
 S106 (Dotloop connection and renewal readiness) adds one server-owned connection service: a
 single-use authorization state consumed before anything else, the documented `authorization_code`
@@ -92,9 +92,7 @@ the LIVE readiness check is blocked, on the owner's OAuth application and a conn
 
 ## Next exact action
 
-Require exact-SHA aggregate CI for the S106 commit, deploy one zero-traffic candidate from that
-clean HEAD, and pass `npm run smoke:release-candidate` at its exact commit and revision. Then begin
-S34 (`docs/feature-suites/dotloop-esign-activation.md`) and continue the renewal-completion order
+Begin S34 (`docs/feature-suites/dotloop-esign-activation.md`) and continue the renewal-completion order
 (S107, S108, S109, S110, S111), one green suite at a time with a zero-traffic candidate and smoke
 after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
@@ -112,7 +110,7 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
 8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
 9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
-10. S106 — implemented, unreleased; only its live check is blocked (renewal-completion R5)
+10. S106 — committed and candidate-deployed; only its live check is blocked (R5)
 11. S34, S107, S108, S109, S110, S111 — specified, next in that order
 12. S36 — queued behind complete S100
 13. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified

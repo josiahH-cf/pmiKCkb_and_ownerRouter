@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, and S105 are committed through `13523c5` and deployed as
-zero-traffic candidate `pmi-kc-app-rmtm804ji-a548b423ad81` from commit
-`13523c5df8825642b795c0e56dd8d7fddccc2125`; its
+identity-read fix, S103, S104, S105, and S106 are committed through `af23da4` and deployed as
+zero-traffic candidate `pmi-kc-app-rmtmaxi8r-f6190b47628d` from commit
+`af23da456c5afdbba5dfaac1af69d7c18c6bec9f`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -97,8 +97,8 @@ the responsive navigation resolves on the client, a payload as large as the full
 the desktop navigation group at 320px and overflows horizontally until hydration completes. S105 (typed owner outcomes with reopening and non-renewal routing, a version-binding audit, and the
 lifecycle and branch proofs) is committed in `13523c5` with exact-SHA CI green, carried by the
 current candidate, and not promoted; its Dotloop phase link waits on S106 and S34. S106 (the Dotloop connection service, typed client, vault-backed tokens and refresh, selection
-record, readiness projection, and health wiring) is implemented and unreleased; only its live
-readiness check is blocked on the owner's OAuth application and a connected account. S107-S111 and
+record, readiness projection, and health wiring) is committed in `af23da4` with exact-SHA CI green,
+carried by the current candidate, and not promoted; only its live readiness check is blocked on the owner's OAuth application and a connected account. S107-S111 and
 S34 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
