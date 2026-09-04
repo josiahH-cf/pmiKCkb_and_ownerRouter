@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, S105, S106, and S34 are committed through `7b26107` and deployed as
-zero-traffic candidate `pmi-kc-app-rmtmedt51-9868d44ba383` from commit
-`7b2610728b3fa080ce7d9ce9c62b969192139192`; its
+identity-read fix, S103, S104, S105, S106, S34, and S107 are committed through `ae93742` and deployed as
+zero-traffic candidate `pmi-kc-app-rmtmh2uri-9eac996c1d19` from commit
+`ae93742f22c2751a992af16f1b2eaeae77e1b545`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -102,7 +102,12 @@ carried by the current candidate, and not promoted; only its live readiness chec
 and explicit signature handoff) is committed in `7b26107` with exact-SHA CI green, carried by the
 current candidate, and not promoted; its live loop creation is blocked on
 the owner's OAuth application, connected account, approved artifact content source, and key
-activation, and both Dotloop keys remain closed. S107-S111 remain specified only. The S51
+activation, and both Dotloop keys remain closed. S107 (detached completion, read-only load-time
+reconciliation of orphaned attempts, and one consolidated attempt summary) is committed in `ae93742`
+with exact-SHA CI green, carried by the current candidate, and not promoted; it adds no job queue,
+scheduler, worker, or automatic retry, so the recorded conflict with the owner package stands and an
+uncertain attempt's next action is an exact re-confirmation by a person. S108-S111 remain specified
+only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work

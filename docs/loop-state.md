@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-09-03. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-09-04. Resume here after reading `AGENTS.md` and `docs/facts.md`.
 
 ## Objective
 
@@ -18,9 +18,10 @@ provider or action authority.
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
   through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
-  S34 through `7b26107`; all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtmedt51-9868d44ba383` (tag `cand-rmtmedt51-9868d44ba383`)
-  was deployed from commit `7b2610728b3fa080ce7d9ce9c62b969192139192` and passed the anonymous
+  S34 through `7b26107`, and S107 through `ae93742`; all are exact-SHA CI green. Local and remote
+  `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtmh2uri-9eac996c1d19` (tag `cand-rmtmh2uri-9eac996c1d19`)
+  was deployed from commit `ae93742f22c2751a992af16f1b2eaeae77e1b545` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
@@ -45,36 +46,31 @@ provider or action authority.
 
 ## Renewal-completion work carried by the candidate, not promoted
 
-- S102 (`ff200d3`): the live lease generation enriches every export view with the documented lease
-  detail, so `baseRentAmount` is the shared `currentRent`, `rentAmount` stays the separate total,
-  the month-to-month evidence rides along, and `unit.rent` survives only as the labelled
-  `unitListedRent` reference across the desk, review, console provider, S51 oracle, and scripts.
-- S103 (`0158c90`): one `projectLeaseTerm` projection owns the term for the cohort, desk, workspace,
-  and `renewal-desk-query/v2`; the exact `isMonthToMonth` signal replaces the heuristic skip keys
-  (kept only where no exact signal exists); month-to-month leases carry a `periodic_review`
-  disposition, a `monthToMonthStartDate + 12 months` review anchor, an inspection-only workspace,
-  and their own desk scope; an expired or missing end date, a pending conversion, a contradicted
-  signal, or an unreadable detail yields `needs_review`; and the Editor-gated
-  `lease_renewal_term_reviews` record plus `/api/lease-renewal/term-review` resolve leases whose
-  provider evidence is absent, each bound to the lease view fingerprint so a drifted record goes
-  stale.
-- S104 (`0f01353`): the desk row and the lease workspace read one summary and one
-  `buildDeskLeaseGuidance` result, so rent, unit reference, term, status, blockers, and the next
-  action cannot differ between the two surfaces; a filtered, sorted view returns byte-identically,
-  and a damaged continuation restores the default desk rather than a partial view.
-- S105 (`13523c5`): the owner response is typed
-  `approved_terms`, `revision_requested`, `declined_non_renewal`, or `no_response`. A revision
-  request reopens the owner copy onward and invalidates every downstream preview while retaining the
-  prior decision value for review; a decline continues through the documented non-renewal handoff
-  without inventing a tenant answer; silence keeps the lease waiting on the owner. A new response or
-  changed terms supersedes the decision and its previews, a confirmation captured against superseded
-  terms is refused, and two confirmations of one effect map to one attempt identity. Its Dotloop
-  phase link waits on S106 and S34; that absence is already a visible blocker with its next action.
+- S102 (`ff200d3`) makes the documented lease detail the shared `currentRent` across every export
+  view. S103 (`0158c90`) gives the cohort, desk, workspace, and `renewal-desk-query/v2` one
+  `projectLeaseTerm`, a `periodic_review` disposition with a twelve-month anchor, and an
+  Editor-gated term review bound to the lease view fingerprint. S104 (`0f01353`) makes the desk row
+  and the workspace read one summary and one `buildDeskLeaseGuidance` result. S105 (`13523c5`) types
+  the owner response and its reopening, decline, and supersede paths; its Dotloop phase link waits
+  on S106 and S34. The full claims are in `docs/facts.md`.
 - No provider write, timer, draft, or send derives from any of this work. Each slice passed the
   canonical gate, core E2E, and exact-SHA CI; S103 and S104 also passed the local rehearsal browser
   smoke, which recorded one pre-existing S84 narrow-viewport behavior left to S84.
-- The earlier candidates from `28a9253`, `ff200d3`, `0158c90`, and `0f01353` are superseded and
-  carry no traffic.
+- Every earlier renewal-completion candidate is superseded and carries no traffic.
+
+## S107 committed and candidate-deployed, not promoted
+
+S107 (confirmed renewal effect continuation and recovery) adds no job queue, scheduler, worker, or
+automatic retry; the recorded conflict with the owner package stands. No renewal effect route
+forwards an abort signal into execution, so a confirmed effect completes server-side and its receipt
+is persisted before any projection even when the caller leaves. On workspace load
+`reconcileOrphanedRenewalAttempts` reconciles only covered (`rentvine.lease.`,
+`google_sheets.renewal_checklist.`, `dotloop.`), claimed, still-running or ambiguous attempts older
+than the existing two-minute reconcile age, through the S97/S98 services' own `reconcileEffect`; the
+reconcile operation is injected, so the projection module issues no provider call and never writes,
+and a reconcile that cannot prove an outcome leaves the attempt untouched. The lease workspace shows
+one `Confirmed external steps` card naming the last confirmed step, attempt time, result, blocker,
+and next action; an uncertain attempt's next action is an exact re-confirmation by a person.
 
 ## S106 committed and candidate-deployed, not promoted
 
@@ -92,9 +88,9 @@ the LIVE readiness check is blocked, on the owner's OAuth application and a conn
 
 ## Next exact action
 
-Begin S34 (`docs/feature-suites/dotloop-esign-activation.md`) and continue the renewal-completion order
-(S107, S108, S109, S110, S111), one green suite at a time with a zero-traffic candidate and smoke
-after each. Promotion of any candidate waits on the two
+Begin S108 (`docs/feature-suites/maintenance-sync-blockers-and-preapproval-routing.md` per the README bundle) and continue the
+renewal-completion order (S109, S110, S111), one green suite at a time with a zero-traffic candidate
+and smoke after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
 fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 `--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
@@ -112,9 +108,10 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
 10. S106 — committed and candidate-deployed; only its live check is blocked (R5)
 11. S34 — committed and candidate-deployed; live proof blocked (renewal-completion R6)
-12. S107, S108, S109, S110, S111 — specified, next in that order
-13. S36 — queued behind complete S100
-14. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+12. S107 — committed and candidate-deployed, not promoted (renewal-completion R7)
+13. S108, S109, S110, S111 — specified, next in that order
+14. S36 — queued behind complete S100
+15. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.
