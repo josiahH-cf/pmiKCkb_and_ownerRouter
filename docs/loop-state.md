@@ -17,12 +17,13 @@ provider or action authority.
 - The formerly uncommitted remediation slice is committed and pushed as `e6b76f9` with exact-SHA CI
   green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
   implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
-  through `0158c90`, and S104 through `0f01353`; all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtm41tyu-d8d9003c8b52` (tag `cand-rmtm41tyu-d8d9003c8b52`)
-  was deployed from commit `0f013531bbd7d4cafa980d83d95955e5e517bf0b` and passed the anonymous
+  through `0158c90`, S104 through `0f01353`, and S105 through `13523c5`; all are exact-SHA CI
+  green. Local and remote `main` are identical.
+- Zero-traffic candidate `pmi-kc-app-rmtm804ji-a548b423ad81` (tag `cand-rmtm804ji-a548b423ad81`)
+  was deployed from commit `13523c5df8825642b795c0e56dd8d7fddccc2125` and passed the anonymous
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
-  `pmi-kc-app-rmtlsgy0i-ffb8a132da84` and `pmi-kc-app-rmtm1dmg7-98fa238467b3`.
+  every earlier renewal-completion candidate.
 - Candidate assurance has not run. Its remaining inputs are two authenticated managed Admin and
   Editor browser-profile directories on the candidate origin and the S51 monitoring resource set,
   which currently reads `DRIFT` (one managed channel with a mismatched definition, no metric, no
@@ -61,7 +62,7 @@ provider or action authority.
   `buildDeskLeaseGuidance` result, so rent, unit reference, term, status, blockers, and the next
   action cannot differ between the two surfaces; a filtered, sorted view returns byte-identically,
   and a damaged continuation restores the default desk rather than a partial view.
-- S105 (implemented, awaiting its own commit and candidate): the owner response is typed
+- S105 (`13523c5`): the owner response is typed
   `approved_terms`, `revision_requested`, `declined_non_renewal`, or `no_response`. A revision
   request reopens the owner copy onward and invalidates every downstream preview while retaining the
   prior decision value for review; a decline continues through the documented non-renewal handoff
@@ -72,14 +73,12 @@ provider or action authority.
 - No provider write, timer, draft, or send derives from any of this work. Each slice passed the
   canonical gate, core E2E, and exact-SHA CI; S103 and S104 also passed the local rehearsal browser
   smoke, which recorded one pre-existing S84 narrow-viewport behavior left to S84.
-- The earlier candidates from `28a9253`, `ff200d3`, and `0158c90` are superseded and carry no
-  traffic.
+- The earlier candidates from `28a9253`, `ff200d3`, `0158c90`, and `0f01353` are superseded and
+  carry no traffic.
 
 ## Next exact action
 
-Require exact-SHA aggregate CI for the S105 commit, deploy one zero-traffic candidate from that
-clean HEAD, and pass `npm run smoke:release-candidate` at its exact commit and revision. Then begin
-S106 (`docs/feature-suites/dotloop-connection-and-readiness.md`) and continue the
+Begin S106 (`docs/feature-suites/dotloop-connection-and-readiness.md`) and continue the
 renewal-completion order (S34, S107, S108, S109, S110, S111), one green suite at a time with a
 zero-traffic candidate and smoke after each. Promotion of any candidate waits on the two
 managed browser profiles and the monitoring recovery; when those exist, capture the configuration
@@ -96,7 +95,7 @@ fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
 6. S102 — committed and candidate-deployed, not promoted (renewal-completion R1)
 7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
 8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
-9. S105 — implemented, unreleased except its Dotloop phase link (renewal-completion R4)
+9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
 10. S106, S34, S107, S108, S109, S110, S111 — specified, next in that order
 11. S36 — queued behind complete S100
 12. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified

@@ -3,7 +3,9 @@
 
 # S105 — End-to-end renewal lifecycle closure
 
-> Status: IMPLEMENTED / UNRELEASED, except the Dotloop phase link, which waits on S106 and S34. The
+> Status: COMMITTED (`13523c5`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
+> (`pmi-kc-app-rmtm804ji-a548b423ad81`, zero traffic, anonymous smoke passed); NOT PROMOTED. The
+> Dotloop phase link is the one part still outstanding and waits on S106 and S34. The
 > typed owner outcome, its reopening and exit routing, the version-binding audit, and the lifecycle
 > and branch proofs are in place through the existing paths. Production still serves the S72
 > baseline without typed owner outcomes.

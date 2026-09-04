@@ -8,13 +8,13 @@ Continue the renewal-completion program at S106 (Dotloop connection and renewal 
 `docs/loop-state.md`. S102 is committed in `ff200d3` with exact-SHA CI green and deployed in the
 current zero-traffic candidate. S103 (lease term and annual month-to-month review) is committed in
 `0158c90` with exact-SHA CI green and deployed as zero-traffic candidate
-`pmi-kc-app-rmtm41tyu-d8d9003c8b52`, together with S104 (desk and workspace parity closure)
-committed in `0f01353`. That candidate passed its anonymous smoke and is not promoted.
+`pmi-kc-app-rmtm804ji-a548b423ad81`, together with S104 (`0f01353`) and S105 (`13523c5`). That
+candidate passed its anonymous smoke and is not promoted.
 
 Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its immediate rollback is
-`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Zero-traffic candidate `pmi-kc-app-rmtm41tyu-d8d9003c8b52`
-(commit `0f013531bbd7d4cafa980d83d95955e5e517bf0b`) passed its anonymous smoke and waits for the S51
+`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Zero-traffic candidate `pmi-kc-app-rmtm804ji-a548b423ad81`
+(commit `13523c5df8825642b795c0e56dd8d7fddccc2125`) passed its anonymous smoke and waits for the S51
 candidate assurance. Preserve `.claude/settings.local.json`, `output/`, and the owner's untracked specification
 package as user-owned content.
 
@@ -23,8 +23,8 @@ package as user-owned content.
 Use only the canonical queue in `docs/feature-suites/README.md`. The owner's 2026-09-03 direction
 executes S102-S111 and the rewritten S34 (rows 12-22) before S36 and the S88-S95 program. S102 is
 committed and candidate-deployed but not promoted; S103 and S104 are committed and
-candidate-deployed; S105 is implemented and unreleased except its Dotloop phase link, and S106 is
-next. S96, S85, S86, S83, S84, and S99 are complete and
+candidate-deployed; S105 is committed and candidate-deployed except its Dotloop phase link, and S106
+is next. S96, S85, S86, S83, S84, and S99 are complete and
 deployed; S82/S97/S98 remediation is committed and awaits promotion; S100 remains blocked on the
 exact eligible resident message; S36 has not started.
 
