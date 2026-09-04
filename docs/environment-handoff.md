@@ -134,7 +134,11 @@ disagreement.
 
 The monitoring setup generator is print-only. If the exact managed S51 resource set is absent,
 render its fully targeted plan, review every emitted mutation and rollback command, run the approved
-commands, complete the internal email-channel verification, and then use the read-only verifier:
+commands, and then use the read-only verifier. The operator address is `josiah+alerts@pmikcmetro.com`,
+which is the address the managed channel actually carries; passing any other internal address reports
+a channel definition mismatch. Do not wait on an email-channel verification step: the provider owns
+`verificationStatus`, documents it as immutable, and returns it absent for an email channel, which
+means verification is not required for that channel type.
 
 ```bash
 npm run monitoring:plan -- \
@@ -146,8 +150,12 @@ npm run monitoring:verify -- \
   --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app
 ```
 
-`monitoring:verify` must report the exact policy/metric set and one enabled, verified internal
-notification channel before promotion.
+`monitoring:verify` must report `READY` for the exact policy/metric set and one enabled internal
+notification channel before promotion. The verifier refuses a channel the provider reports as
+`UNVERIFIED`, which is its documented non-functioning state.
+
+The fresh-setup plan refuses while any managed S51 resource already exists, so a partial set needs a
+reviewed in-place repair to the committed definitions rather than a rerun of setup.
 
 Before promotion, establish the versioned recovery baseline on the still-serving predecessor. Read
 its exact commit, revision, configuration fingerprint, and 100% traffic, then run the Admin and

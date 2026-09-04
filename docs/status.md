@@ -161,11 +161,18 @@ The operator training guide is `docs/products/renewal-operator-guide.md`, regist
 `docs/README.md`. Its step-to-control table is the input to the guide-control smoke, so a step that
 names a control the application does not show fails the check rather than shipping.
 
+The three `BLOCKED` rows above are unchanged, and each is now carried in `docs/open-blockers.md` as
+`B-DL1`/`B-DL2`, `B-MNT2`, and `B-MNT1`. For the troubleshooting row, three candidate links were
+located and confirmed to resolve, so the owner's remaining step is review rather than research;
+Appliance and General are deliberately left without a candidate.
+
 ## Blocked and queued work
 
-- Promotion of the current candidate waits on two authenticated managed Admin/Editor browser
-  profiles and a passing S51 monitoring resource set (currently `DRIFT`: one mismatched managed
-  channel, no metric, no policies).
+- Promotion of the current candidate waits on two owner access steps: the candidate hostname added
+  to Firebase authorized domains, and two authenticated managed Admin/Editor browser profiles on
+  that exact origin. The S51 monitoring resource set now reads `READY` and the candidate
+  configuration fingerprint is captured, so neither is a hold. `docs/open-blockers.md` carries every
+  open blocker with a stable id, its owner, and the exact evidence that closes it.
 
 - S100 is BLOCKED only on `gmail.maintenance_resident_reply.draft_create`. Its exact proof requires a
   synchronized resident message mapped to a verified resident email in the signed-in managed

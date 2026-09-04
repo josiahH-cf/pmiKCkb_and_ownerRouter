@@ -9,8 +9,9 @@ point for historical documents removed during the 2026-08-26 context reset.
 1. `AGENTS.md` — authority and safety.
 2. `docs/facts.md` — verified present truth and open questions.
 3. `docs/loop-state.md` — current resume state.
-4. `docs/plan.md` — current phases.
-5. The one relevant product, integration, or active-suite document.
+4. `docs/open-blockers.md` — what is holding the next step and who owns each hold.
+5. `docs/plan.md` — current phases.
+6. The one relevant product, integration, or active-suite document.
 
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
@@ -23,6 +24,7 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 | Current status        | `docs/status.md`                            |
 | Current plan          | `docs/plan.md`                              |
 | Resume point          | `docs/loop-state.md`                        |
+| Open blockers         | `docs/open-blockers.md`                     |
 | Engineering/security  | `docs/engineering.md`                       |
 | Engineering checklist | `docs/engineering-checklist.md`             |
 | Runner workflow       | `docs/autonomous-agent-runner.md`           |

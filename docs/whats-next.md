@@ -25,17 +25,20 @@ executes S102-S111 and the rewritten S34 (rows 12-22) before S36 and the S88-S95
 committed and candidate-deployed but not promoted; S103 and S104 are committed and
 candidate-deployed; S105 is committed and candidate-deployed except its Dotloop phase link; S106 is
 committed and candidate-deployed with only its live check blocked; S34 is committed and candidate-deployed
-with its live proof blocked, and S107 is next. S96, S85, S86, S83, S84, and S99 are complete and
+with its live proof blocked. S102-S111 and the rewritten S34 are complete, exact-SHA CI green, and
+carried by one unpromoted zero-traffic candidate. S96, S85, S86, S83, S84, and S99 are complete and
 deployed; S82/S97/S98 remediation is committed and awaits promotion; S100 remains blocked on the
 exact eligible resident message; S36 has not started.
 
 ## Owner inputs that unblock promotion
 
-- Two authenticated managed `pmikcmetro.com` browser-profile directories (Admin and Editor) on the
+- The candidate hostname added to Firebase authorized domains, so a managed identity can sign in on
+  the candidate origin at all.
+- Two authenticated managed `pmikcmetro.com` browser-profile directories (Admin and Editor) on that
   exact candidate origin, outside the repository.
-- The S51 monitoring resource set: the existing managed channel has a mismatched definition, so the
-  fresh-setup plan refuses; a reviewed manual recovery and the operator's email verification are
-  needed before `monitoring:verify` passes.
+
+The S51 monitoring resource set is no longer an owner input: `monitoring:verify` reads `READY`, and
+the candidate configuration fingerprint is captured. `docs/open-blockers.md` is the current ledger.
 
 ## Safe state while advancing
 

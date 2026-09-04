@@ -302,6 +302,29 @@ async function readCollectionPages(project, collection, request, maxPages, signa
   throw new Error("Pagination bound exceeded.");
 }
 
+/**
+ * Whether a notification channel can deliver, read from the provider's own contract.
+ *
+ * `verificationStatus` is immutable: the Cloud Monitoring API documents that it "is illegal to
+ * specify a non-default value (UNVERIFIED or VERIFIED) in the Create() or Update() operations", so
+ * neither this repository nor an operator can set it. The documented meanings are: `VERIFIED` the
+ * channel is proven to receive; `UNVERIFIED` the channel "is non-functioning (it both requires
+ * verification and lacks verification)"; and `VERIFICATION_STATUS_UNSPECIFIED` — returned as an
+ * absent field — "the channel is of a type that does not require verification or that this specific
+ * channel has been exempted from verification". Email channels in this project return the absent
+ * form, so demanding `VERIFIED` rejected a delivering channel and could never be satisfied.
+ *
+ * Only `UNVERIFIED` and an unrecognized value fail, so a genuinely non-functioning channel still
+ * drifts.
+ */
+function channelCanDeliver(verificationStatus) {
+  return (
+    verificationStatus === undefined ||
+    verificationStatus === "VERIFICATION_STATUS_UNSPECIFIED" ||
+    verificationStatus === "VERIFIED"
+  );
+}
+
 function evaluateChannel(config, channels, descriptor) {
   const key = `channel:${descriptor.key}`;
   if (channels.length === 0) {
@@ -342,7 +365,7 @@ function evaluateChannel(config, channels, descriptor) {
     channel.displayName !== descriptor.displayName ||
     channel.type !== descriptor.type ||
     channel.enabled !== true ||
-    channel.verificationStatus !== "VERIFIED" ||
+    !channelCanDeliver(channel.verificationStatus) ||
     !hasExactLabels(channel.userLabels, descriptor.userLabels) ||
     !hasExactLabels(channel.labels, { email_address: config.operatorEmail }) ||
     (channel.description !== undefined && channel.description !== "")
@@ -482,11 +505,11 @@ function conditionMatches(actual, expected) {
     const left = actual.conditionThreshold;
     const right = expected.conditionThreshold;
     return (
-      hasExactObjectKeys(left, Object.keys(right)) &&
+      hasExactObjectKeys(left, Object.keys(right), OMITTED_WHEN_ZERO) &&
       normalizeMonitoringFilter(left.filter) ===
         normalizeMonitoringFilter(right.filter) &&
       left.comparison === right.comparison &&
-      left.thresholdValue === right.thresholdValue &&
+      readThresholdValue(left) === readThresholdValue(right) &&
       left.duration === right.duration &&
       deepEqual(left.aggregations, right.aggregations) &&
       deepEqual(left.trigger, right.trigger) &&
@@ -530,11 +553,26 @@ function hasLabels(actual, expected) {
   return Object.entries(expected).every(([key, value]) => actual[key] === value);
 }
 
-function hasExactObjectKeys(value, expectedKeys) {
+/**
+ * Threshold fields the Cloud Monitoring API omits from a read when they hold the proto3 default.
+ * `thresholdValue` is a `double`: this repository creates A1 and A2 with `"thresholdValue": 0` and
+ * the API reads them back with the field absent, so requiring the key rejected the policy this
+ * repository had just created from its own committed definition.
+ */
+const OMITTED_WHEN_ZERO = Object.freeze(["thresholdValue"]);
+
+/** A threshold the provider omitted is the proto3 default, which is zero. */
+function readThresholdValue(threshold) {
+  return threshold.thresholdValue === undefined ? 0 : threshold.thresholdValue;
+}
+
+function hasExactObjectKeys(value, expectedKeys, omittedWhenDefault = []) {
   if (!isPlainObject(value)) return false;
-  return (
-    JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...expectedKeys].sort())
+  const optional = new Set(omittedWhenDefault);
+  const required = [...expectedKeys].filter(
+    (key) => !optional.has(key) || Object.hasOwn(value, key),
   );
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify(required.sort());
 }
 
 function hasOnlyObjectKeys(value, allowedKeys) {

@@ -25,11 +25,11 @@ provider or action authority.
   read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
   `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
   every earlier renewal-completion candidate.
-- Candidate assurance has not run. Its remaining inputs are two authenticated managed Admin and
-  Editor browser-profile directories on the candidate origin and the S51 monitoring resource set,
-  which currently reads `DRIFT` (one managed channel with a mismatched definition, no metric, no
-  policies; fresh setup refuses while that channel exists, so a reviewed manual recovery plus the
-  operator's email verification is required).
+- Candidate assurance has not run. The S51 monitoring set now reads `READY` and the candidate
+  configuration fingerprint is captured, so its remaining inputs are owner access only: the
+  candidate hostname added to Firebase authorized domains, and two authenticated managed Admin and
+  Editor browser-profile directories on that exact origin. `docs/open-blockers.md` carries the
+  ledger.
 - The S51 identity read sent the ADC quota-project header to the OpenID userinfo endpoint and was
   refused; the preflight now reads identity with the bearer token only (committed in `ff200d3`,
   carried by the candidate, not yet exercised live).
@@ -79,11 +79,10 @@ the integrated proof report is in `docs/status.md`; these are pointers.
 
 The owner's 2026-09-03 renewal-completion program is complete: S102-S111 and the rewritten S34 are
 committed, exact-SHA CI green, and carried by one unpromoted zero-traffic candidate. No further
-suite in that program is buildable without an owner input. The next action is promotion, which
-waits on the two
-managed browser profiles and the monitoring recovery; when those exist, capture the configuration
-fingerprint under `ENVIRONMENT_KIND=production DATA_CONTEXT=live`, run
-`--prepare-candidate-receipt`, promote the exact revision, and complete the 300,000 ms observation.
+suite in that program is buildable without an owner input. The next action is promotion, which now
+waits only on the authorized candidate domain and the two managed browser profiles; when those
+exist, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
+the captured fingerprint, promote the exact revision, and complete the 300,000 ms observation.
 
 ## Canonical feature queue
 
@@ -111,8 +110,8 @@ domain work may parallelize.
 
 ## Runtime inputs, not product questions
 
-- Promotion: two authenticated managed Admin/Editor browser profiles on the candidate origin and a
-  passing S51 monitoring resource set.
+- Promotion: the candidate hostname in Firebase authorized domains and two authenticated managed
+  Admin/Editor browser profiles on that origin. Monitoring and the fingerprint are done.
 - S100: one real synchronized resident message with an exact verified resident email.
 - S106/S34: the Dotloop OAuth application and a connected managed Dotloop account.
 - S108/S109: Admin-entered property preapproval amounts (the record and its Admin control ship in

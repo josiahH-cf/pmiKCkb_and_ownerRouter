@@ -209,7 +209,7 @@ export function buildMonitoringPlan(config, bundle = loadMonitoringBundle()) {
       title:
         "2. Create the one internal operator notification channel and verify its address",
       notes: [
-        "The named operator must complete Google's email verification before the channel can deliver. The read-only verifier requires verificationStatus=VERIFIED.",
+        "Read the created channel back and confirm the address is the exact internal operator address. The provider owns verificationStatus and documents it as immutable: an email channel returns it absent, meaning verification is not required for this channel type. The read-only verifier therefore refuses only an UNVERIFIED or unrecognized status, which is the documented non-functioning state.",
       ],
       commands: [
         {

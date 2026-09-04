@@ -34,14 +34,15 @@ guess, substitute a record, or stop unrelated closed-safe work.
 
 ## Renewal-completion inputs (S102-S111, S34, S106)
 
-| Input                                                                               | Needed by   | Refusal rule when absent                                                                          |
-| ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
-| Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. |
-| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; fake-provider proof still completes.                       |
-| Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                               |
-| Property preapproval amounts entered by an Admin                                    | S108        | Every ticket waits on owner approval as today.                                                    |
-| Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                           |
-| Two authenticated managed Admin/Editor browser profiles                             | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                   |
+| Input                                                                               | Needed by   | Refusal rule when absent                                                                                                                                                 |
+| ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. Dotloop issues credentials by approved request, not self-registration. |
+| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; fake-provider proof still completes.                                                                                              |
+| Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                                                                                                      |
+| Property preapproval amounts entered by an Admin                                    | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
+| Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                                                                                                  |
+| Two authenticated managed Admin/Editor browser profiles                             | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                                                                                          |
+| The candidate hostname added to Firebase authorized domains                         | S51 release | No managed identity can sign in on the candidate origin, so the profiles above cannot be used.                                                                           |
 
 ## Runtime evidence by suite
 

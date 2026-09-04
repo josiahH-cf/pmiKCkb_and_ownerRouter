@@ -514,10 +514,10 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
     ...optionalString("RENTCAST_MONTHLY_ALLOWANCE"),
     // S34 / S35: connector configuration the connector catalog declares as requiredConfig and reads
     // from process.env at runtime. Neither had ANY delivery path to the running service, so an owner
-    // who completed the Dotloop OAuth registration or placed the LeadSimple key would still have seen
-    // `configured: false` with no error naming this wrapper as the cause. These are non-secret
-    // identifiers and a redirect URI; the LeadSimple API key and Dotloop client secret travel through
-    // readRuntimeSecrets when their secret ids are configured.
+    // who completed the Dotloop OAuth registration would still have seen `configured: false` with no
+    // error naming this wrapper as the cause. Both names below are non-secret. The Dotloop client
+    // secret travels through readRuntimeSecrets when DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID is set.
+    // LeadSimple is deferred and has no forward here; adding one is its own reviewed change.
     ...optionalString("DOTLOOP_OAUTH_CLIENT_ID"),
     ...optionalString("DOTLOOP_OAUTH_REDIRECT_URI"),
     VERTEX_AI_LOCATION: region,
@@ -594,6 +594,18 @@ function readRuntimeSecrets(env, errors) {
         readString(env.RENEWAL_DESK_PARTY_FILTER_PREVIOUS_KEY_SECRET_VERSION) ?? "latest";
       bindings.RENEWAL_DESK_PARTY_FILTER_PREVIOUS_KEY = `${previousId}:${previousVersion}`;
     }
+  }
+
+  // S106/S34: bind the Dotloop OAuth client secret when its secret id is configured. The explicit
+  // *_SECRET_ID is the activation signal (the maintenance-intake pattern), so a plaintext value in
+  // the reviewed env file never becomes a deploy binding and never reaches --set-env-vars. Without
+  // the signal nothing binds and Dotloop readiness keeps naming the missing client secret. The
+  // client id and redirect URI are non-secret and travel in the env map above.
+  const dotloopClientSecretId = readString(env.DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID);
+  if (dotloopClientSecretId) {
+    const version =
+      readString(env.DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_VERSION) ?? "latest";
+    bindings.DOTLOOP_OAUTH_CLIENT_SECRET = `${dotloopClientSecretId}:${version}`;
   }
 
   return bindings;

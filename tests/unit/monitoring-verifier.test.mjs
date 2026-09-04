@@ -73,6 +73,61 @@ describe("S51 read-only monitoring verifier", () => {
     expect(rendered).not.toContain(OPERATOR_EMAIL);
   });
 
+  it("accepts the channel an email provider returns with no verification status", () => {
+    // Cloud Monitoring documents verificationStatus as immutable and illegal to set, and returns it
+    // absent (VERIFICATION_STATUS_UNSPECIFIED) for a channel type that does not require
+    // verification. Demanding VERIFIED here rejected a delivering channel and could never pass.
+    const state = exactState();
+    delete state.channels[0].verificationStatus;
+
+    const report = evaluateMonitoringState(config(), state);
+
+    expect(report.status).toBe("ready");
+    expect(report.checks.find((check) => check.key === "channel:operator_email")).toEqual(
+      {
+        key: "channel:operator_email",
+        status: "ready",
+        reason: "exact",
+      },
+    );
+  });
+
+  it("accepts the explicit unspecified verification status for the same reason", () => {
+    const state = exactState();
+    state.channels[0].verificationStatus = "VERIFICATION_STATUS_UNSPECIFIED";
+
+    expect(evaluateMonitoringState(config(), state).status).toBe("ready");
+  });
+
+  it("accepts the zero threshold the provider omits from its read", () => {
+    // A1 and A2 are created from committed definitions carrying "thresholdValue": 0. Cloud
+    // Monitoring reads them back with the field absent, which is the proto3 default encoding, so
+    // requiring the key rejected the exact policy this repository had just created.
+    const state = exactState();
+    for (const policy of state.policies) {
+      for (const condition of policy.conditions) {
+        if (condition.conditionThreshold?.thresholdValue === 0) {
+          delete condition.conditionThreshold.thresholdValue;
+        }
+      }
+    }
+
+    const report = evaluateMonitoringState(config(), state);
+
+    expect(report.status).toBe("ready");
+  });
+
+  it("still refuses a threshold the provider reports at a different value", () => {
+    const state = exactState();
+    const threshold = state.policies
+      .flatMap((policy) => policy.conditions)
+      .find((condition) => condition.conditionThreshold)?.conditionThreshold;
+    expect(threshold).toBeDefined();
+    threshold.thresholdValue = 5;
+
+    expect(evaluateMonitoringState(config(), state).status).toBe("drift");
+  });
+
   it.each([
     {
       label: "missing channel",
@@ -101,6 +156,12 @@ describe("S51 read-only monitoring verifier", () => {
       label: "unverified operator channel",
       mutate(state) {
         state.channels[0].verificationStatus = "UNVERIFIED";
+      },
+    },
+    {
+      label: "unrecognized channel verification status",
+      mutate(state) {
+        state.channels[0].verificationStatus = "PENDING";
       },
     },
     {

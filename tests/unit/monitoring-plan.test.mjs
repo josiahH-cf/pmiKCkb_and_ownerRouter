@@ -129,7 +129,7 @@ describe("S51 print-only monitoring plan", () => {
 
     const output = renderMonitoringPlan(resolved, plan);
     expect(output).toContain('--notification-channels "$MONITORING_CHANNEL_NAME"');
-    expect(output).toContain("verificationStatus=VERIFIED");
+    expect(output).toContain("verificationStatus");
     expect(output).toContain("run.googleapis.com/request_count");
     expect(output).toContain('response_code_class\\" = \\"5xx');
     expect(output).toContain(MONITORING_MARKERS.unresolvedLiveEffect);
