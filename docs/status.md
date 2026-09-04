@@ -20,9 +20,9 @@ Git and provider/app receipts.
 
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51 preflight
-identity-read fix, S103, S104, S105, S106, S34, and S107 are committed through `ae93742` and deployed as
-zero-traffic candidate `pmi-kc-app-rmtmh2uri-9eac996c1d19` from commit
-`ae93742f22c2751a992af16f1b2eaeae77e1b545`; its
+identity-read fix, S103, S104, S105, S106, S34, S107, and S108 are committed through `03f7eee` and deployed as
+zero-traffic candidate `pmi-kc-app-rmtmm6d33-fb90a28a26a1` from commit
+`03f7eee3283cc90d71a7e3fe1691fe71ec463d81`; its
 anonymous smoke passed at the exact commit, revision, tag, and service, traffic readback still shows
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
@@ -106,8 +106,14 @@ activation, and both Dotloop keys remain closed. S107 (detached completion, read
 reconciliation of orphaned attempts, and one consolidated attempt summary) is committed in `ae93742`
 with exact-SHA CI green, carried by the current candidate, and not promoted; it adds no job queue,
 scheduler, worker, or automatic retry, so the recorded conflict with the owner package stands and an
-uncertain attempt's next action is an exact re-confirmation by a person. S108-S111 remain specified
-only. The S51
+uncertain attempt's next action is an exact re-confirmation by a person. S108 (the RentVine provider
+snapshot on the work-order link, one waiting-on projection, the Admin-managed property preapproval,
+preapproval-aware owner-approval routing, and the read-only blocker report) is committed in `03f7eee`
+with exact-SHA CI green, carried by the current candidate, and not promoted; its rehearsal-browser
+run proved the report, the waiting-on filter, and the cancel-first preapproval confirmation with no
+provider call from a page render. Two constraints stay recorded rather than resolved: photo and
+attachment synchronization into RentVine is closed, and the report links to the ticket because no
+RentVine work-order dashboard URL is documented. S109-S111 remain specified only. The S51
 identity-read fix (bearer-only userinfo read) is committed and not yet exercised live.
 
 ## Blocked and queued work
