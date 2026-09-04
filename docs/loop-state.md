@@ -32,7 +32,8 @@ provider or action authority.
   ledger.
 - The S51 identity read sent the ADC quota-project header to the OpenID userinfo endpoint and was
   refused; the preflight now reads identity with the bearer token only (committed in `ff200d3`,
-  carried by the candidate, not yet exercised live).
+  carried by the candidate). Exercised live on 2026-09-04: the bearer-only userinfo read returns
+  HTTP 200 with the managed domain, so this is no longer an untested fix.
 - Runtime is Production + Live with eleven Spaces, the operating-Sheet write switch on, and a
   48-key/16-open committed Registry plus matching non-authoritative Admin mirror.
 - S99, S97, and S100 chat sync are proven and open; S100 remains BLOCKED on a synchronized resident
