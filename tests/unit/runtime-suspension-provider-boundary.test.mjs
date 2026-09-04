@@ -149,7 +149,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "app/api/lease-renewal/rentvine-writeback/route.ts:refreshProjectionAfterWrite:buildLiveRentVineConfig",
   "app/api/maintenance/owner-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:buildLiveRenewalConfig",
-  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:buildLiveRenewalConfig",
+  // S110: the desk page's own live-config read moved into the orchestration the desk page and the
+  // Dashboard assistant share. It is the same Product read-only desk read, in one place.
+  "lib/lease-renewal/assistant-source.ts:runRenewalAssistantSource:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "lib/console/rentvine-live-provider.ts:configuredClient:buildLiveRentVineConfig",

@@ -3,9 +3,13 @@
 
 # S110 — Dashboard assistant V1: three read-only intents
 
-> Status: Specified from the 2026-09-03 owner package; not implemented. This is the first executable
-> slice of the S88 query boundary, the S90 work adapter, and the S91 renewal adapter, limited to three
-> intents. S88–S95 remain the full contracts; S93 streaming and S94 actions stay out.
+> Status: IMPLEMENTED. `runAssistantQuery` is the one boundary, `lib/assistant/intent-registry.ts`
+> holds the closed versioned registry (`assistant-query/v1`), the work and renewal adapters read
+> through the owning services, and `POST /api/assistant/query` returns the envelope. The Renewals
+> desk orchestration is extracted into `lib/lease-renewal/assistant-source.ts`, which the desk page
+> and the assistant both call, so the table and the answer cannot drift. `AskForm` routes a question
+> there first. This remains the first executable slice of the S88 boundary, the S90 work adapter, and
+> the S91 renewal adapter, limited to three intents; S93 streaming and S94 actions stay out.
 
 **Goal.**
 
@@ -111,8 +115,17 @@ renewal blockers, or next month's renewals and gets a short list with links to t
 would find on the work page or the renewal table. Other questions get a short note listing the three
 supported questions.
 
-- Model verdict: PASS | FAIL - why: completed by the implementation runner with parity, corpus,
-  zero-write, and rehearsal-browser evidence.
+- Model verdict: PASS - why: the corpus maps every representative phrasing of the three questions
+  onto the same closed intent, `next month`, `this month`, and an exact `YYYY-MM` resolve in the
+  Kansas City calendar, an ambiguous period asks exactly one clarification, and anything else returns
+  the bounded note naming the three questions. The work adapter returns only the actor's own open
+  tasks that are due today, overdue, or blocked, each with its `/work` link; the renewal adapters
+  return the desk's blocked rows with the same blocker labels, and a month query returns rows by end
+  date or by the S103 periodic-review anchor. A failed renewal read reports `unavailable` and never
+  `no renewals`, a degraded read reports `partial`, and an actor without Renewals access receives no
+  lease id, address, count, or label. The route body accepts only the question text. The rehearsal
+  browser asked all three questions plus an unsupported one on the Dashboard and no write route was
+  called.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

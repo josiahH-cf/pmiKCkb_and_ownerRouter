@@ -10,6 +10,10 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
     ["DELETE /api/auth/session", "Remove the local staff session cookie."],
     ["DELETE /api/vendor/auth/session", "Remove the local Vendor session cookie."],
     ["POST /api/ask", "Retrieve and answer without persisting an Ask log."],
+    [
+      "POST /api/assistant/query",
+      "Answer one of three closed read-only intents from the owning services. The body carries only the question text, which is why it is a POST rather than a query string, and no path writes, starts a run, drafts, or reaches a provider.",
+    ],
     ["POST /api/ask/live-target", "Read one authoritative RentVine target."],
     ["POST /api/ask/transcribe", "Transcribe into an unsaved Console input."],
     ["POST /api/auth/demo", "Create only the local rehearsal session cookie."],

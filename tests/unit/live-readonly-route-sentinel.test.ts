@@ -43,9 +43,11 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   "app/api/gmail-hub/threads/[threadId]/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/route.ts:GET:linkMatchesContext",
-  // S75 page loads construct the descriptor-bound service only to list bodyless app-owned workflow
-  // links from Firestore. The Gmail provider is constructed solely by the separate manual refresh.
-  "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:createGmailHubService",
+  // S110 moved the desk's own orchestration into `lib/lease-renewal/assistant-source.ts`, which the
+  // desk page and the assistant route now share, so this scan no longer sees its
+  // `createGmailHubService` call. The property that entry documented is asserted directly in
+  // `tests/unit/s110-assistant-query.test.ts`: that module constructs the descriptor-bound service
+  // only to list bodyless app-owned workflow links, and calls no other Gmail method.
   // S82: pure in-process HMAC token derivation for opaque owner/tenant filter shortcuts. It reads
   // env-bound key material, performs no store or provider I/O, and never logs a label or key.
   "app/lease-renewal/live/desk/page.tsx:LiveRenewalDeskPage:createPartyFilterResolver",

@@ -9,6 +9,7 @@ import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNo
 import type { AskActionRoute } from "@/lib/ask/action-intent";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
+import type { AssistantEnvelope } from "@/lib/assistant/envelope";
 import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
 
 type SelectOption = { label: string; value: string };
@@ -77,6 +78,9 @@ export function AskForm({
     writableSpaceOptions[0]?.value ?? "lease-renewals",
   );
   const [result, setResult] = useState<AskResponse | null>(null);
+  // S110: the assistant answer for one of the three closed read-only intents, or null when the
+  // question falls through to the knowledge path.
+  const [assistant, setAssistant] = useState<AssistantEnvelope | null>(null);
   const [workflowRun, setWorkflowRun] = useState<WorkflowRunSummary | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -115,10 +119,27 @@ export function AskForm({
     event.preventDefault();
     setIsPending(true);
     setResult(null);
+    setAssistant(null);
     setWorkflowRun(null);
     setStatusMessage("");
     setCaptureStatus("");
     setLiveTarget(null);
+
+    // S110: the closed assistant registry answers first. A matched intent returns the owning records
+    // with links and never falls through to the knowledge answer; anything else continues below.
+    const assistantResponse = await fetch("/api/assistant/query", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    if (assistantResponse.ok) {
+      const envelope = (await assistantResponse.json()) as AssistantEnvelope;
+      setAssistant(envelope);
+      if (envelope.intent || envelope.clarification) {
+        setIsPending(false);
+        return;
+      }
+    }
 
     const response = await fetch("/api/ask", {
       method: "POST",
@@ -449,6 +470,7 @@ export function AskForm({
         </form>
 
         <aside className="panel result-panel" aria-live="polite">
+          {assistant ? <AssistantAnswer envelope={assistant} /> : null}
           {result ? (
             <>
               <SourceStateBanner state={result.source_state} />
@@ -672,4 +694,53 @@ async function readErrorMessage(response: Response, fallback: string) {
   return typeof payload.error === "string" && payload.error.trim()
     ? payload.error
     : fallback;
+}
+
+/**
+ * S110: one of the three closed read-only answers. Every line comes from the owning service through
+ * the assistant envelope; nothing here narrates, and every link points at the owning view.
+ */
+function AssistantAnswer({ envelope }: Readonly<{ envelope: AssistantEnvelope }>) {
+  if (envelope.unsupported) {
+    return (
+      <section aria-label="Assistant answer" className="ui-stack">
+        <p className="muted">
+          {envelope.unsupported.message} You can ask:{" "}
+          {envelope.unsupported.supported.join(" ")}
+        </p>
+      </section>
+    );
+  }
+  if (envelope.clarification) {
+    return (
+      <section aria-label="Assistant answer" className="ui-stack">
+        <h2>One more detail</h2>
+        <p>{envelope.clarification}</p>
+      </section>
+    );
+  }
+  return (
+    <section aria-label="Assistant answer" className="ui-stack">
+      <h2>Answer</h2>
+      <p>{envelope.sourceState}</p>
+      {envelope.completeness === "unavailable" ? null : (
+        <ul className="ui-rows">
+          {envelope.items.map((item) => (
+            <li key={item.id}>
+              <Link href={item.href}>{item.title}</Link>
+              <span className="muted"> · {item.detail}</span>
+              {item.blockers.length > 0 ? (
+                <span className="muted"> · {item.blockers.join("; ")}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      {envelope.links.map((link) => (
+        <p key={link.href}>
+          <Link href={link.href}>{link.label}</Link>
+        </p>
+      ))}
+    </section>
+  );
 }

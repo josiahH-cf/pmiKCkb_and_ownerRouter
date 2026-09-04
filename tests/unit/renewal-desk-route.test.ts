@@ -13,14 +13,19 @@ describe("S78 canonical renewal route", () => {
       'redirect("/lease-renewal/live/desk")',
     );
     const desk = source("app/lease-renewal/live/desk/page.tsx");
-    expect(desk).toContain("buildRenewalDeskWindow");
     expect(desk).toContain("parseRenewalDeskQueryV2");
     expect(desk).toContain('renewalRoleCapability("read_workspace")');
     expect(desk).toContain('liveReviewHref="/lease-renewal/live"');
+    // S110 moved the window rule and the snapshot read into the shared orchestration the desk page
+    // and the Dashboard assistant both call, so the month-start rule is pinned there instead. The
+    // page still owns its own post-write freshness floor.
     expect(desk).toContain("RENEWAL_SOURCE_REFRESH_COOKIE");
-    expect(desk).toContain("getLiveLeaseSnapshotAtOrAfter");
-    expect(desk).toContain("leaseSnapshotResult");
-    expect(desk).not.toContain("startIso = now.toISOString().slice(0, 10)");
+    expect(desk).toContain("loadRenewalAssistantSource");
+    const orchestration = source("lib/lease-renewal/assistant-source.ts");
+    expect(orchestration).toContain("buildRenewalDeskWindow");
+    expect(orchestration).toContain("getLiveLeaseSnapshotAtOrAfter");
+    expect(orchestration).toContain("leaseSnapshotResult");
+    expect(orchestration).not.toContain("startIso = now.toISOString().slice(0, 10)");
   });
 
   it("links verification items to their exact actionable Live-review card", () => {

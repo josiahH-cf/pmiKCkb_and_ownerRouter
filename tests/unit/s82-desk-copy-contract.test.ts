@@ -101,9 +101,14 @@ describe("S82 static effect boundary", () => {
   });
 
   it("keeps the desk page's added reads bounded to the reviewed bulk resolution read", () => {
-    expect(deskPage).toContain('listResolutionsForRun(user, "live-review")');
-    expect(deskPage).not.toContain("writeBatch");
-    expect(deskPage).not.toContain(".set(");
-    expect(deskPage).not.toContain(".update(");
+    // S110 moved the desk orchestration into the module the desk page and the Dashboard assistant
+    // share, so the bulk resolution read is pinned there. Both files stay write-free.
+    const orchestration = source("lib/lease-renewal/assistant-source.ts");
+    expect(orchestration).toContain('listResolutionsForRun(user, "live-review")');
+    for (const text of [deskPage, orchestration]) {
+      expect(text).not.toContain("writeBatch");
+      expect(text).not.toContain(".set(");
+      expect(text).not.toContain(".update(");
+    }
   });
 });
