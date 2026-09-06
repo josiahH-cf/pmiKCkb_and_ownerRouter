@@ -20,16 +20,21 @@ provider or action authority.
   through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
   S34 through `7b26107`, S107 through `ae93742`, S108 through `03f7eee`, S109 through `9b2c829`, and
   S110 through `5abf6dd`, and S111 through `5aa2a90`; all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtmy3z88-1fc4c3e29466` (tag `cand-rmtmy3z88-1fc4c3e29466`)
-  was deployed from commit `5aa2a90909c68ef414acb8791f166c8370fca0d2` and passed the anonymous
-  read-only smoke at its exact commit, revision, tag, and service. Traffic readback still shows
-  `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%. It is not promoted and supersedes
-  every earlier renewal-completion candidate.
-- Candidate assurance has not run. The S51 monitoring set now reads `READY` and the candidate
-  configuration fingerprint is captured, so its remaining inputs are owner access only: the
-  candidate hostname added to Firebase authorized domains, and two authenticated managed Admin and
-  Editor browser-profile directories on that exact origin. `docs/open-blockers.md` carries the
-  ledger.
+- Zero-traffic candidate `pmi-kc-app-rmtpqneki-e799a49fc597` (tag `cand-rmtpqneki-e799a49fc597`)
+  was deployed from commit `e6eb315ebee29d9b1deced8148cfe9ebf6f9428d` and passed the anonymous
+  read-only smoke at its exact commit, revision, tag, and service. Its configuration fingerprint is
+  `sha256:6566fdbd050c370cee5848a09586027ae46c820afa4bfe6e1b92b86f5bfb3e00` and its hostname is an
+  authorized sign-in domain. Traffic readback still shows `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at
+  100%. It is not promoted and supersedes every earlier candidate, including `rmtmy3z88`, whose
+  authorized-domain entry was removed once it was superseded.
+- Candidate assurance has not run, and its one remaining hold is now diagnosed exactly: no account
+  in the project carries the `Editor` role, so the Editor canary has no subject. Read back 2026-09-04
+  from the Identity Platform account query: seven accounts, three `Admin` on the managed domain,
+  three managed accounts with no role claim, one vendor test account. Monitoring is `READY`, the
+  fingerprint is captured, and the candidate hostname is authorized, so nothing else is outstanding.
+  Creating or assigning an Editor is an owner access decision through the application's People and
+  Access surface; an agent must never mint or elevate an identity for it. `docs/open-blockers.md`
+  carries the ledger and the Wednesday follow-ups.
 - The S51 identity read sent the ADC quota-project header to the OpenID userinfo endpoint and was
   refused; the preflight now reads identity with the bearer token only (committed in `ff200d3`,
   carried by the candidate). Exercised live on 2026-09-04: the bearer-only userinfo read returns
@@ -80,10 +85,11 @@ the integrated proof report is in `docs/status.md`; these are pointers.
 
 The owner's 2026-09-03 renewal-completion program is complete: S102-S111 and the rewritten S34 are
 committed, exact-SHA CI green, and carried by one unpromoted zero-traffic candidate. No further
-suite in that program is buildable without an owner input. The next action is promotion, which now
-waits only on the authorized candidate domain and the two managed browser profiles; when those
-exist, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
-the captured fingerprint, promote the exact revision, and complete the 300,000 ms observation.
+suite in that program is buildable without an owner input. The next action is promotion, which waits
+only on an `Editor`-role account existing and the two managed browser profiles being authenticated
+on the candidate origin; when those exist, run `--prepare-candidate-receipt` under
+`ENVIRONMENT_KIND=production DATA_CONTEXT=live` with the captured fingerprint, promote the exact
+revision, and complete the 300,000 ms observation.
 
 ## Canonical feature queue
 
@@ -111,8 +117,9 @@ domain work may parallelize.
 
 ## Runtime inputs, not product questions
 
-- Promotion: the candidate hostname in Firebase authorized domains and two authenticated managed
-  Admin/Editor browser profiles on that origin. Monitoring and the fingerprint are done.
+- Promotion: one account holding the `Editor` role must exist, then two authenticated managed
+  Admin/Editor browser profiles on the candidate origin. Monitoring, the fingerprint, and the
+  authorized domain are done.
 - S100: one real synchronized resident message with an exact verified resident email.
 - S106/S34: the Dotloop OAuth application and a connected managed Dotloop account.
 - S108/S109: Admin-entered property preapproval amounts (the record and its Admin control ship in
