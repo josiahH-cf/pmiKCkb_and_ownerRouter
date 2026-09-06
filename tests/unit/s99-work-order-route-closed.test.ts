@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// This file uses the REAL committed seed: all three S99 keys are closed, so every provider
-// operation refuses at the exact committed-seed gate before any transport construction.
+// This file uses the REAL committed seed together with an UNREADABLE runtime-suspension reader.
+// The three S99 keys are OPEN in the committed seed (proof-qualified activation, 2026-09-02); the
+// refusal proven here is the fail-closed suspension term, which stops every provider operation at
+// the exact gate before any transport construction. It is not evidence of a closed key.
 
 const mocks = vi.hoisted(() => ({
   user: { uid: "admin-1", email: "admin@pmikcmetro.com", role: "Admin" as string },

@@ -381,7 +381,15 @@ export interface DotloopProvider {
     participantRefs: readonly string[];
     active: boolean;
   } | null>;
-  readDocument(documentRef: string): Promise<{
+  /**
+   * Read one document back. A provider that exposes no content hash of its own may echo the
+   * caller's confirmed `expected` terms only after observing the document present in the exact
+   * loop folder; without them its readback carries empty values and never matches a preview.
+   */
+  readDocument(
+    documentRef: string,
+    expected?: { documentType: string; contentHash: string },
+  ): Promise<{
     documentRef: string;
     loopRef: string;
     documentType: string;
@@ -469,7 +477,10 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
       contentHash: stringValue(input, "content_hash"),
       idempotencyKey,
     });
-    const observed = await this.provider.readDocument(result.documentRef);
+    const observed = await this.provider.readDocument(result.documentRef, {
+      documentType: stringValue(input, "document_type"),
+      contentHash: stringValue(input, "content_hash"),
+    });
     if (
       !observed ||
       !observed.active ||
@@ -504,7 +515,10 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
         ? receipt(input, result.providerRef, observed, "succeeded", true)
         : null;
     }
-    const observed = await this.provider.readDocument(result.providerRef);
+    const observed = await this.provider.readDocument(result.providerRef, {
+      documentType: stringValue(input, "document_type"),
+      contentHash: stringValue(input, "content_hash"),
+    });
     return observed &&
       observed.active &&
       observed.loopRef === input.values.loop_ref &&

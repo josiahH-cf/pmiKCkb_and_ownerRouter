@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   writerCalls: [] as string[],
   writerFailsAfterApply: false,
   projection: vi.fn(async () => ({})),
+  progress: null as unknown,
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => ({
@@ -89,6 +90,7 @@ vi.mock("@/lib/lease-renewal/writeback/proposal-store", () => ({
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   recordRenewalProcessEvidence: mocks.projection,
+  getRenewalProgress: vi.fn(async () => mocks.progress),
 }));
 
 vi.mock("@/lib/lease-renewal/live-config", () => ({
@@ -406,6 +408,26 @@ describe("S97 rentvine-writeback route", () => {
     const duplicate = (await second.json()) as { duplicate: boolean };
     expect(duplicate.duplicate).toBe(true);
     expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+  });
+
+  it("refuses execution while the recorded owner response is not an approval (S105)", async () => {
+    const { previewHash, effectHash } = await proposeDatesChange();
+    mocks.gateOpen = true;
+    mocks.progress = { ownerOutcome: { state: "revision_requested" } };
+    try {
+      const response = await post({
+        operation: "execute",
+        leaseId: "4821",
+        previewHash,
+        effectHash,
+        confirm: true,
+      });
+      expect(response.status).toBe(409);
+      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
+      expect(mocks.writerCalls).toHaveLength(0);
+    } finally {
+      mocks.progress = null;
+    }
   });
 
   it("returns the explicit post-write source generation when its full read succeeds", async () => {

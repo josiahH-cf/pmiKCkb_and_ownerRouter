@@ -30,7 +30,11 @@ const harness = vi.hoisted(() => ({
         propertyType?: string;
       },
       attributes: [],
-      baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+      baseRent: {
+        status: "verified",
+        value: 1250,
+        sourcePath: "lease detail baseRentAmount",
+      },
       trendPostalCode: "64118" as string | undefined,
     },
   },
@@ -152,7 +156,11 @@ beforeEach(() => {
     },
     query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
     attributes: [],
-    baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+    baseRent: {
+      status: "verified",
+      value: 1250,
+      sourcePath: "lease detail baseRentAmount",
+    },
     trendPostalCode: "64118",
   };
   harness.lookupMock.mockReset().mockResolvedValue(LIKELY_RESULT);

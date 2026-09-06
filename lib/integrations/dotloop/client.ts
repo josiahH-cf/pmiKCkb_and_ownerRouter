@@ -1,17 +1,23 @@
-// S106: the typed Dotloop Public API v2 read client.
+// S106/S34: the typed Dotloop Public API v2 client.
 //
-// It exposes only the exact documented reads the renewal lane needs — account, profiles, a profile's
-// loop templates, and subscription readability. There is deliberately NO generic request function:
-// a new Dotloop capability must be added here as its own named, typed method with its own review.
+// It exposes only exact documented operations as named, typed methods. S106 reads: account,
+// profiles, a profile's loop templates, and subscription readability. S34 adds the loop lane: a
+// profile's loops (one batch at a time, for reconciliation by exact name), one loop, its
+// participants, loop-it creation, the detail patch, participant add, folder create, and the
+// multipart document upload plus folder document list. There is deliberately NO generic request
+// function: a new Dotloop capability must be added here as its own method with its own review.
 //
 // Transport and token supply are injected, so this module performs no network call by itself and
 // holds no credential. A token value is used only as the bearer header of one request; it is never
-// logged, returned, embedded in a URL, or persisted here.
+// logged, returned, embedded in a URL, or persisted here. Every request, the multipart upload
+// included, shares one contract: one refresh on 401, one back-off on 429.
 //
-// Provider contract (official Dotloop Public API v2, read 2026-09-03):
+// Provider contract (official Dotloop Public API v2, read 2026-09-03 and re-read 2026-09-06):
 //   base `https://api-gateway.dotloop.com/public/v2/`; `GET /account`; `GET /profile`;
 //   `GET /profile/{profile_id}/loop-template`; `GET /subscription`; pagination `batch_size` (max
 //   100) and `batch_number`; 100 requests per minute per user with `X-RateLimit-*` headers.
+//   `POST /profile/{profile_id}/loop` accepts only name/status/transactionType; a loop created FROM
+//   A TEMPLATE with participants and a property address is `POST /loop-it?profile_id=`.
 
 export const DOTLOOP_API_BASE = "https://api-gateway.dotloop.com/public/v2/";
 
@@ -275,13 +281,31 @@ export class DotloopClient {
     });
   }
 
-  /** Create one loop from the selected template. The name is the app's reconciliation identity. */
+  /**
+   * Create one loop from the selected template through the documented `POST /loop-it` operation,
+   * the only create that accepts `templateId`, participants, and the property address in one call
+   * (`POST /profile/{id}/loop` documents name/status/transactionType only). The name is the app's
+   * reconciliation identity.
+   */
   async createLoop(input: {
     profileId: string;
     name: string;
     templateId: string;
     transactionType: DotloopTransactionType;
     status: string;
+    participants?: readonly {
+      fullName: string;
+      email: string;
+      role: DotloopParticipantRole;
+    }[];
+    address?: {
+      streetName: string;
+      streetNumber?: string;
+      unit?: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    } | null;
   }): Promise<DotloopLoop> {
     if (input.name.length > DOTLOOP_LOOP_NAME_MAX_LENGTH) {
       throw new DotloopClientError(
@@ -291,12 +315,33 @@ export class DotloopClient {
     }
     const body = await this.#send(
       "POST",
-      `profile/${encodeURIComponent(input.profileId.trim())}/loop`,
+      `loop-it?profile_id=${encodeURIComponent(input.profileId.trim())}`,
       {
         name: input.name,
         status: input.status,
         transactionType: input.transactionType,
         templateId: input.templateId,
+        ...(input.address
+          ? {
+              streetName: input.address.streetName,
+              ...(input.address.streetNumber
+                ? { streetNumber: input.address.streetNumber }
+                : {}),
+              ...(input.address.unit ? { unit: input.address.unit } : {}),
+              city: input.address.city,
+              state: input.address.state,
+              zipCode: input.address.zipCode,
+            }
+          : {}),
+        ...(input.participants && input.participants.length > 0
+          ? {
+              participants: input.participants.map((participant) => ({
+                fullName: participant.fullName,
+                email: participant.email,
+                role: participant.role,
+              })),
+            }
+          : {}),
       },
     );
     const loop = readLoop(readRecord(readRecord(body)?.data ?? body));
@@ -323,6 +368,29 @@ export class DotloopClient {
   }
 
   /** Add one participant with a documented role. */
+  /** The documented participant list of one loop: the observable people on the provider's side. */
+  async listParticipants(
+    profileId: string,
+    loopId: string,
+  ): Promise<{ id: string; fullName: string; email: string; role: string }[]> {
+    const body = await this.#get(
+      `profile/${encodeURIComponent(profileId.trim())}/loop/${encodeURIComponent(loopId.trim())}/participant`,
+    );
+    return readDataArray(body).flatMap((raw) => {
+      const record = readRecord(raw);
+      const rawId = record?.id;
+      if (rawId === undefined || rawId === null) return [];
+      return [
+        {
+          id: String(rawId),
+          fullName: typeof record?.fullName === "string" ? record.fullName : "",
+          email: typeof record?.email === "string" ? record.email : "",
+          role: typeof record?.role === "string" ? record.role : "",
+        },
+      ];
+    });
+  }
+
   async addParticipant(input: {
     profileId: string;
     loopId: string;
@@ -402,27 +470,17 @@ export class DotloopClient {
       `--${boundary}--`,
       "",
     ].join(CRLF);
-    const response = await this.#transport.fetch({
-      url: new URL(
+    // Same one-refresh/one-back-off contract as every other request; only the body differs.
+    const responseBody = await this.#call(
+      "POST",
+      new URL(
         `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/folder/${encodeURIComponent(input.folderId.trim())}/document`,
         this.#baseUrl,
-      ).toString(),
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${await this.#tokens.accessToken()}`,
-        accept: "application/json",
-        "content-type": `multipart/form-data; boundary=${boundary}`,
-      },
+      ),
       body,
-    });
-    if (response.status < 200 || response.status >= 300) {
-      throw new DotloopClientError(
-        response.status === 401 ? "refresh_needed" : "unavailable",
-        "Dotloop did not accept the document upload.",
-        response.status,
-      );
-    }
-    const record = readRecord(readRecord(await response.json())?.data ?? {});
+      `multipart/form-data; boundary=${boundary}`,
+    );
+    const record = readRecord(readRecord(responseBody)?.data ?? {});
     const rawId = record?.id;
     if (rawId === undefined || rawId === null) {
       throw new DotloopClientError(
@@ -479,6 +537,7 @@ export class DotloopClient {
     method: "GET" | "POST" | "PATCH",
     url: URL,
     body?: string,
+    contentType = "application/json",
   ): Promise<unknown> {
     let refreshed = false;
     let backedOff = false;
@@ -491,7 +550,7 @@ export class DotloopClient {
         headers: {
           authorization: `Bearer ${token}`,
           accept: "application/json",
-          ...(body === undefined ? {} : { "content-type": "application/json" }),
+          ...(body === undefined ? {} : { "content-type": contentType }),
         },
         ...(body === undefined ? {} : { body }),
       });

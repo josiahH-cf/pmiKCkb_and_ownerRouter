@@ -55,7 +55,33 @@ describe("readDotloopOAuthConfig", () => {
     if (!result.configured) {
       expect(result.missing).toContain("DOTLOOP_OAUTH_CLIENT_ID");
       expect(result.missing).toContain("DOTLOOP_OAUTH_REDIRECT_URI");
+      expect(result.missing).toContain("DOTLOOP_OAUTH_CLIENT_SECRET");
     }
+  });
+
+  it("is NOT configured without the client secret, naming exactly that binding", () => {
+    // A missing secret used to read as configured: the connect flow minted a state, sent the Admin
+    // to Dotloop, and the exchange failed afterwards with nothing naming the secret.
+    const result = readDotloopOAuthConfig({
+      DOTLOOP_OAUTH_CLIENT_ID: "client-123",
+      DOTLOOP_OAUTH_REDIRECT_URI: "https://app.example/cb",
+    });
+    expect(result).toEqual({
+      configured: false,
+      missing: ["DOTLOOP_OAUTH_CLIENT_SECRET"],
+    });
+    expect(
+      beginDotloopConnect({
+        state: "nonce-1",
+        env: {
+          DOTLOOP_OAUTH_CLIENT_ID: "client-123",
+          DOTLOOP_OAUTH_REDIRECT_URI: "https://app.example/cb",
+        },
+      }),
+    ).toEqual({
+      status: "credentials_not_configured",
+      missing: ["DOTLOOP_OAUTH_CLIENT_SECRET"],
+    });
   });
 });
 

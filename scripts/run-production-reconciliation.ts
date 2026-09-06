@@ -92,6 +92,7 @@ export type IndependentRenewalRetentionState =
   | "window"
   | "needs_verification"
   | "tracked_incomplete"
+  | "periodic_review"
   | "outside";
 
 export type IndependentExpectedOverallStatus =
@@ -117,7 +118,12 @@ export interface IndependentExpectedGuidanceState {
 
 interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
   readonly workspaceExpected: boolean;
-  readonly dispositionExpected: "actionable" | "skip" | "review" | "out_of_window";
+  readonly dispositionExpected:
+    | "actionable"
+    | "skip"
+    | "review"
+    | "out_of_window"
+    | "periodic_review";
   readonly retentionExpected: IndependentRenewalRetentionState;
   readonly processExpected: boolean;
   readonly rentReconciliationExpected: boolean;
@@ -711,16 +717,19 @@ function buildExpectedProjectionRows(
 ): ExpectedProjectionRow[] {
   return baseRows.map((row, index) => {
     const sourceRow = rentvineRows[index] ?? {};
-    const workspaceExpected = independentWorkspaceExpected(sourceRow);
+    const workspaceExpected = independentWorkspaceExpected(sourceRow, leaseDetails);
     const dispositionExpected = independentDispositionExpected(
       row,
       workspaceExpected,
       referenceDateIso,
     );
     // A definitive source skip outranks obsolete app-owned progress. It never creates a process,
-    // action, or retained-incomplete workflow in the independent expectation.
+    // action, or retained-incomplete workflow in the independent expectation. S103: a month-to-month
+    // lease follows the annual review rhythm, so obsolete progress never retains it either.
     const trackedIncomplete =
-      workspaceExpected && decisions.trackedIncompleteLeaseIds.has(row.leaseId);
+      workspaceExpected &&
+      dispositionExpected !== "periodic_review" &&
+      decisions.trackedIncompleteLeaseIds.has(row.leaseId);
     const retentionExpected = independentRetentionExpected(
       row,
       trackedIncomplete,
@@ -823,6 +832,20 @@ function independentRetentionExpected(
   workspaceExpected = true,
 ): IndependentRenewalRetentionState {
   if (!workspaceExpected) return "outside";
+  if (row.monthToMonth?.signal === true) {
+    // S103: the periodic-review row is retained only while its annual review falls inside the
+    // window; without an anchor the review date needs verification; obsolete progress never
+    // retains it.
+    const nextReviewIso = independentNextReviewIso(
+      row.monthToMonth.startDateIso,
+      referenceDateIso,
+    );
+    if (nextReviewIso === null) return "needs_verification";
+    const window = independentRenewalWindow(referenceDateIso);
+    return nextReviewIso >= window.startIso && nextReviewIso <= window.endIso
+      ? "periodic_review"
+      : "outside";
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(row.endDate)) return "needs_verification";
   const { startIso, endIso } = independentRenewalWindow(referenceDateIso);
   if (row.endDate >= startIso && row.endDate <= endIso) return "window";
@@ -967,12 +990,38 @@ function independentRenewalWindow(referenceDateIso: string): {
   return { startIso, endIso: end.toISOString().slice(0, 10) };
 }
 
+/**
+ * S103: the annual review anchored on the documented month-to-month start. Independent
+ * re-derivation of the application rule: twelve months after the anchor, clamped to the target
+ * month's last day, rolled forward one year at a time until it is not before the first day of the
+ * reference month. Null without an anchor.
+ */
+export function independentNextReviewIso(
+  startDateIso: string | null,
+  referenceDateIso: string,
+): string | null {
+  if (startDateIso === null || !/^\d{4}-\d{2}-\d{2}$/.test(startDateIso)) return null;
+  const addTwelveMonths = (iso: string): string => {
+    const year = Number(iso.slice(0, 4)) + 1;
+    const month = Number(iso.slice(5, 7));
+    const day = Number(iso.slice(8, 10));
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+  };
+  const floor = `${referenceDateIso.slice(0, 7)}-01`;
+  let next = addTwelveMonths(startDateIso);
+  for (let guard = 0; next < floor && guard < 200; guard += 1)
+    next = addTwelveMonths(next);
+  return next;
+}
+
 function independentDispositionExpected(
   row: IndependentRenewalSourceRow,
   workspaceExpected: boolean,
   referenceDateIso: string,
 ): ExpectedProjectionRow["dispositionExpected"] {
   if (!workspaceExpected) return "skip";
+  if (row.monthToMonth?.signal === true) return "periodic_review";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(row.endDate)) return "review";
   const { startIso, endIso } = independentRenewalWindow(referenceDateIso);
   if (row.endDate < startIso || row.endDate > endIso) return "out_of_window";

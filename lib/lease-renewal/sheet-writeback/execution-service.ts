@@ -4,6 +4,7 @@
 // causality. Only normal `row_append` mutates; fixed-row update/delete paths are unavailable until
 // the provider exposes a stable-row, generation-bound, idempotent protocol with durable status.
 
+import { RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS } from "@/lib/lease-renewal/execution/reconcile-age";
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { assertLiveProviderActionAllowed } from "@/lib/environment/descriptor";
@@ -144,7 +145,7 @@ export interface SheetWritebackDependencies {
   now?: () => number;
 }
 
-const RECONCILE_MIN_AGE_MS = 2 * 60 * 1_000;
+const RECONCILE_MIN_AGE_MS = RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS;
 const NOTE_SCAN_START_ROW = 2;
 const NOTE_SCAN_MAX_ROW = 3_000;
 
@@ -378,6 +379,9 @@ export class SheetWritebackService {
     effectHash: string;
   }): Promise<ExternalActionReceipt> {
     this.assertEnvironment();
+    if (input.proposal.scope.kind === "sealed_proof") {
+      throw new SheetWritebackServiceError("proof_retired");
+    }
     const effect = this.effectByHash(input.proposal, input.effectHash);
     const executionId = sheetWritebackExecutionId(input.proposal, effect);
     let record = await this.dependencies.store.get(executionId);
@@ -511,6 +515,9 @@ export class SheetWritebackService {
     effectHash: string;
   }): Promise<ExternalActionReceipt> {
     this.assertEnvironment();
+    if (input.proposal.scope.kind === "sealed_proof") {
+      throw new SheetWritebackServiceError("proof_retired");
+    }
     const effect = this.effectByHash(input.proposal, input.effectHash);
     const forwardId = sheetWritebackExecutionId(input.proposal, effect);
     const forward = await this.dependencies.store.get(forwardId);

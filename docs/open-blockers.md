@@ -8,7 +8,7 @@ Read this after `docs/loop-state.md`. Loop state says where the work is; this fi
 holding it and who owns each hold. When a blocker clears, move its outcome into `docs/facts.md` and
 delete the row here rather than leaving a stale entry.
 
-Last reconciled: 2026-09-04.
+Last reconciled: 2026-09-06.
 
 ## How to use this file
 
@@ -21,69 +21,59 @@ Last reconciled: 2026-09-04.
 
 ## Open
 
-| Id      | Blocks                                      | Owner    | Exact hold                                                                                                   | Completion evidence                                                              |
-| ------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| B-AUTH2 | Candidate promotion                         | owner    | No identity anywhere in the project carries the `Editor` role, so the Editor canary has no subject at all.   | An Editor-role account exists and both canaries pass in the receipt run.         |
-| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only. | An approved client id and client secret exist for this application.              |
-| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.      | Readiness reports `connected` after a profile probe, naming no missing resource. |
-| B-DL3   | S34 document upload                         | owner    | WEDNESDAY: ask the team where the approved blank lease forms live. The S66 artifact catalog is empty.        | The seven required artifact families resolve to approved content.                |
-| B-MNT1  | S108 preapproval routing proof              | owner    | WEDNESDAY: ask the client which properties are preapproved and for how much, and identify them exactly.      | At least one property preapproval reads back with its amount and effective date. |
-| B-S100  | S100 resident draft, and S36 behind it      | owner    | WEDNESDAY: identify one work order carrying resident chat whose resident email is verified.                  | One eligible message exists and the draft key's proof runs against it.           |
+| Id      | Blocks                                      | Owner    | Exact hold                                                                                                                                                                                                    | Completion evidence                                                              |
+| ------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| B-AUTH2 | Candidate promotion                         | owner    | Two managed browser profiles, one Admin and one Editor (a managed account with no role claim is an Editor at the application layer), must be signed in on BOTH the candidate origin and the canonical origin. | Both role canaries and the predecessor baseline pass in the receipt run.         |
+| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only.                                                                                                  | An approved client id and client secret exist for this application.              |
+| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.                                                                                                       | Readiness reports `connected` after a profile probe, naming no missing resource. |
+| B-DL3   | S34 document upload                         | owner    | WEDNESDAY: ask the team where the approved blank lease forms live. The S66 artifact catalog is empty.                                                                                                         | The seven required artifact families resolve to approved content.                |
+| B-MNT1  | S108 preapproval routing proof              | owner    | WEDNESDAY: ask the client which properties are preapproved and for how much, and identify them exactly.                                                                                                       | At least one property preapproval reads back with its amount and effective date. |
+| B-S100  | S100 resident draft, and S36 behind it      | owner    | WEDNESDAY: identify one work order carrying resident chat whose resident email is verified.                                                                                                                   | One eligible message exists and the draft key's proof runs against it.           |
 
 ## Detail
 
-### B-AUTH2 — no Editor identity exists
+### B-AUTH2 — two authenticated managed profiles, on both origins
 
-This is the corrected diagnosis. It is not that the owner has not signed in yet, and it is not that
-the owner must give up Admin. **No account in this project carries the `Editor` role.** Read back from
-the Identity Platform account query on 2026-09-04: seven accounts exist, three carry `role=Admin` on
-the managed domain, three managed accounts carry no role claim at all, and one is a vendor test
-account on an invalid domain. The role lives in a Firebase custom claim, which `lib/auth/session.ts`
-reads as `claims.role`.
+The 2026-09-04 diagnosis (`no account carries the Editor role, so the Editor canary has no subject`)
+was wrong in two ways, both corrected on 2026-09-06 and recorded in `docs/facts.md`
+(`F-ASSURANCE-CANARY`):
 
-The Editor canary asserts the page renders `.user-role` exactly equal to `Editor`, and separately
-that `/admin` and `/admin/users` are denied. So it needs a real Editor, and nothing else satisfies
-it:
+- The Editor canary could never pass. It required a denied route to rest on
+  `/sign-in?error=forbidden`, but the sign-in page forwards any signed-in person to `/`, so a real
+  Editor always failed with `auth_mismatch`. The canary now proves the denial from the navigation
+  chain (the exact same-origin forbidden hop) and refuses when the denied document rendered.
+- A managed account with no role claim is not access-less. `lib/auth/session.ts` resolves it to
+  `Editor` with every Space, and the Admin page copy says every teammate starts as an Editor. The
+  three claim-less managed accounts read back on 2026-09-04 are therefore Editors at the application
+  layer, and any of them is a valid canary subject. Whether that default is right is an owner
+  question recorded under Open Questions in `docs/facts.md`; the runner does not change a protected
+  auth path for it.
 
-- An Admin account fails, because `/admin` resolves instead of being denied. Using one of the three
-  existing Admins is not a workaround.
-- A managed account with no role claim also fails. Onboarding grants no access until a role is
-  assigned, so it cannot reach the common routes and cannot render `Editor`.
-- Demoting an existing Admin is refused as a solution. The owner stated it would lose their own
-  progress, and changing a working person's real access to satisfy a release check is the wrong
-  trade.
-
-**What actually clears this, both owner decisions:**
-
-1. Preferred and repeatable. Create one dedicated non-Admin account on the managed domain whose only
-   purpose is release assurance, and assign it `Editor` through the application's own People and
-   Access surface. It never interrupts a working teammate, and every future candidate reuses it.
-2. Faster today. Assign `Editor` to one of the three existing managed accounts that currently hold no
-   role, then have that person sign in on the second profile. This grants a real person real access,
-   so it is a genuine access decision, not a test fixture.
-
-Do not write the custom claim directly. Assign the role through the application's gated People and
-Access surface so the grant is recorded the way every other grant is. An agent must never mint or
-elevate an identity to satisfy this check: that is self-granted access, and it would also void the
-proof, whose entire purpose is that a real identity behaves correctly on the real origin.
-
-Once an Editor exists, the human step is small. Two Chrome windows, one per profile directory, each
-signed in on the exact candidate origin:
+What still holds promotion is only the human sign-in. The receipt run drives the predecessor
+baseline against the canonical origin before the candidate canaries, and the session cookie is
+host-only, so each profile must be signed in on both origins:
 
 ```
+chrome.exe --user-data-dir="C:\pmi-assurance\admin"  <canonical-origin>
 chrome.exe --user-data-dir="C:\pmi-assurance\admin"  <candidate-origin>
+chrome.exe --user-data-dir="C:\pmi-assurance\editor" <canonical-origin>
 chrome.exe --user-data-dir="C:\pmi-assurance\editor" <candidate-origin>
 ```
 
-Everything else the receipt run needs is already in hand: the live flag, candidate origin, expected
-commit, expected revision, expected configuration fingerprint, an internal operator address, a fresh
-receipt path, and an existing predecessor revision. The assurance browser runs under WSL, so both
-profile directories must be passed in their `/mnt/c/...` form, must be absolute, must differ from
-each other, and must sit outside the repository.
+The Admin profile is one of the three `role=Admin` managed accounts. The Editor profile is one of the
+three managed accounts with no role claim, signed in by that person; no claim is written, no identity
+is minted or elevated, and no Admin is demoted. Copied cookies, guessed or default profile
+directories, and automated password/MFA are not evidence. The assurance browser runs under WSL, so
+both profile directories must be passed in their `/mnt/c/...` form, must be absolute, must differ
+from each other, and must sit outside the repository.
 
-Sign in against the origin of the candidate that will actually be promoted. Each candidate gets its
-own hostname and its own authorized-domain entry, so a profile authenticated against a superseded
-candidate is wasted work.
+Everything else the receipt run needs is in hand or agent-owned: the live flag, candidate origin,
+expected commit and revision, an internal operator address, a fresh receipt path, and an existing
+predecessor revision. The configuration fingerprint must be recaptured for the current candidate,
+because the fingerprint now excludes every documented output-only revision field; that recapture is
+read-only and agent-owned. Sign in against the origin of the candidate that will actually be
+promoted: each candidate gets its own hostname and its own authorized-domain entry, so a profile
+authenticated against a superseded candidate is wasted work.
 
 ### B-DL1 and B-DL2 — Dotloop credentials and a connected account
 
@@ -118,6 +108,14 @@ Chat synchronization is complete, proven, open, and deployed. The unsent residen
 closed until one synchronized message maps to a verified resident email in the signed-in managed
 mailbox. The designated thread has yielded no eligible record, and inventing one would defeat the
 proof.
+
+A bodyless read on 2026-09-06 confirmed the documented lease-with-tenants shape the mapping codec
+expects (root `tenants[]` of `{leaseTenant, contact}` with numeric-string ids and a string
+`contact.email`), so the codec is not the gap. The application-side gap is the link: work orders the
+app creates are unshared with the tenant and lease-less, and no operation links an existing RentVine
+work order (one that carries resident chat) to a ticket. When the Wednesday answer names a work
+order, that link path has to exist before the sync can be pointed at it; it is agent-owned next work,
+listed in `docs/loop-state.md`, and it does not need any owner input to build.
 
 ## Wednesday follow-ups, owner-scheduled
 

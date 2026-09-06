@@ -13,8 +13,11 @@ import {
 } from "@/lib/lease-renewal/renewal-process";
 import {
   RENEWAL_STAGE,
+  ownerOutcomeBlocksDownstream,
   planRecordOwnerDecision,
   planRecordOwnerOutcome,
+  planRecordRenewalEvidence,
+  planRecordTenantOfferDraft,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
 import {
@@ -554,5 +557,61 @@ describe("S105 no branch reaches a provider or a send (AC-S105-4)", () => {
       expect(plan.ownerOutcome?.state).toBe(state);
       expect(plan.complete).toBe(false);
     }
+  });
+});
+
+describe("S105 the recorded owner response survives later plans and closes downstream work", () => {
+  function answered(state: RenewalOwnerOutcomeState): RenewalProgress {
+    const current = progress({ evidence: completeEvidence() });
+    const plan = planRecordOwnerOutcome(
+      current,
+      state,
+      gmailEvidence(`gmail-draft:owner-response:${state}`),
+    );
+    return progress({ ...plan });
+  }
+
+  it("retains the typed response when later evidence is recorded (no silent erasure)", () => {
+    const reopened = answered("revision_requested");
+    const next = planRecordRenewalEvidence(
+      reopened,
+      "owner-copy-version",
+      evidence("policy:owner-copy:v2"),
+    );
+    expect(next.ownerOutcome).toMatchObject({ state: "revision_requested" });
+    expect(next.ownerDecision).toEqual(reopened.ownerDecision);
+  });
+
+  it("refuses a tenant offer draft while the owner has not answered", () => {
+    const waiting = answered("no_response");
+    expect(() => planRecordTenantOfferDraft(waiting, "draft-1")).toThrow(/not responded/);
+    expect(ownerOutcomeBlocksDownstream(waiting)).toMatch(/not responded/);
+  });
+
+  it("names the exact downstream block for every non-approval and none for an approval", () => {
+    expect(ownerOutcomeBlocksDownstream(null)).toBeNull();
+    expect(
+      ownerOutcomeBlocksDownstream(progress({ evidence: completeEvidence() })),
+    ).toBeNull();
+    expect(ownerOutcomeBlocksDownstream(answered("approved_terms"))).toBeNull();
+    expect(ownerOutcomeBlocksDownstream(answered("revision_requested"))).toMatch(
+      /revision/,
+    );
+    expect(ownerOutcomeBlocksDownstream(answered("declined_non_renewal"))).toMatch(
+      /non-renewal handoff/,
+    );
+    expect(ownerOutcomeBlocksDownstream(answered("no_response"))).toMatch(
+      /not responded/,
+    );
+  });
+
+  it("clears the recorded response only when a new owner decision supersedes the terms", () => {
+    const reopened = answered("revision_requested");
+    const revised = planRecordOwnerDecision(reopened, {
+      decision: "increase",
+      offeredRent: 1400,
+    });
+    expect(revised.ownerOutcome).toBeNull();
+    expect(revised.ownerDecisionRevision).toBe(reopened.ownerDecisionRevision + 1);
   });
 });

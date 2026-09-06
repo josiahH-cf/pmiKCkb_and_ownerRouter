@@ -28,12 +28,12 @@ Executable entries are limited to an explicit allow-list (each backed by a commi
 artifact); this script refuses to seed any OTHER production_allowed entry.`;
 
 // Action Registry keys permitted to be production_allowed, each backed by a committed grant artifact
-// (Section 3). Kept in sync with the executable set in lib/admin/migration-readiness.ts (gmail.message.send
-// is additionally retained here as a permitted-but-currently-gated send). Any production_allowed entry NOT
-// listed here is a surprise flip and the seed refuses it.
+// (Section 3). Kept in sync with the executable set in lib/admin/migration-readiness.ts. Direct Gmail
+// sends (`gmail.message.send` and both `.send` notice keys) are permanently closed under D33 and are
+// deliberately NOT listed, so a flip of any of them is a surprise the seed refuses. Any other
+// production_allowed entry NOT listed here is likewise refused.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
-  "gmail.message.send",
   "gmail.thread.reply",
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",

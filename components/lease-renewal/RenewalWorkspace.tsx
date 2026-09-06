@@ -337,55 +337,82 @@ function DoThisNext({
       </Card>
     );
   }
-  if (process.status === "complete") {
+  // S104: this card renders the SAME guidance projection the desk row carries, built once by the
+  // loader's shared guidance builder. Status, blockers, and the next action are read from it and
+  // never recomputed here, so the table and this workspace cannot disagree.
+  const { guidance } = workspace;
+  const action = guidance.action;
+  const destinationStepId =
+    "destination" in action && action.destination.kind === "workspace_phase"
+      ? action.destination.stepId
+      : currentStep?.id;
+  const destinationStep = destinationStepId
+    ? process.steps.find((step) => step.id === destinationStepId)
+    : undefined;
+  const phaseLink = destinationStep ? (
+    <p>
+      <Link
+        className="text-link renewal-workspace-link"
+        href={buildWorkspaceHref({ leaseId, step: destinationStep.id, deskView })}
+      >
+        Go to {destinationStep.shortLabel}
+      </Link>
+    </p>
+  ) : null;
+  const blockers =
+    guidance.blockers.length > 0 ? (
+      <ul className="renewal-blocker-list">
+        {guidance.blockers.map((blocker) => (
+          <li key={blocker.id}>
+            {blocker.destination.kind === "workspace_phase" ? (
+              <Link
+                className="text-link"
+                href={buildWorkspaceHref({
+                  leaseId,
+                  step: blocker.destination.stepId,
+                  deskView,
+                })}
+              >
+                {blocker.label}
+              </Link>
+            ) : (
+              blocker.label
+            )}
+          </li>
+        ))}
+      </ul>
+    ) : null;
+  if (guidance.overallStatus === "complete") {
     return (
       <Card title="Renewal complete">
         <p className="muted">
-          Every required phase has exact completion evidence. Open Compliance close for
-          the recorded result.
+          {"label" in action
+            ? action.label
+            : "Every required phase has exact completion evidence."}
         </p>
+        {phaseLink}
       </Card>
     );
   }
-  if (process.status === "waiting") {
+  if (guidance.overallStatus === "waiting") {
     return (
-      <Card title="Waiting on the tenant">
+      <Card title="Waiting">
         <p className="muted">
-          The offer is with the tenant. Record the outcome in Tenant decision when a
-          source-backed response exists; nothing else is required right now.
+          {"label" in action ? action.label : "Nothing else is required right now."}
         </p>
-      </Card>
-    );
-  }
-  const nextSubstep = currentStep?.substeps.find(
-    (substep) =>
-      substep.applicable && substep.requiredForStep && substep.state !== "complete",
-  );
-  if (!currentStep || !nextSubstep) {
-    return (
-      <Card title="Do this next">
-        <p className="muted">Open the current phase for the next required action.</p>
+        {phaseLink}
       </Card>
     );
   }
   return (
     <Card title="Do this next">
-      <p>{nextSubstep.nextAction}</p>
-      {nextSubstep.blockers.length > 0 ? (
-        <ul className="renewal-blocker-list">
-          {nextSubstep.blockers.map((blocker) => (
-            <li key={blocker}>{blocker}</li>
-          ))}
-        </ul>
-      ) : null}
-      <p>
-        <Link
-          className="text-link renewal-workspace-link"
-          href={buildWorkspaceHref({ leaseId, step: currentStep.id, deskView })}
-        >
-          Go to {currentStep.shortLabel}
-        </Link>
-      </p>
+      {"label" in action ? (
+        <p>{action.label}</p>
+      ) : (
+        <p>Resolve the blockers below before continuing.</p>
+      )}
+      {blockers}
+      {phaseLink}
     </Card>
   );
 }

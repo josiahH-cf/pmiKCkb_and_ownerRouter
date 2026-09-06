@@ -223,7 +223,10 @@ export type DeskLeaseAction =
     };
 
 export interface DeskLeaseGuidance {
-  /** The canonical RentVine `unit.rent` value; null renders Needs Verification, never zero. */
+  /**
+   * The lease-scoped current rent from the shared summary (lease detail `baseRentAmount` when the
+   * live generation enriched the view); null renders Needs Verification, never zero.
+   */
   readonly currentBaseRent: number | null;
   readonly currentBaseRentSource: "RentVine";
   readonly rentVerification: DeskRentVerification;

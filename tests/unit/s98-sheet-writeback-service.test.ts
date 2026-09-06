@@ -594,4 +594,19 @@ describe("S98 one-attempt sheet execution", () => {
     expect(h.createWriterSpy).not.toHaveBeenCalled();
     expect(h.state.rows).toHaveLength(0);
   });
+
+  it("retires sealed-proof reconciliation too, so the proof runner cannot observe or settle again", async () => {
+    const h = harness();
+    const proposal = proofAppendProposal(h);
+    const effectHash = proposal.effects[0].effectHash;
+    await expectCode(
+      h.service.reconcileEffect({ proposal, effectHash }),
+      "proof_retired",
+    );
+    await expectCode(
+      h.service.reconcileReversal({ proposal, effectHash }),
+      "proof_retired",
+    );
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
+  });
 });

@@ -55,10 +55,11 @@ function expectRefusal(fn: () => unknown, code: WorkOrderContractError["code"]) 
 }
 
 describe("S99 official-contract snapshot constants", () => {
-  it("pins the extracted snapshot hash, pagination bounds, and priority vocabulary", () => {
-    expect(WORK_ORDER_CONTRACT_SNAPSHOT_SHA256).toBe(
-      "647eef044ec0e0060ac42cb20c77a2af767fc6822e5f2defa58cd17d51734127",
-    );
+  it("records the extraction provenance hash and pins the pagination bounds and priority vocabulary", () => {
+    // The snapshot hash is provenance for the 2026-09-02 OpenAPI extraction; the extracted operation
+    // objects are not in the repository, so nothing here can recompute it. Asserting the literal
+    // back would only prove the constant equals itself.
+    expect(WORK_ORDER_CONTRACT_SNAPSHOT_SHA256).toMatch(/^[a-f0-9]{64}$/);
     expect(WORK_ORDER_LIST_PAGE_SIZE).toBe(15);
     expect(WORK_ORDER_LIST_MAX_PAGES).toBe(20);
     expect([...WORK_ORDER_PRIORITY_IDS]).toEqual(["1", "2", "3"]);

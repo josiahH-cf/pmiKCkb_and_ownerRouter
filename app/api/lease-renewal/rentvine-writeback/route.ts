@@ -7,7 +7,11 @@ import {
   EnvironmentContextError,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
-import { recordRenewalProcessEvidence } from "@/lib/firestore/lease-renewal-progress";
+import {
+  getRenewalProgress,
+  recordRenewalProcessEvidence,
+} from "@/lib/firestore/lease-renewal-progress";
+import { ownerOutcomeBlocksDownstream } from "@/lib/lease-renewal/renewal-progress";
 import {
   ActionNotExecutableError,
   ActionRuntimeSuspendedError,
@@ -580,6 +584,18 @@ export async function POST(request: Request) {
     if (body.operation === "execute") {
       if (body.previewHash !== proposal.previewHash) {
         throw new RenewalWritebackServiceError("confirmation_invalid");
+      }
+      // S105: a confirmed RentVine effect carries the owner's approved terms into the system of
+      // record. While the recorded owner response is not an approval, execution is refused before
+      // the one-attempt claim, so a stale confirmation cannot ride a superseded decision.
+      const downstreamBlock = ownerOutcomeBlocksDownstream(
+        await getRenewalProgress(user, proposal.leaseId),
+      );
+      if (downstreamBlock) {
+        return NextResponse.json(
+          { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },
+          { status: 409 },
+        );
       }
       const outcome = await service.executeEffect({
         proposal,

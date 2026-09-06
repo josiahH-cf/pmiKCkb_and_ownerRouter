@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 import {
+  applyLeaseDetailToView,
+  leaseViewsFromExport,
+} from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  CONTRACTUAL_BASE_RENT_SOURCE_PATH,
   RENTCAST_QUERY_POLICY,
   buildMarketCompQueryBasis,
 } from "@/lib/lease-renewal/market-comp-query-basis";
@@ -34,6 +38,14 @@ const RAW_EXPORT_ROW = {
 describe("S59 measured export to RentCast query basis", () => {
   it("preserves measured fields, maps only supported facts, and names every omission", () => {
     const view = leaseViewsFromExport([RAW_EXPORT_ROW])[0];
+    // S102: the contractual base rent comes from the lease detail, never from `unit.rent`.
+    applyLeaseDetailToView(view, {
+      baseRentAmount: 1250,
+      rentAmount: 1250,
+      isMonthToMonth: "0",
+      monthToMonthStartDate: null,
+      hasPendingMonthToMonthConversion: false,
+    });
     const basis = buildMarketCompQueryBasis(view, "L1");
 
     expect(basis).toMatchObject({
@@ -41,7 +53,11 @@ describe("S59 measured export to RentCast query basis", () => {
       addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
       policy: RENTCAST_QUERY_POLICY,
       query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
-      baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+      baseRent: {
+        status: "verified",
+        value: 1250,
+        sourcePath: CONTRACTUAL_BASE_RENT_SOURCE_PATH,
+      },
       trendPostalCode: "64118",
     });
     expect(basis.attributes).toEqual([
@@ -101,16 +117,36 @@ describe("S59 measured export to RentCast query basis", () => {
     );
   });
 
-  it("does not relabel a lease-level rent-shaped value as contractual unit.rent", () => {
-    const row = {
+  it("takes the contractual base rent from the lease detail, never from unit.rent (S102)", () => {
+    // The unit's listed rent is a unit attribute. With the lease detail applied the basis must carry
+    // the tenant's contractual rent, and a lease-level lookalike on the export row never qualifies.
+    const [view] = leaseViewsFromExport([
+      { ...RAW_EXPORT_ROW, unit: { ...RAW_EXPORT_ROW.unit, rent: "1300.00" } },
+    ]);
+    applyLeaseDetailToView(view, {
+      baseRentAmount: 1050,
+      rentAmount: 1050,
+      isMonthToMonth: "0",
+      monthToMonthStartDate: null,
+      hasPendingMonthToMonthConversion: false,
+    });
+    expect(buildMarketCompQueryBasis(view, "L1").baseRent).toEqual({
+      status: "verified",
+      value: 1050,
+      sourcePath: CONTRACTUAL_BASE_RENT_SOURCE_PATH,
+    });
+
+    const lookalike = {
       ...RAW_EXPORT_ROW,
       lease: { ...RAW_EXPORT_ROW.lease, currentRent: 999 },
       unit: { ...RAW_EXPORT_ROW.unit, rent: undefined },
     };
-    const basis = buildMarketCompQueryBasis(leaseViewsFromExport([row])[0], "L1");
-    expect(basis.baseRent).toEqual({
+    expect(
+      buildMarketCompQueryBasis(leaseViewsFromExport([lookalike])[0], "L1").baseRent,
+    ).toEqual({
       status: "omitted",
-      reason: "Contractual base rent is unavailable from unit.rent.",
+      reason:
+        "Contractual base rent is unavailable: the RentVine lease detail carries no positive baseRentAmount.",
     });
   });
 

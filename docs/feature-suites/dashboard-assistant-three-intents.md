@@ -7,7 +7,10 @@
 > holds the closed versioned registry (`assistant-query/v1`), the work and renewal adapters read
 > through the owning services, and `POST /api/assistant/query` returns the envelope. The Renewals
 > desk orchestration is extracted into `lib/lease-renewal/assistant-source.ts`, which the desk page
-> and the assistant both call, so the table and the answer cannot drift. `AskForm` routes a question
+> and the assistant both call, and since 2026-09-06 the renewal adapters apply the desk's own exported
+> scope, month, and blocked predicates on the one business calendar (`America/Chicago`), so the
+> answer is the table's row set by construction and a source that throws is reported as
+> `unavailable`. `AskForm` routes a question
 > there first. This remains the first executable slice of the S88 boundary, the S90 work adapter, and
 > the S91 renewal adapter, limited to three intents; S93 streaming and S94 actions stay out.
 

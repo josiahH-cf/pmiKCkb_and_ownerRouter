@@ -115,6 +115,15 @@ vi.mock("@/lib/lease-renewal/renewal-copy-governance", async (importActual) => {
   };
 });
 
+// S105: the recorded owner response gates the tenant channel; null means nothing recorded.
+const progressMocks = vi.hoisted(() => ({
+  current: null as null | { ownerOutcome?: { state: string } },
+}));
+vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
+  getRenewalProgress: async () => progressMocks.current,
+  recordTenantOfferDraft: async () => undefined,
+}));
+
 const { createDraftMock, findDraftMock, getDraftByIdMock } = vi.hoisted(() => ({
   createDraftMock: vi.fn(async () => ({ draftId: "draft_owner_1" })),
   findDraftMock: vi.fn(async () => null as { draftId: string } | null),
@@ -620,6 +629,21 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
 });
 
 describe("renewal-notice-draft route — tenant channel is unchanged", () => {
+  it("refuses the tenant draft while the recorded owner response is not an approval (S105)", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    const draftsBefore = createDraftMock.mock.calls.length;
+    progressMocks.current = { ownerOutcome: { state: "no_response" } };
+    try {
+      const response = await POST(req(tenantBody()));
+      expect(response.status).toBe(409);
+      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
+      expect(createDraftMock.mock.calls.length).toBe(draftsBefore);
+    } finally {
+      progressMocks.current = null;
+    }
+  });
+
   it("previews a tenant draft and makes NO property/portfolio/contact reads", async () => {
     const { client, getLease, getProperty, getPortfolio, getContact } = fakeClient();
     useClient(client);

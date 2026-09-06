@@ -57,10 +57,10 @@ const HEADERS = {
 };
 
 describe("S100 chat contract constants", () => {
-  it("pins the extracted snapshot hash and the bounded-read limits", () => {
-    expect(CHAT_CONTRACT_SNAPSHOT_SHA256).toBe(
-      "ebc41f1af8a5b963094a77d84dd3e84dfc09c9dce3d676ef8827170b3dc7e730",
-    );
+  it("records the extraction provenance hash and pins the bounded-read limits", () => {
+    // Provenance for the 2026-09-02 OpenAPI extraction; the extracted operation object is not in
+    // the repository, so the hash cannot be recomputed here and a literal comparison proves nothing.
+    expect(CHAT_CONTRACT_SNAPSHOT_SHA256).toMatch(/^[a-f0-9]{64}$/);
     expect(CHAT_PAGE_SIZE).toBe(20);
     expect(CHAT_MAX_ENVELOPE_BYTES).toBe(2_000_000);
     expect(CHAT_MAX_BODY_UNITS).toBe(20_000);

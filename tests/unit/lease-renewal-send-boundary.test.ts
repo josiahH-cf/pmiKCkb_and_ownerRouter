@@ -63,3 +63,30 @@ describe("lease-renewal send boundary (LR-05)", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// S100 ARCH-S100-6: the maintenance lane (work-order chat sync and the resident reply draft) holds
+// the same construction boundary. Its draft path speaks only to the structural createDraft-only
+// interface; no maintenance module may import the concrete send-capable client or call sendMessage.
+describe("maintenance send boundary (S100 ARCH-S100-6)", () => {
+  const maintenanceRoot = join(process.cwd(), "lib", "maintenance");
+  const maintenanceFiles = sourceFiles(maintenanceRoot);
+
+  it("scans the maintenance source tree", () => {
+    expect(maintenanceFiles.length).toBeGreaterThan(5);
+  });
+
+  it("never imports the concrete send-capable Gmail client or calls sendMessage", () => {
+    const offenders: string[] = [];
+    for (const file of maintenanceFiles) {
+      const code = stripComments(readFileSync(file, "utf8"));
+      const rel = file.slice(maintenanceRoot.length + 1).replace(/\\/g, "/");
+      if (/from\s+["']@\/lib\/gmail-runtime\/client["']/.test(code)) {
+        offenders.push(`${rel}: imports @/lib/gmail-runtime/client`);
+      }
+      if (/\bsendMessage\b/.test(code)) {
+        offenders.push(`${rel}: references sendMessage`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

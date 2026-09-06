@@ -52,6 +52,22 @@ describe("S109 urgency rules are deterministic (ARCH-S109-1 / BEH-S109-2)", () =
     }
   });
 
+  it("matches life-safety terms as whole words, never as fragments of another word", () => {
+    // "gas" inside "gasket" is a dishwasher part, not a gas leak; a real gas report still escalates.
+    expect(triage({ summary: "The gasket on the dishwasher door is torn" }).urgency).toBe(
+      "normal",
+    );
+    expect(triage({ summary: "There is a gas leak by the stove" }).urgency).toBe(
+      "emergency_fire",
+    );
+    expect(triage({ summary: "It smells like gas in the hallway." }).urgency).toBe(
+      "emergency_fire",
+    );
+    expect(triage({ summary: "Water is gushing from the wall" }).urgency).toBe(
+      "urgent_flooding",
+    );
+  });
+
   it("routes active water to the urgent path", () => {
     for (const summary of [
       "The basement is flooding",

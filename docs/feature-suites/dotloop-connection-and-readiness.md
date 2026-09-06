@@ -6,9 +6,14 @@
 > Status: COMMITTED (`af23da4`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
 > (`pmi-kc-app-rmtmaxi8r-f6190b47628d`, zero traffic, anonymous smoke passed); NOT PROMOTED. The closed slice is complete; the live readiness check is BLOCKED on the
 > owner's OAuth application registration and a connected Dotloop account. The connection service,
-> typed client, single-use state, vault-backed token refs, selection record, readiness projection,
-> and health wiring are in place and proved against the provider fake. Production still shows
-> Dotloop as details-provided-not-verified.
+> typed client, single-use state, vault-backed token refs, selection record, and readiness projection
+> are in place and proved against the provider fake; the 2026-09-06 review corrected the
+> configuration read (the client secret is required), the loop create (`POST /loop-it`), bounded
+> pagination, the multipart upload's refresh path, and orphaned-token cleanup after a refused
+> record. Not yet at the runtime seam: the refresh-token ref is not recorded on the connection, no
+> runtime token provider reads the vault, and the readiness and health projections have no runtime
+> caller (the Connection Center's live probes cover RentVine, Sheets, and RentCast only). Production
+> still shows Dotloop as details-provided-not-verified.
 
 **Goal.**
 

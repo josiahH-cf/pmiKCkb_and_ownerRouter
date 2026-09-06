@@ -7,7 +7,8 @@
 > zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84`, and not promoted. The shared lease view now
 > carries `currentRent` from the documented lease detail `baseRentAmount` inside the live lease
 > generation, keeps `unit.rent` only as the labelled `unitListedRent` reference, and the S51 oracle,
-> live review, console provider, and scripts read the same source. The serving revision still reads
+> live review, console provider, and scripts read the same source; the 2026-09-06 review moved the
+> last `unit.rent` consumer, the RentCast comp query basis, onto the same lease-detail current rent. The serving revision still reads
 > `unit.rent`, which the owner's review showed moving with the property-level market rent.
 
 **Goal.**

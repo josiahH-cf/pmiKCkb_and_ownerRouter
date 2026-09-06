@@ -73,19 +73,23 @@ export const LEASE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinition[] = 
     "Send a reviewed correction through the same provider conversation.",
     "vendor_required",
   ),
+  // S98: no dependency. Both operating-Sheet effects previously depended on
+  // `gmail.renewal_notice.send`, which D33 retired as a permanent non-target, so through the S20
+  // bridge they were unsatisfiable by construction. The S98 route enforces its own lease-scoped
+  // claim, fresh-context check, and recorded owner-outcome gate instead.
   definition(
     LEASE_EXECUTION_ACTIONS[6],
     "Sheet writeback",
     "High",
-    [LEASE_EXECUTION_ACTIONS[1]],
-    "Only the exact unchanged receipt-bound appended row may be deleted under a separately confirmed reversal with absence readback.",
+    [],
+    "The S98 service defines the reversal as deleting only the exact unchanged receipt-bound appended row with absence readback; no route operation executes it yet, so correct through manual review.",
   ),
   definition(
     LEASE_EXECUTION_ACTIONS[7],
     "Sheet writeback",
     "High",
-    [LEASE_EXECUTION_ACTIONS[1]],
-    "A separately previewed and confirmed correction compare-and-sets the exact receipted prior value back into the same cell.",
+    [],
+    "The S98 service defines the correction as compare-and-setting the exact receipted prior value back into the same cell; no route operation executes it yet, so correct through manual review.",
   ),
   definition(
     LEASE_EXECUTION_ACTIONS[8],

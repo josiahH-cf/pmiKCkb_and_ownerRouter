@@ -505,12 +505,36 @@ function matchesLegacyQ(item: RenewalDeskV2Item, q: string): boolean {
   );
 }
 
+/**
+ * S110: the exact predicates the Dashboard assistant reuses so its answers cannot drift from the
+ * table. `matchesQuery` below is built from these same functions.
+ */
+export function renewalDeskItemInScope(
+  item: RenewalDeskV2Item,
+  scope: RenewalDeskQueryV2State["scope"] = DEFAULT_RENEWAL_DESK_QUERY_V2.scope,
+): boolean {
+  return inScope(item, scope);
+}
+
+/** The desk's `month` filter: the lease END month only; a periodic-review anchor never matches. */
+export function renewalDeskItemMatchesMonth(
+  item: RenewalDeskV2Item,
+  month: string,
+): boolean {
+  return month !== "" && item.queryKeys.endMonth === month;
+}
+
+/** The desk's `blocked` filter. */
+export function renewalDeskItemIsBlocked(item: RenewalDeskV2Item): boolean {
+  return item.guidance.isBlocked;
+}
+
 function matchesQuery(
   item: RenewalDeskV2Item,
   query: RenewalDeskQueryV2State,
   matchParty: PartyTokenMatcher,
 ): boolean {
-  if (!inScope(item, query.scope)) return false;
+  if (!renewalDeskItemInScope(item, query.scope)) return false;
   if (query.q && !matchesLegacyQ(item, query.q)) return false;
   if (query.lease && !matchesLeaseText(item, query.lease)) return false;
   if (
@@ -520,7 +544,7 @@ function matchesQuery(
   ) {
     return false;
   }
-  if (query.month && item.queryKeys.endMonth !== query.month) return false;
+  if (query.month && !renewalDeskItemMatchesMonth(item, query.month)) return false;
   if (query.from && query.through) {
     const endDate = item.queryKeys.endDateIso;
     if (!endDate || endDate < query.from || endDate > query.through) return false;
@@ -556,8 +580,8 @@ function matchesQuery(
   ) {
     return false;
   }
-  if (query.blocked === "blocked" && !item.guidance.isBlocked) return false;
-  if (query.blocked === "not_blocked" && item.guidance.isBlocked) return false;
+  if (query.blocked === "blocked" && !renewalDeskItemIsBlocked(item)) return false;
+  if (query.blocked === "not_blocked" && renewalDeskItemIsBlocked(item)) return false;
   if (
     query.rentVerification !== "all" &&
     item.guidance.rentVerification.state !== query.rentVerification
@@ -604,7 +628,7 @@ function primaryValue(
       const label = item.identity.address?.label ?? item.identity.property?.label ?? null;
       return label === null
         ? null
-        : `${normalizeRenewalDeskText(label)} ${item.queryKeys.normalizedLeaseId}`;
+        : `${normalizeRenewalDeskText(label)}\0${item.queryKeys.normalizedLeaseId}`;
     }
     case "base_rent":
       return item.guidance.currentBaseRent;

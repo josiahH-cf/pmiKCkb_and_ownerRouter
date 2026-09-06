@@ -299,6 +299,32 @@ describe("revision-bound operating Renewal Sheet identity", () => {
     ).toThrow("revision_sheet_identity_invalid");
   });
 
+  it("ignores every documented output-only revision field, including etag and scaling status", () => {
+    const value = revision();
+    const baseline = fingerprintRevisionRuntimeConfiguration(value);
+    // The zero-traffic capture never sees `scalingStatus`; the post-promotion read does, and the
+    // control plane re-stamps `etag`, `client`, `clientVersion`, and `creator` on its own schedule.
+    const afterPromotion = {
+      ...value,
+      etag: '"different-etag"',
+      scalingStatus: { currentMinInstanceCount: 1 },
+      client: "gcloud",
+      clientVersion: "999.0.0",
+      creator: "deployer@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      conditions: [{ type: "Ready", state: "CONDITION_SUCCEEDED" }],
+      observedGeneration: "7",
+      updateTime: "2026-09-06T12:00:00.000Z",
+    };
+    expect(fingerprintRevisionRuntimeConfiguration(afterPromotion)).toBe(baseline);
+    // A real configuration change still drifts.
+    expect(
+      fingerprintRevisionRuntimeConfiguration({
+        ...value,
+        serviceAccount: "other@example.iam",
+      }),
+    ).not.toBe(baseline);
+  });
+
   it("requires every Sheet batch response to echo the exact configured identity", () => {
     expect(() =>
       assertRenewalSheetResponseIdentity({ spreadsheetId: SHEET_ID }, SHEET_ID),

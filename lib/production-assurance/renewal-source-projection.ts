@@ -40,6 +40,17 @@ const CURRENCY = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
 });
 
+/**
+ * S103: the independently read month-to-month signal. The documented lease DETAIL `isMonthToMonth`
+ * decides when the detail was read; only without a detail does the export row's own legacy key
+ * stand in. `startDateIso` is the detail's `monthToMonthStartDate`, which anchors the annual
+ * review; absent means the review date cannot be derived.
+ */
+export interface IndependentMonthToMonthSignal {
+  readonly signal: boolean;
+  readonly startDateIso: string | null;
+}
+
 export interface IndependentRenewalSourceRow {
   readonly leaseId: string;
   readonly address: string;
@@ -48,6 +59,8 @@ export interface IndependentRenewalSourceRow {
   readonly endDate: string;
   readonly baseRent: string;
   readonly rentvineSourceUrl: string | null;
+  /** Absent only on hand-built fixtures; the projection always sets it. */
+  readonly monthToMonth?: IndependentMonthToMonthSignal;
 }
 
 export interface IndependentSheetProjection {
@@ -144,6 +157,7 @@ export function projectIndependentRentVineRows(
       endDate: endDate ?? NEEDS_VERIFICATION,
       baseRent: rent === null ? NEEDS_VERIFICATION : CURRENCY.format(rent),
       rentvineSourceUrl: sheetLeaseUrls.get(leaseId) ?? null,
+      monthToMonth: independentMonthToMonthSignal(exportRow, leaseDetails),
     };
   });
 }
@@ -273,17 +287,56 @@ export function independentRentVineCurrentRent(
   return rent !== null && rent > 0 ? rent : null;
 }
 
+function independentBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
+  if (typeof value === "string") {
+    const text = value.trim().toLowerCase();
+    if (text === "1" || text === "true") return true;
+    if (text === "0" || text === "false") return false;
+  }
+  return null;
+}
+
+/**
+ * S103: read the month-to-month signal without the application's term projection. The documented
+ * detail `isMonthToMonth` is authoritative when the detail was read; the export row's legacy key
+ * counts only when no detail answered.
+ */
+export function independentMonthToMonthSignal(
+  exportRow: Readonly<Record<string, unknown>>,
+  leaseDetails: IndependentLeaseDetailMap = new Map(),
+): IndependentMonthToMonthSignal {
+  const lease = asRecord(exportRow.lease) ?? exportRow;
+  const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]);
+  const detail = leaseId === null ? undefined : leaseDetails.get(leaseId);
+  const inner = detail ? (asRecord(detail.lease) ?? detail) : undefined;
+  const providerSignal = inner ? independentBoolean(inner.isMonthToMonth) : null;
+  if (providerSignal !== null) {
+    return {
+      signal: providerSignal,
+      startDateIso: providerSignal ? independentDate(inner?.monthToMonthStartDate) : null,
+    };
+  }
+  return { signal: hasMonthToMonthSignal(lease), startDateIso: null };
+}
+
 /**
  * Mirror only the definitive cohort exclusions needed to decide whether a workspace may exist.
  * Missing/off-cycle/out-of-window dates are deliberately not exclusions: operators may need the
- * workspace to resolve those facts.
+ * workspace to resolve those facts. S103: a month-to-month lease is never excluded; it keeps an
+ * inspection-only workspace on the annual review rhythm, so its signal outranks every skip signal
+ * exactly as the application's cohort order does.
  */
 export function independentWorkspaceExpected(
   exportRow: Readonly<Record<string, unknown>>,
+  leaseDetails: IndependentLeaseDetailMap = new Map(),
 ): boolean {
   const lease = asRecord(exportRow.lease) ?? exportRow;
   const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]);
-  return leaseId !== null && !hasDefinitiveSkipSignal(lease);
+  if (leaseId === null) return false;
+  if (independentMonthToMonthSignal(exportRow, leaseDetails).signal) return true;
+  return !hasDefinitiveSkipSignal(lease);
 }
 
 /** Exact value-free identity of one live-review current-rent decision. */
@@ -792,14 +845,20 @@ function strictMoney(value: string): number | null {
   return Number.isFinite(amount) ? amount : null;
 }
 
-function hasDefinitiveSkipSignal(lease: Readonly<Record<string, unknown>>): boolean {
+/** The export row's legacy month-to-month key or phrasing; the live export carries neither. */
+function hasMonthToMonthSignal(lease: Readonly<Record<string, unknown>>): boolean {
   return (
     firstPresentMatches(lease, ["isMonthToMonth", "monthToMonth", "mtm"], isTruthy) ||
     firstPresentContains(
       lease,
       ["leaseType", "leaseTypeName", "term", "frequency", "leaseTerm", "status"],
       ["month to month", "month-to-month", "monthly", "m2m"],
-    ) ||
+    )
+  );
+}
+
+function hasDefinitiveSkipSignal(lease: Readonly<Record<string, unknown>>): boolean {
+  return (
     firstPresentContains(
       lease,
       ["status", "leaseStatus", "note", "notes", "tags"],

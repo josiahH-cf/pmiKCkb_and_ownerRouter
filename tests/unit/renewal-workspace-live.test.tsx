@@ -5,7 +5,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
-import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
+import type {
+  DeskLeaseGuidance,
+  RenewalLeaseWorkspace,
+} from "@/lib/lease-renewal/desk-model";
 import {
   RENEWAL_COMPLETION_REQUIREMENTS,
   buildRenewalEvidenceReference,
@@ -51,6 +54,77 @@ function tenantPhaseWorkspace() {
   });
   return { ...workspace, process, currentStepIndex: process.currentStepIndex };
 }
+
+describe("RenewalWorkspace next action is the shared desk guidance (S104)", () => {
+  it("renders the guidance action label, not a recomputation from the process", () => {
+    const base = tenantPhaseWorkspace();
+    const guidance: DeskLeaseGuidance = {
+      ...base.guidance,
+      overallStatus: "ready",
+      isBlocked: false,
+      blockers: [],
+      action: {
+        kind: "act",
+        label: "Record the tenant's source-backed answer in Tenant decision.",
+        destination: { kind: "workspace_phase", stepId: "tenant-decision" },
+      },
+    };
+    render(<RenewalWorkspace workspace={{ ...base, guidance }} />);
+    expect(screen.getByRole("heading", { name: "Do this next" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Record the tenant's source-backed answer in Tenant decision."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to Tenant decision" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("step=tenant-decision"),
+    );
+  });
+
+  it("lists the guidance blockers with their exact phase links", () => {
+    const base = tenantPhaseWorkspace();
+    const guidance: DeskLeaseGuidance = {
+      ...base.guidance,
+      overallStatus: "blocked",
+      isBlocked: true,
+      blockers: [
+        {
+          id: "owner-decision",
+          label: "Owner decision evidence is missing",
+          type: "evidence",
+          phaseId: "owner-decision",
+          destination: { kind: "workspace_phase", stepId: "owner-decision" },
+        },
+      ],
+      action: { kind: "blocked" },
+    };
+    render(<RenewalWorkspace workspace={{ ...base, guidance }} />);
+    expect(screen.getByRole("heading", { name: "Do this next" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Owner decision evidence is missing" }),
+    ).toHaveAttribute("href", expect.stringContaining("step=owner-decision"));
+  });
+
+  it("titles a waiting lease from the guidance status", () => {
+    const base = tenantPhaseWorkspace();
+    const guidance: DeskLeaseGuidance = {
+      ...base.guidance,
+      overallStatus: "waiting",
+      isBlocked: false,
+      blockers: [],
+      action: {
+        kind: "waiting",
+        label:
+          "Waiting on the tenant; record the outcome when a source-backed response exists.",
+        destination: { kind: "workspace_phase", stepId: "tenant-decision" },
+      },
+    };
+    render(<RenewalWorkspace workspace={{ ...base, guidance }} />);
+    expect(screen.getByRole("heading", { name: "Waiting" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Do this next" }),
+    ).not.toBeInTheDocument();
+  });
+});
 
 describe("RenewalWorkspace live mode", () => {
   it("shows the Live-data chip and renders the gated live composer on the current tenant phase", () => {

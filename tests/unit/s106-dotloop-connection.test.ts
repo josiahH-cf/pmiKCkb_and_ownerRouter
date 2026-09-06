@@ -282,6 +282,50 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     expect(JSON.stringify(result)).not.toMatch(/access-\d|refresh-\d/);
   });
 
+  it("destroys both exchanged token refs when the connection record is refused", async () => {
+    // Reconnecting while a generation is still connected: the store refuses the record AFTER the
+    // exchange stored both tokens. Neither may stay behind in the vault.
+    const states = stateStore();
+    const vault = createMemoryVault();
+    const destroyed: string[] = [];
+    const observingVault = {
+      ...vault,
+      async destroySecret(input: { secretRef: string; operationId: string }) {
+        destroyed.push(input.secretRef);
+        return vault.destroySecret(input);
+      },
+    };
+    const refusing = {
+      created: [] as { connectorId: string; secretRef: string }[],
+      async createConnectedConnection() {
+        throw new Error("This connector is already connected.");
+      },
+    };
+    const begun = await beginDotloopConnection({
+      actorUid: "admin-1",
+      nowIso: "2026-09-03T00:00:00.000Z",
+      states,
+      env: ENV,
+    });
+    if (begun.status !== "authorize_url") throw new Error(begun.status);
+    const result = await completeDotloopConnection({
+      state: states.issued[0],
+      code: "good-code",
+      nowIso: "2026-09-03T00:01:00.000Z",
+      generationId: "11111111-2222-4333-8444-555555555555",
+      states,
+      connections: refusing,
+      vault: observingVault,
+      exchanger: new LiveDotloopTokenExchanger({ transport: fake }),
+      env: ENV,
+      descriptor: PRODUCTION_LIVE,
+    });
+    expect(result).toMatchObject({ status: "connection_refused" });
+    expect(refusing.created).toHaveLength(0);
+    expect(destroyed).toHaveLength(2);
+    expect(JSON.stringify(result)).not.toMatch(/access-\d|refresh-\d/);
+  });
+
   it("refuses a forged or replayed state without creating a connection (AC-S106-2)", async () => {
     const states = stateStore();
     const connections = connectionStore();

@@ -1,9 +1,10 @@
 // S106 test helper: a deterministic Dotloop provider fake plus an in-memory secret vault.
 //
-// It answers only the documented Public API v2 reads the app uses (`/account`, `/profile`,
-// `/profile/{id}/loop-template`, `/subscription`) and the documented token endpoints. Every value is
-// synthetic. The fake is the only way the connection lifecycle is exercised until the owner
-// registers the OAuth application and connects an account.
+// It answers the documented Public API v2 reads the S106 connection lifecycle uses (`/account`,
+// `/profile`, `/profile/{id}/loop-template`, `/subscription`) and the documented token endpoints;
+// the S34 loop lane (`loop-it`, loop reads, folders, documents, participants) lives in
+// `dotloop-loop-fake.ts`. Every value is synthetic. The fakes are the only way either lifecycle is
+// exercised until the owner registers the OAuth application and connects an account.
 
 import type {
   DotloopHttpResponse,

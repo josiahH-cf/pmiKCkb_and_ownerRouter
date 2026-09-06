@@ -36,8 +36,11 @@ export type DotloopOAuthConfigResult =
 
 /**
  * Read the Dotloop OAuth config from env by NAME. Returns configured:false with the missing NAMES when
- * the app credentials are absent, so the connect flow honestly says "authorize in the morning" instead
- * of pretending to be connected. The clientSecret is read but never returned to any browser path.
+ * any of the three app credentials is absent, so the connect flow and the readiness projection say
+ * exactly which binding is missing instead of minting an authorization state the code exchange can
+ * never complete. Before this, a missing client SECRET still read as configured: the Admin was sent
+ * to Dotloop, the single-use state was consumed, and the exchange then failed with nothing naming
+ * the secret. The clientSecret is read but never returned to any browser path.
  */
 export function readDotloopOAuthConfig(
   env: Record<string, string | undefined> = process.env,
@@ -49,13 +52,10 @@ export function readDotloopOAuthConfig(
   if (!clientId) missing.push(DOTLOOP_OAUTH_ENV.clientId);
   if (!redirectUri) missing.push(DOTLOOP_OAUTH_ENV.redirectUri);
   if (!clientSecret) missing.push(DOTLOOP_OAUTH_ENV.clientSecret);
-  if (!clientId || !redirectUri) {
+  if (!clientId || !redirectUri || !clientSecret) {
     return { configured: false, missing };
   }
-  return {
-    configured: true,
-    config: { clientId, redirectUri, ...(clientSecret ? { clientSecret } : {}) },
-  };
+  return { configured: true, config: { clientId, redirectUri, clientSecret } };
 }
 
 /**
@@ -86,9 +86,10 @@ export interface DotloopTokenSet {
 }
 
 /**
- * The token-exchange + revoke SEAM. No live implementation is wired yet: the owner completes auth in the
- * morning, then a live exchanger (calling DOTLOOP_OAUTH_TOKEN_URL server-side with the client secret and
- * storing tokens via the ConnectorSecretVault) plugs in behind `resolveDotloopTokenExchanger`.
+ * The token-exchange + revoke SEAM. The live exchanger is `LiveDotloopTokenExchanger` in
+ * `dotloop-connection-service.ts`; the callback route constructs it explicitly with its HTTP
+ * transport. `resolveDotloopTokenExchanger` stays the refusing default for any path built without a
+ * transport, so nothing can claim a connection it does not hold.
  */
 export interface DotloopTokenExchanger {
   exchangeCode(input: {
@@ -104,8 +105,10 @@ export interface DotloopTokenExchanger {
 }
 
 /**
- * Honest default: no live exchanger is wired. It refuses (rather than fabricating a token) so the
- * connect flow can never claim a Dotloop connection it does not hold.
+ * Refusing default for paths built without a transport. It never fabricates a token, so the connect
+ * flow can never claim a Dotloop connection it does not hold. Its `revoke` destroys the stored vault
+ * ref only: the vault exposes no read, so the token VALUE is not available to send to the provider's
+ * documented `POST /oauth/token/revoke`, and no provider-side revocation is claimed.
  */
 export class NotConnectedDotloopTokenExchanger implements DotloopTokenExchanger {
   async exchangeCode(_input: {
@@ -133,7 +136,8 @@ export class NotConnectedDotloopTokenExchanger implements DotloopTokenExchanger 
 }
 
 export function resolveDotloopTokenExchanger(): DotloopTokenExchanger {
-  // Seam: a live exchanger plugs in here once the owner has registered the app + authorized.
+  // The callback route wires `LiveDotloopTokenExchanger` itself; every other caller keeps the
+  // refusing default.
   return new NotConnectedDotloopTokenExchanger();
 }
 
@@ -166,7 +170,11 @@ export function beginDotloopConnect(input: {
   };
 }
 
-/** Revoke the Dotloop connection (revoke hook): destroy the stored token ref via the vault seam. */
+/**
+ * Revoke the Dotloop connection (revoke hook): destroy the stored token ref via the vault seam. This
+ * is a local revocation; the provider-side `POST /oauth/token/revoke` is not performed because the
+ * vault holds only an opaque ref and exposes no read of the token value.
+ */
 export async function revokeDotloopConnection(input: {
   secretRef: string;
   operationId: string;

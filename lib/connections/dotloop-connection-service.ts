@@ -97,7 +97,8 @@ export type CompleteDotloopConnectionResult =
   | { status: "authorization_denied"; providerError: string }
   | { status: "exchange_failed" }
   | { status: "secure_storage_unavailable" }
-  | { status: "credentials_not_configured"; missing: string[] };
+  | { status: "credentials_not_configured"; missing: string[] }
+  | { status: "connection_refused"; reason: string };
 
 export interface CompleteDotloopConnectionInput {
   readonly state: string;
@@ -168,14 +169,31 @@ export async function completeDotloopConnection(
   }
   if (!tokens.accessTokenRef) return { status: "secure_storage_unavailable" };
 
-  await input.connections.createConnectedConnection({
-    connectorId: DOTLOOP_CONNECTOR_ID,
-    method: "oauth",
-    secretRef: tokens.accessTokenRef,
-    connectedByUid: claimed.actorUid,
-    connectedAt: input.nowIso,
-    generationId: input.generationId,
-  });
+  try {
+    await input.connections.createConnectedConnection({
+      connectorId: DOTLOOP_CONNECTOR_ID,
+      method: "oauth",
+      secretRef: tokens.accessTokenRef,
+      connectedByUid: claimed.actorUid,
+      connectedAt: input.nowIso,
+      generationId: input.generationId,
+    });
+  } catch (error) {
+    // The exchange already placed both tokens in the vault. A record the store refuses (for
+    // example a generation that is still connected) must not leave them orphaned there: destroy
+    // both refs, then report the refusal. No provider-side revoke is claimed; the vault exposes no
+    // read of the token value.
+    for (const secretRef of [tokens.accessTokenRef, tokens.refreshTokenRef]) {
+      if (!secretRef) continue;
+      await input.vault
+        .destroySecret({ secretRef, operationId: input.generationId })
+        .catch(() => undefined);
+    }
+    return {
+      status: "connection_refused",
+      reason: error instanceof Error ? error.message : "connection_refused",
+    };
+  }
   return { status: "connected", generationId: input.generationId };
 }
 

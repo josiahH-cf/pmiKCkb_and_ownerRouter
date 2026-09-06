@@ -5,13 +5,15 @@
 
 > Status: IMPLEMENTED. The S47 public route accepts bounded structured answers, the pure
 > `projectIntakeTriage` owns urgency, required evidence, expectation copy, and completion, the
-> reviewed troubleshooting catalog exists and is empty until the owner supplies links, an optional
-> model adapter may only suggest a trade, and promotion carries the triage onto the ticket where S108
+> reviewed troubleshooting catalog carries the owner's three reviewed links (Electrical, HVAC,
+> Plumbing; Appliance and General stay empty on purpose), an optional model adapter may only suggest
+> a trade and nothing in the product calls it yet, and promotion carries the triage onto the ticket where S108
 > reads `photos_needed` as a blocker. Public file upload stays forbidden: the recorded conflict is
 > unchanged, and the form states exactly which photos are needed instead. The resident-facing form is
 > `app/maintenance/report`, an inert public shell whose bridge clears the fragment-delivered token
-> before any request. The owner still supplies the troubleshooting links and any extension of the
-> required-evidence table; their absence disables only the resource offer.
+> before any request. Since 2026-09-06 the life-safety and water terms match whole words only. Any
+> extension of the required-evidence table remains an owner input; an empty catalog entry disables
+> only that resource offer.
 
 **Goal.**
 
@@ -84,8 +86,9 @@ uploads, concierge assistant, pricing or marketing.
 
 **Open questions & assumptions.**
 
-Troubleshooting links and the required-evidence table are owner inputs; empty inputs disable only
-resource offers.
+The three troubleshooting links were supplied and reviewed by the owner on 2026-09-04. The
+required-evidence table remains an owner input; an empty catalog entry disables only that resource
+offer.
 
 **Cross-product impacts.**
 

@@ -36,6 +36,8 @@ import {
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import { clientSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { ownerOutcomeBlocksDownstream } from "@/lib/lease-renewal/renewal-progress";
 import {
   discardSheetWritebackProposal,
   getSheetWritebackProposal,
@@ -210,8 +212,9 @@ async function assertProposalCurrent(
 
 /**
  * One governed S98 surface: Editors assemble/save/discard exact typed Sheet proposals; Admins
- * execute, reconcile, and reverse one effect at a time behind the per-key committed-seed and
- * runtime gates plus the reviewed operating-write switch. Preview and status never write.
+ * execute and reconcile one effect at a time behind the per-key committed-seed and runtime gates,
+ * the reviewed operating-write switch, and the recorded owner-outcome gate. The service's reversal
+ * has no route operation yet. Preview and status never write.
  */
 export async function POST(request: Request) {
   try {
@@ -318,6 +321,20 @@ export async function POST(request: Request) {
     const proposal = await loadProposalOr404(user, spreadsheetId, leaseId);
     const effect = effectByHash(proposal, body.effectHash);
     const service = new SheetWritebackService(deps);
+
+    if (body.operation === "execute") {
+      // S105: the appended renewal row records the owner's approved terms. While the recorded
+      // owner response is not an approval, the append is refused before the one-attempt claim.
+      const downstreamBlock = ownerOutcomeBlocksDownstream(
+        await getRenewalProgress(user, leaseId),
+      );
+      if (downstreamBlock) {
+        return NextResponse.json(
+          { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },
+          { status: 409 },
+        );
+      }
+    }
 
     if (body.operation === "reconcile") {
       const receipt = await service.reconcileEffect({

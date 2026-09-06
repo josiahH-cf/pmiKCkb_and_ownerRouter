@@ -139,6 +139,12 @@ export function AskForm({
         setIsPending(false);
         return;
       }
+    } else {
+      // The assistant could not answer at all (not a source that reported itself unavailable). Say
+      // so instead of silently showing only the knowledge answer.
+      setStatusMessage(
+        "The assistant could not answer just now, so only the knowledge answer is shown.",
+      );
     }
 
     const response = await fetch("/api/ask", {

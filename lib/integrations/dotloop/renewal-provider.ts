@@ -13,6 +13,7 @@
 
 import {
   DOTLOOP_LOOP_NAME_MAX_LENGTH,
+  DOTLOOP_MAX_BATCH_SIZE,
   DOTLOOP_PARTICIPANT_ROLES,
   type DotloopClient,
   type DotloopParticipantRole,
@@ -22,6 +23,13 @@ import type { DotloopProvider } from "@/lib/lease-renewal/execution/providers";
 
 export const DOTLOOP_LOOP_NAME_PREFIX = "PMI renewal packet";
 export const DOTLOOP_PACKET_FOLDER_NAME = "Renewal packet";
+/**
+ * The documented loop list has no name filter, so reconciliation by exact name pages through the
+ * profile's loops in documented batches. The bound keeps a runaway profile from turning one
+ * confirmation into an unbounded read; reaching it refuses to create rather than risking a second
+ * loop.
+ */
+export const DOTLOOP_RECONCILE_MAX_BATCHES = 50;
 
 /** The owner's S106 selection, plus the documented transaction type and initial status. */
 export interface DotloopRenewalSelection {
@@ -79,6 +87,8 @@ export interface LiveDotloopProviderDeps {
 export class LiveDotloopProvider implements DotloopProvider {
   readonly #deps: LiveDotloopProviderDeps;
   readonly #documentFolders = new Map<string, string>();
+  /** The exact name this provider created or reconciled each loop under; readback verifies it. */
+  readonly #loopNames = new Map<string, string>();
 
   constructor(deps: LiveDotloopProviderDeps) {
     this.#deps = deps;
@@ -117,37 +127,25 @@ export class LiveDotloopProvider implements DotloopProvider {
     const existing = await this.#findByName(name);
     if (existing) return { loopRef: existing };
 
+    // One documented `loop-it` call carries the template, the participants, and the property
+    // address together; the plain loop create documents none of them.
     const loop = await client.createLoop({
       profileId: selection.profileId,
       name,
       templateId: selection.templateId,
       transactionType: selection.transactionType,
       status: selection.initialStatus,
+      participants,
+      address: this.#deps.propertyAddress
+        ? {
+            streetName: this.#deps.propertyAddress.streetName,
+            city: this.#deps.propertyAddress.city,
+            state: this.#deps.propertyAddress.state,
+            zipCode: this.#deps.propertyAddress.zip,
+          }
+        : null,
     });
-
-    if (this.#deps.propertyAddress) {
-      await client.patchLoopDetail({
-        profileId: selection.profileId,
-        loopId: loop.id,
-        sections: {
-          "Property Address": {
-            "Street Name": this.#deps.propertyAddress.streetName,
-            City: this.#deps.propertyAddress.city,
-            "State/Prov": this.#deps.propertyAddress.state,
-            "Zip/Postal Code": this.#deps.propertyAddress.zip,
-          },
-        },
-      });
-    }
-    for (const participant of participants) {
-      await client.addParticipant({
-        profileId: selection.profileId,
-        loopId: loop.id,
-        fullName: participant.fullName,
-        email: participant.email,
-        role: participant.role,
-      });
-    }
+    this.#loopNames.set(loop.id, name);
     return { loopRef: loop.id };
   }
 
@@ -189,27 +187,47 @@ export class LiveDotloopProvider implements DotloopProvider {
     return folderId;
   }
 
+  /**
+   * Read one loop back from what the provider actually exposes. The documented loop resource carries
+   * no template id, so the template is attested only through the app-chosen loop NAME (the
+   * provider-observable identity this provider created or reconciled the loop under); a loop whose
+   * name is not ours reads back with an empty template, which the executor treats as ambiguous.
+   * Participants are the documented participant list, never an echo of what was requested.
+   */
   async readLoop(loopRef: string): Promise<{
     loopRef: string;
     templateRef: string;
     participantRefs: readonly string[];
     active: boolean;
   } | null> {
-    const { client, selection, participants } = this.#deps;
+    const { client, selection } = this.#deps;
     const loop = await client.getLoop(selection.profileId, loopRef);
     if (!loop) return null;
+    const expectedName =
+      this.#loopNames.get(loop.id) ??
+      (this.#deps.packetSnapshotId
+        ? dotloopLoopNameFor(this.#deps.packetSnapshotId)
+        : null);
+    const observedParticipants = await client.listParticipants(
+      selection.profileId,
+      loop.id,
+    );
     return {
       loopRef: loop.id,
-      templateRef: selection.templateId,
-      participantRefs: participants.map((participant) => participant.email),
+      templateRef:
+        expectedName !== null && loop.name === expectedName ? selection.templateId : "",
+      participantRefs: observedParticipants
+        .map((participant) => participant.email)
+        .filter((email) => email !== ""),
       active: loop.status !== "ARCHIVED",
     };
   }
 
   /**
    * Read one uploaded document back by its exact composite reference. The provider exposes no
-   * content hash of its own, so the caller's confirmed hash is echoed only after the document is
-   * observed present in the exact loop folder.
+   * content hash of its own, so the caller's confirmed type and hash are echoed only after the
+   * document is observed present in the exact loop folder; without them the readback carries
+   * empty values and can never match a preview.
    */
   async readDocument(
     documentRef: string,
@@ -247,11 +265,31 @@ export class LiveDotloopProvider implements DotloopProvider {
     return found ? { providerRef: found } : null;
   }
 
+  /**
+   * Find the loop carrying an exact name. The documented list has no name filter and no stable
+   * default order, so every documented batch is read until the name appears or the list ends. A
+   * profile larger than the bound refuses rather than risking a second loop.
+   */
   async #findByName(name: string): Promise<string | null> {
-    const loops = await this.#deps.client.listLoops(this.#deps.selection.profileId, {
-      batchSize: 100,
-    });
-    const match = loops.find((loop) => loop.name === name);
-    return match ? match.id : null;
+    const { client, selection } = this.#deps;
+    for (
+      let batchNumber = 1;
+      batchNumber <= DOTLOOP_RECONCILE_MAX_BATCHES;
+      batchNumber += 1
+    ) {
+      const loops = await client.listLoops(selection.profileId, {
+        batchSize: DOTLOOP_MAX_BATCH_SIZE,
+        batchNumber,
+      });
+      const match = loops.find((loop) => loop.name === name);
+      if (match) {
+        this.#loopNames.set(match.id, name);
+        return match.id;
+      }
+      if (loops.length < DOTLOOP_MAX_BATCH_SIZE) return null;
+    }
+    throw new Error(
+      "Dotloop loop reconciliation did not finish within the bounded page count, so no loop was created; reconcile this profile before confirming again.",
+    );
   }
 }

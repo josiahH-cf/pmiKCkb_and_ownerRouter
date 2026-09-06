@@ -25,6 +25,9 @@ import {
   selectOrphanedRenewalAttempts,
   type RenewalAttemptRecord,
 } from "@/lib/lease-renewal/execution/attempt-continuation";
+import { RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS } from "@/lib/lease-renewal/execution/reconcile-age";
+import { projectWorkspaceAttemptSummary } from "@/lib/lease-renewal/execution/workspace-continuation";
+import type { RenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-contract";
 
 // S107: a confirmed effect finishes server-side and is recovered read-only on the next load. No
 // scheduler, worker, queue, or blind retry is added; an uncertain attempt names the operator's next
@@ -61,7 +64,7 @@ describe("S107 load-time reconciliation is read-only (ARCH-S107-2 / AC-S107-1)",
     ).toEqual(["old-running", "old-ambiguous"]);
   });
 
-  it("covers the RentVine, operating-Sheet, and Dotloop effect families", () => {
+  it("covers exactly the RentVine and operating-Sheet families the loader can read", () => {
     const attempts = [
       attempt({
         executionId: "s97",
@@ -71,9 +74,106 @@ describe("S107 load-time reconciliation is read-only (ARCH-S107-2 / AC-S107-1)",
         executionId: "s98",
         actionKey: "google_sheets.renewal_checklist.row_append",
       }),
+      // No Dotloop attempt is ever loaded today (S34 has no runtime effect route), so the
+      // continuation does not claim the family either.
       attempt({ executionId: "s34", actionKey: "dotloop.loop.create_from_template" }),
     ];
-    expect(selectOrphanedRenewalAttempts(attempts, NOW)).toHaveLength(3);
+    expect(
+      selectOrphanedRenewalAttempts(attempts, NOW).map((entry) => entry.executionId),
+    ).toEqual(["s97", "s98"]);
+  });
+
+  it("reads the reconcile age from the one constant the S97/S98 services use", () => {
+    expect(RENEWAL_CONTINUATION_MIN_AGE_MS).toBe(RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS);
+    expect(RENEWAL_CONTINUATION_MIN_AGE_MS).toBe(2 * 60 * 1_000);
+  });
+
+  it("projects an orphaned running attempt as needing an Admin's reconciliation, never settling it", () => {
+    const summary = projectRenewalAttemptSummary({
+      leaseId: "4821",
+      attempts: [attempt({ executionId: "orphan" })],
+      nowMs: NOW,
+    });
+    expect(summary.reconcilableCount).toBe(1);
+    expect(summary.inFlight).toBe(true);
+    expect(summary.lastAttemptState).toBe("running");
+    expect(summary.nextAction).toMatch(/An Admin reconciles it from its exact receipt/);
+    // A young running attempt is simply in flight.
+    const young = projectRenewalAttemptSummary({
+      leaseId: "4821",
+      attempts: [attempt({ updatedAtIso: new Date(NOW - 1_000).toISOString() })],
+      nowMs: NOW,
+    });
+    expect(young.reconcilableCount).toBe(0);
+    expect(young.nextAction).toMatch(/still finishing/);
+  });
+
+  it("loads the workspace summary from the store without a single write (AC-S107-1)", async () => {
+    const record = {
+      id: "s97:4821:preview-1:effect-1",
+      workflowId: "lease:4821",
+      actionKey: "rentvine.lease.renewal_dates.update",
+      state: "running" as const,
+      attemptCount: 1 as const,
+      previewHash: "preview-1",
+      createdAt: new Date(NOW - RENEWAL_CONTINUATION_MIN_AGE_MS - 5_000).toISOString(),
+      updatedAt: new Date(NOW - RENEWAL_CONTINUATION_MIN_AGE_MS - 5_000).toISOString(),
+    };
+    const writes: string[] = [];
+    const store = {
+      persistence: "memory" as const,
+      get: async (id: string) =>
+        id === record.id ? (record as unknown as ExternalExecutionRecord) : null,
+      create: async () => {
+        writes.push("create");
+        throw new Error("write attempted");
+      },
+      claim: async () => {
+        writes.push("claim");
+        throw new Error("write attempted");
+      },
+      finish: async () => {
+        writes.push("finish");
+        throw new Error("write attempted");
+      },
+      fail: async () => {
+        writes.push("fail");
+        throw new Error("write attempted");
+      },
+    };
+    const proposal = {
+      leaseId: "4821",
+      previewHash: "preview-1",
+      effects: [{ effectHash: "effect-1", actionKey: record.actionKey }],
+    } as unknown as RenewalWritebackProposal;
+    const summary = await projectWorkspaceAttemptSummary({
+      leaseId: "4821",
+      store,
+      rentvineProposal: proposal,
+      nowMs: NOW,
+    });
+    expect(writes).toEqual([]);
+    expect(summary.reconcilableCount).toBe(1);
+    expect(summary.nextAction).toMatch(/An Admin reconciles it/);
+  });
+
+  it("keeps the continuation modules free of any effect-family service import", () => {
+    for (const file of [
+      "lib/lease-renewal/execution/attempt-continuation.ts",
+      "lib/lease-renewal/execution/workspace-continuation.ts",
+      "lib/lease-renewal/execution/attempt-loader.ts",
+    ]) {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      const imports = [...source.matchAll(/from\s+["']([^"']+)["']/g)].map(
+        (match) => match[1],
+      );
+      expect(
+        imports.filter((specifier) =>
+          /execution-service|\/live"?$|action-gate/.test(specifier),
+        ),
+        file,
+      ).toEqual([]);
+    }
   });
 
   it("reconciles each orphan through its own injected operation and never writes", async () => {
@@ -346,19 +446,21 @@ describe("S107 abort, replay, and isolation fixtures (ARCH-S107-1 / BEH-S107-2 /
     expect(selectOrphanedRenewalAttempts(attemptsOf(record), Date.now())).toEqual([]);
   });
 
-  it("records the receipt even when the caller abandoned the request (ARCH-S107-1)", async () => {
-    const rig = harness();
-    const { action, prepared } = await rig.prepareEffect("lease-s107-a");
-    const controller = new AbortController();
-    const running = rig.orchestrator.execute(action, prepared.previewHash);
-    // The browser goes away mid-attempt. Nothing forwards this signal into execution.
-    controller.abort();
-    await expect(running).resolves.toMatchObject({ duplicate: false });
-    expect(rig.effectRecord("lease-s107-a")).toMatchObject({
-      state: "succeeded",
-      attemptCount: 1,
-    });
-    expect(rig.effectRecord("lease-s107-a")?.receipt?.providerRef).toBeTruthy();
+  it("forwards no request abort signal into any renewal effect route (ARCH-S107-1)", () => {
+    // A confirmed effect completes server-side. The proof that an abandoned browser cannot stop it
+    // is that no effect route ever hands `request.signal` (or any AbortSignal) to execution.
+    for (const file of [
+      "app/api/lease-renewal/rentvine-writeback/route.ts",
+      "app/api/lease-renewal/operating-sheet/route.ts",
+      "app/api/lease-renewal/renewal-notice-draft/route.ts",
+    ]) {
+      const source = readFileSync(join(process.cwd(), file), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .split(/\r?\n/)
+        .map((line) => line.replace(/(^|[^:])\/\/.*$/, "$1"))
+        .join("\n");
+      expect(source, file).not.toMatch(/request\.signal|AbortSignal|AbortController/);
+    }
   });
 
   it("yields one provider effect and one receipt for concurrent confirmations (BEH-S107-2)", async () => {

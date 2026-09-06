@@ -190,10 +190,34 @@ export function addLeaseTermMonths(iso: string, months: number): string | null {
   return `${targetYear}-${pad2(targetMonth)}-${pad2(Math.min(day, lastDay))}`;
 }
 
-/** The next annual review date for a month-to-month anchor, or null without an anchor. */
-export function nextLeaseTermReviewIso(anchorDateIso: string | null): string | null {
+/**
+ * The next annual review date for a month-to-month anchor, or null without an anchor.
+ *
+ * The owner's rule is an annual cadence anchored on the date the lease went month-to-month. The
+ * first review falls one interval after the anchor; every later review falls one interval after the
+ * previous one. Given a reference date, this returns the first anniversary that is not before the
+ * first day of the reference month, so a lease that went month-to-month years ago still surfaces in
+ * the month its anniversary falls, instead of carrying a review date that is permanently in the past
+ * and therefore permanently outside every active window. Without a reference date the first
+ * anniversary is returned unchanged. A review date is never moved backwards.
+ */
+export function nextLeaseTermReviewIso(
+  anchorDateIso: string | null,
+  referenceDateIso?: string,
+): string | null {
   if (anchorDateIso === null) return null;
-  return addLeaseTermMonths(anchorDateIso, LEASE_TERM_REVIEW_INTERVAL_MONTHS);
+  let next = addLeaseTermMonths(anchorDateIso, LEASE_TERM_REVIEW_INTERVAL_MONTHS);
+  if (next === null || referenceDateIso === undefined) return next;
+  const referenceMonthStart = toLeaseTermIsoDate(referenceDateIso)?.slice(0, 7);
+  if (!referenceMonthStart) return next;
+  const floor = `${referenceMonthStart}-01`;
+  // Bounded walk: each step is one interval, and the anchor is a real calendar date, so this ends.
+  for (let guard = 0; next < floor && guard < 200; guard += 1) {
+    const rolled = addLeaseTermMonths(next, LEASE_TERM_REVIEW_INTERVAL_MONTHS);
+    if (rolled === null) return next;
+    next = rolled;
+  }
+  return next;
 }
 
 interface LeaseTermDetailFacts {
@@ -293,7 +317,7 @@ export function projectLeaseTerm(
         : recordedAnchor !== null
           ? "recorded_review"
           : null;
-    const nextReviewIso = nextLeaseTermReviewIso(anchorDateIso);
+    const nextReviewIso = nextLeaseTermReviewIso(anchorDateIso, referenceDateIso);
     const reviewState: LeaseTermReviewState =
       term !== "month_to_month"
         ? "not_applicable"

@@ -1,30 +1,36 @@
-// S110 renewal adapters. Both read the same `DeskLeaseRow` projection the Renewals desk renders, so
-// the assistant and the table can never disagree about which leases are blocked or which come up in a
-// month. They filter and project; they read no source of their own and write nothing.
+// S110 renewal adapters. Both read the same `DeskLeaseRow` projection the Renewals desk renders and
+// apply the desk's OWN predicates (exported by `desk-query-v2`), so the assistant and the table can
+// never disagree about which leases are blocked or which come up in a month: the same default scope
+// hides the same out-of-window rows, and "next month" means the desk's Renewal-month filter (lease
+// end month). A month-to-month lease's periodic review is not a renewal and is not listed here; the
+// desk shows it under its periodic-review scope. They filter and project; they read no source of
+// their own and write nothing.
 
 import type { AssistantItem } from "@/lib/assistant/envelope";
+import {
+  renewalDeskItemInScope,
+  renewalDeskItemIsBlocked,
+  renewalDeskItemMatchesMonth,
+} from "@/lib/lease-renewal/desk-query-v2";
 import { buildWorkspaceHref } from "@/lib/lease-renewal/desk-view-continuation";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 
 export function selectBlockedRenewalRows(
   rows: readonly DeskLeaseRow[],
 ): readonly DeskLeaseRow[] {
-  return rows.filter((row) => row.guidance.isBlocked);
+  return rows.filter(
+    (row) => renewalDeskItemInScope(row) && renewalDeskItemIsBlocked(row),
+  );
 }
 
-/**
- * The rows whose renewal lands in one month: a fixed-term lease by its end date, and a
- * month-to-month lease by its S103 periodic-review anchor, which is the date the desk itself uses
- * for those rows.
- */
+/** The rows the desk's default worklist lists for one Renewal month. */
 export function selectRenewalRowsInMonth(
   rows: readonly DeskLeaseRow[],
   month: string,
 ): readonly DeskLeaseRow[] {
-  return rows.filter((row) => {
-    const anchor = row.endDateIso ?? row.leaseTerm?.nextReviewIso ?? null;
-    return typeof anchor === "string" && anchor.startsWith(month);
-  });
+  return rows.filter(
+    (row) => renewalDeskItemInScope(row) && renewalDeskItemMatchesMonth(row, month),
+  );
 }
 
 export function projectRenewalItems(rows: readonly DeskLeaseRow[]): AssistantItem[] {

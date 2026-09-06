@@ -152,6 +152,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   // S110: the desk page's own live-config read moved into the orchestration the desk page and the
   // Dashboard assistant share. It is the same Product read-only desk read, in one place.
   "lib/lease-renewal/assistant-source.ts:runRenewalAssistantSource:buildLiveRenewalConfig",
+  // S103: the term-review route fingerprints the current live lease view before recording a review;
+  // it reads the shared lease snapshot and constructs no writer.
+  "lib/lease-renewal/lease-term-source.ts:readLeaseTermSource:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRenewalConfig",
   "lib/connections/verification.ts:buildTransport:buildLiveRentVineConfig",
   "lib/console/rentvine-live-provider.ts:configuredClient:buildLiveRentVineConfig",

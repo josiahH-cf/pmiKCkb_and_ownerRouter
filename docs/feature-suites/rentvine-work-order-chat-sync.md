@@ -131,8 +131,10 @@ Work-order mapping comes only from the current server-owned ticket binding. Duri
 sync, the server reads fresh official work-order detail, requires one positive `leaseID`, and reads
 fresh `GET /leases/{leaseID}` with `tenants` included. When exactly one tenant entry has both
 `leaseTenant.contactID` and nested `contact.contactID` equal to the chat contact id, the local commit
-atomically persists the message, exact resident source reference, and source version after verifying
-that version is unchanged; there is no manual mapping step.
+atomically persists the message, the exact resident source reference, and the source version it was
+resolved from (recorded for review; it is not re-compared on commit); there is no manual mapping
+step. A bodyless read on 2026-09-06 confirmed the live shape: root-level `tenants[]` of
+`{leaseTenant, contact}` wrappers with numeric-string ids and a string `contact.email`.
 The draft recipient is the one nonblank current nested `contact.email` from that same exact match.
 
 `requestedByContactID`, property/unit/name similarity, message display fields, and free-form review
@@ -144,8 +146,9 @@ and cannot select, type, override, or persist a person or email. Manager and unk
 correctly labelled in restricted history but never enable resident reply.
 
 Before provider dispatch, the execution ledger claims one preview-bound attempt. After a valid
-provider response, the message creates/deduplicates, review-lane writes, next-page cursor, counts, and
-successful attempt receipt commit together. The UI reports exact counts for `new`, `already synced`,
+provider response, the message creates/deduplicates, review-lane writes, counts, and the successful
+attempt receipt commit together; the next-page cursor is echoed in the response for the next
+human-initiated sync, not stored. The UI reports exact counts for `new`, `already synced`,
 `needs mapping`, `rejected`, and `truncated`, plus the sync time. The receipt records only opaque ids,
 page scope, hashes, counts, actor, action key, and the fact that the provider may have marked messages
 read.

@@ -45,8 +45,9 @@ The lane has six ordered parts:
    and any ADC principal outside the managed domain or exact target-project service identities before
    Firestore or provider reads.
 4. Read back the exact S51 monitoring resources and require the configured notification channel to
-   be enabled and verified. Configuration readback proves configuration, not human receipt of an
-   alert.
+   be enabled with the exact type and address and not `UNVERIFIED` (the API omits
+   `verificationStatus` for a channel type that needs no verification). Configuration readback
+   proves configuration, not human receipt of an alert.
 5. Emit one fresh candidate-assurance receipt only after the exact origin binding, both role
    manifests, source reconciliation, immutable configuration, predecessor identity, and monitoring
    configuration pass. Production promotion accepts no collection of independently invoked commands
@@ -239,8 +240,9 @@ role, Space grant, action key, or client-send boundary.
   success.
 - **AC-S51-8** — Evidence validation rejects every unknown field and deterministic privacy tests
   prove forbidden browser, identity, credential, and customer values cannot serialize.
-- **AC-S51-9** — Live monitoring readback requires exact managed resources and a verified internal
-  channel; an incomplete read is never treated as an empty healthy state.
+- **AC-S51-9** — Live monitoring readback requires exact managed resources and an enabled internal
+  channel whose verification status is neither `UNVERIFIED` nor unrecognized; an incomplete read is
+  never treated as an empty healthy state.
 - **AC-S51-10** — Post-promotion success requires two green role/reconciliation passes, a closed
   300,000 ms observation interval, complete corroborated monitoring, zero candidate 5xx, and zero
   unresolved live effects. Complete evidence may pass at 300,000 ms; with monitoring configuration

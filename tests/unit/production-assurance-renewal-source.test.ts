@@ -9,6 +9,7 @@ import {
   countIndependentWorkspaceDestinationMismatches,
   independentCurrentRentResolutionTriggerKey,
   independentCurrentRentCandidateFingerprint,
+  independentMonthToMonthSignal,
   independentWorkspaceExpected,
   independentSourceDigest,
   projectIndependentRentExpectation,
@@ -24,6 +25,7 @@ import {
   assertLocalSourceAdapterIdentity,
   classifyIndependentRenewalDisposition,
   classifyIndependentRenewalRetention,
+  independentNextReviewIso,
   classifyRenderedSourceState,
   countIndependentExpectedRowStateMismatches,
   projectIndependentExpectedRentState,
@@ -82,6 +84,7 @@ describe("independent production renewal source projection", () => {
       endDate: "2026-10-31",
       baseRent: "$1,225",
       rentvineSourceUrl: SOURCE_URL,
+      monthToMonth: { signal: false, startDateIso: null },
     });
     expect(rows[1].baseRent).toBe("Needs Verification");
     expect(
@@ -564,11 +567,38 @@ describe("independent production renewal truth oracle", () => {
         lease: { leaseID: 115, endDate: null },
       }),
     ).toBe(true);
+    // S103: a month-to-month lease keeps an inspection-only workspace on the annual review rhythm;
+    // it is classified `periodic_review`, never excluded as a skip.
     expect(
       independentWorkspaceExpected({
-        lease: { leaseID: 115, isMonthToMonth: "yes" },
+        lease: { leaseID: 115, isMonthToMonth: "1" },
       }),
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      independentWorkspaceExpected(
+        { lease: { leaseID: 115 } },
+        new Map([["115", { lease: { isMonthToMonth: "1" } }]]),
+      ),
+    ).toBe(true);
+    expect(
+      independentMonthToMonthSignal(
+        { lease: { leaseID: 115, isMonthToMonth: "1" } },
+        new Map([
+          ["115", { lease: { isMonthToMonth: "0", monthToMonthStartDate: null } }],
+        ]),
+      ),
+    ).toEqual({ signal: false, startDateIso: null });
+    expect(
+      independentMonthToMonthSignal(
+        { lease: { leaseID: 115 } },
+        new Map([
+          [
+            "115",
+            { lease: { isMonthToMonth: "1", monthToMonthStartDate: "2025-09-15" } },
+          ],
+        ]),
+      ),
+    ).toEqual({ signal: true, startDateIso: "2025-09-15" });
     expect(
       independentWorkspaceExpected({
         lease: { leaseID: 115, leaseStatus: "Owner hold" },
@@ -987,6 +1017,14 @@ describe("production reconciliation runner boundary", () => {
     expect(classify("2027-01-31")).toBe("out_of_window");
     expect(classify("2026-10-30")).toBe("review");
     expect(classify("2026-10-31")).toBe("actionable");
+    // S103: the month-to-month signal outranks every date rule; it is never actionable or skipped.
+    expect(
+      classifyIndependentRenewalDisposition({
+        row: { ...sourceRow, monthToMonth: { signal: true, startDateIso: "2025-09-15" } },
+        workspaceExpected: true,
+        referenceDateIso: "2026-09-02",
+      }),
+    ).toBe("periodic_review");
     expect(() =>
       classifyIndependentRenewalDisposition({
         row: sourceRow,
@@ -994,6 +1032,23 @@ describe("production reconciliation runner boundary", () => {
         referenceDateIso: "not-a-date",
       }),
     ).toThrow("reconciliation_reference_date_invalid");
+  });
+
+  it("independently derives the periodic-review retention from the documented anchor (S103)", () => {
+    const classify = (startDateIso: string | null) =>
+      classifyIndependentRenewalRetention({
+        row: { ...sourceRow, monthToMonth: { signal: true, startDateIso } },
+        trackedIncomplete: true,
+        referenceDateIso: "2026-09-02",
+      });
+    expect(classify("2025-09-15")).toBe("periodic_review");
+    // The anniversary rolls forward one year at a time; 2024-03-01 is due next in March 2027.
+    expect(classify("2024-03-01")).toBe("outside");
+    expect(independentNextReviewIso("2024-03-01", "2026-09-02")).toBe("2027-03-01");
+    expect(independentNextReviewIso("2024-02-29", "2026-09-02")).toBe("2027-02-28");
+    expect(independentNextReviewIso(null, "2026-09-02")).toBeNull();
+    // No anchor: the review date needs verification; obsolete progress never retains the row.
+    expect(classify(null)).toBe("needs_verification");
   });
 
   it("independently derives current-window and tracked-incomplete retention", () => {

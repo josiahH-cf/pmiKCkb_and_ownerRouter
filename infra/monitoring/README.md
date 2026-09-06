@@ -7,9 +7,12 @@ committed.
 
 `npm run monitoring:plan -- --operator-email=<internal-address>` prints an owner-run
 provisioning and rollback runbook. It does not execute a command or construct a cloud
-client. The named operator must complete Google's email-channel verification before the
-channel is usable.
+client. The managed email channel reads back with no `verificationStatus`, which the API
+uses for a channel type that needs no verification; no separate verification step exists
+for it.
 
 `npm run monitoring:verify -- --live --operator-email=<internal-address>` performs
 read-only, paginated metadata reads after managed authentication. It never creates,
-updates, or deletes a resource, and it reports ready only when the channel is verified.
+updates, or deletes a resource, and it reports ready only when every resource matches its
+committed definition, the channel is enabled with the exact type and address, and its
+verification status is neither `UNVERIFIED` nor unrecognized.

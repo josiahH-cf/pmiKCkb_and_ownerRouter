@@ -1,5 +1,9 @@
 import type { RawLease } from "@/lib/integrations/rentvine/client";
-import { leaseAddressLabel, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  leaseAddressLabel,
+  leaseCurrentRent,
+  leaseViewId,
+} from "@/lib/integrations/rentvine/lease-mapper";
 
 export const RENTCAST_QUERY_POLICY = {
   maxRadiusMiles: 2,
@@ -9,6 +13,13 @@ export const RENTCAST_QUERY_POLICY = {
 } as const;
 
 export const RENTCAST_PUBLIC_SOURCE_URL = "https://www.rentcast.io";
+
+/**
+ * S102: the tenant's contractual base rent is the RentVine lease DETAIL `baseRentAmount`, applied to
+ * the export view as `currentRent`. The export's `unit.rent` is a unit attribute and never stands in
+ * for it here.
+ */
+export const CONTRACTUAL_BASE_RENT_SOURCE_PATH = "lease detail baseRentAmount" as const;
 
 export type MarketCompAttributeField =
   | "bedrooms"
@@ -43,7 +54,11 @@ export interface MarketCompQueryBasis {
   };
   attributes: MarketCompQueryAttribute[];
   baseRent:
-    | { status: "verified"; value: number; sourcePath: "unit.rent" }
+    | {
+        status: "verified";
+        value: number;
+        sourcePath: typeof CONTRACTUAL_BASE_RENT_SOURCE_PATH;
+      }
     | { status: "omitted"; reason: string };
   trendPostalCode?: string;
 }
@@ -200,7 +215,7 @@ export function buildMarketCompQueryBasis(
     ),
   ];
 
-  const contractualBaseRent = finiteNumber(unit?.rent);
+  const contractualBaseRent = finiteNumber(leaseCurrentRent(view));
   return {
     leaseId,
     addressLabel,
@@ -216,11 +231,12 @@ export function buildMarketCompQueryBasis(
         ? {
             status: "verified",
             value: contractualBaseRent,
-            sourcePath: "unit.rent",
+            sourcePath: CONTRACTUAL_BASE_RENT_SOURCE_PATH,
           }
         : {
             status: "omitted",
-            reason: "Contractual base rent is unavailable from unit.rent.",
+            reason:
+              "Contractual base rent is unavailable: the RentVine lease detail carries no positive baseRentAmount.",
           },
     ...(zip ? { trendPostalCode: zip } : {}),
   };

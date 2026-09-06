@@ -7,8 +7,13 @@
 > repository still has no durable job queue, scheduler, or worker, and `AGENTS.md` still forbids
 > autonomous or model-triggered writes and sends. `lib/lease-renewal/execution/attempt-continuation.ts`
 > owns the read-only continuation projection, `attempt-loader.ts` reads the lease's attempts from the
-> durable store, `workspace-continuation.ts` binds the S97/S98 services' existing `reconcileEffect`,
-> and the live lease workspace renders one consolidated `Confirmed external steps` card.
+> durable store, `workspace-continuation.ts` loads those attempts and projects them without
+> constructing a service or writing anything (the 2026-09-06 review found the load-time pass had
+> called the S97/S98 services' `reconcileEffect` for any viewer, which can settle an attempt with no
+> role gate; reconcile is now only the Admin-gated route control the card names as the next action),
+> and the live lease workspace renders one consolidated `Confirmed external steps` card. The
+> continuation covers the RentVine and operating-Sheet families; S34 has no runtime effect route, so
+> no Dotloop attempt exists to load.
 
 **Goal.**
 
@@ -32,8 +37,9 @@ blocked lease never stops another.
 | Leave the page and let work continue                  | Partially                          | Server-side execution completes within the request; a client disconnect mid-attempt relies on reconcile                                                                 |
 
 Intended end state: no new job platform. A confirmed effect runs to completion server-side with the
-request detached from the browser connection; on the next load of the desk or workspace, orphaned
-attempts are reconciled read-only and surfaced; the workspace shows one consolidated attempt summary.
+request detached from the browser connection; on the next load of the workspace, orphaned attempts
+are surfaced read-only with the Admin-gated reconcile as the exact next action; the workspace shows
+one consolidated attempt summary.
 Autonomous chaining of writes and blind retry stay outside the product.
 
 **Actors and entry conditions.**
@@ -46,9 +52,10 @@ after an exact human confirmation. Read-only reconciliation runs for any Renewal
 1. **Detach after confirmation.** Route handlers that execute a confirmed effect do not abort the
    provider call, receipt, or readback when the client disconnects; the response is recorded before
    any projection, and a later load reads the receipt.
-2. **Recover on load.** `reconcileOrphanedRenewalAttempts(leaseId)` runs read-only during workspace
-   load for attempts older than the existing reconcile minimum age: it calls each effect's existing
-   `reconcile` and projects `succeeded`, `ambiguous`, or `failed` without a second provider write.
+2. **Recover on load.** `projectWorkspaceAttemptSummary(leaseId)` runs during workspace load and
+   only reads the durable attempts: an attempt still claimed after the shared reconcile minimum age
+   is projected as orphaned with the existing Admin-gated `reconcile` control as its exact next
+   action; the load never calls a service, a provider, or the store's write path.
 3. **Attempt summary.** The workspace current-action card shows `last confirmed step`, `last attempt`
    time and state, `blocker`, and `next action` from one projection over execution records and
    receipts.
@@ -81,10 +88,11 @@ S97/S98/S34 execution routes and stores, workspace card, desk guidance, S111 pro
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S107-1** — Effect routes complete independently of the client connection; a test aborting
-  the request after confirmation still finds a receipt and readback.
-- **ARCH-S107-2** — One read-only reconciliation entry point covers S97, S98, and S34 attempts;
-  it issues no provider write.
+- **ARCH-S107-1** — Effect routes complete independently of the client connection; a source check
+  proves no effect route forwards the request's abort signal into execution, and a confirmed effect
+  is recorded before any projection.
+- **ARCH-S107-2** — One read-only continuation projection covers S97 and S98 attempts (S34 has no
+  runtime effect route); it issues no store or provider write.
 
 **Behavior outcome (deterministic, fail-first).**
 

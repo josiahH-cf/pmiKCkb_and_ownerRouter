@@ -6,8 +6,12 @@
 > Status: COMMITTED (`0f01353`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
 > (`pmi-kc-app-rmtm41tyu-d8d9003c8b52`, zero traffic, anonymous smoke passed); NOT PROMOTED. The lease-scoped rent, the unit reference, the term projection,
 > and the guidance projection now reach the desk row and the lease workspace from one builder, and
-> parity plus continuation are asserted at the unit layer and in the rehearsal browser. Production
-> still serves the S82 baseline.
+> parity plus continuation are asserted at the unit layer and in the rehearsal browser. The
+> 2026-09-06 review found the workspace's next-action card still derived its own status and blockers
+> from the process instead of the shared guidance; it now renders that guidance's status, action,
+> blockers, and phase links. A continuation truncated exactly on a key boundary validates as the
+> shorter canonical view (still an internal desk route); any other corruption restores the default
+> desk. Production still serves the S82 baseline.
 
 **Goal.**
 

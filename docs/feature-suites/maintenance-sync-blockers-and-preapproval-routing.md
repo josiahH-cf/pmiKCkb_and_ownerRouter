@@ -61,7 +61,9 @@ assignedVendorTradeID, updatedAt, readAt }`. Show it beside the app status; when
 4. **Routing.** A ticket needs an owner decision when `estimate_amount` is absent or exceeds the
    current preapproval. Within preapproval the ticket shows `Owner approval not required (preapproved
 up to <amount>)`, the owner-notice draft control is not offered as a blocker, and the fact is
-   recorded in ticket activity. Above it, or without an estimate, the ticket waits on
+   shown on the ticket (it is not written to ticket activity). Routing applies only once the linked
+   work order has been read at least once, because the property key comes from the provider snapshot
+   and tickets carry none. Above it, or without an estimate, the ticket waits on
    `owner_approval` and offers the existing owner-notice draft. The app never sets
    `isOwnerApproved` in RentVine.
 5. **Report.** The maintenance queue gains a `Waiting on` filter and a read-only blocker report view

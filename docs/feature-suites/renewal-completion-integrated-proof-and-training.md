@@ -4,12 +4,15 @@
 # S111 — Integrated model-run proof and operator training guide
 
 > Status: IMPLEMENTED. `tests/integration/s111-renewal-completion-proof.test.ts` composes the owning
-> projections and planners on one fixture portfolio,
-> `scripts/smoke-renewal-guide-controls-browser.mjs` reads the training guide's step-to-control table
-> and locates every step by visible text, the proof report is in `docs/status.md`, and the guide is
-> `docs/products/renewal-operator-guide.md`, registered in `docs/README.md`. Live Dotloop, the
-> owner-supplied troubleshooting links, and Admin-entered preapproval amounts are reported blocked by
-> external environment, never as passed and never as a human verification task.
+> projections and planners on one three-lease fixture portfolio (several maintenance and
+> continuation checks assert states the fixture sets directly, so they prove composition, not
+> derivation), `scripts/smoke-renewal-guide-controls-browser.mjs` reads the training guide's
+> step-to-control table and requires each control's exact text on the page it names (a substring
+> match over page text; the guide's prose steps are not machine-checked), the proof report is in
+> `docs/status.md`, and the guide is `docs/products/renewal-operator-guide.md`, registered in
+> `docs/README.md`. Live Dotloop and Admin-entered preapproval amounts are reported blocked by
+> external environment, never as passed and never as a human verification task; the
+> troubleshooting-resource check runs and passes since the owner's links landed on 2026-09-04.
 
 **Goal.**
 

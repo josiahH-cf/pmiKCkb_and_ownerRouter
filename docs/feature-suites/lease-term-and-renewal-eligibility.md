@@ -61,7 +61,10 @@ read keeps the existing `Needs verification` behavior. No provider write is part
 4. **Eligibility.** Fixed-term leases keep the current window, retention, and cohort behavior.
    Month-to-month leases move from `skip` to a new `periodic_review` disposition with
    `anchorDateIso` = the provider `monthToMonthStartDate` when present, else the app-recorded
-   anchor, and `nextReviewIso = anchorDateIso + 12 months` (owner direction 2026-09-03). Rows whose
+   anchor, and `nextReviewIso` = the first anniversary of that anchor on or after the reference
+   month (owner direction 2026-09-03; corrected 2026-09-06, when a fixed `anchor + 12 months` left
+   every lease month-to-month for more than a year with a past review date and outside every window
+   forever). Rows whose
    next review falls inside the window appear under a `Periodic review` scope; other month-to-month
    rows stay outside the active window and never enter the monthly cohort. A missing anchor shows
    `Needs review` with the term-review control as the action.
@@ -84,8 +87,9 @@ recorded in `docs/facts.md`; it drives only in-app review visibility, never a dr
 
 **Cross-product impacts.**
 
-Cohort classification, desk query v2, desk table and workspace, Firestore rules for the new
-collection, S110 renewal adapters, S111 proof, and `docs/products/lease-renewal-agent.md`.
+Cohort classification, desk query v2, desk table and workspace, the Firestore catch-all denial for
+the new collection (only the Admin SDK writes it; no client rule is added), S110 renewal adapters,
+S111 proof, and `docs/products/lease-renewal-agent.md`.
 
 **Authority and evidence map.**
 

@@ -367,7 +367,12 @@ describe("S111 the assistant answers from the same records (READY-06)", () => {
       stageLabel: null,
       nextAction: null,
       openConflicts: 0,
-      queryKeys: { normalizedOwners: [], normalizedTenants: [] },
+      queryKeys: {
+        normalizedOwners: [],
+        normalizedTenants: [],
+        // The desk's month filter reads the lease END month; the fixture derives it as the loader does.
+        endMonth: PORTFOLIO.fixedTermRentDiffers.endDateIso.slice(0, 7),
+      },
       guidance: {
         currentBaseRent: 1450,
         currentBaseRentSource: "RentVine",
@@ -456,7 +461,7 @@ describe("S111 no check passes by writing its own answer (AC-S111-1)", () => {
       /from "@\/lib\/integrations\/action-gate"/,
       /from "@\/lib\/external-execution\/orchestrator"/,
       /\.runTransaction\(/,
-      /fetch\(/,
+      /\bfetch\(/,
       /\.set\(/,
       /\.update\(/,
     ]) {

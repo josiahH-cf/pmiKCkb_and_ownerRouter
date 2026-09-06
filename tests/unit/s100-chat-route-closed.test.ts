@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// This file uses the REAL committed seed: both S100 keys (and the S99 read key that
-// rerun_mapping repeats) are closed, so every provider-touching operation refuses at the exact
-// committed-seed gate before any transport or Gmail client construction.
+// This file uses the REAL committed seed together with an UNREADABLE runtime-suspension reader.
+// `rentvine.work_order.chat.sync` and the S99 read key that rerun_mapping repeats are OPEN, so
+// their refusals here are the fail-closed suspension term. Only
+// `gmail.maintenance_resident_reply.draft_create` is a genuinely closed seed key; its case is the
+// one that proves the committed-seed refusal itself, before any transport or Gmail client is built.
 
 const mocks = vi.hoisted(() => ({
   user: { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" as string },

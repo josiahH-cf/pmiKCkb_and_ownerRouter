@@ -563,6 +563,46 @@ describe("lease-renewal-progress store", () => {
     });
   });
 
+  it("keeps the typed owner response through later evidence and refuses the tenant draft while unanswered (S105)", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "increase", offeredRent: 1300 },
+      db as unknown as Firestore,
+    );
+    await recordEvidence(db, "owner-copy-version", "policy_version");
+    await recordEvidence(db, "owner-draft-receipt", "gmail_receipt");
+    await recordEvidence(db, "owner-message-sent", "gmail_receipt");
+    await recordOwnerOutcome(
+      editor,
+      LEASE_ID,
+      "no_response",
+      {
+        ref: "gmail_receipt:owner-response:checked-fixture",
+        source: "gmail_receipt",
+        disposition: "verified",
+      },
+      db as unknown as Firestore,
+    );
+
+    // A later, unrelated evidence write is a full document set; the response must survive it.
+    await recordEvidence(db, "owner-copy-version", "policy_version");
+    const readBack = await getRenewalProgress(
+      editor,
+      LEASE_ID,
+      db as unknown as Firestore,
+    );
+    expect(readBack?.ownerOutcome).toMatchObject({ state: "no_response" });
+
+    // The tenant offer is built on the owner's approved terms; it is refused until they answer.
+    await expect(
+      recordTenantOfferDraft(editor, LEASE_ID, "draft-1", db as unknown as Firestore),
+    ).rejects.toThrow(/not responded/);
+    const after = await getRenewalProgress(editor, LEASE_ID, db as unknown as Firestore);
+    expect(after?.tenantOfferDraftId).toBeNull();
+  });
+
   it("persists and reads back a typed owner response, reopening downstream work (S105)", async () => {
     const db = new ProgressTestFirestore();
     await recordOwnerDecision(

@@ -21,8 +21,9 @@ is read only in the local rehearsal surface." whenever you try to change somethi
 
 ## Step-to-control map
 
-The rehearsal browser check reads this table and confirms each control is on the page it names, so a
-step here cannot drift from the app.
+The rehearsal browser check reads this table and confirms each control's exact text is present on
+the page it names, so a step in this table cannot name a control the app does not show. Steps in the
+prose below are not machine-checked.
 
 | Step                                     | Page             | Control (exact visible text)     | What you should see                                                        |
 | ---------------------------------------- | ---------------- | -------------------------------- | -------------------------------------------------------------------------- |
@@ -83,12 +84,12 @@ attempted, how it ended, any blocker, and what to do next.
 
 ## Where results appear
 
-| Where           | What lands there                                                             |
-| --------------- | ---------------------------------------------------------------------------- |
-| RentVine        | The lease dates and recurring charges you confirmed, each with its readback. |
-| Operating Sheet | The appended renewal row you confirmed, in the confirmed target tab.         |
-| Gmail           | The draft you reviewed. You send it yourself; the app never sends.           |
-| Dotloop         | The one loop for the approved packet, with its documents and participants.   |
+| Where           | What lands there                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| RentVine        | The lease dates and recurring charges you confirmed, each with its readback.                                                            |
+| Operating Sheet | The appended renewal row you confirmed, in the confirmed target tab.                                                                    |
+| Gmail           | The draft you reviewed. You send it yourself; the app never sends.                                                                      |
+| Dotloop         | The one loop for the approved packet, once the Dotloop connection is live; until then the packet phase shows the exact blocker instead. |
 
 ## Practice cases
 

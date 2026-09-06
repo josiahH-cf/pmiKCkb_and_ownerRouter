@@ -40,8 +40,9 @@ readback pass.
   `josiah@pmikcmetro.com` account. The default gcloud refresh credential remains stale and cannot
   refresh non-interactively.
 - For gcloud commands, the established bridge obtains the fresh ADC token in process and passes it
-  only through a task-specific `CLOUDSDK_AUTH_ACCESS_TOKEN` environment value. It must never print,
-  log, or persist the token. Re-run both identity preflights immediately before cloud work and refuse
+  only through a task-specific `CLOUDSDK_AUTH_ACCESS_TOKEN` environment value (the bridge feeds
+  gcloud from ADC; the application libraries never read that variable). It must never print, log, or
+  persist the token. Re-run both identity preflights immediately before cloud work and refuse
   unless the selected principal is the exact managed account.
 - Never automate an authentication dialog, password, or MFA challenge. If ADC is not fresh or the
   managed principal cannot be read back, a person must reauthenticate.
@@ -97,8 +98,11 @@ Do not promote until the anonymous smoke and the complete S51 candidate assuranc
 Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA. Add
 the exact candidate hostname to Firebase authorized domains through a reviewed managed cloud change
 and read it back. Two distinct browser-profile directories outside the repository must then be
-authenticated on that exact origin as the expected Admin and Editor; canonical-host-only sessions,
-copied cookies, guessed/default profiles, and automated password/MFA are not evidence.
+authenticated as the expected Admin and Editor on BOTH the exact candidate origin and the canonical
+origin: the receipt run drives the predecessor baseline against the canonical host before the
+candidate canaries, and the session cookie is host-only. A managed account with no role claim is an
+Editor at the application layer. Copied cookies, guessed/default profiles, and automated
+password/MFA are not evidence.
 
 Capture the immutable revision-configuration fingerprint:
 
@@ -137,8 +141,9 @@ render its fully targeted plan, review every emitted mutation and rollback comma
 commands, and then use the read-only verifier. The operator address is `josiah+alerts@pmikcmetro.com`,
 which is the address the managed channel actually carries; passing any other internal address reports
 a channel definition mismatch. Do not wait on an email-channel verification step: the provider owns
-`verificationStatus`, documents it as immutable, and returns it absent for an email channel, which
-means verification is not required for that channel type.
+`verificationStatus` (it is settable only through `notificationChannels.verify`, never by patch) and
+returns it absent when the channel type needs no verification, which is what the managed email
+channel reads back; the verifier refuses only `UNVERIFIED` or an unrecognized status.
 
 ```bash
 npm run monitoring:plan -- \

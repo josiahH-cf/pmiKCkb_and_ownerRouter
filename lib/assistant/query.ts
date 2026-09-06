@@ -85,7 +85,20 @@ export async function runAssistantQuery(
   }
 
   if (match.intent === "work.assigned_today") {
-    const snapshot = await dependencies.loadWorkSnapshot(actor);
+    let snapshot: Awaited<ReturnType<typeof dependencies.loadWorkSnapshot>>;
+    try {
+      snapshot = await dependencies.loadWorkSnapshot(actor);
+    } catch {
+      // A source that throws is reported as unavailable, never as an empty list and never as a
+      // failed request the form would silently fall through.
+      return envelope({
+        intent: match.intent,
+        completeness: "unavailable",
+        sourceState:
+          "Your work list could not be read just now, so this answer is incomplete. Open My Work to see the current state.",
+        links: [WORK_LINK],
+      });
+    }
     const items = projectWorkItems(
       selectAssignedTodayTasks(snapshot.tasks, actor.uid, dependencies.nowIso),
     );
@@ -111,7 +124,12 @@ export async function runAssistantQuery(
     });
   }
 
-  const read = await dependencies.loadRenewalRows(actor);
+  let read: Awaited<ReturnType<typeof dependencies.loadRenewalRows>>;
+  try {
+    read = await dependencies.loadRenewalRows(actor);
+  } catch {
+    read = { status: "read_error", rows: [] };
+  }
   if (read.status !== "ok") {
     return envelope({
       intent: match.intent,

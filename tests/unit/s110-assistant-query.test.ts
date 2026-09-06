@@ -69,7 +69,17 @@ function row(overrides: Record<string, unknown> = {}): DeskLeaseRow {
     stageLabel: null,
     nextAction: null,
     openConflicts: 0,
-    queryKeys: { normalizedOwners: [], normalizedTenants: [] },
+    queryKeys: {
+      normalizedOwners: [],
+      normalizedTenants: [],
+      // The desk's month filter reads the lease END month; the fixture derives it as the loader does.
+      endMonth:
+        typeof overrides.endDateIso === "string"
+          ? overrides.endDateIso.slice(0, 7)
+          : overrides.endDateIso === null
+            ? null
+            : "2026-10",
+    },
     guidance: {
       currentBaseRent: 1500,
       currentBaseRentSource: "RentVine",
@@ -214,6 +224,18 @@ describe("S110 adapters return the owning records with links (BEH-S110-1 / BEH-S
                 overallStatus: "blocked",
               },
             }),
+            // Blocked but outside the active window: the desk's default worklist hides it, so the
+            // assistant does too (parity, not a wider answer).
+            row({
+              id: "outside-blocked",
+              retention: { state: "outside" },
+              guidance: {
+                ...row().guidance,
+                isBlocked: true,
+                blockers: [{ label: "Owner has not responded" }],
+                overallStatus: "blocked",
+              },
+            }),
           ],
         }),
       }),
@@ -224,7 +246,7 @@ describe("S110 adapters return the owning records with links (BEH-S110-1 / BEH-S
     expect(envelope.items[0].href).toContain("/lease-renewal/live/desk");
   });
 
-  it("returns the rows whose end date or review anchor falls in the requested month", async () => {
+  it("returns exactly the rows the desk's Renewal-month filter lists for the requested month", async () => {
     const envelope = await runAssistantQuery(
       { question: "Which renewals come up next month?" },
       editor,
@@ -244,8 +266,60 @@ describe("S110 adapters return the owning records with links (BEH-S110-1 / BEH-S
         }),
       }),
     );
-    expect(envelope.items.map((item) => item.id)).toEqual(["in-window", "periodic"]);
+    // The desk's month filter is the lease END month; a month-to-month lease's periodic review is
+    // not a renewal and never appears under `?month=`, so the assistant does not list it either.
+    expect(envelope.items.map((item) => item.id)).toEqual(["in-window"]);
     expect(envelope.appliedFilters).toMatchObject({ month: "2026-10" });
+  });
+});
+
+describe("S110 a today question about the operator's own work is the work intent", () => {
+  it("routes a renewal-flavoured today question to work.assigned_today, never to a clarification", () => {
+    expect(matchAssistantIntent("what renewal tasks are due today", NOW)).toEqual({
+      kind: "matched",
+      intent: "work.assigned_today",
+      filters: {},
+    });
+    expect(matchAssistantIntent("which renewals are due this month", NOW)).toEqual({
+      kind: "matched",
+      intent: "renewal.window",
+      filters: { month: "2026-09" },
+    });
+    expect(matchAssistantIntent("which renewals are coming up", NOW)).toMatchObject({
+      kind: "clarify",
+    });
+  });
+});
+
+describe("S110 a source that throws reports itself unavailable", () => {
+  it("reports the work list unavailable instead of failing the request", async () => {
+    const envelope = await runAssistantQuery(
+      { question: "What work is assigned to me today?" },
+      editor,
+      deps({
+        loadWorkSnapshot: async () => {
+          throw new Error("firestore unavailable");
+        },
+      }),
+    );
+    expect(envelope.intent).toBe("work.assigned_today");
+    expect(envelope.completeness).toBe("unavailable");
+    expect(envelope.items).toEqual([]);
+    expect(envelope.sourceState).toMatch(/could not be read/);
+  });
+
+  it("reports the renewal source unavailable when the loader throws", async () => {
+    const envelope = await runAssistantQuery(
+      { question: "What renewal blockers do I currently have?" },
+      editor,
+      deps({
+        loadRenewalRows: async () => {
+          throw new Error("rentvine unavailable");
+        },
+      }),
+    );
+    expect(envelope.completeness).toBe("unavailable");
+    expect(envelope.items).toEqual([]);
   });
 });
 

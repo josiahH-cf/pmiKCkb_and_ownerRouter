@@ -10,7 +10,11 @@ import {
   leaseCurrentRent,
   leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
-import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
+import {
+  getRenewalProgress,
+  recordTenantOfferDraft,
+} from "@/lib/firestore/lease-renewal-progress";
+import { ownerOutcomeBlocksDownstream } from "@/lib/lease-renewal/renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
@@ -79,6 +83,20 @@ export async function POST(request: Request) {
     const rentvineClient = config.rentvineClient;
     const nowMs = Date.now();
     const channel = body.offer.channel;
+    // S105: the tenant offer is built on the owner's approved terms. While the recorded owner
+    // response is a revision request, a decline, or still unanswered, the draft is refused here,
+    // before any Gmail client is constructed.
+    if (channel === "tenant") {
+      const downstreamBlock = ownerOutcomeBlocksDownstream(
+        await getRenewalProgress(user, body.leaseId),
+      );
+      if (downstreamBlock) {
+        return NextResponse.json(
+          { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },
+          { status: 409 },
+        );
+      }
+    }
     let compScreenshotRuntime: ReturnType<typeof buildLiveCompScreenshotRuntime> | null =
       null;
     const getCompScreenshotRuntime = () =>

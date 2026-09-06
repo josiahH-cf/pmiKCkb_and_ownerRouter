@@ -29,6 +29,11 @@ const mocks = vi.hoisted(() => ({
   writerMutations: [] as string[],
   resolveContext: vi.fn<(leaseId: string) => Promise<FreshOperatingSheetLeaseContext>>(),
   resolveAuthorization: vi.fn<() => Promise<AuthorizedCurrentRentUpdate>>(),
+  progress: null as unknown,
+}));
+
+vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
+  getRenewalProgress: vi.fn(async () => mocks.progress),
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => ({
@@ -549,6 +554,30 @@ describe("S98 operating-sheet route", () => {
     expect(second.status).toBe(200);
     expect(((await second.json()) as { duplicate: boolean }).duplicate).toBe(true);
     expect(mocks.writerMutations.filter((entry) => entry === "append")).toHaveLength(1);
+  });
+
+  it("refuses the append while the recorded owner response is not an approval (S105)", async () => {
+    await post({
+      operation: "propose",
+      evidenceRef: "workspace:115",
+      effects: [{ kind: "row_append", leaseId: "115", tenantName: "Fresh Real Tenant" }],
+    });
+    const proposal = mocks.proposals.get("115")!;
+    mocks.gateOpen = true;
+    mocks.progress = { ownerOutcome: { state: "declined_non_renewal" } };
+    try {
+      const response = await post({
+        operation: "execute",
+        previewHash: proposal.previewHash,
+        effectHash: proposal.effects[0].effectHash,
+        confirm: true,
+      });
+      expect(response.status).toBe(409);
+      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
+      expect(mocks.writerMutations).toHaveLength(0);
+    } finally {
+      mocks.progress = null;
+    }
   });
 
   it("rejects a stale preview hash without consuming the attempt", async () => {

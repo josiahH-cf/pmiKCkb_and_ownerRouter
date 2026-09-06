@@ -51,7 +51,10 @@ export interface DeskGuidanceInput {
   >;
   readonly process: RenewalProcessProjection | null;
   readonly dataCheck: readonly DeskReconItem[] | null;
-  /** Raw canonical RentVine current rent from the export mapper; never a substituted value. */
+  /**
+   * The shared summary's lease-scoped current rent (lease detail `baseRentAmount` when enriched,
+   * else the export view's value); never a substituted value.
+   */
   readonly rentvineCurrentRent: number | null;
   /** The shared workspace/draft rent decision, when the lease was reconciled. */
   readonly rentDecision: LiveOwnerCurrentRentDecision | null;

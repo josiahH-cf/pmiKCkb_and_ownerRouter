@@ -124,8 +124,24 @@ function haystack(input: IntakeTriageInput): string {
     .toLowerCase();
 }
 
+const TERM_PATTERNS = new Map<string, RegExp>();
+
+/**
+ * A term matches only as a whole word or phrase (an `s`, `ed`, or `ing` ending is allowed), never
+ * as a fragment of a longer word: "gas" is life-safety, "gasket" is a dishwasher part.
+ */
+function termPattern(term: string): RegExp {
+  let pattern = TERM_PATTERNS.get(term);
+  if (!pattern) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    pattern = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:s|ed|ing)?(?=$|[^a-z0-9])`);
+    TERM_PATTERNS.set(term, pattern);
+  }
+  return pattern;
+}
+
 function hits(text: string, terms: readonly string[]): boolean {
-  return terms.some((term) => text.includes(term));
+  return terms.some((term) => termPattern(term).test(text));
 }
 
 /** Deterministic trade inference from the report text, reusing the committed keyword taxonomy. */

@@ -6,5 +6,6 @@ export * from "./manifest";
 export * from "./observation";
 export * from "./reconciliation";
 export * from "./revision-configuration";
+export * from "./route-outcome";
 export * from "./runtime-observation";
 export * from "./types";

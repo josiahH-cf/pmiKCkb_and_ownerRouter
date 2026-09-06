@@ -594,6 +594,8 @@ export function planRecordOwnerDecision(
     stageIndex: RENEWAL_STAGE.owner,
     ownerDecision,
     ownerDecisionRevision,
+    // S105: revised terms supersede the owner's earlier response; the owner answers the new terms.
+    ownerOutcome: null,
     tenantOfferDraftId: null,
     tenantOutcome: null,
     evidence,
@@ -610,6 +612,10 @@ export function planRecordTenantOfferDraft(
   draftId: string,
 ): RenewalProgressPlan {
   const active = assertCurrentProcess(current);
+  // A recorded revision request, decline, or silence is the exact reason the draft is refused, so it
+  // is named before the generic decision check (a reopening also removes the decision evidence).
+  const downstreamBlock = ownerOutcomeBlocksDownstream(active);
+  if (downstreamBlock) throw new EditableLayerError(downstreamBlock, 409);
   if (!evidenceHasCurrentOwnerDecision(active)) {
     throw new EditableLayerError(
       "Record the current owner decision before drafting the tenant offer.",
@@ -626,6 +632,7 @@ export function planRecordTenantOfferDraft(
       stageIndex: active.stageIndex,
       ownerDecision: active.ownerDecision,
       ownerDecisionRevision: active.ownerDecisionRevision,
+      ownerOutcome: active.ownerOutcome ?? null,
       tenantOfferDraftId: active.tenantOfferDraftId,
       tenantOutcome: active.tenantOutcome,
       evidence: active.evidence,
@@ -646,6 +653,7 @@ export function planRecordTenantOfferDraft(
     stageIndex: RENEWAL_STAGE.tenant,
     ownerDecision: active.ownerDecision,
     ownerDecisionRevision: active.ownerDecisionRevision,
+    ownerOutcome: active.ownerOutcome ?? null,
     tenantOfferDraftId: trimmed,
     tenantOutcome: null,
     evidence: changed.evidence,
@@ -653,14 +661,43 @@ export function planRecordTenantOfferDraft(
   };
 }
 
+const OWNER_OUTCOME_DOWNSTREAM_BLOCK: Record<
+  Exclude<RenewalOwnerOutcomeState, "approved_terms">,
+  string
+> = {
+  revision_requested:
+    "The owner asked for a revision. Record the revised owner decision and a new owner response before any tenant draft or confirmed effect.",
+  declined_non_renewal:
+    "The owner declined to renew. The lease continues through the non-renewal handoff, so no tenant offer draft or renewal effect may proceed.",
+  no_response:
+    "The owner has not responded yet. Record the owner response before any tenant draft or confirmed effect.",
+};
+
+/**
+ * S105: the one downstream gate on the recorded owner response. A tenant offer draft, a RentVine
+ * renewal effect, or an operating-Sheet append built on the owner's terms may proceed only while
+ * no response is recorded or the recorded response is an approval. Every other state returns the
+ * exact reason the work is refused; the caller surfaces it and performs nothing.
+ */
+export function ownerOutcomeBlocksDownstream(
+  current: RenewalProgress | null,
+): string | null {
+  const state = current?.ownerOutcome?.state;
+  if (!state || state === "approved_terms") return null;
+  return OWNER_OUTCOME_DOWNSTREAM_BLOCK[state];
+}
+
 /**
  * S105: record the typed owner response to the reviewed owner message.
  *
  * `approved_terms` records the response and leaves the recorded decision and its downstream work in
- * place. `revision_requested` reopens `prepare-owner-copy` onward and invalidates every downstream
- * preview, retaining the prior decision VALUE for operator review. `declined_non_renewal` clears the
- * accepted-path work and exits through the same documented non-renewal handoff. `no_response`
- * records only that the response was checked, so the lease stays visibly waiting on the owner.
+ * place. `revision_requested` removes the owner-copy evidence onward so the reopened work must be
+ * redone, retains the prior decision VALUE for operator review, and, through
+ * `ownerOutcomeBlocksDownstream`, refuses every tenant draft and confirmed effect until a revised
+ * decision and an approved response are recorded. `declined_non_renewal` clears the accepted-path
+ * work and exits through the same documented non-renewal handoff. `no_response` records only that
+ * the response was checked, so the lease stays visibly waiting on the owner and downstream work
+ * stays refused. Later plans carry the recorded response forward; only a new owner decision clears it.
  *
  * App-owned and pure: it reaches no provider, creates no draft, and sends nothing.
  */
@@ -786,6 +823,7 @@ export function planRecordTenantOutcome(
     stageIndex,
     ownerDecision: active.ownerDecision,
     ownerDecisionRevision: active.ownerDecisionRevision,
+    ownerOutcome: active.ownerOutcome ?? null,
     tenantOfferDraftId,
     tenantOutcome: { state, evidence },
     evidence: changed.evidence,
@@ -830,6 +868,7 @@ export function planRecordRenewalEvidence(
     stageIndex,
     ownerDecision,
     ownerDecisionRevision: active.ownerDecisionRevision,
+    ownerOutcome: active.ownerOutcome ?? null,
     tenantOfferDraftId,
     tenantOutcome,
     evidence: changed.evidence,
@@ -866,6 +905,7 @@ export function planMarkComplete(
     stageIndex: RENEWAL_STAGE.close,
     ownerDecision: active.ownerDecision,
     ownerDecisionRevision: active.ownerDecisionRevision,
+    ownerOutcome: active.ownerOutcome ?? null,
     tenantOfferDraftId: active.tenantOfferDraftId,
     tenantOutcome: active.tenantOutcome,
     evidence: changed.evidence,

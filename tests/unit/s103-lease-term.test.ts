@@ -68,6 +68,22 @@ describe("addLeaseTermMonths / nextLeaseTermReviewIso", () => {
     expect(nextLeaseTermReviewIso("2025-09-15")).toBe("2026-09-15");
     expect(nextLeaseTermReviewIso(null)).toBeNull();
   });
+
+  it("rolls the review forward to the first anniversary on or after the reference month", () => {
+    // A lease that went month-to-month years ago keeps its annual rhythm instead of carrying a
+    // review date that is permanently in the past and so permanently outside every window.
+    expect(nextLeaseTermReviewIso("2024-03-01", "2026-08-01")).toBe("2027-03-01");
+    expect(nextLeaseTermReviewIso("2023-11-30", "2026-08-15")).toBe("2026-11-30");
+    // An anniversary earlier in the reference month is still this month's review.
+    expect(nextLeaseTermReviewIso("2025-08-05", "2026-08-25")).toBe("2026-08-05");
+    // A review that is still ahead is never moved.
+    expect(nextLeaseTermReviewIso("2025-09-15", "2026-08-01")).toBe("2026-09-15");
+    expect(nextLeaseTermReviewIso("2026-02-01", "2026-08-01")).toBe("2027-02-01");
+    // Leap-day anchors keep clamping on every interval.
+    expect(nextLeaseTermReviewIso("2024-02-29", "2027-01-10")).toBe("2027-02-28");
+    // An unparseable reference date leaves the first anniversary unchanged.
+    expect(nextLeaseTermReviewIso("2024-03-01", "not-a-date")).toBe("2025-03-01");
+  });
 });
 
 describe("projectLeaseTerm — provider evidence decides the term (ARCH-S103-1)", () => {

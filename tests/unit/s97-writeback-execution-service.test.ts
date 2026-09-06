@@ -530,6 +530,28 @@ describe("S97 reversal reconciliation", () => {
 });
 
 describe("S97 one-attempt execution", () => {
+  it("replays a charge-update duplicate without reporting a created charge", async () => {
+    const h = harness();
+    const proposal = buildRenewalWritebackProposal(
+      proposalInput({
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: charge(),
+            changes: { amount: "1300.00" },
+          },
+        ],
+      }),
+    );
+    const first = await h.service.executeEffect(confirmed(proposal));
+    expect(first.duplicate).toBe(false);
+    expect(first.createdChargeId).toBeUndefined();
+    const second = await h.service.executeEffect(confirmed(proposal));
+    expect(second.duplicate).toBe(true);
+    expect(second.createdChargeId).toBeUndefined();
+  });
+
   it("executes a confirmed dates effect once with exact readback and replays duplicates", async () => {
     const h = harness();
     const proposal = buildRenewalWritebackProposal(proposalInput());

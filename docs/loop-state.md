@@ -1,130 +1,106 @@
 # Loop state
 
-Last updated: 2026-09-04. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-09-06. Resume here after reading `AGENTS.md` and `docs/facts.md`.
 
 ## Objective
 
-Release the committed S82 conformance, S97/S98 integrity, and S51/S54 assurance slice through the
-zero-traffic candidate that is already deployed, then execute the owner's 2026-09-03
-renewal-completion program (S102-S111 and the rewritten S34) in dependency order without widening
-provider or action authority.
+Release the committed S82 conformance, S97/S98 integrity, S51/S54 assurance, and renewal-completion
+(S102-S111, rewritten S34) work through one zero-traffic candidate, then promote it, without widening
+provider or action authority. Every claim below is re-derived from code, tests, and live read-only
+state on the date above.
 
 ## Verified checkpoint
 
 - Production still serves `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` from commit
   `d243911cb20ffb01773072c0e27c723648eeea34` at 100% traffic. Immediate rollback is
   `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
-- The formerly uncommitted remediation slice is committed and pushed as `e6b76f9` with exact-SHA CI
-  green (unit, Firestore, quality, policy-build). The grounded renewal-completion suites, the S102
-  implementation, and the S51 preflight identity-read fix are committed through `ff200d3`, and S103
-  through `0158c90`, S104 through `0f01353`, S105 through `13523c5`, and S106 through `af23da4`;
-  S34 through `7b26107`, S107 through `ae93742`, S108 through `03f7eee`, S109 through `9b2c829`, and
-  S110 through `5abf6dd`, and S111 through `5aa2a90`; all are exact-SHA CI green. Local and remote `main` are identical.
-- Zero-traffic candidate `pmi-kc-app-rmtpqneki-e799a49fc597` (tag `cand-rmtpqneki-e799a49fc597`)
-  was deployed from commit `e6eb315ebee29d9b1deced8148cfe9ebf6f9428d` and passed the anonymous
-  read-only smoke at its exact commit, revision, tag, and service. Its configuration fingerprint is
-  `sha256:6566fdbd050c370cee5848a09586027ae46c820afa4bfe6e1b92b86f5bfb3e00` and its hostname is an
-  authorized sign-in domain. Traffic readback still shows `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at
-  100%. It is not promoted and supersedes every earlier candidate, including `rmtmy3z88`, whose
-  authorized-domain entry was removed once it was superseded.
-- Candidate assurance has not run, and its one remaining hold is now diagnosed exactly: no account
-  in the project carries the `Editor` role, so the Editor canary has no subject. Read back 2026-09-04
-  from the Identity Platform account query: seven accounts, three `Admin` on the managed domain,
-  three managed accounts with no role claim, one vendor test account. Monitoring is `READY`, the
-  fingerprint is captured, and the candidate hostname is authorized, so nothing else is outstanding.
-  Creating or assigning an Editor is an owner access decision through the application's People and
-  Access surface; an agent must never mint or elevate an identity for it. `docs/open-blockers.md`
-  carries the ledger and the Wednesday follow-ups.
-- The S51 identity read sent the ADC quota-project header to the OpenID userinfo endpoint and was
-  refused; the preflight now reads identity with the bearer token only (committed in `ff200d3`,
-  carried by the candidate). Exercised live on 2026-09-04: the bearer-only userinfo read returns
-  HTTP 200 with the managed domain, so this is no longer an untested fix.
+- Everything through `e6eb315` (the remediation slice, S102-S111, the rewritten S34, and the owner's
+  three reviewed troubleshooting links) is exact-SHA CI green and deployed as zero-traffic candidate
+  `pmi-kc-app-rmtpqneki-e799a49fc597` (tag `cand-rmtpqneki-e799a49fc597`), whose anonymous
+  read-only smoke passed at its exact commit, revision, tag, and service and whose hostname is an
+  authorized sign-in domain. Traffic readback shows the serving revision unchanged. `814298b`
+  (docs-only, the owner's specification package tracking) is also on `main`.
+- The 2026-09-06 adversarial re-verification of S97 through S111 is committed on top of that. Each
+  suite's present truth is its `docs/facts.md` row; the corrections that changed code are: the
+  Editor canary denial check (could never pass; now proved from the navigation chain), the
+  configuration fingerprint (now excludes every documented output-only revision field, so the
+  candidate fingerprint must be recaptured), the S51 oracle (`periodic_review` derived
+  independently), the month-to-month review date (rolls forward to the current anniversary), the
+  term-review route (refuses an unknown lease or a changed view), the comp query basis (lease-detail
+  rent), the workspace next-action card (renders the shared guidance), the S107 load-time pass (now
+  read-only; reconcile is the Admin-gated control), the S105 owner outcome (carried forward and
+  gating the tenant draft, S97 execution, and the S98 append), the S110 adapters (desk predicates,
+  business calendar, `unavailable` on a throwing source), the S109 fire/water terms (whole words),
+  the Dotloop config/create/pagination/upload-refresh/orphan-token paths, the seed allowlist (no
+  `gmail.message.send`), and the S98 matrix descriptors (no dependency on a retired send key).
+- Candidate assurance has not run. Its only remaining hold is human: the two managed browser
+  profiles (one Admin; one managed account with no role claim, which the application resolves to
+  `Editor`) signed in on BOTH the candidate origin and the canonical origin. No account needs to be
+  created, elevated, or demoted. Monitoring reads `READY`. `docs/open-blockers.md` `B-AUTH2` carries
+  the exact steps.
+- Whether a claim-less managed account should hold `Editor` by default is an owner question
+  (`docs/facts.md` Open Questions); the runner does not change `lib/auth/**` for it.
 - Runtime is Production + Live with eleven Spaces, the operating-Sheet write switch on, and a
   48-key/16-open committed Registry plus matching non-authoritative Admin mirror.
-- S99, S97, and S100 chat sync are proven and open; S100 remains BLOCKED on a synchronized resident
-  message mapped to a verified resident email. S36 is queued behind complete S100.
+- S99, S97, and S100 chat sync are proven and open; S100's draft key stays closed on the eligible
+  resident message, and the app also lacks a path to link an existing RentVine work order to a
+  ticket (agent-owned, below). S36 is queued behind complete S100.
 - ADC is fresh for the managed account; the non-persistent access-token bridge performs cloud
   readback and the candidate deploy without printing a token.
 - `.claude/settings.local.json`, `output/`, and the owner's untracked specification package are
-  user-owned content.
-  Exclude them, ignored `temp/`, credentials, provider bodies, and customer evidence from commits
-  and build uploads.
-
-## Renewal-completion program, carried by the candidate and not promoted
-
-The owner's 2026-09-03 program is complete. Full claims for every slice are in `docs/facts.md` and
-the integrated proof report is in `docs/status.md`; these are pointers.
-
-- S102 (`ff200d3`), S103 (`0158c90`), S104 (`0f01353`), S105 (`13523c5`): one shared `currentRent`,
-  one `projectLeaseTerm` with the `periodic_review` disposition and a fingerprint-bound term review,
-  one summary and guidance shared by desk row and workspace, and typed owner outcomes with their
-  reopening, decline, and supersede paths.
-- S106 (`af23da4`) and S34 (`7b26107`): one server-owned Dotloop connection and one loop bound to one
-  approved packet snapshot hash. No e-signature operation is claimed; the documentation lists none.
-- S107 (`ae93742`): no queue, scheduler, worker, or automatic retry; only covered claimed attempts
-  past the existing age reconcile, through the owning services, read-only.
-- S108 (`03f7eee`) and S109 (`9b2c829`): a provider snapshot from the human-initiated work-order read,
-  one waiting-on projection, an Admin-only versioned preapproval that writes nothing to RentVine, and
-  structured resident intake whose pure triage owns urgency, evidence, and completion. Absence is
-  never authorization. RentVine attachment sync and public upload stay closed.
-- S110 (`5abf6dd`): one closed three-intent read-only boundary, and the desk orchestration extracted
-  so the table and the answer share one code path.
-- S111 (`5aa2a90`): one integration suite over one fixture portfolio that imports no store, gate,
-  orchestrator, or network call, plus a browser proof that every operator-guide step names a control
-  the app really shows.
-- No provider write, timer, draft, or send derives from any of this work. Each slice passed the
-  canonical gate, core E2E, and exact-SHA CI; S103, S104, S108, S109, S110, and S111 also passed a
-  local rehearsal browser smoke, which recorded one pre-existing S84 narrow-viewport behavior left to
-  S84.
-- Blocked by external environment, never converted to a human task: live Dotloop (owner OAuth
-  application and connected account), owner-reviewed troubleshooting links, and Admin-entered
-  property preapproval amounts.
-- Every earlier renewal-completion candidate is superseded and carries no traffic.
+  user-owned content. Exclude them, ignored `temp/`, credentials, provider bodies, and customer
+  evidence from commits and build uploads.
 
 ## Next exact action
 
-The owner's 2026-09-03 renewal-completion program is complete: S102-S111 and the rewritten S34 are
-committed, exact-SHA CI green, and carried by one unpromoted zero-traffic candidate. No further
-suite in that program is buildable without an owner input. The next action is promotion, which waits
-only on an `Editor`-role account existing and the two managed browser profiles being authenticated
-on the candidate origin; when those exist, run `--prepare-candidate-receipt` under
-`ENVIRONMENT_KIND=production DATA_CONTEXT=live` with the captured fingerprint, promote the exact
-revision, and complete the 300,000 ms observation.
+1. Deploy one zero-traffic candidate from clean `HEAD` with
+   `npm run release -- --environment=production --execute --budget-confirmed --allow-multiple-spaces`,
+   run `npm run smoke:release-candidate` at its exact commit, revision, tag, and service, read
+   production traffic back unchanged, then recapture the candidate configuration fingerprint with
+   `--capture-config-fingerprint` (read-only) and record it here and in `docs/facts.md`
+   (`F-CANDIDATE`). Confirm the candidate hostname is an authorized sign-in domain.
+2. When the owner reports both profiles signed in on both origins, run
+   `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with the
+   recaptured fingerprint, promote the exact revision, and complete the 300,000 ms observation.
+   Promotion inputs are NOT satisfied until that report exists.
+
+## Agent-owned next work, no owner input needed
+
+Build in this order once the candidate above is deployed; each is fail-first, to its external seam.
+
+1. S106 runtime seam: record the refresh-token vault ref on the connection, add the vault-backed
+   runtime token provider (no-person refresh), and wire Dotloop readiness/health into the Connection
+   Center's live probes. Nothing here needs credentials to build; only the live check does.
+2. S34 runtime wiring: construct `LiveDotloopProvider`/`DotloopRenewalExecutor` behind the S106
+   token provider, carry transaction type and initial status on the selection record, and write the
+   loop link onto the packet execution projection. Keys stay closed.
+3. S100 link path: an exact, previewed, confirmed operation that binds an existing RentVine work
+   order to a ticket (read-only against RentVine), so the Wednesday answer can be applied.
+4. S98: a route operation for the service-defined reversal, or retire the descriptor claim.
+5. S108: a ticket-level property key so preapproval routing does not wait for a work-order read.
 
 ## Canonical feature queue
 
-1. S96, S85, S86, S83, S84 — COMPLETE
+1. S96, S85, S86, S83, S84, S99 — COMPLETE
 2. S82, S97, S98 — baselines deployed; remediation committed, candidate deployed, promotion pending
-3. S99 — COMPLETE
-4. S100 — BLOCKED on the resident-draft runtime input; chat sync complete
-5. S51/S54 — assurance expansion committed; live candidate gate pending owner inputs
-6. S102 — committed and candidate-deployed, not promoted (renewal-completion R1)
-7. S103 — committed and candidate-deployed, not promoted (renewal-completion R2)
-8. S104 — committed and candidate-deployed, not promoted (renewal-completion R3)
-9. S105 — committed and candidate-deployed except its Dotloop phase link (renewal-completion R4)
-10. S106 — committed and candidate-deployed; only its live check is blocked (R5)
-11. S34 — committed and candidate-deployed; live proof blocked (renewal-completion R6)
-12. S107 — committed and candidate-deployed, not promoted (renewal-completion R7)
-13. S108 — committed and candidate-deployed, not promoted (renewal-completion R8)
-14. S109 — committed and candidate-deployed, not promoted (renewal-completion R9)
-15. S110 — committed and candidate-deployed, not promoted (renewal-completion R10)
-16. S111 — committed and candidate-deployed, not promoted (renewal-completion R11, last)
-17. S36 — queued behind complete S100
-18. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
+3. S100 — BLOCKED on the resident-draft runtime input plus the agent-owned link path; chat sync done
+4. S51/S54 — assurance expansion committed; live candidate gate waits on the two profiles
+5. S102-S111 and S34 — committed and candidate-deployed, not promoted (renewal-completion R1-R11);
+   S106/S34 runtime seams and live proofs remain as listed above
+6. S36 — queued behind complete S100
+7. S88, S89, S90, S91, S92, S94, S93, S93/S94 gate, S95, S87, S101 — specified
 
 Default to serial execution; only the feature manifest's explicitly safe isolated-worktree S90/S91
 domain work may parallelize.
 
 ## Runtime inputs, not product questions
 
-- Promotion: one account holding the `Editor` role must exist, then two authenticated managed
-  Admin/Editor browser profiles on the candidate origin. Monitoring, the fingerprint, and the
-  authorized domain are done.
-- S100: one real synchronized resident message with an exact verified resident email.
-- S106/S34: the Dotloop OAuth application and a connected managed Dotloop account.
-- S108/S109: Admin-entered property preapproval amounts (the record and its Admin control ship in
-  S108; the amounts themselves come from the owner's files) and owner-reviewed troubleshooting links
-  (the S109 catalog ships empty; its absence disables only the resource offer).
+- Promotion: the two managed browser profiles above, signed in on both origins.
+- S100: one real synchronized resident message with an exact verified resident email, on a work
+  order the app can link.
+- S106/S34: the Dotloop OAuth application (requested from Dotloop 2026-09-04) and a connected
+  managed Dotloop account; the approved artifact content source for the upload.
+- S108: Admin-entered property preapproval amounts (the record and its Admin control are shipped).
 - S36: derives its saved request and copied source packet from current approved state.
 
 ## Safety invariants

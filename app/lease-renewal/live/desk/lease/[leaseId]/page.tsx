@@ -19,7 +19,6 @@ import {
   OPERATING_SHEET_TAB,
   liveOperatingSheetId,
 } from "@/lib/lease-renewal/sheet-writeback/live";
-import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { projectWorkspaceAttemptSummary } from "@/lib/lease-renewal/execution/workspace-continuation";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
@@ -265,11 +264,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const sheetEffects = sheetEffectsRead
     ? renewalAuxiliaryValue(sheetEffectsRead, null)
     : null;
-  // S107: reconcile only this lease's orphaned confirmed attempts, read-only, then project one
-  // summary. A reconcile that cannot prove an outcome leaves the attempt untouched.
+  // S107: project this lease's confirmed attempts read-only. An orphaned attempt names the
+  // Admin-gated reconcile in its phase panel as the next action; the page load itself settles
+  // nothing and writes nothing.
   const attemptSummaryRead = await readRenewalAuxiliary("attempt_summary", () =>
     projectWorkspaceAttemptSummary({
-      descriptor: requireEnvironmentDescriptor(),
       leaseId,
       rentvineProposal: writebackProposal,
       sheetProposal: sheetProposal,

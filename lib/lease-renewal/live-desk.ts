@@ -16,6 +16,7 @@
 //
 // Pure over injected config (defaults to env), with no Date.now() — the read timestamp is an input.
 
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import {
   RENTVINE_SOURCE,
@@ -1115,7 +1116,7 @@ export async function loadLiveRenewalDesk(
     );
     const cohort = classifyRenewalCohort(views, {
       windows,
-      referenceDateIso: readTimestamp.slice(0, 10),
+      referenceDateIso: businessDateIso(readTimestamp),
       termReviews,
     });
     // S82: one shared guidance attachment so every row carries rent/status/blocker/action truth.
@@ -1390,7 +1391,7 @@ export async function loadLiveRenewalLeaseWorkspace(
     const windows: DateWindow[] = [buildRenewalDeskWindow(readTimestamp.slice(0, 10))];
     const classification = classifyRenewalCohort([view], {
       windows,
-      referenceDateIso: readTimestamp.slice(0, 10),
+      referenceDateIso: businessDateIso(readTimestamp),
       ...(termReview ? { termReviews: new Map([[leaseId, termReview]]) } : {}),
     }).classifications[0];
     // S103: a month-to-month lease keeps an inspection-only workspace so its term, anchor, and

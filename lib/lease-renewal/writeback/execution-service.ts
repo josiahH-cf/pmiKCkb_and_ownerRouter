@@ -9,6 +9,7 @@
 // receipt. Provider receipt persistence precedes any app projection; a projection failure after
 // provider success reconciles the projection and never issues another provider write.
 
+import { RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS } from "@/lib/lease-renewal/execution/reconcile-age";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type {
@@ -116,7 +117,7 @@ export interface RenewalWritebackDependencies {
   now?: () => number;
 }
 
-const RECONCILE_MIN_AGE_MS = 2 * 60 * 1_000;
+const RECONCILE_MIN_AGE_MS = RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS;
 // The live provider answers a deleted/absent recurring-charge detail GET with HTTP 400 (verified
 // 2026-09-02 against the deleted proof charge); 404 stays accepted for conventional not-found.
 // Absence is never concluded from this status alone: every delete check also requires the id to be
@@ -921,7 +922,11 @@ export class RenewalWritebackService {
       receipt: record.receipt!,
       duplicate: true,
       executionId,
-      ...this.createdChargeIdOf(record.receipt!),
+      // Only a create ever created a charge; an update receipt carries the same provider-ref
+      // prefix, and replaying it must not report a creation that never happened.
+      ...(effect.effect.kind === "recurring_charge_create"
+        ? this.createdChargeIdOf(record.receipt!)
+        : {}),
     };
   }
 

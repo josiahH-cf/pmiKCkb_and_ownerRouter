@@ -86,7 +86,11 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
       leaseId: "L1",
       addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
       query: { bedrooms: 3, bathrooms: 2.5, squareFootage: 1400 },
-      baseRent: { status: "verified", value: 1250, sourcePath: "unit.rent" },
+      baseRent: {
+        status: "verified",
+        value: 1250,
+        sourcePath: "lease detail baseRentAmount",
+      },
       trendPostalCode: "64118",
     });
   });

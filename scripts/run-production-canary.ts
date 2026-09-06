@@ -7,6 +7,7 @@ import {
   PRODUCTION_ASSURANCE_SCHEMA_VERSION,
   addDiagnostic,
   classifyBrowserSignal,
+  classifyDeniedRouteOutcome,
   createAssuranceDeadline,
   closeGuardedManagedBrowser,
   emptyDiagnosticCounts,
@@ -194,7 +195,13 @@ async function runProductionCanaryWithin(
           timeout: remainingForRoute,
         });
         await page.waitForTimeout(750);
-        const assertion = await assertRouteOutcome(page, definition, options.role);
+        const assertion = await assertRouteOutcome(
+          page,
+          definition,
+          options.role,
+          options.origin,
+          response,
+        );
         passed = assertion.passed;
         if (!assertion.passed) recordSignal({ kind: assertion.diagnostic });
         if (
@@ -394,17 +401,38 @@ function attachPageDiagnostics(
   });
 }
 
+/**
+ * Every request URL of one navigation in order, ending with the final response URL. Playwright hands
+ * back the last response; its request chain (`redirectedFrom`) carries each earlier hop.
+ */
+function navigationHopUrls(page: Page, response: Response | null): string[] {
+  const hops: string[] = [];
+  let request = response?.request() ?? null;
+  while (request) {
+    hops.unshift(request.url());
+    request = request.redirectedFrom();
+  }
+  const finalUrl = response?.url() ?? page.url();
+  if (hops.length === 0 || hops[hops.length - 1] !== finalUrl) hops.push(finalUrl);
+  return hops;
+}
+
 async function assertRouteOutcome(
   page: Page,
   definition: CanaryRouteDefinition,
   role: AssuranceRole,
+  origin: string,
+  response: Response | null,
 ): Promise<RouteAssertion> {
   if (definition.expectedOutcome === "denied") {
-    const final = new URL(page.url());
-    return final.pathname === "/sign-in" &&
-      final.searchParams.get("error") === "forbidden"
-      ? { passed: true }
-      : { passed: false, diagnostic: "auth_mismatch" };
+    // The guard answers a forbidden route with a redirect to `/sign-in?error=forbidden`, and the
+    // sign-in page forwards a live session on to `/`. The denial is proven by that exact hop in the
+    // navigation chain, never by where the browser finally rests.
+    return classifyDeniedRouteOutcome({
+      origin,
+      deniedPath: definition.path,
+      hopUrls: navigationHopUrls(page, response),
+    });
   }
   if (new URL(page.url()).pathname === "/sign-in") {
     return { passed: false, diagnostic: "auth_mismatch" };

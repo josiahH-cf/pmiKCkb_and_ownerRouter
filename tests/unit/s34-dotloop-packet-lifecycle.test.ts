@@ -72,6 +72,8 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
     expect(created.loopRef).toBe("loop-1");
 
     const loop = fake.loops.get("loop-1")!;
+    // Only the documented `loop-it` create accepts a template; the plain create documents none.
+    expect(fake.createPaths).toEqual(["/public/v2/loop-it?profile_id=profile-1"]);
     expect(loop.name).toBe(dotloopLoopNameFor("snapshot-1"));
     expect(loop.name.startsWith(DOTLOOP_LOOP_NAME_PREFIX)).toBe(true);
     expect(loop.templateId).toBe("template-1");
@@ -205,6 +207,82 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
     fake.archive("loop-1");
     await expect(provider.readLoop("loop-1")).resolves.toMatchObject({ active: false });
     await expect(provider.readLoop("loop-missing")).resolves.toBeNull();
+  });
+
+  it("reads participants from the provider and attests the template only through our exact name", async () => {
+    const provider = providerFor();
+    await provider.createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    // Someone removes a participant in Dotloop: the readback reflects the provider, not the request.
+    fake.loops.get("loop-1")!.participants.pop();
+    await expect(provider.readLoop("loop-1")).resolves.toMatchObject({
+      participantRefs: ["tenant@example.test"],
+    });
+    // A loop that is not ours (another name) cannot attest our template.
+    const foreign = fake.seedLoop({ name: "Some other loop", status: "PRE_OFFER" });
+    await expect(provider.readLoop(foreign.id)).resolves.toMatchObject({
+      loopRef: foreign.id,
+      templateRef: "",
+    });
+  });
+
+  it("pages through every documented batch before deciding a loop does not exist (AC-S34-4)", async () => {
+    // 120 unrelated loops sit ahead of ours; a single 100-loop batch would miss it and create twice.
+    for (let index = 0; index < 120; index += 1) {
+      fake.seedLoop({ name: `Unrelated loop ${index}`, status: "PRE_OFFER" });
+    }
+    const provider = providerFor();
+    const first = await provider.createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    expect(fake.createCount).toBe(1);
+    const again = await providerFor().createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    expect(again.loopRef).toBe(first.loopRef);
+    expect(fake.createCount).toBe(1);
+  });
+
+  it("refreshes once and retries when the document upload meets an expired token", async () => {
+    const client = new DotloopClient({
+      transport: fake,
+      tokens: { accessToken: async () => "access-1", refresh: async () => "access-2" },
+      sleep: async () => undefined,
+    });
+    const provider = new LiveDotloopProvider({
+      client,
+      selection: SELECTION,
+      participants: PARTICIPANTS,
+      propertyAddress: ADDRESS,
+      packetSnapshotId: "snapshot-1",
+      artifactContent: async () => ({
+        fileName: "renewal.pdf",
+        contentType: "application/pdf",
+        content: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
+      }),
+    });
+    await provider.createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    fake.rejectNextUploadWith401 = true;
+    const uploaded = await provider.uploadDocument({
+      loopRef: "loop-1",
+      documentRef: "artifact-1",
+      documentType: "renewal_agreement",
+      contentHash: "a".repeat(64),
+      idempotencyKey: "idem-doc-1",
+    });
+    expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);
+    expect(fake.uploadAuthorizations).toEqual(["Bearer access-1", "Bearer access-2"]);
   });
 });
 

@@ -6,6 +6,8 @@
 // receives the bounded unsupported response naming what can be asked. Nothing here reads a record,
 // writes, or reaches a provider.
 
+import { businessMonth } from "@/lib/lease-renewal/business-calendar";
+
 export const ASSISTANT_QUERY_VERSION = "assistant-query/v1";
 
 export const ASSISTANT_INTENTS = [
@@ -88,14 +90,7 @@ function shiftMonth(monthIso: string, delta: number): string {
  * so `next month` must mean the same month on both surfaces.
  */
 export function kansasCityMonth(nowIso: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(new Date(nowIso));
-  const year = parts.find((part) => part.type === "year")?.value ?? "";
-  const month = parts.find((part) => part.type === "month")?.value ?? "";
-  return `${year}-${month}`;
+  return businessMonth(nowIso);
 }
 
 /** An exact `YYYY-MM` in the question is itself a period signal, with or without a period word. */
@@ -129,8 +124,14 @@ export function matchAssistantIntent(
     return { kind: "matched", intent: "renewal.blocked", filters: {} };
   }
   const explicitMonth = EXPLICIT_MONTH.test(text);
+  const month = parseMonth(text, nowIso);
+  const workToday = hits(text, WORK_TERMS) && hits(text, TODAY_TERMS);
+  // A "today" question about the operator's own work is the work intent even when it mentions
+  // renewals ("what renewal tasks are due today"); only a month phrase makes it a period question.
+  if (workToday && month === null && !explicitMonth) {
+    return { kind: "matched", intent: "work.assigned_today", filters: {} };
+  }
   if (renewal && (explicitMonth || hits(text, PERIOD_TERMS))) {
-    const month = parseMonth(text, nowIso);
     return month
       ? { kind: "matched", intent: "renewal.window", filters: { month } }
       : {
@@ -139,7 +140,7 @@ export function matchAssistantIntent(
             "Which month do you mean? Say this month, next month, or an exact month like 2026-10.",
         };
   }
-  if (hits(text, WORK_TERMS) && hits(text, TODAY_TERMS)) {
+  if (workToday) {
     return { kind: "matched", intent: "work.assigned_today", filters: {} };
   }
   return { kind: "unsupported" };

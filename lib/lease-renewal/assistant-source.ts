@@ -5,6 +5,7 @@
 // only one orchestration. It reads live sources and supporting stores read-only; it performs no
 // write, no draft, no send, and no provider effect.
 
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { listCurrentRenewalPacketSnapshots } from "@/lib/firestore/lease-document-packet-snapshots";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
@@ -45,10 +46,9 @@ export async function runRenewalAssistantSource(
   now: Date,
   sourceRefreshAfter: number | null = null,
 ) {
-  const window = buildRenewalDeskWindow(
-    now.toISOString().slice(0, 10),
-    RENEWAL_DESK_WINDOW_DAYS,
-  );
+  // The window opens on the business calendar day (America/Chicago), the same day the assistant's
+  // period parser and the workspace reference date read, so the three never disagree at a month end.
+  const window = buildRenewalDeskWindow(businessDateIso(now), RENEWAL_DESK_WINDOW_DAYS);
   const liveConfig = buildLiveRenewalConfig();
   let leaseSnapshotResult: LiveLeaseSnapshotResult | undefined;
   if (liveConfig.ok) {

@@ -10,6 +10,11 @@ const mocks = vi.hoisted(() => ({
   recordLeaseTermReview: vi.fn(),
   getLeaseTermReview: vi.fn(),
   listLeaseTermReviewActivity: vi.fn(),
+  readLeaseTermSource: vi.fn(),
+}));
+
+vi.mock("@/lib/lease-renewal/lease-term-source", () => ({
+  readLeaseTermSource: mocks.readLeaseTermSource,
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => {
@@ -54,6 +59,10 @@ function post(body: unknown) {
 
 beforeEach(() => {
   mocks.requireCapabilityInSpace.mockResolvedValue(editor);
+  mocks.readLeaseTermSource.mockResolvedValue({
+    status: "ok",
+    sourceFingerprint: FINGERPRINT,
+  });
   mocks.recordLeaseTermReview.mockResolvedValue({
     id: "41",
     version: 1,
@@ -163,5 +172,48 @@ describe("S103 term review route", () => {
         /rentvine|googleapis|google_sheets|gmail|dotloop|action-gate|executeAction/i,
       );
     }
+  });
+});
+
+describe("S103 AC-S103-4: the review is bound to the lease view the server observes", () => {
+  const body = {
+    lease_id: "41",
+    term: "fixed_term",
+    reason: "Provider detail read failed; lease reviewed in RentVine.",
+    source_fingerprint: FINGERPRINT,
+  };
+
+  it("refuses an unknown lease id before writing anything", async () => {
+    mocks.readLeaseTermSource.mockResolvedValue({ status: "lease_not_found" });
+    const response = await POST(post({ ...body, lease_id: "no-such-lease-999999" }));
+    expect(response.status).toBe(404);
+    expect(mocks.recordLeaseTermReview).not.toHaveBeenCalled();
+  });
+
+  it("refuses a fingerprint the server does not observe now", async () => {
+    mocks.readLeaseTermSource.mockResolvedValue({
+      status: "ok",
+      sourceFingerprint: `ltf1_${"b".repeat(64)}`,
+    });
+    const response = await POST(post(body));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: expect.stringMatching(/changed since this page loaded/),
+    });
+    expect(mocks.recordLeaseTermReview).not.toHaveBeenCalled();
+  });
+
+  it("refuses when the live source cannot be read, rather than trusting the browser", async () => {
+    mocks.readLeaseTermSource.mockResolvedValue({ status: "unavailable" });
+    const response = await POST(post(body));
+    expect(response.status).toBe(409);
+    expect(mocks.recordLeaseTermReview).not.toHaveBeenCalled();
+  });
+
+  it("records the review only when the served view's fingerprint matches", async () => {
+    const response = await POST(post(body));
+    expect(response.status).toBe(200);
+    expect(mocks.readLeaseTermSource).toHaveBeenCalledWith("41");
+    expect(mocks.recordLeaseTermReview).toHaveBeenCalledTimes(1);
   });
 });
