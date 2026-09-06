@@ -21,12 +21,13 @@ Git and provider/app receipts.
 The current serving release completed exact candidate identity/configuration, smoke, promotion, and
 stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51
 preflight identity-read fix, S103, S104, S105, S106, S34, S107, S108, S109, S110, S111, the owner's
-reviewed troubleshooting links, and the 2026-09-06 adversarial re-verification of S97-S111 (recorded
-per suite in `docs/facts.md`) are committed through `5040818` and deployed as zero-traffic candidate
-`pmi-kc-app-rmtq2goev-157da39536d0` from commit `5040818e07fd0b9d74ed71db4006989438f71879`; its anonymous
-smoke passed at the exact commit, revision, tag, and service, its recaptured configuration
-fingerprint is `sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`, traffic
-readback still shows `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
+reviewed troubleshooting links, the 2026-09-06 adversarial re-verification of S97-S111 (recorded
+per suite in `docs/facts.md`), and the independent review of that re-verification (`7b3fdad`) are
+committed through `7b3fdad` and deployed as zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`
+from commit `7b3fdadac134550c24b029034753a38f16e4096b`; its anonymous smoke passed at the exact
+commit, revision, tag, and service, its configuration fingerprint is
+`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`, traffic readback still shows
+`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
 
 ## Delivered application baseline
 

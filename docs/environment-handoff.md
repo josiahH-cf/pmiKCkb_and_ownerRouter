@@ -77,10 +77,10 @@ image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized c
 provider-generated per-build provenance metadata separately.
 
 Current zero-traffic candidate (deployed 2026-09-06 from commit
-`5040818e07fd0b9d74ed71db4006989438f71879`): revision `pmi-kc-app-rmtq2goev-157da39536d0`, tag
-`cand-rmtq2goev-157da39536d0`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
+`7b3fdadac134550c24b029034753a38f16e4096b`): revision `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, tag
+`cand-rmtq71kjl-bff41bbdb5fa`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
 serving 100%), configuration fingerprint
-`sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`. Its anonymous smoke passed (root 307,
+`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`. Its anonymous smoke passed (root 307,
 sign-in 200, protected 307, version 200 at the exact commit and revision) and its hostname is the only
 candidate entry in the authorized sign-in domains. It is not promoted; the S51 candidate assurance
 below has not run.

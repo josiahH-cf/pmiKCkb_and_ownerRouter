@@ -14,18 +14,18 @@ state on the date above.
 - Production still serves `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` from commit
   `d243911cb20ffb01773072c0e27c723648eeea34` at 100% traffic. Immediate rollback is
   `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
-- Everything on `main` through `5040818` (the remediation slice, S102-S111, the rewritten S34,
-  the owner's three reviewed troubleshooting links, and the 2026-09-06 re-verification corrections)
-  is exact-SHA CI green and deployed as zero-traffic candidate `pmi-kc-app-rmtq2goev-157da39536d0` (tag
-  `cand-rmtq2goev-157da39536d0`, created 2026-09-06 17:14 UTC). Its anonymous read-only smoke passed at
-  the exact commit, revision, tag, and service; its revision environment reads back Production + Live
-  with the write switch on and the managed runtime identity; its recaptured configuration fingerprint
-  is `sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`; and its hostname is the only
-  candidate entry in the authorized sign-in domains (the superseded `rmtpqneki` entry was removed).
-  Traffic readback shows the serving revision unchanged at 100%. It supersedes every earlier
-  candidate.
+- Everything on `main` through `7b3fdad` (the remediation slice, S102-S111, the rewritten S34, the
+  owner's three reviewed troubleshooting links, the 2026-09-06 re-verification corrections, and the
+  adversarial review of that re-verification) is exact-SHA CI green and deployed as zero-traffic
+  candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa` (tag `cand-rmtq71kjl-bff41bbdb5fa`, created 2026-09-06 19:22 UTC).
+  Its anonymous read-only smoke passed at the exact commit, revision, tag, and service; its revision
+  environment reads back Production + Live with the write switch on and the managed runtime
+  identity; its configuration fingerprint is `sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`; and its
+  hostname is the only candidate entry in the authorized sign-in domains (the superseded
+  `rmtq2goev` entry was removed). Traffic readback shows the serving revision unchanged at 100%. It
+  supersedes every earlier candidate.
 - The 2026-09-06 adversarial re-verification of S97 through S111 is committed as `5040818` (exact-SHA
-  CI green) and carried by that candidate. Each suite's present truth is its `docs/facts.md` row;
+  CI green) and, with the independent adversarial review of it (`7b3fdad`), carried by that candidate. Each suite's present truth is its `docs/facts.md` row;
   the corrections that changed code are: the Editor canary denial check (could never pass; now
   proved from the navigation chain), the configuration fingerprint (now excludes the output-only
   revision fields the control plane can restamp; recaptured above), the S51 oracle (`periodic_review` derived
@@ -57,13 +57,13 @@ state on the date above.
 
 ## Next exact action
 
-Promotion of `pmi-kc-app-rmtq2goev-157da39536d0`. It waits only on the owner's human step: the two managed
+Promotion of `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. It waits only on the owner's human step: the two managed
 browser profiles (one Admin; one managed account with no role claim, which the application resolves
-to `Editor`) signed in on BOTH `https://cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the
+to `Editor`) signed in on BOTH `https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the
 canonical origin (`docs/open-blockers.md` `B-AUTH2` has the exact commands). When the owner reports
 that, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
-`--expected-commit=5040818e07fd0b9d74ed71db4006989438f71879`, `--expected-revision=pmi-kc-app-rmtq2goev-157da39536d0`, and
-`--expected-config-fingerprint=sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`,
+`--expected-commit=7b3fdadac134550c24b029034753a38f16e4096b`, `--expected-revision=pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, and
+`--expected-config-fingerprint=sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`,
 promote the exact revision, and complete the 300,000 ms observation. Promotion inputs are NOT
 satisfied until that receipt exists. Until then, work the agent-owned list below; a new candidate is
 needed only if runtime code changes.

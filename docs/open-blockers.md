@@ -68,9 +68,9 @@ both profile directories must be passed in their `/mnt/c/...` form, must be abso
 from each other, and must sit outside the repository.
 
 Everything else the receipt run needs is in hand: the live flag, the candidate origin
-`https://cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app`, the expected commit `5040818`, the
-expected revision `pmi-kc-app-rmtq2goev-157da39536d0`, the recaptured configuration fingerprint
-`sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`, an internal operator
+`https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app`, the expected commit `7b3fdad`, the
+expected revision `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, the recaptured configuration fingerprint
+`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`, an internal operator
 address, a fresh receipt path, and the existing predecessor revision.
 Sign in against the origin of the candidate that will actually be
 promoted: each candidate gets its own hostname and its own authorized-domain entry, so a profile
@@ -170,7 +170,7 @@ Do not open either Dotloop action key as part of this task. Key activation is a 
 | Id      | Was blocking        | Cleared by                                                                                                                                                                                                                                                                    |
 | ------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | B-MON1  | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.                                                                                                                                                              |
-| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured (recaptured 2026-09-06 for `pmi-kc-app-rmtq2goev-157da39536d0` after the output-only-field correction: `sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`), so the receipt run does not derive it. |
+| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured (recaptured 2026-09-06 for `pmi-kc-app-rmtq71kjl-bff41bbdb5fa` after the output-only-field correction: `sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`), so the receipt run does not derive it. |
 | B-DEP1  | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions.                                                                                                                                                   |
-| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is the only candidate entry in the authorized domains, read back from the Identity Platform config on 2026-09-06; the superseded `cand-rmtpqneki-e799a49fc597` entry was removed.   |
+| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is the only candidate entry in the authorized domains, read back from the Identity Platform config on 2026-09-06; the superseded `cand-rmtq2goev-157da39536d0` entry was removed.   |
 | B-MNT2  | S109 resource offer | The owner approved three reviewed links on 2026-09-04, one each for Electrical, HVAC, and Plumbing. Appliance and General stay empty on purpose.                                                                                                                              |

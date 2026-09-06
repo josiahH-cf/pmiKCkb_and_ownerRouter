@@ -102,8 +102,8 @@ the current code and live service. Date-stamped history is not authority.
   S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
   assurance are committed (`e6b76f9`) and, together with the owner's 2026-09-03 renewal-completion
   program (S102-S111 and the rewritten S34) and the 2026-09-06 re-verification corrections,
-  deployed as zero-traffic candidate `pmi-kc-app-rmtq2goev-157da39536d0` from commit
-  `5040818e07fd0b9d74ed71db4006989438f71879`; its anonymous smoke passed, the S51 monitoring set
+  deployed as zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa` from commit
+  `7b3fdadac134550c24b029034753a38f16e4096b`; its anonymous smoke passed, the S51 monitoring set
   reads `READY`, and promotion waits only on the two managed browser profiles signed in on both
   the candidate and canonical origins. The program executes before S36 and the S88-S95 program.
   S87-S95 and S101 remain specification-only desired behavior.
