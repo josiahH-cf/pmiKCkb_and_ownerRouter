@@ -45,7 +45,8 @@ Autonomous chaining of writes and blind retry stay outside the product.
 **Actors and entry conditions.**
 
 The same actors and gates as S97, S98, S34, and the renewal draft contracts. Continuation starts only
-after an exact human confirmation. Read-only reconciliation runs for any Renewals-space staff load.
+after an exact human confirmation. A workspace load projects the durable attempts read-only for any Renewals-space staff member;
+reconciliation itself is only the Admin-gated route control.
 
 **What it is / how it functions.**
 
@@ -67,7 +68,8 @@ after an exact human confirmation. Read-only reconciliation runs for any Renewal
 
 **In scope / out of scope.**
 
-In scope: detached completion, load-time reconciliation, attempt summary, tests for interruption and
+In scope: detached completion, load-time read-only projection of orphaned attempts, attempt
+summary, tests for interruption and
 duplicate delivery. Out of scope: a queue vendor, worker, scheduler, autonomous retry, or
 model-triggered effects.
 
@@ -96,8 +98,10 @@ S97/S98/S34 execution routes and stores, workspace card, desk guidance, S111 pro
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S107-1** — An attempt interrupted after the provider call is reconciled on the next load to
-  `succeeded` with its receipt, or to `ambiguous` with a visible next action.
+- **BEH-S107-1** — An attempt interrupted after the provider call is shown on the next load as
+  orphaned, with the Admin-gated reconcile as its exact next action; after an Admin reconciles it, it
+  reads `succeeded` with its receipt or `ambiguous` with a visible next action. The load itself
+  changes no record.
 - **BEH-S107-2** — Two concurrent confirmations, or one replayed request, produce one provider
   effect and one receipt.
 - **BEH-S107-3** — A lease in `ambiguous` state does not change another lease's status or actions.
@@ -149,7 +153,8 @@ After S105 and S34; before S111.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** detached completion, load-time reconciliation, attempt summary, fixtures.
+- **Deliverable now:** detached completion, load-time read-only projection, attempt summary,
+  fixtures.
 - **Consumes, but does not assume:** S34 execution records; absent records reconcile nothing.
 - **Externally blocked effect:** none.
 - **Produces for downstream suites:** the attempt summary S111 verifies.

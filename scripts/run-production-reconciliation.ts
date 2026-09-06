@@ -789,10 +789,23 @@ export function projectIndependentExpectedRentState(input: {
   };
 }
 
-function reconciliationReferenceDate(timestamp: string): string {
+/**
+ * The oracle re-derives the business calendar day (America/Chicago) on its own, without importing
+ * the app's helper: the desk, the workspace, and the assistant all read that calendar, and an oracle
+ * on the UTC day would sit one month ahead of the served window for the last evening hours of every
+ * month and report a false mismatch.
+ */
+export function reconciliationReferenceDate(timestamp: string): string {
   const parsed = Date.parse(timestamp);
   if (!Number.isFinite(parsed)) throw new Error("reconciliation_time_invalid");
-  return new Date(parsed).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(parsed));
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 export function classifyIndependentRenewalDisposition(input: {

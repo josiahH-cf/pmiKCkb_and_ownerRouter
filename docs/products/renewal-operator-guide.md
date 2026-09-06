@@ -45,7 +45,7 @@ read one projection.
 - **Unit listed rent** is a reference from the unit record. It is labelled separately and it is never
   the tenant's rent.
 - **Term** is fixed term, month to month, or needs review. A month-to-month lease shows the date its
-  next periodic review is due, counted twelve months from the month-to-month start date. If the app
+  next periodic review is due: the next yearly anniversary of the month-to-month start date. If the app
   has no start date it says so rather than inventing one.
 - **Renewal timing**, **blocker**, and **next action** all come from the same guidance the table row
   used, so the two can never disagree.
@@ -79,8 +79,8 @@ attempted, how it ended, any blocker, and what to do next.
 
 - **Recorded with a receipt** means the change is done and the app has the provider's own receipt.
 - **Still finishing** means the attempt is in flight. Reload in a moment.
-- **Result uncertain** means the app could not confirm the outcome. Reconcile it from its exact
-  receipt before confirming anything again. The app never retries by itself, and it never guesses.
+- **Result uncertain** means the app could not confirm the outcome. Ask an Admin to reconcile it from
+  its exact receipt in the phase panel before anything is confirmed again. The app never retries by itself, and it never guesses.
 
 ## Where results appear
 

@@ -235,7 +235,9 @@ describe("external execution fail-closed boundary", () => {
     ]) {
       const definition = LEASE_EXECUTION_DEFINITION_MAP.get(key)!;
       expect(definition.dependsOn).toEqual([]);
-      expect(definition.correction).toContain("no route operation executes it yet");
+      expect(definition.correction).toContain(
+        "refused as provider_capability_unavailable until a stable-row seam exists",
+      );
     }
   });
 

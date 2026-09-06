@@ -55,8 +55,10 @@ only the question text.
    and filters to tasks assigned to the actor that are open, due today or overdue, or blocked.
    `renewal.blocked` and `renewal.window` call a new server-only `loadRenewalAssistantSource` that
    extracts the current desk-page orchestration (progress, notice rules, resolutions, packet
-   snapshots, follow-up sources) and returns the same `DeskLeaseRow` projection, filtered by
-   `isBlocked` or by end date or `nextReviewIso` within the requested month.
+   snapshots, follow-up sources) and returns the same `DeskLeaseRow` projection, filtered by the
+   desk's own exported predicates: `isBlocked`, or lease end month equal to the requested month (a
+   periodic-review anchor never matches the desk `month` filter, so those rows sit under the desk's
+   Periodic review scope and not in a month answer).
 3. **Result envelope.** `{ intent, items[], appliedFilters, completeness, sourceState, links }`
    where each item carries the record id, title, the most useful status or date, blocker labels,
    and an exact owning link (`/work`, `/lease-renewal/live/desk?...v2`, workspace href).
@@ -104,8 +106,8 @@ Dashboard/Ask form, new assistant route, work accountability read, desk-page orc
 - **BEH-S110-1** — `What work is assigned to me today?` returns the actor's My Work records and
   links.
 - **BEH-S110-2** — `What renewal blockers do I currently have?` returns the desk's blocked rows with
-  the same blocker labels; `next month` returns the same rows as the desk `month` filter including
-  periodic-review rows.
+  the same blocker labels; `next month` returns exactly the rows the desk `month` filter shows
+  (lease end month; periodic-review rows are not month rows on the desk either).
 - **BEH-S110-3** — Phrasing variations map to the same intent; a source failure reports
   `unavailable`; no write occurs.
 
@@ -123,8 +125,9 @@ supported questions.
   Kansas City calendar, an ambiguous period asks exactly one clarification, and anything else returns
   the bounded note naming the three questions. The work adapter returns only the actor's own open
   tasks that are due today, overdue, or blocked, each with its `/work` link; the renewal adapters
-  return the desk's blocked rows with the same blocker labels, and a month query returns rows by end
-  date or by the S103 periodic-review anchor. A failed renewal read reports `unavailable` and never
+  return the desk's blocked rows with the same blocker labels, and a month query returns rows by
+  lease end month exactly as the desk `month` filter does (periodic-review rows are excluded there
+  too). A failed renewal read reports `unavailable` and never
   `no renewals`, a degraded read reports `partial`, and an actor without Renewals access receives no
   lease id, address, count, or label. The route body accepts only the question text. The rehearsal
   browser asked all three questions plus an unsupported one on the Dashboard and no write route was

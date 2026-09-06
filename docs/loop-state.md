@@ -27,8 +27,8 @@ state on the date above.
 - The 2026-09-06 adversarial re-verification of S97 through S111 is committed as `5040818` (exact-SHA
   CI green) and carried by that candidate. Each suite's present truth is its `docs/facts.md` row;
   the corrections that changed code are: the Editor canary denial check (could never pass; now
-  proved from the navigation chain), the configuration fingerprint (now excludes every documented
-  output-only revision field; recaptured above), the S51 oracle (`periodic_review` derived
+  proved from the navigation chain), the configuration fingerprint (now excludes the output-only
+  revision fields the control plane can restamp; recaptured above), the S51 oracle (`periodic_review` derived
   independently), the month-to-month review date (rolls forward to the current anniversary), the
   term-review route (refuses an unknown lease or a changed view), the comp query basis (lease-detail
   rent), the workspace next-action card (renders the shared guidance), the S107 load-time pass (now
@@ -62,7 +62,7 @@ browser profiles (one Admin; one managed account with no role claim, which the a
 to `Editor`) signed in on BOTH `https://cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the
 canonical origin (`docs/open-blockers.md` `B-AUTH2` has the exact commands). When the owner reports
 that, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
-`--expected-commit=5040818…`, `--expected-revision=pmi-kc-app-rmtq2goev-157da39536d0`, and
+`--expected-commit=5040818e07fd0b9d74ed71db4006989438f71879`, `--expected-revision=pmi-kc-app-rmtq2goev-157da39536d0`, and
 `--expected-config-fingerprint=sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`,
 promote the exact revision, and complete the 300,000 ms observation. Promotion inputs are NOT
 satisfied until that receipt exists. Until then, work the agent-owned list below; a new candidate is
@@ -80,8 +80,16 @@ Build in this order; each is fail-first, to its external seam, and each needs a 
    loop link onto the packet execution projection. Keys stay closed.
 3. S100 link path: an exact, previewed, confirmed operation that binds an existing RentVine work
    order to a ticket (read-only against RentVine), so the Wednesday answer can be applied.
-4. S98: a route operation for the service-defined reversal, or retire the descriptor claim.
+4. S98: the provider-owned stable-row and expected-generation seam that lets the route's reversal
+   operation stop refusing `provider_capability_unavailable`, or retire the descriptor claim.
 5. S108: a ticket-level property key so preapproval routing does not wait for a work-order read.
+6. S34: make the document readback provider-verified (name/size from the provider) or record
+   `presence_only` on the receipt instead of echoing the app's own hash.
+7. S110: a month outside the read window (`last month`, a far-future `YYYY-MM`) answers `complete`
+   with no rows; carry the window bounds with the read and answer a clarification instead.
+8. Rehearsal server: `/` and intermittently the desk answer 500 in `next dev` (Next 16.2.12, Node
+   24.18: `ArrayBuffer is not detachable`), reproduced at `e6eb315`; pin the smoke runner's Node or
+   take the framework fix, then re-run the Dashboard and guide-control browser smokes.
 
 ## Canonical feature queue
 

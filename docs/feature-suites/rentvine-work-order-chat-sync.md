@@ -3,7 +3,8 @@
 
 # S100 — RentVine work-order chat sync and resident reply draft
 
-> Status: **BLOCKED solely on resident-draft proof and activation.** Manual chat sync is complete,
+> Status: **BLOCKED on resident-draft proof and activation, and on an app-side operation that links
+> an existing RentVine work order to a ticket.** Manual chat sync is complete,
 > live-proven, open, deployed, and read back. The resident-reply draft implementation and UI are
 > deployed fail-closed; its exact key remains closed until a synchronized thread has one mapped
 > resident with a verified email for bounded live proof and protected activation.

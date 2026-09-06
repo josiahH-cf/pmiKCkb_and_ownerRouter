@@ -468,4 +468,16 @@ describe("S111 no check passes by writing its own answer (AC-S111-1)", () => {
       expect(code, String(forbidden)).not.toMatch(forbidden);
     }
   });
+
+  it("would catch a network call or a store write (positive control for the scan)", () => {
+    // The scan once carried a raw backspace byte where the word boundary belonged and could never
+    // match; this control fails if the patterns ever stop matching real code again. The sample
+    // calls are assembled at runtime so this file's own source never contains them.
+    const fetchCall = ["const body = await ", "fetch", "(url);"].join("");
+    const transactionCall = ["await db", "runTransaction(async () => {});"].join(".");
+    const setCall = ["await ref", "set({ a: 1 });"].join(".");
+    expect(fetchCall).toMatch(/\bfetch\(/);
+    expect(transactionCall).toMatch(/\.runTransaction\(/);
+    expect(setCall).toMatch(/\.set\(/);
+  });
 });

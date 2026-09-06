@@ -3,10 +3,13 @@ import { createHash } from "node:crypto";
 export const MONITORING_INGESTION_DELAY_MS = 2 * 60 * 1_000;
 export const REVISION_CONFIGURATION_FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
-// Every field the Cloud Run v2 Revision reference documents as "Output only". `etag` changes
-// whenever the control plane touches the resource and `scalingStatus` appears only once instances
-// run, so a digest that kept either would drift between the zero-traffic capture and the
-// post-promotion read and fire a false `configuration_unverified` rollback.
+// The output-only Revision fields the control plane can change after the revision exists (`etag`
+// changes whenever the control plane touches the resource, `scalingStatus` appears only once
+// instances run) plus the output-only identity and audit fields. Template-derived `labels` and
+// `annotations` are also documented output-only on a Revision but stay in the digest: they describe
+// configuration and are fixed when the revision is created. A digest that kept a mutable field would
+// drift between the zero-traffic capture and the post-promotion read and fire a false
+// `configuration_unverified` rollback.
 const REVISION_OUTPUT_ONLY_FIELDS = new Set([
   "client",
   "clientVersion",

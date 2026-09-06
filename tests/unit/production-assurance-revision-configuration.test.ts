@@ -299,7 +299,7 @@ describe("revision-bound operating Renewal Sheet identity", () => {
     ).toThrow("revision_sheet_identity_invalid");
   });
 
-  it("ignores every documented output-only revision field, including etag and scaling status", () => {
+  it("ignores the output-only revision fields the control plane can restamp, including etag and scaling status", () => {
     const value = revision();
     const baseline = fingerprintRevisionRuntimeConfiguration(value);
     // The zero-traffic capture never sees `scalingStatus`; the post-promotion read does, and the

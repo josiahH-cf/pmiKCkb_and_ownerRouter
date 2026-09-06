@@ -11,7 +11,7 @@
 > reads `photos_needed` as a blocker. Public file upload stays forbidden: the recorded conflict is
 > unchanged, and the form states exactly which photos are needed instead. The resident-facing form is
 > `app/maintenance/report`, an inert public shell whose bridge clears the fragment-delivered token
-> before any request. Since 2026-09-06 the life-safety and water terms match whole words only. Any
+> before any request. Since 2026-09-06 the life-safety and water terms match whole words or phrases only (an `s`, `es`, `d`, `ed`, `ing`, or `y` ending still counts, so `smoked` and `leaky` escalate; `smoky` and `gasoline` are listed explicitly). Any
 > extension of the required-evidence table remains an owner input; an empty catalog entry disables
 > only that resource offer.
 

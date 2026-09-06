@@ -595,7 +595,8 @@ describe("lease-renewal-progress store", () => {
     );
     expect(readBack?.ownerOutcome).toMatchObject({ state: "no_response" });
 
-    // The tenant offer is built on the owner's approved terms; it is refused until they answer.
+    // The tenant offer is built on the owner's approved terms; it is refused while the recorded
+    // response is `no_response`.
     await expect(
       recordTenantOfferDraft(editor, LEASE_ID, "draft-1", db as unknown as Firestore),
     ).rejects.toThrow(/not responded/);

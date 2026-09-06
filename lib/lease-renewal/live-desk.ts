@@ -1388,7 +1388,9 @@ export async function loadLiveRenewalLeaseWorkspace(
     // Use the exact current-window rule used by the desk. A lease must not become actionable merely
     // because it was opened: review and out-of-window leases remain inspectable with their original
     // disposition, while definitive skip signals still have no renewal workspace.
-    const windows: DateWindow[] = [buildRenewalDeskWindow(readTimestamp.slice(0, 10))];
+    const windows: DateWindow[] = [
+      buildRenewalDeskWindow(businessDateIso(readTimestamp)),
+    ];
     const classification = classifyRenewalCohort([view], {
       windows,
       referenceDateIso: businessDateIso(readTimestamp),
@@ -1573,7 +1575,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       readiness: evaluateRenewalReadiness({}),
       notice: buildLiveNotice(
         endDateIso,
-        readTimestamp.slice(0, 10),
+        businessDateIso(readTimestamp),
         followUpSources.policy,
         {
           leaseId,

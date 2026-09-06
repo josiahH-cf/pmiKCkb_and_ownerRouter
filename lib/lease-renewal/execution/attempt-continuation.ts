@@ -57,7 +57,7 @@ export interface RenewalAttemptSummary {
   readonly lastAttemptState: ExternalExecutionState | null;
   readonly blocker: string | null;
   readonly nextAction: string;
-  /** Attempts old enough to reconcile on this load. */
+  /** Attempts old enough for an Admin to reconcile; this load only counts and shows them. */
   readonly reconcilableCount: number;
   /** True while any attempt is still in flight; the summary never calls that a failure. */
   readonly inFlight: boolean;
@@ -75,7 +75,7 @@ function ageMs(attempt: RenewalAttemptRecord, nowMs: number): number {
 }
 
 /**
- * The attempts this load may reconcile: a covered renewal effect that was claimed once, is still
+ * The attempts this load surfaces for an Admin's reconcile: a covered renewal effect that was claimed once, is still
  * unresolved, and is older than the minimum age. A younger attempt is left alone.
  */
 export function selectOrphanedRenewalAttempts(
@@ -159,6 +159,8 @@ export interface RenewalAttemptReconciliation {
  * read-only too, and the workspace load injects none at all (it only projects the summary). An
  * observation that throws leaves the attempt unresolved rather than inventing an outcome.
  */
+// No runtime caller since 2026-09-06: proof-only orchestration over an injected operation. Any
+// runtime use must sit behind the Admin-gated reconcile route, never a page load.
 export async function reconcileOrphanedRenewalAttempts(input: {
   readonly leaseId: string;
   readonly attempts: readonly RenewalAttemptRecord[];

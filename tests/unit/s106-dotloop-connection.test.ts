@@ -320,7 +320,11 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
       env: ENV,
       descriptor: PRODUCTION_LIVE,
     });
-    expect(result).toMatchObject({ status: "connection_refused" });
+    expect(result).toMatchObject({
+      status: "connection_refused",
+      reason: "store_refused_record",
+      undestroyedTokenRefs: 0,
+    });
     expect(refusing.created).toHaveLength(0);
     expect(destroyed).toHaveLength(2);
     expect(JSON.stringify(result)).not.toMatch(/access-\d|refresh-\d/);

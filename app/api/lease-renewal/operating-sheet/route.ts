@@ -212,9 +212,10 @@ async function assertProposalCurrent(
 
 /**
  * One governed S98 surface: Editors assemble/save/discard exact typed Sheet proposals; Admins
- * execute and reconcile one effect at a time behind the per-key committed-seed and runtime gates,
- * the reviewed operating-write switch, and the recorded owner-outcome gate. The service's reversal
- * has no route operation yet. Preview and status never write.
+ * execute (behind the recorded owner-outcome gate) and reconcile one effect at a time behind the
+ * per-key committed-seed and runtime gates plus the reviewed operating-write switch. The route's
+ * `reverse_preview` and `reverse_execute` reach the service, which refuses both as
+ * `provider_capability_unavailable` until a stable-row seam exists. Preview and status never write.
  */
 export async function POST(request: Request) {
   try {

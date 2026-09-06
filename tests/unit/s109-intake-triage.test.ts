@@ -68,6 +68,21 @@ describe("S109 urgency rules are deterministic (ARCH-S109-1 / BEH-S109-2)", () =
     );
   });
 
+  it("keeps escalating inflected and adjectival life-safety terms (no false negatives)", () => {
+    // Substring matching caught these before the whole-word rule; the rule must not lose them.
+    for (const summary of [
+      "The outlet smoked and now smells burnt",
+      "The hallway is smoky",
+      "There is a gasoline smell in the garage",
+      "Two outlets are smoking",
+    ]) {
+      expect(triage({ summary }).urgency, summary).toBe("emergency_fire");
+    }
+    expect(
+      triage({ summary: "The kitchen faucet is leaky", happeningNow: true }).urgency,
+    ).toBe("urgent_flooding");
+  });
+
   it("routes active water to the urgent path", () => {
     for (const summary of [
       "The basement is flooding",

@@ -354,20 +354,6 @@ export class DotloopClient {
     return loop;
   }
 
-  /** Patch one documented detail section, such as `Property Address`. */
-  async patchLoopDetail(input: {
-    profileId: string;
-    loopId: string;
-    sections: Readonly<Record<string, Readonly<Record<string, string>>>>;
-  }): Promise<void> {
-    await this.#send(
-      "PATCH",
-      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/detail`,
-      input.sections,
-    );
-  }
-
-  /** Add one participant with a documented role. */
   /** The documented participant list of one loop: the observable people on the provider's side. */
   async listParticipants(
     profileId: string,
@@ -389,20 +375,6 @@ export class DotloopClient {
         },
       ];
     });
-  }
-
-  async addParticipant(input: {
-    profileId: string;
-    loopId: string;
-    fullName: string;
-    email: string;
-    role: DotloopParticipantRole;
-  }): Promise<void> {
-    await this.#send(
-      "POST",
-      `profile/${encodeURIComponent(input.profileId.trim())}/loop/${encodeURIComponent(input.loopId.trim())}/participant`,
-      { fullName: input.fullName, email: input.email, role: input.role },
-    );
   }
 
   /** Create one folder inside a loop and return its id. */

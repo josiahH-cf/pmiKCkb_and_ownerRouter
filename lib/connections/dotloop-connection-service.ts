@@ -98,7 +98,12 @@ export type CompleteDotloopConnectionResult =
   | { status: "exchange_failed" }
   | { status: "secure_storage_unavailable" }
   | { status: "credentials_not_configured"; missing: string[] }
-  | { status: "connection_refused"; reason: string };
+  | {
+      status: "connection_refused";
+      reason: "store_refused_record";
+      /** Token refs the vault could not destroy after the refusal; zero means nothing was orphaned. */
+      undestroyedTokenRefs: number;
+    };
 
 export interface CompleteDotloopConnectionInput {
   readonly state: string;
@@ -178,20 +183,26 @@ export async function completeDotloopConnection(
       connectedAt: input.nowIso,
       generationId: input.generationId,
     });
-  } catch (error) {
+  } catch {
     // The exchange already placed both tokens in the vault. A record the store refuses (for
     // example a generation that is still connected) must not leave them orphaned there: destroy
     // both refs, then report the refusal. No provider-side revoke is claimed; the vault exposes no
     // read of the token value.
+    let undestroyedTokenRefs = 0;
     for (const secretRef of [tokens.accessTokenRef, tokens.refreshTokenRef]) {
       if (!secretRef) continue;
-      await input.vault
-        .destroySecret({ secretRef, operationId: input.generationId })
-        .catch(() => undefined);
+      try {
+        await input.vault.destroySecret({ secretRef, operationId: input.generationId });
+      } catch {
+        // Never silent: an undestroyed ref is an orphaned token, so the count travels with the
+        // result. This module logs nothing, so no token value can ever reach a log from here.
+        undestroyedTokenRefs += 1;
+      }
     }
     return {
       status: "connection_refused",
-      reason: error instanceof Error ? error.message : "connection_refused",
+      reason: "store_refused_record",
+      undestroyedTokenRefs,
     };
   }
   return { status: "connected", generationId: input.generationId };

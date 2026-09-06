@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+
 import {
   PRODUCTION_RECONCILIATION_DESK_VIEW,
   countIndependentActionDestinationMismatches,
@@ -21,6 +23,7 @@ import {
   validRenewalRowActionDestination,
 } from "@/lib/production-assurance/renewal-source-projection";
 import {
+  reconciliationReferenceDate,
   aggregateReadStates,
   assertLocalSourceAdapterIdentity,
   classifyIndependentRenewalDisposition,
@@ -1437,5 +1440,31 @@ describe("production reconciliation runner boundary", () => {
     // provider namespace. The shared address composer is a leaf normalization primitive, not a
     // renewal projection, and AC-S71-3 requires it to remain the sole address composer.
     expect(imports.some((specifier) => /\/rent(?:\/|$)/.test(specifier))).toBe(false);
+  });
+});
+
+describe("the oracle reads the business calendar day independently", () => {
+  // The oracle must not import the app's calendar helper, so it re-derives the day itself; the two
+  // must agree at the month boundary, where a UTC day would put the oracle a month ahead.
+  it("agrees with the app calendar across the month boundary and at DST changes", () => {
+    for (const instant of [
+      "2026-10-01T03:30:00.000Z",
+      "2026-10-01T05:30:00.000Z",
+      "2026-03-08T05:59:59.000Z",
+      "2026-03-08T06:00:00.000Z",
+      "2026-11-02T05:59:59.000Z",
+      "2026-11-02T06:00:00.000Z",
+    ]) {
+      expect(reconciliationReferenceDate(instant), instant).toBe(
+        businessDateIso(instant),
+      );
+    }
+    expect(reconciliationReferenceDate("2026-10-01T03:30:00.000Z")).toBe("2026-09-30");
+  });
+
+  it("refuses an unparseable reconciliation time", () => {
+    expect(() => reconciliationReferenceDate("not a time")).toThrow(
+      "reconciliation_time_invalid",
+    );
   });
 });

@@ -80,8 +80,12 @@ describe("maintenance send boundary (S100 ARCH-S100-6)", () => {
     for (const file of maintenanceFiles) {
       const code = stripComments(readFileSync(file, "utf8"));
       const rel = file.slice(maintenanceRoot.length + 1).replace(/\\/g, "/");
-      if (/from\s+["']@\/lib\/gmail-runtime\/client["']/.test(code)) {
-        offenders.push(`${rel}: imports @/lib/gmail-runtime/client`);
+      if (
+        /from\s+["'][^"']*gmail-runtime\/(?:client|transport|raw-message)["']/.test(code)
+      ) {
+        offenders.push(
+          `${rel}: imports a gmail-runtime client, transport, or raw-message module`,
+        );
       }
       if (/\bsendMessage\b/.test(code)) {
         offenders.push(`${rel}: references sendMessage`);

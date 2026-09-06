@@ -25,6 +25,8 @@ describe("seed-action-registry executable allow-list", () => {
     );
     const allowlist = source.slice(source.indexOf("const EXECUTABLE_ALLOWLIST"));
     const block = allowlist.slice(0, allowlist.indexOf("]);"));
+    // Positive control: the block really is the allow-list (a moved anchor would make it empty).
+    expect(block).toContain('"gmail.renewal_notice.draft_create"');
     for (const key of [
       "gmail.message.send",
       "gmail.renewal_notice.send",

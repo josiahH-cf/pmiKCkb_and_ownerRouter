@@ -60,6 +60,16 @@ describe("readLeaseTermSource (S103 server-side term binding)", () => {
     await expect(readLeaseTermSource("999")).resolves.toEqual({
       status: "lease_not_found",
     });
+    await expect(readLeaseTermSource("abc")).resolves.toEqual({
+      status: "lease_not_found",
+    });
+  });
+
+  it("treats an incomplete portfolio read as unavailable rather than proof of absence", async () => {
+    mocks.getLiveLeaseSnapshot.mockResolvedValueOnce({
+      snapshot: { views: [VIEW_115], complete: false, readAtMs: 0 },
+    });
+    await expect(readLeaseTermSource("999")).resolves.toEqual({ status: "unavailable" });
   });
 
   it("reports the source unavailable when the live read throws or is not configured", async () => {

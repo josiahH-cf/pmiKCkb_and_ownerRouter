@@ -8,6 +8,7 @@ import {
   LiveDotloopProvider,
   dotloopLoopNameFor,
   type DotloopRenewalSelection,
+  DOTLOOP_RECONCILE_MAX_BATCHES,
 } from "@/lib/integrations/dotloop/renewal-provider";
 import {
   applyDotloopLoopReadback,
@@ -227,6 +228,21 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
       loopRef: foreign.id,
       templateRef: "",
     });
+  });
+
+  it("refuses to create when the bounded page count is exhausted (AC-S34-4)", async () => {
+    // One loop past the bound: the provider must stop and refuse rather than create a duplicate.
+    for (let index = 0; index < DOTLOOP_RECONCILE_MAX_BATCHES * 100 + 1; index += 1) {
+      fake.seedLoop({ name: `Unrelated loop ${index}`, status: "PRE_OFFER" });
+    }
+    await expect(
+      providerFor().createLoop({
+        templateRef: SELECTION.templateId,
+        participantRefs: PARTICIPANTS.map((participant) => participant.email),
+        idempotencyKey: "idem-1",
+      }),
+    ).rejects.toThrow(/bounded page count/);
+    expect(fake.createCount).toBe(0);
   });
 
   it("pages through every documented batch before deciding a loop does not exist (AC-S34-4)", async () => {

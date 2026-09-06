@@ -147,7 +147,8 @@ asking again. Do not run one early: each step needs the input its trigger names.
 
 ### V-DL — verify Dotloop end to end once credentials arrive
 
-Trigger: `B-DL1` clears and the owner reports the client id and secret placed per `B-DL2`.
+Trigger: `B-DL1` clears and the owner reports the client id and secret placed through the delivery
+path in the B-DL1/B-DL2 detail (`DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID`).
 
 1. Confirm delivery: `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI`, and
    `DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID` are all in the reviewed deploy env, and the secret exists

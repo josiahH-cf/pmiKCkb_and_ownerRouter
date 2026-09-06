@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback and approved target contracts: 2026-09-02.
+Updated from live readback and approved target contracts: 2026-09-06.
 
 ## Production
 
@@ -76,11 +76,14 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-Current zero-traffic candidate (deployed 2026-09-03 from commit
-`ff200d30cafa8552a6e96718b2a288122ef24f80`): revision `pmi-kc-app-rmtlsgy0i-ffb8a132da84`, tag
-`cand-rmtlsgy0i-ffb8a132da84`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
-serving 100%). Its anonymous smoke passed (root 307, sign-in 200, protected 307, version 200 at the
-exact commit and revision). It is not promoted; the S51 candidate assurance below has not run.
+Current zero-traffic candidate (deployed 2026-09-06 from commit
+`5040818e07fd0b9d74ed71db4006989438f71879`): revision `pmi-kc-app-rmtq2goev-157da39536d0`, tag
+`cand-rmtq2goev-157da39536d0`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
+serving 100%), configuration fingerprint
+`sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`. Its anonymous smoke passed (root 307,
+sign-in 200, protected 307, version 200 at the exact commit and revision) and its hostname is the only
+candidate entry in the authorized sign-in domains. It is not promoted; the S51 candidate assurance
+below has not run.
 
 Run the anonymous, GET-only candidate smoke before any authenticated browser check:
 

@@ -5,7 +5,7 @@
 // term-bearing facts changed since the page loaded. The stored record therefore always describes a
 // real lease at a source state the server itself observed, never a client-asserted one.
 
-import { leaseIdOfView } from "@/lib/integrations/rentvine/lease-mapper";
+import { findLeaseViewById } from "@/lib/integrations/rentvine/lease-mapper";
 import { leaseTermSourceFingerprint } from "@/lib/lease-renewal/lease-term";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
@@ -24,10 +24,17 @@ export async function readLeaseTermSource(
   if (!config.ok) return { status: "unavailable" };
   try {
     const { snapshot } = await getLiveLeaseSnapshot(config.rentvineClient, nowMs);
-    const view = snapshot.views.find((candidate) => leaseIdOfView(candidate) === leaseId);
-    if (!view) return { status: "lease_not_found" };
+    const view = findLeaseViewById(snapshot.views, leaseId);
+    // An incomplete portfolio read cannot prove a lease is absent (the desk's own S57 rule).
+    if (!view)
+      return snapshot.complete
+        ? { status: "lease_not_found" }
+        : { status: "unavailable" };
     return { status: "ok", sourceFingerprint: leaseTermSourceFingerprint(view) };
-  } catch {
+  } catch (error) {
+    console.error(
+      `Lease term source read failed (${error instanceof Error ? error.name : "unknown"}).`,
+    );
     return { status: "unavailable" };
   }
 }

@@ -19,7 +19,7 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-02
+## Present production truth — 2026-09-06
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
@@ -57,7 +57,8 @@ the current code and live service. Date-stamped history is not authority.
   `p1_` tokens, and navigation performs no verification, progress, source write, or send. A current
   adversarial review reopened S82 conformance: nullable rent, typed auxiliary-read failure,
   desk/workspace evidence parity, source destinations, phase-local controls, freshness, filter
-  discoverability, and browser-assurance corrections are active in the worktree but are not deployed.
+  discoverability, and browser-assurance corrections are committed and carried by the unpromoted
+  zero-traffic candidate; production still serves the pre-correction baseline.
 - S97 is COMPLETE and deployed. Each exact key passed its own bounded serial live proof on the
   owner-designated test lease 115 (property 84) before its protected activation: dates
   forward/readback/duplicate-replay/restore; charge create with honest ambiguity reconciliation,
@@ -69,8 +70,8 @@ the current code and live service. Date-stamped history is not authority.
   the operating Sheet (below a spacer at the tab tail) anchors the designated lease.
   That historical proof used the then-serving bounded contract; it does not authorize current
   normal-product attribution from matching observations. Generation-bound replay, fresh duplicate
-  after-state verification, and fail-closed ambiguous-create handling are active in the worktree but
-  are not deployed: without provider-owned causality, a matching charge cannot mint a success receipt
+  after-state verification, and fail-closed ambiguous-create handling are committed and carried by
+  the unpromoted candidate, not yet serving: without provider-owned causality, a matching charge cannot mint a success receipt
   or receipt-bound delete authority.
 - S98's proof-qualified baseline is deployed: both exact operating-Sheet keys are open, its write
   switch is on, and the temporary proof row was deleted and read back absent. The serving revision
@@ -99,12 +100,13 @@ the current code and live service. Date-stamped history is not authority.
   active Node.js 22 guardrail with `KILL_SWITCH_CAP_USD=100`.
 - S36 has not started because its S100 prerequisite is incomplete. S82 conformance, S97 integrity,
   S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
-  assurance are committed (`e6b76f9`) and deployed as zero-traffic candidate
-  `pmi-kc-app-rmtlsgy0i-ffb8a132da84` from commit `ff200d30cafa8552a6e96718b2a288122ef24f80`;
-  its anonymous smoke passed and promotion waits on the managed Admin/Editor browser profiles and
-  the S51 monitoring resource set. The owner's 2026-09-03 renewal-completion program (S102-S111 and
-  the rewritten S34) executes before S36 and the S88-S95 program; S102 is committed in
-  `ff200d3`, carried by that candidate, and not promoted. S87-S95 and S101 remain specification-only desired behavior.
+  assurance are committed (`e6b76f9`) and, together with the owner's 2026-09-03 renewal-completion
+  program (S102-S111 and the rewritten S34) and the 2026-09-06 re-verification corrections,
+  deployed as zero-traffic candidate `pmi-kc-app-rmtq2goev-157da39536d0` from commit
+  `5040818e07fd0b9d74ed71db4006989438f71879`; its anonymous smoke passed, the S51 monitoring set
+  reads `READY`, and promotion waits only on the two managed browser profiles signed in on both
+  the candidate and canonical origins. The program executes before S36 and the S88-S95 program.
+  S87-S95 and S101 remain specification-only desired behavior.
 
 ## Product boundary
 

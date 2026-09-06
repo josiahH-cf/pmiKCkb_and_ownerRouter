@@ -575,6 +575,17 @@ describe("S98 operating-sheet route", () => {
       expect(response.status).toBe(409);
       expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
       expect(mocks.writerMutations).toHaveLength(0);
+      // The refusal came before the lease-scoped claim: once the owner approves, the same exact
+      // confirmation appends exactly once.
+      mocks.progress = null;
+      const approved = await post({
+        operation: "execute",
+        previewHash: proposal.previewHash,
+        effectHash: proposal.effects[0].effectHash,
+        confirm: true,
+      });
+      expect(approved.status).toBe(200);
+      expect(mocks.writerMutations.filter((entry) => entry === "append")).toHaveLength(1);
     } finally {
       mocks.progress = null;
     }

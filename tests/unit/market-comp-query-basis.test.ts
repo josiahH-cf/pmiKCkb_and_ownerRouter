@@ -92,6 +92,13 @@ describe("S59 measured export to RentCast query basis", () => {
     expect(basis.query).not.toHaveProperty("propertyType");
   });
 
+  it("omits the base rent when the lease detail is absent, even with unit.rent present (S102)", () => {
+    const view = leaseViewsFromExport([RAW_EXPORT_ROW])[0];
+    const basis = buildMarketCompQueryBasis(view, "L1");
+    expect(basis.baseRent).toMatchObject({ status: "omitted" });
+    expect(JSON.stringify(basis.baseRent)).not.toContain("1250");
+  });
+
   it("names an unusable unit.size omission instead of rounding or guessing", () => {
     const row = {
       ...RAW_EXPORT_ROW,

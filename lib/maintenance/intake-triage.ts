@@ -25,6 +25,8 @@ const FIRE_TERMS = [
   "fire",
   "smoke",
   "smoking",
+  "smoky",
+  "gasoline",
   "gas leak",
   "smell gas",
   "smells like gas",
@@ -127,14 +129,16 @@ function haystack(input: IntakeTriageInput): string {
 const TERM_PATTERNS = new Map<string, RegExp>();
 
 /**
- * A term matches only as a whole word or phrase (an `s`, `ed`, or `ing` ending is allowed), never
- * as a fragment of a longer word: "gas" is life-safety, "gasket" is a dishwasher part.
+ * A term matches only as a whole word or phrase, never as a fragment of a longer word: "gas" is
+ * life-safety, "gasket" is a dishwasher part. An `s`, `es`, `d`, `ed`, `ing`, or `y` ending is
+ * allowed so "smoked", "leaks", and "leaky" still count; adjectives that change the stem ("smoky",
+ * "gasoline") are listed as their own terms.
  */
 function termPattern(term: string): RegExp {
   let pattern = TERM_PATTERNS.get(term);
   if (!pattern) {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-    pattern = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:s|ed|ing)?(?=$|[^a-z0-9])`);
+    pattern = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:s|es|d|ed|ing|y)?(?=$|[^a-z0-9])`);
     TERM_PATTERNS.set(term, pattern);
   }
   return pattern;

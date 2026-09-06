@@ -88,9 +88,12 @@ export async function runAssistantQuery(
     let snapshot: Awaited<ReturnType<typeof dependencies.loadWorkSnapshot>>;
     try {
       snapshot = await dependencies.loadWorkSnapshot(actor);
-    } catch {
+    } catch (error) {
       // A source that throws is reported as unavailable, never as an empty list and never as a
-      // failed request the form would silently fall through.
+      // failed request the form would silently fall through. Only the error class is logged.
+      console.error(
+        `Assistant work snapshot read failed (${error instanceof Error ? error.name : "unknown"}).`,
+      );
       return envelope({
         intent: match.intent,
         completeness: "unavailable",
@@ -127,7 +130,10 @@ export async function runAssistantQuery(
   let read: Awaited<ReturnType<typeof dependencies.loadRenewalRows>>;
   try {
     read = await dependencies.loadRenewalRows(actor);
-  } catch {
+  } catch (error) {
+    console.error(
+      `Assistant renewal read failed (${error instanceof Error ? error.name : "unknown"}).`,
+    );
     read = { status: "read_error", rows: [] };
   }
   if (read.status !== "ok") {

@@ -4,11 +4,13 @@
 # S34 — Dotloop renewal packet lifecycle
 
 > Status: COMMITTED (`7b26107`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
-> (`pmi-kc-app-rmtmedt51-9868d44ba383`, zero traffic, anonymous smoke passed); NOT PROMOTED. `LiveDotloopProvider` implements the typed
+> (carried by the current unpromoted zero-traffic candidate named in `docs/facts.md` F-CANDIDATE; anonymous smoke passed); NOT PROMOTED. `LiveDotloopProvider` implements the typed
 > seam over the S106 client (creating through the documented `POST /loop-it`, paging the exact-name
 > reconciliation through every batch, reading participants from the provider), loop identity is
 > bound to the packet snapshot hash, the packet execution projection carries a loop-link slot, and
-> the workspace shows the link with an explicit signature handoff. Nothing constructs the provider or
+> the workspace shows the link with an explicit signature handoff. The document readback proves the
+> document is present in the exact folder; the recorded type and content hash are the app's own
+> values, not provider-verified. Nothing constructs the provider or
 > the executor at runtime yet and nothing writes the link onto the projection, so the workspace
 > renders the absent-link blocker; that wiring waits on the S106 runtime token provider and is
 > agent-owned work. Live loop creation stays BLOCKED on the owner's OAuth application, connected

@@ -3,8 +3,8 @@
 
 # S102 — Tenant current rent from the active RentVine lease
 
-> Status: Implemented and committed on 2026-09-03 (`ff200d3`, exact-SHA CI green), deployed in
-> zero-traffic candidate `pmi-kc-app-rmtlsgy0i-ffb8a132da84`, and not promoted. The shared lease view now
+> Status: Implemented and committed on 2026-09-03 (`ff200d3`, exact-SHA CI green), and
+> carried by the current unpromoted zero-traffic candidate named in `docs/facts.md` F-CANDIDATE. The shared lease view now
 > carries `currentRent` from the documented lease detail `baseRentAmount` inside the live lease
 > generation, keeps `unit.rent` only as the labelled `unitListedRent` reference, and the S51 oracle,
 > live review, console provider, and scripts read the same source; the 2026-09-06 review moved the
@@ -32,7 +32,8 @@ Intended end state: the shared RentVine lease view carries `currentRent` only fr
 source, carries the unit value under a separately named reference field, and every consumer keeps
 its existing null-safe, discrepancy, and refresh behavior unchanged.
 
-Bodyless discovery on 2026-09-03 (paths and types only, `temp/probe-lease-rent-shape.ts`) proved
+A bodyless discovery read on 2026-09-03 (paths and types only, from local scratch that is not
+repository evidence) showed
 the source: the documented lease detail `GET /leases/{leaseID}` (`RentVineClient.getLease`) carries
 numeric `baseRentAmount` and `rentAmount` plus `isMonthToMonth`, `monthToMonthStartDate`, and
 `hasPendingMonthToMonthConversion`, while the `/leases/export` row's `lease` object carries none of

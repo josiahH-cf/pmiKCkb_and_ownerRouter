@@ -82,14 +82,14 @@ export const LEASE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinition[] = 
     "Sheet writeback",
     "High",
     [],
-    "The S98 service defines the reversal as deleting only the exact unchanged receipt-bound appended row with absence readback; no route operation executes it yet, so correct through manual review.",
+    "The S98 service defines the reversal as deleting only the exact unchanged receipt-bound appended row with absence readback; the route's reversal operation is refused as provider_capability_unavailable until a stable-row seam exists, so correct through manual review.",
   ),
   definition(
     LEASE_EXECUTION_ACTIONS[7],
     "Sheet writeback",
     "High",
     [],
-    "The S98 service defines the correction as compare-and-setting the exact receipted prior value back into the same cell; no route operation executes it yet, so correct through manual review.",
+    "The S98 service defines the correction as compare-and-setting the exact receipted prior value back into the same cell; the route's reversal operation is refused as provider_capability_unavailable until a stable-row seam exists, so correct through manual review.",
   ),
   definition(
     LEASE_EXECUTION_ACTIONS[8],

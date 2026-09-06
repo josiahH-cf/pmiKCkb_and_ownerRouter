@@ -425,6 +425,18 @@ describe("S97 rentvine-writeback route", () => {
       expect(response.status).toBe(409);
       expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
       expect(mocks.writerCalls).toHaveLength(0);
+      // The refusal came before the one-attempt claim: once the owner approves, the same exact
+      // confirmation executes exactly once.
+      mocks.progress = null;
+      const approved = await post({
+        operation: "execute",
+        leaseId: "4821",
+        previewHash,
+        effectHash,
+        confirm: true,
+      });
+      expect(approved.status).toBe(200);
+      expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
     } finally {
       mocks.progress = null;
     }

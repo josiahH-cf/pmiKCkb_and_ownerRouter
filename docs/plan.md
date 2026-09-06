@@ -1,6 +1,6 @@
 # PMI KC current plan
 
-Updated: 2026-09-03.
+Updated: 2026-09-06.
 
 ## Outcome
 
@@ -31,7 +31,9 @@ one claim-less managed account that the app resolves to Editor) being signed in 
 candidate and canonical origins, and the S51 monitoring resource set reads `READY`. S102 (`ff200d3`), S103 (`0158c90`), S104
 (`0f01353`), S105 (`13523c5`), S106 (`af23da4`), S34 (`7b26107`), S107 (`ae93742`), S108
 (`03f7eee`), S109 (`9b2c829`), S110 (`5abf6dd`), and S111 (`5aa2a90`) are committed and carried by
-that candidate. The renewal-completion program is complete through S111 and awaits promotion.
+that candidate. The renewal-completion program is committed through S111 and awaits promotion; the
+S106/S34 runtime seams (token provider, readiness wiring, provider construction) remain agent-owned
+work.
 
 ## Active correction slice
 
