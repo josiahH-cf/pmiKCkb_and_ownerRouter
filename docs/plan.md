@@ -24,11 +24,11 @@ refuses fixed-row update/delete/restore until a provider-owned stable-row and ex
 seam exists. S100's closed-safe workflow and chat-sync action are deployed, proven, and activated; its
 resident-draft action remains closed. The original S82 release is deployed, but its conformance was
 reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
-expanded S51/S54 assurance harness are committed (`e6b76f9`) and, with everything through
-`e6eb315`, deployed as zero-traffic candidate `pmi-kc-app-rmtpqneki-e799a49fc597`; promotion waits
-only on the two managed browser profiles (one Admin, one claim-less managed account that the app
-resolves to Editor) being signed in on both the candidate and canonical origins, and the S51
-monitoring resource set reads `READY`. S102 (`ff200d3`), S103 (`0158c90`), S104
+expanded S51/S54 assurance harness are committed (`e6b76f9`) and, with everything through the
+2026-09-06 re-verification commit `5040818`, deployed as zero-traffic candidate
+`pmi-kc-app-rmtq2goev-157da39536d0`; promotion waits only on the two managed browser profiles (one Admin,
+one claim-less managed account that the app resolves to Editor) being signed in on both the
+candidate and canonical origins, and the S51 monitoring resource set reads `READY`. S102 (`ff200d3`), S103 (`0158c90`), S104
 (`0f01353`), S105 (`13523c5`), S106 (`af23da4`), S34 (`7b26107`), S107 (`ae93742`), S108
 (`03f7eee`), S109 (`9b2c829`), S110 (`5abf6dd`), and S111 (`5aa2a90`) are committed and carried by
 that candidate. The renewal-completion program is complete through S111 and awaits promotion.

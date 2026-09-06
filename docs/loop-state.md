@@ -14,17 +14,21 @@ state on the date above.
 - Production still serves `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` from commit
   `d243911cb20ffb01773072c0e27c723648eeea34` at 100% traffic. Immediate rollback is
   `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
-- Everything through `e6eb315` (the remediation slice, S102-S111, the rewritten S34, and the owner's
-  three reviewed troubleshooting links) is exact-SHA CI green and deployed as zero-traffic candidate
-  `pmi-kc-app-rmtpqneki-e799a49fc597` (tag `cand-rmtpqneki-e799a49fc597`), whose anonymous
-  read-only smoke passed at its exact commit, revision, tag, and service and whose hostname is an
-  authorized sign-in domain. Traffic readback shows the serving revision unchanged. `814298b`
-  (docs-only, the owner's specification package tracking) is also on `main`.
-- The 2026-09-06 adversarial re-verification of S97 through S111 is committed on top of that. Each
-  suite's present truth is its `docs/facts.md` row; the corrections that changed code are: the
-  Editor canary denial check (could never pass; now proved from the navigation chain), the
-  configuration fingerprint (now excludes every documented output-only revision field, so the
-  candidate fingerprint must be recaptured), the S51 oracle (`periodic_review` derived
+- Everything on `main` through `5040818` (the remediation slice, S102-S111, the rewritten S34,
+  the owner's three reviewed troubleshooting links, and the 2026-09-06 re-verification corrections)
+  is exact-SHA CI green and deployed as zero-traffic candidate `pmi-kc-app-rmtq2goev-157da39536d0` (tag
+  `cand-rmtq2goev-157da39536d0`, created 2026-09-06 17:14 UTC). Its anonymous read-only smoke passed at
+  the exact commit, revision, tag, and service; its revision environment reads back Production + Live
+  with the write switch on and the managed runtime identity; its recaptured configuration fingerprint
+  is `sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`; and its hostname is the only
+  candidate entry in the authorized sign-in domains (the superseded `rmtpqneki` entry was removed).
+  Traffic readback shows the serving revision unchanged at 100%. It supersedes every earlier
+  candidate.
+- The 2026-09-06 adversarial re-verification of S97 through S111 is committed as `5040818` (exact-SHA
+  CI green) and carried by that candidate. Each suite's present truth is its `docs/facts.md` row;
+  the corrections that changed code are: the Editor canary denial check (could never pass; now
+  proved from the navigation chain), the configuration fingerprint (now excludes every documented
+  output-only revision field; recaptured above), the S51 oracle (`periodic_review` derived
   independently), the month-to-month review date (rolls forward to the current anniversary), the
   term-review route (refuses an unknown lease or a changed view), the comp query basis (lease-detail
   rent), the workspace next-action card (renders the shared guidance), the S107 load-time pass (now
@@ -53,20 +57,20 @@ state on the date above.
 
 ## Next exact action
 
-1. Deploy one zero-traffic candidate from clean `HEAD` with
-   `npm run release -- --environment=production --execute --budget-confirmed --allow-multiple-spaces`,
-   run `npm run smoke:release-candidate` at its exact commit, revision, tag, and service, read
-   production traffic back unchanged, then recapture the candidate configuration fingerprint with
-   `--capture-config-fingerprint` (read-only) and record it here and in `docs/facts.md`
-   (`F-CANDIDATE`). Confirm the candidate hostname is an authorized sign-in domain.
-2. When the owner reports both profiles signed in on both origins, run
-   `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with the
-   recaptured fingerprint, promote the exact revision, and complete the 300,000 ms observation.
-   Promotion inputs are NOT satisfied until that report exists.
+Promotion of `pmi-kc-app-rmtq2goev-157da39536d0`. It waits only on the owner's human step: the two managed
+browser profiles (one Admin; one managed account with no role claim, which the application resolves
+to `Editor`) signed in on BOTH `https://cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the
+canonical origin (`docs/open-blockers.md` `B-AUTH2` has the exact commands). When the owner reports
+that, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
+`--expected-commit=5040818…`, `--expected-revision=pmi-kc-app-rmtq2goev-157da39536d0`, and
+`--expected-config-fingerprint=sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`,
+promote the exact revision, and complete the 300,000 ms observation. Promotion inputs are NOT
+satisfied until that receipt exists. Until then, work the agent-owned list below; a new candidate is
+needed only if runtime code changes.
 
 ## Agent-owned next work, no owner input needed
 
-Build in this order once the candidate above is deployed; each is fail-first, to its external seam.
+Build in this order; each is fail-first, to its external seam, and each needs a new candidate.
 
 1. S106 runtime seam: record the refresh-token vault ref on the connection, add the vault-backed
    runtime token provider (no-person refresh), and wire Dotloop readiness/health into the Connection

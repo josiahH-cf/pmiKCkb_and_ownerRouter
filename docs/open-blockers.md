@@ -67,11 +67,12 @@ directories, and automated password/MFA are not evidence. The assurance browser 
 both profile directories must be passed in their `/mnt/c/...` form, must be absolute, must differ
 from each other, and must sit outside the repository.
 
-Everything else the receipt run needs is in hand or agent-owned: the live flag, candidate origin,
-expected commit and revision, an internal operator address, a fresh receipt path, and an existing
-predecessor revision. The configuration fingerprint must be recaptured for the current candidate,
-because the fingerprint now excludes every documented output-only revision field; that recapture is
-read-only and agent-owned. Sign in against the origin of the candidate that will actually be
+Everything else the receipt run needs is in hand: the live flag, the candidate origin
+`https://cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app`, the expected commit `5040818`, the
+expected revision `pmi-kc-app-rmtq2goev-157da39536d0`, the recaptured configuration fingerprint
+`sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`, an internal operator
+address, a fresh receipt path, and the existing predecessor revision.
+Sign in against the origin of the candidate that will actually be
 promoted: each candidate gets its own hostname and its own authorized-domain entry, so a profile
 authenticated against a superseded candidate is wasted work.
 
@@ -165,10 +166,10 @@ Do not open either Dotloop action key as part of this task. Key activation is a 
 
 ## Recently cleared
 
-| Id      | Was blocking        | Cleared by                                                                                                                                                      |
-| ------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-MON1  | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.                                                |
-| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured, so the receipt run no longer has to derive it.                                                             |
-| B-DEP1  | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions.                                     |
-| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtmy3z88-1fc4c3e29466---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is an authorized domain, read back from the Identity Platform config. |
-| B-MNT2  | S109 resource offer | The owner approved three reviewed links on 2026-09-04, one each for Electrical, HVAC, and Plumbing. Appliance and General stay empty on purpose.                |
+| Id      | Was blocking        | Cleared by                                                                                                                                                                                                                                                                    |
+| ------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B-MON1  | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.                                                                                                                                                              |
+| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured (recaptured 2026-09-06 for `pmi-kc-app-rmtq2goev-157da39536d0` after the output-only-field correction: `sha256:d56d2ff81aef901cebfd58fe6bf721ccbd401eedec938c72de678564a3fc6fde`), so the receipt run does not derive it. |
+| B-DEP1  | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions.                                                                                                                                                   |
+| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtq2goev-157da39536d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is the only candidate entry in the authorized domains, read back from the Identity Platform config on 2026-09-06; the superseded `cand-rmtpqneki-e799a49fc597` entry was removed.   |
+| B-MNT2  | S109 resource offer | The owner approved three reviewed links on 2026-09-04, one each for Electrical, HVAC, and Plumbing. Appliance and General stay empty on purpose.                                                                                                                              |
