@@ -83,7 +83,8 @@ describe("S109 the writer owns triage, not the request body (ARCH-S109-1)", () =
       photos_needed: true,
       intake_complete: false,
     });
-    expect(stored.resource_id).toBeUndefined();
+    // The owner reviewed one Plumbing link on 2026-09-04, so the writer derives it here.
+    expect(stored.resource_id).toBe("plumbing-find-a-leak");
   });
 
   it("ignores urgency and evidence supplied in the submission", async () => {
@@ -101,7 +102,10 @@ describe("S109 the writer owns triage, not the request body (ARCH-S109-1)", () =
       photos_needed: true,
       intake_complete: false,
     });
-    expect(stored.resource_id).toBeUndefined();
+    // The forged id never survives: the stored value is the one the writer derived from the
+    // reviewed catalog, so a submitter cannot choose which resource a resident is shown.
+    expect(stored.resource_id).toBe("plumbing-find-a-leak");
+    expect(stored.resource_id).not.toBe("res-forged");
   });
 
   it("derives the emergency and urgent paths from the report text", async () => {

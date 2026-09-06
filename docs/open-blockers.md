@@ -21,26 +21,16 @@ Last reconciled: 2026-09-04.
 
 ## Open
 
-| Id      | Blocks                                      | Owner    | Exact hold                                                                                                              | Completion evidence                                                              |
-| ------- | ------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| B-AUTH1 | Candidate promotion                         | owner    | The candidate's tagged hostname is not a Firebase authorized domain, so no managed identity can sign in on that origin. | The exact hostname appears in the Identity Platform config readback.             |
-| B-AUTH2 | Candidate promotion                         | owner    | Two managed Admin and Editor browser profiles authenticated on the exact candidate origin do not exist.                 | `--prepare-candidate-receipt` completes with both canaries passing.              |
-| B-DL1   | S106 live readiness, S34 live loop creation | external | Dotloop issues API credentials only by approved request; there is no self-service portal.                               | An approved client id and client secret exist for this application.              |
-| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.                 | Readiness reports `connected` after a profile probe, naming no missing resource. |
-| B-DL3   | S34 document upload                         | owner    | The S66 artifact catalog is empty: no approved lease artifact content source exists to upload into a loop.              | The seven required artifact families resolve to approved content.                |
-| B-MNT1  | S108 preapproval routing proof              | owner    | No Admin has entered a property preapproval amount, so every ticket correctly still waits on owner approval.            | At least one property preapproval reads back with its amount and effective date. |
-| B-MNT2  | S109 troubleshooting resource offer         | owner    | No troubleshooting link has been reviewed, so the catalog is empty and no resource is offered.                          | Reviewed links carry a reviewer and a review date in the catalog.                |
-| B-S100  | S100 resident draft, and S36 behind it      | owner    | No synchronized resident message maps to a verified resident email, so the draft proof has no eligible target.          | One eligible message exists and the draft key's proof runs against it.           |
+| Id      | Blocks                                      | Owner    | Exact hold                                                                                                     | Completion evidence                                                              |
+| ------- | ------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| B-AUTH2 | Candidate promotion                         | owner    | Two managed Admin and Editor browser profiles authenticated on the exact candidate origin do not exist.        | `--prepare-candidate-receipt` completes with both canaries passing.              |
+| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only.   | An approved client id and client secret exist for this application.              |
+| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.        | Readiness reports `connected` after a profile probe, naming no missing resource. |
+| B-DL3   | S34 document upload                         | owner    | The S66 artifact catalog is empty: no approved lease artifact content source exists to upload into a loop.     | The seven required artifact families resolve to approved content.                |
+| B-MNT1  | S108 preapproval routing proof              | owner    | No Admin has entered a property preapproval amount, so every ticket correctly still waits on owner approval.   | At least one property preapproval reads back with its amount and effective date. |
+| B-S100  | S100 resident draft, and S36 behind it      | owner    | No synchronized resident message maps to a verified resident email, so the draft proof has no eligible target. | One eligible message exists and the draft key's proof runs against it.           |
 
 ## Detail
-
-### B-AUTH1 — the candidate origin is not an authorized domain
-
-`docs/environment-handoff.md` requires the candidate hostname to be added to Firebase authorized
-domains before the two managed profiles can sign in there. The current authorized list carries the
-canonical service hosts and the demo hosts only, so a tagged candidate origin is absent for every
-candidate. This is an access-surface change, so a person makes it deliberately per candidate and
-reads it back; it is also reversible by removing the same entry after promotion.
 
 ### B-AUTH2 — the two managed browser profiles
 
@@ -50,13 +40,26 @@ refuses canonical-host-only sessions, copied cookies, guessed or default profile
 password or MFA entry. No agent path exists and none should be built: the point of the check is that
 a person proved the real identity works on the real origin.
 
-The read-only half is already done. The candidate configuration fingerprint is captured, so the
-receipt run does not have to derive it first.
+The read-only half is already done. The candidate configuration fingerprint is captured, the
+candidate origin is an authorized sign-in domain, and the candidate serves `/sign-in` with HTTP 200,
+so the only unknown left is whether the managed account completes its own sign-in.
+
+Every other receipt input is already in hand: the live flag, candidate origin, expected commit,
+expected revision, expected configuration fingerprint, an internal operator address, a fresh receipt
+path, and an existing predecessor revision. The assurance browser runs under WSL, so both profile
+directories must be passed in their `/mnt/c/...` form, must be absolute, must differ from each other,
+and must sit outside the repository.
+
+Sign in against the origin of the candidate that will actually be promoted. A profile authenticated
+against a superseded candidate's hostname is wasted work, because each candidate gets its own
+hostname and its own authorized-domain entry.
 
 ### B-DL1 and B-DL2 — Dotloop credentials and a connected account
 
+The owner sent the access request to `support@dotloop.com` on 2026-09-04 and is awaiting a reply.
 Dotloop's published API guide directs developers to request access rather than self-register, so the
-credential itself depends on a third party's approval turnaround. The application's side is complete
+credential depends on a third party's approval turnaround. Do not re-send or chase a second channel
+without owner direction. Task `V-DL` below runs the moment credentials arrive. The application's side is complete
 and proven against the provider fake: connection, refresh, revoke, reconnect, readiness, and one loop
 per approved packet hash.
 
@@ -78,23 +81,6 @@ S108 ships the versioned record, the Admin-only control, and the cancel-first co
 amounts are owner data. Absence is never authorization: with no amount the ticket keeps waiting on
 owner approval, which is the correct closed default rather than a defect.
 
-### B-MNT2 — reviewed troubleshooting links
-
-`lib/maintenance/troubleshooting-catalog.ts` offers a resource only for a normal-urgency report whose
-issue type matches exactly one reviewed entry, so an ambiguous match offers nothing and an urgent or
-emergency report is never handed a self-help link. An empty catalog disables only the offer.
-
-Three candidate links were located and each was confirmed to resolve; none is a reviewed entry until
-a person at the property company reviews it and records the date. Appliance and General are
-deliberately left without a candidate, because no authoritative vendor-neutral source was found worth
-standing behind, and an unreviewed filler entry would be worse than no offer.
-
-| Trade      | Candidate link                                                                                      | What it covers for a resident                   |
-| ---------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Electrical | https://www.cpsc.gov/safety-education/safety-guides/electronics-and-electrical-home/gfci-fact-sheet | Testing and resetting a GFCI before reporting.  |
-| HVAC       | https://www.energystar.gov/saveathome/heating-cooling/maintenance-checklist                         | Filter and thermostat checks before reporting.  |
-| Plumbing   | https://www.epa.gov/watersense/fix-leak-week                                                        | Finding a running toilet or a dripping fixture. |
-
 ### B-S100 — an eligible resident message
 
 Chat synchronization is complete, proven, open, and deployed. The unsent resident-draft key stays
@@ -102,10 +88,36 @@ closed until one synchronized message maps to a verified resident email in the s
 mailbox. The designated thread has yielded no eligible record, and inventing one would defeat the
 proof.
 
+## Pending verification tasks
+
+A task here is queued behind a blocker above. When its trigger fires, a loop runs the steps without
+asking again. Do not run one early: each step needs the input its trigger names.
+
+### V-DL — verify Dotloop end to end once credentials arrive
+
+Trigger: `B-DL1` clears and the owner reports the client id and secret placed per `B-DL2`.
+
+1. Confirm delivery: `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI`, and
+   `DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID` are all in the reviewed deploy env, and the secret exists
+   in Secret Manager. Deploy a candidate and read the revision's bound secret map back.
+2. Confirm the runtime sees it: Dotloop readiness must stop reporting the client secret missing.
+3. Complete the owner-initiated authorization, then read readiness again. It must report `connected`
+   only after a profile probe succeeds, and must name the exact missing resource otherwise.
+4. Exercise refresh, revoke, and reconnect against the live account, and confirm a revoked refresh
+   token reports `refresh_needed` rather than a silent failure.
+5. Create one loop from one approved packet. Confirm the same packet hash reuses it with no provider
+   call, and a different hash marks the prior loop superseded.
+6. Confirm no signature state is claimed anywhere in the result. The published API documents no
+   e-signature operation.
+
+Do not open either Dotloop action key as part of this task. Key activation is a separate owner step.
+
 ## Recently cleared
 
-| Id     | Was blocking        | Cleared by                                                                                                                  |
-| ------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| B-MON1 | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.            |
-| B-MON2 | Candidate promotion | The candidate configuration fingerprint is captured, so the receipt run no longer has to derive it.                         |
-| B-DEP1 | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions. |
+| Id      | Was blocking        | Cleared by                                                                                                                                                      |
+| ------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B-MON1  | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.                                                |
+| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured, so the receipt run no longer has to derive it.                                                             |
+| B-DEP1  | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions.                                     |
+| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtmy3z88-1fc4c3e29466---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is an authorized domain, read back from the Identity Platform config. |
+| B-MNT2  | S109 resource offer | The owner approved three reviewed links on 2026-09-04, one each for Electrical, HVAC, and Plumbing. Appliance and General stay empty on purpose.                |

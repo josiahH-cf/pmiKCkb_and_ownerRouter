@@ -19,8 +19,35 @@ export interface TroubleshootingResource {
   readonly reviewedOnIso: string;
 }
 
-/** Empty until the owner supplies reviewed links. No entry is invented here. */
-export const MAINTENANCE_TROUBLESHOOTING_CATALOG: readonly TroubleshootingResource[] = [];
+/**
+ * Links the owner reviewed and approved on 2026-09-04. One entry per issue type, because two
+ * matching entries make the offer ambiguous and none is shown. Appliance and General have no entry
+ * on purpose: no authoritative vendor-neutral source was found worth standing behind, and no offer
+ * is better than an unreviewed one.
+ */
+export const MAINTENANCE_TROUBLESHOOTING_CATALOG: readonly TroubleshootingResource[] = [
+  {
+    id: "electrical-gfci-reset",
+    issueType: "Electrical",
+    title: "Test and reset a GFCI outlet",
+    url: "https://www.cpsc.gov/safety-education/safety-guides/electronics-and-electrical-home/gfci-fact-sheet",
+    reviewedOnIso: "2026-09-04T00:00:00.000Z",
+  },
+  {
+    id: "hvac-maintenance-checklist",
+    issueType: "HVAC",
+    title: "Check your filter and thermostat",
+    url: "https://www.energystar.gov/saveathome/heating-cooling/maintenance-checklist",
+    reviewedOnIso: "2026-09-04T00:00:00.000Z",
+  },
+  {
+    id: "plumbing-find-a-leak",
+    issueType: "Plumbing",
+    title: "Find a running toilet or a dripping fixture",
+    url: "https://www.epa.gov/watersense/fix-leak-week",
+    reviewedOnIso: "2026-09-04T00:00:00.000Z",
+  },
+];
 
 function isReviewedEntry(entry: TroubleshootingResource): boolean {
   if (!entry.id.trim() || !entry.title.trim()) return false;

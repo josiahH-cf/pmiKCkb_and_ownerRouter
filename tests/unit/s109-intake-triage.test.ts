@@ -149,8 +149,29 @@ describe("S109 copy sets expectations without promising completion (BEH-S109-2)"
 });
 
 describe("S109 troubleshooting resources are reviewed and at most one (BEH-S109-3)", () => {
-  it("starts empty until the owner supplies reviewed links", () => {
-    expect(MAINTENANCE_TROUBLESHOOTING_CATALOG).toEqual([]);
+  it("carries only reviewed entries, at most one per issue type", () => {
+    // The owner approved these on 2026-09-04. One per issue type is the contract: a second entry
+    // for the same type makes the offer ambiguous and silently disables it.
+    const seen = new Set<string>();
+    for (const entry of MAINTENANCE_TROUBLESHOOTING_CATALOG) {
+      expect(seen.has(entry.issueType)).toBe(false);
+      seen.add(entry.issueType);
+      expect(new URL(entry.url).protocol).toBe("https:");
+      expect(Number.isFinite(Date.parse(entry.reviewedOnIso))).toBe(true);
+      expect(entry.title.trim()).not.toBe("");
+      // Every entry must actually be offerable, or it is dead weight in the catalog.
+      expect(selectTroubleshootingResource(entry.issueType, "normal")?.id).toBe(entry.id);
+    }
+  });
+
+  it("offers nothing for an issue type the owner has not reviewed", () => {
+    expect(selectTroubleshootingResource("Appliance", "normal")).toBeNull();
+    expect(selectTroubleshootingResource("General", "normal")).toBeNull();
+  });
+
+  it("never offers a resource to an urgent or emergency report", () => {
+    expect(selectTroubleshootingResource("Electrical", "urgent_flooding")).toBeNull();
+    expect(selectTroubleshootingResource("Plumbing", "emergency_fire")).toBeNull();
   });
 
   it("offers at most one entry, only for a normal issue with exactly one match", () => {

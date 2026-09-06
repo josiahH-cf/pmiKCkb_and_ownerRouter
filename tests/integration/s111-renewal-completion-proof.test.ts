@@ -323,9 +323,12 @@ describe("S111 maintenance routing and intake compose (READY-05)", () => {
     });
     expect(normal.urgency).toBe("normal");
     expect(normal.intakeComplete).toBe(false);
-    // The owner has supplied no reviewed links yet, so no resource is offered. That absence is a
-    // recorded external input, not a failure.
-    expect(selectTroubleshootingResource(normal.issueType, normal.urgency)).toBeNull();
+    // The owner reviewed one Plumbing link on 2026-09-04, so an ordinary report is offered exactly
+    // that one. Urgency still governs: the flooding report above is never handed a self-help link.
+    expect(selectTroubleshootingResource(normal.issueType, normal.urgency)?.id).toBe(
+      "plumbing-find-a-leak",
+    );
+    expect(selectTroubleshootingResource("Plumbing", "urgent_flooding")).toBeNull();
   });
 
   it("carries the intake photo blocker into the ticket the operator sees", () => {
