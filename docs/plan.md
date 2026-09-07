@@ -1,6 +1,6 @@
 # PMI KC current plan
 
-Updated: 2026-09-06.
+Updated: 2026-09-07.
 
 ## Outcome
 
@@ -103,6 +103,10 @@ work.
 - No direct send, RentVine chat post, Vendor assignment, attachment upload, generic/bulk effect,
   autonomous/model-triggered effect, self-granted access, or personal runtime identity is allowed.
 - Dotloop is now scoped by S106/S34 under D-RENEWAL-COMPLETION; LeadSimple remains deferred.
+- Authentication is pre-approved and unattended (S112, owner ruling 2026-09-07): the runner
+  authenticates as the designated identities without asking, never types a credential or copies a
+  person's profile, and treats a stale credential as agent-owned work; the owner's one-time setup
+  is `docs/open-blockers.md` B-AUTH2.
 - `.claude/settings.local.json`, `output/`, ignored `temp/`, credentials, bodies, provider payloads,
   and customer evidence remain outside Git and build uploads.
 

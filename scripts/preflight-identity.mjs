@@ -1,11 +1,16 @@
 // Live identity probe for the single-identity rule (see docs/auth-identity-and-access-strategy.md
-// and AGENTS.md "Identity Rules"). Asserts the local human auth surfaces resolve to
-// pmikcmetro.com and that no key files are in use, then prints the six-identity-system
-// checklist so the surfaces this script cannot auto-verify (Claude connector, Firebase CLI,
-// Cloud Build SA, runtime SA) are visible at every cutover instead of failing silently.
+// and AGENTS.md "Authentication"). Asserts the local auth surfaces resolve to a managed
+// pmikcmetro.com person (attended) or to the designated S112 automation identity (the automation
+// principal impersonating the automation service account), and that no key files are in use, then
+// prints the six-identity-system checklist so the surfaces this script cannot auto-verify (Claude
+// connector, Firebase CLI, Cloud Build SA, runtime SA) are visible at every cutover instead of
+// failing silently.
 //
 // The evaluation is a pure function (evaluateIdentity) so it is unit-testable; the live
 // gathering (gatherIdentity) is best-effort and degrades to warnings when gcloud is absent.
+//
+//   npm run preflight:identity                # attended or unattended identity accepted
+//   npm run preflight:identity -- --unattended   # only the automation identity passes
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -13,14 +18,37 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { resolveIdentities } from "./auth/identities.mjs";
+
 export const ALLOWED_DOMAIN = "pmikcmetro.com";
 const TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
 
-export function evaluateIdentity(state, { allowedDomain = ALLOWED_DOMAIN } = {}) {
+function designatedAutomation(env = process.env) {
+  const identities = resolveIdentities(env);
+  return {
+    principal: identities.automationPrincipal,
+    serviceAccount: identities.automationServiceAccount,
+  };
+}
+
+function isAutomationState(state, automation) {
+  if (!automation) return false;
+  return (
+    same(state.gcloudAccount, automation.principal) &&
+    same(state.impersonation, automation.serviceAccount) &&
+    same(state.adcAccount, automation.serviceAccount)
+  );
+}
+
+export function evaluateIdentity(
+  state,
+  { allowedDomain = ALLOWED_DOMAIN, automation, unattended = false } = {},
+) {
   const errors = [];
   const warnings = [];
   const { gcloudAccount, adcPresent, adcAccount, googleAppCreds, gcloudAvailable } =
     state;
+  const impersonation = state.impersonation ?? null;
 
   if (!gcloudAvailable) {
     warnings.push(
@@ -47,10 +75,25 @@ export function evaluateIdentity(state, { allowedDomain = ALLOWED_DOMAIN } = {})
     );
   }
 
+  const adcIsServiceAccount = Boolean(adcAccount) && isServiceAccount(adcAccount);
+
   if (!adcPresent) {
     errors.push(
       "Application Default Credentials are missing. Run: gcloud auth application-default login",
     );
+  } else if (adcIsServiceAccount) {
+    if (!automation || !same(adcAccount, automation.serviceAccount)) {
+      errors.push(
+        `ADC principal ${adcAccount} is not the designated automation service account` +
+          (automation ? ` (${automation.serviceAccount})` : "") +
+          ". Re-run: npm run auth:enroll",
+      );
+    } else if (!same(impersonation, automation.serviceAccount)) {
+      errors.push(
+        `ADC principal is the automation service account but gcloud impersonation is not configured ` +
+          `(auth/impersonate_service_account). Re-run: npm run auth:enroll`,
+      );
+    }
   } else if (adcAccount && !isDomainAccount(adcAccount, allowedDomain)) {
     errors.push(
       `ADC principal ${adcAccount} is not @${allowedDomain}. ` +
@@ -62,11 +105,31 @@ export function evaluateIdentity(state, { allowedDomain = ALLOWED_DOMAIN } = {})
     );
   }
 
+  if (unattended && !isAutomationState(state, automation)) {
+    errors.push(
+      `Unattended work requires the automation identity` +
+        (automation
+          ? ` (${automation.principal} impersonating ${automation.serviceAccount})`
+          : "") +
+        `; the current identity is attended. Run: npm run auth:enroll`,
+    );
+  }
+
   return { ok: errors.length === 0, errors, warnings };
 }
 
-export function buildIdentityChecklist(state) {
+export function buildIdentityChecklist(state, { automation } = {}) {
   const mark = (ok) => (ok === true ? "ok" : ok === false ? "FAIL" : "verify manually");
+  const attendedOk =
+    Boolean(state.gcloudAccount) &&
+    isDomainAccount(state.gcloudAccount ?? "", ALLOWED_DOMAIN) &&
+    state.adcPresent &&
+    (!state.adcAccount || isDomainAccount(state.adcAccount, ALLOWED_DOMAIN)) &&
+    !state.googleAppCreds;
+  const automationOk =
+    Boolean(state.adcPresent) &&
+    !state.googleAppCreds &&
+    isAutomationState(state, automation);
   return [
     {
       system:
@@ -77,14 +140,10 @@ export function buildIdentityChecklist(state) {
     },
     {
       system: "(b) gcloud user / ADC",
-      status: mark(
-        Boolean(state.gcloudAccount) &&
-          isDomainAccount(state.gcloudAccount ?? "", ALLOWED_DOMAIN) &&
-          state.adcPresent &&
-          (!state.adcAccount || isDomainAccount(state.adcAccount, ALLOWED_DOMAIN)) &&
-          !state.googleAppCreds,
-      ),
-      detail: `gcloud=${state.gcloudAccount ?? "none"}; adc=${
+      status: mark(attendedOk || automationOk),
+      detail: `gcloud=${state.gcloudAccount ?? "none"}${
+        state.impersonation ? ` impersonating ${state.impersonation}` : ""
+      }; adc=${
         state.adcPresent ? (state.adcAccount ?? "present") : "missing"
       }; GOOGLE_APPLICATION_CREDENTIALS=${state.googleAppCreds ?? "unset"}`,
     },
@@ -116,6 +175,11 @@ export async function gatherIdentity({ env = process.env } = {}) {
   const gcloudAccount = runGcloud(["config", "get-value", "account"], env);
   const gcloudAvailable = gcloudAccount !== null || runGcloud(["version"], env) !== null;
   const googleAppCreds = readString(env.GOOGLE_APPLICATION_CREDENTIALS);
+  const impersonationRaw = readString(
+    runGcloud(["config", "get-value", "auth/impersonate_service_account"], env),
+  );
+  const impersonation =
+    impersonationRaw && !/^\(unset\)$/i.test(impersonationRaw) ? impersonationRaw : null;
 
   const adcToken = runGcloud(["auth", "application-default", "print-access-token"], env);
   const adcPresent = Boolean(adcToken) || adcFileExists(env);
@@ -124,6 +188,7 @@ export async function gatherIdentity({ env = process.env } = {}) {
   return {
     gcloudAvailable,
     gcloudAccount: normalizeAccount(gcloudAccount),
+    impersonation,
     adcPresent,
     adcAccount,
     googleAppCreds,
@@ -132,9 +197,15 @@ export async function gatherIdentity({ env = process.env } = {}) {
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   const json = argv.includes("--json");
+  const unattended = argv.includes("--unattended");
+  const automation = designatedAutomation(env);
   const state = await gatherIdentity({ env });
-  const result = evaluateIdentity(state, { allowedDomain: ALLOWED_DOMAIN });
-  const checklist = buildIdentityChecklist(state);
+  const result = evaluateIdentity(state, {
+    allowedDomain: ALLOWED_DOMAIN,
+    automation,
+    unattended,
+  });
+  const checklist = buildIdentityChecklist(state, { automation });
 
   if (json) {
     console.log(JSON.stringify({ ...result, checklist, state }, null, 2));
@@ -147,7 +218,13 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       console.warn(`Warning: ${warning}`);
     }
     if (result.ok) {
-      console.log("Local gcloud/ADC identity preflight passed.");
+      console.log(
+        `Local gcloud/ADC identity preflight passed (${
+          isAutomationState(state, automation)
+            ? "unattended automation identity"
+            : "attended"
+        }).`,
+      );
     } else {
       console.error("Identity preflight failed:");
       for (const error of result.errors) {
@@ -163,6 +240,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
 function isDomainAccount(value, domain) {
   return new RegExp(`@${domain.replace(/\./g, "\\.")}$`, "i").test(String(value).trim());
+}
+
+function isServiceAccount(value) {
+  return /\.gserviceaccount\.com$/i.test(String(value).trim());
+}
+
+function same(left, right) {
+  return (
+    typeof left === "string" &&
+    typeof right === "string" &&
+    left.trim().toLowerCase() === right.trim().toLowerCase()
+  );
 }
 
 function normalizeAccount(value) {
@@ -205,9 +294,11 @@ function adcFileExists(env) {
 
 async function resolveTokenEmail(token) {
   try {
-    const response = await fetch(
-      `${TOKENINFO_URL}?access_token=${encodeURIComponent(token)}`,
-    );
+    const response = await fetch(TOKENINFO_URL, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ access_token: token }),
+    });
 
     if (!response.ok) {
       return null;

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run auth:*)",
+      "Bash(node scripts/auth/ensure.mjs*)",
+      "Bash(gcloud auth list*)",
+      "Bash(gcloud auth print-access-token*)",
+      "Bash(gcloud auth application-default print-access-token*)",
+      "Bash(gcloud config get-value*)",
+      "Bash(gcloud config set account*)",
+      "Bash(gcloud config set auth/impersonate_service_account*)",
+      "Bash(gh auth status*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/auth/ensure.mjs --hook"
+          }
+        ]
+      }
+    ]
+  }
+}

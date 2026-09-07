@@ -18,23 +18,24 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 
 ## Current core
 
-| Need                  | Document                                    |
-| --------------------- | ------------------------------------------- |
-| Product contract      | `docs/spec.md`                              |
-| Current status        | `docs/status.md`                            |
-| Current plan          | `docs/plan.md`                              |
-| Resume point          | `docs/loop-state.md`                        |
-| Open blockers         | `docs/open-blockers.md`                     |
-| Engineering/security  | `docs/engineering.md`                       |
-| Engineering checklist | `docs/engineering-checklist.md`             |
-| Runner workflow       | `docs/autonomous-agent-runner.md`           |
-| Environment/release   | `docs/environment-handoff.md`               |
-| Auth/identity         | `docs/auth-identity-and-access-strategy.md` |
-| Cost controls         | `docs/budget-and-cost-policy.md`            |
-| Incident response     | `docs/production-incident-runbook.md`       |
-| Provider/action model | `docs/integration-architecture.md`          |
-| Client actions        | `docs/client-checklist.md`                  |
-| Near-term work        | `docs/whats-next.md`                        |
+| Need                   | Document                                           |
+| ---------------------- | -------------------------------------------------- |
+| Product contract       | `docs/spec.md`                                     |
+| Current status         | `docs/status.md`                                   |
+| Current plan           | `docs/plan.md`                                     |
+| Resume point           | `docs/loop-state.md`                               |
+| Open blockers          | `docs/open-blockers.md`                            |
+| Engineering/security   | `docs/engineering.md`                              |
+| Engineering checklist  | `docs/engineering-checklist.md`                    |
+| Runner workflow        | `docs/autonomous-agent-runner.md`                  |
+| Environment/release    | `docs/environment-handoff.md`                      |
+| Auth/identity          | `docs/auth-identity-and-access-strategy.md`        |
+| Cost controls          | `docs/budget-and-cost-policy.md`                   |
+| Incident response      | `docs/production-incident-runbook.md`              |
+| Provider/action model  | `docs/integration-architecture.md`                 |
+| Client actions         | `docs/client-checklist.md`                         |
+| Near-term work         | `docs/whats-next.md`                               |
+| Unattended auth (S112) | `docs/feature-suites/unattended-authentication.md` |
 
 ## Current operating contracts
 
@@ -77,9 +78,10 @@ provider seam. The expanded S51/S54 production-assurance gate owns their shared 
 sync is deployed; its resident-draft
 action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
 them before S36; see the README bundle section. S36 is queued behind
-complete S100, and S87-S95 plus S101 remain specification-only desired behavior. Completed suite
-narratives are removed once current code, tests, and facts own their contract; Git history retains
-provenance.
+complete S100, and S87-S95 plus S101 remain specification-only desired behavior. S112 (unattended
+authentication) is active: its login sequence is committed and its one-time owner setup is
+`docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
+and facts own their contract; Git history retains provenance.
 
 ## Current evidence and templates
 

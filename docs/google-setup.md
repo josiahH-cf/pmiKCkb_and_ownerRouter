@@ -1,6 +1,6 @@
 # Google and Firebase operations
 
-Updated: 2026-09-02.
+Updated: 2026-09-07.
 
 The production project, Firebase application, Firestore, Cloud Run service, managed runtime identity,
 APIs, Secret Manager bindings, and budget controls already exist. This is an operations checklist,
@@ -9,14 +9,17 @@ not a project-creation guide.
 ## Identity checks
 
 ```bash
-CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud gcloud config get-value account
-CLOUDSDK_CONFIG=/mnt/c/Users/josia/AppData/Roaming/gcloud gcloud config get-value project
+npm run auth:ensure
 npm run preflight:identity
 npm run preflight:adc
 ```
 
-Expected identity is managed `pmikcmetro.com`; expected project is `pmi-kc-kb-prod`. Do not print
-tokens or use a personal account/key file.
+Expected identity is a managed `pmikcmetro.com` person (attended) or the S112 automation principal
+impersonating the automation service account (unattended); expected project is `pmi-kc-kb-prod`.
+Each shell has its own credential store: enroll the Windows store with `npm run auth:enroll` and the
+WSL store with `npm run auth:enroll:wsl`; the Google client libraries read ADC only from the shell's
+own home, so do not point one shell at the other's store. Do not print tokens or use a personal
+account/key file.
 
 ## Firebase
 

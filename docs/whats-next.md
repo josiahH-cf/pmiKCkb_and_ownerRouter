@@ -1,47 +1,52 @@
 # What is next
 
-Updated: 2026-09-03.
+Updated: 2026-09-07.
 
 ## Immediate action
 
-Continue the renewal-completion program at S107 (confirmed renewal effect continuation and recovery)
-from `docs/loop-state.md`. S102 is committed in `ff200d3` with exact-SHA CI green and deployed in the
-current zero-traffic candidate. S103 (lease term and annual month-to-month review) is committed in
-`0158c90` with exact-SHA CI green and deployed as zero-traffic candidate
-`pmi-kc-app-rmtmedt51-9868d44ba383`, together with S104 (`0f01353`), S105 (`13523c5`), S106
-(`af23da4`), and S34 (`7b26107`). That candidate passed its anonymous smoke and is not promoted.
+Run `npm run auth:ensure` first; authentication is pre-approved (`AGENTS.md`, Authentication) and a
+blocked credential names one human step without blocking anything else.
 
-Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its immediate rollback is
-`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Zero-traffic candidate `pmi-kc-app-rmtmedt51-9868d44ba383`
-(commit `7b2610728b3fa080ce7d9ce9c62b969192139192`) passed its anonymous smoke and waits for the S51
-candidate assurance. Preserve `.claude/settings.local.json`, `output/`, and the owner's untracked specification
-package as user-owned content.
+The renewal-completion program (S102-S111, rewritten S34) is committed through `7b3fdad` with
+exact-SHA CI green and carried by zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, which
+passed its anonymous smoke and is not promoted. Production serves commit
+`d243911cb20ffb01773072c0e27c723648eeea34` as revision `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its
+immediate rollback is `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
+
+S112 (unattended authentication) is active: the automated login sequence is committed and read back
+on 2026-09-07. Promotion now waits only on the owner's one-time S112 setup, `docs/open-blockers.md`
+B-AUTH2. When it exists, the loop runs `npm run auth:ensure -- --need=canary` for both profiles on
+both origins, the candidate receipt run, the promotion, and the observation from
+`docs/loop-state.md`. Preserve `.claude/settings.local.json`, `output/`, and ignored `temp/` as
+user-owned content.
 
 ## Implementation sequence
 
-Use only the canonical queue in `docs/feature-suites/README.md`. The owner's 2026-09-03 direction
-executes S102-S111 and the rewritten S34 (rows 12-22) before S36 and the S88-S95 program. S102 is
-committed and candidate-deployed but not promoted; S103 and S104 are committed and
-candidate-deployed; S105 is committed and candidate-deployed except its Dotloop phase link; S106 is
-committed and candidate-deployed with only its live check blocked; S34 is committed and candidate-deployed
-with its live proof blocked. S102-S111 and the rewritten S34 are complete, exact-SHA CI green, and
-carried by one unpromoted zero-traffic candidate. S96, S85, S86, S83, S84, and S99 are complete and
-deployed; S82/S97/S98 remediation is committed and awaits promotion; S100 remains blocked on the
-exact eligible resident message; S36 has not started.
+Use only the canonical queue in `docs/feature-suites/README.md`. S112's remaining slices come first
+and need no candidate except the last: wire `ensureAuthenticated` into every live script, the
+workstation secret template, the IAM audit, the assurance-harness integration of the canary sessions,
+then the read-only canary claim. After that, the agent-owned list in `docs/loop-state.md` (S106/S34
+runtime seams, the S100 link path, S98 seam, S108 property key, S34 readback, S110 window bounds, the
+rehearsal-server defect), then S36 behind complete S100, then the S88-S95 program.
 
 ## Owner inputs that unblock promotion
 
-- The candidate hostname added to Firebase authorized domains, so a managed identity can sign in on
-  the candidate origin at all.
-- Two authenticated managed `pmikcmetro.com` browser-profile directories (Admin and Editor) on that
-  exact candidate origin, outside the repository.
+- The S112 one-time setup (`docs/feature-suites/unattended-authentication.md`, Appendix B): the
+  `Automation` organizational unit and its session policies, `pmi-runner@pmikcmetro.com`, the
+  `pmi-kc-automation` service account and grants, the two canary accounts, both credential stores
+  enrolled, and both canary profiles enrolled on both origins.
+- Fast path for the current candidate: two managed profiles enrolled today with
+  `npm run auth:enroll-canary` (one Admin, one claim-less account).
 
-The S51 monitoring resource set is no longer an owner input: `monitoring:verify` reads `READY`, and
-the candidate configuration fingerprint is captured. `docs/open-blockers.md` is the current ledger.
+The candidate hostname is an authorized sign-in domain, `monitoring:verify` reads `READY`, and the
+configuration fingerprint is captured; none of those is a hold. `docs/open-blockers.md` is the
+current ledger, including the three Wednesday asks (B-DL3, B-S100, B-MNT1).
 
 ## Safe state while advancing
 
+- The runner never types a password, one-time code, or passkey, never completes a CAPTCHA, and never
+  copies a person's cookies or profile; when Google asks for a person, the named enrollment command
+  is the only step.
 - Assistant queries never grant access, start workflows, create generic approvals, send client
   communication, or execute provider/source actions.
 - Completed S97-S99 and S100-chat proofs are not rerun, assigned to another record, or treated as
@@ -53,5 +58,6 @@ the candidate configuration fingerprint is captured. `docs/open-blockers.md` is 
 
 ## Runtime evidence
 
-No product question remains open. Missing or stale evidence blocks only its dependent gate and is
-never replaced with a personal identity, guessed value, Demo record, or different production record.
+No product question remains open beyond the confirm-with-default items in `docs/facts.md`. Missing or
+stale evidence blocks only its dependent gate and is never replaced with a personal identity, guessed
+value, Demo record, or different production record.

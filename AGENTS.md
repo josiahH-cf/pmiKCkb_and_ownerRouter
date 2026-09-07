@@ -133,9 +133,50 @@ The owner has authorized the runner to:
   identity, including APIs, quotas, IAM required by the app, Pub/Sub, Scheduler, Cloud Run, Cloud
   Functions, budgets, alerts, authorized domains, and OAuth redirects;
 - process live resident, owner, lease, and operational data in Production;
-- apply a safe documented default and continue when a non-authority question is uncertain.
+- apply a safe documented default and continue when a non-authority question is uncertain;
+- authenticate as the designated automation and verification identities without asking, under the
+  Authentication section below.
 
 Every cloud mutation must be read back. Record verified non-secret outcomes in `docs/facts.md`.
+
+## Authentication — pre-approved and unattended
+
+The owner ruled on 2026-09-07 that authentication is never a reason to pause, ask, or wait. The
+runner is pre-approved to obtain, refresh, and use the designated credentials whenever a check or
+live step needs them, without asking, and to treat a stale or missing credential as agent-owned work
+rather than an owner hold: `npm run auth:ensure` probes gcloud, ADC, `.env.local`, GitHub, and on
+request the canary browser sessions, repairs what it can without a browser, and exits 2 naming
+exactly one human step otherwise. S112 in `docs/feature-suites/README.md` is the contract; its
+login sequence is committed, and its one-time owner setup is `B-AUTH2` in `docs/open-blockers.md`.
+
+Designated identities, the only ones unattended work may use once that setup exists:
+
+- automation principal `pmi-runner@pmikcmetro.com`, impersonating
+  `pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com` for every gcloud, ADC, and API call;
+- verification canaries `canary-admin@pmikcmetro.com` and `canary-editor@pmikcmetro.com`, used only
+  by the assurance harness through their enrolled browser profiles;
+- the repository's GitHub CLI login (or `GH_TOKEN`).
+
+Until that setup exists, attended work continues under the owner's managed account, and
+`auth:ensure` reports it as attended instead of blocking; `--unattended` requires the automation
+identity. Each shell enrolls its own credential store (`npm run auth:enroll` for Windows,
+`npm run auth:enroll:wsl` for WSL); the Google client libraries read ADC only from the shell's own
+home.
+
+Boundaries that do not move:
+
+- The runner never types a person's password, one-time code, or passkey, never completes a
+  CAPTCHA, and never copies a person's cookies or profile. When Google asks for a human, the runner
+  stops and names the exact re-enrollment command.
+- The runner never edits the automation identities' IAM, claims, organizational unit, session
+  policy, or vault membership; those are owner controls. It never uses the owner's or any staff
+  member's credentials for unattended work.
+- Canary identities verify; they never confirm, draft, write, or appear as the actor of a product
+  effect.
+- Credential material (tokens, refresh tokens, `.env.local` values) never enters Git, logs,
+  receipts, or a report. Status output names identities and states only.
+- Service-account keys stay impossible: the project's org policies block their creation and upload,
+  and the repository refuses `GOOGLE_APPLICATION_CREDENTIALS`.
 
 ## Permanent safety boundaries
 
@@ -152,7 +193,11 @@ Every cloud mutation must be read back. Record verified non-secret outcomes in `
 - Secrets, tokens, credentials, client exports, Gmail bodies, customer values, and raw evidence never
   enter Git.
 - Staff, runner, Firebase, connector, Cloud Build, and runtime identities must be
-  `pmikcmetro.com` or project service identities. Personal identities are forbidden.
+  `pmikcmetro.com` or project service identities; unattended runner work uses only the designated
+  automation principal and verification canaries. Personal identities and service-account keys are
+  forbidden.
+- The runner never enters a password, one-time code, passkey, or CAPTCHA, and never copies a
+  person's cookies or browser profile.
 - Do not guess provider endpoints, record identifiers, mappings, recipient addresses, policy, or
   customer values.
 - Destructive production data work requires backup, dry-run, exact target, and rollback.
@@ -230,6 +275,7 @@ Prepare and surface, but do not push without explicit owner direction:
 - any `production_allowed` change in `lib/integrations/action-registry-seed.ts`
 - `scripts/check-budget-guard.mjs`
 - `infra/budget-guardrail/**`
+- `scripts/auth/**`
 
 The owner-directed 2026-08-31 documentation reconciliation authorizes present-truth edits to this
 router and `docs/facts.md`. The activation program above is also explicit owner direction for its
@@ -292,7 +338,8 @@ Active documentation is intentionally small. `docs/README.md` is the index.
 
 ## Execution loop
 
-1. Read this file, `docs/facts.md`, and `docs/loop-state.md`.
+1. Read this file, `docs/facts.md`, and `docs/loop-state.md`; run `npm run auth:ensure`
+   (authentication is pre-approved and never a reason to wait).
 2. Inspect committed code and live read-only state before accepting a stale claim.
 3. Plan one bounded outcome and its falsification.
 4. Implement with tests and preserve unrelated/user-owned changes.
@@ -320,6 +367,8 @@ changes unless they alter a served asset.
 
 ## Per-runner pointers
 
-The repository is runner-neutral. Claude reads `CLAUDE.md`, which points here. Codex uses this file
-directly and has no repo-tracked harness configuration. Runner-local settings never widen repository
-authority.
+The repository is runner-neutral. Claude reads `CLAUDE.md`, which points here, and the tracked
+`.claude/settings.json`, which only allow-lists the `scripts/auth` commands and runs `auth:ensure`
+at session start. Codex uses this file directly and has no repo-tracked harness configuration; its
+approval and sandbox settings live in the owner's `~/.codex/config.toml`. Runner-local settings
+never widen repository authority.

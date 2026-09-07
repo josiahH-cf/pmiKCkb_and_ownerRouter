@@ -21,7 +21,8 @@ ignored `.env.local`; production deployment values come from ignored
 
 ## Identity
 
-- Google Cloud CLI and ADC must resolve to a managed `pmikcmetro.com` user.
+- Google Cloud CLI and ADC must resolve to a managed `pmikcmetro.com` person (attended) or to the
+  S112 automation identity (unattended).
 - Production Cloud Run uses the project runtime service account.
 - Firebase users must be verified managed-domain users.
 - `GOOGLE_APPLICATION_CREDENTIALS` must remain unset; key files are not supported.
@@ -29,12 +30,14 @@ ignored `.env.local`; production deployment values come from ignored
 Run:
 
 ```bash
+npm run auth:ensure
 npm run preflight:identity
 npm run preflight:adc
 ```
 
-The managed Windows Cloud SDK store is available from WSL through the explicit
-`CLOUDSDK_CONFIG` path recorded in `docs/environment-handoff.md`.
+Authentication is pre-approved and self-repairing (`AGENTS.md`, Authentication). Each shell enrolls
+its own credential store once: `npm run auth:enroll` on Windows and `npm run auth:enroll:wsl` in
+WSL; the Google client libraries read ADC only from the shell's own home.
 
 ## Verification
 

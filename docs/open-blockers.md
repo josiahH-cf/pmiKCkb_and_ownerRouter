@@ -8,7 +8,7 @@ Read this after `docs/loop-state.md`. Loop state says where the work is; this fi
 holding it and who owns each hold. When a blocker clears, move its outcome into `docs/facts.md` and
 delete the row here rather than leaving a stale entry.
 
-Last reconciled: 2026-09-06.
+Last reconciled: 2026-09-07.
 
 ## How to use this file
 
@@ -21,18 +21,18 @@ Last reconciled: 2026-09-06.
 
 ## Open
 
-| Id      | Blocks                                      | Owner    | Exact hold                                                                                                                                                                                                    | Completion evidence                                                              |
-| ------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| B-AUTH2 | Candidate promotion                         | owner    | Two managed browser profiles, one Admin and one Editor (a managed account with no role claim is an Editor at the application layer), must be signed in on BOTH the candidate origin and the canonical origin. | Both role canaries and the predecessor baseline pass in the receipt run.         |
-| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only.                                                                                                  | An approved client id and client secret exist for this application.              |
-| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.                                                                                                       | Readiness reports `connected` after a profile probe, naming no missing resource. |
-| B-DL3   | S34 document upload                         | owner    | WEDNESDAY: ask the team where the approved blank lease forms live. The S66 artifact catalog is empty.                                                                                                         | The seven required artifact families resolve to approved content.                |
-| B-MNT1  | S108 preapproval routing proof              | owner    | WEDNESDAY: ask the client which properties are preapproved and for how much, and identify them exactly.                                                                                                       | At least one property preapproval reads back with its amount and effective date. |
-| B-S100  | S100 resident draft, and S36 behind it      | owner    | WEDNESDAY: identify one work order carrying resident chat whose resident email is verified.                                                                                                                   | One eligible message exists and the draft key's proof runs against it.           |
+| Id      | Blocks                                      | Owner    | Exact hold                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Completion evidence                                                                                                                                                |
+| ------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| B-AUTH2 | Candidate promotion                         | owner    | S112 one-time setup: the `Automation` OU (reauthentication never required, web sessions never expire), the `pmi-runner@pmikcmetro.com` principal, the `pmi-kc-automation` service account with its grants, and the two canary accounts; then enroll both credential stores (`npm run auth:enroll`, `npm run auth:enroll:wsl`) and both canary profiles on both origins (`npm run auth:enroll-canary`). Fast path for the current candidate: enroll two managed profiles today with `auth:enroll-canary` (one Admin, one claim-less account, which the app resolves to Editor). | `npm run auth:ensure -- --unattended` exits 0 on the WSL store and `--need=canary` reports both profiles `signed_in` on both origins; then the receipt run passes. |
+| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | An approved client id and client secret exist for this application.                                                                                                |
+| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Readiness reports `connected` after a profile probe, naming no missing resource.                                                                                   |
+| B-DL3   | S34 document upload                         | owner    | WEDNESDAY: ask the team where the approved blank lease forms live. The S66 artifact catalog is empty.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | The seven required artifact families resolve to approved content.                                                                                                  |
+| B-MNT1  | S108 preapproval routing proof              | owner    | WEDNESDAY: ask the client which properties are preapproved and for how much, and identify them exactly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | At least one property preapproval reads back with its amount and effective date.                                                                                   |
+| B-S100  | S100 resident draft, and S36 behind it      | owner    | WEDNESDAY: identify one work order carrying resident chat whose resident email is verified.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | One eligible message exists and the draft key's proof runs against it.                                                                                             |
 
 ## Detail
 
-### B-AUTH2 — two authenticated managed profiles, on both origins
+### B-AUTH2 — the S112 one-time setup and enrolled canary profiles
 
 The 2026-09-04 diagnosis (`no account carries the Editor role, so the Editor canary has no subject`)
 was wrong in two ways, both corrected on 2026-09-06 and recorded in `docs/facts.md`
@@ -49,23 +49,23 @@ was wrong in two ways, both corrected on 2026-09-06 and recorded in `docs/facts.
   question recorded under Open Questions in `docs/facts.md`; the runner does not change a protected
   auth path for it.
 
-What still holds promotion is only the human sign-in. The receipt run drives the predecessor
-baseline against the canonical origin before the candidate canaries, and the session cookie is
-host-only, so each profile must be signed in on both origins:
+What still holds promotion is the one-time S112 setup (`docs/feature-suites/unattended-authentication.md`,
+Appendix B): the owner creates the automation principal, the service account, and the two canary
+accounts in an organizational unit whose sessions never expire, then enrolls each credential store
+once and each canary profile once per origin. The receipt run drives the predecessor baseline
+against the canonical origin before the candidate canaries, and the session cookie is host-only, so
+each profile is enrolled on both origins; after that, `npm run auth:ensure -- --need=canary`
+re-establishes the sessions with no person present.
 
-```
-chrome.exe --user-data-dir="C:\pmi-assurance\admin"  <canonical-origin>
-chrome.exe --user-data-dir="C:\pmi-assurance\admin"  <candidate-origin>
-chrome.exe --user-data-dir="C:\pmi-assurance\editor" <canonical-origin>
-chrome.exe --user-data-dir="C:\pmi-assurance\editor" <candidate-origin>
-```
-
-The Admin profile is one of the three `role=Admin` managed accounts. The Editor profile is one of the
-three managed accounts with no role claim, signed in by that person; no claim is written, no identity
-is minted or elevated, and no Admin is demoted. Copied cookies, guessed or default profile
-directories, and automated password/MFA are not evidence. The assurance browser runs under WSL, so
-both profile directories must be passed in their `/mnt/c/...` form, must be absolute, must differ
-from each other, and must sit outside the repository.
+Enrollment is headed and owner-completed: `npm run auth:enroll-canary -- --profile=<WSL-native
+absolute path outside the repository> --origin=<origin> --email=<canary>` opens the harness browser
+(the installed Playwright Chromium in WSL, or Google Chrome for Linux once installed) on the app's
+sign-in page; the owner completes Google; the script only selects the account tile, verifies the
+app session and role, and closes. No claim is written, no identity is minted or elevated, and no
+Admin is demoted. Copied cookies, guessed or default profile directories, and any password or
+one-time code typed by the runner are not evidence. The previous recipe (Windows Chrome launched
+from WSL with a `/mnt/c` profile path) never ran and is retired; the browser and the profile path
+form must match, which `scripts/auth/browser.ts` enforces.
 
 Everything else the receipt run needs is in hand: the live flag, the candidate origin
 `https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app`, the expected commit `7b3fdad`, the

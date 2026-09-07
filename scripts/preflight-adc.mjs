@@ -32,18 +32,26 @@ export function classifyAdcError(message) {
   return "other";
 }
 
-/** The operator-facing fix lines for a given failure kind. Pure + exported for tests. */
+/**
+ * The operator-facing fix lines for a given failure kind. Pure + exported for tests. S112: the
+ * unattended, browser-free repair comes first; the interactive enrollment (which runs the scope-free
+ * ADC login as a managed pmikcmetro.com identity) is the human fallback.
+ */
 export function reauthGuidance(kind) {
+  const fixes = [
+    "Fix (unattended, no browser): npm run auth:ensure -- --need=adc",
+    `Fallback (interactive, a managed pmikcmetro.com identity, NO --scopes): npm run auth:enroll, which runs ${REAUTH_COMMAND}`,
+  ];
   if (kind === "reauth") {
     return [
       "ADC preflight FAILED: Application Default Credentials need reauth (the token is stale).",
-      `Fix (interactive, sign in as josiah@pmikcmetro.com, NO --scopes): ${REAUTH_COMMAND}`,
+      ...fixes,
     ];
   }
   if (kind === "missing") {
     return [
       "ADC preflight FAILED: no Application Default Credentials found (or not configured for this org).",
-      `Fix (interactive, sign in as josiah@pmikcmetro.com, NO --scopes): ${REAUTH_COMMAND}`,
+      ...fixes,
     ];
   }
   return ["ADC preflight FAILED with an unexpected error (see the message above)."];

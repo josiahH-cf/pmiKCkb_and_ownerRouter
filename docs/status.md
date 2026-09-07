@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-09-06.
+Last updated: 2026-09-07.
 
 This is a present snapshot, not a changelog. Historical implementation and proof detail remains in
 Git and provider/app receipts.
@@ -183,12 +183,18 @@ end-to-end suite passed (8 files, 31 tests, with 4 files and 18 tests skipped). 
 
 ## Blocked and queued work
 
-- Promotion of the current candidate waits only on the two managed browser profiles (one Admin; one
-  managed account with no role claim, which the application resolves to `Editor`) signed in on both
-  the candidate and canonical origins. The candidate hostname is already an authorized sign-in
-  domain, the S51 monitoring resource set reads `READY`, and the candidate configuration
-  fingerprint is captured, so none of those is a hold. `docs/open-blockers.md` carries every open
-  blocker with a stable id, its owner, and the exact evidence that closes it.
+- Promotion of the current candidate waits only on the owner's one-time S112 setup (`B-AUTH2`): the
+  automation and canary identities, both credential stores enrolled, and the two canary profiles
+  enrolled on both the candidate and canonical origins, after which `npm run auth:ensure -- --need=canary`
+  re-signs them in unattended. The candidate hostname is already an authorized sign-in domain, the
+  S51 monitoring resource set reads `READY`, and the candidate configuration fingerprint is
+  captured, so none of those is a hold. `docs/open-blockers.md` carries every open blocker with a
+  stable id, its owner, and the exact evidence that closes it.
+- S112 (unattended authentication) is active: `npm run auth:ensure`, both enrollment scripts, the
+  canary session scripts, and the identity-preflight changes are committed with fail-first tests
+  and read back on 2026-09-07 (Windows store attended-ready; WSL gcloud CLI stale and named; fresh
+  profile stops at Google with `human_required` and no input). Remaining slices are listed in
+  `docs/loop-state.md`.
 
 - S100 is BLOCKED on `gmail.maintenance_resident_reply.draft_create` and on the agent-owned
   operation that links an existing RentVine work order to a ticket. Its exact proof requires a
@@ -204,8 +210,9 @@ end-to-end suite passed (8 files, 31 tests, with 4 files and 18 tests skipped). 
 - Live `/api/version` and Cloud Run readback confirm the serving commit/revision and 100% traffic.
 - Serving configuration confirms Production + Live and the enabled Sheet write switch.
 - The committed registry contains 48 keys with 16 open; completed proof windows are closed.
-- ADC is fresh and the established non-persistent access-token bridge can perform managed readback.
-  The default gcloud refresh credential remains stale/noninteractive.
+- Authentication is pre-approved; `npm run auth:ensure` is the entry point. On 2026-09-07 the Windows
+  store reads attended-ready as the owner's managed account and the WSL store's gcloud CLI needs the
+  attended re-enrollment `auth:ensure` names; the unattended identities wait on `B-AUTH2`.
 - No test totals, CI result, candidate result, or live assurance result for the current remediation is
   recorded here before it actually passes.
 

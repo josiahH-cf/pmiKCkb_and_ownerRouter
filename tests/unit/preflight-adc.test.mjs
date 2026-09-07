@@ -33,6 +33,17 @@ describe("reauthGuidance", () => {
     }
   });
 
+  // S112: the first fix named is the unattended, browser-free repair; the interactive enrollment is
+  // the fallback, and the guidance never names a person's account as the identity to sign in as.
+  it("names the unattended repair first and the enrollment as the human fallback", () => {
+    for (const kind of ["reauth", "missing"]) {
+      const lines = reauthGuidance(kind);
+      expect(lines[1]).toContain("npm run auth:ensure");
+      expect(lines.join(" ")).toContain("npm run auth:enroll");
+      expect(lines.join(" ")).not.toContain("josiah@");
+    }
+  });
+
   it("does not invent a fix for an unexpected error", () => {
     expect(reauthGuidance("other").join(" ")).not.toContain("gcloud auth");
   });

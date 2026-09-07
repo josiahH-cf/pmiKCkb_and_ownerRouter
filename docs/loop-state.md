@@ -1,6 +1,7 @@
 # Loop state
 
-Last updated: 2026-09-06. Resume here after reading `AGENTS.md` and `docs/facts.md`.
+Last updated: 2026-09-07. Resume here after reading `AGENTS.md` and `docs/facts.md`, then run
+`npm run auth:ensure` (authentication is pre-approved; a blocked credential names one human step).
 
 ## Objective
 
@@ -49,19 +50,23 @@ state on the date above.
 - S99, S97, and S100 chat sync are proven and open; S100's draft key stays closed on the eligible
   resident message, and the app also lacks a path to link an existing RentVine work order to a
   ticket (agent-owned, below). S36 is queued behind complete S100.
-- ADC is fresh for the managed account; the non-persistent access-token bridge performs cloud
-  readback and the candidate deploy without printing a token.
+- Authentication is pre-approved (S112, `AGENTS.md` Authentication). `npm run auth:ensure` is the
+  one entry point. On 2026-09-07 the Windows store reads attended-ready as the owner's managed
+  account, the WSL store's gcloud CLI needs the attended re-enrollment `auth:ensure` names, and the
+  unattended identities wait on the owner's `B-AUTH2` setup.
 - `.claude/settings.local.json`, `output/`, and the owner's untracked specification package are
   user-owned content. Exclude them, ignored `temp/`, credentials, provider bodies, and customer
   evidence from commits and build uploads.
 
 ## Next exact action
 
-Promotion of `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. It waits only on the owner's human step: the two managed
-browser profiles (one Admin; one managed account with no role claim, which the application resolves
-to `Editor`) signed in on BOTH `https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the
-canonical origin (`docs/open-blockers.md` `B-AUTH2` has the exact commands). When the owner reports
-that, run `--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
+Promotion of `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. It waits only on the owner's one-time S112 setup
+(`docs/open-blockers.md` `B-AUTH2`): the automation and canary identities, both credential stores
+enrolled, and the two canary profiles enrolled on BOTH
+`https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app` and the canonical origin
+(fast path: two managed profiles enrolled through `auth:enroll-canary` today). When the owner reports
+that, run `npm run auth:ensure -- --need=canary` for both profiles and both origins, then
+`--prepare-candidate-receipt` under `ENVIRONMENT_KIND=production DATA_CONTEXT=live` with
 `--expected-commit=7b3fdadac134550c24b029034753a38f16e4096b`, `--expected-revision=pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, and
 `--expected-config-fingerprint=sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`,
 promote the exact revision, and complete the 300,000 ms observation. Promotion inputs are NOT
@@ -70,7 +75,13 @@ needed only if runtime code changes.
 
 ## Agent-owned next work, no owner input needed
 
-Build in this order; each is fail-first, to its external seam, and each needs a new candidate.
+S112's remaining slices come first and need no candidate (except the last): wire
+`ensureAuthenticated` from `scripts/auth/ensure.mjs` into every live script behind a source-scan
+test; the workstation secret template (R4); the IAM audit; `PLAYWRIGHT_CHROME_PATH` and
+`canarySessions` in the assurance harness; then the R3 read-only canary claim behind a candidate.
+
+Build the rest in this order; each is fail-first, to its external seam, and each needs a new
+candidate.
 
 1. S106 runtime seam: record the refresh-token vault ref on the connection, add the vault-backed
    runtime token provider (no-person refresh), and wire Dotloop readiness/health into the Connection

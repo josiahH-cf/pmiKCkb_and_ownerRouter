@@ -4,6 +4,10 @@ This is the current runner-neutral implementation loop. Authority and safety liv
 
 ## Intake
 
+Run `npm run auth:ensure` first. Authentication is pre-approved (`AGENTS.md`, Authentication): a
+blocked credential names one human step and blocks nothing else; never wait on it or ask before
+authenticating as the designated identities.
+
 Read, in order:
 
 1. `AGENTS.md`

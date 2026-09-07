@@ -12,6 +12,22 @@ const goodState = {
   googleAppCreds: undefined,
 };
 
+// S112: the designated unattended identity. The automation principal impersonates the automation
+// service account, so the ADC principal is that service account and nothing else.
+const automation = {
+  principal: "pmi-runner@pmikcmetro.com",
+  serviceAccount: "pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com",
+};
+
+const unattendedState = {
+  gcloudAvailable: true,
+  gcloudAccount: automation.principal,
+  impersonation: automation.serviceAccount,
+  adcPresent: true,
+  adcAccount: automation.serviceAccount,
+  googleAppCreds: undefined,
+};
+
 describe("evaluateIdentity", () => {
   it("passes when gcloud + ADC both resolve to pmikcmetro.com and no key file is set", () => {
     const result = evaluateIdentity(goodState);
@@ -104,6 +120,54 @@ describe("evaluateIdentity", () => {
   });
 });
 
+describe("evaluateIdentity (S112 automation identity)", () => {
+  it("accepts the automation principal impersonating the designated service account", () => {
+    const result = evaluateIdentity(unattendedState, { automation });
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("still refuses a key file for the automation identity", () => {
+    const result = evaluateIdentity(
+      { ...unattendedState, googleAppCreds: "/tmp/key.json" },
+      { automation },
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses any other service account as the ADC principal", () => {
+    const result = evaluateIdentity(
+      { ...unattendedState, adcAccount: "other@pmi-kc-kb-prod.iam.gserviceaccount.com" },
+      { automation },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("is not the designated"))).toBe(
+      true,
+    );
+  });
+
+  it("refuses the service-account ADC principal when no impersonation is configured", () => {
+    const result = evaluateIdentity(
+      { ...unattendedState, impersonation: null },
+      { automation },
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("under --unattended requires the automation principal, not a managed person", () => {
+    const attended = evaluateIdentity(goodState, { automation, unattended: true });
+    expect(attended.ok).toBe(false);
+    expect(attended.errors.some((error) => error.includes("npm run auth:enroll"))).toBe(
+      true,
+    );
+    const unattended = evaluateIdentity(unattendedState, {
+      automation,
+      unattended: true,
+    });
+    expect(unattended.ok).toBe(true);
+  });
+});
+
 describe("buildIdentityChecklist", () => {
   it("marks the gcloud/ADC row ok for a good state and FAIL otherwise", () => {
     const ok = buildIdentityChecklist(goodState).find((item) =>
@@ -116,6 +180,14 @@ describe("buildIdentityChecklist", () => {
       gcloudAccount: "x@gmail.com",
     }).find((item) => item.system.startsWith("(b)"));
     expect(bad?.status).toBe("FAIL");
+  });
+
+  it("marks the automation identity ok and shows its impersonation", () => {
+    const row = buildIdentityChecklist(unattendedState, { automation }).find((item) =>
+      item.system.startsWith("(b)"),
+    );
+    expect(row?.status).toBe("ok");
+    expect(row?.detail).toContain("impersonating");
   });
 
   it("lists all six identity systems with manual-verify for the non-probeable ones", () => {

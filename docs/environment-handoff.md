@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated from live readback and approved target contracts: 2026-09-06.
+Updated from live readback and approved target contracts: 2026-09-07.
 
 ## Production
 
@@ -33,22 +33,32 @@ readback pass.
 ## Local host and authentication
 
 - The repository is on the Windows-mounted workspace; Node/npm application commands run through WSL.
-- Keep `GOOGLE_APPLICATION_CREDENTIALS` unset.
+- Keep `GOOGLE_APPLICATION_CREDENTIALS` unset. Service-account keys cannot be created for this
+  project (org policy) and every preflight refuses them.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
   from source uploads.
-- Current preflight finds fresh Application Default Credentials for the managed
-  `josiah@pmikcmetro.com` account. The default gcloud refresh credential remains stale and cannot
-  refresh non-interactively.
-- For gcloud commands, the established bridge obtains the fresh ADC token in process and passes it
-  only through a task-specific `CLOUDSDK_AUTH_ACCESS_TOKEN` environment value (the bridge feeds
-  gcloud from ADC; the application libraries never read that variable). It must never print, log, or
-  persist the token. Re-run both identity preflights immediately before cloud work and refuse
-  unless the selected principal is the exact managed account.
-- Never automate an authentication dialog, password, or MFA challenge. If ADC is not fresh or the
-  managed principal cannot be read back, a person must reauthenticate.
-- Browser assurance uses two explicit persistent profile directories outside the repository, one
-  for the expected managed Admin and one for the expected managed Editor. Never guess or copy a
-  default/personal profile or infer a role from a cookie.
+- Authentication is pre-approved and self-repairing (S112, `AGENTS.md` Authentication). Run
+  `npm run auth:ensure` first in any shell: it probes the gcloud CLI, the library ADC, `.env.local`,
+  the GitHub CLI, and on request the canary browser sessions; repairs gcloud config drift without a
+  browser; and exits 2 naming one human step per blocked credential. `--unattended` requires the
+  designated automation identity (`pmi-runner@pmikcmetro.com` impersonating
+  `pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com`); until the owner's one-time setup
+  exists (`docs/open-blockers.md` B-AUTH2), attended work runs under the owner's managed account.
+- Each shell has its own credential store and enrolls it once, interactively, with the owner
+  completing Google in a browser: `npm run auth:enroll` (Windows store) and `npm run auth:enroll:wsl`
+  (WSL store, the unattended path). The Google client libraries read ADC only from the shell's own
+  home, so never point one shell at another's store. `npm run auth:session` is the attended form of
+  the Windows enrollment.
+- The runner never types a password, one-time code, or passkey, never completes a CAPTCHA, and
+  never copies a person's cookies or profile. When Google asks for a person, `auth:ensure` names
+  the exact enrollment command and nothing else stops.
+- Browser assurance uses two persistent profile directories outside the repository, one per
+  canary, enrolled once per origin with `npm run auth:enroll-canary` and re-signed-in unattended by
+  `npm run auth:ensure -- --need=canary`. The browser that enrolls a profile is the browser that
+  reuses it: under WSL that is the Linux browser `scripts/auth/browser.ts` resolves (Google Chrome
+  for Linux when installed, otherwise the installed Playwright Chromium) with a WSL-native absolute
+  profile path; pass the same binary to the assurance harness through `PLAYWRIGHT_CHROME_PATH`.
+  Never guess or copy a default or personal profile or infer a role from a cookie.
 
 ## Preflight
 
@@ -61,8 +71,8 @@ npm run release -- --environment=production --plan-only \
 
 The bare `preflight:production` command is not the authoritative release projection: the release
 wrapper injects the explicit descriptor and evaluates the exact replacing runtime map. Never bypass
-a release-wrapper refusal. If default gcloud refresh is stale but ADC is fresh and read back as the
-managed account, use only the non-persistent token bridge above.
+a release-wrapper refusal. If `auth:ensure` reports the gcloud CLI credential stale, run the
+enrollment command it names; do not bridge a token by hand.
 
 ## Candidate release
 
@@ -100,12 +110,14 @@ Do not promote until the anonymous smoke and the complete S51 candidate assuranc
 
 Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA. Add
 the exact candidate hostname to Firebase authorized domains through a reviewed managed cloud change
-and read it back. Two distinct browser-profile directories outside the repository must then be
-authenticated as the expected Admin and Editor on BOTH the exact candidate origin and the canonical
+and read it back. Two distinct canary profile directories outside the repository must then hold
+sessions as the expected Admin and Editor on BOTH the exact candidate origin and the canonical
 origin: the receipt run drives the predecessor baseline against the canonical host before the
-candidate canaries, and the session cookie is host-only. A managed account with no role claim is an
-Editor at the application layer. Copied cookies, guessed/default profiles, and automated
-password/MFA are not evidence.
+candidate canaries, and the session cookie is host-only. Enroll each profile once per origin with
+`npm run auth:enroll-canary`, then let `npm run auth:ensure -- --need=canary --origins=<canonical>,<candidate> --admin-profile=<path> --editor-profile=<path>`
+re-establish both sessions unattended immediately before the receipt run. A managed account with
+no role claim is an Editor at the application layer. Copied cookies, guessed/default profiles, and
+any password or one-time code typed by the runner are not evidence.
 
 Capture the immutable revision-configuration fingerprint:
 

@@ -31,9 +31,10 @@ npm run test:e2e:core
 bash scripts/verify.sh
 ```
 
-Use WSL/Linux for this workspace. Keep `GOOGLE_APPLICATION_CREDENTIALS` unset and use managed
-Application Default Credentials. Never commit environment files, credentials, client exports, or
-customer values.
+Use WSL/Linux for this workspace. Run `npm run auth:ensure` first: authentication is pre-approved
+and self-repairing (`AGENTS.md`, Authentication). Keep `GOOGLE_APPLICATION_CREDENTIALS` unset and
+use managed Application Default Credentials. Never commit environment files, credentials, client
+exports, or customer values.
 
 ## Release
 
