@@ -92,8 +92,10 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The installed task runs `release:watch`. Current main `30d2148` lacks the foundation file, so dry-run
-and running readbacks refuse with `foundation_not_in_target`; no deployment has occurred.
+The installed task runs `release:watch`. Pushed implementation 6e77d18f6d9916ba94078550d4b5ba73751e86c8
+passed exact-SHA CI run 34262698002. The watcher accepted it, completed isolated preparation, captured
+the serving predecessor and entered deploy. Planned revision pmi-kc-app-rmtt039q1-c1463245a94c
+is not deployment evidence; inspect the checkpoint and live readbacks before using it.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release. Documentation-only
 commits do not deploy. Candidate readbacks, domain replacement, fresh assurance receipt, exact
 promotion and 300,000 ms observation remain gates. Durable rollback intent is stored before traffic
@@ -347,3 +349,12 @@ A routine release preserves:
 
 A difference requires explicit review; do not let stale local state replace current production
 configuration. Documentation-only changes are not deployed.
+
+### Current live rehearsal result — 2026-09-08
+
+Node 24 development reproduced the ArrayBuffer response error. The built app in native Linux
+storage with the installed Node 22 runtime loaded the desk, but sorting exceeded 20 seconds
+(23.4 seconds); Dashboard exceeded 60 seconds, navbar /ask exceeded 90 seconds and theme /ask
+exceeded 45 seconds. Maintenance blocker/intake checks passed. The guide summary locator is
+corrected and verified in Chromium; its full run still misses owner-phase navigation. Deadlines
+are unchanged. This is B-REH1, separate from the passing canonical verify and exact-SHA CI.

@@ -6,7 +6,8 @@ Recorded authority remains in force. Runtime inputs below and the confirm-with-d
 remain open. None permits guessing values, substituting records, or stopping independent work.
 ADC enrollment, fresh-shell and paired post-reboot refresh are verified. Directory readback
 found six managed users: three Admin and three default Editor, none disabled. Individual evidence
-stays private. The October walkthrough lease has not been selected.
+stays private. A provisional reading example is selected from ten October leases with complete
+provider detail reads; its Sheet association and full workflow readiness still need review.
 
 ## Recorded owner decisions
 

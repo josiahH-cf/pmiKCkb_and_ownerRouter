@@ -37,8 +37,9 @@ with all Spaces by owner decision. No account, IAM or claim was changed.
 The limited user task `PMI KC release watcher` is running after a supervised restart. Its Windows
 launcher had exited while an idle Linux watcher survived; the exact process was stopped without a
 release checkpoint and the task restarted. The prior exit remains unexplained. Readback confirms
-the launcher and one Linux watcher. It refuses committed main `30d2148` with
-`foundation_not_in_target`; no deployment occurred. Watcher command-path tests cover exact release
+the launcher and one Linux watcher. Commit `6e77d18f6d9916ba94078550d4b5ba73751e86c8` is pushed to main and
+all five jobs in CI run 34262698002 passed. The watcher completed isolated preparation and entered
+deploy for planned revision `pmi-kc-app-rmtt039q1-c1463245a94c`; no new deployment is yet verified. Watcher command-path tests cover exact release
 identity, uncertain deploy/rollback responses, restart recovery and browser enrollment pauses.
 The watcher now reads its monitoring recipient from explicit ignored configuration independently
 of local authentication, preserving the existing channel. Twenty-one watcher tests pass.
@@ -71,8 +72,10 @@ Formatting, lint, typecheck, 168 Firestore tests and the production build pass. 
 document checks are recorded in docs/evidence/wednesday-readiness-review-2026-09-07.md.
 
 Core E2E passed 31 tests with 18 emulator-dependent skips under explicit external-source refusal.
-The seven live-source browser smokes, a selected October lease and complete live renewal evidence
-remain pending. Directory readback found three managed Admin and three default Editor accounts,
+Two live-source smokes pass: maintenance blockers and intake. Desk sort, Dashboard, navbar and
+theme miss their unchanged timing limits; the full guide misses owner-phase navigation. Its native
+disclosure locator correction passes an exact Chromium proof. B-REH1 remains open. A provisional
+October reading example is selected; full workflow evidence and a complete live renewal remain pending. Directory readback found three managed Admin and three default Editor accounts,
 none disabled. No account or claim changed.
 
 The owner directed pushing the reviewed green work and preparing the four deliverables in

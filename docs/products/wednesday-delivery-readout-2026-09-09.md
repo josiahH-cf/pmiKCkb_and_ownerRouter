@@ -42,7 +42,9 @@ was created by this task.
 
 ## Meeting readiness and fallback
 
-The written packet is ready for review. A full live completion demonstration remains conditional on
+The written packet is ready for review. Implementation 6e77d18 is pushed to main and its full CI
+is green. Local live-source browser checks still have the B-REH1 timing/guide hold; use the reading
+and explanation fallback while that hold remains open. A full live completion demonstration remains conditional on
 release assurance, full evidence for the provisional October lease, and provider/content inputs. If any condition is
 missing, walk the available read and preparation steps, state the exact blocker and record the
 responsible person. Do not manufacture a transaction, reply, signature or success receipt.

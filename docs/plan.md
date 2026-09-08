@@ -4,7 +4,8 @@ Updated: 2026-09-08.
 
 ## Outcome
 
-Push the complete reviewed green readiness change set to main and prepare the four deliverables
+The complete reviewed readiness implementation is pushed to main as 6e77d18; all five CI jobs pass.
+Prepare and review the four deliverables
 for Wednesday, 9 September. The owner approved the one captured-label correction after private
 source review. Preserve the original evidence, all source values and every assertion. The exact
 execution checkpoint is docs/loop-state.md.
@@ -14,7 +15,7 @@ execution checkpoint is docs/loop-state.md.
 Production serves `d243911cb20ffb01773072c0e27c723648eeea34` as
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic, reread on 2026-09-08.
 The unpromoted candidate remains `7b3fdadac134550c24b029034753a38f16e4096b` /
-`pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. The readiness changes have no verified deployment yet.
+`pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. The watcher accepted the green implementation SHA and entered deploy; no new deployment is yet verified.
 S96 — safe connector disconnect and reconciliation is serving; the S106 extension
 adds provider revoke/readback and bounded recovery without claiming a live Dotloop proof.
 

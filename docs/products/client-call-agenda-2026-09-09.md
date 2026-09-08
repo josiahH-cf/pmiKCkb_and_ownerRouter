@@ -24,7 +24,7 @@ as serving. Dotloop credentials, approved forms and participant mappings still l
 
 Josiah facilitates. Ask the client to identify the renewal operator, the Admin who can approve
 source changes, and the person who owns forms and policy. These are requested roles, not a verified
-attendee list. Use a reading and preparation walkthrough if the release receipt is still pending.
+attendee list. Use a reading and preparation walkthrough while release assurance or the B-REH1 browser timing/guide hold remains open.
 Explain unavailable controls at their actual stopping point. A meeting demonstration does not
 authorize a provider write or a send.
 

@@ -6,7 +6,8 @@ Last updated: 2026-09-08. Read AGENTS.md, docs/facts.md and docs/open-blockers.m
 
 The owner directed pushing all reviewed green work and preparing four Wednesday deliverables.
 The one captured-label correction is explicitly owner-approved after private source readback.
-The inherited main baseline is 30d21482e3f0fee5cb516f3f6b83c92b1e1f350a; inspect Git for current push state.
+Implementation commit 6e77d18f6d9916ba94078550d4b5ba73751e86c8 is pushed to main; all five CI jobs passed
+run 34262698002. This documentation follow-up does not alter the release payload.
 
 - Serving: pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, commit d243911cb20ffb01773072c0e27c723648eeea34, 100%.
 - Candidate: pmi-kc-app-rmtq71kjl-bff41bbdb5fa, commit 7b3fdadac134550c24b029034753a38f16e4096b, zero traffic.
@@ -18,7 +19,7 @@ The inherited main baseline is 30d21482e3f0fee5cb516f3f6b83c92b1e1f350a; inspect
   Sheet switch, false Demo flags, RentVine/RentCast bindings, selection and allowance 50.
   Dotloop client bindings remain absent. Nine authorized domains were reread.
 - The candidate carries the completion program, not this readiness change set. No readiness
-  deployment or promotion is yet verified; inspect the watcher checkpoint and exact-SHA CI.
+  deployment or promotion is yet verified; the watcher has accepted the green implementation SHA.
 
 ## Authentication and watcher
 
@@ -36,7 +37,7 @@ foundation_not_in_target. Automatic release acceptance is not yet proven.
 The watcher now reads MONITORING_OPERATOR_EMAIL from ignored local configuration independently of
 the CLI identity. It preserves the existing managed alert recipient and refuses missing/conflicting
 configuration. Two new fail-first checks cover this distinction. The idle watcher was restarted with this code/configuration after verifying no release checkpoint;
-its task is Running and inherited main remains refused. Never interrupt an in-flight deployment
+its task is Running and the green implementation SHA is accepted. Never interrupt an in-flight deployment
 without its exact checkpoint.
 
 B-AUTH2 still requires existing managed Admin and Editor profiles on both exact origins.
@@ -67,8 +68,10 @@ Promotion, 300,000 ms observation and final readbacks remain separate gates.
 
 ## Next actions and Wednesday package
 
-1. Finish current policy/document gates; audit the whole diff, commit/push green main and inspect CI.
-2. The watcher has the reviewed config; verify exact candidate lifecycle and browser gates.
+1. Implementation is pushed and CI is green; read the durable watcher checkpoint for the exact next phase.
+2. The watcher completed isolated preparation and is in deploy for planned revision
+   pmi-kc-app-rmtt039q1-c1463245a94c; predecessor is the serving revision above.
+   Verify deployment/readbacks before using that planned identity as a candidate.
 3. Preserve post-reboot proof and complete the elapsed-session check at its actual earliest time.
 4. Verify October lease selection and run the live-source browser rehearsal privately.
 5. Use docs/plan.md's four deliverables: walkthrough, agenda, decisions/inputs and delivery readout.
@@ -79,3 +82,8 @@ The earlier deck/PDF need a content refresh; the written readout is current. Pre
 capability is unavailable in this session. Do not claim a refreshed deck or full live completion.
 Exclude .claude/settings.local.json, output/, golden-data/, ignored user specifications and scratch,
 credentials, provider bodies and customer values from Git/build uploads. Preserve every action and cost boundary.
+
+Current browser result: two of seven live-source smokes pass (maintenance blockers/intake).
+Desk sort, Dashboard, navbar and theme miss unchanged timing limits; the full guide misses the
+owner-phase navigation despite its corrected exact summary locator passing Chromium proof.
+B-REH1 owns this hold. Use the current written packet and source-reading fallback for Wednesday.
