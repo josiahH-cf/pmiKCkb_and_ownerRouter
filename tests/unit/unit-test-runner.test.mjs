@@ -32,8 +32,8 @@ describe("accelerated unit-test runner", () => {
 
   it("bounds thread concurrency while leaving one logical CPU free", () => {
     expect(recommendedWorkers(1)).toBe(1);
-    expect(recommendedWorkers(4)).toBe(3);
-    expect(recommendedWorkers(32)).toBe(8);
+    expect(recommendedWorkers(4)).toBe(2);
+    expect(recommendedWorkers(32)).toBe(2);
   });
 
   it("never mirrors ignored local settings, outputs, client data, scratch, secrets, or env files", () => {
@@ -43,6 +43,8 @@ describe("accelerated unit-test runner", () => {
       "docs/client_docs/export.csv",
       "docs/context_and_calls/call.md",
       "docs/temp/local-proof.md",
+      "docs/specs/private.md",
+      "golden-data/captured/source.json",
       "output/report.pdf",
       "secrets/token.txt",
       "temp/audit.json",

@@ -1,3 +1,7 @@
+import {
+  maintenancePropertyIdentity,
+  effectivePropertyPreapproval,
+} from "@/lib/maintenance/property-identity";
 import { AppShell } from "@/components/layout/AppShell";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture";
@@ -101,11 +105,14 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
   const statusConflicts: Record<string, MaintenanceProviderStatusConflict> = {};
   for (const ticket of tickets) {
     const link = links[ticket.id] ?? null;
-    const propertyId = link?.provider_snapshot?.property_id ?? null;
+    const { propertyId } = maintenancePropertyIdentity(ticket, link);
     waitingOn[ticket.id] = projectMaintenanceWaitingOn({
       ticket,
       link,
-      preapproval: propertyId ? (preapprovalByProperty.get(propertyId) ?? null) : null,
+      preapproval: effectivePropertyPreapproval(
+        propertyId ? (preapprovalByProperty.get(propertyId) ?? null) : null,
+        new Date().toISOString(),
+      ),
     });
     statusConflicts[ticket.id] = describeProviderStatusConflict({
       appStatus: ticket.status,

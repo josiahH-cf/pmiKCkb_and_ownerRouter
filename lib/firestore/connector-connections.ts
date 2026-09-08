@@ -18,6 +18,10 @@ import {
   type CreateConnectorConnectionInput,
 } from "@/lib/connections/connector-connection";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import type {
+  DotloopRefreshResult,
+  DotloopRuntimeStore,
+} from "@/lib/connections/dotloop-runtime";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
 // Both collections are server-only. Receipt documents contain identifiers and outcomes only; they
@@ -25,7 +29,9 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 export const CONNECTOR_CONNECTIONS_COLLECTION = "connector_connections";
 export const CONNECTOR_REVOCATION_RECEIPTS_COLLECTION = "connector_revocation_receipts";
 
-export class FirestoreConnectorConnectionStore implements ConnectorConnectionStore {
+export class FirestoreConnectorConnectionStore
+  implements ConnectorConnectionStore, DotloopRuntimeStore
+{
   constructor(private readonly db: Firestore = getAdminFirestore()) {}
 
   async getConnection(connectorId: string): Promise<ConnectorConnectionRecord | null> {
@@ -101,6 +107,16 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
         method: input.method,
         status: "connected",
         secretRef: input.secretRef,
+        ...(input.connectorId === "dotloop"
+          ? {
+              ...(input.refreshTokenRef
+                ? { refreshTokenRef: input.refreshTokenRef }
+                : {}),
+              ...(input.tokenExpiresAt ? { tokenExpiresAt: input.tokenExpiresAt } : {}),
+              ...(input.grantedScopes ? { grantedScopes: input.grantedScopes } : {}),
+              oauthState: "ready" as const,
+            }
+          : {}),
         connectedByUid: input.connectedByUid,
         connectedAt: input.connectedAt,
         generationId: input.generationId,
@@ -110,6 +126,100 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
       if (currentSnapshot.exists) transaction.set(ref, record);
       else transaction.create(ref, record);
       return record;
+    });
+  }
+
+  async claimDotloopRefresh(
+    input: Parameters<DotloopRuntimeStore["claimDotloopRefresh"]>[0],
+  ): Promise<ConnectorConnectedRecord | null> {
+    const ref = this.connectionRef("dotloop");
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      const record = snapshot.data() as ConnectorConnectionRecord | undefined;
+      if (
+        !record ||
+        !isSafeVersionedConnectedRecord(record) ||
+        record.generationId !== input.generationId ||
+        record.revision !== input.revision ||
+        record.oauthState === "refreshing" ||
+        record.oauthState === "refresh_needed"
+      )
+        return null;
+      const next: ConnectorConnectedRecord = {
+        ...record,
+        oauthState: "refreshing",
+        refreshOperationId: input.operationId,
+        revision: record.revision + 1,
+        updatedAt: input.nowIso,
+      };
+      transaction.set(ref, next);
+      return next;
+    });
+  }
+
+  async completeDotloopRefresh(input: DotloopRefreshResult): Promise<boolean> {
+    const ref = this.connectionRef("dotloop");
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      const record = snapshot.data() as ConnectorConnectionRecord | undefined;
+      // An exact confirmed disconnect may have quarantined an abandoned refresh. Late cleanup
+      // evidence still belongs to that generation; retain it without reviving the connection or
+      // acknowledging a token refresh. A replacement generation is never touched.
+      if (
+        record?.status === "revocation_pending" &&
+        record.generationId === input.generationId &&
+        record.refreshOperationId === input.operationId &&
+        input.failed
+      ) {
+        transaction.set(ref, {
+          ...record,
+          retainedSecretRefs: [
+            ...new Set([
+              ...(record.retainedSecretRefs ?? []),
+              ...(input.retainedSecretRefs ?? []),
+            ]),
+          ],
+          revision: (record.revision ?? 0) + 1,
+          updatedAt: input.nowIso,
+        });
+        return false;
+      }
+      if (
+        !record ||
+        !isSafeVersionedConnectedRecord(record) ||
+        record.generationId !== input.generationId ||
+        record.oauthState !== "refreshing" ||
+        record.refreshOperationId !== input.operationId
+      )
+        return false;
+      const { refreshOperationId: _operation, ...current } = record;
+      void _operation;
+      if (
+        !input.failed &&
+        (!input.accessTokenRef || !input.refreshTokenRef || !input.tokenExpiresAt)
+      )
+        return false;
+      transaction.set(ref, {
+        ...current,
+        oauthState: input.failed ? "refresh_needed" : "ready",
+        refreshOutcomeUncertain: Boolean(input.failed && input.providerAttempted),
+        ...(input.failed
+          ? {}
+          : {
+              secretRef: input.accessTokenRef,
+              refreshTokenRef: input.refreshTokenRef,
+              tokenExpiresAt: input.tokenExpiresAt,
+            }),
+        retainedSecretRefs: [
+          ...new Set([
+            ...(record.retainedSecretRefs ?? []),
+            ...(input.retainedSecretRefs ?? []),
+          ]),
+        ],
+        revision: record.revision + 1,
+        updatedAt: input.nowIso,
+      });
+      return true;
     });
   }
 
@@ -144,12 +254,27 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
             409,
           );
         }
+        if (
+          current.oauthState === "refreshing" &&
+          (input.connectorId !== "dotloop" ||
+            !Number.isFinite(Date.parse(current.updatedAt)) ||
+            !Number.isFinite(Date.parse(input.requestedAt)) ||
+            Date.parse(input.requestedAt) - Date.parse(current.updatedAt) < 120_000)
+        ) {
+          throw new EditableLayerError(
+            "Dotloop token refresh is pending. Resolve refresh recovery before disconnecting.",
+            409,
+          );
+        }
         assertObservedVersion(current, input.observedVersion);
         let pending: ConnectorRevocationPendingRecord;
         if (isSafeVersionedConnectedRecord(current)) {
           pending = {
             ...current,
             status: "revocation_pending",
+            ...(current.oauthState === "refreshing"
+              ? { oauthState: "refresh_needed" as const, refreshOutcomeUncertain: true }
+              : {}),
             operationId: input.operationId,
             requestedByUid: input.requestedByUid,
             requestedAt: input.requestedAt,
@@ -215,6 +340,44 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
     });
   }
 
+  async recordDotloopProviderRevocation(input: {
+    generationId: string;
+    operationId: string;
+    expectedRevision: number;
+    state: "attempting" | "verified";
+    observedAt: string;
+  }): Promise<ConnectorRevocationPendingRecord> {
+    const ref = this.connectionRef("dotloop");
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      const current = snapshot.data() as ConnectorConnectionRecord | undefined;
+      if (
+        !current ||
+        current.status !== "revocation_pending" ||
+        !isSafeVersionedPendingRecord(current) ||
+        current.generationId !== input.generationId ||
+        current.operationId !== input.operationId ||
+        current.revision !== input.expectedRevision ||
+        current.refreshOutcomeUncertain ||
+        (input.state === "verified" && current.providerRevocationState !== "attempting")
+      ) {
+        throw new EditableLayerError(
+          "Dotloop provider revocation generation needs recovery.",
+          409,
+        );
+      }
+      const next: ConnectorRevocationPendingRecord = {
+        ...current,
+        revision: current.revision + 1,
+        providerRevocationState: input.state,
+        updatedAt: input.observedAt,
+        ...(input.state === "verified" ? { providerRevokedAt: input.observedAt } : {}),
+      };
+      transaction.set(ref, next);
+      return next;
+    });
+  }
+
   async completeRevocation(
     input: Parameters<ConnectorConnectionStore["completeRevocation"]>[0],
   ): ReturnType<ConnectorConnectionStore["completeRevocation"]> {
@@ -246,6 +409,18 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
           409,
         );
       }
+      if (
+        pending.connectorId === "dotloop" &&
+        pending.method === "oauth" &&
+        (pending.providerRevocationState !== "verified" ||
+          !pending.providerRevokedAt ||
+          pending.refreshOutcomeUncertain)
+      ) {
+        throw new EditableLayerError(
+          "Dotloop provider revocation must be verified before credential removal completes.",
+          409,
+        );
+      }
       const revision = pending.revision + 1;
       const revoked: ConnectorRevokedRecord = {
         connectorId: pending.connectorId,
@@ -256,6 +431,9 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
         requestedAt: pending.requestedAt,
         completedAt: input.completedAt,
         destroyOutcome: input.destroyOutcome,
+        ...(pending.providerRevokedAt
+          ? { providerRevokedAt: pending.providerRevokedAt }
+          : {}),
         generationId: pending.generationId,
         revision,
         updatedAt: input.completedAt,
@@ -270,6 +448,9 @@ export class FirestoreConnectorConnectionStore implements ConnectorConnectionSto
         requestedAt: pending.requestedAt,
         completedAt: input.completedAt,
         destroyOutcome: input.destroyOutcome,
+        ...(pending.providerRevokedAt
+          ? { providerRevokedAt: pending.providerRevokedAt }
+          : {}),
       };
       transaction.set(connectionRef, revoked);
       transaction.create(receiptRef, receiptRecord(receipt));
@@ -369,6 +550,9 @@ function receiptRecord(receipt: ConnectorRevocationReceipt): Record<string, unkn
     requested_at: receipt.requestedAt,
     completed_at: receipt.completedAt,
     destroy_outcome: receipt.destroyOutcome,
+    ...(receipt.providerRevokedAt
+      ? { provider_revoked_at: receipt.providerRevokedAt }
+      : {}),
   };
 }
 
@@ -384,6 +568,9 @@ function readReceipt(record: Record<string, unknown>): ConnectorRevocationReceip
     );
   }
   const receipt: ConnectorRevocationReceipt = {
+    ...(typeof record.provider_revoked_at === "string"
+      ? { providerRevokedAt: record.provider_revoked_at }
+      : {}),
     connectorId: String(record.connector_id ?? ""),
     method: record.method,
     operationId: String(record.operation_id ?? ""),

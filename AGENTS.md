@@ -19,7 +19,22 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-06
+## Present production truth — 2026-09-08
+
+The serving and candidate version endpoints, traffic, exact revision identities, Production + Live
+descriptors, managed runtime identity, eleven-Space count, Sheet switch, Demo flags, RentVine
+and RentCast secret bindings, RentCast selection/allowance 50 and absent Dotloop client bindings
+were reread on 2026-09-08. Nine authorized domains and the S51 monitoring set were reread;
+monitoring is READY with its existing managed recipient. The app records zero September RentCast
+calls; vendor-account usage is not independently verified. No comp request was made.
+The local authentication policy was revised by the owner on 2026-09-08 as recorded below.
+Fresh-shell and paired post-reboot WSL CLI/ADC refresh passed as the approved account using the
+unchanged enrollment; the app ADC preflight is READY. The required 24-hour elapsed-session proof
+remains pending.
+The readiness slice is unreleased. Its local corrections and exact remaining seams are in
+`docs/loop-state.md`; no new candidate or promotion is claimed. S112's existing work is preserved and its approved local authentication revision is in scope.
+The owner directed pushing the reviewed green work and preparing four Wednesday deliverables;
+docs/plan.md records their outcomes and acceptance checks. Release gates remain separate.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
@@ -108,6 +123,11 @@ the current code and live service. Date-stamped history is not authority.
   the candidate and canonical origins. The program executes before S36 and the S88-S95 program.
   S87-S95 and S101 remain specification-only desired behavior.
 
+The owner approved removing one unsupported historical expected rent-conflict label after private
+source readback. B-GOLD1 is closed; the original capture, all source values and every assertion are
+preserved. The corrected full native suite passes 6,360 tests with four skipped; all 21 watcher tests pass. Exact-SHA CI, browser assurance and release acceptance remain required.
+No label correction or authentication result permits a weaker assertion or a changed identity.
+
 ## Product boundary
 
 PMI KC is one deployed application with three connected lanes:
@@ -139,44 +159,38 @@ The owner has authorized the runner to:
 
 Every cloud mutation must be read back. Record verified non-secret outcomes in `docs/facts.md`.
 
-## Authentication — pre-approved and unattended
+## Authentication — approved local host contract (2026-09-08)
 
-The owner ruled on 2026-09-07 that authentication is never a reason to pause, ask, or wait. The
-runner is pre-approved to obtain, refresh, and use the designated credentials whenever a check or
-live step needs them, without asking, and to treat a stale or missing credential as agent-owned work
-rather than an owner hold: `npm run auth:ensure` probes gcloud, ADC, `.env.local`, GitHub, and on
-request the canary browser sessions, repairs what it can without a browser, and exits 2 naming
-exactly one human step otherwise. S112 in `docs/feature-suites/README.md` is the contract; its
-login sequence is committed, and its one-time owner setup is `B-AUTH2` in `docs/open-blockers.md`.
+The owner explicitly authorized `josiah@pmikcmetro.com` for local unattended development and
+release work on this WSL host. This supersedes the former automation-user/impersonation setup for
+this host. Reuse its WSL credential store and ignored provider configuration. Do not create an
+account, change IAM or claims, add federation, a private control repository, or a runner environment.
+The owner applies an account-scoped Cloud session-policy exception and completes fresh enrollment;
+the runner never changes that policy or enters a password, code, passkey, or CAPTCHA.
 
-Designated identities, the only ones unattended work may use once that setup exists:
+- `npm run auth:status` inspects without token refresh, repairs, or browser activity. Unprobed
+  freshness is unverified, never READY.
+- `npm run auth:ensure` verifies the exact local identity and store before ordinary token probes,
+  refreshes through Google libraries, and reports one WSL recovery command when a person is needed.
+- `auth:session`, `auth:enroll`, and `auth:enroll:wsl` all enroll the WSL CLI and ADC. The PowerShell
+  compatibility entry point delegates to WSL. Enrollment reads Google's identity once and binds
+  the exact ADC file locally because gcloud leaves its account field empty.
+- Personal accounts, unexpected managed accounts, impersonation, key files, and credential/store
+  overrides cannot substitute for the approved account. Credentials and enrollment evidence stay
+  outside Git and source uploads. Status contains no tokens or provider bodies.
+- Verification accounts retain their existing displayed roles. The server must refuse business
+  mutations before execution. Authentication, logout, and genuine reads remain available. No claim
+  is granted or changed. Managed claim-less accounts remain Editor with all Spaces by owner decision.
+- Existing managed Admin and Editor browser profiles must authenticate on both the exact candidate
+  and canonical origins. The assurance receipt, promotion, and 300,000 ms observation remain gates.
+- The local release watcher may deploy exact-main-SHA green CI from an isolated clean checkout,
+  serialize and resume phases outside Git, and catch up after this host starts. Documentation-only
+  commits do not deploy. Missing authentication pauses only the dependent phase; no repeated login
+  loop or unverified promotion is allowed.
 
-- automation principal `pmi-runner@pmikcmetro.com`, impersonating
-  `pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com` for every gcloud, ADC, and API call;
-- verification canaries `canary-admin@pmikcmetro.com` and `canary-editor@pmikcmetro.com`, used only
-  by the assurance harness through their enrolled browser profiles;
-- the repository's GitHub CLI login (or `GH_TOKEN`).
-
-Until that setup exists, attended work continues under the owner's managed account, and
-`auth:ensure` reports it as attended instead of blocking; `--unattended` requires the automation
-identity. Each shell enrolls its own credential store (`npm run auth:enroll` for Windows,
-`npm run auth:enroll:wsl` for WSL); the Google client libraries read ADC only from the shell's own
-home.
-
-Boundaries that do not move:
-
-- The runner never types a person's password, one-time code, or passkey, never completes a
-  CAPTCHA, and never copies a person's cookies or profile. When Google asks for a human, the runner
-  stops and names the exact re-enrollment command.
-- The runner never edits the automation identities' IAM, claims, organizational unit, session
-  policy, or vault membership; those are owner controls. It never uses the owner's or any staff
-  member's credentials for unattended work.
-- Canary identities verify; they never confirm, draft, write, or appear as the actor of a product
-  effect.
-- Credential material (tokens, refresh tokens, `.env.local` values) never enters Git, logs,
-  receipts, or a report. Status output names identities and states only.
-- Service-account keys stay impossible: the project's org policies block their creation and upload,
-  and the repository refuses `GOOGLE_APPLICATION_CREDENTIALS`.
+Fresh-shell, reboot, and elapsed-session proofs remain required. A policy or procedure alone does
+not establish authentication readiness. Independent implementation continues when Google requires
+human enrollment. Protected auth changes are authorized only for this explicit scope.
 
 ## Permanent safety boundaries
 
@@ -193,9 +207,9 @@ Boundaries that do not move:
 - Secrets, tokens, credentials, client exports, Gmail bodies, customer values, and raw evidence never
   enter Git.
 - Staff, runner, Firebase, connector, Cloud Build, and runtime identities must be
-  `pmikcmetro.com` or project service identities; unattended runner work uses only the designated
-  automation principal and verification canaries. Personal identities and service-account keys are
-  forbidden.
+  `pmikcmetro.com` or project service identities; local unattended runner work uses only the
+  specifically approved account above. Canary identities only verify. Personal identities and
+  service-account keys are forbidden.
 - The runner never enters a password, one-time code, passkey, or CAPTCHA, and never copies a
   person's cookies or browser profile.
 - Do not guess provider endpoints, record identifiers, mappings, recipient addresses, policy, or

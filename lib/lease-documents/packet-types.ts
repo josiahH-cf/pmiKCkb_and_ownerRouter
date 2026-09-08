@@ -302,7 +302,18 @@ export interface RenewalPacketSnapshot extends PacketEvaluation {
     errorClass?: string;
     /** S34: the one Dotloop loop this exact packet snapshot hash is linked to. */
     loopLink?: DotloopLoopLink;
+    documentEvidence?: PacketDocumentPresenceEvidence[];
   };
+}
+
+/** Provider metadata proves presence only. The submitted hash belongs to the app's bytes. */
+export interface PacketDocumentPresenceEvidence {
+  receiptId: string;
+  providerRef: string;
+  evidenceLevel: "presence_only";
+  documentId: string;
+  documentName: string;
+  submittedContentHash: string;
 }
 
 export interface PacketHead {

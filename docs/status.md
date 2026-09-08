@@ -1,224 +1,85 @@
 # PMI KC current status
 
-Last updated: 2026-09-07.
+Last updated: 2026-09-08.
 
-This is a present snapshot, not a changelog. Historical implementation and proof detail remains in
-Git and provider/app receipts.
+## Serving and candidate
 
-## Production
+Verified CLI readback and public version endpoints reconfirmed these identities today:
 
-- URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`
-- Service/project/region: `pmi-kc-app` / `pmi-kc-kb-prod` / `us-central1`
-- Serving revision: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`, 100% traffic
-- Serving commit: `d243911cb20ffb01773072c0e27c723648eeea34`
-- Immediate rollback: `pmi-kc-app-rmtkgn08q-db89a37c43dc`
-- Descriptor: Production + Live; eleven Spaces; managed runtime identity
-- Operating renewal Sheet: read source and exact S98 write target; write switch on
-- Action Registry: 48 exact keys; 16 open and 32 closed; Firestore mirror 48/16 and non-authoritative
-- RentCast: reference reads selected; allowance 50
-- Direct client sends: closed; supported initiation ends with an unsent Gmail draft
+- Serving: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`, commit `d243911cb20ffb01773072c0e27c723648eeea34`, 100% traffic.
+- Candidate: `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, commit `7b3fdadac134550c24b029034753a38f16e4096b`, zero traffic.
+- Both revisions remain Production + Live under `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`.
+- Canonical origin: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+- Candidate fingerprint recorded 2026-09-06: `sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`.
 
-The current serving release completed exact candidate identity/configuration, smoke, promotion, and
-stable readback. The remediation slice below, the grounded renewal-completion suites, S102, the S51
-preflight identity-read fix, S103, S104, S105, S106, S34, S107, S108, S109, S110, S111, the owner's
-reviewed troubleshooting links, the 2026-09-06 adversarial re-verification of S97-S111 (recorded
-per suite in `docs/facts.md`), and the independent review of that re-verification (`7b3fdad`) are
-committed through `7b3fdad` and deployed as zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`
-from commit `7b3fdadac134550c24b029034753a38f16e4096b`; its anonymous smoke passed at the exact
-commit, revision, tag, and service, its configuration fingerprint is
-`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`, traffic readback still shows
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%, and it is not promoted.
+The same readback verified eleven Spaces, the enabled Sheet switch, false Demo flags, RentVine
+and RentCast secret bindings, RentCast selection/allowance 50 and absent Dotloop client bindings.
+Nine domains and monitoring READY were reread on 2026-09-08. The app records zero September
+RentCast calls; vendor-account usage is not independently verified. The
+candidate carries S82/S97/S98, S51/S54 and S102-S111/S34. It is unpromoted; serving still retains
+the historical S98 fixed-row path. The readiness changes have no verified deployment or promotion yet; inspect Git/CI for push state.
 
-## Delivered application baseline
+## Delivery foundation
 
-- S85's official PMI Light/Dark theme and Appearance system, S86's shared interaction/recovery
-  primitives, S83's capability-guided access requests/Admin review, and S84's grouped navigation are
-  deployed.
-- The original S82 table-first Renewal Desk and guided six-phase workspace are deployed. Party
-  filters use opaque `p1_` URL tokens, and navigation alone cannot verify, advance, draft, send, or
-  write a source.
-- S97 is complete: the three exact RentVine renewal-date/recurring-charge keys passed bounded live
-  proofs and are activated behind their exact human-confirmed contracts.
-- S98's deployed baseline is proof-qualified: both exact keys are open, the temporary proof row is
-  absent, and the runtime write switch is on. The serving revision still contains its historical
-  fixed-row update/delete path. The current integrity remediation is not serving (it is carried only by the unpromoted candidate): it makes normal
-  product execution append-only, derives every append term server-side, generation-binds the
-  lease-scoped one-attempt claim, preserves ambiguous recovery and immutable completed evidence,
-  retires proof mutations, and refuses field update/delete/restore before writer construction until
-  a provider-owned stable-row and expected-generation mutation seam exists.
-- S99 is complete: exact work-order read/create/status-update keys passed bounded proofs and are
-  activated. Proof work order 1731 is in its final Cancelled state.
-- S100's closed implementation and manual chat sync are deployed. The chat-sync key passed its
-  disclosed mark-read proof and is activated. No polling, webhook, RentVine chat post, or direct send
-  is reachable.
+The approved local S112 revision is in scope. Browser callback enrollment verified ADC as
+`josiah@pmikcmetro.com` in the existing WSL store. Fresh-shell and paired post-reboot
+`auth:ensure -- --unattended` exited 0 using the unchanged enrollment, without login or browser.
+The app's post-reboot `preflight:adc`, provider configuration and GitHub also passed. The owner
+controls the Cloud session-policy exception; the required 24-hour elapsed-session proof is pending.
+`auth:session -- --browser` supports Google's callback without copying a code. An unavailable Google
+identity lookup now gets one bounded retry and retains accurate blocked guidance; 61 focused auth
+tests pass. The default manual enrollment mode remains available.
 
-## Committed, candidate-deployed, unpromoted remediation
+Verification accounts retain their roles while server boundaries refuse business effects;
+authentication, logout and genuine reads remain available. Claim-less managed users remain Editor
+with all Spaces by owner decision. No account, IAM or claim was changed.
 
-Adversarial review reopened S82 conformance, added bounded S97/S98 write-integrity hardening, and
-expanded S51/S54 assurance. The committed slice corrects nullable-rent display/draft behavior,
-typed auxiliary-read degradation, desk/workspace packet parity, exact source destinations,
-phase-local source-write panels, forced post-write source freshness, snapshot-bound discrepancy
-decisions/approvals/Sheet claims, one resolution-aware blocker projection, visible scope/count/filter
-behavior, loading/accessibility states, and browser coverage.
+The limited user task `PMI KC release watcher` is running after a supervised restart. Its Windows
+launcher had exited while an idle Linux watcher survived; the exact process was stopped without a
+release checkpoint and the task restarted. The prior exit remains unexplained. Readback confirms
+the launcher and one Linux watcher. It refuses committed main `30d2148` with
+`foundation_not_in_target`; no deployment occurred. Watcher command-path tests cover exact release
+identity, uncertain deploy/rollback responses, restart recovery and browser enrollment pauses.
+The watcher now reads its monitoring recipient from explicit ignored configuration independently
+of local authentication, preserving the existing channel. Twenty-one watcher tests pass.
+Promotion still requires the exact assurance receipt and 300,000 ms observation.
 
-The same unreleased correction generation-binds S97 and S98 execution replay, verifies current
-provider after-state before duplicate success, and leaves every ambiguous charge create unproven:
-matching provider state cannot mint a success receipt or authorize deletion. It also removes browser
-authority over Sheet row/value/source identity. Sheet proposals are scoped to the signed-in lease workspace and require the same current
-server-derived lease/Sheet association through final claim and post-claim revalidation. The existing
-field-update resolution/approval chain is preserved for historical compatibility but cannot reach a
-writer. Only safe normal Sheet append remains actionable; the UI reports unavailable fixed-row
-capabilities instead of offering a dead-end confirmation.
-Completed S97/S98 proof windows are not reopened.
+## Current readiness work
 
-The assurance work adds deterministic evidence schemas and fixture coverage for managed Admin/Editor
-read-only canaries, browser diagnostics, source/application reconciliation, monitoring readback,
-fresh bound candidate/promotion receipts, exact rollback predicates, compensating rollback for a
-promotion-side or ambiguous command failure, a versioned predecessor recovery gate, one-use receipt
-authority, managed identity/emulator refusal, cancellable deadlines, and a complete five-minute post-
-promotion observation with separated checkpoints. My Work entry and
-navigation restoration also remain read-only until a user deliberately reconciles or records
-activity. These changes are
-not production behavior and cannot be called green until focused tests, the canonical verifier, core
-E2E, exact-SHA CI, zero-traffic candidate checks, promotion, and live readback pass.
+The unreleased slice adds S106 vault/refresh/readiness and documented provider revocation/readback.
+Interrupted refresh can be quarantined; unknown token outcomes retain credentials and block
+completion. Late cleanup cannot revive or affect a replacement connection generation.
 
-## Renewal-completion program (owner direction 2026-09-03)
+S34 resolves exact active validated S21 publication bytes before claiming an upload attempt.
+Opaque participant references are checked separately from resolved email addresses.
+Approved catalog and participant mappings and the public workflow caller remain unavailable.
+Provider document identity/name is presence-only evidence; both Dotloop keys stay closed.
 
-The owner's specification package is grounded as S102-S111 plus the rewritten S34 and executes before
-S36 and the assistant program. S102 (tenant current rent from the RentVine lease detail
-`baseRentAmount`, with `unit.rent` kept only as a labelled reference) is committed in `ff200d3`,
-carried by the current candidate, and not promoted. S103 (one lease-term projection over the exact
-lease-detail `isMonthToMonth` signal, a `periodic_review` disposition whose annual review date rolls
-forward to the current anniversary,
-a visible desk/workspace term with its own filter and scope, and an Editor-gated app-owned term
-review bound to the lease view fingerprint) is committed in `0158c90` with exact-SHA CI green,
-carried by the current candidate, and not promoted. S104 (one shared rent, term, and guidance
-projection across the desk row and the lease workspace, with parity and view-continuation proofs) is
-committed in `0f01353` with exact-SHA CI green, carried by the current candidate, and not promoted; production still uses the
-heuristic skip signals and shows no term. Its local rehearsal browser smoke ran against live
-read-only sources and also surfaced one pre-existing S84 behavior that is not changed here: because
-the responsive navigation resolves on the client, a payload as large as the full desk briefly paints
-the desktop navigation group at 320px and overflows horizontally until hydration completes. S105 (typed owner outcomes with reopening and non-renewal routing, a version-binding audit, and the
-lifecycle and branch proofs) is committed in `13523c5` with exact-SHA CI green, carried by the
-current candidate, and not promoted; its Dotloop phase link waits on S106 and S34, and since
-2026-09-06 a recorded revision request, decline, or silence refuses the tenant draft, S97 execution,
-and the S98 append. S106 (the Dotloop connection service, typed client, vault-backed tokens and
-refresh, selection record, readiness projection, and health transport) is committed in `af23da4`
-with exact-SHA CI green, carried by the current candidate, and not promoted; its live readiness
-check is blocked on the owner's OAuth application and a connected account, and its runtime token
-provider, refresh-ref persistence, and readiness wiring into the Connection Center are agent-owned
-work still to build. S34 (the concrete Dotloop provider over the documented `loop-it` create,
-packet-snapshot-bound loop identity, paged name reconciliation, participant readback, and explicit
-signature handoff) is committed in `7b26107` with exact-SHA CI green, carried by the current
-candidate, and not promoted; nothing constructs it at runtime yet, its live loop creation is blocked
-on the owner's OAuth application, connected account, approved artifact content source, and key
-activation, and both Dotloop keys remain closed. S107 (detached completion, a read-only load-time
-projection of orphaned attempts with the Admin-gated reconcile as their next action, and one
-consolidated attempt summary) is committed in `ae93742` with exact-SHA CI green, carried by the
-current candidate, and not promoted; it adds no job queue, scheduler, worker, or automatic retry, so
-the recorded conflict with the owner package stands and an uncertain attempt's next action is a new
-exact proposal and confirmation by a person. S108 (the RentVine provider
-snapshot on the work-order link, one waiting-on projection, the Admin-managed property preapproval,
-preapproval-aware owner-approval routing, and the read-only blocker report) is committed in `03f7eee`
-with exact-SHA CI green, carried by the current candidate, and not promoted; its rehearsal-browser
-run proved the report, the waiting-on filter, and the cancel-first preapproval confirmation with no
-provider call from a page render. Two constraints stay recorded rather than resolved: photo and
-attachment synchronization into RentVine is closed, and the report links to the ticket because no
-RentVine work-order dashboard URL is documented. S109 (structured resident intake, the deterministic
-triage that owns urgency, evidence, copy, and completion, the reviewed troubleshooting catalog, the
-suggestion-only model adapter, the promotion handoff, and the public report form) is committed in
-`9b2c829` with exact-SHA CI green, carried by the current candidate, and not promoted; its
-rehearsal-browser run proved the form is reachable with no session, that the token never enters a
-request URL, and that a link with no token refuses. Public file upload stays forbidden, so the form
-names the photos needed instead; the catalog carries the owner's three reviewed links, and any
-extension of the required-evidence table remains an owner input. S110 (the
-closed three-intent assistant boundary, the work and renewal adapters, the extracted desk
-orchestration, the result envelope, the route, and the Dashboard routing) is committed in `5abf6dd`
-with exact-SHA CI green, carried by the current candidate, and not promoted; its rehearsal-browser
-run asked all three questions plus an unsupported one and no write route was called. S111 (the
-integrated proof over one fixture portfolio, the guide-control browser proof, the proof report below,
-and the operator training guide) is committed in `5aa2a90` with exact-SHA CI green, carried by the
-current candidate, and not promoted. Every suite in the owner's 2026-09-03 renewal-completion program
-is now committed and carried by one unpromoted candidate. The S51 identity-read fix (bearer-only
-userinfo read) is committed and was exercised live on 2026-09-04: the read returns HTTP 200 with the
-managed domain.
+The prepared S100 existing-work-order link, S98 append correction wording, S108 property identity,
+S110 bounded answers, S111 derived proof and guide corrections are preserved. S109/S110 remain
+deterministic and S111 is isolated composition. S95's minimal Dashboard remains specification-only.
+Fifteen eligible COMPLETE narrative removals remain prepared, with acceptance owners recorded in
+`docs/facts.md#retired-suite-contracts`. No blocked or unpromoted suite is retired.
 
-## S111 integrated proof report (2026-09-04, re-verified 2026-09-06)
+## Verification and meeting readiness
 
-Each row is one integrated check, the command that produced it, and the outcome observed on commit
-`5abf6dd` plus the then-uncommitted S111 slice, re-verified on `5040818` where a row says so. `BLOCKED` means an external input is absent; no blocked
-row was converted into a human verification task, and none is reported as passed.
+The corrected full native suite passes 6,360 unit tests with four skipped; all 21 watcher tests pass. B-GOLD1 is closed after live source readback and the owner's explicit
+approval to remove one unsupported historical expected label. The original private capture,
+source values, remaining label, ambiguous-name refusal and every assertion are preserved.
+The native runner no longer imports application provider configuration into the unit environment.
+Formatting, lint, typecheck, 168 Firestore tests and the production build pass. Current policy and
+document checks are recorded in docs/evidence/wednesday-readiness-review-2026-09-07.md.
 
-| Check                                                                                                      | Command                                                                          | Outcome                                                                                                                                                                                                                                                                                             |
-| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Foundation: lease rent separate from unit listed rent, month-to-month anchor derived or absent (S102-S104) | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts`         | PASSED                                                                                                                                                                                                                                                                                              |
-| Owner outcomes: all four states, revision reopening, decline handoff (S105)                                | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts`         | PASSED                                                                                                                                                                                                                                                                                              |
-| Dotloop connection and packet lifecycle against the provider fakes (S106, S34)                             | `bash scripts/verify.sh`                                                         | PASSED                                                                                                                                                                                                                                                                                              |
-| Dotloop live connect, refresh, revoke, reconnect, and loop create                                          | not run                                                                          | BLOCKED: the owner's Dotloop OAuth application and a connected managed account do not exist                                                                                                                                                                                                         |
-| Continuation: orphan selection, read-only projection with Admin reconcile as next action (S107)            | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts`         | PASSED                                                                                                                                                                                                                                                                                              |
-| Maintenance: preapproval routing, provider status conflict, photo blocker handoff (S108, S109)             | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts`         | PASSED                                                                                                                                                                                                                                                                                              |
-| Maintenance stores: preapproval versioning and the work-order snapshot (S108)                              | `npm run test:firestore`                                                         | PASSED                                                                                                                                                                                                                                                                                              |
-| Intake triage, promotion carry-over, and the S108 blocker (S109)                                           | `npm run test:firestore`                                                         | PASSED                                                                                                                                                                                                                                                                                              |
-| Troubleshooting resource offered to a normal report                                                        | `npx vitest run tests/unit/s109-intake-triage.test.ts`, `npm run test:firestore` | PASSED since 2026-09-04: the committed catalog offers exactly one reviewed link per matching normal report (Electrical, HVAC, Plumbing), and the writer stores the catalog's id, not a submitted one                                                                                                |
-| Preapproval routing against real property amounts                                                          | not run                                                                          | BLOCKED: an Admin has entered no property preapproval amounts yet; the record and its control ship in S108                                                                                                                                                                                          |
-| Assistant: blocked leases, month window, unavailable source (S110)                                         | `npx vitest run tests/integration/s111-renewal-completion-proof.test.ts`         | PASSED                                                                                                                                                                                                                                                                                              |
-| Browser: maintenance blocker report, waiting-on filter, cancel-first preapproval                           | `npm run smoke:maintenance-blockers-browser`                                     | PASSED (re-run 2026-09-06 on the review slice; report columns, waiting-on filter, cancel-first preapproval confirmation, no provider call)                                                                                                                                                          |
-| Browser: public resident report form, fragment token cleared, no file input                                | `npm run smoke:maintenance-intake-browser`                                       | PASSED (re-run 2026-09-06 on the review slice; reachable without a session, fragment cleared before any request, tokenless link refuses)                                                                                                                                                            |
-| Browser: three Dashboard questions plus one unsupported, no write route called                             | `npm run smoke:dashboard-assistant-browser`                                      | PASSED 2026-09-04; NOT re-runnable locally on 2026-09-06: the rehearsal dev server answers `/` with 500 (`ArrayBuffer is not detachable`, Next 16.2.12 dev under Node 24.18), reproduced at `e6eb315` before the review slice; the candidate receipt run's signed-in route canaries cover this page |
-| Browser: every step-to-control table row's control text present on its page, desk to lease and back        | `npm run smoke:renewal-guide-controls-browser`                                   | PASSED 2026-09-04 (8 steps; substring match over page text, prose steps not machine-checked); NOT re-runnable locally on 2026-09-06 for the same dev-server streaming defect on the desk page                                                                                                       |
-| Canonical gate                                                                                             | `bash scripts/verify.sh`                                                         | PASSED (re-verified 2026-09-06 on `5040818`: 651 unit files, 6275 tests, 4 skipped; 32 Firestore files, 168 tests)                                                                                                                                                                                  |
-| Core end-to-end suite                                                                                      | `npm run test:e2e:core`                                                          | PASSED (re-verified 2026-09-06 on `5040818`: 8 files, 31 tests; 4 files and 18 tests skipped)                                                                                                                                                                                                       |
+Core E2E passed 31 tests with 18 emulator-dependent skips under explicit external-source refusal.
+The seven live-source browser smokes, a selected October lease and complete live renewal evidence
+remain pending. Directory readback found three managed Admin and three default Editor accounts,
+none disabled. No account or claim changed.
 
-The operator training guide is `docs/products/renewal-operator-guide.md`, registered in
-`docs/README.md`. Its step-to-control table is the input to the guide-control smoke, so a step that
-names a control the application does not show fails the check rather than shipping.
+The owner directed pushing the reviewed green work and preparing the four deliverables in
+docs/plan.md: walkthrough, agenda, decisions/inputs and written delivery readout. The existing
+deck/PDF need a content refresh. B-AUTH2 still needs the 24-hour auth proof, existing profiles on
+both exact origins and complete release assurance. Dotloop credentials/connection/forms, the
+resident-chat input and exact property policy remain open in docs/open-blockers.md.
 
-The two `BLOCKED` rows above are carried in `docs/open-blockers.md` as `B-DL1`/`B-DL2` and
-`B-MNT1`. The troubleshooting row runs against the owner's three reviewed links, committed on
-2026-09-04; Appliance and General are deliberately empty.
-
-Re-verified on 2026-09-06 with the adversarial-correction slice in the tree: the canonical gate
-passed (651 unit files, 6275 tests, 4 skipped; 32 Firestore files, 168 tests) and the core
-end-to-end suite passed (8 files, 31 tests, with 4 files and 18 tests skipped). The independent review of that slice re-ran the gate on 2026-09-06 after its corrections: 651 unit files, 6286 tests, 4 skipped; 32 Firestore files, 168 tests; core end-to-end 8 files, 31 tests, 18 skipped, all passed.
-
-## Blocked and queued work
-
-- Promotion of the current candidate waits only on the owner's one-time S112 setup (`B-AUTH2`): the
-  automation and canary identities, both credential stores enrolled, and the two canary profiles
-  enrolled on both the candidate and canonical origins, after which `npm run auth:ensure -- --need=canary`
-  re-signs them in unattended. The candidate hostname is already an authorized sign-in domain, the
-  S51 monitoring resource set reads `READY`, and the candidate configuration fingerprint is
-  captured, so none of those is a hold. `docs/open-blockers.md` carries every open blocker with a
-  stable id, its owner, and the exact evidence that closes it.
-- S112 (unattended authentication) is active: `npm run auth:ensure`, both enrollment scripts, the
-  canary session scripts, and the identity-preflight changes are committed with fail-first tests
-  and read back on 2026-09-07 (Windows store attended-ready; WSL gcloud CLI stale and named; fresh
-  profile stops at Google with `human_required` and no input). Remaining slices are listed in
-  `docs/loop-state.md`.
-
-- S100 is BLOCKED on `gmail.maintenance_resident_reply.draft_create` and on the agent-owned
-  operation that links an existing RentVine work order to a ticket. Its exact proof requires a
-  synchronized resident message mapped to a verified resident email in the signed-in managed
-  mailbox; the designated proof thread currently has no eligible record. The key remains closed.
-- S36 has not started. Its temporary Space pilot is queued behind complete S100 and must finish with
-  the original eleven Stores, source/configuration, cleanup, and runtime flag restored.
-- S88-S95 and S87 remain specification-only Dashboard assistant, Dashboard cutover, and product-wide
-  decluttering behavior. S101 is a post-S87 specification-only read expansion. None is deployed.
-
-## Current verification boundary
-
-- Live `/api/version` and Cloud Run readback confirm the serving commit/revision and 100% traffic.
-- Serving configuration confirms Production + Live and the enabled Sheet write switch.
-- The committed registry contains 48 keys with 16 open; completed proof windows are closed.
-- Authentication is pre-approved; `npm run auth:ensure` is the entry point. On 2026-09-07 the Windows
-  store reads attended-ready as the owner's managed account and the WSL store's gcloud CLI needs the
-  attended re-enrollment `auth:ensure` names; the unattended identities wait on `B-AUTH2`.
-- No test totals, CI result, candidate result, or live assurance result for the current remediation is
-  recorded here before it actually passes.
-
-## Runtime inputs, not product questions
-
-There are no unresolved product decisions. The S100 mapped resident/email, managed Admin/Editor
-profiles and live services needed by S51, and the deterministic S36 source/pilot packet are exact
-runtime inputs. Missing input blocks only its dependent gate and is never guessed or replaced with
-Demo data, a personal identity, or a different production record.
+No source/provider/Sheet write, send, identity/claim/IAM mutation or cost change occurred. Exact-key,
+role, human preview/confirmation, receipt, readback and correction gates remain in force.

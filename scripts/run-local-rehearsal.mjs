@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { ensureAuthenticated } from "./auth/ensure.mjs";
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -101,7 +102,14 @@ export function mirrorChildExit({ code, signal }, processTarget = process) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main()
+  ensureAuthenticated({ need: ["gcloud", "adc", "env"], unattended: true })
+    .then((auth) => {
+      if (auth.exitCode !== 0) {
+        for (const line of auth.lines) console.log(line);
+        return { code: 2, signal: null };
+      }
+      return main();
+    })
     .then((result) => mirrorChildExit(result))
     .catch((error) => {
       console.error(error instanceof Error ? error.message : String(error));

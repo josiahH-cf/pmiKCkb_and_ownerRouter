@@ -40,9 +40,15 @@ export const CapturedScenarioSchema = z.object({
  * stay CI-safe. Throws on a malformed file — a corrupt golden set should fail loudly, not silently.
  */
 export function loadVerifiedCapturedScenarios(
-  dir: string = DEFAULT_CAPTURED_DIR,
+  dir: string = process.env.PMIKC_VERIFIED_CAPTURE_DIR || DEFAULT_CAPTURED_DIR,
 ): GoldenScenario[] {
   if (!existsSync(dir)) {
+    if (process.env.PMIKC_VERIFIED_CAPTURE_DIR === dir) {
+      throw new Error("verified_capture_directory_missing");
+    }
+    console.log(
+      "[golden] verified captured coverage: 0 (not available in this checkout)",
+    );
     return [];
   }
   const scenarios: GoldenScenario[] = [];
@@ -64,5 +70,7 @@ export function loadVerifiedCapturedScenarios(
       expectedFlags: parsed.expectedFlags,
     });
   }
+  // Counts only: never put scenario names, inputs, expected values or provider bodies in logs.
+  console.log(`[golden] verified captured coverage: ${scenarios.length}`);
   return scenarios;
 }

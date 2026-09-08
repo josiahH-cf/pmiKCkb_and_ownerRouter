@@ -6,6 +6,7 @@
 // inside RentVine. Absence is never authorization: a missing estimate or a missing preapproval keeps
 // the owner decision required.
 
+import { maintenancePropertyIdentity } from "@/lib/maintenance/property-identity";
 import type { MaintenanceWorkOrderProviderSnapshot } from "@/lib/firestore/maintenance-work-order-links";
 import type { MaintenanceWorkOrderLink } from "@/lib/firestore/maintenance-work-order-links";
 import {
@@ -118,6 +119,16 @@ export function projectMaintenanceWaitingOn(
       ownerDecisionDetail: "This ticket is closed.",
     };
   }
+  if (maintenancePropertyIdentity(ticket, link).status === "conflict")
+    return {
+      ...base,
+      withinPreapproval: false,
+      waitingOn: "unit_verification",
+      nextAction: "Resolve the conflicting property evidence for this ticket.",
+      ownerDecisionRequired: true,
+      ownerDecisionDetail:
+        "The ticket and work order identify different properties, so neither approval can be applied.",
+    };
   if (!ticket.unit) {
     return {
       ...base,

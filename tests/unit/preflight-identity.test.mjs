@@ -52,7 +52,7 @@ describe("evaluateIdentity", () => {
     expect(result.ok).toBe(false);
     expect(
       result.errors.some((error) =>
-        error.includes("josiah.abernathy@gmail.com is not @pmikcmetro.com"),
+        error.includes("not the authorized local managed account"),
       ),
     ).toBe(true);
   });
@@ -92,39 +92,30 @@ describe("evaluateIdentity", () => {
     expect(result.ok).toBe(false);
     expect(
       result.errors.some((error) =>
-        error.includes("ADC principal someone@gmail.com is not @pmikcmetro.com"),
+        error.includes("ADC principal is not the verified local managed account"),
       ),
     ).toBe(true);
   });
 
-  it("warns but does not fail when ADC is present but the principal cannot be resolved", () => {
+  it("fails when ADC is present but the principal cannot be resolved", () => {
     const result = evaluateIdentity({ ...goodState, adcAccount: null });
-    expect(result.ok).toBe(true);
-    expect(
-      result.warnings.some((warning) => warning.includes("Could not resolve the ADC")),
-    ).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("ADC principal"))).toBe(true);
   });
-
-  it("degrades to a warning (not a failure) when gcloud is unavailable", () => {
-    const result = evaluateIdentity({
-      gcloudAvailable: false,
-      gcloudAccount: undefined,
-      adcPresent: false,
-      adcAccount: null,
-      googleAppCreds: undefined,
-    });
-    expect(result.ok).toBe(true);
-    expect(
-      result.warnings.some((warning) => warning.includes("gcloud CLI not found")),
-    ).toBe(true);
+  it("fails when gcloud is unavailable", () => {
+    const result = evaluateIdentity({ ...goodState, gcloudAvailable: false });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("gcloud CLI not found"))).toBe(
+      true,
+    );
   });
 });
 
 describe("evaluateIdentity (S112 automation identity)", () => {
-  it("accepts the automation principal impersonating the designated service account", () => {
+  it("refuses the retired automation path for the local host", () => {
     const result = evaluateIdentity(unattendedState, { automation });
-    expect(result.ok).toBe(true);
-    expect(result.errors).toEqual([]);
+    expect(result.ok).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 
   it("still refuses a key file for the automation identity", () => {
@@ -141,9 +132,9 @@ describe("evaluateIdentity (S112 automation identity)", () => {
       { automation },
     );
     expect(result.ok).toBe(false);
-    expect(result.errors.some((error) => error.includes("is not the designated"))).toBe(
-      true,
-    );
+    expect(
+      result.errors.some((error) => error.includes("is not the verified local")),
+    ).toBe(true);
   });
 
   it("refuses the service-account ADC principal when no impersonation is configured", () => {
@@ -154,17 +145,15 @@ describe("evaluateIdentity (S112 automation identity)", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("under --unattended requires the automation principal, not a managed person", () => {
+  it("under --unattended requires the specifically approved local account", () => {
     const attended = evaluateIdentity(goodState, { automation, unattended: true });
-    expect(attended.ok).toBe(false);
-    expect(attended.errors.some((error) => error.includes("npm run auth:enroll"))).toBe(
-      true,
-    );
+    expect(attended.ok).toBe(true);
+    expect(attended.errors).toEqual([]);
     const unattended = evaluateIdentity(unattendedState, {
       automation,
       unattended: true,
     });
-    expect(unattended.ok).toBe(true);
+    expect(unattended.ok).toBe(false);
   });
 });
 
@@ -182,11 +171,11 @@ describe("buildIdentityChecklist", () => {
     expect(bad?.status).toBe("FAIL");
   });
 
-  it("marks the automation identity ok and shows its impersonation", () => {
+  it("marks the retired automation identity FAIL and shows its impersonation", () => {
     const row = buildIdentityChecklist(unattendedState, { automation }).find((item) =>
       item.system.startsWith("(b)"),
     );
-    expect(row?.status).toBe("ok");
+    expect(row?.status).toBe("FAIL");
     expect(row?.detail).toContain("impersonating");
   });
 

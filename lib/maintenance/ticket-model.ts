@@ -58,6 +58,8 @@ export interface MaintenanceTicketRecord extends Partial<ProductRecordRetentionF
   summary: string;
   description: string;
   unit: { unitId: string; label: string } | null;
+  /** Server-derived from verified unit evidence; absent on unresolved legacy tickets. */
+  property_id?: string;
   photo_refs: string[];
   reporter: MaintenanceTicketReporter;
   labels: string[];

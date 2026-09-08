@@ -4,6 +4,10 @@
 // secret value ever reaches this surface. Non-Admins get the same status, read-only (decision 6).
 
 import Link from "next/link";
+import {
+  DOTLOOP_READINESS_REASON_TEXT,
+  type DotloopReadiness,
+} from "@/lib/connections/dotloop-readiness";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Metric, ModeChip, PageHeader } from "@/components/ui";
@@ -15,8 +19,10 @@ export function ConnectionCenter({
   view,
   canManage,
   verifiableIds = [],
+  dotloopReadiness,
 }: Readonly<{
   view: ConnectionCenterView;
+  dotloopReadiness?: DotloopReadiness;
   canManage: boolean;
   verifiableIds?: readonly string[];
 }>) {
@@ -45,6 +51,24 @@ export function ConnectionCenter({
         Connection status does not grant action authority. Closed actions, runtime
         suspensions, exact confirmation, and provider readiness remain separate checks.
       </p>
+
+      {dotloopReadiness ? (
+        <section aria-label="Dotloop renewal readiness">
+          <h2 className="section-subtitle">Dotloop renewal readiness</h2>
+          <p>
+            {dotloopReadiness.state.replaceAll("_", " ")}. Loop and document actions
+            require their own open keys and exact confirmation.
+          </p>
+          {dotloopReadiness.reasons.length ? (
+            <ul>
+              {dotloopReadiness.reasons.map((reason) => (
+                <li key={reason}>{DOTLOOP_READINESS_REASON_TEXT[reason]}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p>Signature work is completed by a person in Dotloop.</p>
+        </section>
+      ) : null}
 
       <div className="ui-metric-grid">
         <Metric label="Connected" value={view.summary.connected} />

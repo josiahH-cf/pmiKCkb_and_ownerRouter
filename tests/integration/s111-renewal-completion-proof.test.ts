@@ -2,11 +2,21 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
+import { RenewalWritebackService } from "@/lib/lease-renewal/writeback/execution-service";
+import { buildRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-contract";
+import {
+  applyLeaseDetailToView,
+  leaseCurrentRent,
+} from "@/lib/integrations/rentvine/lease-mapper";
+import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { runAssistantQuery } from "@/lib/assistant/query";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import {
   projectRenewalAttemptSummary,
+  applyRenewalReconciliations,
+  renewalAttemptFromExecutionRecord,
   reconcileOrphanedRenewalAttempts,
   selectOrphanedRenewalAttempts,
   type RenewalAttemptRecord,
@@ -38,10 +48,9 @@ import {
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import type { MaintenanceWorkOrderLink } from "@/lib/firestore/maintenance-work-order-links";
 
-// S111: one integrated proof over one fixture portfolio. Every check composes the owning projections
-// rather than writing a final state, so a fixture cannot make a check pass by asserting the answer it
-// is supposed to derive. Live Dotloop and the owner-supplied maintenance inputs stay absent here and
-// are reported as blocked by external environment in docs/status.md, never as passed.
+// S111: isolated fixture composition, including provider-failure to durable attempt to UI recovery.
+// Recorded approvals and communications remain supplied prerequisites, not a live model run or
+// authenticated provider proof. Each derived behavior is asserted through its owning implementation.
 
 const NOW = "2026-09-04T12:00:00.000Z";
 const TODAY = "2026-09-04";
@@ -146,6 +155,11 @@ describe("S111 renewal foundation composes into one term and one rent (READY-01)
     expect(term.term).toBe("fixed_term");
     // The unit's listed rent is a labelled reference and never becomes the tenant's current rent.
     expect(lease.detail.baseRentAmount).toBe(1450);
+    const view = { currentRent: lease.unitListedRent };
+    applyLeaseDetailToView(view, lease.detail);
+    expect(leaseCurrentRent(view)).toBe(1450);
+    applyLeaseDetailToView(view, { ...lease.detail, baseRentAmount: null });
+    expect(leaseCurrentRent(view)).toBeUndefined();
   });
 
   it("derives a periodic review anchor for a month-to-month lease that has a start date", () => {
@@ -222,12 +236,101 @@ describe("S111 a confirmed effect continues and recovers (READY-04)", () => {
       leaseId: "4001",
       attempts: [attempt],
       nowMs,
-      reconcile: async () => "ambiguous",
+      reconcile: async () => {
+        const store = new MemoryExternalExecutionStore();
+        const leaseState = {
+          startDate: "2025-09-01",
+          endDate: "2026-08-31",
+          increaseEligibilityDate: null,
+        };
+        const proposal = buildRenewalWritebackProposal({
+          leaseId: "4001",
+          account: "pmikcmetro",
+          actorUid: "fixture-admin",
+          actorEmail: "fixture-admin@pmikcmetro.com",
+          actorRole: "Admin",
+          leaseState,
+          sourceReadAtIso: NOW,
+          evidenceRef: "renewal-progress:4001",
+          effects: [
+            {
+              kind: "renewal_dates_update",
+              before: leaseState,
+              after: { endDate: "2027-08-31" },
+            },
+          ],
+          nowMs,
+        });
+        let writerCalls = 0;
+        const service = new RenewalWritebackService({
+          descriptor: {
+            environmentKind: "production",
+            dataContext: "live",
+            source: "explicit",
+          },
+          store,
+          reads: {
+            getLease: async () => ({ lease: leaseState }),
+            getRecurringCharge: async () => {
+              throw new Error("Unused");
+            },
+            listRecurringCharges: async () => [],
+          },
+          createWriter: () => ({
+            updateLease: async () => {
+              writerCalls++;
+              throw Object.assign(new Error("Provider timed out"), { status: 504 });
+            },
+            createRecurringCharge: async () => {
+              throw new Error("Unused");
+            },
+            updateExistingRecurringCharge: async () => {
+              throw new Error("Unused");
+            },
+            deleteRecurringChargeForCreateReversal: async () => {
+              throw new Error("Unused");
+            },
+          }),
+          gateFor: () => ({
+            isExecutable: async () => true,
+            run: async (effect) => effect(),
+          }),
+          claimActiveEffect: async ({ record }) => {
+            await store.create(record);
+            return store.claim(record.id, record.previewHash);
+          },
+          now: () => nowMs,
+        });
+        await expect(
+          service.executeEffect({
+            proposal,
+            effectHash: proposal.effects[0].effectHash,
+            confirmation: {
+              previewHash: proposal.previewHash,
+              effectHash: proposal.effects[0].effectHash,
+              confirmedAtIso: NOW,
+            },
+          }),
+        ).rejects.toMatchObject({ code: "provider_ambiguous" });
+        await expect(
+          service.reconcileEffect({
+            proposal,
+            effectHash: proposal.effects[0].effectHash,
+          }),
+        ).rejects.toMatchObject({ code: "reconcile_not_proven" });
+        expect(writerCalls).toBe(1);
+        const record = [...store.records.values()][0];
+        expect(record.receipt).toBeUndefined();
+        const observed = renewalAttemptFromExecutionRecord(record)!;
+        if (observed.state !== "ambiguous")
+          throw new Error("The failed provider attempt lost its uncertainty.");
+        return observed.state;
+      },
     });
     expect(reconciliations[0]).toMatchObject({ outcome: "ambiguous" });
     const summary = projectRenewalAttemptSummary({
       leaseId: "4001",
-      attempts: [{ ...attempt, state: "ambiguous" }],
+      attempts: applyRenewalReconciliations([attempt], reconciliations),
       nowMs,
     });
     expect(summary.nextAction).toMatch(/uncertain/i);
@@ -406,7 +509,11 @@ describe("S111 the assistant answers from the same records (READY-06)", () => {
       nowIso: NOW,
       hasRenewalsAccess: true,
       loadWorkSnapshot: async () => ({ tasks: [], server_now: NOW }),
-      loadRenewalRows: async () => ({ status: "ok" as const, rows }),
+      loadRenewalRows: async () => ({
+        status: "ok" as const,
+        rows,
+        coverage: buildRenewalDeskWindow(TODAY, 120),
+      }),
       ...overrides,
     };
   }
@@ -449,8 +556,8 @@ describe("S111 the assistant answers from the same records (READY-06)", () => {
   });
 });
 
-describe("S111 no check passes by writing its own answer (AC-S111-1)", () => {
-  it("keeps this suite free of a store, provider, or gate call", () => {
+describe("S111 isolated proof boundaries (AC-S111-1)", () => {
+  it("keeps this suite free of live storage, network, and action-gate access", () => {
     const code = readFileSync(
       "tests/integration/s111-renewal-completion-proof.test.ts",
       "utf8",

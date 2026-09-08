@@ -1,16 +1,7 @@
 #!/usr/bin/env node
-// S112 — `npm run auth:ensure`: probe every credential the unattended loop needs, repair what can be
-// repaired without a browser, re-establish canary browser sessions on request, and report. Exit 0
-// when everything requested is usable; exit 2 with exactly one human step per blocked credential.
-//
-// Never opens a browser, never types a credential, never prints or persists a token: every token
-// probe discards stdout and reads only the exit code (TOKEN_PROBE_STDIO), and every free-text
-// detail passes through `redact`. Runs under WSL (the unattended path) and under Windows node.
-//
-//   npm run auth:ensure                       # gcloud, adc, env, gh (attended-tolerant)
-//   npm run auth:ensure -- --unattended       # require the designated automation identity
-//   npm run auth:ensure -- --need=canary --origins=<a>,<b> --admin-profile=<p> --editor-profile=<p>
-//   npm run auth:ensure -- --json | --quiet | --hook
+// S112 local WSL authentication. Status inspects metadata without minting or repairing; ensure
+// refreshes already verified credentials through Google libraries. No cloud resource call, login
+// prompt, identity change or credential output occurs here. Human recovery is auth:session.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -18,8 +9,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { GoogleAuth } from "google-auth-library";
 
+import { inspectCredentialStore } from "./credential-store.mjs";
 import { classifyAdcError } from "../preflight-adc.mjs";
-import { resolveIdentities } from "./identities.mjs";
+import { LOCAL_PRINCIPAL, resolveIdentities } from "./identities.mjs";
 import {
   assessCredentials,
   chooseGcloudStore,
@@ -94,10 +86,13 @@ function gcloudTokenProbe(args, env) {
   };
 }
 
-export function probeGcloud(env) {
+export function probeGcloud(
+  env,
+  { statusOnly = false, capture = gcloudCapture, tokenProbe = gcloudTokenProbe } = {},
+) {
   const available =
-    gcloudCapture(["version", "--format=value(core)"], env) !== null ||
-    gcloudCapture(["config", "get-value", "account"], env) !== null;
+    capture(["version", "--format=value(core)"], env) !== null ||
+    capture(["config", "get-value", "account"], env) !== null;
   if (!available) {
     return {
       available: false,
@@ -107,81 +102,132 @@ export function probeGcloud(env) {
     };
   }
   const activeAccount = normalizeAccount(
-    gcloudCapture(["config", "get-value", "account"], env),
+    capture(["config", "get-value", "account"], env),
   );
   const impersonationRaw = readString(
-    gcloudCapture(["config", "get-value", "auth/impersonate_service_account"], env),
+    capture(["config", "get-value", "auth/impersonate_service_account"], env),
   );
   const impersonation =
     impersonationRaw && !/^\(unset\)$/i.test(impersonationRaw) ? impersonationRaw : null;
-  const storeAccounts = (
-    gcloudCapture(["auth", "list", "--format=value(account)"], env) ?? ""
-  )
+  const storeAccounts = (capture(["auth", "list", "--format=value(account)"], env) ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.includes("@"));
-  const token = gcloudTokenProbe(["auth", "print-access-token"], env);
+  const mayProbe =
+    !statusOnly &&
+    process.platform === "linux" &&
+    activeAccount?.toLowerCase() === LOCAL_PRINCIPAL &&
+    !impersonation &&
+    !env.GOOGLE_APPLICATION_CREDENTIALS?.trim() &&
+    !["wrong_store", "credential_type_forbidden"].includes(
+      inspectCredentialStore({ env }).errorKind,
+    );
+  const token = mayProbe ? tokenProbe(["auth", "print-access-token"], env) : null;
   return {
     available: true,
     activeAccount,
     impersonation,
     storeAccounts,
-    tokenFresh: token.ok,
-    ...(token.ok ? {} : { error: token.error }),
+    tokenFresh: token?.ok,
+    ...(token && !token.ok ? { errorKind: "reauth" } : {}),
   };
 }
 
 /** Freshness of the library ADC path, exactly as the app's Google clients resolve it. */
-export async function probeAdc(env, { fetchImpl = fetch, timeoutMs = 60_000 } = {}) {
+export async function probeAdc(
+  env,
+  {
+    fetchImpl = fetch,
+    timeoutMs = 60_000,
+    statusOnly = false,
+    inspect = inspectCredentialStore,
+    createClient = (credentials) =>
+      new GoogleAuth({
+        credentials,
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+      }).getClient(),
+  } = {},
+) {
+  const inspection = inspect({ env });
+  const metadata = {
+    present: inspection.present ?? false,
+    principal: inspection.principal ?? null,
+    errorKind: inspection.errorKind ?? null,
+  };
+  if (metadata.errorKind || statusOnly) return metadata;
   try {
-    const auth = new GoogleAuth({
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-    });
-    const client = await withTimeout(auth.getClient(), timeoutMs, "adc_probe_timeout");
+    const client = await withTimeout(
+      createClient(inspection.credentials),
+      timeoutMs,
+      "adc_probe_timeout",
+    );
     const accessToken = await withTimeout(
       client.getAccessToken(),
       timeoutMs,
       "adc_probe_timeout",
     );
-    const value = accessToken?.token;
-    if (typeof value !== "string" || value.length === 0) {
-      return {
-        present: true,
-        fresh: false,
-        principal: null,
-        errorKind: "other",
-        error: "no token",
-      };
+    if (typeof accessToken?.token !== "string" || !accessToken.token) {
+      return { ...metadata, fresh: false, errorKind: "no_token" };
     }
-    const principal = await readPrincipal(value, fetchImpl, timeoutMs);
-    return { present: true, fresh: true, principal, errorKind: null };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const errorKind = classifyAdcError(message);
+    const principal = await readPrincipal(accessToken.token, fetchImpl, timeoutMs);
     return {
-      present: errorKind !== "missing",
+      ...metadata,
+      fresh: principal === LOCAL_PRINCIPAL,
+      principal,
+      errorKind: principal === LOCAL_PRINCIPAL ? null : "principal_mismatch",
+    };
+  } catch (error) {
+    // Provider errors can embed request bodies. Only the closed error category leaves this scope.
+    return {
+      ...metadata,
       fresh: false,
-      principal: null,
-      errorKind,
-      error: redact(message.split(/\r?\n/)[0] ?? ""),
+      errorKind:
+        error instanceof Error && error.message === "identity_probe_unavailable"
+          ? "identity_probe_unavailable"
+          : classifyAdcError(error instanceof Error ? error.message : String(error)),
     };
   }
 }
 
-async function readPrincipal(accessToken, fetchImpl, timeoutMs) {
-  try {
-    const response = await fetchImpl(TOKENINFO_URL, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ access_token: accessToken }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    return readString(payload?.email) ?? null;
-  } catch {
-    return null;
+export async function readPrincipal(accessToken, fetchImpl, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  // One retry for a transient read failure, within the original total deadline.
+  // A lookup outage never invalidates local enrollment or supplies an identity.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    let retryable = false;
+    let retryDelay = 250;
+    try {
+      const response = await fetchImpl(TOKENINFO_URL, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ access_token: accessToken }),
+        signal: AbortSignal.timeout(remaining),
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        const principal = readString(payload?.email);
+        if (principal) return principal;
+        break;
+      }
+      retryable =
+        response.status === 408 || response.status === 429 || response.status >= 500;
+      const retryAfter = response.headers?.get?.("retry-after");
+      if (retryAfter) {
+        const seconds = Number(retryAfter);
+        const delay = Number.isFinite(seconds)
+          ? seconds * 1_000
+          : Date.parse(retryAfter) - Date.now();
+        if (Number.isFinite(delay)) retryDelay = Math.max(retryDelay, delay);
+      }
+    } catch {
+      retryable = true;
+    }
+    if (!retryable || attempt === 1 || Date.now() + retryDelay >= deadline) break;
+    await new Promise((resolveWait) => setTimeout(resolveWait, retryDelay));
   }
+  throw new Error("identity_probe_unavailable");
 }
 
 export function probeEnv(root, requiredKeys) {
@@ -277,6 +323,7 @@ export function runCanarySessions(requests, env, root = ROOT) {
 export async function ensureAuthenticated({
   need = parseNeed(),
   unattended = false,
+  statusOnly = false,
   canary = [],
   env = process.env,
   root = ROOT,
@@ -290,8 +337,9 @@ export async function ensureAuthenticated({
     platform: process.platform,
     wsl,
     googleAppCreds: keyFile,
-    gcloud: wanted.has("gcloud") ? probeGcloud(env) : {},
-    adc: wanted.has("adc") && !keyFile ? await probeAdc(env) : {},
+    wrongStore: inspectCredentialStore({ env }).errorKind === "wrong_store",
+    gcloud: wanted.has("gcloud") ? probeGcloud(env, { statusOnly }) : {},
+    adc: wanted.has("adc") && !keyFile ? await probeAdc(env, { statusOnly }) : {},
     env: wanted.has("env") ? probeEnv(root, identities.requiredEnvKeys) : {},
     gh: wanted.has("gh") ? probeGh(env) : {},
     canary: [],
@@ -299,7 +347,7 @@ export async function ensureAuthenticated({
 
   let assessment = assessCredentials(probe, { identities, need, unattended });
   const applied = [];
-  if (assessment.repairs.length > 0) {
+  if (!statusOnly && assessment.repairs.length > 0) {
     for (const repair of assessment.repairs) {
       const output = gcloudCapture(repair.args, env);
       applied.push({ action: repair.action, ok: output !== null });
@@ -308,7 +356,7 @@ export async function ensureAuthenticated({
     assessment = assessCredentials(probe, { identities, need, unattended });
   }
 
-  if (wanted.has("canary")) {
+  if (!statusOnly && wanted.has("canary")) {
     probe.canary = runCanarySessions(canary, env, root);
     assessment = assessCredentials(probe, { identities, need, unattended });
   }
@@ -353,6 +401,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const result = await ensureAuthenticated({
     need,
     unattended,
+    statusOnly: argv.includes("--status"),
     canary: canaryRequests(argv, identities),
     env,
   });

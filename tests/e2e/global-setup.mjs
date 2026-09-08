@@ -14,6 +14,9 @@ const WARMUP_PATHS = [
   "/approval-queue",
   "/processes",
   "/spaces",
+  "/spaces/lease-renewals",
+  "/spaces/owner-email",
+  "/processes/lease-renewal",
   "/work",
   "/admin",
   "/admin/team-work",
@@ -165,25 +168,30 @@ function appendHarnessLog(logStream, logTail, message) {
 
 // First-hit route compiles take seconds in next dev; warm the routes the suites
 // use so individual tests stay inside their timeouts.
-async function warmUp() {
+export async function warmUp({ origin = baseUrl, fetchImpl = fetch } = {}) {
+  const auth = await fetchImpl(`${origin}/api/auth/demo`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ role: "Admin" }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (auth.status !== 200) throw new Error("e2e_warmup_auth_failed");
+  const cookie = auth.headers
+    .getSetCookie()
+    .map((value) => value.split(";")[0])
+    .join("; ");
+  if (!cookie) throw new Error("e2e_warmup_session_missing");
+  await auth.text();
   for (const path of WARMUP_PATHS) {
-    try {
-      await fetch(`${baseUrl}${path}`, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(15_000),
-      });
-    } catch {
-      // Warmup is best-effort.
-    }
-  }
-
-  try {
-    await fetch(`${baseUrl}/api/auth/demo`, {
-      method: "POST",
-      signal: AbortSignal.timeout(15_000),
+    const response = await fetchImpl(`${origin}${path}`, {
+      redirect: "manual",
+      headers: { cookie },
+      signal: AbortSignal.timeout(90_000),
     });
-  } catch {
-    // Warmup is best-effort.
+    // Await the full streamed render so a 200 shell cannot hide an unfinished cold compilation.
+    await response.text();
+    if (response.status !== 200)
+      throw new Error(`e2e_warmup_route_failed: ${path} (${response.status})`);
   }
 }
 

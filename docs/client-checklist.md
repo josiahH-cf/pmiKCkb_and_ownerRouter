@@ -1,10 +1,12 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-09-02.
+Updated: 2026-09-08.
 
-All product-scope and authority questions for the canonical queue are closed. This file lists only
-fresh runtime evidence that an implementing runner must resolve and validate; none is permission to
-guess, substitute a record, or stop unrelated closed-safe work.
+Recorded authority remains in force. Runtime inputs below and the confirm-with-default questions
+remain open. None permits guessing values, substituting records, or stopping independent work.
+ADC enrollment, fresh-shell and paired post-reboot refresh are verified. Directory readback
+found six managed users: three Admin and three default Editor, none disabled. Individual evidence
+stays private. The October walkthrough lease has not been selected.
 
 ## Recorded owner decisions
 
@@ -18,7 +20,7 @@ guess, substitute a record, or stop unrelated closed-safe work.
   proof merely because it was the authorized test target.
 - S98's bounded operating-Sheet proof is complete, both exact Registry keys remain open, and the
   temporary proof row was deleted and read back absent. Do not create a replacement proof row. The
-  hardened normal product path is append-only; field update/delete/restore report unavailable until
+  unpromoted correction makes the normal product path append-only; field update/delete/restore report unavailable until
   Google Sheets exposes the required stable logical-row and expected-generation operation.
 - S99's bounded work-order proofs are complete and its exact read/create/status-update keys are
   active. Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
@@ -39,7 +41,7 @@ guess, substitute a record, or stop unrelated closed-safe work.
 | Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. Dotloop issues credentials by approved request, not self-registration. |
 | A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; fake-provider proof still completes.                                                                                              |
 | Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                                                                                                      |
-| Property preapproval amounts entered by an Admin                                    | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
+| Exact property identifiers, amounts, and effective dates entered by an Admin        | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
 | Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                                                                                                  |
 | Two authenticated managed Admin/Editor browser profiles                             | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                                                                                          |
 | The candidate hostname added to Firebase authorized domains                         | S51 release | No managed identity can sign in on the candidate origin, so the profiles above cannot be used.                                                                           |
@@ -53,6 +55,37 @@ guess, substitute a record, or stop unrelated closed-safe work.
 | S99   | For each normal action: current managed staff actor, RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal, and exact preview/confirmation                                    | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; correction must use the exact receipted work order. Do not reuse proof work order 1731 as a proof target.                                                                 |
 | S100  | For manual chat sync: current managed actor, exact account/work-order/message identities, and disclosed mark-read effect. For the one remaining resident-draft proof: a synchronized resident message mapped to a verified resident email plus the signed-in managed Gmail mailbox | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send. The draft proof cannot run until the exact eligible message exists.                                                                         |
 | S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                                                                    |
+
+## Wednesday decisions and staff authority
+
+Bring back the B-DL3 blank-form location and coverage of all seven artifact families, B-S100 work-order
+identifier with resident chat and confirmed verified email, and B-MNT1 exact properties, amounts,
+and effective dates. `docs/open-blockers.md` owns their complete readback gates. OAuth credentials
+remain external (B-DL1); the managed Dotloop account and verified selection are owner-owned (B-DL2).
+Both Dotloop keys remain closed. V-DL checks readiness and cannot perform loop/upload proof itself.
+
+Confirm the remaining questions in `docs/facts.md` Open Questions: whether monthly answers should include
+periodic-review rows (default keeps lease end month); whether annual review rolls forward (default
+keeps next anniversary); whether retired Demo sign-in domains remain and future candidate pruning
+has standing authority. The owner approved Editor with every Space for claim-less managed accounts on 2026-09-08.
+This task permits only replacement of its superseded candidate domain. No domain change occurred.
+
+| Work                                                               | Required authority                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Read, proposals, ordinary renewal progress, eligible unsent drafts | Editor plus Renewals access                                                          |
+| Resolve reconciliation decisions                                   | Approver or Admin plus Renewals access                                               |
+| Approve pricing/source changes; execute or reconcile S97/S98       | Admin plus Renewals access                                                           |
+| Apply staff access                                                 | A different current Admin through S83 with exact confirmation and directory readback |
+
+Individual directory evidence is in excluded output. Map meeting participants to required access
+before the walkthrough. The runner never creates, elevates, demotes, or grants an identity. B-AUTH2 needs existing profiles on both
+origins and the bound receipt before promotion. The approved local S112 revision is in scope;
+its owner enrollment and post-reboot proofs pass, while elapsed-session and full live release
+acceptance remain pending. The owner directed preparation of the four Wednesday deliverables.
+
+The transcript's no-approval claim does not match recorded governance. Direct lease changes are
+allowed only under their exact-key, role, preview, confirmation, receipt, readback, and correction
+contracts. Permission to implement/deploy does not remove any of those controls.
 
 ## Existing policy inputs
 
@@ -72,3 +105,10 @@ separately reversible/correctable. S100's warned and confirmed manager-read mark
 non-reversible stateful-read exception because RentVine documents no unread restoration. Unknown
 provider outcome means reconciliation without blind retry.
 Customer values, raw evidence, secrets, and mailbox bodies never enter Git or ordinary logs.
+
+### Closed internal verification input
+
+B-GOLD1 closed on 2026-09-08 after the owner reviewed live source evidence and approved removal of
+one unsupported historical expected rent-conflict label. Original private evidence, source values,
+the other label and all test assertions are preserved. The golden harness and corrected full units
+pass. This is separate from the three open Wednesday client inputs.

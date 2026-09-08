@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import {
+  SelectDotloopRenewalSettingsInputSchema,
   getDotloopRenewalSettings,
   selectDotloopRenewalSettings,
 } from "@/lib/firestore/dotloop-renewal-settings";
@@ -12,14 +12,7 @@ import {
 // Reading needs read access; setting is Admin-gated inside the store. Selection is by stable
 // provider id, so a later rename in Dotloop never changes which template a packet uses. No provider
 // call, token, or customer value passes through this route.
-const BodySchema = z
-  .object({
-    profile_id: z.string().trim().min(1).max(120),
-    profile_label: z.string().trim().min(1).max(200),
-    template_id: z.string().trim().min(1).max(120),
-    template_label: z.string().trim().min(1).max(200),
-  })
-  .strict();
+const BodySchema = SelectDotloopRenewalSettingsInputSchema;
 
 export async function GET() {
   try {

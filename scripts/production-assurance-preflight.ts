@@ -1,4 +1,5 @@
 import { loadEnvConfig } from "@next/env";
+import { ensureAuthenticated } from "./auth/ensure.mjs";
 import { GoogleAuth } from "google-auth-library";
 
 import {
@@ -152,6 +153,17 @@ export async function preflightProductionAssurance(
   const env = dependencies.env ?? process.env;
   assertLiveAssuranceEnvironment(input.project, env);
 
+  // Only the isolated test transport bypasses local credential I/O. Every actual assurance phase
+  // verifies the enrolled local identity before constructing a Google client or refreshing ADC.
+  if (!dependencies.createAuth) {
+    const local = await ensureAuthenticated({
+      need: ["gcloud", "adc"],
+      unattended: true,
+      env,
+    });
+    if (local.exitCode !== 0)
+      throw new Error("assurance_local_auth_not_ready_run_auth_session_in_wsl");
+  }
   const auth =
     dependencies.createAuth?.() ??
     (new GoogleAuth({

@@ -38,10 +38,16 @@ export function bindCurrentPacketForDotloop(input: {
   currentHead: PacketHead;
   catalog: LeaseArtifactCatalog;
   confirmedPayloadHash: string;
+  operation?: "loop_create" | "document_upload";
 }): DotloopPacketBinding {
   const { snapshot, currentHead, catalog, confirmedPayloadHash } = input;
+  const documentContinuation =
+    input.operation === "document_upload" &&
+    snapshot.visibleState === "Partially executed" &&
+    Boolean(snapshot.execution?.receiptId) &&
+    snapshot.execution?.loopLink?.packetSnapshotHash === snapshot.payloadHash;
   if (
-    snapshot.visibleState !== "Ready for preview" ||
+    (snapshot.visibleState !== "Ready for preview" && !documentContinuation) ||
     snapshot.state !== "Ready for preview" ||
     snapshot.current !== true ||
     snapshot.manifest === null ||

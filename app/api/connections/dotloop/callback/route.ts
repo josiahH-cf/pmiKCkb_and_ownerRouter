@@ -63,7 +63,7 @@ export async function GET(request: Request) {
       generationId: randomUUID(),
       states: new FirestoreDotloopOAuthStateStore(),
       connections: new FirestoreConnectorConnectionStore(),
-      vault: resolveConnectorSecretVault(),
+      vault: resolveConnectorSecretVault("dotloop"),
       exchanger: new LiveDotloopTokenExchanger({ transport: httpTransport }),
     });
 

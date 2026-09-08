@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -155,7 +156,9 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
         loopRef: "loop-1",
         documentRef: "artifact-1",
         documentType: "renewal_agreement",
-        contentHash: "a".repeat(64),
+        contentHash: createHash("sha256")
+          .update(new Uint8Array([1, 2, 3]))
+          .digest("hex"),
         idempotencyKey: "idem-2",
       }),
     ).rejects.toThrow(/approved artifact content source is not wired/i);
@@ -178,14 +181,18 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
       loopRef: "loop-1",
       documentRef: "artifact-1",
       documentType: "renewal_agreement",
-      contentHash: "a".repeat(64),
+      contentHash: createHash("sha256")
+        .update(new Uint8Array([1, 2, 3]))
+        .digest("hex"),
       idempotencyKey: "idem-2",
     });
     expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);
     await expect(
       provider.readDocument(uploaded.documentRef, {
         documentType: "renewal_agreement",
-        contentHash: "a".repeat(64),
+        contentHash: createHash("sha256")
+          .update(new Uint8Array([1, 2, 3]))
+          .digest("hex"),
       }),
     ).resolves.toMatchObject({ loopRef: "loop-1", active: true });
     await expect(
@@ -294,7 +301,9 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
       loopRef: "loop-1",
       documentRef: "artifact-1",
       documentType: "renewal_agreement",
-      contentHash: "a".repeat(64),
+      contentHash: createHash("sha256")
+        .update(new Uint8Array([0x25, 0x50, 0x44, 0x46]))
+        .digest("hex"),
       idempotencyKey: "idem-doc-1",
     });
     expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);

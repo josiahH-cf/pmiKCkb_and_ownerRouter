@@ -1,176 +1,111 @@
 # Open blockers
 
-One row per material blocker, with a stable id a later loop can cite. A blocker is material only when
-it prevents the next correct step. Warnings, optional improvements, and later roadmap work do not
-belong here.
+Last reconciled: 2026-09-08. Read after `docs/loop-state.md`. Each hold names its owner and the
+readback needed to close it. Work independent of a hold continues; no substitute value is invented.
 
-Read this after `docs/loop-state.md`. Loop state says where the work is; this file says what is
-holding it and who owns each hold. When a blocker clears, move its outcome into `docs/facts.md` and
-delete the row here rather than leaving a stale entry.
+| Id      | Blocks                                                    | Owner    | Exact item to bring back                                                                                                                                                                                                                        | Completion evidence                                                                                                                                                                             |
+| ------- | --------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2 | Auth longevity, managed browser assurance and promotion   | owner    | Observe the required 24-hour CLI/ADC refresh proof from the existing WSL owner enrollment. Authenticate existing managed Admin and claim-less managed account (app resolves Editor) profiles on both the exact candidate and canonical origins. | Fresh-shell and paired post-reboot CLI/ADC preflights exit 0 with unchanged enrollment. The 24-hour proof, both profiles on both origins and exact candidate assurance receipt remain required. |
+| B-DL1   | S106 live readiness and S34 live provider work            | external | Approved Dotloop OAuth client id and secret through the recorded Secret Manager delivery path. Requested from support@dotloop.com on 2026-09-04; no follow-up sent.                                                                             | Bound credentials exist and runtime configuration readback names no missing credential.                                                                                                         |
+| B-DL2   | S106 live readiness and S34 live provider work            | owner    | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                  | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                                                                            |
+| B-DL3   | S34 approved artifact content and packet workflow binding | owner    | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                         | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                                                                                      |
+| B-S100  | Resident-reply draft proof and S36                        | owner    | One work-order identifier carrying resident chat and confirmation that the resident email is verified.                                                                                                                                          | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass.                                                             |
+| B-MNT1  | S108 live preapproval routing proof                       | owner    | Unambiguous property identifiers, one amount per property, and effective dates.                                                                                                                                                                 | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                                                                                    |
 
-Last reconciled: 2026-09-07.
+## B-AUTH2: first owner action
 
-## How to use this file
+Use profiles for the candidate that will actually be promoted. Existing candidate:
+`https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+Canonical: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+Each host has its own session cookie. One Admin and one claim-less managed account are sufficient
+under the current application role fallback; do not create accounts, change claims, or demote an
+Admin to satisfy a check. The owner approved Editor with all Spaces for claim-less managed accounts on 2026-09-08.
 
-- **Owner: agent** means a future loop can clear it without asking. Do that before reporting blocked.
-- **Owner: owner** means a person must decide, approve, sign in, or supply data the repository cannot
-  derive. Never convert one of these into a human verification step for work the agent can prove
-  itself; state it, finish everything independent of it, and continue.
-- **Owner: external** means a third party controls the timeline.
-- Completion evidence is the exact readback that closes the row. A row is not closed by an intention.
+Browser ADC enrollment verified the approved owner in the existing WSL store. Fresh-shell and paired
+post-reboot `auth:ensure -- --unattended` exited 0 with verified refresh and unchanged enrollment.
+Post-reboot app `preflight:adc`, provider configuration and GitHub authentication also passed.
+The 24-hour elapsed-session proof remains pending, no earlier than 2026-09-09T12:46:45.730Z.
+The owner controls the session-policy exception; browser recovery is
+`npm run auth:session -- --browser`. No new account, impersonation, IAM or claim is needed or authorized.
 
-## Open
+Once both managed browser profiles are enrolled, run `--prepare-candidate-receipt --live` with the exact candidate commit,
+revision, and fingerprint in `docs/loop-state.md`, following `docs/environment-handoff.md`. The
+existing candidate values are commit `7b3fdadac134550c24b029034753a38f16e4096b`, revision
+`pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, fingerprint
+`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`.
+No promotion input is satisfied until that receipt exists. A new readiness candidate must use its
+own new identity/fingerprint. Promote only the receipted revision and observe it for 300,000 ms.
 
-| Id      | Blocks                                      | Owner    | Exact hold                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Completion evidence                                                                                                                                                |
-| ------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| B-AUTH2 | Candidate promotion                         | owner    | S112 one-time setup: the `Automation` OU (reauthentication never required, web sessions never expire), the `pmi-runner@pmikcmetro.com` principal, the `pmi-kc-automation` service account with its grants, and the two canary accounts; then enroll both credential stores (`npm run auth:enroll`, `npm run auth:enroll:wsl`) and both canary profiles on both origins (`npm run auth:enroll-canary`). Fast path for the current candidate: enroll two managed profiles today with `auth:enroll-canary` (one Admin, one claim-less account, which the app resolves to Editor). | `npm run auth:ensure -- --unattended` exits 0 on the WSL store and `--need=canary` reports both profiles `signed_in` on both origins; then the receipt run passes. |
-| B-DL1   | S106 live readiness, S34 live loop creation | external | SENT 2026-09-04 to support@dotloop.com, awaiting reply. Dotloop issues credentials by approved request only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | An approved client id and client secret exist for this application.                                                                                                |
-| B-DL2   | S106 live readiness, S34 live loop creation | owner    | No managed Dotloop account is connected, and none carries the office profile and renewal loop template.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Readiness reports `connected` after a profile probe, naming no missing resource.                                                                                   |
-| B-DL3   | S34 document upload                         | owner    | WEDNESDAY: ask the team where the approved blank lease forms live. The S66 artifact catalog is empty.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | The seven required artifact families resolve to approved content.                                                                                                  |
-| B-MNT1  | S108 preapproval routing proof              | owner    | WEDNESDAY: ask the client which properties are preapproved and for how much, and identify them exactly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | At least one property preapproval reads back with its amount and effective date.                                                                                   |
-| B-S100  | S100 resident draft, and S36 behind it      | owner    | WEDNESDAY: identify one work order carrying resident chat whose resident email is verified.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | One eligible message exists and the draft key's proof runs against it.                                                                                             |
+## Closed verification item: B-GOLD1
 
-## Detail
+On 2026-09-08, live Sheet values/formulas/link metadata and the exact RentVine lease readback did
+not establish the historical source association underlying one expected rent-conflict label.
+The owner reviewed the private evidence and explicitly approved removing that one expectation.
+The original capture and worksheet are preserved privately, all source values and the remaining
+label are unchanged, and every test assertion and ambiguous-name refusal remains intact.
+The golden harness passes 4/4 and the corrected full native unit suite passes 6,360 tests with four
+skipped. B-GOLD1 is closed and is not a Wednesday client ask.
 
-### B-AUTH2 — the S112 one-time setup and enrolled canary profiles
+## B-REH1: live-source walkthrough performance
 
-The 2026-09-04 diagnosis (`no account carries the Editor role, so the Editor canary has no subject`)
-was wrong in two ways, both corrected on 2026-09-06 and recorded in `docs/facts.md`
-(`F-ASSURANCE-CANARY`):
+Local Node 24 development reproduced the ArrayBuffer response error and a 60-second desk load
+timeout. The native built app on the existing Node 22 runtime loaded the desk, but base-rent sorting
+took 23.4 seconds against a 20-second limit; the Dashboard also exceeded its 60-second navigation
+limit. No deadline was widened. Maintenance blocker and intake browser checks passed. The guide's
+native disclosure locator was corrected and checked in Chromium; its complete run remains separate.
 
-- The Editor canary could never pass. It required a denied route to rest on
-  `/sign-in?error=forbidden`, but the sign-in page forwards any signed-in person to `/`, so a real
-  Editor always failed with `auth_mismatch`. The canary now proves the denial from the navigation
-  chain (the exact same-origin forbidden hop) and refuses when the denied document rendered.
-- A managed account with no role claim is not access-less. `lib/auth/session.ts` resolves it to
-  `Editor` with every Space, and the Admin page copy says every teammate starts as an Editor. The
-  three claim-less managed accounts read back on 2026-09-04 are therefore Editors at the application
-  layer, and any of them is a valid canary subject. Whether that default is right is an owner
-  question recorded under Open Questions in `docs/facts.md`; the runner does not change a protected
-  auth path for it.
+The release operator owns closing this hold with the unchanged live-source browser checks on the
+intended demonstration runtime/origin. The Wednesday fallback is a source-backed reading and
+explanation session using the provisional October example, with no invented transaction. This hold
+does not change the passing canonical unit/emulator/build gate or authorize promotion without the
+existing exact candidate assurance receipt.
 
-What still holds promotion is the one-time S112 setup (`docs/feature-suites/unattended-authentication.md`,
-Appendix B): the owner creates the automation principal, the service account, and the two canary
-accounts in an organizational unit whose sessions never expire, then enrolls each credential store
-once and each canary profile once per origin. The receipt run drives the predecessor baseline
-against the canonical origin before the candidate canaries, and the session cookie is host-only, so
-each profile is enrolled on both origins; after that, `npm run auth:ensure -- --need=canary`
-re-establishes the sessions with no person present.
+## Wednesday inputs
 
-Enrollment is headed and owner-completed: `npm run auth:enroll-canary -- --profile=<WSL-native
-absolute path outside the repository> --origin=<origin> --email=<canary>` opens the harness browser
-(the installed Playwright Chromium in WSL, or Google Chrome for Linux once installed) on the app's
-sign-in page; the owner completes Google; the script only selects the account tile, verifies the
-app session and role, and closes. No claim is written, no identity is minted or elevated, and no
-Admin is demoted. Copied cookies, guessed or default profile directories, and any password or
-one-time code typed by the runner are not evidence. The previous recipe (Windows Chrome launched
-from WSL with a `/mnt/c` profile path) never ran and is retired; the browser and the profile path
-form must match, which `scripts/auth/browser.ts` enforces.
+B-DL3 needs approved blank forms for standard lease, renewal extension, animal agreement,
+lead-based-paint disclosure, city addendum, HOA artifact, and owner acknowledgment. Bring a location
+and each file's coverage, publication version and approved field/participant/signature mappings.
+The artifact catalog is currently empty. Exact active S21 publication content now has a verified
+local byte resolver; catalog and participant resolution and the public packet workflow still need
+approved source mappings. S106 provider revoke/readback and interrupted-refresh quarantine are
+wired locally; ambiguous token outcomes remain explicit recovery holds. Credential arrival alone
+does not complete the packet workflow or authorize either closed Dotloop key.
 
-Everything else the receipt run needs is in hand: the live flag, the candidate origin
-`https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app`, the expected commit `7b3fdad`, the
-expected revision `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, the recaptured configuration fingerprint
-`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`, an internal operator
-address, a fresh receipt path, and the existing predecessor revision.
-Sign in against the origin of the candidate that will actually be
-promoted: each candidate gets its own hostname and its own authorized-domain entry, so a profile
-authenticated against a superseded candidate is wasted work.
+B-S100 needs a maintenance work order, not a lease. The readiness slice implements the app-owned
+preview/confirmed existing-work-order link locally; it is unreleased and has not been exercised with
+a live record. Imported links cannot fabricate provider creation receipts or correction authority.
+The resident-draft key remains closed. Completed proof targets must not be reused.
 
-### B-DL1 and B-DL2 — Dotloop credentials and a connected account
+B-MNT1 needs exact property identity as well as amount and effective date. Missing, conflicting,
+not-yet-effective, or unmatched evidence never grants preapproval. The new optional ticket property
+identity is server-derived; legacy records are not guessed or bulk backfilled.
 
-The owner sent the access request to `support@dotloop.com` on 2026-09-04 and is awaiting a reply.
-Dotloop's published API guide directs developers to request access rather than self-register, so the
-credential depends on a third party's approval turnaround. Do not re-send or chase a second channel
-without owner direction. Task `V-DL` below runs the moment credentials arrive. The application's side is complete
-and proven against the provider fake: connection, refresh, revoke, reconnect, readiness, and one loop
-per approved packet hash.
+## V-DL: bounded verification after credentials arrive
 
-The delivery path for the credential is now wired end to end. `scripts/deploy-demo-cloud-run.mjs`
-forwards the non-secret client id and redirect URI and binds the client secret from Secret Manager
-when `DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID` is set; a plaintext client secret is never promoted into
-a deployed revision. Before this was fixed, an owner could have completed every Dotloop step and
-still seen the client secret reported missing with nothing naming the deploy wrapper as the cause.
+Trigger: B-DL1 credentials are delivered through the recorded binding path, authorized unattended
+access is available, and B-DL2 connection is owner-initiated.
 
-### B-DL3 — the approved artifact catalog
+1. Verify the reviewed non-secret client id/redirect and Secret Manager client-secret binding;
+   verify vault configuration and actual existing runtime permission without adding a grant.
+2. After the authorized release, read runtime configuration and named readiness failures.
+3. Let the owner complete OAuth and select verified resources. Read back profile/template readiness,
+   token metadata, and the current connection generation without exposing tokens or provider bodies.
+4. Check refresh/revocation/reconnect only through their existing explicit connection workflows and
+   preserve S96's exact preview/confirmation/credential-removal/readback contract. Report denied
+   storage or cleanup as recovery needed, never connected success.
+5. Verify that both Dotloop action keys remain closed and no signature completion is inferred.
 
-`lib/lease-documents/artifact-catalog.ts` lists seven required artifact families and publishes an
-empty catalog on purpose, so every dependent result is a named blocker instead of a caller-selected
-template. The content is approved legal material that the repository cannot originate.
+V-DL does not create a loop or upload a document. Those proofs require approved content/participants
+and separately authorized exact keys, previews, confirmations, receipts, and readbacks. Credential
+arrival and provider-fake tests do not grant that authority. No support follow-up is sent.
 
-### B-MNT1 — property preapproval amounts
+## Current administrative readbacks
 
-S108 ships the versioned record, the Admin-only control, and the cancel-first confirmation. The
-amounts are owner data. Absence is never authorization: with no amount the ticket keeps waiting on
-owner approval, which is the correct closed default rather than a defect.
-
-### B-S100 — an eligible resident message
-
-Chat synchronization is complete, proven, open, and deployed. The unsent resident-draft key stays
-closed until one synchronized message maps to a verified resident email in the signed-in managed
-mailbox. The designated thread has yielded no eligible record, and inventing one would defeat the
-proof.
-
-A bodyless read on 2026-09-06 confirmed the documented lease-with-tenants shape the mapping codec
-expects (root `tenants[]` of `{leaseTenant, contact}` with numeric-string ids and a string
-`contact.email`), so the codec is not the gap. The application-side gap is the link: work orders the
-app creates are unshared with the tenant and lease-less, and no operation links an existing RentVine
-work order (one that carries resident chat) to a ticket. When the Wednesday answer names a work
-order, that link path has to exist before the sync can be pointed at it; it is agent-owned next work,
-listed in `docs/loop-state.md`, and it does not need any owner input to build.
-
-## Wednesday follow-ups, owner-scheduled
-
-The owner scheduled these three for Wednesday. They are not agent work and must not be attempted,
-guessed, or worked around. Each one names exactly what to bring back, so the answer can be applied
-without another round trip.
-
-| Id     | Ask this                                                                                      | Bring back                                                                  |
-| ------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| B-DL3  | Team: where do our approved blank lease forms live?                                           | A location, and which of the seven families each file covers.               |
-| B-S100 | Team: which work order has resident chat on it, from a resident whose email we have verified? | One work order identifier, and confirmation the resident email is verified. |
-| B-MNT1 | Client: which properties are preapproved for maintenance spend, and up to what amount each?   | The exact properties, identified unambiguously, and one dollar amount each. |
-
-Notes that make each ask land the first time:
-
-- **B-DL3** wants blank approved forms, not a lease we have already processed. The seven families are
-  standard lease, renewal extension, animal agreement, lead-based-paint disclosure, city addendum,
-  HOA artifact, and owner acknowledgment. A file per family is what unblocks the Dotloop upload.
-- **B-S100** wants a maintenance work order, not a lease. A lease record cannot satisfy it. The S97
-  proof lease is separately barred from reuse, so it is not a candidate even if it comes up.
-- **B-MNT1** needs the property identified exactly, because the preapproval record is keyed by
-  property. A street name alone is not enough to key it safely.
-
-## Pending verification tasks
-
-A task here is queued behind a blocker above. When its trigger fires, a loop runs the steps without
-asking again. Do not run one early: each step needs the input its trigger names.
-
-### V-DL — verify Dotloop end to end once credentials arrive
-
-Trigger: `B-DL1` clears and the owner reports the client id and secret placed through the delivery
-path in the B-DL1/B-DL2 detail (`DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID`).
-
-1. Confirm delivery: `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI`, and
-   `DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID` are all in the reviewed deploy env, and the secret exists
-   in Secret Manager. Deploy a candidate and read the revision's bound secret map back.
-2. Confirm the runtime sees it: Dotloop readiness must stop reporting the client secret missing.
-3. Complete the owner-initiated authorization, then read readiness again. It must report `connected`
-   only after a profile probe succeeds, and must name the exact missing resource otherwise.
-4. Exercise refresh, revoke, and reconnect against the live account, and confirm a revoked refresh
-   token reports `refresh_needed` rather than a silent failure.
-5. Create one loop from one approved packet. Confirm the same packet hash reuses it with no provider
-   call, and a different hash marks the prior loop superseded.
-6. Confirm no signature state is claimed anywhere in the result. The published API documents no
-   e-signature operation.
-
-Do not open either Dotloop action key as part of this task. Key activation is a separate owner step.
-
-## Recently cleared
-
-| Id      | Was blocking        | Cleared by                                                                                                                                                                                                                                                                    |
-| ------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-MON1  | Candidate promotion | The S51 monitoring resource set reads `READY`: one exact channel, the A2 metric, and the four attached policies.                                                                                                                                                              |
-| B-MON2  | Candidate promotion | The candidate configuration fingerprint is captured (recaptured 2026-09-06 for `pmi-kc-app-rmtq71kjl-bff41bbdb5fa` after the output-only-field correction: `sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`), so the receipt run does not derive it. |
-| B-DEP1  | S106 and S34 live   | The Dotloop client secret now has a Secret Manager delivery path in the deploy wrapper, pinned by tests in both directions.                                                                                                                                                   |
-| B-AUTH1 | Candidate promotion | The candidate hostname `cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app` is the only candidate entry in the authorized domains, read back from the Identity Platform config on 2026-09-06; the superseded `cand-rmtq2goev-157da39536d0` entry was removed.   |
-| B-MNT2  | S109 resource offer | The owner approved three reviewed links on 2026-09-04, one each for Electrical, HVAC, and Plumbing. Appliance and General stay empty on purpose.                                                                                                                              |
+Monitoring reads READY on 2026-09-08 with the existing managed alert recipient. The watcher now
+configures that recipient separately from its approved CLI/ADC identity; no channel was changed.
+Nine authorized domains, six managed users (three Admin and three default Editor; none disabled),
+and the app's zero September RentCast counter were reread. Vendor-account usage and full readiness of the provisional
+October walkthrough lease remain unverified. No comp request was made.
+The existing candidate fingerprint retains its 2026-09-06 evidence date. A new candidate needs
+its own fingerprint and complete assurance receipt. Client-facing asks are in
+[the Wednesday decisions sheet](products/wednesday-decisions-and-inputs-2026-09-09.md).

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { Button, Field } from "@/components/ui";
@@ -63,6 +63,10 @@ const capturableStates = new Set([
   "No Reliable Source Found",
 ]);
 
+const subscribeToHydration = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
+
 // The Console's ask + dictation surface. The always-visible action deck and process strip live in
 // their own server components (ConsoleView assembles them); this form is just the AI question box.
 export function AskForm({
@@ -72,6 +76,8 @@ export function AskForm({
   canUseProcessContext?: boolean;
   processes?: ProcessOption[];
 }>) {
+  // Until hydration, a native form submit would put the question in the page URL.
+  const ready = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
   const [question, setQuestion] = useState("");
   const [processId, setProcessId] = useState("");
   const [captureSpace, setCaptureSpace] = useState(
@@ -409,6 +415,7 @@ export function AskForm({
           <textarea
             aria-describedby="question-hint"
             aria-required="true"
+            disabled={!ready}
             id="question"
             minLength={3}
             name="question"
@@ -470,7 +477,7 @@ export function AskForm({
             )
           ) : null}
 
-          <Button disabled={isPending} size="large" type="submit">
+          <Button disabled={!ready || isPending} size="large" type="submit">
             {submitLabel}
           </Button>
         </form>

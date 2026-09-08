@@ -11,6 +11,7 @@ vi.mock("@/lib/firestore/admin", () => ({
 
 import {
   claimMaintenanceWorkOrderLink,
+  linkExistingMaintenanceWorkOrder,
   getMaintenanceWorkOrderLink,
   projectMaintenanceWorkOrderOutcome,
 } from "@/lib/firestore/maintenance-work-order-links";
@@ -114,5 +115,59 @@ describe("S99 work-order link store", () => {
         db,
       ),
     ).rejects.toThrow(/already has a live/);
+  });
+});
+
+describe("S100 imported link provenance and conflict boundary", () => {
+  const input = {
+    ticketId: "ticket-9",
+    ticketVersion: "2026-09-07T00:00:00.000Z",
+    workOrderId: "63",
+    propertyId: "21",
+    unitId: "42",
+    confirmedPreviewHash: "b".repeat(64),
+  };
+  async function database() {
+    const db = new FakeFirestore() as unknown as Firestore;
+    await db
+      .collection("maintenance_tickets")
+      .doc("ticket-9")
+      .set({ updated_at: input.ticketVersion, unit: { unitId: "unit:42" } });
+    return db;
+  }
+  it("reads back an imported link without a creation receipt and reuses an exact duplicate", async () => {
+    const db = await database();
+    const linked = await linkExistingMaintenanceWorkOrder(EDITOR, input, db);
+    expect(linked).toMatchObject({
+      state: "linked",
+      action_key: "rentvine.work_order.read",
+      provider_work_order_id: "63",
+    });
+    expect(linked).not.toHaveProperty("execution_id");
+    expect(linked).not.toHaveProperty("receipt_result_hash");
+    expect(await linkExistingMaintenanceWorkOrder(EDITOR, input, db)).toEqual(linked);
+    await expect(
+      projectMaintenanceWorkOrderOutcome(
+        EDITOR,
+        { ticketRef: "ticket-9", executionId: "invented", state: "succeeded" },
+        db,
+      ),
+    ).rejects.toThrow("different execution");
+  });
+  it("refuses conflicting links and ticket changes before persisting", async () => {
+    const db = await database();
+    await claimMaintenanceWorkOrderLink(EDITOR, baseLink(), db);
+    await expect(linkExistingMaintenanceWorkOrder(EDITOR, input, db)).rejects.toThrow(
+      "conflicting",
+    );
+    const fresh = await database();
+    await expect(
+      linkExistingMaintenanceWorkOrder(
+        EDITOR,
+        { ...input, ticketVersion: "changed" },
+        fresh,
+      ),
+    ).rejects.toThrow("changed");
+    expect(await getMaintenanceWorkOrderLink(EDITOR, "ticket-9", fresh)).toBeNull();
   });
 });

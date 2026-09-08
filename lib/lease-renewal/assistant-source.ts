@@ -149,7 +149,7 @@ export async function runRenewalAssistantSource(
           renewalAuxiliaryValue(termReviewsRead, new Map()),
         );
 
-  return { outcome, auxiliaryFailures };
+  return { outcome, auxiliaryFailures, coverage: window };
 }
 
 /** The desk page and the assistant both call this one orchestration. */

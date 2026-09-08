@@ -50,6 +50,9 @@ export interface DotloopConnectionRecorder {
     connectorId: string;
     method: "oauth";
     secretRef: string;
+    refreshTokenRef?: string;
+    tokenExpiresAt?: string;
+    grantedScopes?: string[];
     connectedByUid: string;
     connectedAt: string;
     generationId: string;
@@ -179,6 +182,15 @@ export async function completeDotloopConnection(
       connectorId: DOTLOOP_CONNECTOR_ID,
       method: "oauth",
       secretRef: tokens.accessTokenRef,
+      ...(tokens.refreshTokenRef ? { refreshTokenRef: tokens.refreshTokenRef } : {}),
+      ...(tokens.expiresInSeconds && tokens.expiresInSeconds > 0
+        ? {
+            tokenExpiresAt: new Date(
+              Date.parse(input.nowIso) + tokens.expiresInSeconds * 1000,
+            ).toISOString(),
+          }
+        : {}),
+      ...(tokens.grantedScopes ? { grantedScopes: tokens.grantedScopes } : {}),
       connectedByUid: claimed.actorUid,
       connectedAt: input.nowIso,
       generationId: input.generationId,
@@ -186,13 +198,16 @@ export async function completeDotloopConnection(
   } catch {
     // The exchange already placed both tokens in the vault. A record the store refuses (for
     // example a generation that is still connected) must not leave them orphaned there: destroy
-    // both refs, then report the refusal. No provider-side revoke is claimed; the vault exposes no
-    // read of the token value.
+    // both refs, then report the refusal. No provider-side revoke is claimed by this callback.
     let undestroyedTokenRefs = 0;
     for (const secretRef of [tokens.accessTokenRef, tokens.refreshTokenRef]) {
       if (!secretRef) continue;
       try {
-        await input.vault.destroySecret({ secretRef, operationId: input.generationId });
+        const result = await input.vault.destroySecret({
+          secretRef,
+          operationId: input.generationId,
+        });
+        if (!result.ok) undestroyedTokenRefs += 1;
       } catch {
         // Never silent: an undestroyed ref is an orphaned token, so the count travels with the
         // result. This module logs nothing, so no token value can ever reach a log from here.
@@ -230,13 +245,14 @@ export class LiveDotloopTokenExchanger implements DotloopTokenExchangeSeam {
     const response = await this.#transport.fetch({
       url: DOTLOOP_OAUTH_TOKEN_URL,
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        authorization: `Basic ${Buffer.from(`${input.config.clientId}:${input.config.clientSecret}`).toString("base64")}`,
+      },
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code: input.code,
         redirect_uri: input.config.redirectUri,
-        client_id: input.config.clientId,
-        client_secret: input.config.clientSecret,
       }).toString(),
     });
     if (response.status !== 200) {
@@ -246,6 +262,7 @@ export class LiveDotloopTokenExchanger implements DotloopTokenExchangeSeam {
       access_token?: unknown;
       refresh_token?: unknown;
       expires_in?: unknown;
+      scope?: unknown;
     };
     const access = typeof body.access_token === "string" ? body.access_token : "";
     if (access === "") throw new Error("Dotloop returned no access token.");
@@ -257,16 +274,36 @@ export class LiveDotloopTokenExchanger implements DotloopTokenExchangeSeam {
 
     const tokenSet: DotloopTokenSet = { accessTokenRef: stored.secretRef };
     if (typeof body.refresh_token === "string" && body.refresh_token !== "") {
-      const refresh = await input.vault.storeSecret({
-        connectorId: DOTLOOP_CONNECTOR_ID,
-        secret: body.refresh_token,
-      });
-      if (!refresh.ok) throw new Error("Secure credential storage is not configured.");
-      tokenSet.refreshTokenRef = refresh.secretRef;
+      try {
+        const refresh = await input.vault.storeSecret({
+          connectorId: DOTLOOP_CONNECTOR_ID,
+          secret: body.refresh_token,
+        });
+        if (!refresh.ok) throw new Error("refresh_storage_unavailable");
+        tokenSet.refreshTokenRef = refresh.secretRef;
+      } catch {
+        // No connection can own the first reference when the second store fails.
+        // Remove that exact reference through the vault's destroy/readback contract.
+        try {
+          const removed = await input.vault.destroySecret({
+            secretRef: stored.secretRef,
+            operationId: crypto.randomUUID(),
+          });
+          if (!removed.ok) throw new Error("cleanup_unavailable");
+        } catch {
+          throw new Error(
+            "Secure credential storage failed; credential removal needs recovery.",
+          );
+        }
+        throw new Error("Secure credential storage is unavailable.");
+      }
     }
     if (typeof body.expires_in === "number" && Number.isFinite(body.expires_in)) {
       tokenSet.expiresInSeconds = body.expires_in;
     }
+    // Only provider-returned scope evidence can qualify readiness.
+    tokenSet.grantedScopes =
+      typeof body.scope === "string" ? body.scope.split(/[\s,]+/).filter(Boolean) : [];
     return tokenSet;
   }
 }

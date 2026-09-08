@@ -382,9 +382,8 @@ export interface DotloopProvider {
     active: boolean;
   } | null>;
   /**
-   * Read one document back. A provider that exposes no content hash of its own may echo the
-   * caller's confirmed `expected` terms only after observing the document present in the exact
-   * loop folder; without them its readback carries empty values and never matches a preview.
+   * Read one document back. Presence-only providers carry observed identity/name separately;
+   * a provider-owned hash may be compared only when the provider actually exposes it.
    */
   readDocument(
     documentRef: string,
@@ -394,6 +393,9 @@ export interface DotloopProvider {
     loopRef: string;
     documentType: string;
     contentHash: string;
+    evidenceLevel?: "presence_only";
+    documentId?: string;
+    documentName?: string;
     active: boolean;
   } | null>;
   reconcile(input: {
@@ -485,16 +487,14 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
       !observed ||
       !observed.active ||
       observed.documentRef !== result.documentRef ||
-      observed.loopRef !== input.values.loop_ref ||
-      observed.documentType !== input.values.document_type ||
-      observed.contentHash !== input.values.content_hash
+      !matchesDocumentEvidence(input, observed)
     ) {
       throw new ExternalExecutionError(
         "Dotloop document readback did not match the exact preview.",
         "ambiguous",
       );
     }
-    return receipt(input, result.documentRef, observed);
+    return documentReceipt(input, result.documentRef, observed);
   }
 
   async reconcile(input: ExternalActionInput) {
@@ -521,10 +521,9 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
     });
     return observed &&
       observed.active &&
-      observed.loopRef === input.values.loop_ref &&
-      observed.documentType === input.values.document_type &&
-      observed.contentHash === input.values.content_hash
-      ? receipt(input, result.providerRef, observed, "succeeded", true)
+      observed.documentRef === result.providerRef &&
+      matchesDocumentEvidence(input, observed)
+      ? documentReceipt(input, result.providerRef, observed, true)
       : null;
   }
 
@@ -580,6 +579,51 @@ export class DotloopRenewalExecutor implements ExternalExecutor {
       );
     }
   }
+}
+
+type DotloopDocumentReadback = NonNullable<
+  Awaited<ReturnType<DotloopProvider["readDocument"]>>
+>;
+function matchesDocumentEvidence(
+  input: ExternalActionInput,
+  observed: DotloopDocumentReadback,
+): boolean {
+  if (observed.loopRef !== input.values.loop_ref) return false;
+  return observed.evidenceLevel === "presence_only"
+    ? Boolean(
+        observed.documentId &&
+        observed.documentName &&
+        observed.documentId === observed.documentRef.split(":").at(-1) &&
+        observed.contentHash === "",
+      )
+    : observed.documentType === input.values.document_type &&
+        observed.contentHash === input.values.content_hash;
+}
+function documentReceipt(
+  input: ExternalActionInput,
+  providerRef: string,
+  observed: DotloopDocumentReadback,
+  reconciled = false,
+): ExternalActionReceipt {
+  if (observed.evidenceLevel !== "presence_only")
+    return receipt(input, providerRef, observed, "succeeded", reconciled);
+  const providerEvidence = {
+    level: "presence_only" as const,
+    documentId: observed.documentId!,
+    documentName: observed.documentName!,
+  };
+  const submittedContentHash = stringValue(input, "content_hash");
+  return {
+    ...receipt(
+      input,
+      providerRef,
+      { providerEvidence, submittedContentHash },
+      "succeeded",
+      reconciled,
+    ),
+    providerEvidence,
+    submittedContentHash,
+  };
 }
 
 function sameRefs(left: readonly string[], right: readonly string[]): boolean {

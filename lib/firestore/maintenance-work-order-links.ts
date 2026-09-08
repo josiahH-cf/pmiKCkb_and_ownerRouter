@@ -9,6 +9,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { z } from "zod";
 
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import { MAINTENANCE_TICKET_COLLECTIONS } from "@/lib/firestore/maintenance-tickets";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -39,7 +40,7 @@ export type MaintenanceWorkOrderProviderSnapshot = z.infer<
   typeof MaintenanceWorkOrderProviderSnapshotSchema
 >;
 
-export const MaintenanceWorkOrderLinkSchema = z
+const ProviderCreatedLinkSchema = z
   .object({
     ticket_ref: z.string().min(1).max(200),
     action_key: z.literal("rentvine.work_order.create"),
@@ -62,6 +63,28 @@ export const MaintenanceWorkOrderLinkSchema = z
     provider_snapshot: MaintenanceWorkOrderProviderSnapshotSchema.optional(),
   })
   .strict();
+
+const ExistingWorkOrderLinkSchema = ProviderCreatedLinkSchema.omit({
+  action_key: true,
+  execution_id: true,
+  receipt_result_hash: true,
+})
+  .extend({
+    link_kind: z.literal("existing"),
+    action_key: z.literal("rentvine.work_order.read"),
+    state: z.literal("linked"),
+    execution_id: z.never().optional(),
+    receipt_result_hash: z.never().optional(),
+    confirmed_preview_hash: z.string().regex(/^[a-f0-9]{64}$/),
+    property_id: z.string().regex(/^[1-9][0-9]*$/),
+    unit_id: z.string().regex(/^[1-9][0-9]*$/),
+    account_ref: z.literal("pmikcmetro"),
+  })
+  .strict();
+export const MaintenanceWorkOrderLinkSchema = z.union([
+  ProviderCreatedLinkSchema,
+  ExistingWorkOrderLinkSchema,
+]);
 
 export type MaintenanceWorkOrderLink = z.infer<typeof MaintenanceWorkOrderLinkSchema>;
 
@@ -143,8 +166,8 @@ export async function projectMaintenanceWorkOrderOutcome(
     if (!current.exists) {
       throw new EditableLayerError("The work-order link claim is missing.", 409);
     }
-    const data = current.data() as { execution_id?: string };
-    if (data.execution_id !== input.executionId) {
+    const data = current.data() as { execution_id?: string; link_kind?: string };
+    if (data.link_kind === "existing" || data.execution_id !== input.executionId) {
       throw new EditableLayerError(
         "The work-order link belongs to a different execution.",
         409,
@@ -199,4 +222,80 @@ export async function recordMaintenanceWorkOrderSnapshot(
     });
     return "recorded" as const;
   });
+}
+
+/** App-owned import, never a provider create receipt. Rechecks the ticket version in the same
+ * transaction that claims its single link, then reads the persisted identity back. */
+export async function linkExistingMaintenanceWorkOrder(
+  actor: AuthenticatedUser,
+  input: {
+    ticketId: string;
+    ticketVersion: string;
+    workOrderId: string;
+    propertyId: string;
+    unitId: string;
+    confirmedPreviewHash: string;
+  },
+  db: Firestore = getAdminFirestore(),
+): Promise<MaintenanceWorkOrderLink> {
+  requireEditor(actor);
+  const link = ExistingWorkOrderLinkSchema.parse({
+    ticket_ref: input.ticketId,
+    link_kind: "existing",
+    action_key: "rentvine.work_order.read",
+    state: "linked",
+    provider_work_order_id: input.workOrderId,
+    created_by_uid: actor.uid,
+    attempt_seq: 0,
+    confirmed_preview_hash: input.confirmedPreviewHash,
+    property_id: input.propertyId,
+    unit_id: input.unitId,
+    account_ref: "pmikcmetro",
+  });
+  const ref = db.collection(MAINTENANCE_WORK_ORDER_LINK_COLLECTION).doc(input.ticketId);
+  await db.runTransaction(async (transaction) => {
+    const [current, ticket] = await Promise.all([
+      transaction.get(ref),
+      transaction.get(
+        db.collection(MAINTENANCE_TICKET_COLLECTIONS.tickets).doc(input.ticketId),
+      ),
+    ]);
+    if (
+      !ticket.exists ||
+      ticket.data()?.updated_at !== input.ticketVersion ||
+      String(ticket.data()?.unit?.unitId ?? "").replace(/^unit:/, "") !== input.unitId
+    )
+      throw new EditableLayerError(
+        "The ticket changed. Review a fresh link preview.",
+        409,
+      );
+    if (current.exists) {
+      const prior = current.data();
+      if (
+        prior?.link_kind === "existing" &&
+        prior?.confirmed_preview_hash === input.confirmedPreviewHash &&
+        prior?.provider_work_order_id === input.workOrderId
+      )
+        return;
+      if (prior?.state !== "failed")
+        throw new EditableLayerError(
+          "This ticket already has a conflicting work-order link or attempt.",
+          409,
+        );
+    }
+    transaction.set(ref, {
+      ...link,
+      created_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    });
+  });
+  const readback = await getMaintenanceWorkOrderLink(actor, input.ticketId, db);
+  if (
+    !readback ||
+    readback.state !== "linked" ||
+    readback.confirmed_preview_hash !== input.confirmedPreviewHash ||
+    readback.provider_work_order_id !== input.workOrderId
+  )
+    throw new EditableLayerError("Work-order link readback needs review.", 409);
+  return readback;
 }

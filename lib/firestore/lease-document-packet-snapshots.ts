@@ -14,6 +14,7 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
   PacketEvaluation,
+  PacketDocumentPresenceEvidence,
   PacketHead,
   PacketVisibleState,
   RenewalPacketSnapshot,
@@ -50,6 +51,7 @@ interface StoredExecutionProjection {
   receipt_id?: string;
   reconciled_at?: string;
   error_class?: string;
+  document_evidence?: PacketDocumentPresenceEvidence[];
   /** S34: the durable Dotloop loop link for this exact packet snapshot hash. */
   loop_link?: {
     loop_id: string;
@@ -362,6 +364,9 @@ function toRenewalPacketSnapshot(
             ...(execution.receipt_id ? { receiptId: execution.receipt_id } : {}),
             ...(execution.reconciled_at ? { reconciledAt: execution.reconciled_at } : {}),
             ...(execution.error_class ? { errorClass: execution.error_class } : {}),
+            ...(execution.document_evidence
+              ? { documentEvidence: execution.document_evidence }
+              : {}),
             ...(execution.loop_link
               ? {
                   loopLink: {
@@ -403,11 +408,30 @@ export async function recordPacketExecutionProjection(
     const current = currentDoc.exists
       ? (normalizeFirestoreValue(currentDoc.data()) as StoredExecutionProjection)
       : null;
-    if (current && JSON.stringify(current) === JSON.stringify(input)) return;
+    const evidence = new Map(
+      (current?.document_evidence ?? []).map((entry) => [entry.receiptId, entry]),
+    );
+    for (const entry of input.document_evidence ?? []) {
+      const prior = evidence.get(entry.receiptId);
+      if (prior && JSON.stringify(prior) !== JSON.stringify(entry))
+        throw new EditableLayerError(
+          "A recorded document receipt cannot change its evidence.",
+          409,
+        );
+      evidence.set(entry.receiptId, entry);
+    }
+    const next = {
+      ...input,
+      ...(input.loop_link || current?.loop_link
+        ? { loop_link: input.loop_link ?? current!.loop_link }
+        : {}),
+      ...(evidence.size ? { document_evidence: [...evidence.values()] } : {}),
+    };
+    if (current && JSON.stringify(current) === JSON.stringify(next)) return;
     transaction.set(
       ref,
       stampProductRecordRetention("lease_renewal_progress", {
-        ...input,
+        ...next,
         updated_by_uid: actor.uid,
         updated_at: FieldValue.serverTimestamp(),
       }),

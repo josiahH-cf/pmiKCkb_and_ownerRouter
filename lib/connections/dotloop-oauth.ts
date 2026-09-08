@@ -83,6 +83,7 @@ export interface DotloopTokenSet {
   accessTokenRef: string;
   refreshTokenRef?: string;
   expiresInSeconds?: number;
+  grantedScopes?: string[];
 }
 
 /**

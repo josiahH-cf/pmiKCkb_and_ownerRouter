@@ -518,6 +518,7 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
     // error naming this wrapper as the cause. Both names below are non-secret. The Dotloop client
     // secret travels through readRuntimeSecrets when DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID is set.
     // LeadSimple is deferred and has no forward here; adding one is its own reviewed change.
+    ...optionalString("CONNECTOR_SECRET_VAULT_PROJECT_ID"),
     ...optionalString("DOTLOOP_OAUTH_CLIENT_ID"),
     ...optionalString("DOTLOOP_OAUTH_REDIRECT_URI"),
     VERTEX_AI_LOCATION: region,

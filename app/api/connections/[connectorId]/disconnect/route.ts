@@ -10,6 +10,7 @@ import {
 } from "@/lib/connections/connector-catalog";
 import { CANONICAL_UUID } from "@/lib/connections/connector-connection";
 import { resolveConnectorSecretVault } from "@/lib/connections/connector-secret-vault";
+import { revokeDotloopConnection } from "@/lib/connections/dotloop-revocation";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
@@ -62,7 +63,7 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json(publicReceipt(completed));
     }
 
-    const vault = resolveConnectorSecretVault();
+    const vault = resolveConnectorSecretVault(connectorId);
     if ((await vault.capability()) !== "configured") {
       throw new EditableLayerError(
         "Secure credential removal is not configured. Nothing was changed.",
@@ -82,9 +83,14 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json(publicReceipt(claimed.receipt));
     }
 
+    const pending = await revokeDotloopConnection({
+      record: claimed.record,
+      store,
+      vault,
+    });
     const destroyed = await vault.destroySecret({
-      secretRef: claimed.record.secretRef,
-      operationId: claimed.record.operationId,
+      secretRef: pending.secretRef,
+      operationId: pending.operationId,
     });
     if (!destroyed.ok) {
       throw new EditableLayerError(
@@ -93,11 +99,27 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
+    for (const secretRef of new Set([
+      pending.refreshTokenRef,
+      ...(pending.retainedSecretRefs ?? []),
+    ])) {
+      if (!secretRef || secretRef === pending.secretRef) continue;
+      const removed = await vault.destroySecret({
+        secretRef,
+        operationId: pending.operationId,
+      });
+      if (!removed.ok)
+        throw new EditableLayerError(
+          "Secure credential removal is incomplete. Disconnect needs recovery.",
+          409,
+        );
+    }
+
     const receipt = await store.completeRevocation({
       connectorId,
-      operationId: claimed.record.operationId,
-      generationId: claimed.record.generationId,
-      expectedRevision: claimed.record.revision,
+      operationId: pending.operationId,
+      generationId: pending.generationId,
+      expectedRevision: pending.revision,
       completedAt: new Date().toISOString(),
       destroyOutcome: destroyed.outcome,
     });

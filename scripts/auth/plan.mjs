@@ -3,7 +3,7 @@
 // one human step. No I/O here, so every branch is unit-testable and the runner's behavior is the
 // planner's behavior. Nothing in this module ever sees a token; `redact` guards the text that does.
 
-import { isManagedAccount, isProjectServiceAccount } from "./identities.mjs";
+import { isManagedAccount, LOCAL_PRINCIPAL } from "./identities.mjs";
 
 export const CREDENTIALS = Object.freeze(["gcloud", "adc", "env", "gh", "canary"]);
 export const DEFAULT_NEED = Object.freeze(["gcloud", "adc", "env", "gh"]);
@@ -13,6 +13,7 @@ export const STATES = Object.freeze([
   "repairable",
   "blocked",
   "skipped",
+  "unverified",
 ]);
 
 /** Parse `--need=a,b`; undefined means the four non-browser credentials. */
@@ -38,23 +39,9 @@ export function parseNeed(value) {
   return need;
 }
 
-/** The one interactive step that can restore a Google login. Attended = the owner's own account. */
-export function enrollCommand({
-  attended = false,
-  account,
-  platform = process.platform,
-} = {}) {
-  // Each shell enrolls its own store: PowerShell for the Windows store, bash for the WSL store.
-  if (platform !== "win32") {
-    if (!attended) return "npm run auth:enroll:wsl";
-    return account
-      ? `npm run auth:enroll:wsl -- --attended --account=${account}`
-      : "npm run auth:enroll:wsl -- --attended";
-  }
-  if (!attended) return "npm run auth:enroll";
-  return account
-    ? `npm run auth:enroll -- -Attended -Account ${account}`
-    : "npm run auth:enroll -- -Attended";
+/** Both familiar commands enroll the WSL store. No arbitrary identity interpolation. */
+export function enrollCommand() {
+  return `npm run auth:enroll:wsl -- --attended --account=${LOCAL_PRINCIPAL}`;
 }
 
 /** The one interactive step that can restore a canary browser session on an origin. */
@@ -123,225 +110,92 @@ export function assessCredentials(probe, { identities, need, unattended = false 
   const repairs = [];
   const keyFile =
     typeof probe.googleAppCreds === "string" && probe.googleAppCreds.trim() !== "";
-  const principal = lower(identities.automationPrincipal);
-  const serviceAccount = lower(identities.automationServiceAccount);
+  const principal = lower(identities.localPrincipal);
   const domain = identities.managedDomain;
-  const gcloud = probe.gcloud ?? {};
-  const storeAccounts = (gcloud.storeAccounts ?? []).map(lower);
-  const principalEnrolled = storeAccounts.includes(principal);
-  const active = lower(gcloud.activeAccount);
-  const attendedAccount = isManagedAccount(active, domain) ? active : undefined;
-  const wantAutomation = unattended || principalEnrolled;
-  const enroll = (options) => enrollCommand({ ...options, platform: probe.platform });
-  const stepForGoogle = () =>
-    wantAutomation
-      ? enroll({ attended: false })
-      : enroll({ attended: true, account: attendedAccount });
-
-  // gcloud CLI
-  if (!wanted.has("gcloud")) {
-    items.push(skipped("gcloud"));
-  } else if (keyFile) {
-    items.push(
-      blocked(
-        "gcloud",
-        "key_file_forbidden",
-        "unset GOOGLE_APPLICATION_CREDENTIALS; key files are banned and cannot be created for this project",
-        { identity: active || "none", detail: "a key file is configured" },
-      ),
-    );
-  } else if (!gcloud.available) {
-    items.push(
-      blocked(
-        "gcloud",
-        "gcloud_unavailable",
-        "install the Google Cloud SDK, then re-run npm run auth:ensure",
-        { detail: "gcloud is not on PATH" },
-      ),
-    );
-  } else if (wantAutomation) {
-    if (!principalEnrolled) {
-      items.push(
-        blocked("gcloud", "not_enrolled", enroll({ attended: false }), {
-          identity: active || "none",
-          detail: `the automation principal ${identities.automationPrincipal} is not signed in on this store`,
-        }),
-      );
-    } else {
-      const configRepairs = [];
-      if (active !== principal) {
-        configRepairs.push({
-          credential: "gcloud",
-          action: "gcloud-config-set-account",
-          args: ["config", "set", "account", identities.automationPrincipal],
-        });
-      }
-      if (lower(gcloud.impersonation) !== serviceAccount) {
-        configRepairs.push({
-          credential: "gcloud",
-          action: "gcloud-config-set-impersonation",
-          args: [
-            "config",
-            "set",
-            "auth/impersonate_service_account",
-            identities.automationServiceAccount,
-          ],
-        });
-      }
-      if (configRepairs.length > 0) {
-        repairs.push(...configRepairs);
-        items.push({
-          credential: "gcloud",
-          state: "repairable",
-          kind: "unattended",
-          identity: identities.automationPrincipal,
-          detail: `gcloud config drifted (${configRepairs.map((repair) => repair.action).join(", ")}); repairing without a browser`,
-        });
-      } else if (gcloud.tokenFresh === false) {
-        items.push(
-          blocked("gcloud", "stale_token", enroll({ attended: false }), {
-            kind: "unattended",
-            identity: identities.automationPrincipal,
-            detail: `token mint failed: ${redact(gcloud.error ?? "reauthentication required")}`,
-          }),
-        );
-      } else {
-        items.push({
-          credential: "gcloud",
-          state: "ok",
-          kind: "unattended",
-          identity: identities.automationPrincipal,
-          detail: `impersonating ${identities.automationServiceAccount}`,
-        });
-      }
+  const kind = unattended ? "unattended" : "attended";
+  const step = enrollCommand();
+  for (const credential of ["gcloud", "adc"]) {
+    if (!wanted.has(credential)) {
+      items.push(skipped(credential));
+      continue;
     }
-  } else if (!active) {
-    items.push(
-      blocked("gcloud", "no_account", enroll({ attended: true }), {
-        identity: "none",
-        detail: "no active gcloud account",
-      }),
+    const value = probe[credential] ?? {};
+    const identity = lower(
+      credential === "gcloud" ? value.activeAccount : value.principal,
     );
-  } else if (!attendedAccount) {
-    items.push(
-      blocked(
-        "gcloud",
-        "personal_identity",
-        `gcloud config set account <user>@${domain}, or ${enroll({ attended: true })}`,
-        { identity: active, detail: `active account is not @${domain}` },
-      ),
-    );
-  } else if (gcloud.tokenFresh === false) {
-    items.push(
-      blocked(
-        "gcloud",
-        "stale_token",
-        enroll({ attended: true, account: attendedAccount }),
-        {
-          kind: "attended",
-          identity: attendedAccount,
-          detail: `token mint failed: ${redact(gcloud.error ?? "reauthentication required")}`,
-        },
-      ),
-    );
-  } else {
-    items.push({
-      credential: "gcloud",
-      state: "ok",
-      kind: "attended",
-      identity: attendedAccount,
-      detail: `attended managed account; unattended work needs ${identities.automationPrincipal} (${enroll({ attended: false })})`,
-    });
-  }
-
-  // Application Default Credentials
-  if (!wanted.has("adc")) {
-    items.push(skipped("adc"));
-  } else if (keyFile) {
-    items.push(
-      blocked(
-        "adc",
-        "key_file_forbidden",
-        "unset GOOGLE_APPLICATION_CREDENTIALS; key files are banned and cannot be created for this project",
-        { detail: "a key file is configured" },
-      ),
-    );
-  } else {
-    const adc = probe.adc ?? {};
-    const adcPrincipal = lower(adc.principal);
-    if (!adc.present || adc.errorKind === "missing") {
+    let code, detail;
+    if (keyFile) {
+      code = "key_file_forbidden";
+      detail = "GOOGLE_APPLICATION_CREDENTIALS is forbidden; unset it before enrollment";
+    } else if (value.errorKind === "wrong_store" || probe.wrongStore) {
+      code = "wrong_store";
+      detail =
+        "CLI and ADC must use this WSL user's default credential store; unset CLOUDSDK_CONFIG";
+    } else if (probe.platform === "win32") {
+      code = "wrong_store";
+      detail =
+        "Run authentication in WSL; the Windows credential store is not used by the app";
+    } else if (credential === "gcloud" && !value.available) {
+      code = "gcloud_unavailable";
+      detail = "gcloud is not on the WSL PATH";
+    } else if (credential === "adc" && !value.present) {
+      code = "adc_missing";
+      detail = "Application Default Credentials are missing from the WSL store";
+    } else if (value.errorKind === "credential_type_forbidden") {
+      code = "credential_type_forbidden";
+      detail =
+        "Local ADC must be an enrolled authorized user; key files and impersonation are refused";
+    } else if (!identity) {
+      code = "principal_unknown";
+      detail =
+        "Credential identity is unverified; fresh owner enrollment is required before a token probe";
+    } else if (identity !== principal) {
+      code = isManagedAccount(identity, domain)
+        ? "unexpected_identity"
+        : "personal_identity";
+      detail = "Credential does not belong to the specifically authorized local account";
+    } else if (credential === "gcloud" && value.impersonation) {
+      code = "unexpected_impersonation";
+      detail = "Local account enrollment requires no impersonation";
+    }
+    if (code) {
+      items.push(blocked(credential, code, step, { identity, kind, detail }));
+      continue;
+    }
+    const fresh = credential === "gcloud" ? value.tokenFresh : value.fresh;
+    if (fresh === false && value.errorKind === "identity_probe_unavailable") {
       items.push(
-        blocked("adc", "adc_missing", stepForGoogle(), {
-          detail: "no Application Default Credentials on this store",
-        }),
-      );
-    } else if (adc.fresh === false) {
-      items.push(
-        blocked("adc", "adc_stale", stepForGoogle(), {
-          detail: `ADC refresh failed: ${redact(adc.error ?? adc.errorKind ?? "reauthentication required")}`,
-        }),
-      );
-    } else if (adcPrincipal && adcPrincipal === serviceAccount) {
-      items.push({
-        credential: "adc",
-        state: "ok",
-        kind: "unattended",
-        identity: identities.automationServiceAccount,
-        detail: "impersonated automation service account",
-      });
-    } else if (
-      adcPrincipal &&
-      isProjectServiceAccount(adcPrincipal, identities.project)
-    ) {
-      items.push(
-        blocked("adc", "foreign_principal", enroll({ attended: false }), {
-          identity: adc.principal,
-          detail: `ADC principal is not the designated ${identities.automationServiceAccount}`,
-        }),
-      );
-    } else if (adcPrincipal && isManagedAccount(adcPrincipal, domain)) {
-      if (unattended) {
-        items.push(
-          blocked("adc", "attended_identity", enroll({ attended: false }), {
-            kind: "attended",
-            identity: adc.principal,
+        blocked(
+          credential,
+          "identity_probe_unavailable",
+          "npm run auth:ensure -- --unattended",
+          {
+            identity,
+            kind,
             detail:
-              "ADC is a person's managed account; unattended work needs the impersonated automation identity",
-          }),
-        );
-      } else {
-        items.push({
-          credential: "adc",
-          state: "ok",
-          kind: "attended",
-          identity: adc.principal,
-          detail: "attended managed account",
-        });
-      }
-    } else if (!adcPrincipal) {
-      if (unattended) {
-        items.push(
-          blocked("adc", "principal_unknown", enroll({ attended: false }), {
-            detail: "ADC is fresh but its principal could not be read back",
-          }),
-        );
-      } else {
-        items.push({
-          credential: "adc",
-          state: "ok",
-          kind: "attended",
-          identity: "unresolved",
-          detail:
-            "ADC is fresh; principal could not be read back, verify it is a managed account",
-        });
-      }
-    } else {
+              "Google identity lookup did not complete; readiness is unverified. Retry the preflight",
+          },
+        ),
+      );
+    } else if (fresh === false) {
       items.push(
-        blocked("adc", "personal_identity", stepForGoogle(), {
-          identity: adc.principal,
-          detail: `ADC principal is not @${domain}`,
+        blocked(credential, credential === "gcloud" ? "stale_token" : "adc_stale", step, {
+          identity,
+          kind,
+          detail: `Refresh failed (${value.errorKind ?? "reauthentication required"}); independent local work can continue`,
         }),
       );
+    } else {
+      items.push({
+        credential,
+        identity,
+        kind,
+        state: fresh === true ? "ok" : "unverified",
+        detail:
+          fresh === true
+            ? "authorized local account; token refresh verified"
+            : "identity inspected; token freshness not attempted",
+      });
     }
   }
 
@@ -382,7 +236,7 @@ export function assessCredentials(probe, { identities, need, unattended = false 
     items.push(skipped("gh"));
   } else {
     const gh = probe.gh ?? {};
-    if (gh.tokenEnv) {
+    if (gh.tokenEnv && gh.loggedIn) {
       items.push({
         credential: "gh",
         state: "ok",
@@ -436,7 +290,7 @@ export function assessCredentials(probe, { identities, need, unattended = false 
           state: "ok",
           label: session.label,
           identity: session.email,
-          detail: `${where}: signed in as ${session.role ?? "unknown role"} (google_session_reuse)`,
+          detail: `${where}: signed in as ${session.role ?? "unknown role"} (${session.method ?? "unreported"})`,
         });
       } else if (session.result === "human_required") {
         items.push(
@@ -468,7 +322,12 @@ export function assessCredentials(probe, { identities, need, unattended = false 
 
 /** 0 when everything requested is ok or repaired; 2 when anything is blocked or still repairable. */
 export function exitCodeFor(items) {
-  return items.some((item) => item.state === "blocked" || item.state === "repairable")
+  return items.some(
+    (item) =>
+      item.state === "blocked" ||
+      item.state === "repairable" ||
+      item.state === "unverified",
+  )
     ? 2
     : 0;
 }
@@ -483,11 +342,13 @@ export function formatStatus(items, { unattended = false, platform, wsl, store }
     .filter(Boolean)
     .join("; ");
   const lines = [`== auth:ensure (${context}) ==`];
+  const shownSteps = new Set();
   for (const item of items) {
     lines.push(
       `${item.credential.padEnd(7)} ${item.state.padEnd(10)} ${String(item.identity ?? "").padEnd(52)} ${redact(item.detail ?? "")}`.trimEnd(),
     );
-    if (item.state === "blocked" && item.humanStep) {
+    if (item.state === "blocked" && item.humanStep && !shownSteps.has(item.humanStep)) {
+      shownSteps.add(item.humanStep);
       lines.push(`        -> ${redact(item.humanStep)}`);
     }
   }

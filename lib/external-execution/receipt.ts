@@ -33,8 +33,37 @@ export function parseExternalReceipt(
   ) {
     throw new Error("Provider receipt failed strict runtime validation.");
   }
+  const evidence = receipt.providerEvidence as Record<string, unknown> | undefined;
+  if (evidence !== undefined || receipt.submittedContentHash !== undefined) {
+    if (
+      expectedActionKey !== "dotloop.document.upload" ||
+      !evidence ||
+      typeof evidence !== "object" ||
+      evidence.level !== "presence_only" ||
+      Object.keys(evidence).length !== 3 ||
+      typeof evidence.documentId !== "string" ||
+      !evidence.documentId ||
+      evidence.documentId.length > 200 ||
+      typeof evidence.documentName !== "string" ||
+      !evidence.documentName ||
+      evidence.documentName.length > 1000 ||
+      typeof receipt.submittedContentHash !== "string" ||
+      !/^[a-f0-9]{64}$/.test(receipt.submittedContentHash)
+    )
+      throw new Error("Provider document evidence failed strict runtime validation.");
+  }
   return Object.freeze({
     actionKey: receipt.actionKey,
+    ...(evidence
+      ? {
+          providerEvidence: Object.freeze({
+            level: "presence_only" as const,
+            documentId: evidence.documentId as string,
+            documentName: evidence.documentName as string,
+          }),
+          submittedContentHash: receipt.submittedContentHash as string,
+        }
+      : {}),
     ...executionEvidenceMarker(dataMode),
     providerRef: receipt.providerRef.trim(),
     resultHash: receipt.resultHash.toLowerCase(),

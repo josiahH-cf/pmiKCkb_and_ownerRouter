@@ -14,12 +14,14 @@ import { runAssistantQuery } from "@/lib/assistant/query";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import type { WorkTaskRecord } from "@/lib/work-accountability/types";
+import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 
 // S110: three closed read-only intents. The client supplies only question text; the actor, role,
 // Space, intent, and filters are all derived server-side, and no path writes, starts a run, drafts,
 // or reaches a provider.
 
 const NOW = "2026-09-04T12:00:00.000Z";
+const COVERAGE = buildRenewalDeskWindow("2026-09-04", 120);
 
 const editor: AuthenticatedUser = {
   uid: "uid-1",
@@ -100,7 +102,11 @@ function deps(overrides: Record<string, unknown> = {}) {
     nowIso: NOW,
     hasRenewalsAccess: true,
     loadWorkSnapshot: async () => ({ tasks: [task()], server_now: NOW }),
-    loadRenewalRows: async () => ({ status: "ok" as const, rows: [row()] }),
+    loadRenewalRows: async () => ({
+      status: "ok" as const,
+      rows: [row()],
+      coverage: COVERAGE,
+    }),
     ...overrides,
   };
 }
@@ -213,6 +219,7 @@ describe("S110 adapters return the owning records with links (BEH-S110-1 / BEH-S
       deps({
         loadRenewalRows: async () => ({
           status: "ok" as const,
+          coverage: COVERAGE,
           rows: [
             row(),
             row({
@@ -253,6 +260,7 @@ describe("S110 adapters return the owning records with links (BEH-S110-1 / BEH-S
       deps({
         loadRenewalRows: async () => ({
           status: "ok" as const,
+          coverage: COVERAGE,
           rows: [
             row({ id: "in-window", endDateIso: "2026-10-15" }),
             row({ id: "outside", endDateIso: "2026-11-15" }),
@@ -345,6 +353,7 @@ describe("S110 honesty and access (AC-S110-3 / AC-S110-4 / BEH-S110-3)", () => {
       deps({
         loadRenewalRows: async () => ({
           status: "ok" as const,
+          coverage: COVERAGE,
           rows: [],
           degraded: ["progress"],
         }),
@@ -456,6 +465,45 @@ function assistantModules(): string[] {
   expect(out.length).toBeGreaterThan(2);
   return out;
 }
+
+describe("S110 bounded source coverage", () => {
+  it.each(["2026-08", "2027-01", "2027-02"])(
+    "asks one clarification for an uncovered or partially covered month %s",
+    async (month) => {
+      const result = await runAssistantQuery(
+        { question: `renewals for ${month}` },
+        editor,
+        deps(),
+      );
+      expect(result.completeness).toBe("partial");
+      expect(result.items).toEqual([]);
+      expect(result.clarification?.match(/\?/g)).toHaveLength(1);
+      expect(result.sourceState).toContain(COVERAGE.startIso);
+      expect(result.sourceState).toContain(COVERAGE.endIso);
+      expect(result.sourceState).not.toMatch(/No leases/);
+    },
+  );
+  it("never infers complete coverage from rows or an absent bound", async () => {
+    const result = await runAssistantQuery(
+      { question: "renewals for 2026-10" },
+      editor,
+      deps({ loadRenewalRows: async () => ({ status: "ok", rows: [row()] }) }),
+    );
+    expect(result.completeness).toBe("partial");
+    expect(result.clarification).toBeTruthy();
+    expect(result.items).toEqual([]);
+  });
+  it("keeps the owning calendar and predicates for a fully covered month", async () => {
+    const result = await runAssistantQuery(
+      { question: "renewals for 2026-10" },
+      editor,
+      deps(),
+    );
+    expect(result.completeness).toBe("complete");
+    expect(result.items.map((item) => item.id)).toEqual(["lease-1"]);
+    expect(result.clarification).toBeUndefined();
+  });
+});
 
 describe("S110 the desk and the assistant share one orchestration (ARCH-S110-2)", () => {
   it("routes both surfaces through loadRenewalAssistantSource", () => {

@@ -8,6 +8,9 @@
 // connector is simply not verified) and soft-timed-out so a stalled network call can never hang a
 // page render. Only connector IDS leave this module — no values, no error bodies.
 
+import { readDotloopOAuthConfig } from "@/lib/connections/dotloop-oauth";
+import { createDotloopRuntime } from "@/lib/connections/dotloop-runtime";
+import { dotloopHealthCheckTransport } from "@/lib/connections/dotloop-connection-service";
 import { createGoogleSheetsHealthCheckTransport } from "@/lib/google-sheets/health-probe";
 import {
   getHealthCheckContract,
@@ -37,6 +40,21 @@ interface LiveProbeDef {
 
 // The connectors with BUILT live read paths. Others join here as their clients are built.
 const LIVE_PROBES: readonly LiveProbeDef[] = [
+  {
+    connectorId: "dotloop",
+    contractId: "health.dotloop.oauth_app",
+    buildTransport(env) {
+      if (
+        !readDotloopOAuthConfig(env).configured ||
+        !env.CONNECTOR_SECRET_VAULT_PROJECT_ID
+      )
+        return null;
+      const runtime = createDotloopRuntime(env);
+      return runtime
+        ? dotloopHealthCheckTransport({ client: runtime.client, env })
+        : null;
+    },
+  },
   {
     connectorId: "rentvine",
     contractId: "health.rentvine.api_key",

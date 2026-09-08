@@ -1,3 +1,4 @@
+import { readDotloopRuntimeReadiness } from "@/lib/connections/dotloop-runtime";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConnectionCenter } from "@/components/connections/ConnectionCenter";
 import { requirePageCapability } from "@/lib/auth/page-guards";
@@ -22,12 +23,14 @@ export default async function ConnectionsPage() {
   const canManage = can(user.role, "manageAdmin");
   const verifiedIds = await getVerifiedConnectorIds();
   const connections = await loadConnectorConnections(canManage);
+  const dotloopReadiness = await readDotloopRuntimeReadiness();
   const view = buildConnectionView(readConnectorPresence(), verifiedIds, connections);
 
   return (
     <AppShell user={user}>
       <section className="content">
         <ConnectionCenter
+          dotloopReadiness={dotloopReadiness}
           canManage={canManage}
           verifiableIds={LIVE_VERIFIABLE_CONNECTOR_IDS}
           view={view}

@@ -1,16 +1,16 @@
-// S111 real-browser proof that every training-guide step names a control the operator can actually
-// see. It parses the step-to-control table out of `docs/products/renewal-operator-guide.md`, opens
-// each page it names on the local rehearsal server, and asserts the exact visible text is on that
-// page. A guide step whose control the smoke cannot find fails, which is the point: the guide cannot
-// drift away from the application.
+import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
+// S111 browser verification uses exact semantic roles/names and owning scopes from the guide.
+// Required controls must be visible. Conditional controls report their live availability separately;
+// isolated owning fixtures prove those states without manufacturing customer data.
 //
 // It also walks desk to lease and back, so the guide's "your filters come back with you" claim is
 // proven rather than asserted. Everything is read-only; the rehearsal surface refuses changes.
 
-import { accessSync, constants, mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "playwright-core";
+import { assertGuideControl, parseGuideSteps } from "./lib/renewal-guide-controls.mjs";
 
 const GUIDE_PATH = "docs/products/renewal-operator-guide.md";
 
@@ -47,7 +47,7 @@ try {
 }
 
 process.stdout.write(
-  `S111 renewal guide control smoke passed: ${steps.length} guide steps located by visible text, desk to lease and back preserved the view. Artifacts: ${artifactDir}\n`,
+  `S111 renewal guide control smoke passed: ${steps.length} guide steps located by exact semantic locators (conditional availability reported separately), desk to lease and back preserved the view. Artifacts: ${artifactDir}\n`,
 );
 
 async function verifyGuideControls() {
@@ -57,6 +57,18 @@ async function verifyGuideControls() {
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   await signIn(page);
 
+  await page.goto(`${baseUrl}/lease-renewal`, { waitUntil: "domcontentloaded" });
+  const firstWorkspace = page
+    .locator(
+      'table.renewal-table tbody tr[data-workspace-available="true"] a.renewal-lease-link',
+    )
+    .first();
+  await firstWorkspace.waitFor();
+  const workspaceHref = await firstWorkspace.getAttribute("href");
+  assert(
+    workspaceHref?.startsWith("/lease-renewal/live/desk/lease/"),
+    "No verified lease workspace is available for the guide smoke.",
+  );
   const byPage = new Map();
   for (const step of steps) {
     if (!byPage.has(step.page)) byPage.set(step.page, []);
@@ -64,18 +76,22 @@ async function verifyGuideControls() {
   }
 
   for (const [path, pageSteps] of byPage) {
-    const response = await page.goto(`${baseUrl}${path}`, {
+    const destination = path.startsWith("workspace:")
+      ? new URL(workspaceHref, baseUrl)
+      : new URL(path, baseUrl);
+    if (path.startsWith("workspace:"))
+      destination.searchParams.set("step", path.slice("workspace:".length));
+    const response = await page.goto(destination.href, {
       waitUntil: "domcontentloaded",
     });
     assert(
       response && response.status() < 500,
       `The guide names ${path}, which returned an error response.`,
     );
-    const text = await page.locator("body").innerText();
     for (const step of pageSteps) {
-      assert(
-        text.includes(step.control),
-        `Guide step "${step.step}" names the control "${step.control}" on ${path}, and it is not on that page.`,
+      const availability = await assertGuideControl(page, step);
+      process.stdout.write(
+        `Guide step ${step.step}: ${availability} (${step.availability}).\n`,
       );
     }
     await page.screenshot({
@@ -114,42 +130,8 @@ async function verifyDeskReturn() {
     "Returning from the workspace dropped the desk view the operator was on.",
   );
   const returned = (await table.locator("tbody tr a").first().innerText()).trim();
-  assert(
-    returned === leaseLabel,
-    `Returning to the desk changed the first row from "${leaseLabel}" to "${returned}".`,
-  );
+  assert(returned === leaseLabel, "Returning to the desk changed the first row.");
   await context.close();
-}
-
-/** Parse the guide's step-to-control table. Column order is fixed by the guide itself. */
-function parseGuideSteps(markdown) {
-  const rows = [];
-  let inTable = false;
-  for (const line of markdown.split("\n")) {
-    if (line.startsWith("| Step ")) {
-      inTable = true;
-      continue;
-    }
-    if (!inTable) continue;
-    if (!line.startsWith("|")) break;
-    if (/^\|\s*-+/.test(line)) continue;
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim());
-    if (cells.length < 4) continue;
-    rows.push({
-      step: cells[0],
-      page: stripCode(cells[1]),
-      control: stripCode(cells[2]),
-      expectation: cells[3],
-    });
-  }
-  return rows;
-}
-
-function stripCode(cell) {
-  return cell.replace(/^`|`$/g, "").trim();
 }
 
 async function signIn(page) {
@@ -163,35 +145,6 @@ async function signIn(page) {
     return response.ok;
   });
   assert(signedIn, "Local rehearsal Admin sign-in did not complete.");
-}
-
-function findBrowserExecutable() {
-  const configured = process.env.DESK_BROWSER_EXECUTABLE?.trim();
-  const candidates = configured
-    ? [configured]
-    : [
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-        "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
-      ];
-  const executable = candidates.find((candidate) => {
-    try {
-      accessSync(candidate, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  if (!executable) {
-    throw new Error("Chrome or Edge was not found for the S111 browser smoke.");
-  }
-  return executable;
 }
 
 function assert(condition, message) {

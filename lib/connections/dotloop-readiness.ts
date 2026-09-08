@@ -134,7 +134,11 @@ export function projectDotloopReadiness(input: DotloopReadinessInput): DotloopRe
   const missing: DotloopReadinessReason[] = [];
   if (!input.selection.profileId) missing.push("compatible_profile");
   if (!input.selection.templateId) missing.push("renewal_template");
-  if (!input.probe.grantedScopes.includes(loopWriteScope())) {
+  if (
+    !input.probe.grantedScopes.some(
+      (scope) => scope === loopWriteScope() || scope === "loop:*",
+    )
+  ) {
     missing.push("loop_write_scope");
   }
   if (missing.length > 0) return build("missing_resources", missing);

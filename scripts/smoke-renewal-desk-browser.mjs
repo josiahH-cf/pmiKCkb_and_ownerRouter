@@ -1,3 +1,4 @@
+import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
 // S82 real-browser smoke for the table-first renewal desk and guided workspace.
 //
 // Runs read-only against the local rehearsal server (live-read-only sources; no mutation route is
@@ -5,7 +6,7 @@
 // chips/clear recovery, workspace phase navigation, desk-view return continuity, browser Back,
 // narrow contained scroll, and a Chromium 200%-zoom layout equivalent without page-level overflow.
 
-import { accessSync, constants, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "playwright-core";
@@ -683,35 +684,6 @@ async function assertMinimumTargetSize(page, selector, label) {
     !undersized,
     `${label} target was smaller than 44 CSS px (${undersized?.width}x${undersized?.height}).`,
   );
-}
-
-function findBrowserExecutable() {
-  const configured = process.env.DESK_BROWSER_EXECUTABLE?.trim();
-  const candidates = configured
-    ? [configured]
-    : [
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-        "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
-      ];
-  const executable = candidates.find((candidate) => {
-    try {
-      accessSync(candidate, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  if (!executable) {
-    throw new Error("Chrome or Edge was not found for the S82 browser smoke.");
-  }
-  return executable;
 }
 
 function assert(condition, message) {

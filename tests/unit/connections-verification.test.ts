@@ -87,6 +87,7 @@ describe("getVerifiedConnectorIds", () => {
     // RentCast is registered but unconfigured in an empty env, so it stays unverified here.
     expect([...ids].sort()).toEqual(["google_sheets", "rentvine"]);
     expect(LIVE_VERIFIABLE_CONNECTOR_IDS).toEqual([
+      "dotloop",
       "rentvine",
       "google_sheets",
       "rentcast",
@@ -156,8 +157,15 @@ describe("verifyConnectorNow", () => {
     expect([...ids]).toEqual(["google_sheets"]);
   });
 
+  it("registers Dotloop but refuses verification without its credential bindings", async () => {
+    expect(await verifyConnectorNow("dotloop", {}, T0)).toEqual({
+      supported: true,
+      verified: false,
+    });
+  });
+
   it("reports an unbuilt connector as unsupported", async () => {
-    const result = await verifyConnectorNow("dotloop", {}, T0);
+    const result = await verifyConnectorNow("leadsimple", {}, T0);
     expect(result).toEqual({ supported: false, verified: false });
   });
 });

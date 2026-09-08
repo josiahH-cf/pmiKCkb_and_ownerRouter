@@ -3,16 +3,15 @@
 
 # S111 — Integrated model-run proof and operator training guide
 
-> Status: IMPLEMENTED. `tests/integration/s111-renewal-completion-proof.test.ts` composes the owning
-> projections and planners on one three-lease fixture portfolio (several maintenance and
-> continuation checks assert states the fixture sets directly, so they prove composition, not
-> derivation), `scripts/smoke-renewal-guide-controls-browser.mjs` reads the training guide's
-> step-to-control table and requires each control's exact text on the page it names (a substring
-> match over page text; the guide's prose steps are not machine-checked), the proof report is in
-> `docs/status.md`, and the guide is `docs/products/renewal-operator-guide.md`, registered in
-> `docs/README.md`. Live Dotloop and Admin-entered preapproval amounts are reported blocked by
-> external environment, never as passed and never as a human verification task; the
-> troubleshooting-resource check runs and passes since the owner's links landed on 2026-09-04.
+> Status: foundation COMMITTED and carried by the current unpromoted candidate; readiness changes
+> are local and unreleased. The isolated integration suite now derives lease rent and ambiguous
+> provider-attempt recovery through owning implementations. Approval/communication prerequisites
+> remain supplied fixtures and do not prove a live model run. The 37-row guide uses exact scoped
+> semantic locators, separately reports conditional availability, and has a behavioral guard against
+> heading/substring/wrong-panel matches. Required live-source browser checks remain blocked or failed
+> as recorded in `docs/evidence/wednesday-readiness-review-2026-09-07.md`; the Dashboard smoke passed
+> after the hydration correction in constrained Node 22 rehearsal. No human or live lease completion
+> is claimed.
 
 **Goal.**
 
@@ -111,14 +110,10 @@ documents.
 **If this was built correctly:** Bailey or Chasity opens the guide, follows each step in the
 application, and sees the described result at every step without asking a developer for help.
 
-- Model verdict: PASS - why: the integration suite derives the term, rent, owner branch, attempt
-  recovery, maintenance routing, intake urgency, and assistant answers from the owning code on one
-  fixture portfolio, and it is asserted to import no store, gate, orchestrator, or network call, so a
-  check cannot pass by writing the answer it is meant to derive. Four rehearsal-browser smokes cover
-  the maintenance report, the public intake form, the three Dashboard questions, and every guide step
-  located by visible text plus a desk to lease and back walk that preserves the view. The proof report
-  in `docs/status.md` names each check, the command that produced it, and its outcome, with three rows
-  recorded as blocked by external environment.
+- Model verdict: PASS WITH FOLLOW-UPS for isolated composition only. Actual rent and ambiguous
+  recovery derivation were strengthened without deleting their existing assertions. Live provider,
+  model, and full guide availability are unverified; complete command outcomes are in the current
+  readiness review. Fixture-supplied prerequisites do not prove real completion.
 - Human verdict: NOT RUN — no human observer; the later practice session is a usage activity, not a
   completion gate.
 

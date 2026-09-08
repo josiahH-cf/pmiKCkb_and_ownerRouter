@@ -36,7 +36,7 @@ function readProcVersion() {
 
 export function recommendedWorkers(parallelism = availableParallelism()) {
   const usable = Math.max(1, Number(parallelism) - 1);
-  return Math.min(8, usable);
+  return Math.min(2, usable);
 }
 
 export function shouldUseNativeShadow({
@@ -69,6 +69,8 @@ export function isSafeUntrackedPath(input) {
     "docs/client_docs/",
     "docs/context_and_calls/",
     "docs/temp/",
+    "docs/specs/",
+    "golden-data/captured/",
     "node_modules/",
     "output/",
     "secrets/",
@@ -275,7 +277,7 @@ function copyPaths(paths, targetRoot) {
   }
 }
 
-function overlayWorkingChanges(targetRoot) {
+export function overlayWorkingChanges(targetRoot) {
   const changed = splitNull(
     gitOutput([
       "diff",
@@ -356,19 +358,31 @@ function cleanupShadow(tempRoot, shadow) {
 function runVitest(cwd, nodeModulesRoot, forwardedArgs, tempRoot) {
   const entry = join(nodeModulesRoot, "vitest", "vitest.mjs");
   const started = performance.now();
-  const result = spawnSync(process.execPath, [entry, "run", ...forwardedArgs], {
-    cwd,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      TMPDIR: tempRoot,
-      TMP: tempRoot,
-      TEMP: tempRoot,
-      PWD: cwd,
-      INIT_CWD: cwd,
-      PMIKC_TEST_SHADOW_ACTIVE: cwd === ROOT ? "0" : "1",
+  const result = spawnSync(
+    process.execPath,
+    [entry, "run", ...forwardedArgs, "--maxWorkers=2"],
+    {
+      cwd,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        TMPDIR: tempRoot,
+        TMP: tempRoot,
+        TEMP: tempRoot,
+        PWD: cwd,
+        INIT_CWD: cwd,
+        ...(existsSync(join(ROOT, "golden-data", "captured"))
+          ? {
+              PMIKC_VERIFIED_CAPTURE_DIR:
+                process.env.PMIKC_VERIFIED_CAPTURE_DIR ||
+                join(ROOT, "golden-data", "captured"),
+            }
+          : {}),
+        VITEST_MAX_WORKERS: "2",
+        PMIKC_TEST_SHADOW_ACTIVE: cwd === ROOT ? "0" : "1",
+      },
     },
-  });
+  );
   const seconds = ((performance.now() - started) / 1_000).toFixed(2);
   console.log(`[unit-test] Vitest wall time: ${seconds}s`);
 

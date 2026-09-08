@@ -109,6 +109,7 @@ export async function promoteUnverifiedIntake(
   input: PromoteIntakeInput = {},
   db: Firestore = getAdminFirestore(),
   now: number = Date.now(),
+  verifiedPropertyId?: string,
 ): Promise<MaintenanceTicketRecord> {
   assertCan(actor, "edit");
   const parsed = PromoteIntakeInputSchema.parse(input);
@@ -157,6 +158,11 @@ export async function promoteUnverifiedIntake(
         summary: intake.summary,
         description: intake.description,
         unit: confirmedUnit,
+        ...(confirmedUnit &&
+        verifiedPropertyId &&
+        /^[1-9][0-9]*$/.test(verifiedPropertyId)
+          ? { property_id: verifiedPropertyId }
+          : {}),
         photo_refs: [],
         reporter: {
           kind: "external" as const,

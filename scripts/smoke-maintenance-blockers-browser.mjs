@@ -1,3 +1,4 @@
+import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
 // S108 real-browser smoke for the maintenance blocker report, waiting-on filter, and the
 // Admin-managed property preapproval control.
 //
@@ -7,7 +8,7 @@
 // it would record anything. It never submits a preapproval, never records an estimate, and never
 // calls a provider route.
 
-import { accessSync, constants, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "playwright-core";
@@ -147,35 +148,6 @@ async function signInAndOpen(page, path) {
     waitUntil: "domcontentloaded",
   });
   assert(response && response.status() < 500, `${path} returned an error response.`);
-}
-
-function findBrowserExecutable() {
-  const configured = process.env.DESK_BROWSER_EXECUTABLE?.trim();
-  const candidates = configured
-    ? [configured]
-    : [
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-        "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
-      ];
-  const executable = candidates.find((candidate) => {
-    try {
-      accessSync(candidate, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  if (!executable) {
-    throw new Error("Chrome or Edge was not found for the S108 browser smoke.");
-  }
-  return executable;
 }
 
 function assert(condition, message) {

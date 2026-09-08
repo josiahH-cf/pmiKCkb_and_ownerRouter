@@ -1,9 +1,5 @@
-// Secret storage seam for connector credentials. Today there is NO secure vault wired: Secret Manager
-// is not a dependency yet and no client credentials exist. `resolveConnectorSecretVault` returns the
-// NotConfigured implementation, which stores nothing and honestly reports "not_configured", so the
-// connect flow can never claim a connection it cannot actually hold. When a real Secret Manager backed
-// vault is added, plug it in behind `resolveConnectorSecretVault` and the rest of the flow lights up
-// unchanged. A returned `secretRef` is an OPAQUE handle, never the secret value.
+// Server-only credential storage. Only an explicitly configured Dotloop vault is enabled.
+import { SecretManagerConnectorSecretVault } from "@/lib/connections/secret-manager-connector-vault";
 
 export type StoreSecretResult =
   | { ok: true; secretRef: string }
@@ -17,6 +13,9 @@ export type ConnectorVaultCapability = "configured" | "not_configured";
 
 export interface ConnectorSecretVault {
   capability(): Promise<ConnectorVaultCapability>;
+  readSecret?(input: {
+    secretRef: string;
+  }): Promise<{ ok: true; secret: string } | { ok: false; reason: "not_configured" }>;
   storeSecret(input: { connectorId: string; secret: string }): Promise<StoreSecretResult>;
   destroySecret(input: {
     secretRef: string;
@@ -43,8 +42,17 @@ export class NotConfiguredConnectorSecretVault implements ConnectorSecretVault {
   }
 }
 
-export function resolveConnectorSecretVault(): ConnectorSecretVault {
-  // Seam: a Secret Manager backed vault plugs in here once secure storage is provisioned. Secret
-  // Manager is intentionally NOT a dependency of this module yet.
+export function resolveConnectorSecretVault(
+  connectorId?: string,
+  env: Record<string, string | undefined> = process.env,
+): ConnectorSecretVault {
+  const projectId = env.CONNECTOR_SECRET_VAULT_PROJECT_ID?.trim();
+  if (
+    connectorId === "dotloop" &&
+    projectId &&
+    /^[a-z][a-z0-9-]{4,61}[a-z0-9]$/.test(projectId)
+  ) {
+    return new SecretManagerConnectorSecretVault({ projectId });
+  }
   return new NotConfiguredConnectorSecretVault();
 }

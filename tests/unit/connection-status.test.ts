@@ -144,3 +144,18 @@ describe("buildConnectionView", () => {
     ).toBe(CONNECTORS.length);
   });
 });
+
+it("does not call a stale Dotloop credential connected even after an earlier successful probe", () => {
+  expect(
+    classifyConnector(dotloop, {}, true, {
+      status: "connected",
+      oauthState: "refresh_needed",
+    }),
+  ).toMatchObject({ state: "action", label: "Reconnect required" });
+  expect(
+    classifyConnector(dotloop, {}, true, {
+      status: "connected",
+      oauthState: "refreshing",
+    }),
+  ).toMatchObject({ state: "action", label: "Refreshing connection" });
+});

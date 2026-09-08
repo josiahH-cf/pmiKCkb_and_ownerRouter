@@ -1,3 +1,4 @@
+import { readVerifiedTicketProperty } from "@/lib/maintenance/verified-ticket-property";
 import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
@@ -30,7 +31,8 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "maintenance");
     const input = await parseJsonBody(request, CreateLiveMaintenanceTicketInputSchema);
-    const ticket = await createMaintenanceTicket(user, input);
+    const propertyId = await readVerifiedTicketProperty(input.unit.unitId);
+    const ticket = await createMaintenanceTicket(user, input, undefined, propertyId);
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

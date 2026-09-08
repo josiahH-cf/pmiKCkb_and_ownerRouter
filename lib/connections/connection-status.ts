@@ -19,6 +19,7 @@ export type ConnectionState = "connected" | "action" | "none" | "closed";
 /** The connection facts the classifier and card care about (status only, never a secretRef). */
 export interface ConnectorConnectionView {
   status: ConnectorConnectionStatus;
+  oauthState?: "ready" | "refreshing" | "refresh_needed";
   disconnect?: ConnectorDisconnectView;
 }
 
@@ -68,9 +69,8 @@ export interface ConnectionCenterView {
 }
 
 /** Classify one connector. `verified` is true only after a live read-only check has succeeded.
- * `connection` is the app-held connection record (status only), if any. Precedence: a passed
- * `verified` wins (top), then a "connected" record, then a "revocation_pending" record, then the
- * existing presence logic. With no `connection` passed the output is unchanged. */
+ * `connection` is the app-held lifecycle view, if any. Revocation and Dotloop refresh state
+ * outrank cached verification; ordinary connected/configured state follows. */
 export function classifyConnector(
   def: ConnectorDef,
   presence: Record<string, boolean>,
@@ -107,6 +107,22 @@ export function classifyConnector(
       state: "none",
       label: "Disconnected",
       detail: "Credential removal was verified. Reconnect to restore access.",
+    };
+  }
+  if (
+    def.id === "dotloop" &&
+    connection?.status === "connected" &&
+    connection.oauthState &&
+    connection.oauthState !== "ready"
+  ) {
+    return {
+      ...base,
+      state: "action",
+      label:
+        connection.oauthState === "refreshing"
+          ? "Refreshing connection"
+          : "Reconnect required",
+      detail: "Dotloop credentials must be ready before provider work can continue.",
     };
   }
   if (verified) {
@@ -222,12 +238,17 @@ export function projectConnectorConnection(
   canManage: boolean,
 ): ConnectorConnectionView {
   const status: ConnectorConnectionStatus = record.status;
-  if (!canManage) return { status };
+  const oauth =
+    record.status === "connected" && record.oauthState
+      ? { oauthState: record.oauthState }
+      : {};
+  if (!canManage) return { status, ...oauth };
 
   const recordVersion = connectorRecordVersion(record);
   if (record.status === "connected") {
     return {
       status,
+      ...oauth,
       disconnect: {
         state: "connected",
         record_version: recordVersion,

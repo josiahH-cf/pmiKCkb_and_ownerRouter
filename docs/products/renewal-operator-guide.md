@@ -1,115 +1,100 @@
 # Renewal operator guide
 
-This guide is for the people who run renewals. Every step names a control you can see in the app and
-the result you should see after using it. Nothing here asks you to run a command or open a developer
-tool.
+Updated: 2026-09-07. Use the [Wednesday walkthrough](renewal-client-walkthrough-2026-09-09.md)
+for the staff session. This guide describes the current implementation; the walkthrough separates
+serving controls from controls waiting for candidate promotion. Read release status before acting.
 
-Practice on the local rehearsal server, which reads live data but refuses every change, then do the
-real work in the production application. The two look the same; the rehearsal one answers "Live data
-is read only in the local rehearsal surface." whenever you try to change something.
+Local rehearsal is Demo + Live-read-only. It refuses every persistence and provider effect,
+including resolutions, term reviews, estimates, drafts, and report submission. Practice reading and
+navigation there. Conditional action controls are checked with isolated automated-test fixtures;
+that is not a live lease proof. Never create customer state to make a control appear.
 
-## Before you start
+## Authority and source truth
 
-- You need Editor access in the Renewals Space to record decisions, and Admin access to change a
-  property preapproval amount.
-- Every outside effect asks you to confirm the exact action and target first. If you did not confirm
-  it, it did not happen.
-- If a value reads "Needs Verification", the app could not read it. That is not zero and not none;
-  it means go look.
-- When a date filter you typed cannot be used, the desk names it under "Renewal date filter
-  problems". That block appears only when there is a problem to name.
+Editor plus Renewals access permits reading, ordinary progress, term reviews, proposals, and eligible
+unsent drafts. Approver or Admin resolves reconciliation decisions; a High correction requires Admin.
+Admin approves pricing/source changes and executes or reconciles RentVine and Sheet effects.
+A different current Admin applies staff access through the access-request workflow. A role never
+substitutes for the exact action key, preview, confirmation, receipt, or readback.
+
+Current rent is contractual lease base rent. Unit listed rent is a separate reference. Missing rent
+is unknown, not zero. Read term, owner evidence, source conflicts, next action, and source freshness
+before preparing anything. A changed source invalidates its earlier decision or preview.
 
 ## Step-to-control map
 
-The rehearsal browser check reads this table and confirms each control's exact text is present on
-the page it names, so a step in this table cannot name a control the app does not show. Steps in the
-prose below are not machine-checked.
+The browser smoke uses exact semantic locators, including the named article when controls repeat.
+`workspace:` means the first verified workspace reached from the desk, with its selected phase.
+A conditional row is tested only if visible; its absence is reported separately and does not prove
+live availability. The owning component tests listed below exercise conditional states in isolation.
 
-| Step                                     | Page             | Control (exact visible text)     | What you should see                                                        |
-| ---------------------------------------- | ---------------- | -------------------------------- | -------------------------------------------------------------------------- |
-| 1. Open the renewal worklist             | `/lease-renewal` | `Renewals`                       | The renewal table, one row per lease, soonest end date first.              |
-| 2. Narrow to what you are working on     | `/lease-renewal` | `Worklist scope:`                | The scope you pick decides which leases the table lists.                   |
-| 3. Undo every filter at once             | `/lease-renewal` | `Clear filters`                  | The table returns to the full worklist for the scope you are on.           |
-| 4. Ask the Dashboard about your day      | `/`              | `Get answer`                     | A short list with links, or a note naming the three supported questions.   |
-| 5. See what each maintenance item awaits | `/maintenance`   | `What each ticket is waiting on` | One row per open ticket with its blocker and the next action.              |
-| 6. Filter maintenance by its blocker     | `/maintenance`   | `Waiting on`                     | The queue narrows in place; no page reload.                                |
-| 7. Record a maintenance estimate         | `/maintenance`   | `Record an estimate`             | The estimate appears on the ticket and the blocker updates.                |
-| 8. Set a property preapproval            | `/maintenance`   | `Review this preapproval`        | A confirmation restating the exact amount and property, with Cancel first. |
+| Step | Page                        | Control (exact visible text)              | Role     | Scope                           | Availability | What you should see                                                          |
+| ---- | --------------------------- | ----------------------------------------- | -------- | ------------------------------- | ------------ | ---------------------------------------------------------------------------- |
+| 1    | `/lease-renewal`            | `Renewals`                                | heading  | -                               | required     | The loaded desk or an honest source-unavailable state.                       |
+| 2    | `/lease-renewal`            | `Filter renewal date`                     | summary  | -                               | required     | Date filter disclosure; opening reads and navigates only.                    |
+| 3    | `/lease-renewal`            | `Month`                                   | label    | -                               | conditional  | Choose the lease end month.                                                  |
+| 4    | `/lease-renewal`            | `Apply month`                             | button   | -                               | conditional  | Apply the chosen month through the desk URL.                                 |
+| 5    | `/lease-renewal`            | `Clear filters`                           | link     | -                               | conditional  | Restore the current scope without filters.                                   |
+| 6    | `workspace:verify-renewal`  | `← Back to renewals`                      | link     | -                               | required     | Return to the desk with the same view.                                       |
+| 7    | `workspace:verify-renewal`  | `Verify renewal`                          | phase    | -                               | required     | Read the selected verification phase.                                        |
+| 8    | `workspace:verify-renewal`  | `Open this lease in RentVine`             | link     | -                               | conditional  | Open the server-derived lease destination in a new tab.                      |
+| 9    | `workspace:verify-renewal`  | `Open the operating renewal Sheet`        | link     | -                               | conditional  | Open the verified spreadsheet destination in a new tab.                      |
+| 10   | `workspace:verify-renewal`  | `Resolve`                                 | button   | -                               | conditional  | Review the selected discrepancy resolution.                                  |
+| 11   | `workspace:verify-renewal`  | `Confirm resolution`                      | button   | -                               | conditional  | Record only the exact reviewed decision.                                     |
+| 12   | `workspace:verify-renewal`  | `Record lease term`                       | button   | -                               | conditional  | Record the verified term and reason against current lease facts.             |
+| 13   | `workspace:owner-decision`  | `Owner decision`                          | phase    | -                               | required     | Read the owner phase and its missing evidence.                               |
+| 14   | `workspace:owner-decision`  | `Record owner decision`                   | button   | -                               | conditional  | Save the owner's exact rent and terms.                                       |
+| 14a  | `workspace:owner-decision`  | `Update owner decision`                   | button   | -                               | conditional  | Correct the recorded owner terms from current evidence.                      |
+| 15   | `workspace:owner-decision`  | `Record owner response`                   | button   | -                               | conditional  | Record the actual response and its evidence.                                 |
+| 16   | `workspace:tenant-decision` | `Tenant decision`                         | phase    | -                               | required     | Read the tenant offer phase and prerequisites.                               |
+| 17   | `workspace:tenant-decision` | `Preview draft`                           | button   | -                               | conditional  | Read the exact recipient, wording, and attachment.                           |
+| 18   | `workspace:tenant-decision` | `Preview review-only copy`                | button   | -                               | conditional  | Read wording that still lacks its publication approval.                      |
+| 19   | `workspace:tenant-decision` | `Create Gmail draft`                      | button   | -                               | conditional  | Confirm creation of an eligible unsent draft.                                |
+| 20   | `workspace:tenant-decision` | `Check exact attempt`                     | button   | -                               | conditional  | Read the result of an uncertain draft attempt without creating another.      |
+| 21   | `workspace:verify-renewal`  | `Save proposal from fresh RentVine state` | button   | -                               | conditional  | Prepare the exact before/after proposal.                                     |
+| 22   | `workspace:verify-renewal`  | `Review and confirm…`                     | button   | article:Review RentVine updates | conditional  | Review one RentVine effect.                                                  |
+| 23   | `workspace:verify-renewal`  | `Confirm this exact effect once`          | button   | article:Review RentVine updates | conditional  | Admin confirms that one effect.                                              |
+| 24   | `workspace:verify-renewal`  | `Reconcile from provider state`           | button   | article:Review RentVine updates | conditional  | Admin reads an uncertain outcome without replaying the write.                |
+| 25   | `workspace:verify-renewal`  | `Prepare exact missing-row append`        | button   | -                               | conditional  | Prepare one server-derived row only when its exact link is absent.           |
+| 26   | `workspace:verify-renewal`  | `Review and confirm…`                     | button   | article:Review Sheet updates    | conditional  | Review the exact Sheet row and target.                                       |
+| 27   | `workspace:verify-renewal`  | `Confirm this exact effect once`          | button   | article:Review Sheet updates    | conditional  | Admin confirms the one append.                                               |
+| 28   | `workspace:document-packet` | `Document packet`                         | phase    | -                               | required     | Read packet facts and the exact missing forms or connection.                 |
+| 29   | `workspace:signatures`      | `Signatures`                              | phase    | -                               | required     | Read the signature handoff and missing evidence.                             |
+| 30   | `workspace:compliance`      | `Compliance`                              | phase    | -                               | required     | Read all remaining completion evidence.                                      |
+| 31   | `workspace:compliance`      | `Mark renewal complete`                   | button   | -                               | conditional  | Completion is accepted only with every required evidence item.               |
+| 32   | `/`                         | `Get answer`                              | button   | -                               | required     | One of three read-only answers, a clarification, or unavailable state.       |
+| 33   | `/maintenance`              | `What each ticket is waiting on`          | region   | -                               | required     | Read each ticket's current blocker.                                          |
+| 34   | `/maintenance`              | `Waiting on`                              | combobox | -                               | required     | Filter the queue without writing.                                            |
+| 35   | `/maintenance`              | `Record an estimate`                      | button   | -                               | conditional  | Record an app-owned ticket estimate in production only.                      |
+| 36   | `/maintenance`              | `Review this preapproval`                 | button   | region:Property preapprovals    | required     | Review the exact property, amount, and effective date; Cancel remains first. |
 
-## Reading one lease
+Conditional proof owners: `tests/unit/renewal-guide-conditional-controls.test.tsx`,
+`tests/unit/renewal-progress-controls.test.tsx`,
+`tests/unit/live-renewal-review.test.tsx`, `tests/unit/s97-rentvine-updates-panel.test.tsx`,
+`tests/unit/s98-operating-sheet-panel.test.tsx`,
+`tests/unit/renewal-notice-draft-composer.test.tsx`,
+`tests/unit/renewal-desk-component.test.tsx`, and the term/progress route and store tests.
+The semantic guard rejects a matching heading, partial label, or control in the wrong panel.
+Fixture proof is distinct from the browser smoke and from live availability.
 
-Open a lease from the renewal table. The workspace shows the same values the row showed, because both
-read one projection.
+## Confirmation, recovery, and completion
 
-- **Current rent** is the tenant's contractual base rent from the lease record.
-- **Unit listed rent** is a reference from the unit record. It is labelled separately and it is never
-  the tenant's rent.
-- **Term** is fixed term, month to month, or needs review. A month-to-month lease shows the date its
-  next periodic review is due: the next yearly anniversary of the month-to-month start date. If the app
-  has no start date it says so rather than inventing one.
-- **Renewal timing**, **blocker**, and **next action** all come from the same guidance the table row
-  used, so the two can never disagree.
+RentVine dates and each recurring-charge operation are independent previews and confirmations.
+Read the returned receipt and fresh source values before the next effect. A pending or uncertain
+attempt is not permission to start another. Admin uses its reconciliation control. Correction is a
+new exact preview and confirmation bound to the original receipt, where that operation supports it.
 
-Use the back link to return to the table. Your filters and sort come back with you.
+The corrected Sheet path permits only a missing-row append. A receipt is not stable-row delete
+permission. Fixed-row update, delete, and restore are unavailable. An Admin uses the receipt and
+verified destination to arrange manual correction in the Sheet; the app does not automate it.
 
-## Working a renewal through
+A Gmail draft is unsent. Read the exact recipient, subject, body, and attachment in Gmail before
+sending it yourself. Sending outside the app still needs actual sent-message and response evidence
+before progress can be counted complete. Never infer a reply from a draft.
 
-1. **Resolve a rent discrepancy.** When the lease rent and the sheet disagree, the workspace shows
-   both values and asks you to record which one is right. Recording a resolution does not change
-   either system; it records your decision so the desk stops treating the value as unverified.
-2. **Record a term review.** When the term reads needs review, record the term you verified and, for
-   a month-to-month lease, the anchor date. The record is bound to the lease facts you were looking
-   at, so if those facts change your record goes stale rather than silently applying to new facts.
-3. **Record the owner outcome.** After the owner replies, record which of the four outcomes it was:
-   approved terms, revision requested, declined, or no response. A revision request reopens the owner
-   copy and every preview built on it. A decline routes to the non-renewal handoff. Nothing invents a
-   tenant answer.
-4. **Prepare the offer and complete approval.** Each step names what is missing before you can
-   continue. Nothing sends on its own.
-5. **Create or open the Dotloop packet.** One approved packet becomes exactly one loop. If the packet
-   facts change, the old loop is marked superseded rather than reused.
-6. **Follow the signature handoff.** The app opens the loop in Dotloop and names the required
-   signers. It does not claim a signature state, because the published Dotloop API documents no
-   signature operation.
-
-## Reading attempt state
-
-The lease workspace shows one **Confirmed external steps** card: the last confirmed step, when it was
-attempted, how it ended, any blocker, and what to do next.
-
-- **Recorded with a receipt** means the change is done and the app has the provider's own receipt.
-- **Still finishing** means the attempt is in flight. Reload in a moment.
-- **Result uncertain** means the app could not confirm the outcome. Ask an Admin to reconcile it from
-  its exact receipt in the phase panel before anything is confirmed again. The app never retries by itself, and it never guesses.
-
-## Where results appear
-
-| Where           | What lands there                                                                                                                        |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| RentVine        | The lease dates and recurring charges you confirmed, each with its readback.                                                            |
-| Operating Sheet | The appended renewal row you confirmed, in the confirmed target tab.                                                                    |
-| Gmail           | The draft you reviewed. You send it yourself; the app never sends.                                                                      |
-| Dotloop         | The one loop for the approved packet, once the Dotloop connection is live; until then the packet phase shows the exact blocker instead. |
-
-## Practice cases
-
-Run these on the rehearsal server. Each one ends with a correction you make through the app's own
-controls; none needs a developer.
-
-1. **A lease whose rents differ.** Open it, read current rent and unit listed rent, and record a rent
-   resolution. Correct it by recording the resolution again with the other value.
-2. **A month-to-month lease with no anchor.** Confirm the term reads needs review and the review date
-   is absent. Record a term review with an anchor, then record it again with the correct anchor if
-   you entered the wrong one.
-3. **A maintenance ticket at a preapproved property.** Record an estimate under the preapproval and
-   confirm the ticket stops waiting on the owner. Clear the estimate to put it back.
-4. **A maintenance ticket above the preapproval.** Record an estimate above the amount and confirm the
-   owner-approval request returns.
-5. **An intake report about active water.** Submit it from the resident report link and confirm it is
-   treated as urgent and asks for photos. It lands in the review queue for you to promote or dismiss.
-
-## When something is not available
-
-The app says which source did not answer and what it still knows. A read that failed never renders as
-"none" or "no renewals". If you see an unavailable note, the safe move is to open the owning page and
-look, not to act on the partial view.
+Dotloop remains blocked on OAuth credentials, a connected managed account with a selected office
+profile/template and transaction/status, and approved blank forms covering all seven families.
+Both loop and upload action keys are closed. No live create control is promised. Once separately
+authorized and wired to verified artifacts, the packet's loop opens in Dotloop for the human
+signature handoff. Provider document identity/name proves presence only, not a content hash or
+signature. Completion waits on the actual signed artifacts and all remaining requirements.

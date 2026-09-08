@@ -139,6 +139,10 @@ export function parseReleaseArgs(argv = []) {
   const adminProfile = readArg("--admin-profile");
   const editorProfile = readArg("--editor-profile");
   const priorRevision = readArg("--prior-revision");
+  const revisionSuffix = readArg("--revision-suffix");
+  if (revisionSuffix && !/^r[a-z0-9]+-[a-f0-9]{12}$/.test(revisionSuffix)) {
+    errors.push("--revision-suffix must be the exact persisted release suffix.");
+  }
   if (promote && !candidateRevision) {
     errors.push("--promote requires --candidate-revision=<exact revision name>.");
   }
@@ -169,6 +173,7 @@ export function parseReleaseArgs(argv = []) {
     planOnly,
     operatorEmail,
     priorRevision,
+    revisionSuffix,
     promotionReceipt,
     promote,
     project: readArg("--project"),

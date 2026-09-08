@@ -61,7 +61,16 @@ export interface ExternalAuthorityContext {
   };
 }
 
+export interface ProviderDocumentPresenceEvidence {
+  level: "presence_only";
+  documentId: string;
+  documentName: string;
+}
+
 export interface ExternalActionReceipt {
+  /** Selected document metadata only; never a provider content-hash claim. */
+  providerEvidence?: ProviderDocumentPresenceEvidence;
+  submittedContentHash?: string;
   actionKey: string;
   dataMode?: DataMode;
   /** Legacy Test receipts can never prove a Live provider. */

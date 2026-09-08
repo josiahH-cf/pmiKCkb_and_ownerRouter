@@ -110,25 +110,7 @@ export function resolveNamedManagedProfile(
   return resolveManagedProfile([`--profile=${profileArg}`], repositoryRoot);
 }
 
-export function findBrowserExecutable(env = process.env): string {
-  const candidates = [
-    env.PLAYWRIGHT_CHROME_PATH,
-    "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-    "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-    "/c/Program Files/Google/Chrome/Application/chrome.exe",
-    "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-  ];
-  const executable = candidates.find((candidate): candidate is string =>
-    Boolean(candidate && existsSync(candidate)),
-  );
-  if (!executable) throw new Error("managed_browser_unavailable");
-  return executable;
-}
+export { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
 
 export function safeSameOrigin(value: string, origin: string): boolean {
   try {

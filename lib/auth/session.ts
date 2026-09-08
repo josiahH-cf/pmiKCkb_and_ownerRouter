@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { can, type Capability, type Role } from "@/lib/auth/roles";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { readServerConfig } from "@/lib/config/server";
 import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 import {
@@ -43,7 +44,7 @@ interface FirebaseAuthClaims extends AuthClaims {
 // presented to the INTERNAL boundary: it is a valid principal on its own boundary, so the internal
 // `getCurrentUser` treats it as "no internal user" (returns null) rather than surfacing a 403 — while
 // the login/session-creation path still rejects it with the 403 status.
-export type AuthErrorCode = "vendor_session";
+export type AuthErrorCode = "vendor_session" | "canary_read_only";
 
 export class AuthError extends Error {
   constructor(
@@ -218,6 +219,15 @@ export async function requireRole(role: Role) {
 export async function requireCapability(capability: Capability) {
   const user = await requireUser();
 
+  if (
+    ["edit", "approve", "sendEmail", "resolvePlaceholder", "softDelete"].includes(
+      capability,
+    ) &&
+    isVerificationAccount(user)
+  ) {
+    throw new AuthError("Verification accounts can only read.", 403, "canary_read_only");
+  }
+
   if (!can(user.role, capability)) {
     throw new AuthError("This user is not authorized for the requested action.", 403);
   }
@@ -316,7 +326,13 @@ function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUs
 
 export function authErrorResponse(error: unknown) {
   if (error instanceof AuthError) {
-    return Response.json({ error: error.message }, { status: error.status });
+    return Response.json(
+      {
+        error: error.message,
+        ...(error.code === "canary_read_only" ? { error_type: error.code } : {}),
+      },
+      { status: error.status },
+    );
   }
 
   throw error;

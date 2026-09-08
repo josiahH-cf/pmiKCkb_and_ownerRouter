@@ -72,11 +72,11 @@
     "deploy": "node scripts/deploy-demo-cloud-run.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
     "auth:ensure": "node scripts/auth/ensure.mjs",
-    "auth:enroll": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/auth/enroll.ps1",
+    "auth:enroll": "bash scripts/auth/enroll.sh",
     "auth:enroll:wsl": "bash scripts/auth/enroll.sh",
     "auth:enroll-canary": "tsx scripts/auth/enroll-canary.ts",
     "auth:canary-session": "tsx scripts/auth/canary-session.ts",
-    "auth:session": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/auth/enroll.ps1 -Attended",
+    "auth:session": "bash scripts/auth/enroll.sh",
     "audit:process": "node scripts/process-audit-runner.mjs",
     "preflight:adc": "node scripts/preflight-adc.mjs",
     "preflight:gcp": "node scripts/preflight-gcp-setup.mjs",
@@ -119,7 +119,11 @@
     "seed:notice-rules": "tsx scripts/seed-notice-rules.ts",
     "notices:reminders": "tsx scripts/run-notice-reminders.ts",
     "intake:mint": "tsx scripts/mint-maintenance-intake-token.ts",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "auth:status": "node scripts/auth/ensure.mjs --status",
+    "release:watch": "node scripts/release-watcher.mjs --watch",
+    "release:watch:once": "node scripts/release-watcher.mjs --once",
+    "release:watch:dry-run": "node scripts/release-watcher.mjs --dry-run"
   },
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.7.0",

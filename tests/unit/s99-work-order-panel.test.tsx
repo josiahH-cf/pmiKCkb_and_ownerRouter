@@ -234,3 +234,19 @@ describe("S99 RentVine work-order panel", () => {
     expect(screen.queryByRole("button", { name: /share/i })).not.toBeInTheDocument();
   });
 });
+
+it("labels an existing import without claiming a creation receipt", () => {
+  render(
+    <RentvineWorkOrderPanel
+      canEdit
+      hasVerifiedUnit
+      ticketId="ticket-9"
+      initialLink={{ state: "linked", provider_work_order_id: "63" }}
+    />,
+  );
+  expect(
+    screen.getByText("Linked existing RentVine work order 63 (read-only import)."),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/\(receipted\)/)).not.toBeInTheDocument();
+  cleanup();
+});

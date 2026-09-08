@@ -9,6 +9,10 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 
+import {
+  DOTLOOP_TRANSACTION_TYPES,
+  type DotloopTransactionType,
+} from "@/lib/integrations/dotloop/client";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -29,20 +33,50 @@ const ProviderId = z
   .max(120)
   .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/, "A provider id must be an exact stable token.");
 
+export const DOTLOOP_LEASE_STATUSES: Record<DotloopTransactionType, readonly string[]> = {
+  LISTING_FOR_LEASE: [
+    "PRE_LISTING",
+    "PRIVATE_LISTING",
+    "ACTIVE_LISTING",
+    "UNDER_CONTRACT",
+    "LEASED",
+    "ARCHIVED",
+  ],
+  LEASE_OFFER: ["PRE_OFFER", "UNDER_CONTRACT", "LEASED", "ARCHIVED"],
+};
+
 export const SelectDotloopRenewalSettingsInputSchema = z
   .object({
+    transaction_type: z.enum(DOTLOOP_TRANSACTION_TYPES).optional(),
+    initial_status: z.string().min(1).max(40).optional(),
     profile_id: ProviderId,
     profile_label: z.string().trim().min(1).max(200),
     template_id: ProviderId,
     template_label: z.string().trim().min(1).max(200),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.transaction_type === undefined && value.initial_status === undefined)
+      return;
+    if (
+      !value.transaction_type ||
+      !value.initial_status ||
+      !DOTLOOP_LEASE_STATUSES[value.transaction_type].includes(value.initial_status)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose a documented status for the selected transaction type.",
+        path: ["initial_status"],
+      });
+  });
 
 export type SelectDotloopRenewalSettingsInput = z.input<
   typeof SelectDotloopRenewalSettingsInputSchema
 >;
 
 export interface DotloopRenewalSettings {
+  readonly transactionType?: DotloopTransactionType;
+  readonly initialStatus?: string;
   readonly version: number;
   readonly profileId: string;
   readonly profileLabel: string;
@@ -88,6 +122,12 @@ export async function selectDotloopRenewalSettings(
     const version = Number(previous.version ?? 0) + 1;
     const body = {
       id: DOTLOOP_RENEWAL_SETTINGS_DOC_ID,
+      ...(parsed.transaction_type
+        ? {
+            transaction_type: parsed.transaction_type,
+            initial_status: parsed.initial_status,
+          }
+        : {}),
       version,
       profile_id: parsed.profile_id,
       profile_label: parsed.profile_label,
@@ -106,6 +146,10 @@ export async function selectDotloopRenewalSettings(
         version,
         previous_profile_id: previous.profile_id ?? null,
         previous_template_id: previous.template_id ?? null,
+        previous_transaction_type: previous.transaction_type ?? null,
+        previous_initial_status: previous.initial_status ?? null,
+        transaction_type: parsed.transaction_type ?? null,
+        initial_status: parsed.initial_status ?? null,
         profile_id: parsed.profile_id,
         template_id: parsed.template_id,
         actor_uid: actor.uid,
@@ -132,6 +176,18 @@ export async function getDotloopRenewalSettings(
 
 function fromStored(raw: Record<string, unknown>): DotloopRenewalSettings {
   return {
+    ...(DOTLOOP_TRANSACTION_TYPES.includes(
+      raw.transaction_type as DotloopTransactionType,
+    ) &&
+    typeof raw.initial_status === "string" &&
+    DOTLOOP_LEASE_STATUSES[raw.transaction_type as DotloopTransactionType].includes(
+      raw.initial_status,
+    )
+      ? {
+          transactionType: raw.transaction_type as DotloopTransactionType,
+          initialStatus: raw.initial_status,
+        }
+      : {}),
     version: Number(raw.version),
     profileId: String(raw.profile_id),
     profileLabel: String(raw.profile_label),

@@ -150,3 +150,45 @@ describe("S66 partial/failure retry projection", () => {
     });
   });
 });
+
+it("binds a document continuation only to the receipted loop for this current packet", () => {
+  const { input, snapshot } = readySnapshot();
+  snapshot.visibleState = "Partially executed";
+  snapshot.execution = {
+    idempotencyKey: "loop-attempt",
+    receiptId: "loop-receipt",
+    state: "Partially executed",
+    loopLink: {
+      loopId: "1",
+      loopUrl: null,
+      profileId: "1",
+      templateId: "2",
+      packetSnapshotHash: snapshot.payloadHash,
+      readBackAtIso: null,
+      loopStatus: null,
+      participantCount: null,
+      documentCount: null,
+    },
+  };
+  const request = {
+    snapshot,
+    currentHead: {
+      leaseId: snapshot.leaseId,
+      transactionId: snapshot.transactionId,
+      snapshotId: snapshot.snapshotId,
+      snapshotVersion: snapshot.snapshotVersion,
+      payloadHash: snapshot.payloadHash,
+    },
+    catalog: input.catalog,
+    confirmedPayloadHash: snapshot.payloadHash,
+    operation: "document_upload" as const,
+  };
+  expect(bindCurrentPacketForDotloop(request).packetSnapshotHash).toBe(
+    snapshot.payloadHash,
+  );
+  snapshot.execution.loopLink = {
+    ...snapshot.execution.loopLink!,
+    packetSnapshotHash: "different",
+  };
+  expect(() => bindCurrentPacketForDotloop(request)).toThrow("complete current packet");
+});

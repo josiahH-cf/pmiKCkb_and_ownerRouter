@@ -1,186 +1,72 @@
-# PMI KC current plan
+# Current implementation plan
 
-Updated: 2026-09-07.
+Updated: 2026-09-08.
 
 ## Outcome
 
-Promote the committed S82 conformance, S97 integrity hardening, S98 append integrity plus fixed-row
-capability refusal, and S51/S54 assurance correction through its deployed zero-traffic candidate once
-the owner-supplied assurance inputs exist, and execute the owner's 2026-09-03 renewal-completion
-program (S102-S111, rewritten S34) in dependency order without describing worktree behavior as
-production truth.
+Push the complete reviewed green readiness change set to main and prepare the four deliverables
+for Wednesday, 9 September. The owner approved the one captured-label correction after private
+source review. Preserve the original evidence, all source values and every assertion. The exact
+execution checkpoint is docs/loop-state.md.
 
 ## Current implementation baseline
 
-Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic, with immediate rollback
-`pmi-kc-app-rmtkgn08q-db89a37c43dc`. It is Production + Live with eleven Spaces, the managed runtime
-identity, an enabled operating-Sheet write switch, and 48 Action Registry keys of which 16 are open.
-
-S96, S85, S86, S83, S84, and S99 are complete and deployed. S97 and S98 have deployed,
-proof-qualified baselines plus active unreleased integrity hardening. S98's serving baseline still
-permits its historical fixed-row path; the correction makes its normal product path append-only and
-refuses fixed-row update/delete/restore until a provider-owned stable-row and expected-generation
-seam exists. S100's closed-safe workflow and chat-sync action are deployed, proven, and activated; its
-resident-draft action remains closed. The original S82 release is deployed, but its conformance was
-reopened by the current adversarial review. The S82/S97/S98 corrections in the worktree and the
-expanded S51/S54 assurance harness are committed (`e6b76f9`) and, with everything through the
-2026-09-06 re-verification commit `5040818` and its independent review `7b3fdad`, deployed as
-zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`; promotion waits only on the two managed browser profiles (one Admin,
-one claim-less managed account that the app resolves to Editor) being signed in on both the
-candidate and canonical origins, and the S51 monitoring resource set reads `READY`. S102 (`ff200d3`), S103 (`0158c90`), S104
-(`0f01353`), S105 (`13523c5`), S106 (`af23da4`), S34 (`7b26107`), S107 (`ae93742`), S108
-(`03f7eee`), S109 (`9b2c829`), S110 (`5abf6dd`), and S111 (`5aa2a90`) are committed and carried by
-that candidate. The renewal-completion program is committed through S111 and awaits promotion; the
-S106/S34 runtime seams (token provider, readiness wiring, provider construction) remain agent-owned
-work.
-
-## Active correction slice
-
-1. Finish the S82 fail-first corrections:
-   - preserve missing current rent as unavailable rather than `$0` through desk, workspace, and draft;
-   - expose typed, privacy-safe auxiliary-read failures rather than turning them into empty success;
-   - use one packet/evidence generation across the desk and workspace;
-   - render only validated source destinations and keep source-write controls in the owning phase;
-   - force a complete post-write source read that cannot reuse pre-write cached/in-flight data;
-   - bind every displayed discrepancy decision, queued proposal, Admin approval, preview, and durable
-     Sheet claim to the same versioned source-candidate fingerprint and resolution version, rejecting
-     drift before persistence or provider execution;
-   - use one resolution-aware effective conflict projection for verification, blocker, process,
-     status, desk, and workspace truth, while treating legacy or malformed resolution/approval state
-     as stale rather than current; and
-   - make active scope, counts, filters, validation, loading, target size, zoom, and large-cohort
-     behavior observable and testable.
-2. Close the S97/S98 active write-integrity gaps without changing action authority:
-   - bind RentVine charge-create attempts to an exact pre-attempt matching-charge baseline and a
-     proposal-generation attempt id, but never attribute an ambiguous attempt from matching provider
-     state alone; without provider-owned causality it cannot mint a success receipt or receipt-bound
-     delete authority;
-   - require fresh duplicate readback and bind every reversal to the exact forward receipt;
-   - derive Sheet append identity and values from fresh server-side RentVine/Sheet joins, scope
-     proposals to the exact actor/lease target, transactionally bind proposal/execution/lifecycle,
-     generation-bind replay, preserve ambiguous recovery, and archive succeeded evidence before the
-     active proposal can be replaced or discarded;
-   - refuse normal Sheet field update and every fixed-row delete/restore before writer construction;
-     the exact keys stay open for historical receipts, but neither a Registry key nor a prior proof
-     overrides the absent provider capability; and
-   - keep every completed live proof closed and do not rerun it merely to release this hardening.
-3. Finish the S51/S54 deterministic assurance harness: strict bodyless evidence schemas and command
-   preflights; managed Admin/Editor read-only route manifests and a GET/HEAD-only browser firewall;
-   fatal console/page/first-party/error-boundary classifications; exact source/application/semantic-
-   table reconciliation with distinct mismatch and inconclusive states; monitoring/readiness and exact
-   rollback predicates; fresh exact candidate and promotion receipts; compensating restoration of the
-   captured predecessor when promotion-side readback or receipt persistence fails; a versioned green
-   predecessor baseline, one-use candidate receipts, ambiguous-command compensation, atomic pending
-   receipt publication, and an observation interval that begins before the traffic attempt;
-   immediate-versus-minute-five checkpoint separation, managed ADC/emulator refusal, real
-   cancellation at every deadline; and a full 300,000 ms post-promotion observation with a fixed
-   420,000 ms evidence deadline.
-4. Keep My Work read-only on entry and navigation restoration. Reconciliation and cutoff recovery
-   require an explicit button; browser scroll restoration is never an activity heartbeat.
-5. Keep the S88-S95 amendments and S101 as specifications only.
-6. Run focused adversarial tests, formatting, lint, typecheck, `bash scripts/verify.sh`, and bounded
-   core E2E. Audit secrets, customer data, action gates, protected paths, runtime configuration, and
-   the complete diff.
-7. Commit and push only a green tree, require exact-SHA CI, then deploy a zero-traffic candidate.
-   Prove exact commit/revision/configuration and run the candidate assurance gates before promotion.
-8. Promote only the exact green revision. Run immediate and end-of-window Admin/Editor canaries,
-   source reconciliation, monitoring, and metrics. Restore only the captured predecessor when an
-   exact rollback predicate fires.
-9. Reconcile the router, facts, status, plan, and loop state to the observed result. Never insert a
-   future commit, revision, test count, CI result, or deployment claim before readback.
+Production serves `d243911cb20ffb01773072c0e27c723648eeea34` as
+`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic, reread on 2026-09-08.
+The unpromoted candidate remains `7b3fdadac134550c24b029034753a38f16e4096b` /
+`pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. The readiness changes have no verified deployment yet.
+S96 — safe connector disconnect and reconciliation is serving; the S106 extension
+adds provider revoke/readback and bounded recovery without claiming a live Dotloop proof.
 
 ## Authority and closed decisions
 
-- Production remains Live-only; no fake identity, lease, work order, provider record, or customer
-  value may be used for a live effect.
-- Completed S97-S99 and S100 chat proofs are not rerun or reassigned to substitute records.
-- Every normal live write remains human-initiated, exact-previewed and confirmed, one-attempt where
-  required, receipted, read back, and reversible/correctable. A normal Sheet append is manually
-  correctable from its receipt/destination; the app does not automate an unsafe fixed-row delete.
-- The S100 manager-read marker is the sole specified non-reversible stateful-read exception. The
-  resident reply may be only an unsent draft in the signed-in managed mailbox.
-- No direct send, RentVine chat post, Vendor assignment, attachment upload, generic/bulk effect,
-  autonomous/model-triggered effect, self-granted access, or personal runtime identity is allowed.
-- Dotloop is now scoped by S106/S34 under D-RENEWAL-COMPLETION; LeadSimple remains deferred.
-- Authentication is pre-approved and unattended (S112, owner ruling 2026-09-07): the runner
-  authenticates as the designated identities without asking, never types a credential or copies a
-  person's profile, and treats a stale credential as agent-owned work; the owner's one-time setup
-  is `docs/open-blockers.md` B-AUTH2.
-- `.claude/settings.local.json`, `output/`, ignored `temp/`, credentials, bodies, provider payloads,
-  and customer evidence remain outside Git and build uploads.
+The owner-approved local auth revision and the instruction to push all reviewed work are in scope.
+Exact open action keys, roles, human preview/confirmation, one-attempt claims, receipts, readback
+and correction remain mandatory. Completed S97-S99 and S100 chat proofs are not rerun.
+The unpromoted S98 correction refuses fixed-row update/delete/restore and preserves server-derived
+normal append. S36 is queued behind complete S100. No account, claim, IAM, cost or send grant is added.
+Claim-less managed accounts remain Editor with all Spaces by the owner's 8 September decision.
 
 ## Canonical closure sequence
 
-The only executable order is in `docs/feature-suites/README.md`:
+1. Keep the passed fresh-shell and paired post-reboot CLI/ADC/app preflight proofs. The required
+   24-hour elapsed-session proof is due no earlier than 2026-09-09T12:46:45.730Z; the owner controls
+   the session-policy exception. Only josiah@pmikcmetro.com's bound WSL credentials may be used.
+2. Close local verification with the owner-reviewed capture and unchanged assertions. B-GOLD1 is
+   resolved: the historical Sheet row has no verified source link to the current lease. The native
+   runner uses the caller's test environment and does not import app provider configuration.
+3. Verify watcher command paths with a monitoring recipient configured separately from local
+   authentication. Preserve the existing channel. Push the green change set and inspect exact-SHA
+   CI, isolated candidate smoke, fingerprint, authorized domain and unchanged traffic.
+4. Obtain existing managed Admin and Editor browser coverage on both exact origins, the bound
+   assurance receipt, promotion and 300,000 ms observation. Run the seven live-source browser
+   smokes and verify one October walkthrough lease privately. No missing result becomes a pass.
+5. Prepare Wednesday's four deliverables below while release-dependent work waits.
+6. Resolve S34's approved catalog/participant/public workflow mappings and the remaining provider
+   inputs from evidence. Both Dotloop keys remain closed. Customer data stays outside Git.
 
-1. S96 — safe connector disconnect and reconciliation. COMPLETE.
-2. S85 — global theme and visual system. COMPLETE.
-3. S86 — action feedback, help, and safe recovery. COMPLETE.
-4. S83 — capability-guided Admin access requests and approvals. COMPLETE.
-5. S84 — navbar dropdown navigation. COMPLETE.
-6. S82 — table-first renewal desk and guided lease workspace. Baseline deployed; conformance
-   remediation active.
-7. S97 — governed RentVine renewal writeback. Baseline deployed; integrity remediation active.
-8. S98 — operating renewal Sheet append and fixed-row capability boundary. Baseline deployed;
-   append-only remediation active.
-9. S99 — RentVine Maintenance work-order writeback. COMPLETE.
-10. S100 — RentVine work-order chat sync and resident draft. BLOCKED on the resident-draft runtime
-    input; chat sync complete.
-11. S51/S54 — production assurance expansion. Committed; owns the shared release gate for steps 6-8.
-12. S102 — tenant current rent from the RentVine lease detail. Committed and candidate-deployed,
-    not promoted.
-13. S103 — lease term and renewal eligibility. Committed and candidate-deployed, not promoted.
-14. S104 — renewal desk and workspace parity closure. Committed and candidate-deployed, not
-    promoted.
-15. S105 — end-to-end renewal lifecycle closure. Committed and candidate-deployed, not promoted;
-    its Dotloop phase link waits on S106 and S34.
-16. S106 — Dotloop connection and renewal readiness. Committed and candidate-deployed, not
-    promoted; only its live readiness check is blocked on the owner's OAuth application and
-    connected account.
-17. S34 — Dotloop renewal packet lifecycle. Committed and candidate-deployed; live loop creation is
-    blocked on the owner's OAuth application, connected account, artifact content source, and key
-    activation.
-18. S107 — confirmed renewal effect continuation and recovery. Committed and candidate-deployed,
-    not promoted; no job queue, scheduler, worker, or automatic retry is added, so the recorded
-    conflict with the owner package stands.
-19. S108 — maintenance work-order alignment, blockers, and preapproval routing. Committed and
-    candidate-deployed, not promoted; RentVine attachments and the undocumented work-order dashboard
-    URL stay out.
-20. S109 — maintenance intake triage and troubleshooting assistant. Committed and
-    candidate-deployed, not promoted; public file upload and unreviewed links stay out.
-21. S110 — Dashboard assistant V1, three read-only intents. Committed and candidate-deployed, not
-    promoted; streaming, actions, and any fourth intent stay out.
-22. S111 — the renewal-completion integrated proof and operator guide. Committed and
-    candidate-deployed, not promoted; live Dotloop and the owner-supplied maintenance inputs stay
-    recorded as blocked by external environment.
-23. S36 — temporary Space provisioning pilot and exact retirement. S36 is queued behind complete S100.
-24. S88, then S89 — deterministic assistant foundation, privacy, observability, cancellation, and
-    cost controls.
-25. S90 and S91 — Work/access and renewal query adapters.
-26. S92 — knowledge and bounded grounded narration.
-27. S94 — human-confirmed renewal-to-self task action against strict S93-slot fixtures.
-28. S93 — streaming/linked-result UI, followed by the single S93/S94 integration gate.
-29. S95 — atomic minimal Dashboard composition and relocation.
-30. S87 — final six-cohort product-wide content reconciliation and end-to-end verification.
-31. S101 — post-S87 read-only cross-application assistant expansion.
+## Wednesday deliverables
 
-The correction slice is an explicit S82 conformance, S97/S98 integrity, and release-assurance
-intercept; it does not pretend a dependent feature suite advanced. Default to serialization. Only
-bounded S90/S91 domain work may run in isolated worktrees after its prerequisites, with shared
-registries/schema/delivery serialized. No dependent starts after a failed gate.
+The meeting is owner-supplied for Wednesday afternoon; time, duration and attendees are unverified.
+The proposed agenda is 45 minutes. Josiah coordinates preparation and assigns client owners during
+the meeting; no client due date is presumed.
+
+| Deliverable                                                                          | Intended outcome                                                                   | Acceptance before use                                                                                                 |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [Client walkthrough](products/renewal-client-walkthrough-2026-09-09.md)              | Staff understand one lease from source review to the actual packet stopping point. | Chosen lease and role verified privately; release-dependent controls labelled; no demonstration transaction invented. |
+| [Agenda](products/client-call-agenda-2026-09-09.md)                                  | Spend meeting time on workflow, decisions and ownership.                           | Confirm time/participants; agree the proposed duration and demonstration origin.                                      |
+| [Blockers and open questions](products/wednesday-decisions-and-inputs-2026-09-09.md) | Obtain forms, resident-chat evidence and property-policy inputs.                   | Each open item gets a named owner, exact handoff, completion evidence and agreed date.                                |
+| [Delivery readout](products/wednesday-delivery-readout-2026-09-09.md)                | Explain delivered behavior, pending outcomes and the next acceptance sequence.     | Match the latest release evidence; use the current written version until the deck/PDF have been refreshed.            |
 
 ## Per-suite delivery rule
 
-For each code suite, re-read current code and live read-only state, freeze fail-first and preservation
-evidence, implement closed before effect activation, run focused adversarial tests,
-`bash scripts/verify.sh`, and `npm run test:e2e:core`, then audit secrets, PII, protected paths,
-runtime configuration, effects, and diff. Commit/push only green work, require exact-SHA aggregate
-CI, and release served code through zero-traffic candidate smoke, candidate assurance, exact
-promotion/readback, observation, and the captured rollback contract. Read back every cloud/provider/
-config mutation and reconcile facts, status, this plan, and loop state before advancing.
+Commit and push only a green slice; then exact-main-SHA CI and an isolated clean candidate deploy.
+Smoke the exact candidate, capture fingerprint, replace only its superseded authorized domain,
+and read unchanged traffic. A fresh exact assurance receipt precedes promotion and the existing
+300,000 ms observation and predecessor recovery. Documentation-only changes do not deploy.
+Authentication pauses its dependent phase; challenged browsers wait for new attended enrollment.
 
-Each suite terminates only as `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` when the user supplied an explicit
-budget, or `BLOCKED` on one exact unavailable runtime input after all independent closed-safe work is
-green. The full initiative completes only after S87 and final end-to-end verification are green and
-current docs match deployed/live readback.
+Fifteen COMPLETE narrative retirements preserve acceptance ownership in the facts ledger.
+The wider queue remains S100, S36, S88-S92, S94, S93 and its integration gate, S95, S87, then S101.
+S87 — final six-cohort product-wide content reconciliation retains its recorded dependency gates.
+`ALL_GATES_GREEN` is terminal only after every required check and live acceptance gate passes.

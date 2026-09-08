@@ -13,7 +13,17 @@ interface ConnectorRecordBase {
   updatedAt: string;
 }
 
-interface ConnectedIdentity {
+export interface ConnectorOAuthMetadata {
+  refreshTokenRef?: string;
+  tokenExpiresAt?: string;
+  grantedScopes?: string[];
+  oauthState?: "ready" | "refreshing" | "refresh_needed";
+  refreshOperationId?: string;
+  refreshOutcomeUncertain?: boolean;
+  retainedSecretRefs?: string[];
+}
+
+interface ConnectedIdentity extends ConnectorOAuthMetadata {
   connectedByUid: string;
   connectedAt: string;
 }
@@ -36,6 +46,8 @@ export interface ConnectorRevocationPendingRecord
   operationId: string;
   requestedByUid: string;
   requestedAt: string;
+  providerRevocationState?: "attempting" | "verified";
+  providerRevokedAt?: string;
 }
 
 export interface ConnectorRevokedRecord extends ConnectorRecordBase, VersionedIdentity {
@@ -45,6 +57,7 @@ export interface ConnectorRevokedRecord extends ConnectorRecordBase, VersionedId
   requestedAt: string;
   completedAt: string;
   destroyOutcome: ConnectorDestroyOutcome;
+  providerRevokedAt?: string;
 }
 
 /**
@@ -78,6 +91,7 @@ export interface ConnectorRevocationReceipt {
   requestedAt: string;
   completedAt: string;
   destroyOutcome: ConnectorDestroyOutcome;
+  providerRevokedAt?: string;
 }
 
 export interface ConnectorRevocationRequest {
@@ -98,7 +112,7 @@ export interface ConnectorRevocationReadback {
   receipt: ConnectorRevocationReceipt;
 }
 
-export interface CreateConnectorConnectionInput {
+export interface CreateConnectorConnectionInput extends ConnectorOAuthMetadata {
   connectorId: string;
   method: ConnectMethod;
   secretRef: string;
@@ -114,6 +128,13 @@ export interface ConnectorConnectionStore {
     input: CreateConnectorConnectionInput,
   ): Promise<ConnectorConnectedRecord>;
   claimRevocation(input: ConnectorRevocationRequest): Promise<ConnectorRevocationClaim>;
+  recordDotloopProviderRevocation?(input: {
+    generationId: string;
+    operationId: string;
+    expectedRevision: number;
+    state: "attempting" | "verified";
+    observedAt: string;
+  }): Promise<ConnectorRevocationPendingRecord>;
   completeRevocation(input: {
     connectorId: string;
     operationId: string;
@@ -197,7 +218,9 @@ export function isSafeVersionedRevokedRecord(
     isExactIsoTimestamp(record.updatedAt) &&
     (record.destroyOutcome === "destroyed" ||
       record.destroyOutcome === "already_absent") &&
-    !("secretRef" in record)
+    !("secretRef" in record) &&
+    !("refreshTokenRef" in record) &&
+    !("retainedSecretRefs" in record)
   );
 }
 

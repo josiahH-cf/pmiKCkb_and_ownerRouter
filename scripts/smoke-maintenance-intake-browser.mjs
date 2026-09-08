@@ -1,3 +1,4 @@
+import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
 // S109 real-browser smoke for the public resident maintenance report form.
 //
 // Runs read-only against the local rehearsal server with a SYNTHETIC token that the local rehearsal
@@ -6,7 +7,7 @@
 // anything can create a request, that the structured questions are present, that the emergency line
 // is stated before the form, and that a link with no token refuses instead of submitting.
 
-import { accessSync, constants, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "playwright-core";
@@ -137,35 +138,6 @@ async function verifyTokenlessLink() {
     "A link with no token still reached the public intake route.",
   );
   await context.close();
-}
-
-function findBrowserExecutable() {
-  const configured = process.env.DESK_BROWSER_EXECUTABLE?.trim();
-  const candidates = configured
-    ? [configured]
-    : [
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-        "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-        "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
-      ];
-  const executable = candidates.find((candidate) => {
-    try {
-      accessSync(candidate, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  if (!executable) {
-    throw new Error("Chrome or Edge was not found for the S109 browser smoke.");
-  }
-  return executable;
 }
 
 function assert(condition, message) {

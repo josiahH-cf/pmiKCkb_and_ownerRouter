@@ -19,8 +19,8 @@ import {
 const identities = resolveIdentities({});
 
 const attendedProbe = Object.freeze({
-  platform: "win32",
-  wsl: false,
+  platform: "linux",
+  wsl: true,
   googleAppCreds: undefined,
   gcloud: {
     available: true,
@@ -46,15 +46,15 @@ const unattendedProbe = Object.freeze({
   wsl: true,
   gcloud: {
     available: true,
-    activeAccount: identities.automationPrincipal,
-    impersonation: identities.automationServiceAccount,
-    storeAccounts: [identities.automationPrincipal],
+    activeAccount: identities.localPrincipal,
+    impersonation: null,
+    storeAccounts: [identities.localPrincipal],
     tokenFresh: true,
   },
   adc: {
     present: true,
     fresh: true,
-    principal: identities.automationServiceAccount,
+    principal: identities.localPrincipal,
     errorKind: null,
   },
 });
@@ -96,7 +96,7 @@ describe("assessCredentials (attended, today's owner login)", () => {
       enrollCommand({
         attended: true,
         account: "josiah@pmikcmetro.com",
-        platform: "win32",
+        platform: "linux",
       }),
     );
     expect(gcloud.humanStep).toContain("npm run auth:enroll");
@@ -152,7 +152,7 @@ describe("assessCredentials (attended, today's owner login)", () => {
 
   it("accepts GH_TOKEN as a logged-in GitHub identity and blocks a logged-out gh", () => {
     const token = assessCredentials(
-      { ...attendedProbe, gh: { available: true, loggedIn: false, tokenEnv: true } },
+      { ...attendedProbe, gh: { available: true, loggedIn: true, tokenEnv: true } },
       { identities, need: parseNeed() },
     );
     expect(item(token, "gh").state).toBe("ok");
@@ -165,8 +165,10 @@ describe("assessCredentials (attended, today's owner login)", () => {
   });
 });
 
-describe("assessCredentials (unattended, the designated automation identity)", () => {
-  it("is ok only when the automation principal impersonates the automation service account", () => {
+// The 2026-09-08 owner decision supersedes the old automation/impersonation assertions.
+// Preserve negative identity coverage: the retired identity and every unexpected principal refuse.
+describe("assessCredentials (authorized local unattended account)", () => {
+  it("accepts the exact owner account without impersonation", () => {
     const result = assessCredentials(unattendedProbe, {
       identities,
       need: parseNeed(),
@@ -174,67 +176,54 @@ describe("assessCredentials (unattended, the designated automation identity)", (
     });
     expect(item(result, "gcloud").state).toBe("ok");
     expect(item(result, "gcloud").kind).toBe("unattended");
-    expect(item(result, "adc").state).toBe("ok");
-    expect(item(result, "adc").identity).toBe(identities.automationServiceAccount);
+    expect(item(result, "adc").identity).toBe(identities.localPrincipal);
     expect(exitCodeFor(result.items)).toBe(0);
   });
-
-  it("repairs a drifted active account or missing impersonation when the principal is enrolled", () => {
-    const drifted = assessCredentials(
+  it("refuses config drift without switching an identity or setting impersonation", () => {
+    const result = assessCredentials(
       {
         ...unattendedProbe,
         gcloud: {
           ...unattendedProbe.gcloud,
-          activeAccount: "josiah@pmikcmetro.com",
-          impersonation: null,
-          storeAccounts: ["josiah@pmikcmetro.com", identities.automationPrincipal],
+          activeAccount: "pmi-runner@pmikcmetro.com",
+          impersonation: "pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com",
         },
       },
-      { identities, need: parseNeed(), unattended: true },
-    );
-    expect(item(drifted, "gcloud").state).toBe("repairable");
-    expect(drifted.repairs.map((repair) => repair.action)).toEqual([
-      "gcloud-config-set-account",
-      "gcloud-config-set-impersonation",
-    ]);
-    expect(drifted.repairs[0].args).toEqual([
-      "config",
-      "set",
-      "account",
-      identities.automationPrincipal,
-    ]);
-  });
-
-  it("blocks with the unattended enroll command when the principal is not in the store", () => {
-    const result = assessCredentials(
-      { ...unattendedProbe, gcloud: attendedProbe.gcloud, adc: attendedProbe.adc },
       { identities, need: parseNeed(), unattended: true },
     );
     expect(item(result, "gcloud").state).toBe("blocked");
-    expect(item(result, "gcloud").humanStep).toBe(
-      enrollCommand({ attended: false, platform: "linux" }),
-    );
-    // The WSL store enrolls through bash; the PowerShell alias would enroll the Windows store.
-    expect(item(result, "gcloud").humanStep).toBe("npm run auth:enroll:wsl");
-    expect(item(result, "adc").state).toBe("blocked");
-    expect(item(result, "adc").code).toBe("attended_identity");
+    expect(result.repairs).toEqual([]);
   });
-
-  it("refuses a foreign service account as the ADC principal", () => {
+  it("requires enrollment when a local CLI identity is absent", () => {
     const result = assessCredentials(
+      { ...unattendedProbe, gcloud: { available: true } },
       {
-        ...unattendedProbe,
-        adc: {
-          present: true,
-          fresh: true,
-          principal: "other@pmi-kc-kb-prod.iam.gserviceaccount.com",
-          errorKind: null,
-        },
+        identities,
+        need: parseNeed(),
+        unattended: true,
       },
-      { identities, need: parseNeed(), unattended: true },
     );
-    expect(item(result, "adc").state).toBe("blocked");
-    expect(item(result, "adc").code).toBe("foreign_principal");
+    expect(item(result, "gcloud").state).toBe("blocked");
+    expect(item(result, "gcloud").humanStep).toBe(enrollCommand());
+  });
+  it("refuses a service account as local ADC, including the retired automation principal", () => {
+    for (const principal of ["pmi-kc-automation", "other"].map(
+      (name) => `${name}@pmi-kc-kb-prod.iam.gserviceaccount.com`,
+    )) {
+      const result = assessCredentials(
+        {
+          ...unattendedProbe,
+          adc: {
+            present: true,
+            fresh: true,
+            principal,
+          },
+        },
+        { identities, need: parseNeed(), unattended: true },
+      );
+      expect(item(result, "adc").state).toBe("blocked");
+      expect(result.repairs).toEqual([]);
+    }
   });
 });
 
@@ -285,22 +274,12 @@ describe("assessCredentials (canary sessions)", () => {
 });
 
 describe("enrollCommand", () => {
-  it("names the enrollment script for the shell's own store", () => {
-    expect(enrollCommand({ attended: false, platform: "win32" })).toBe(
-      "npm run auth:enroll",
-    );
-    expect(enrollCommand({ attended: false, platform: "linux" })).toBe(
-      "npm run auth:enroll:wsl",
-    );
-    expect(
-      enrollCommand({ attended: true, account: "a@pmikcmetro.com", platform: "win32" }),
-    ).toBe("npm run auth:enroll -- -Attended -Account a@pmikcmetro.com");
-    expect(
-      enrollCommand({ attended: true, account: "a@pmikcmetro.com", platform: "linux" }),
-    ).toBe("npm run auth:enroll:wsl -- --attended --account=a@pmikcmetro.com");
-    expect(enrollCommand({ attended: true, platform: "linux" })).toBe(
-      "npm run auth:enroll:wsl -- --attended",
-    );
+  it("names one WSL recovery command without interpolating another identity", () => {
+    for (const platform of ["win32", "linux"]) {
+      expect(enrollCommand({ platform, account: "a@pmikcmetro.com" })).toBe(
+        "npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com",
+      );
+    }
   });
 });
 

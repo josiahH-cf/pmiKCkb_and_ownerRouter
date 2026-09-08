@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
-import { Button, Field } from "@/components/ui";
+import { Button, ConfirmationDialog, Field } from "@/components/ui";
 
 interface WorkOrderRow {
   workOrderId: string;
@@ -37,8 +37,8 @@ interface ReadPayload {
 }
 
 export interface WorkOrderLinkView {
-  state: "pending" | "succeeded" | "ambiguous" | "failed";
-  execution_id: string;
+  state: "pending" | "succeeded" | "ambiguous" | "failed" | "linked";
+  execution_id?: string;
   provider_work_order_id?: string;
 }
 
@@ -103,6 +103,36 @@ export function RentvineWorkOrderPanel({
   } | null>(null);
   const [targetWorkOrderId, setTargetWorkOrderId] = useState("");
   const [targetStatusId, setTargetStatusId] = useState("");
+  const [existingWorkOrderId, setExistingWorkOrderId] = useState("");
+  const [linkPreview, setLinkPreview] = useState<{
+    previewHash: string;
+    values: Record<string, string>;
+  } | null>(null);
+
+  async function previewExistingLink() {
+    const result = await postWorkOrders({
+      operation: "preview_link",
+      ticketId,
+      workOrderId: existingWorkOrderId,
+    });
+    setLinkPreview(
+      result as unknown as { previewHash: string; values: Record<string, string> },
+    );
+  }
+
+  async function confirmExistingLink() {
+    if (!linkPreview) return;
+    const result = await postWorkOrders({
+      operation: "confirm_link",
+      ticketId,
+      workOrderId: linkPreview.values.work_order_id,
+      confirmedPreviewHash: linkPreview.previewHash,
+      confirmation: "Link this existing work order",
+    });
+    setLink(result.link as unknown as WorkOrderLinkView);
+    setLinkPreview(null);
+    setNotice("Existing work-order link recorded and read back. RentVine was read only.");
+  }
 
   async function run(action: () => Promise<void>) {
     setPending(true);
@@ -248,13 +278,15 @@ export function RentvineWorkOrderPanel({
 
       {link ? (
         <p className="muted" role="status">
-          {link.state === "succeeded" && link.provider_work_order_id
-            ? `Linked RentVine work order ${link.provider_work_order_id} (receipted).`
-            : link.state === "pending"
-              ? "A create attempt is awaiting approval or execution."
-              : link.state === "ambiguous"
-                ? "The last create outcome is unproven; reconcile before anything new."
-                : "The last create attempt was declined; a fresh proposal is allowed."}
+          {link.state === "linked" && link.provider_work_order_id
+            ? `Linked existing RentVine work order ${link.provider_work_order_id} (read-only import).`
+            : link.state === "succeeded" && link.provider_work_order_id
+              ? `Linked RentVine work order ${link.provider_work_order_id} (receipted).`
+              : link.state === "pending"
+                ? "A create attempt is awaiting approval or execution."
+                : link.state === "ambiguous"
+                  ? "The last create outcome is unproven; reconcile before anything new."
+                  : "The last create attempt was declined; a fresh proposal is allowed."}
         </p>
       ) : null}
 
@@ -267,6 +299,64 @@ export function RentvineWorkOrderPanel({
           Check RentVine
         </Button>
       </div>
+
+      {editor && hasVerifiedUnit && (!link || link.state === "failed") ? (
+        <section aria-label="Link an existing work order">
+          <Field
+            htmlFor={`existing-work-order-${ticketId}`}
+            label="Existing RentVine work-order identifier"
+          >
+            <input
+              id={`existing-work-order-${ticketId}`}
+              inputMode="numeric"
+              value={existingWorkOrderId}
+              onChange={(event) => {
+                setExistingWorkOrderId(event.target.value);
+                setLinkPreview(null);
+              }}
+            />
+          </Field>
+          <Button
+            disabled={pending || !/^[1-9][0-9]*$/.test(existingWorkOrderId)}
+            onClick={() => void run(previewExistingLink)}
+            variant="secondary"
+          >
+            Preview existing work-order link
+          </Button>
+          <p className="muted">
+            Reads the exact work order and checks its property and unit against this
+            ticket. Confirmation records the link in the app.
+          </p>
+        </section>
+      ) : null}
+      <ConfirmationDialog
+        open={linkPreview !== null}
+        title="Link this existing work order"
+        confirmLabel="Confirm existing work-order link"
+        busy={pending}
+        error={error || null}
+        onCancel={() => setLinkPreview(null)}
+        onConfirm={() => void run(confirmExistingLink)}
+        description={
+          <p>
+            This records an existing work-order link in the app. It reads RentVine and
+            creates no provider work order.
+          </p>
+        }
+      >
+        {linkPreview ? (
+          <dl>
+            <dt>Work order</dt>
+            <dd>{linkPreview.values.work_order_id}</dd>
+            <dt>Property</dt>
+            <dd>{linkPreview.values.property_id}</dd>
+            <dt>Unit</dt>
+            <dd>{linkPreview.values.unit_id}</dd>
+            <dt>Ticket</dt>
+            <dd>{linkPreview.values.ticket_ref}</dd>
+          </dl>
+        ) : null}
+      </ConfirmationDialog>
 
       {read?.list ? (
         <ul>

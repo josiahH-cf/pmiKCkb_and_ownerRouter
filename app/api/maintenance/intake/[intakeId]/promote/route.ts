@@ -1,3 +1,4 @@
+import { readVerifiedTicketProperty } from "@/lib/maintenance/verified-ticket-property";
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
@@ -19,7 +20,15 @@ export async function POST(request: Request, context: RouteContext) {
     const user = await requireCapabilityInSpace("edit", "maintenance");
     const { intakeId } = await context.params;
     const input = await parseOptionalJsonBody(request, PromoteIntakeInputSchema);
-    const ticket = await promoteUnverifiedIntake(user, intakeId, input);
+    const propertyId = await readVerifiedTicketProperty(input.unit?.unitId);
+    const ticket = await promoteUnverifiedIntake(
+      user,
+      intakeId,
+      input,
+      undefined,
+      Date.now(),
+      propertyId,
+    );
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

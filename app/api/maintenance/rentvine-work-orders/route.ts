@@ -5,6 +5,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
   EnvironmentContextError,
+  assertMutationAllowed,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import {
@@ -15,6 +16,7 @@ import { getMaintenanceTicket } from "@/lib/firestore/maintenance-tickets";
 import { getActionExecution } from "@/lib/firestore/action-executions";
 import {
   claimMaintenanceWorkOrderLink,
+  linkExistingMaintenanceWorkOrder,
   getMaintenanceWorkOrderLink,
   recordMaintenanceWorkOrderSnapshot,
   type MaintenanceWorkOrderProviderSnapshot,
@@ -36,14 +38,36 @@ import {
   assertWorkOrderActionAllowed,
   buildWorkOrderClients,
   runWorkOrderRead,
+  resolveTicketUnitMapping,
   workOrderDefinition,
   workOrderExecutor,
   workOrderS20,
 } from "@/lib/maintenance/execution/work-order-service";
 
+import {
+  buildExistingWorkOrderLinkPreview,
+  confirmExistingWorkOrderLinkPreview,
+} from "@/lib/maintenance/existing-work-order-link";
+
 const DecimalId = z.string().regex(/^[1-9][0-9]*$/);
 
 const BodySchema = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("preview_link"),
+      ticketId: z.string().trim().min(1).max(200),
+      workOrderId: DecimalId,
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal("confirm_link"),
+      ticketId: z.string().trim().min(1).max(200),
+      workOrderId: DecimalId,
+      confirmedPreviewHash: z.string().regex(/^[a-f0-9]{64}$/),
+      confirmation: z.literal("Link this existing work order"),
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("read"),
@@ -145,6 +169,46 @@ export async function POST(request: Request) {
         ...serializeRead(result),
         provider_snapshot: snapshot,
       });
+    }
+
+    if (body.operation === "preview_link" || body.operation === "confirm_link") {
+      const user = await requireCapabilityInSpace("edit", "maintenance");
+      if (body.operation === "confirm_link") assertMutationAllowed(descriptor);
+      await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
+      const clients = buildWorkOrderClients();
+      if (!clients) return notConfigured();
+      const ticket = await requireTicket(user, body.ticketId);
+      const mapping = await resolveTicketUnitMapping(ticket);
+      const observed = await clients.reader.getWorkOrder(Number(body.workOrderId));
+      if (observed.workOrder.workOrderId !== body.workOrderId)
+        throw new WorkOrderServiceError(
+          "provider_read_failed",
+          "The work-order read returned a different identity.",
+        );
+      const source = {
+        actorUid: user.uid,
+        accountRef: "pmikcmetro",
+        ticket,
+        mapping,
+        workOrder: observed.workOrder,
+      };
+      if (body.operation === "preview_link")
+        return NextResponse.json({
+          status: "preview",
+          ...buildExistingWorkOrderLinkPreview(source),
+        });
+      const preview = confirmExistingWorkOrderLinkPreview(
+        body.confirmedPreviewHash,
+        source,
+      );
+      const link = await linkExistingMaintenanceWorkOrder(user, {
+        ticketId: ticket.id,
+        ticketVersion: ticket.updated_at,
+        workOrderId: body.workOrderId,
+        ...mapping,
+        confirmedPreviewHash: preview.previewHash,
+      });
+      return NextResponse.json({ status: "linked", link });
     }
 
     if (body.operation === "propose_create") {
@@ -304,7 +368,9 @@ export async function POST(request: Request) {
           status: "executed",
           duplicate: true,
           execution_state: current.state,
-          ...(link?.provider_work_order_id
+          ...(link?.state === "succeeded" &&
+          link.execution_id === body.executionId &&
+          link.provider_work_order_id
             ? {
                 receipt: {
                   provider_ref: link.provider_work_order_id,

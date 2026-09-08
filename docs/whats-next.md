@@ -1,63 +1,32 @@
 # What is next
 
-Updated: 2026-09-07.
+Updated: 2026-09-08.
 
-## Immediate action
+Push the reviewed green readiness work and prepare Wednesday's four deliverables in
+[the current plan](plan.md). The owner-approved captured-label correction closes B-GOLD1;
+original private evidence, source values and every assertion are preserved.
 
-Run `npm run auth:ensure` first; authentication is pre-approved (`AGENTS.md`, Authentication) and a
-blocked credential names one human step without blocking anything else.
+Local CLI/ADC refresh and the app preflight work after reboot as josiah@pmikcmetro.com using the
+unchanged WSL enrollment. The 24-hour elapsed-session check is pending, earliest
+2026-09-09T12:46:45.730Z. Browser recovery is npm run auth:session -- --browser; the owner controls
+session policy. No identity, claim, IAM or impersonation change is needed.
 
-The renewal-completion program (S102-S111, rewritten S34) is committed through `7b3fdad` with
-exact-SHA CI green and carried by zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, which
-passed its anonymous smoke and is not promoted. Production serves commit
-`d243911cb20ffb01773072c0e27c723648eeea34` as revision `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`; its
-immediate rollback is `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
+Exact-SHA CI, isolated candidate smoke/configuration, existing managed Admin and Editor browser
+coverage on both origins, a bound assurance receipt, exact promotion and 300,000 ms observation
+remain release gates. The local watcher preserves the existing monitoring recipient independently
+of the development login. Its automatic release lifecycle still needs live acceptance.
 
-S112 (unattended authentication) is active: the automated login sequence is committed and read back
-on 2026-09-07. Promotion now waits only on the owner's one-time S112 setup, `docs/open-blockers.md`
-B-AUTH2. When it exists, the loop runs `npm run auth:ensure -- --need=canary` for both profiles on
-both origins, the candidate receipt run, the promotion, and the observation from
-`docs/loop-state.md`. Preserve `.claude/settings.local.json`, `output/`, and ignored `temp/` as
-user-owned content.
+Monitoring configuration, domains, managed role counts and app-recorded RentCast usage have current
+readbacks. A provisional October reading example is selected from ten leases with complete detail reads;
+its full workflow evidence and live-source browser rehearsal still need verification;
+customer evidence stays in excluded output. No comp request or completed provider proof was rerun.
 
-## Implementation sequence
+For Wednesday, use the walkthrough, proposed 45-minute agenda, decisions/inputs and current written
+delivery readout. Confirm the time and participants. Obtain named owners and dates for seven-family
+forms/mappings, a resident-chat work order with verified email and exact property preapproval inputs.
+Dotloop credentials remain external and its managed connection remains an owner action. The older
+deck/PDF need a content refresh before presentation.
 
-Use only the canonical queue in `docs/feature-suites/README.md`. S112's remaining slices come first
-and need no candidate except the last: wire `ensureAuthenticated` into every live script, the
-workstation secret template, the IAM audit, the assurance-harness integration of the canary sessions,
-then the read-only canary claim. After that, the agent-owned list in `docs/loop-state.md` (S106/S34
-runtime seams, the S100 link path, S98 seam, S108 property key, S34 readback, S110 window bounds, the
-rehearsal-server defect), then S36 behind complete S100, then the S88-S95 program.
-
-## Owner inputs that unblock promotion
-
-- The S112 one-time setup (`docs/feature-suites/unattended-authentication.md`, Appendix B): the
-  `Automation` organizational unit and its session policies, `pmi-runner@pmikcmetro.com`, the
-  `pmi-kc-automation` service account and grants, the two canary accounts, both credential stores
-  enrolled, and both canary profiles enrolled on both origins.
-- Fast path for the current candidate: two managed profiles enrolled today with
-  `npm run auth:enroll-canary` (one Admin, one claim-less account).
-
-The candidate hostname is an authorized sign-in domain, `monitoring:verify` reads `READY`, and the
-configuration fingerprint is captured; none of those is a hold. `docs/open-blockers.md` is the
-current ledger, including the three Wednesday asks (B-DL3, B-S100, B-MNT1).
-
-## Safe state while advancing
-
-- The runner never types a password, one-time code, or passkey, never completes a CAPTCHA, and never
-  copies a person's cookies or profile; when Google asks for a person, the named enrollment command
-  is the only step.
-- Assistant queries never grant access, start workflows, create generic approvals, send client
-  communication, or execute provider/source actions.
-- Completed S97-S99 and S100-chat proofs are not rerun, assigned to another record, or treated as
-  category authority.
-- The closed S100 resident-draft key may advance only with the exact eligible live mapping and its
-  own proof, close/readback, protected activation, release, and readback.
-- Dotloop live proofs need the owner's OAuth application and a connected account; every other
-  renewal-completion suite is provable through project fakes and the local rehearsal browser.
-
-## Runtime evidence
-
-No product question remains open beyond the confirm-with-default items in `docs/facts.md`. Missing or
-stale evidence blocks only its dependent gate and is never replaced with a personal identity, guessed
-value, Demo record, or different production record.
+S34 still needs approved catalog/participant mappings and the public packet workflow binding.
+Both Dotloop keys and the resident-draft key stay closed. The wider queue remains S100, S36,
+S88-S92, S94, S93 plus its integration gate, S95, S87, then S101. No missing result becomes a pass.

@@ -11,6 +11,7 @@
 // scripts/deploy-demo-cloud-run.mjs promotes in the same breath as it deploys, which is why D07 does
 // not accept it.
 
+import { ensureAuthenticated } from "./auth/ensure.mjs";
 import { spawn } from "node:child_process";
 import { accessSync, constants, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
@@ -217,7 +218,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (args.errors.length > 0) {
     throw new Error(`Release refused:\n- ${args.errors.join("\n- ")}`);
   }
-  const revisionSuffix = createDeployRevisionSuffix();
+  const revisionSuffix = args.revisionSuffix ?? createDeployRevisionSuffix();
   const deploy = buildDemoDeployCommand({ argv, env, revisionSuffix });
 
   // The exact map that `--set-env-vars` will REPLACE the revision's environment with. Parsing it
@@ -268,6 +269,16 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (!deploy.ok) {
     throw new Error(`Deploy preflight failed:\n- ${deploy.errors.join("\n- ")}`);
   }
+
+  const authentication = await ensureAuthenticated({
+    need: ["gcloud", "adc", "gh"],
+    unattended: true,
+    env,
+  });
+  if (authentication.exitCode !== 0)
+    throw new Error(
+      "Release authentication unavailable. Run npm run auth:session in WSL; resume this release phase afterward.",
+    );
 
   if (args.promote) {
     const candidateReceipt =

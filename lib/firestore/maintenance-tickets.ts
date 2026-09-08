@@ -127,6 +127,7 @@ export async function createMaintenanceTicket(
   actor: AuthenticatedUser,
   input: CreateMaintenanceTicketInput,
   db: Firestore = getAdminFirestore(),
+  verifiedPropertyId?: string,
 ): Promise<MaintenanceTicketRecord> {
   assertCan(actor, "edit");
   const parsed = CreateMaintenanceTicketInputSchema.parse(input);
@@ -144,6 +145,9 @@ export async function createMaintenanceTicket(
       summary: parsed.summary,
       description: parsed.description,
       unit: { unitId: parsed.unit.unitId, label: parsed.unit.label },
+      ...(verifiedPropertyId && /^[1-9][0-9]*$/.test(verifiedPropertyId)
+        ? { property_id: verifiedPropertyId }
+        : {}),
       photo_refs: parsed.photo_refs,
       reporter: { kind: "staff" as const, uid: actor.uid },
       labels: [],

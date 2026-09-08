@@ -12,6 +12,7 @@ import {
   validateProfilePath,
 } from "./browser";
 import { readArg, requireArg } from "./cli";
+import { recordBrowserEnrollment } from "./browser-enrollment.mjs";
 
 async function main(argv = process.argv.slice(2)): Promise<number> {
   const origin = new URL(requireArg(argv, "--origin")).origin;
@@ -45,6 +46,7 @@ async function main(argv = process.argv.slice(2)): Promise<number> {
   });
   console.log(JSON.stringify({ ...result, executablePath, profile }));
   if (result.result === "signed_in") {
+    recordBrowserEnrollment(profile);
     console.error(
       `[enroll-canary] enrolled: ${email} is signed in on ${origin} as ${result.role ?? "an unknown role"}. Unattended re-sign-in: npm run auth:ensure -- --need=canary --origins=${origin} --admin-profile=<profile> (or --editor-profile).`,
     );

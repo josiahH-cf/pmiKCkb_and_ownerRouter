@@ -31,6 +31,7 @@ export interface UnitCandidate {
   label: string;
   /** The RentVine property this unit belongs to (reference only; the address is on the unit append). */
   propertyId?: string;
+  propertyConflict?: true;
 }
 
 export interface ScoredUnitCandidate {
@@ -176,7 +177,7 @@ export function deriveUnitCandidatesFromExport(
   skipped: number;
 } {
   const candidates: UnitCandidate[] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, UnitCandidate>();
   let skipped = 0;
 
   for (const row of rows) {
@@ -196,21 +197,40 @@ export function deriveUnitCandidatesFromExport(
     }
 
     const unitId = `unit:${rawId}`;
-    if (seen.has(unitId)) continue;
-    seen.add(unitId);
 
     const property = (
       row.property && typeof row.property === "object" ? row.property : {}
     ) as Record<string, unknown>;
-    const propertyId =
-      firstPresentString(unit, PROPERTY_ID_KEYS) ??
-      firstPresentString(lease, PROPERTY_ID_KEYS) ??
-      firstPresentString(property, PROPERTY_ID_KEYS);
-    candidates.push({
+    const propertyIds = [
+      ...new Set(
+        [
+          firstPresentString(unit, PROPERTY_ID_KEYS),
+          firstPresentString(lease, PROPERTY_ID_KEYS),
+          firstPresentString(property, PROPERTY_ID_KEYS),
+        ].filter((value): value is string => value !== null),
+      ),
+    ];
+    const propertyId = propertyIds.length === 1 ? propertyIds[0] : undefined;
+    const previous = seen.get(unitId);
+    if (previous) {
+      if (
+        propertyIds.length > 1 ||
+        previous.propertyConflict ||
+        (previous.propertyId && propertyId && previous.propertyId !== propertyId)
+      ) {
+        delete previous.propertyId;
+        previous.propertyConflict = true;
+      } else if (!previous.propertyId && propertyId) previous.propertyId = propertyId;
+      continue;
+    }
+    const candidate: UnitCandidate = {
       unitId,
       label: composeUnitAddress(unit) ?? UNIT_ADDRESS_UNVERIFIED,
       ...(propertyId ? { propertyId } : {}),
-    });
+      ...(propertyIds.length > 1 ? { propertyConflict: true } : {}),
+    };
+    seen.set(unitId, candidate);
+    candidates.push(candidate);
   }
 
   return { candidates, skipped };

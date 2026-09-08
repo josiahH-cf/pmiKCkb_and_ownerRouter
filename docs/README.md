@@ -16,6 +16,10 @@ point for historical documents removed during the 2026-08-26 context reset.
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
 
+The owner directed preparation of four Wednesday deliverables in `docs/plan.md`. Use the current
+written readout while the earlier deck/PDF await a content refresh. `docs/status.md` and the
+readiness review own implementation and verification truth; release acceptance remains separate.
+
 ## Current core
 
 | Need                   | Document                                           |
@@ -68,6 +72,11 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
   is read by `npm run smoke:renewal-guide-controls-browser`, so a step cannot name a control the
   application does not show.
 
+- `docs/products/renewal-client-walkthrough-2026-09-09.md` — staff steps with serving/candidate holds.
+- `docs/products/client-call-agenda-2026-09-09.md` — owner-supplied Wednesday agenda and exact inputs.
+- `docs/products/wednesday-decisions-and-inputs-2026-09-09.md` — three client inputs, decisions and owners/dates.
+- `docs/products/wednesday-delivery-readout-2026-09-09.md` — current written outcomes and acceptance plan.
+
 ## Active feature contracts
 
 Use `docs/feature-suites/README.md`. It is the sole queue for the current initiative. S96, S85, S86,
@@ -79,11 +88,16 @@ sync is deployed; its resident-draft
 action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
 them before S36; see the README bundle section. S36 is queued behind
 complete S100, and S87-S95 plus S101 remain specification-only desired behavior. S112 (unattended
-authentication) is active: its login sequence is committed and its one-time owner setup is
-`docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
+authentication) is active: owner enrollment and post-reboot proofs pass; elapsed-session and managed
+browser acceptance remain in `docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
 and facts own their contract; Git history retains provenance.
 
 ## Current evidence and templates
+
+- `docs/evidence/wednesday-readiness-review-2026-09-07.md` — adversarial scope and exact result ledger.
+- `docs/products/wednesday-delivery-readout-2026-09-09.md` — current meeting readout. The stale
+  August deck/PDF were retired from the active tree; Git retains the original versions and the
+  pending local drafts were preserved privately before removal.
 
 - `docs/evidence/ui-ux-audit-2026-08-31.html` — self-contained source-evidenced UI/UX audit
   workbench with matrices, findings, recommendations, reviewer decisions, and generated handoff.
@@ -113,3 +127,7 @@ git show 1356918:path/to/old-document
 Do not restore an old document into the active tree merely to preserve history. Extract only the
 still-true fact, verify it against current code/live state, and place that concise result in the
 appropriate current document.
+
+B-GOLD1 closed after owner-reviewed source evidence and a single expected-label correction;
+source values and all assertions are preserved. Local authentication works after reboot.
+Elapsed-session proof, exact browser assurance and release acceptance remain pending.

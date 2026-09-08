@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 // S34: the concrete `DotloopProvider` over the S106 client.
 //
 // One approved current renewal packet becomes exactly one loop. The loop NAME is the app-chosen,
@@ -162,8 +163,12 @@ export class LiveDotloopProvider implements DotloopProvider {
         "The approved artifact content source is not wired, so no document can be uploaded to Dotloop.",
       );
     }
-    const folderId = await this.#packetFolder(input.loopRef);
     const artifact = await artifactContent(input.documentRef);
+    if (createHash("sha256").update(artifact.content).digest("hex") !== input.contentHash)
+      throw new Error(
+        "The approved artifact content hash changed; review a fresh packet before uploading.",
+      );
+    const folderId = await this.#packetFolder(input.loopRef);
     const uploaded = await client.uploadDocument({
       profileId: selection.profileId,
       loopId: input.loopRef,
@@ -223,12 +228,8 @@ export class LiveDotloopProvider implements DotloopProvider {
     };
   }
 
-  /**
-   * Read one uploaded document back by its exact composite reference. The provider exposes no
-   * content hash of its own, so the caller's confirmed type and hash are echoed only after the
-   * document is observed present in the exact loop folder; without them the readback carries
-   * empty values and can never match a preview.
-   */
+  /** The provider exposes document identity and name, but no content hash or document type.
+   * Presence is recorded separately from the app's confirmed submitted content. */
   async readDocument(
     documentRef: string,
     expected?: { documentType: string; contentHash: string },
@@ -237,8 +238,12 @@ export class LiveDotloopProvider implements DotloopProvider {
     loopRef: string;
     documentType: string;
     contentHash: string;
+    evidenceLevel: "presence_only";
+    documentId: string;
+    documentName: string;
     active: boolean;
   } | null> {
+    void expected;
     const [loopRef, folderId, documentId] = documentRef.split(":");
     if (!loopRef || !folderId || !documentId) return null;
     const documents = await this.#deps.client.listFolderDocuments({
@@ -246,12 +251,16 @@ export class LiveDotloopProvider implements DotloopProvider {
       loopId: loopRef,
       folderId,
     });
-    if (!documents.some((document) => document.id === documentId)) return null;
+    const observed = documents.find((document) => document.id === documentId);
+    if (!observed) return null;
     return {
       documentRef,
       loopRef,
-      documentType: expected?.documentType ?? "",
-      contentHash: expected?.contentHash ?? "",
+      documentType: "",
+      contentHash: "",
+      evidenceLevel: "presence_only",
+      documentId: observed.id,
+      documentName: observed.name,
       active: true,
     };
   }

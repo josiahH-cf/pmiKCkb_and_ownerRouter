@@ -1,15 +1,11 @@
-// ADC freshness preflight. On this managed org, `gcloud auth application-default login` is
-// reauth-gated (RAPT), so the Application Default Credentials token silently goes stale and ANY live
-// Google read (Sheets via DWD, Firestore, Vertex) fails mid-run with invalid_rapt / invalid_grant —
-// the recurring stall. Run this FIRST on a new session and as part of planning, before building any
-// step that touches a live Google read; if it fails, reauth before proceeding. Read-only: it only
-// mints an access token, no data. CI / no-ADC environments will report "missing" and exit 1 — that is
-// expected there, which is why this is a planning preflight, not part of verify.sh / CI.
+// Local ADC freshness preflight. The shared auth path verifies the specifically approved identity
+// and WSL enrollment before any ordinary token probe. Missing evidence stops only dependent reads;
+// no provider body or token is printed. This is a live prerequisite, not part of verify.sh / CI.
 //
 //   npm run preflight:adc
 
 import { pathToFileURL } from "node:url";
-import { GoogleAuth } from "google-auth-library";
+import { ensureAuthenticated } from "./auth/ensure.mjs";
 
 const REAUTH_COMMAND = "gcloud auth application-default login";
 
@@ -57,29 +53,19 @@ export function reauthGuidance(kind) {
   return ["ADC preflight FAILED with an unexpected error (see the message above)."];
 }
 
-async function main() {
-  const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
+export async function main({ output = console.log } = {}) {
   try {
-    const client = await auth.getClient();
-    const token = await client.getAccessToken();
-    if (!token || !token.token) {
-      throw new Error("ADC returned no access token.");
-    }
-    console.log(
-      "ADC preflight OK: Application Default Credentials are fresh — live Google reads (Sheets/Firestore/Vertex) will work.",
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    for (const line of reauthGuidance(classifyAdcError(message))) {
-      console.error(line);
-    }
-    process.exitCode = 1;
+    const result = await ensureAuthenticated({ need: ["adc"], unattended: true });
+    for (const line of result.lines) output(line);
+    return result.exitCode;
+  } catch {
+    output("ADC preflight could not verify the approved local credentials.");
+    return 1;
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main().then((code) => {
+    process.exitCode = code;
+  });
 }

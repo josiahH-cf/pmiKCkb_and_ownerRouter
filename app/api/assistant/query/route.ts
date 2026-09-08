@@ -37,6 +37,7 @@ export async function POST(request: Request) {
         return {
           status: "ok" as const,
           rows: source.outcome.view.items,
+          coverage: source.coverage,
           degraded: source.auxiliaryFailures.map((failure) => failure.key),
         };
       },

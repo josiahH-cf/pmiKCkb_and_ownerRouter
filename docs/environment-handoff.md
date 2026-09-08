@@ -1,6 +1,13 @@
 # Environment and release handoff
 
-Updated from live readback and approved target contracts: 2026-09-07.
+Updated: 2026-09-08. Verified CLI readback reconfirmed traffic, exact revision identities,
+Production + Live and the managed runtime identity; both public version endpoints matched.
+The same readback verified eleven Spaces, the enabled Sheet switch, false Demo flags, RentVine
+and RentCast secret bindings, RentCast selection and allowance 50, and absent Dotloop client
+bindings. Fingerprint, authorized domains, monitoring and measured usage retain their 2026-09-06
+evidence date; a configured allowance does not establish remaining headroom. Browser ADC enrollment,
+fresh-shell and paired post-reboot CLI/ADC refresh, and the app ADC preflight passed on 2026-09-08. No new deployment,
+domain mutation or promotion occurred in the readiness run.
 
 ## Production
 
@@ -37,28 +44,91 @@ readback pass.
   project (org policy) and every preflight refuses them.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
   from source uploads.
-- Authentication is pre-approved and self-repairing (S112, `AGENTS.md` Authentication). Run
-  `npm run auth:ensure` first in any shell: it probes the gcloud CLI, the library ADC, `.env.local`,
-  the GitHub CLI, and on request the canary browser sessions; repairs gcloud config drift without a
-  browser; and exits 2 naming one human step per blocked credential. `--unattended` requires the
-  designated automation identity (`pmi-runner@pmikcmetro.com` impersonating
-  `pmi-kc-automation@pmi-kc-kb-prod.iam.gserviceaccount.com`); until the owner's one-time setup
-  exists (`docs/open-blockers.md` B-AUTH2), attended work runs under the owner's managed account.
-- Each shell has its own credential store and enrolls it once, interactively, with the owner
-  completing Google in a browser: `npm run auth:enroll` (Windows store) and `npm run auth:enroll:wsl`
-  (WSL store, the unattended path). The Google client libraries read ADC only from the shell's own
-  home, so never point one shell at another's store. `npm run auth:session` is the attended form of
-  the Windows enrollment.
-- The runner never types a password, one-time code, or passkey, never completes a CAPTCHA, and
-  never copies a person's cookies or profile. When Google asks for a person, `auth:ensure` names
-  the exact enrollment command and nothing else stops.
-- Browser assurance uses two persistent profile directories outside the repository, one per
-  canary, enrolled once per origin with `npm run auth:enroll-canary` and re-signed-in unattended by
-  `npm run auth:ensure -- --need=canary`. The browser that enrolls a profile is the browser that
-  reuses it: under WSL that is the Linux browser `scripts/auth/browser.ts` resolves (Google Chrome
-  for Linux when installed, otherwise the installed Playwright Chromium) with a WSL-native absolute
-  profile path; pass the same binary to the assurance harness through `PLAYWRIGHT_CHROME_PATH`.
-  Never guess or copy a default or personal profile or infer a role from a cookie.
+- Only `josiah@pmikcmetro.com` is approved for unattended local work on this WSL host. Reuse its
+  WSL credential store and ignored provider configuration; never substitute another identity,
+  impersonation, key file, credential override or Windows store.
+- `npm run preflight:adc` delegates to the same approved identity/store assessment and emits no
+  provider error body; it cannot probe an unverified ADC identity.
+- `npm run auth:status` inspects only. Unprobed freshness is unverified. `npm run auth:ensure`
+  verifies identity/store before ordinary Google-library refresh. Browser enrollment verified the
+  owner identity and bound the exact WSL ADC file. Fresh-shell and paired post-reboot CLI/ADC and app
+  ADC preflights are READY using the unchanged enrollment. A transient identity lookup receives one
+  bounded retry; an unavailable lookup remains blocked without directing unnecessary reenrollment.
+- `auth:session`, `auth:enroll` and `auth:enroll:wsl` enroll CLI and ADC in WSL. The PowerShell
+  compatibility script delegates to WSL. The owner applies the account-scoped Cloud session-policy
+  exception and runs `npm run auth:session` in the WSL repository. Enrollment verifies Google identity
+  once and writes a local binding beside ADC because gcloud leaves its account field empty.
+- Manual enrollment announces its checks before printing Google's link. Keep the same command running,
+  open only its new link, and enter that link's code only at Google's terminal prompt. A cancelled
+  or failed attempt requires a fresh link/code pair; an old code cannot finish a restarted command.
+  Background checks have no terminal input, and a failed login stops without binding or retrying.
+- `npm run auth:session -- --browser` uses Google's browser callback instead of copying a code.
+  Browser-control enrollment completed successfully on 2026-09-08. The required 24-hour elapsed-session
+  proof remains open; the owner-controlled session-policy exception was not changed by the runner.
+- The runner never changes that policy or enters a password, code, passkey or CAPTCHA. When Google
+  needs a person, the dependent phase pauses with one recovery command; independent work continues.
+- Browser assurance reuses two existing managed profiles outside Git, each on both exact origins.
+  Enroll through `npm run auth:enroll-canary`; unattended checks use `auth:ensure -- --need=canary`.
+  The shared Linux browser resolver selects the installed executable, reused by the assurance harness.
+  Never copy a personal profile or infer a role from cookies. Verification accounts retain displayed
+  roles, but server boundaries refuse business effects. Authentication, logout and genuine reads work.
+- A successful attended browser enrollment writes an opaque local marker. After a challenge the
+  watcher waits for that marker to change before another browser auth probe; it cannot loop login.
+
+### Local release watcher
+
+`scripts/install-release-watcher.ps1` installs and reads back the limited interactive-user task
+`PMI KC release watcher`. The logon trigger, catch-up and one-instance policy passed readback. After
+an unexplained Windows launcher exit left an idle Linux watcher alive, the exact process was stopped
+without a release checkpoint and the task restarted at 2026-09-08T16:41:36Z. Readback confirms a
+running launcher and one Linux watcher; live automatic release acceptance remains pending.
+`-CheckOnly` inspects without reinstalling. The hidden launcher is
+`scripts/run-release-watcher.ps1`; its non-secret logs are under `%LOCALAPPDATA%/PMI-KC/release-watcher`.
+WSL checkpoints and serialized locks live under `~/.local/state/pmi-kc-release`, outside Git.
+
+Set MONITORING_OPERATOR_EMAIL in ignored .env.local to the existing verified managed alert
+recipient. It is independent of the approved CLI/ADC login. Missing, non-managed or conflicting
+configuration refuses the watcher; it never rewrites the cloud channel to match a development login.
+The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
+
+Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
+The installed task runs `release:watch`. Current main `30d2148` lacks the foundation file, so dry-run
+and running readbacks refuse with `foundation_not_in_target`; no deployment has occurred.
+Only exact-main-SHA green push CI permits an isolated runtime/served-asset release. Documentation-only
+commits do not deploy. Candidate readbacks, domain replacement, fresh assurance receipt, exact
+promotion and 300,000 ms observation remain gates. Durable rollback intent is stored before traffic
+mutation; lost responses are read back and restart recovery cannot overwrite unrelated traffic.
+
+## Local rehearsal
+
+Node tooling runs in WSL. The tested alternate runtime is Linux Node 22.23.2 at
+`/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin`. Exact ordinary invocation:
+
+```bash
+export PATH=/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH
+VITEST_MAX_WORKERS=2 npm run dev
+```
+
+The fallback tested was `npm run dev -- --webpack`. Both were tested with a scratch network refusal
+for authenticated external sources before unattended authentication was recovered. The original
+ArrayBuffer failure was not reproduced in that constrained run; neither invocation is claimed as a
+verified workaround with live data. Webpack additionally hit cold-route compilation timeouts.
+The final Dashboard smoke selects the installed Linux browser explicitly with
+`DESK_BROWSER_EXECUTABLE=/home/josiah/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome`;
+the Windows browser fallback cannot use a Linux remote-debugging pipe. This does not enroll or
+change a managed canary profile.
+Use the required two-worker ceiling for Vitest and complete scratch logs without piping through tail.
+Local Demo + Live-read-only refuses every persistence/provider effect, including app-owned progress.
+Do not manufacture source data or bypass identity policy to make a browser smoke pass.
+
+The 2026-09-07 verification used native WSL storage for a byte-identical manifest/lockfile install
+and the Firestore emulator tests. Turbopack refused the external dependency symlink, so the original
+mounted Linux installation was restored. No package version, bundler configuration, or assertion
+was changed. B-GOLD1 subsequently closed after live source readback and the owner's explicit
+approval of one expected-label correction. All source values and assertions are preserved. Native
+and direct checks use the same excluded capture directory. Corrected full units pass 6,360 tests
+with four skipped; 168 Firestore tests and production build pass. The native helper no longer
+imports .env.local into test configuration. See the bodyless readiness review for check outcomes.
 
 ## Preflight
 

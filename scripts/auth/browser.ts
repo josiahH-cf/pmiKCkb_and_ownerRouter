@@ -4,9 +4,8 @@
 // password, code, challenge, or consent prompt is reported as a human step. Nothing here types a
 // credential, reads a cookie, or copies a profile.
 
-import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, statSync } from "node:fs";
+import { isAbsolute, relative, resolve } from "node:path";
 import { chromium, type BrowserContext, type Locator, type Page } from "playwright-core";
 
 import { classifyLocation, decideGoogleStep } from "./google-step";
@@ -52,48 +51,8 @@ export interface SessionOptions {
 const DEFAULT_STEP_TIMEOUT_MS = 90_000;
 const POLL_MS = 750;
 
-/** One browser for enrollment and for every later session, so the profile format always matches. */
-export function resolveHarnessBrowser(
-  env: NodeJS.ProcessEnv = process.env,
-  platform: NodeJS.Platform = process.platform,
-): string {
-  const candidates: string[] = [];
-  const explicit = env.PLAYWRIGHT_CHROME_PATH?.trim();
-  if (explicit) candidates.push(explicit);
-  if (platform === "win32") {
-    candidates.push(
-      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-      join(env.LOCALAPPDATA ?? "", "Google\\Chrome\\Application\\chrome.exe"),
-    );
-  } else {
-    candidates.push(
-      "/usr/bin/google-chrome",
-      "/usr/bin/google-chrome-stable",
-      "/usr/bin/chromium",
-      "/usr/bin/chromium-browser",
-      ...playwrightChromiums(env),
-    );
-  }
-  const executable = candidates.find((candidate) => candidate && existsSync(candidate));
-  if (!executable) throw new Error("managed_browser_unavailable");
-  return executable;
-}
-
-function playwrightChromiums(env: NodeJS.ProcessEnv): string[] {
-  const root =
-    env.PLAYWRIGHT_BROWSERS_PATH?.trim() || join(homedir(), ".cache", "ms-playwright");
-  if (!existsSync(root)) return [];
-  return readdirSync(root)
-    .filter((name) => /^chromium-\d+$/.test(name))
-    .sort(
-      (a, b) => Number(b.slice("chromium-".length)) - Number(a.slice("chromium-".length)),
-    )
-    .flatMap((name) => [
-      join(root, name, "chrome-linux64", "chrome"),
-      join(root, name, "chrome-linux", "chrome"),
-    ]);
-}
+/** Shared resolver also owns smoke and promotion browser selection. */
+export { resolveBrowserExecutable as resolveHarnessBrowser } from "../lib/browser-executable.mjs";
 
 /** Refuse a Windows browser with a POSIX profile path or the reverse; the pairing is proven, not assumed. */
 export function assertBrowserProfilePairing(

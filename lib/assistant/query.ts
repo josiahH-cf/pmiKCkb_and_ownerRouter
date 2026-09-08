@@ -31,6 +31,8 @@ export interface AssistantRenewalRead {
   readonly rows: readonly DeskLeaseRow[];
   /** Supporting reads that did not answer. Present rows are still exact; the answer is partial. */
   readonly degraded?: readonly string[];
+  /** Inclusive bounds of the owning loader, not bounds inferred from returned rows. */
+  readonly coverage?: { readonly startIso: string; readonly endIso: string };
 }
 
 export interface AssistantQueryDependencies {
@@ -145,6 +147,29 @@ export async function runAssistantQuery(
         "The renewal source could not be read just now, so this answer is incomplete. Open the Renewals desk to see the current state.",
       links: [DESK_LINK],
     });
+  }
+
+  if (match.intent === "renewal.window") {
+    const month = match.filters.month ?? "";
+    const monthStart = `${month}-01`;
+    const [year, monthNumber] = month.split("-").map(Number);
+    const monthEnd = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+    if (
+      !read.coverage ||
+      read.coverage.startIso > monthStart ||
+      read.coverage.endIso < monthEnd
+    ) {
+      return envelope({
+        intent: match.intent,
+        appliedFilters: match.filters,
+        completeness: "partial",
+        sourceState: read.coverage
+          ? `This read covers ${read.coverage.startIso} through ${read.coverage.endIso}, so it cannot answer the whole requested month.`
+          : "The renewal read did not report its coverage bounds, so it cannot answer a whole month.",
+        clarification: "Which fully covered month would you like to review?",
+        links: [DESK_LINK],
+      });
+    }
   }
 
   const rows =
