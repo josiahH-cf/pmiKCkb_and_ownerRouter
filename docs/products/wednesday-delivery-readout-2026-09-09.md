@@ -1,64 +1,47 @@
-# Wednesday delivery readout and acceptance plan
+# What we did, what we show, what comes next
 
-**Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday afternoon,
-9 September 2026, is owner-supplied. This written readout accompanies the agenda and walkthrough.
+**Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday, 9 September 2026.
 
-## Outcomes we are working toward
+## What we did
 
-| Outcome                                            | What staff should be able to do                                                                                                             | Evidence required                                                                                                                                            |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Understand and act on a renewal                    | Find the correct lease; distinguish contractual rent from listed rent and comps; identify missing evidence and the next action.             | Fresh desk/workspace source agreement and a staff walkthrough on one real lease.                                                                             |
-| Prepare accurate communications and source changes | Review approved terms and exact recipients; create only an eligible unsent Gmail draft; have an Admin review each applicable source change. | Exact previews, confirmations, receipts and source readbacks for any real transaction; a person sends from Gmail.                                            |
-| Finish the document path                           | Use approved forms and verified participants; hand signatures to the responsible person; complete only with required evidence.              | Dotloop credentials, managed connection, approved catalog/mappings, separately authorized proof and real signed artifacts. This outcome is not yet complete. |
-| Make delivery repeatable                           | Verify changes before release and recover from interruption without repeating uncertain effects.                                            | Green exact-SHA CI, exact candidate smoke and configuration, managed-browser assurance, promotion/observation and authentication longevity proof.            |
+- **Live:** the renewal desk, source-backed review, owner terms, reviewed unsent Gmail drafts,
+  controlled source changes, access requests and grouped navigation.
+- **Built and pushed:** clearer evidence, term and response handling, safer source changes,
+  release recovery and readiness corrections. Automated checks passed. The newer build is deployed
+  as a candidate, awaiting sign-in and release verification.
+- **Prepared for today:** reusable visual training guide, simple agenda, blocker sheet and this
+  readout. The old guide's nonexistent completion click and missing tenant-response step are corrected.
 
-## What can be shown today
+## What we show today
 
-The serving app supports the original renewal desk, source-backed work, governed unsent draft
-handoff, exact activated RentVine operations, work orders and manual chat synchronization. Access
-requests, grouped navigation, official branding and shared confirmations are serving.
+Let an operator open any lease, check facts and explain the next action using the
+[guide](renewal-client-walkthrough-2026-09-09.md). Use reading and explanation while release checks
+remain open. Trace the full process, including waiting, counteroffers, non-renewal, signatures and
+completion. Log where the real lease stops.
 
-The zero-traffic candidate carries the renewal-completion program and source-integrity corrections.
-The readiness change set adds local authentication and release recovery, connector cleanup,
-approved publication-byte checks, maintenance linking/property identity, bounded assistant answers
-and operator-guide corrections. Local test success does not establish that these changes are serving.
+**Current limit:** a complete, repeatable live renewal is unproven. Sign-in needs renewal; five
+live-source browser checks remain failed or incomplete. The owner-message evidence handoff and
+document-to-completion path have gaps. Forms and Dotloop setup alone will not finish that work.
 
-Until exact release acceptance passes, use the serving app for a reading and preparation walkthrough.
-Show candidate-only behavior only with an explicit candidate label and a verified managed session.
-Do not use the serving app's older fixed-row Sheet controls to bypass the corrected append-only path.
+## What comes next
 
-## Delivery sequence and acceptance
+| Order | Work                                                                | How we know it is done                                                                      |
+| ----- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 1     | Restore sign-in and finish release/browser checks.                  | Intended build accepted; actual navigation passes; authentication longevity verified.       |
+| 2     | Connect owner-message and completion evidence steps.                | A new lease reaches each next stage through visible controls and verified evidence.         |
+| 3     | Finish approved forms, Dotloop setup and packet/signature handoffs. | Correct packet, participants and signed files are read back.                                |
+| 4     | Run the guide with a new operator and varied real leases.           | Each applicable path completes or stops for an explained reason; measure time and failures. |
 
-| Order                                    | Owner                                              | Work                                                                                                           | Completion evidence                                                                                               |
-| ---------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1 — before calling the new code released | Josiah / release operator                          | Push the reviewed green change set; verify exact-SHA CI and the isolated candidate lifecycle.                  | Candidate identity, unchanged traffic, fresh assurance receipt, exact promotion and 300,000 ms observation.       |
-| 2 — before the meeting demonstration     | Josiah and renewal operator                        | Select and privately verify one October lease; confirm access and the controls available on the chosen origin. | Source agreement, role readback, browser rehearsal and an explicit stopping point.                                |
-| 3 — Wednesday                            | Josiah and client owners                           | Run the walkthrough and decide the three missing inputs.                                                       | Each decision has a named person, private evidence destination and due date.                                      |
-| 4 — after inputs arrive                  | Relevant owner and implementation/release operator | Complete the bounded Dotloop, resident-draft and property-policy work in dependency order.                     | Each exact suite's inputs, proof, activation and readbacks pass; no completion inferred from configuration alone. |
+Assign names and dates using the [blocker sheet](wednesday-decisions-and-inputs-2026-09-09.md).
+Suggested owners are not yet commitments.
 
-The earliest enrollment-relative 24-hour authentication check is **Wednesday 9 September at
-07:46:45 America/Chicago** (12:46:45 UTC). It has not yet run. No reminder or automated follow-up
-was created by this task.
+## Acceptance for repeatable work
 
-## Meeting readiness and fallback
+Use the same sequence each time. Include acceptance, counteroffer, waiting, non-renewal, missing
+source evidence and uncertain results when those real cases arise. Record time, errors, repeated
+clicks and the last verified step privately. Set a throughput target with the client after measuring
+a baseline; no rate has been demonstrated.
 
-The written packet is ready for review. Implementation 6e77d18 is pushed to main and its full CI
-is green. Local live-source browser checks still have the B-REH1 timing/guide hold; use the reading
-and explanation fallback while that hold remains open. A full live completion demonstration remains conditional on
-release assurance, full evidence for the provisional October lease, and provider/content inputs. If any condition is
-missing, walk the available read and preparation steps, state the exact blocker and record the
-responsible person. Do not manufacture a transaction, reply, signature or success receipt.
-
-Use [the agenda](client-call-agenda-2026-09-09.md),
-[the walkthrough](renewal-client-walkthrough-2026-09-09.md),
-[decisions and inputs](wednesday-decisions-and-inputs-2026-09-09.md), and
-[the dated engineering review](../evidence/wednesday-readiness-review-2026-09-07.md).
-The stale deck/PDF were retired from the active packet. Git retains the originals and the pending
-local drafts were preserved privately. This written readout is the current meeting source.
-
-## Final preparation check
-
-Confirm the exact meeting time and participants, current serving version, managed access, selected
-lease and source evidence, and whether the demonstration is on the canonical app or a named
-candidate. Bring the three input requests and record owners/dates. Keep all client values private.
-No support message, client communication or provider transaction is authorized merely by this plan.
+A finished renewal needs the actual signed packet and all applicable completion evidence.
+A test run, draft, upload or status label alone does not establish completion.
+Technical evidence: [control review](../evidence/renewal-training-control-review-2026-09-09.md).

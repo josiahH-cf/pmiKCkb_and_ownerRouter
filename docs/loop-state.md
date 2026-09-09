@@ -1,89 +1,72 @@
 # Loop state
 
-Last updated: 2026-09-08. Read AGENTS.md, docs/facts.md and docs/open-blockers.md first.
+Last updated: 2026-09-09. Read AGENTS.md, docs/facts.md and docs/open-blockers.md first.
 
-## Objective and release checkpoint
+## Current objective
 
-The owner directed pushing all reviewed green work and preparing four Wednesday deliverables.
-The one captured-label correction is explicitly owner-approved after private source readback.
-Implementation commit 6e77d18f6d9916ba94078550d4b5ba73751e86c8 is pushed to main; all five CI jobs passed
-run 34262698002. This documentation follow-up does not alter the release payload.
+The owner asked for a very simple lease-agnostic training guide, visual workflow, agenda,
+blocker communication and delivery readout. The four documents have been rewritten from current
+code and public version readback. No new provider transaction or completed renewal is claimed.
 
-- Serving: pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, commit d243911cb20ffb01773072c0e27c723648eeea34, 100%.
-- Candidate: pmi-kc-app-rmtq71kjl-bff41bbdb5fa, commit 7b3fdadac134550c24b029034753a38f16e4096b, zero traffic.
+## Release checkpoint
+
 - Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Candidate: https://cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Candidate fingerprint recorded 2026-09-06:
-  sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda.
-- 2026-09-08 reads confirm exact versions/traffic, Production + Live, managed runtime, eleven Spaces,
-  Sheet switch, false Demo flags, RentVine/RentCast bindings, selection and allowance 50.
-  Dotloop client bindings remain absent. Nine authorized domains were reread.
-- The candidate carries the completion program, not this readiness change set. No readiness
-  deployment or promotion is yet verified; the watcher has accepted the green implementation SHA.
+- Public version: d243911cb20ffb01773072c0e27c723648eeea34 /
+  pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, reread 2026-09-09.
+- Candidate: https://cand-rmtt039q1-c1463245a94c---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+- Public version: 6e77d18f6d9916ba94078550d4b5ba73751e86c8 /
+  pmi-kc-app-rmtt039q1-c1463245a94c, reread 2026-09-09.
+- Watcher fingerprint:
+  sha256:8810a5f8d31b6b1bb698f0e3cad9a361556c5abd4a57ae00b673dd4e099e016f.
+- Watcher checkpoint: assurance, inFlight assurance, blocked authentication_required.
+  Preceding log reports smoke, fingerprint, domains and managed_browser_enrollment_required.
+- Predecessor is the canonical revision above. Promotion/observation remain unverified.
+  Last direct numeric traffic/config read was September 8; no fresh authenticated read is claimed.
+- Implementation CI 34262698002 and docs CI 34263680762 passed all five jobs.
+  Documentation changes do not deploy.
 
-## Authentication and watcher
+## Current authentication
 
-Enrollment: josiah@pmikcmetro.com at 2026-09-08T12:46:45.730Z in the existing WSL store.
-After Windows boot at 15:52:10.500Z, CLI/ADC refresh and app preflight passed without login/browser.
-The exact ADC file and its local binding stayed unchanged. Subsequent full auth:ensure passed again.
-The identity lookup has one bounded retry and accurate blocked guidance; 61 focused auth tests pass.
-The required 24-hour elapsed-session proof is pending, earliest 2026-09-09T12:46:45.730Z.
-The owner controls session policy. Recovery remains npm run auth:session -- --browser.
+Enrollment at 2026-09-08T12:46:45.730Z used only josiah@pmikcmetro.com and its bound WSL store.
+Fresh-shell and paired post-reboot CLI/ADC/app probes passed September 8 with unchanged enrollment.
+On September 9 around 07:29 UTC, full auth:ensure reported BOTH CLI and ADC blocked with reauth.
+GitHub remains ready. Current unattended authentication is NOT READY.
+The original 24-hour threshold was 12:46:45.730Z September 9; it was not reached or passed.
+A new enrollment would restart its elapsed proof; never reuse the old timestamp for that proof.
+The owner controls session policy. Recovery: npm run auth:session -- --browser.
+No repeated login loop, credential substitution, IAM or claim change is authorized.
+Existing managed Admin/Editor profiles still need both exact origins and a bound assurance receipt.
+Do not interrupt or restart the watcher during its persisted phase merely to retry authentication.
 
-The limited PMI KC release watcher task was recovered at 2026-09-08T16:41:36Z after an unexplained
-Windows launcher exit left an idle Linux watcher alive. No checkpoint existed during recovery.
-Readback confirmed the launcher and one Linux watcher; main 30d2148 was refused as
-foundation_not_in_target. Automatic release acceptance is not yet proven.
-The watcher now reads MONITORING_OPERATOR_EMAIL from ignored local configuration independently of
-the CLI identity. It preserves the existing managed alert recipient and refuses missing/conflicting
-configuration. Two new fail-first checks cover this distinction. The idle watcher was restarted with this code/configuration after verifying no release checkpoint;
-its task is Running and the green implementation SHA is accepted. Never interrupt an in-flight deployment
-without its exact checkpoint.
+## Training findings and implementation holds
 
-B-AUTH2 still requires existing managed Admin and Editor profiles on both exact origins.
-Claim-less managed accounts remain Editor with all Spaces. The receipt recipe is in
-docs/environment-handoff.md. Use the new candidate's exact identity/fingerprint if one is deployed.
-Promotion, 300,000 ms observation and final readbacks remain separate gates.
+B-FLOW1 now names missing normal handoffs:
 
-## Verification and source review
+- owner-message-sent evidence to the conditional Record owner response form;
+- mounted normal packet preview/confirm path;
+- verified provider/signature/compliance evidence to completion.
+  Thread linking derives contact evidence, not owner-message-sent. No general evidence-injection
+  UI or route is established. The legacy RenewalCompleteButton is not mounted by the workspace.
+  The guide now names actual tenant outcome controls, correct phase IDs, optional source changes,
+  and the packet evaluation's app-state effect. It does not promise a complete live click path.
 
-- B-GOLD1 is CLOSED. Live Sheet values/formulas/link metadata and an exact RentVine lease GET did
-  not establish the alleged historical source join. The owner approved removing only that expected
-  rent-conflict label. Original capture/worksheet and approval hashes are preserved privately;
-  source values, the remaining label, ambiguous-name refusal and all assertions are unchanged.
-- Corrected full native units: 6,360 passed, four skipped. Golden harness: 4/4 passed.
-  All 21 watcher tests pass in the full suite. 168 Firestore tests and production build pass.
-- The native check helper no longer imports .env.local into units; that had changed test defaults
-  and enabled unmocked provider reads. CI-style test environment is restored.
-- Prior same-day core E2E: 31 passed, 18 emulator-dependent skips under explicit external-source
-  refusal. Seven live-source browser smokes still need completion; no live-source pass is claimed.
-- Latest directory read: six managed users, three explicit Admin and three default Editor; none
-  disabled. Individual role evidence stays private. No roles changed.
-- App-recorded September RentCast usage is zero (counter absent); vendor-account usage is not
-  independently verified. No comp request was made. A provisional October reading example is selected privately from ten October leases; full workflow readiness is unverified.
-- S106 revocation/late-refresh quarantine and S34 exact S21 publication bytes have fail-first and
-  deliberate break/restore evidence. Catalog/participant/public packet mappings remain open.
-- S100/S98/S108/S110/S111 corrections and fifteen COMPLETE narrative retirements are in the slice.
-  The check ledger is docs/evidence/wednesday-readiness-review-2026-09-07.md.
+B-REH1: two of seven previous live-source browser smokes passed. Desk, Dashboard, navbar, theme
+and full guide failures remain. Documentation corrections do not close this hold.
+B-DL1/B-DL2/B-DL3, B-S100 and B-MNT1 retain their exact provider/owner inputs. S36 waits for S100.
+B-GOLD1 stays CLOSED with the owner's exact label correction; source values, original capture
+and every assertion remain unchanged. Prior verification: 6,360 unit passed / four skipped,
+168 Firestore tests, build and 21 watcher tests passed.
 
-## Next actions and Wednesday package
+## Next work
 
-1. Implementation is pushed and CI is green; read the durable watcher checkpoint for the exact next phase.
-2. The watcher completed isolated preparation and is in deploy for planned revision
-   pmi-kc-app-rmtt039q1-c1463245a94c; predecessor is the serving revision above.
-   Verify deployment/readbacks before using that planned identity as a candidate.
-3. Preserve post-reboot proof and complete the elapsed-session check at its actual earliest time.
-4. Verify October lease selection and run the live-source browser rehearsal privately.
-5. Use docs/plan.md's four deliverables: walkthrough, agenda, decisions/inputs and delivery readout.
-   Confirm meeting time/participants and assign owners/dates during the Wednesday session.
-6. Follow B-DL1/B-DL2/B-DL3, B-S100 and B-MNT1 from docs/open-blockers.md. S36 still waits on S100.
+1. The eight-page training PDF and four-page meeting PDF are reviewed; full native verification
+   and focused documentation checks passed. Inspect Git/CI for the documentation push; it does not deploy.
+2. Owner recovery unblocks authentication-dependent release work; complete actual elapsed proof,
+   managed browser receipt, promotion and 300,000 ms observation only at their gates.
+3. Implement B-FLOW1 under the existing evidence contracts; resolve B-REH1 on the intended origin.
+4. Use the four documents in docs/plan.md for Wednesday. Assign people and dates during the call.
+5. Verify completion and throughput with new operators on applicable real cases; no invented proof.
 
-The earlier deck/PDF need a content refresh; the written readout is current. Presentation authoring
-capability is unavailable in this session. Do not claim a refreshed deck or full live completion.
-Exclude .claude/settings.local.json, output/, golden-data/, ignored user specifications and scratch,
-credentials, provider bodies and customer values from Git/build uploads. Preserve every action and cost boundary.
-
-Current browser result: two of seven live-source smokes pass (maintenance blockers/intake).
-Desk sort, Dashboard, navbar and theme miss unchanged timing limits; the full guide misses the
-owner-phase navigation despite its corrected exact summary locator passing Chromium proof.
-B-REH1 owns this hold. Use the current written packet and source-reading fallback for Wednesday.
+Maintainer evidence: docs/evidence/renewal-training-control-review-2026-09-09.md.
+PDF source generator: docs/products/build-renewal-handouts.py; local outputs are in output/pdf.
+All customer values, screenshots, raw evidence, credentials and private policy inputs stay out of Git.

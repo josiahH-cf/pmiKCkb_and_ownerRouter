@@ -11,3 +11,18 @@ PMI KC is one application with three connected product lanes.
 Maintenance, Vendor/resident work, feedback, approvals, and staff work are application capabilities,
 not separate Demo products. Use `docs/status.md` for deployment truth and
 `docs/feature-suites/README.md` for unfinished behavior.
+
+## Wednesday packet and reusable training
+
+- [Printable training guide](renewal-training-guide.pdf): eight pages, including the process map.
+- [Printable meeting brief](wednesday-meeting-brief.pdf): four pages covering agenda, readout and blockers.
+- [Training guide](renewal-client-walkthrough-2026-09-09.md): visual process and exact clicks for any lease.
+- [Agenda](client-call-agenda-2026-09-09.md): what we did, what we show, what comes next.
+- [Blockers](wednesday-decisions-and-inputs-2026-09-09.md): impact, missing input, owner and resume check.
+- [Readout](wednesday-delivery-readout-2026-09-09.md): current delivery and repeatability acceptance.
+- [Control review](../evidence/renewal-training-control-review-2026-09-09.md): source-grounded limitations.
+- [PDF generator](build-renewal-handouts.py): render maintained Markdown locally with Python/reportlab.
+
+Output filenames: renewal-training-guide.pdf and wednesday-meeting-brief.pdf, in output/pdf.
+Render there, inspect every page, then copy the reviewed PDFs beside these maintained sources.
+These are training documents; no refreshed PowerPoint is claimed.

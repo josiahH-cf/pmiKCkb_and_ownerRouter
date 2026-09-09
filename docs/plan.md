@@ -1,73 +1,65 @@
-# Current implementation plan
+# Current plan
 
-Updated: 2026-09-08.
+Updated: 2026-09-09.
 
 ## Outcome
 
-The complete reviewed readiness implementation is pushed to main as 6e77d18; all five CI jobs pass.
-Prepare and review the four deliverables
-for Wednesday, 9 September. The owner approved the one captured-label correction after private
-source review. Preserve the original evidence, all source values and every assertion. The exact
-execution checkpoint is docs/loop-state.md.
+Give a first-time operator one reusable, visual guide for any lease, plus a simple agenda,
+blocker sheet and delivery readout. The Wednesday meeting is user-supplied; time and attendees
+are unverified. The proposed agenda is 45 minutes.
+
+| Deliverable                                                            | Purpose                                                    | Acceptance                                                                                   |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Training guide](products/renewal-client-walkthrough-2026-09-09.md)    | Click, check the result, know the next step or exact stop. | Real labels and phase links; lease-agnostic; diagram, branches, recovery and current limits. |
+| [Agenda](products/client-call-agenda-2026-09-09.md)                    | What we did, what we show today, what comes next.          | Short timed sequence; assign decisions and follow-up.                                        |
+| [Blocker sheet](products/wednesday-decisions-and-inputs-2026-09-09.md) | Explain impact and obtain exact missing inputs.            | Suggested owner, resume condition and a private record for names/dates.                      |
+| [Delivery readout](products/wednesday-delivery-readout-2026-09-09.md)  | Separate delivered behavior from pending work.             | Current evidence; measurable completion and repeatability criteria.                          |
+
+The Markdown documents are maintained sources. docs/products/build-renewal-handouts.py renders
+a printable training guide and meeting brief in output/pdf. The guide uses schematic navigation,
+not customer screenshots. The prior presentation is not the training source.
 
 ## Current implementation baseline
 
-Production serves `d243911cb20ffb01773072c0e27c723648eeea34` as
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic, reread on 2026-09-08.
-The unpromoted candidate remains `7b3fdadac134550c24b029034753a38f16e4096b` /
-`pmi-kc-app-rmtq71kjl-bff41bbdb5fa`. The watcher accepted the green implementation SHA and entered deploy; no new deployment is yet verified.
-S96 — safe connector disconnect and reconciliation is serving; the S106 extension
-adds provider revoke/readback and bounded recovery without claiming a live Dotloop proof.
+The canonical public endpoint still serves d243911cb20ffb01773072c0e27c723648eeea34 /
+pmi-kc-app-rmtkmhj1z-8855e4c6dbfb. The new candidate endpoint serves
+6e77d18f6d9916ba94078550d4b5ba73751e86c8 / pmi-kc-app-rmtt039q1-c1463245a94c.
+Both were read on September 9. The watcher is in assurance and blocked on authentication.
+CLI and ADC now require reauth. The 24-hour proof, managed-browser receipt, promotion and
+observation are not complete. See docs/loop-state.md for the exact candidate fingerprint.
 
-## Authority and closed decisions
-
-The owner-approved local auth revision and the instruction to push all reviewed work are in scope.
-Exact open action keys, roles, human preview/confirmation, one-attempt claims, receipts, readback
-and correction remain mandatory. Completed S97-S99 and S100 chat proofs are not rerun.
-The unpromoted S98 correction refuses fixed-row update/delete/restore and preserves server-derived
-normal append. S36 is queued behind complete S100. No account, claim, IAM, cost or send grant is added.
-Claim-less managed accounts remain Editor with all Spaces by the owner's 8 September decision.
+S96 — safe connector disconnect and reconciliation is serving. The candidate retains the
+reviewed provider-revoke/readback extension without claiming a live Dotloop proof.
 
 ## Canonical closure sequence
 
-1. Keep the passed fresh-shell and paired post-reboot CLI/ADC/app preflight proofs. The required
-   24-hour elapsed-session proof is due no earlier than 2026-09-09T12:46:45.730Z; the owner controls
-   the session-policy exception. Only josiah@pmikcmetro.com's bound WSL credentials may be used.
-2. Close local verification with the owner-reviewed capture and unchanged assertions. B-GOLD1 is
-   resolved: the historical Sheet row has no verified source link to the current lease. The native
-   runner uses the caller's test environment and does not import app provider configuration.
-3. Verify watcher command paths with a monitoring recipient configured separately from local
-   authentication. Preserve the existing channel. Push the green change set and inspect exact-SHA
-   CI, isolated candidate smoke, fingerprint, authorized domain and unchanged traffic.
-4. Obtain existing managed Admin and Editor browser coverage on both exact origins, the bound
-   assurance receipt, promotion and 300,000 ms observation. Run the seven live-source browser
-   smokes and verify one October walkthrough lease privately. No missing result becomes a pass.
-5. Prepare Wednesday's four deliverables below while release-dependent work waits.
-6. Resolve S34's approved catalog/participant/public workflow mappings and the remaining provider
-   inputs from evidence. Both Dotloop keys remain closed. Customer data stays outside Git.
+1. Restore the approved authentication, finish release assurance and resolve B-REH1 browser
+   failures on the intended origin. Preserve unchanged timing limits and meaningful assertions.
+2. Close B-FLOW1: connect sent owner-message evidence to the response, mount the normal governed
+   packet path, and connect real provider/signature/compliance evidence to verified completion.
+   A legacy local completion marker or arbitrary evidence input is not a substitute.
+3. Resolve approved forms/mappings and Dotloop inputs through B-DL1/B-DL2/B-DL3, then complete the
+   exact bounded provider proof and activation gates. Forms alone do not finish implementation.
+4. Have a new operator follow the guide on varied real cases. Record time, failures, repeated
+   clicks and last verified step privately. Agree the throughput target after measuring baseline.
+5. Handle maintenance inputs B-S100 and B-MNT1 separately. S36 is queued behind complete S100.
 
-## Wednesday deliverables
+## Authority and closed decisions
 
-The meeting is owner-supplied for Wednesday afternoon; time, duration and attendees are unverified.
-The proposed agenda is 45 minutes. Josiah coordinates preparation and assigns client owners during
-the meeting; no client due date is presumed.
-
-| Deliverable                                                                          | Intended outcome                                                                   | Acceptance before use                                                                                                 |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| [Client walkthrough](products/renewal-client-walkthrough-2026-09-09.md)              | Staff understand one lease from source review to the actual packet stopping point. | Chosen lease and role verified privately; release-dependent controls labelled; no demonstration transaction invented. |
-| [Agenda](products/client-call-agenda-2026-09-09.md)                                  | Spend meeting time on workflow, decisions and ownership.                           | Confirm time/participants; agree the proposed duration and demonstration origin.                                      |
-| [Blockers and open questions](products/wednesday-decisions-and-inputs-2026-09-09.md) | Obtain forms, resident-chat evidence and property-policy inputs.                   | Each open item gets a named owner, exact handoff, completion evidence and agreed date.                                |
-| [Delivery readout](products/wednesday-delivery-readout-2026-09-09.md)                | Explain delivered behavior, pending outcomes and the next acceptance sequence.     | Match the latest release evidence; use the current written version until the deck/PDF have been refreshed.            |
+B-GOLD1 is closed with the approved label correction and unchanged assertions. The green
+implementation and documentation foundation are pushed; no history rewrite or branch deletion.
+The owner-authorized local auth scope, exact action keys, roles, preview/confirmation, receipts,
+readback and correction remain mandatory. No new identity, IAM, claim, cost or send grant.
+Claim-less managed accounts remain Editor with all Spaces.
+Completed S97-S99 and S100 chat proofs are not rerun. The corrected S98 path
+refuses fixed-row update/delete/restore; it preserves only the bounded normal append.
 
 ## Per-suite delivery rule
 
-Commit and push only a green slice; then exact-main-SHA CI and an isolated clean candidate deploy.
-Smoke the exact candidate, capture fingerprint, replace only its superseded authorized domain,
-and read unchanged traffic. A fresh exact assurance receipt precedes promotion and the existing
-300,000 ms observation and predecessor recovery. Documentation-only changes do not deploy.
-Authentication pauses its dependent phase; challenged browsers wait for new attended enrollment.
+Push only a green slice. Code release uses exact-SHA CI, isolated candidate smoke, configuration,
+domain readback, managed-browser receipt, exact promotion and 300,000 ms observation.
+Documentation-only changes do not deploy. Authentication pauses only dependent work.
 
-Fifteen COMPLETE narrative retirements preserve acceptance ownership in the facts ledger.
 The wider queue remains S100, S36, S88-S92, S94, S93 and its integration gate, S95, S87, then S101.
-S87 — final six-cohort product-wide content reconciliation retains its recorded dependency gates.
-`ALL_GATES_GREEN` is terminal only after every required check and live acceptance gate passes.
+S87 — final six-cohort product-wide content reconciliation retains its dependency gates.
+The completion program precedes S36. ALL_GATES_GREEN requires all actual live acceptance gates.

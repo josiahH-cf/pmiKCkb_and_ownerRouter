@@ -1,6 +1,6 @@
 # Renewal operator guide
 
-Updated: 2026-09-07. Use the [Wednesday walkthrough](renewal-client-walkthrough-2026-09-09.md)
+Updated: 2026-09-09. Use the [Wednesday walkthrough](renewal-client-walkthrough-2026-09-09.md)
 for the staff session. This guide describes the current implementation; the walkthrough separates
 serving controls from controls waiting for candidate promotion. Read release status before acting.
 
@@ -28,45 +28,48 @@ The browser smoke uses exact semantic locators, including the named article when
 A conditional row is tested only if visible; its absence is reported separately and does not prove
 live availability. The owning component tests listed below exercise conditional states in isolation.
 
-| Step | Page                        | Control (exact visible text)              | Role     | Scope                           | Availability | What you should see                                                          |
-| ---- | --------------------------- | ----------------------------------------- | -------- | ------------------------------- | ------------ | ---------------------------------------------------------------------------- |
-| 1    | `/lease-renewal`            | `Renewals`                                | heading  | -                               | required     | The loaded desk or an honest source-unavailable state.                       |
-| 2    | `/lease-renewal`            | `Filter renewal date`                     | summary  | -                               | required     | Date filter disclosure; opening reads and navigates only.                    |
-| 3    | `/lease-renewal`            | `Month`                                   | label    | -                               | conditional  | Choose the lease end month.                                                  |
-| 4    | `/lease-renewal`            | `Apply month`                             | button   | -                               | conditional  | Apply the chosen month through the desk URL.                                 |
-| 5    | `/lease-renewal`            | `Clear filters`                           | link     | -                               | conditional  | Restore the current scope without filters.                                   |
-| 6    | `workspace:verify-renewal`  | `← Back to renewals`                      | link     | -                               | required     | Return to the desk with the same view.                                       |
-| 7    | `workspace:verify-renewal`  | `Verify renewal`                          | phase    | -                               | required     | Read the selected verification phase.                                        |
-| 8    | `workspace:verify-renewal`  | `Open this lease in RentVine`             | link     | -                               | conditional  | Open the server-derived lease destination in a new tab.                      |
-| 9    | `workspace:verify-renewal`  | `Open the operating renewal Sheet`        | link     | -                               | conditional  | Open the verified spreadsheet destination in a new tab.                      |
-| 10   | `workspace:verify-renewal`  | `Resolve`                                 | button   | -                               | conditional  | Review the selected discrepancy resolution.                                  |
-| 11   | `workspace:verify-renewal`  | `Confirm resolution`                      | button   | -                               | conditional  | Record only the exact reviewed decision.                                     |
-| 12   | `workspace:verify-renewal`  | `Record lease term`                       | button   | -                               | conditional  | Record the verified term and reason against current lease facts.             |
-| 13   | `workspace:owner-decision`  | `Owner decision`                          | phase    | -                               | required     | Read the owner phase and its missing evidence.                               |
-| 14   | `workspace:owner-decision`  | `Record owner decision`                   | button   | -                               | conditional  | Save the owner's exact rent and terms.                                       |
-| 14a  | `workspace:owner-decision`  | `Update owner decision`                   | button   | -                               | conditional  | Correct the recorded owner terms from current evidence.                      |
-| 15   | `workspace:owner-decision`  | `Record owner response`                   | button   | -                               | conditional  | Record the actual response and its evidence.                                 |
-| 16   | `workspace:tenant-decision` | `Tenant decision`                         | phase    | -                               | required     | Read the tenant offer phase and prerequisites.                               |
-| 17   | `workspace:tenant-decision` | `Preview draft`                           | button   | -                               | conditional  | Read the exact recipient, wording, and attachment.                           |
-| 18   | `workspace:tenant-decision` | `Preview review-only copy`                | button   | -                               | conditional  | Read wording that still lacks its publication approval.                      |
-| 19   | `workspace:tenant-decision` | `Create Gmail draft`                      | button   | -                               | conditional  | Confirm creation of an eligible unsent draft.                                |
-| 20   | `workspace:tenant-decision` | `Check exact attempt`                     | button   | -                               | conditional  | Read the result of an uncertain draft attempt without creating another.      |
-| 21   | `workspace:verify-renewal`  | `Save proposal from fresh RentVine state` | button   | -                               | conditional  | Prepare the exact before/after proposal.                                     |
-| 22   | `workspace:verify-renewal`  | `Review and confirm…`                     | button   | article:Review RentVine updates | conditional  | Review one RentVine effect.                                                  |
-| 23   | `workspace:verify-renewal`  | `Confirm this exact effect once`          | button   | article:Review RentVine updates | conditional  | Admin confirms that one effect.                                              |
-| 24   | `workspace:verify-renewal`  | `Reconcile from provider state`           | button   | article:Review RentVine updates | conditional  | Admin reads an uncertain outcome without replaying the write.                |
-| 25   | `workspace:verify-renewal`  | `Prepare exact missing-row append`        | button   | -                               | conditional  | Prepare one server-derived row only when its exact link is absent.           |
-| 26   | `workspace:verify-renewal`  | `Review and confirm…`                     | button   | article:Review Sheet updates    | conditional  | Review the exact Sheet row and target.                                       |
-| 27   | `workspace:verify-renewal`  | `Confirm this exact effect once`          | button   | article:Review Sheet updates    | conditional  | Admin confirms the one append.                                               |
-| 28   | `workspace:document-packet` | `Document packet`                         | phase    | -                               | required     | Read packet facts and the exact missing forms or connection.                 |
-| 29   | `workspace:signatures`      | `Signatures`                              | phase    | -                               | required     | Read the signature handoff and missing evidence.                             |
-| 30   | `workspace:compliance`      | `Compliance`                              | phase    | -                               | required     | Read all remaining completion evidence.                                      |
-| 31   | `workspace:compliance`      | `Mark renewal complete`                   | button   | -                               | conditional  | Completion is accepted only with every required evidence item.               |
-| 32   | `/`                         | `Get answer`                              | button   | -                               | required     | One of three read-only answers, a clarification, or unavailable state.       |
-| 33   | `/maintenance`              | `What each ticket is waiting on`          | region   | -                               | required     | Read each ticket's current blocker.                                          |
-| 34   | `/maintenance`              | `Waiting on`                              | combobox | -                               | required     | Filter the queue without writing.                                            |
-| 35   | `/maintenance`              | `Record an estimate`                      | button   | -                               | conditional  | Record an app-owned ticket estimate in production only.                      |
-| 36   | `/maintenance`              | `Review this preapproval`                 | button   | region:Property preapprovals    | required     | Review the exact property, amount, and effective date; Cancel remains first. |
+| Step | Page                             | Control (exact visible text)              | Role     | Scope                           | Availability | What you should see                                                          |
+| ---- | -------------------------------- | ----------------------------------------- | -------- | ------------------------------- | ------------ | ---------------------------------------------------------------------------- |
+| 1    | `/lease-renewal`                 | `Renewals`                                | heading  | -                               | required     | The loaded desk or an honest source-unavailable state.                       |
+| 2    | `/lease-renewal`                 | `Filter renewal date`                     | summary  | -                               | required     | Date filter disclosure; opening reads and navigates only.                    |
+| 3    | `/lease-renewal`                 | `Month`                                   | label    | -                               | conditional  | Choose the lease end month.                                                  |
+| 4    | `/lease-renewal`                 | `Apply month`                             | button   | -                               | conditional  | Apply the chosen month through the desk URL.                                 |
+| 5    | `/lease-renewal`                 | `Clear filters`                           | link     | -                               | conditional  | Restore the current scope without filters.                                   |
+| 6    | `workspace:verify-renewal`       | `← Back to renewals`                      | link     | -                               | required     | Return to the desk with the same view.                                       |
+| 7    | `workspace:verify-renewal`       | `Verify renewal`                          | phase    | -                               | required     | Read the selected verification phase.                                        |
+| 8    | `workspace:verify-renewal`       | `Open this lease in RentVine`             | link     | -                               | conditional  | Open the server-derived lease destination in a new tab.                      |
+| 9    | `workspace:verify-renewal`       | `Open the operating renewal Sheet`        | link     | -                               | conditional  | Open the verified spreadsheet destination in a new tab.                      |
+| 10   | `workspace:verify-renewal`       | `Resolve`                                 | button   | -                               | conditional  | Review the selected discrepancy resolution.                                  |
+| 11   | `workspace:verify-renewal`       | `Confirm resolution`                      | button   | -                               | conditional  | Record only the exact reviewed decision.                                     |
+| 12   | `workspace:verify-renewal`       | `Record lease term`                       | button   | -                               | conditional  | Record the verified term and reason against current lease facts.             |
+| 13   | `workspace:owner-decision`       | `Owner decision`                          | phase    | -                               | required     | Read the owner phase and its missing evidence.                               |
+| 14   | `workspace:owner-decision`       | `Record owner decision`                   | button   | -                               | conditional  | Save the owner's exact rent and terms.                                       |
+| 14a  | `workspace:owner-decision`       | `Update owner decision`                   | button   | -                               | conditional  | Correct the recorded owner terms from current evidence.                      |
+| 15   | `workspace:owner-decision`       | `Record owner response`                   | button   | -                               | conditional  | Record the actual response and its evidence.                                 |
+| 16   | `workspace:tenant-decision`      | `Tenant decision`                         | phase    | -                               | required     | Read the tenant offer phase and prerequisites.                               |
+| 17   | `workspace:tenant-decision`      | `Preview draft`                           | button   | -                               | conditional  | Read the exact recipient, wording, and attachment.                           |
+| 18   | `workspace:tenant-decision`      | `Preview review-only copy`                | button   | -                               | conditional  | Read wording that still lacks its publication approval.                      |
+| 19   | `workspace:tenant-decision`      | `Create Gmail draft`                      | button   | -                               | conditional  | Confirm creation of an eligible unsent draft.                                |
+| 20   | `workspace:tenant-decision`      | `Check exact attempt`                     | button   | -                               | conditional  | Read the result of an uncertain draft attempt without creating another.      |
+| 20a  | workspace:tenant-decision        | Tenant outcome                            | label    | -                               | conditional  | Select the actual response.                                                  |
+| 20b  | workspace:tenant-decision        | Record tenant outcome                     | button   | -                               | conditional  | Record exact response evidence; a counter reopens owner work.                |
+| 20c  | workspace:tenant-decision        | Link or refresh exact Gmail evidence      | summary  | -                               | conditional  | Open contact-evidence controls; this does not establish owner-message-sent.  |
+| 20d  | workspace:tenant-decision        | Owner notice                              | button   | -                               | conditional  | Choose the owner channel in the actual composer.                             |
+| 21   | `workspace:verify-renewal`       | `Save proposal from fresh RentVine state` | button   | -                               | conditional  | Prepare the exact before/after proposal.                                     |
+| 22   | `workspace:verify-renewal`       | `Review and confirm…`                     | button   | article:Review RentVine updates | conditional  | Review one RentVine effect.                                                  |
+| 23   | `workspace:verify-renewal`       | `Confirm this exact effect once`          | button   | article:Review RentVine updates | conditional  | Admin confirms that one effect.                                              |
+| 24   | `workspace:verify-renewal`       | `Reconcile from provider state`           | button   | article:Review RentVine updates | conditional  | Admin reads an uncertain outcome without replaying the write.                |
+| 25   | `workspace:verify-renewal`       | `Prepare exact missing-row append`        | button   | -                               | conditional  | Prepare one server-derived row only when its exact link is absent.           |
+| 26   | `workspace:verify-renewal`       | `Review and confirm…`                     | button   | article:Review Sheet updates    | conditional  | Review the exact Sheet row and target.                                       |
+| 27   | `workspace:verify-renewal`       | `Confirm this exact effect once`          | button   | article:Review Sheet updates    | conditional  | Admin confirms the one append.                                               |
+| 28   | `workspace:document-packet`      | `Document packet`                         | phase    | -                               | required     | Read packet facts and the exact missing forms or connection.                 |
+| 29   | `workspace:signatures-follow-up` | `Signatures`                              | phase    | -                               | required     | Read the signature handoff and missing evidence.                             |
+| 30   | `workspace:compliance-close`     | `Compliance`                              | phase    | -                               | required     | Read all remaining completion evidence.                                      |
+| 32   | `/`                              | `Get answer`                              | button   | -                               | required     | One of three read-only answers, a clarification, or unavailable state.       |
+| 33   | `/maintenance`                   | `What each ticket is waiting on`          | region   | -                               | required     | Read each ticket's current blocker.                                          |
+| 34   | `/maintenance`                   | `Waiting on`                              | combobox | -                               | required     | Filter the queue without writing.                                            |
+| 35   | `/maintenance`                   | `Record an estimate`                      | button   | -                               | conditional  | Record an app-owned ticket estimate in production only.                      |
+| 36   | `/maintenance`                   | `Review this preapproval`                 | button   | region:Property preapprovals    | required     | Review the exact property, amount, and effective date; Cancel remains first. |
 
 Conditional proof owners: `tests/unit/renewal-guide-conditional-controls.test.tsx`,
 `tests/unit/renewal-progress-controls.test.tsx`,
@@ -76,6 +79,15 @@ Conditional proof owners: `tests/unit/renewal-guide-conditional-controls.test.ts
 `tests/unit/renewal-desk-component.test.tsx`, and the term/progress route and store tests.
 The semantic guard rejects a matching heading, partial label, or control in the wrong panel.
 Fixture proof is distinct from the browser smoke and from live availability.
+
+## Mounted controls and known gaps
+
+RenewalCompleteButton is not mounted by the current workspace. Its isolated component tests
+remain; Mark renewal complete is not a reachable live-guide control.
+Signatures and Compliance use query IDs signatures-follow-up and compliance-close.
+The owner response's sent-message evidence and normal packet/completion handoffs remain B-FLOW1.
+Do not infer them from a linked thread. See
+docs/evidence/renewal-training-control-review-2026-09-09.md.
 
 ## Confirmation, recovery, and completion
 

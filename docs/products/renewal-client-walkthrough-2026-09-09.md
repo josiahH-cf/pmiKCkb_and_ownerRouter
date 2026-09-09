@@ -1,124 +1,264 @@
-# Walk one lease through the app
+# Renew a lease, one step at a time
 
-**Meeting source:** User-supplied meeting identity; not Calendar-verified. Prepared for the staff
-session on Wednesday afternoon, 9 September 2026. Start time and duration remain unverified.
+Use the same guide for every lease. No particular month, property, rent or tenant is required.
+**Bold labels** match the app. Step numbers belong to this guide. The app has six phase links;
+it does not have a universal Next button.
 
-**Release hold:** the canonical app still identifies revision
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`, commit `d243911cb20ffb01773072c0e27c723648eeea34`.
-The renewal-completion changes are on an unpromoted candidate. The owner must resolve B-AUTH2 for
-the exact candidate that will be used. Existing managed Admin and Editor browser profiles must be
-signed in on both its origin and the canonical origin; the assurance receipt must pass before
-promotion. The recorded authentication prerequisites also remain in force.
+**Readiness checked: 9 September 2026.** Use this for a reading walkthrough today. The newer build
+is awaiting release checks. The owner-message evidence handoff and document completion still have
+gaps. A complete live renewal has not passed an end-to-end demonstration. The facilitator must
+confirm the available version before anyone records a change.
+See the [meeting readout](wednesday-delivery-readout-2026-09-09.md).
 
-Until that happens, use the serving app for a reading and draft-preparation demonstration only.
-Its older Sheet controls must not be used as a substitute for the corrected append workflow.
-The term review, typed owner response, shared rent/term parity, consolidated attempt summary, and
-corrected source controls below require the verified release. Do not announce that they are serving.
-Dotloop completion remains unavailable even after that release.
+## The whole process
 
-## Before the staff session
+```mermaid
+flowchart TD
+    A[1. Choose a lease] --> B[2. Verify renewal]
+    B --> C[3. Owner decision]
+    C --> D{Owner agrees?}
+    D -->|Yes| E[4. Tenant offer: preview draft, then send in Gmail]
+    D -->|Waiting| W[Pause: record who and what you need]
+    D -->|Changes| C
+    D -->|No| N[Non-renewal: separate approved handoff]
+    E --> F[5. Record tenant response]
+    F -->|Accepted| G[7. Document packet]
+    F -->|Waiting or unclear| W
+    F -->|Counteroffer| C
+    F -->|Declined| N
+    F -.->|Only for an approved source change| S[6. Admin reviews each source update]
+    S -.-> G
+    G --> H[8. Signatures in Dotloop]
+    H --> I[9. Compliance and verified completion]
+    I --> J[10. Back to renewals: choose the next lease]
+```
 
-1. Have an Admin and the staff operator present. The operator needs Editor plus Renewals access.
-   Resolving a reconciliation decision needs Approver or Admin; approving pricing/source changes
-   and confirming or reconciling RentVine and Sheet effects needs Admin. A different current Admin
-   handles access requests through the app. Account-level gaps belong in the private readiness file.
-2. Choose one real lease ending in October from the live desk. Its identity and readiness checklist
-   belong only in `output/wednesday-lease-readiness-2026-09-09.md`. A provisional reading example has been selected privately
-   from ten October leases with complete provider detail reads. Verify its Sheet association,
-   approvals, recipients and packet evidence before treating it as ready for a real transaction. Exclude the retired proof target.
-3. Bring its verified owner response, approved rent and term, recipient evidence, and any required
-   signed documents. Selecting a lease is not confirmation of a change.
-4. Read the release hold above. If it remains open, stop each step marked **after release** at its
-   explanation. Local rehearsal refuses every save, draft, and provider effect.
+**Today's stopping points:** an owner response may lack its required sent-message evidence;
+packet creation and verified completion are not ready. Explain those stages without marking them
+complete. When a verified answer arrives, return to the paused step. A separate non-renewal handoff
+is not a completed renewal.
 
-## Find and read the lease
+**Who does what:** the operator needs Editor access in Renewals. An Approver or Admin handles source
+conflicts; High corrections require Admin. Admin approves pricing suggestions and source changes.
+A person reviews and sends every email in Gmail.
 
-1. Open `/lease-renewal`. In **Renewals**, open **Filter renewal date**. Set **Month** to October
-   2026 and use **Apply month**. Read the ending dates before choosing the lease row. **Clear filters**
-   removes the filters if you need to start again.
-2. Open that row's lease workspace. Read the tenant, owner, property, lease dates, current rent,
-   separate unit listed rent, term, missing evidence, and next action. Check these against the
-   actual records. Unknown or conflicting values must be resolved before any proposal.
-3. **After release:** in **Verify renewal**, use **Open this lease in RentVine** and
-   **Open the operating renewal Sheet** when available. Each opens the verified source in another
-   tab. Return to the app's existing tab. No provider-to-app backlink has been verified, so do not
-   rely on one. **← Back to renewals** returns to the same desk view.
+## Find the lease and check its facts
 
-## Resolve rent and term
+### 1. Choose any lease
 
-4. If the workspace shows a discrepancy, an Approver or Admin reviews the source evidence and uses
-   **Resolve**. Read the confirmation and use **Confirm resolution** only for that exact decision.
-   A High correction needs Admin. This records a decision; changing RentVine or the Sheet is separate.
-5. **After release:** if the term needs review, verify it from the actual lease, enter the term,
-   its reason, and the month-to-month start date when applicable. Use **Record lease term**. Read the
-   returned term and annual review date. Correct an error with another evidenced review. Do not
-   turn a month-to-month review into an invented fixed-term renewal.
-6. Treat RentCast comps as reference evidence only. A request uses the allowance. The app records zero September
-   calls, but the vendor-account total has not been independently verified. This task made no comp
-   request. Verify current headroom within the allowance of 50 before requesting a comp. An estimate never approves the offered rent.
+**Go:** open [Renewals](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/lease-renewal).
 
-## Record the owner's actual outcome and prepare the offer
+If prompted, click **Sign in with Google** and use your approved pmikcmetro.com account.
+If access is refused, stop and ask the facilitator to check access with an Admin.
 
-7. In **Owner decision**, record the actual approved rent and terms using **Record owner decision** for the first decision or **Update owner decision** when one is already recorded.
-   **After release:** use **Record owner response** with the actual response and its exact evidence.
-   Approved terms allow the next checks; a revision request reopens the copy; a decline takes the
-   non-renewal path; no response keeps the lease waiting. Do not manufacture a response to advance.
-8. In **Tenant decision**, review the offer based on those terms and the approved copy version.
-   **Preview draft** reads the exact recipient, subject, body, and any attachment. If the control is
-   **Preview review-only copy**, the wording is not approved for a Gmail draft. Obtain the recorded
-   approval before continuing. A changed recipient, wording, attachment, rent, or term needs a fresh
-   preview. The person's response is separate evidence from preparation or sending.
+**Do:** click **Filter renewal date**. Choose the required **Month**, then **Apply month**.
+Check the row's tenant and ending date. Click the **property address** in that row.
 
-## Confirm each applicable source change
+**Check:** the workspace shows the intended property, tenant and lease. Read **Do this next** or
+**Waiting**, and the phase links. Opening another phase does not complete it.
 
-9. **After release:** return to **Verify renewal**. An Editor can prepare the applicable lease dates
-   or recurring-charge proposal with **Save proposal from fresh RentVine state**. Do not add a charge
-   merely to exercise a button. The lease's actual approved change determines the applicable operation.
-10. In **Review RentVine updates**, the Admin uses **Review and confirm…**, compares each before/after
-    value and exact target, then uses **Confirm this exact effect once** for that one effect. Wait for
-    its receipt and fresh readback before another effect. If uncertain, the Admin uses
-    **Reconcile from provider state**. Do not submit a replacement to escape uncertainty. A supported
-    correction requires its own receipt-bound preview and human confirmation.
-11. **After release:** append to the operating Sheet only when a fresh link check proves the lease has
-    no exact row. Use **Prepare exact missing-row append**. In **Review Sheet updates**, review the
-    target and every populated cell, use **Review and confirm…**, and have the Admin use
-    **Confirm this exact effect once**. Read the receipt and verified destination back. If a row already
-    exists, skip append. The app cannot safely update, delete, or restore a fixed row. An Admin uses
-    the receipt and verified destination to arrange any manual Sheet correction.
+**If stuck:** use **Clear filters** for an empty list. Stop and report an unavailable source.
+Do not select a similarly named person as a substitute.
 
-## Review the Gmail draft and send it yourself
+**Next:** click **Verify renewal**.
 
-12. Return to the applicable notice and refresh **Preview draft** after source changes. Compare the
-    exact recipient, wording, rent, term, and attachment again. **Create Gmail draft** confirms only
-    an eligible unsent draft in the signed-in managed mailbox. If its result is uncertain, use
-    **Check exact attempt** and wait for an exact result before preparing another.
-13. Open Gmail yourself. Find the returned draft in the correct managed mailbox, inspect its actual
-    recipient, subject, body, and attachment, then send it manually in Gmail. The app does not send.
-    Read the sent-message evidence and the eventual response back before recording the corresponding
-    progress. An owner notice has the same unsent-draft handoff when that lease needs one.
+### 2. Verify renewal
 
-## Document packet, signatures, and completion
+**Do:** compare owner, tenant, dates and contractual base rent. Keep listed rent and extra charges
+separate. Use **Open this lease in RentVine** and **Open the operating renewal Sheet** when shown.
+They open another tab; return to the app tab afterward.
 
-14. **After release:** open **Document packet** and read its blockers. Today these are Dotloop OAuth
-    credentials (external), the connected managed Dotloop account with the office profile, renewal
-    template and selected transaction/status (owner), and approved blank forms covering all seven
-    artifact families (owner). Both loop and upload action keys remain closed. There is no live packet
-    creation button to use in this walkthrough.
-15. The eventual packet uses only approved content and verified participant mappings. Its exact loop
-    link opens Dotloop for the person's signature handoff. Document presence proves only the returned
-    document identity and name. It does not prove file contents or signatures. **Signatures** waits for
-    the actual signed artifacts and required signers' evidence.
-16. **After release:** read **Compliance**. Use **Mark renewal complete** only when every required evidence item exists
-    and the app accepts it. With today's Dotloop blockers, a complete end-to-end live lease has not
-    been demonstrated. Record the exact stopping point and what the owner must bring back.
+If the term needs review, choose **Lease term**, enter the evidenced **Reason**, and click
+**Record lease term**. For month-to-month, also enter the verified start date requested by the form.
+For conflicts, an Approver or Admin clicks **Resolve**, reviews the decision, then
+**Confirm resolution**. This records a decision; it does not change either source.
 
-The [operator guide](renewal-operator-guide.md) maps these controls to their exact semantic locators.
-Conditional fixture tests do not establish that a control is available on the selected live lease.
+**Check:** facts agree or the exact conflict has a recorded resolution. Unknown rent stays unknown.
+Month-to-month work follows its annual review; do not invent a fixed end date.
 
-## Walkthrough acceptance
+**If stuck:** pause for a missing source link, uncertain identity, stale data or unresolved conflict.
+Return to the desk and refresh when the app says the data is too old.
 
-The operator should be able to identify the exact lease and source evidence, explain who approves
-which step, distinguish an unsent draft from a sent message, and name the actual packet stopping
-point. Record questions in [the decisions sheet](wednesday-decisions-and-inputs-2026-09-09.md).
-Use explanations and read-only navigation when required evidence or release acceptance is missing.
-Do not execute a change just to demonstrate a control.
+**Next:** click **Owner decision**.
+
+## Get and record the owner's decision
+
+### 3. Owner decision
+
+**Do:** if the owner has approved the offer, choose the matching **Owner decision**, enter
+**Offered rent (monthly)** and only the applicable approved charges. Click **Record owner decision**,
+or **Update owner decision** to correct an existing decision. Read the saved terms back.
+
+If you still need to ask the owner, **Preview the owner email** shows wording only. To prepare an
+eligible Gmail draft, click **Tenant decision**, find **Renewal-notice draft**, select **Owner notice**,
+and follow step 4. Return here when the actual answer arrives. Do not record approval to unlock an offer.
+
+**When shown:** choose **Owner response**, select **Evidence source**, enter its
+**Exact evidence reference**, then click **Record owner response**. Use the actual receipt or record
+identifier. Ask the facilitator for help finding it; do not enter a message body.
+
+**Check:** follow the owner's actual answer:
+
+| Owner answer            | What to do next                                                      |
+| ----------------------- | -------------------------------------------------------------------- |
+| Approved the terms      | Continue with current approved terms to step 4.                      |
+| Asked for changes       | Revise the terms and get a new approval; re-preview affected drafts. |
+| No response yet         | Keep this lease waiting for the owner.                               |
+| Declined / not renewing | Arrange the separate approved non-renewal handoff.                   |
+
+**If stuck:** the response form requires recorded evidence of the sent owner message. The current
+app has no verified complete click path that supplies this for a new lease. Linking a Gmail thread
+does not fill that gap. Stop and ask the facilitator to log it; do not bypass it.
+
+**Next:** with verified approval and current terms, click **Tenant decision**.
+
+## Prepare the offer and review it in Gmail
+
+### 4. Tenant offer, or the owner's request
+
+**Go:** in **Tenant decision**, find **Renewal-notice draft**. Select **Tenant offer** for the tenant,
+or **Owner notice** when doing the owner-request part of step 3.
+
+**Do:** check the selected channel and all applicable inputs. For a tenant offer, check
+**Owner decision** and **Offered rent (monthly)** against the approved terms. Click **Preview draft**.
+
+**Check before creating:** correct recipient, subject, wording, rent, dates, term and any attachment.
+An edited value needs a fresh preview. **Preview review-only copy** means the wording still needs
+approval; stop there. A market estimate does not approve rent. Comp requests use the allowance and
+are optional; do not request one merely for the demonstration.
+
+**Do:** click **Create Gmail draft** only for the exact reviewed, eligible draft. Wait for its result.
+Open the signed-in managed mailbox in Gmail, locate the returned draft and inspect it again.
+The person responsible for the communication sends it in Gmail when ready.
+
+**Check:** a created draft is unsent. Sending it proves neither a reply nor acceptance.
+
+**If stuck:** for an uncertain creation result, use **Check exact attempt**. Wait for that result
+before creating another. For a missing recipient, source fact or approved copy, record the named item.
+
+**Next:** owner request: return to step 3. Tenant offer: continue to step 5 when real evidence exists.
+
+## Record what the tenant actually answered
+
+### 5. Tenant response and waiting
+
+**Go:** click **Tenant decision**. The outcome form appears only after a current owner decision
+and current tenant-offer draft are recorded.
+
+**Do:** choose **Tenant outcome**. Select **Evidence source**, enter the **Exact evidence reference**
+from the actual message or verified record, then click **Record tenant outcome**.
+
+**Check:** the displayed current outcome is correct. Follow the matching route:
+
+| Tenant answer              | What to do next                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| Accepted                   | Continue to step 7. Use step 6 only for an applicable approved source change.     |
+| Waiting for response       | Pause. Resume when the actual reply arrives.                                      |
+| Counter / change requested | Return to step 3 for the owner's decision on revised terms. Re-preview the offer. |
+| Declined / non-renewing    | Arrange the separate approved non-renewal handoff.                                |
+| Needs verification         | Obtain the exact missing fact; do not record acceptance.                          |
+
+**Optional contact check:** open **Link or refresh exact Gmail evidence**. Choose
+**Communication party**, enter **Exact Gmail thread ID** and **Reason for linking**, then
+**Link exact thread**. For an existing link, use **Refresh this linked thread**. This checks contact
+evidence; it does not send or establish owner approval. Ask the facilitator for an exact ID if needed.
+
+**If stuck:** a draft, linked thread or outgoing message is not acceptance. Keep the lease waiting
+until the actual answer is verified. If the outcome form is absent, check its prerequisites.
+
+## Optional: have an Admin update the source records
+
+### 6. Only when this lease needs an approved source change
+
+**Go:** return to **Verify renewal**. These corrected controls require the newer accepted release.
+Do this when the approved transaction requires it. Each lease need not use every operation.
+
+**RentVine:** open **Prepare a RentVine update proposal**. Fill only the applicable lease-date or
+recurring-charge section with the approved change, and its **Evidence reference**.
+For dates, use **New end date (YYYY-MM-DD)** or **New increase eligibility date (YYYY-MM-DD)**.
+For an existing charge, verify its **Charge id** first. Ask the Admin if the exact target is unclear.
+Click **Save proposal from fresh RentVine state**. In **Review RentVine updates**,
+the Admin clicks **Review and confirm…**, checks the exact target and all before/after values,
+then **Confirm this exact effect once**.
+
+**Check:** the receipt and freshly read source values show that exact result before the next
+operation. An uncertain result goes to **Reconcile from provider state**; do not submit again.
+Any supported correction needs its own reviewed confirmation.
+
+**Operating Sheet:** if the app proves this lease has no exact row, use
+**Prepare exact missing-row append**. In **Review Sheet updates**, the Admin clicks
+**Review and confirm…**, checks the destination and every populated cell, then
+**Confirm this exact effect once**. Read the result back. If a row exists, skip append.
+The corrected app cannot update, delete or restore a fixed row. Ask the Admin to arrange any manual
+correction at the verified Sheet destination.
+
+**If stuck:** missing permission, ambiguous target, stale preview or uncertain result means stop
+this effect. The main app's older Sheet controls are not a workaround.
+
+**Next:** return to the current phase. For an accepted offer, click **Document packet**.
+
+## Documents, signatures and the finish line
+
+### 7. Document packet
+
+**Go:** click **Document packet**. Read **Document packet truth** and its missing items.
+
+**Do when enabled for real work:** **Evaluate packet**, or **Evaluate current truth**, prepares an
+app-owned snapshot. It does not create Dotloop documents. In a reading-only rehearsal, just read the
+existing state; evaluation also records app state.
+
+**Check:** required forms need approved content, correct facts and verified participants.
+The Dotloop connection, approved mappings and complete packet action path are unfinished.
+**Stop here for packet creation.** There is no complete preview-to-create click path to teach yet.
+
+**Next for explanation:** click **Signatures**. This does not mean step 7 passed.
+
+### 8. Signatures
+
+**Do when a verified packet exists:** use its **Open loop** link, which includes the actual loop ID,
+to open Dotloop. The responsible person handles signing there and verifies the actual signed files
+and required signers. Return to the app and read **Signatures**.
+
+**Check:** a document name or count proves neither contents nor signatures. With today's packet
+block, a repeatable signature-to-app completion handoff is unavailable.
+
+**Next for explanation:** click **Compliance**.
+
+### 9. Compliance and completion
+
+**Do:** read **Compliance close**. Completion needs the correct signed packet and all applicable
+animal, deposit, insurance/charge, inspection, term/date and exception evidence.
+
+**Check:** this workspace has **no Mark renewal complete button**. An old local completion marker
+cannot prove document execution. The final evidence handoff needs implementation and proof.
+Record the actual unfinished step; do not call the renewal complete.
+
+## If you get stuck, and when you return
+
+| What you see                           | Do this                                                                                                  |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Blank, slow or unavailable page        | Record page and time. Try one normal reload for a read-only page. If it fails again, stop and report it. |
+| Data too old to act on                 | Return to the desk, refresh, reopen the same lease and recheck facts.                                    |
+| Missing or disabled control            | Read its reason. Check phase, evidence and access with the facilitator.                                  |
+| Wrong or missing source value          | Pause this step. Ask the source owner for the exact correct record.                                      |
+| Uncertain save, draft or source change | Use the exact attempt/reconciliation control when supplied. Do not repeat the change.                    |
+| Someone has not replied or signed      | Keep it waiting on that person. A sent request is not their answer.                                      |
+
+**Use this message:** "We stopped at [step]. We expected [result]. The app showed [message].
+We need [item] from [person] by [date]. We will resume at [step] after checking [evidence]."
+Fill it privately; do not put customer values, message bodies or screenshots in shared repository notes.
+
+### 10. Move to the next lease, then resume safely
+
+1. Record the lease link, last verified step, blocker, responsible person and agreed follow-up date
+   in the approved private work record. A blank owner/date means follow-up is still unassigned.
+2. Click **← Back to renewals**, then open the next lease's address. Start again at step 1.
+3. On returning, reread identity, freshness and saved state. Resume at the paused step only when
+   its missing evidence is verified. Do not repeat a successful effect.
+
+**Ready for routine use means:** a new operator follows this guide without coaching, sees the
+expected results and completes the applicable path on real leases. That outcome is not yet verified.
+Record actual completion and failures; do not infer throughput from a successful read or test run.
+
+Use the [blocker sheet](wednesday-decisions-and-inputs-2026-09-09.md) to assign work.
+Maintainer sources are in the [control review](../evidence/renewal-training-control-review-2026-09-09.md).

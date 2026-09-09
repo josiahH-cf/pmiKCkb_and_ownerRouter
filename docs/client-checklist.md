@@ -1,10 +1,10 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-09-08.
+Updated: 2026-09-09.
 
 Recorded authority remains in force. Runtime inputs below and the confirm-with-default questions
 remain open. None permits guessing values, substituting records, or stopping independent work.
-ADC enrollment, fresh-shell and paired post-reboot refresh are verified. Directory readback
+September 8 enrollment/fresh-shell/post-reboot proofs passed; September 9 CLI and ADC require reauth. Directory readback
 found six managed users: three Admin and three default Editor, none disabled. Individual evidence
 stays private. A provisional reading example is selected from ten October leases with complete
 provider detail reads; its Sheet association and full workflow readiness still need review.
@@ -81,7 +81,7 @@ This task permits only replacement of its superseded candidate domain. No domain
 Individual directory evidence is in excluded output. Map meeting participants to required access
 before the walkthrough. The runner never creates, elevates, demotes, or grants an identity. B-AUTH2 needs existing profiles on both
 origins and the bound receipt before promotion. The approved local S112 revision is in scope;
-its owner enrollment and post-reboot proofs pass, while elapsed-session and full live release
+its September 8 enrollment/reboot proofs passed, but current authentication requires reauth; elapsed-session and full live release
 acceptance remain pending. The owner directed preparation of the four Wednesday deliverables.
 
 The transcript's no-approval claim does not match recorded governance. Direct lease changes are

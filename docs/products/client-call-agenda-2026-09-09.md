@@ -1,49 +1,46 @@
-# Wednesday client agenda — 9 September 2026
+# Wednesday: walk the renewal process
 
-**Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday afternoon is
-owner-supplied. Start time, duration and attendee list are unverified; the 45 minutes below are proposed.
+**Date:** Wednesday afternoon, 9 September 2026. Time and attendees to confirm.
+**Meeting source:** User-supplied meeting identity; not Calendar-verified.
 
-**Goal:** agree how staff will handle one renewal, see the current stopping point, and leave with
-an owner and due date for each missing input.
+**Goal:** everyone can find a lease, follow its next step, recognize a blocker and know who will
+remove it. Leave with a named owner and agreed date for each next action.
 
-**Meeting summary:** the app already supports source-backed renewal work and reviewed unsent drafts.
-The completion program and this readiness work require release assurance before they can be shown
-as serving. Dotloop credentials, approved forms and participant mappings still limit packet completion.
+**Summary:** the core app is live. Improvements await release checks. The full journey still has
+message-evidence and document-completion gaps.
 
-## Proposed agenda
+## Proposed 45-minute agenda
 
-| Minutes | Conversation                                                                                                                                   | Result to capture                                                                                |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 0–5     | Confirm the staff outcome and today's serving release.                                                                                         | Agree which renewal and operator the walkthrough will cover.                                     |
-| 5–22    | [Walk one October lease](renewal-client-walkthrough-2026-09-09.md): source evidence, rent/term, owner outcome, tenant offer and Gmail handoff. | Staff can explain the next action and who may approve it.                                        |
-| 22–30   | Inspect the document packet, signatures and maintenance stopping points.                                                                       | A shared understanding of what can proceed and what remains unavailable.                         |
-| 30–40   | Review [decisions and missing inputs](wednesday-decisions-and-inputs-2026-09-09.md).                                                           | Name a person and due date for forms, the resident-chat example and property preapproval inputs. |
-| 40–45   | Review [the delivery readout](wednesday-delivery-readout-2026-09-09.md) and agree the next acceptance session.                                 | Record success criteria, owners and dates; do not infer delivery dates from missing inputs.      |
+| Time      | Show or discuss                                                               | Leave with                                       |
+| --------- | ----------------------------------------------------------------------------- | ------------------------------------------------ |
+| 0-5 min   | **What we did:** show the delivery readout.                                   | What is live and what is pending.                |
+| 5-25 min  | **What we do today:** an operator follows the visual guide on any real lease. | Last verified step and confusing clicks.         |
+| 25-35 min | **What is blocked:** review the missing-input sheet.                          | A person, exact handoff and date per blocker.    |
+| 35-42 min | **What comes next:** choose fixes and acceptance checks.                      | An ordered work list; no guessed delivery dates. |
+| 42-45 min | Read back decisions and the next review date.                                 | Everyone knows their next action.                |
 
-## Preparation and meeting posture
+## Walkthrough
 
-Josiah facilitates. Ask the client to identify the renewal operator, the Admin who can approve
-source changes, and the person who owns forms and policy. These are requested roles, not a verified
-attendee list. Use a reading and preparation walkthrough while release assurance or the B-REH1 browser timing/guide hold remains open.
-Explain unavailable controls at their actual stopping point. A meeting demonstration does not
-authorize a provider write or a send.
+> Pick a lease, check the facts, get the owner's decision, prepare the tenant offer, record the
+> reply, and trace documents through signatures and completion. Stop wherever evidence is missing.
 
-Local owner authentication works after reboot. The previous captured-data test hold is closed
-following the owner's factual review. Those are engineering results, not proof of a completed live
-renewal. Existing managed claim-less accounts remain Editor with every Space by the owner's
-8 September decision; that decision does not need to be reopened.
+Use the [training guide](renewal-client-walkthrough-2026-09-09.md). Have a renewal operator drive
+and an Admin available. Josiah facilitates; these are requested roles, not confirmed attendees.
+Keep the demo to reading while release or workflow gates remain open. Explain later stages using
+the diagram. A real change needs the actual lease's normal approvals.
 
-## Decisions and confidence gaps
+## Open questions
 
-The three client inputs are approved forms and mappings, one work order with resident chat and
-verified email, and exact property preapproval amounts/effective dates. Dotloop OAuth delivery
-remains external; the managed connection and resource selection remain owner actions.
+- Who supplies approved renewal forms and approves their fields and signers?
+- Who owns Dotloop setup and the next provider follow-up?
+- Who verifies the next completed walkthrough, and when can we reconvene?
 
-Confirm whether monthly answers should also include periodic-review rows and whether annual review
-should keep rolling to the next anniversary. Keep the documented defaults until changed. Domain
-retirement is an internal owner decision and need not consume client walkthrough time.
+If time remains, confirm maintenance inputs and the two working defaults on the
+[blocker sheet](wednesday-decisions-and-inputs-2026-09-09.md).
 
-Ten October leases have complete provider detail reads and a provisional reading example is
-selected privately. Its full workflow evidence, a complete live renewal, fresh managed-browser
-assurance and exact meeting time are not yet verified. Source truth is [the current status](../status.md),
-[the blocker register](../open-blockers.md), and [the operator guide](renewal-operator-guide.md).
+**Recommended posture:** show the real stopping point, agree the smallest next action, and keep
+unavailable steps visibly open.
+
+**Confidence and gaps:** labels match current code. The newer build is not the main app.
+Sign-in requires renewal; no fresh managed-browser pass is claimed. The full journey and
+throughput remain unproven. Start with the [readout](wednesday-delivery-readout-2026-09-09.md).

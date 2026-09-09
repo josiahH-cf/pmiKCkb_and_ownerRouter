@@ -1,46 +1,50 @@
-# Wednesday decisions and missing inputs
+# What is blocking us, and what we need
 
-**Meeting source:** User-supplied meeting identity; not Calendar-verified. Prepared for Wednesday,
-9 September 2026. Use this as the decision record during the call; named assignees and due dates
-are to be agreed, not already committed.
+**Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday, 9 September 2026.
+Suggested owners are roles to assign. Names and dates are not yet commitments.
 
-## Three inputs to leave the meeting with
+## Renewal blockers
 
-| Input                                | Who should own it                            | Exact handoff                                                                                                                                                                                                                                  | Accepted when                                                                                                                                                      | Named owner / due date |
-| ------------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| Approved renewal forms (B-DL3)       | Client forms owner, with Josiah coordinating | A private source location, approved version and coverage of standard lease, renewal extension, animal agreement, lead-based-paint disclosure, city addendum, HOA artifact and owner acknowledgment; field, participant and signature mappings. | Each required family resolves to approved content and verified mappings. A filename alone does not establish approval.                                             | To agree               |
-| Resident reply example (B-S100)      | Maintenance operator                         | One work-order identifier with an actual resident chat message and a verified resident email. Provide it privately.                                                                                                                            | The exact work-order link and manual synchronization resolve an eligible resident message; the separate bounded draft proof and activation can then be considered. | To agree               |
-| Property preapproval policy (B-MNT1) | Client policy owner and Admin                | Exact property identifiers, one preapproval amount per property and effective dates.                                                                                                                                                           | An Admin confirms the exact records and readback; missing or conflicting evidence continues to require owner approval.                                             | To agree               |
+| Blocker                                    | Impact / guide step                     | Next action and suggested owner                                                                                                                     | Resume when                                                               |
+| ------------------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Release and browser checks pending         | Reliable use of newer flow              | Josiah: restore sign-in, finish release checks and resolve slow/failed navigation.                                                                  | Intended build and actual browser journey pass.                           |
+| Owner-message evidence not fully connected | Owner response; step 3                  | Implementation owner: connect the real sent message to the response step.                                                                           | A sent owner message enables the response with current verified evidence. |
+| Dotloop access and setup incomplete        | Packet and signature handoff; steps 7-8 | Josiah/provider: obtain OAuth credentials. Account owner: connect and select office profile, renewal template, transaction type and initial status. | Setup reads ready and packet actions pass their separate checks.          |
+| Approved forms and mappings missing        | Correct documents and signers; step 7   | Client forms owner: approved private source, version, applicability and field/signer mappings.                                                      | Required forms resolve to approved content and verified participants.     |
+| Packet-to-completion click path unfinished | Verified finish; steps 7-9              | Implementation owner: finish preview/confirmation, provider evidence, signature return and completion controls.                                     | Real signed artifacts pass applicable completion checks.                  |
 
-## Provider and release dependencies
+**Forms to cover:** standard lease, renewal extension, animal agreement, lead-based-paint disclosure,
+city addendum, HOA artifact and owner acknowledgment. Approved rules determine which apply to each
+lease; do not assume every lease needs every form.
 
-| Dependency                         | Owner                          | Current state and next evidence                                                                                                                                                                                                             |
-| ---------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dotloop OAuth credentials (B-DL1)  | Dotloop, coordinated by Josiah | Requested 4 September; client bindings are absent from the latest runtime readback. Delivery must use the recorded private binding path. No follow-up message was sent by this task.                                                        |
-| Managed Dotloop connection (B-DL2) | Managed account owner          | Connect after credentials arrive; select a verified office profile, renewal template, transaction type and initial status. Readiness does not itself authorize loop creation or upload.                                                     |
-| Release assurance (B-AUTH2)        | Josiah / release operator      | Local CLI and ADC refresh work after reboot. Still require existing Admin and Editor profiles on both exact origins, the candidate receipt, promotion and five-minute observation. The 24-hour authentication proof is also pending.        |
-| October walkthrough lease          | Renewal operator / Josiah      | A provisional reading example is selected privately from ten October leases with complete detail reads. Verify its Sheet association and workflow evidence; retired proof targets are excluded. Selection does not authorize a transaction. |
+## Side work and working defaults
 
-Both Dotloop effect keys and the resident-reply draft key remain closed. S100 completion precedes
-the temporary S36 pilot. The previous B-GOLD1 test hold is closed after owner review; it is not a
-client input.
+| Item                  | Needed from whom                                                                                          | Scope                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Resident-reply draft  | Maintenance operator: one real work order with resident chat and verified resident email, privately.      | Blocks resident-reply and its dependent pilot, not every renewal. |
+| Property preapprovals | Policy owner: property identifiers, amount per property and effective dates. Admin verifies and confirms. | Blocks that maintenance routing proof, not the renewal guide.     |
+| Monthly renewal list  | Client decision if a change is wanted.                                                                    | Default: lease-end-month results separate from periodic reviews.  |
+| Annual review date    | Client decision if a change is wanted.                                                                    | Default: next anniversary on or after the current month.          |
 
-## Questions with a working default
+Keep side work out of the main walkthrough unless the client wants to decide it today.
 
-| Decision                                                  | Default until a decision is recorded                                                                                                    | Meeting response     |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| Should a monthly renewal answer include periodic reviews? | Keep lease-end-month results separate from periodic-review rows.                                                                        | To confirm           |
-| Should annual review keep rolling forward?                | Use the next anniversary on or after the current month.                                                                                 | To confirm           |
-| What counts as success at the next acceptance session?    | Staff can find one real lease, explain source conflicts, review the eligible unsent draft and identify the exact packet stopping point. | Agree owner and date |
+## How to communicate a blocker
 
-The owner already confirmed Editor with all Spaces for claim-less managed accounts. No role change
-is proposed. The internal questions about retired Demo sign-in domains and future candidate-domain
-pruning remain in [the facts ledger](../facts.md); this release may replace only its superseded
-candidate domain.
+Use five facts: **where we stopped, what is missing, its impact, who supplies it, and what lets us
+resume.** Record this in the approved private work record:
 
-## Closeout record
+> We stopped at [step]. The app showed [message]. We need [item] from [person] by [date].
+> Until then, [action] cannot proceed. We will resume at [step] after checking [evidence].
 
-Record each decision, a named accountable person, the private evidence destination and the agreed
-due date during the meeting. Leave an unanswered item open. Source values, contact details, customer
-documents and policy amounts stay outside Git. [The blocker register](../open-blockers.md) owns the
-technical completion gates; [the client checklist](../client-checklist.md) owns the runtime inputs.
+For example: "Packet creation is waiting on approved renewal forms and signer/field mappings.
+Please provide the private approved source and version. We can resume packet verification once
+those mappings are checked." This is prepared wording; no message has been sent.
+
+## Leave with this record
+
+| Decision or missing item  | Named owner | Agreed date | Private evidence location | Resume step and check |
+| ------------------------- | ----------- | ----------- | ------------------------- | --------------------- |
+| Assign during the meeting | To agree    | To agree    | To agree                  | To agree              |
+
+Close an item after its evidence is checked. A promise alone does not close it.
+Internal gates and identifiers: [blocker register](../open-blockers.md).

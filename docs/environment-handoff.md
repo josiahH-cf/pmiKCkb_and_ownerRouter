@@ -1,13 +1,10 @@
 # Environment and release handoff
 
-Updated: 2026-09-08. Verified CLI readback reconfirmed traffic, exact revision identities,
-Production + Live and the managed runtime identity; both public version endpoints matched.
-The same readback verified eleven Spaces, the enabled Sheet switch, false Demo flags, RentVine
-and RentCast secret bindings, RentCast selection and allowance 50, and absent Dotloop client
-bindings. Fingerprint, authorized domains, monitoring and measured usage retain their 2026-09-06
-evidence date; a configured allowance does not establish remaining headroom. Browser ADC enrollment,
-fresh-shell and paired post-reboot CLI/ADC refresh, and the app ADC preflight passed on 2026-09-08. No new deployment,
-domain mutation or promotion occurred in the readiness run.
+Updated: 2026-09-09. Public version endpoints confirm the canonical predecessor and new
+readiness candidate. The watcher is in assurance, blocked on authentication; CLI and ADC require
+reauth. September 8 fresh-shell/post-reboot proofs remain evidence, not current READY.
+The 24-hour proof is incomplete. Numeric traffic/configuration below retains its September 8
+authenticated evidence date. Fresh readback is required after recovery. No promotion is verified.
 
 ## Production
 
@@ -94,8 +91,8 @@ The existing channel was read back and its recipient preserved on 2026-09-08; mo
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
 The installed task runs `release:watch`. Pushed implementation 6e77d18f6d9916ba94078550d4b5ba73751e86c8
 passed exact-SHA CI run 34262698002. The watcher accepted it, completed isolated preparation, captured
-the serving predecessor and entered deploy. Planned revision pmi-kc-app-rmtt039q1-c1463245a94c
-is not deployment evidence; inspect the checkpoint and live readbacks before using it.
+the serving predecessor and deployed pmi-kc-app-rmtt039q1-c1463245a94c. September 9 public version
+readback confirms its exact identity. The checkpoint is in assurance, blocked on authentication.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release. Documentation-only
 commits do not deploy. Candidate readbacks, domain replacement, fresh assurance receipt, exact
 promotion and 300,000 ms observation remain gates. Durable rollback intent is stored before traffic
@@ -158,14 +155,14 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-Current zero-traffic candidate (deployed 2026-09-06 from commit
-`7b3fdadac134550c24b029034753a38f16e4096b`): revision `pmi-kc-app-rmtq71kjl-bff41bbdb5fa`, tag
-`cand-rmtq71kjl-bff41bbdb5fa`, captured predecessor `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` (still
-serving 100%), configuration fingerprint
-`sha256:dc697873b3b384e13a631e4742bae66358f71d6f09bca564dbfd84351de1bcda`. Its anonymous smoke passed (root 307,
-sign-in 200, protected 307, version 200 at the exact commit and revision) and its hostname is the only
-candidate entry in the authorized sign-in domains. It is not promoted; the S51 candidate assurance
-below has not run.
+Current candidate public version (reread 2026-09-09) is commit
+6e77d18f6d9916ba94078550d4b5ba73751e86c8, revision pmi-kc-app-rmtt039q1-c1463245a94c,
+tag cand-rmtt039q1-c1463245a94c. Captured predecessor pmi-kc-app-rmtkmhj1z-8855e4c6dbfb
+still answers canonical. Watcher completed smoke, fingerprint and domains before assurance.
+Fingerprint: sha256:8810a5f8d31b6b1bb698f0e3cad9a361556c5abd4a57ae00b673dd4e099e016f.
+It is blocked authentication_required after managed_browser_enrollment_required. Numeric traffic
+and current domain enumeration were not independently reread today. Do not promote without the
+exact receipt and remaining release gates.
 
 Run the anonymous, GET-only candidate smoke before any authenticated browser check:
 

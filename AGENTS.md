@@ -28,13 +28,15 @@ were reread on 2026-09-08. Nine authorized domains and the S51 monitoring set we
 monitoring is READY with its existing managed recipient. The app records zero September RentCast
 calls; vendor-account usage is not independently verified. No comp request was made.
 The local authentication policy was revised by the owner on 2026-09-08 as recorded below.
-Fresh-shell and paired post-reboot WSL CLI/ADC refresh passed as the approved account using the
-unchanged enrollment; the app ADC preflight is READY. The required 24-hour elapsed-session proof
-remains pending.
-The readiness slice is unreleased. Its local corrections and exact remaining seams are in
-`docs/loop-state.md`; no new candidate or promotion is claimed. S112's existing work is preserved and its approved local authentication revision is in scope.
-The owner directed pushing the reviewed green work and preparing four Wednesday deliverables;
-docs/plan.md records their outcomes and acceptance checks. Release gates remain separate.
+Fresh-shell and paired post-reboot CLI/ADC/app refresh passed September 8 with unchanged enrollment.
+September 9 around 07:29 UTC full auth:ensure reports both CLI and ADC blocked with reauth.
+Current unattended readiness is NOT READY; the 24-hour proof was not reached or passed.
+A new enrollment restarts that proof. Independent documentation work continues.
+Readiness implementation 6e77d18 is pushed with green CI and its candidate public version is verified.
+The watcher reached assurance and is blocked on authentication after requesting managed browser
+enrollment. Promotion and observation are not verified. The owner requested a simple visual guide
+for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
+normal packet/signature/completion handoffs. docs/plan.md records the work and acceptance checks.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
@@ -117,10 +119,10 @@ docs/plan.md records their outcomes and acceptance checks. Release gates remain 
   S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
   assurance are committed (`e6b76f9`) and, together with the owner's 2026-09-03 renewal-completion
   program (S102-S111 and the rewritten S34) and the 2026-09-06 re-verification corrections,
-  deployed as zero-traffic candidate `pmi-kc-app-rmtq71kjl-bff41bbdb5fa` from commit
-  `7b3fdadac134550c24b029034753a38f16e4096b`; its anonymous smoke passed, the S51 monitoring set
-  reads `READY`, and promotion waits only on the two managed browser profiles signed in on both
-  the candidate and canonical origins. The program executes before S36 and the S88-S95 program.
+  deployed as zero-traffic candidate `pmi-kc-app-rmtt039q1-c1463245a94c` from commit
+  `6e77d18f6d9916ba94078550d4b5ba73751e86c8`; its anonymous smoke passed, the S51 monitoring set
+  reads `READY`, and promotion waits on authentication recovery, managed-browser assurance on both origins and
+  the remaining release gates. The program executes before S36 and the S88-S95 program.
   S87-S95 and S101 remain specification-only desired behavior.
 
 The owner approved removing one unsupported historical expected rent-conflict label after private

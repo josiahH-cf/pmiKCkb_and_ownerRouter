@@ -16,9 +16,11 @@ point for historical documents removed during the 2026-08-26 context reset.
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
 
-The owner directed preparation of four Wednesday deliverables in `docs/plan.md`. Use the current
-written readout while the earlier deck/PDF await a content refresh. `docs/status.md` and the
-readiness review own implementation and verification truth; release acceptance remains separate.
+Use the four simplified Wednesday documents below for the client session. The training guide is
+lease-agnostic, with a workflow map, actual phase labels, expected results and stopping points.
+docs/products/build-renewal-handouts.py renders the Markdown into two PDFs in output/pdf.
+Run with Python/reportlab; --font-dir C:/Windows/Fonts embeds Arial for this host's printable copy.
+Release acceptance and full live workflow completion remain open.
 
 ## Current core
 
@@ -61,6 +63,8 @@ readiness review own implementation and verification truth; release acceptance r
 
 ## Product lanes
 
+- [Printable renewal training](products/renewal-training-guide.pdf) and
+  [Wednesday meeting brief](products/wednesday-meeting-brief.pdf) — reviewed client handouts.
 - `docs/products/pmi-kc-kb.md`
 - `docs/products/lease-renewal-agent.md`
 - `docs/products/gmail-inbox-zero.md` (compatibility filename; lane is Workflow Communications)
@@ -72,7 +76,7 @@ readiness review own implementation and verification truth; release acceptance r
   is read by `npm run smoke:renewal-guide-controls-browser`, so a step cannot name a control the
   application does not show.
 
-- `docs/products/renewal-client-walkthrough-2026-09-09.md` — staff steps with serving/candidate holds.
+- `docs/products/renewal-client-walkthrough-2026-09-09.md` — reusable visual training with branches, recovery and current availability.
 - `docs/products/client-call-agenda-2026-09-09.md` — owner-supplied Wednesday agenda and exact inputs.
 - `docs/products/wednesday-decisions-and-inputs-2026-09-09.md` — three client inputs, decisions and owners/dates.
 - `docs/products/wednesday-delivery-readout-2026-09-09.md` — current written outcomes and acceptance plan.
@@ -88,11 +92,14 @@ sync is deployed; its resident-draft
 action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
 them before S36; see the README bundle section. S36 is queued behind
 complete S100, and S87-S95 plus S101 remain specification-only desired behavior. S112 (unattended
-authentication) is active: owner enrollment and post-reboot proofs pass; elapsed-session and managed
+authentication) is active: September 8 enrollment/reboot proofs passed; September 9 CLI/ADC require reauth; elapsed-session and managed
 browser acceptance remain in `docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
 and facts own their contract; Git history retains provenance.
 
 ## Current evidence and templates
+
+- docs/evidence/renewal-training-control-review-2026-09-09.md — current control and handoff analysis.
+- docs/products/build-renewal-handouts.py — printable training and meeting documents.
 
 - `docs/evidence/wednesday-readiness-review-2026-09-07.md` — adversarial scope and exact result ledger.
 - `docs/products/wednesday-delivery-readout-2026-09-09.md` — current meeting readout. The stale
