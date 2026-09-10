@@ -114,6 +114,19 @@ describe("S97 RentVine updates panel", () => {
     ).toBeInTheDocument();
   });
 
+  it("loads missing durable history through a genuine GET without a mutation request", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "ok", proposal: null, effects: [], history: [] }),
+    });
+    render(<RentvineUpdatesPanel initialProposal={null} leaseId="4821" role="Admin" />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/lease-renewal/rentvine-writeback?leaseId=4821",
+      { method: "GET", cache: "no-store" },
+    );
+  });
+
   it("routes a non-Admin to the access-request handoff instead of execute controls", () => {
     const reviewed = datesProposal();
     render(

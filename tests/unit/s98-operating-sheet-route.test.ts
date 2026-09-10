@@ -147,7 +147,7 @@ vi.mock(
   }),
 );
 
-import { POST } from "@/app/api/lease-renewal/operating-sheet/route";
+import { GET, POST } from "@/app/api/lease-renewal/operating-sheet/route";
 
 const state = {
   header: [...HEADER],
@@ -433,6 +433,34 @@ describe("S98 operating-sheet route", () => {
     expect(effect.propertyId).toBe("84");
     expect(String(effect.operationId)).toMatch(/^op-/);
     expect(effect.mode).toBe("normal");
+    expect(mocks.writerMutations).toEqual([]);
+  });
+
+  it("reads status with the same actor-bound context and refuses effect-bearing GETs", async () => {
+    const expected = await (await post({ operation: "status" })).json();
+    const response = await GET(
+      new Request("http://localhost/api/lease-renewal/operating-sheet", {
+        headers: { "x-renewal-workspace-context": WORKSPACE_CONTEXT },
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(await response.json()).toEqual(expected);
+    for (const query of ["?operation=execute", "?workspaceContext=untrusted"]) {
+      expect(
+        (
+          await GET(
+            new Request(`http://localhost/api/lease-renewal/operating-sheet${query}`, {
+              headers: { "x-renewal-workspace-context": WORKSPACE_CONTEXT },
+            }),
+          )
+        ).status,
+      ).toBe(400);
+    }
+    expect(
+      (await GET(new Request("http://localhost/api/lease-renewal/operating-sheet")))
+        .status,
+    ).toBe(400);
     expect(mocks.writerMutations).toEqual([]);
   });
 

@@ -113,7 +113,7 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", async (importActual) => ({
   }),
 }));
 
-import { POST } from "@/app/api/lease-renewal/rentvine-writeback/route";
+import { GET, POST } from "@/app/api/lease-renewal/rentvine-writeback/route";
 
 const LEASE = {
   startDate: "2025-09-01",
@@ -592,6 +592,26 @@ describe("S97 rentvine-writeback route", () => {
     expect(payload.effects[0].state).toBe("not_started");
     expect(payload.effects[0].reversal_kind).toBe("restore_dates");
     expect(payload.expired).toBe(false);
+    const read = await GET(
+      new Request("http://localhost/api/lease-renewal/rentvine-writeback?leaseId=4821"),
+    );
+    expect(read.status).toBe(200);
+    expect(read.headers.get("cache-control")).toBe("private, no-store");
+    expect(await read.json()).toEqual(payload);
+    expect(mocks.writerCalls).toEqual([]);
+  });
+
+  it.each([
+    "",
+    "?leaseId=0",
+    "?leaseId=4821&leaseId=999",
+    "?leaseId=4821&operation=execute",
+  ])("refuses invalid or effect-bearing status GET %s before writes", async (query) => {
+    const response = await GET(
+      new Request(`http://localhost/api/lease-renewal/rentvine-writeback${query}`),
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.writerCalls).toEqual([]);
   });
 
   it("discards a proposal without touching provider receipts", async () => {

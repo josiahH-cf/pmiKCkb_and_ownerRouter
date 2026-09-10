@@ -73,6 +73,28 @@ function fakeRoute(method: string, url = "https://app.example/lease-renewal") {
 }
 
 describe("offline-first managed assurance browser", () => {
+  it("attests a blocked request only after successful abort and never dispatches it", async () => {
+    const context = fakeContext([]),
+      onMutationBlocked = vi.fn();
+    await launchGuardedManagedBrowser({
+      profile: "/outside/owner-admin",
+      executablePath: "/browser",
+      headless: true,
+      viewport: { width: 1440, height: 1000 },
+      launchTimeoutMs: 1000,
+      onMutationAttempt: vi.fn(),
+      onMutationBlocked,
+      launchPersistentContext: async () => context,
+    });
+    const { route } = fakeRoute("POST");
+    route.abort.mockRejectedValueOnce(new Error("abort_failed"));
+    await expect(context.handler!(route)).rejects.toThrow("abort_failed");
+    expect(onMutationBlocked).not.toHaveBeenCalled();
+    expect(route.continue).not.toHaveBeenCalled();
+    await context.handler!(route);
+    expect(onMutationBlocked).toHaveBeenCalledTimes(1);
+    expect(route.continue).not.toHaveBeenCalled();
+  });
   it("refuses the known state-changing GETs even for an ordinary Admin profile", async () => {
     const context = fakeContext([]);
     const onMutationAttempt = vi.fn();

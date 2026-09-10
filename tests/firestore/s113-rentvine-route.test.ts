@@ -31,7 +31,7 @@ vi.mock("@/lib/lease-renewal/writeback/live", () => ({
 vi.mock("@/lib/lease-renewal/live-config", () => ({
   buildLiveRentVineConfig: () => ({ ok: false, reason: "fixture" }),
 }));
-import { POST } from "@/app/api/lease-renewal/rentvine-writeback/route";
+import { GET, POST } from "@/app/api/lease-renewal/rentvine-writeback/route";
 import {
   FirestoreExternalExecutionStore,
   EXTERNAL_EXECUTION_COLLECTIONS,
@@ -247,6 +247,16 @@ describe("S113 actual future-rent route and persisted business intent", () => {
       }),
     ]);
     expect((await (await post(confirm)).json()).duplicate).toBe(true);
+    expect(writes).toBe(1);
+    local.role = "Editor";
+    const statusRead = await GET(
+      new Request("http://local.test/api/lease-renewal/rentvine-writeback?leaseId=81"),
+    );
+    expect(statusRead.status).toBe(200);
+    expect((await statusRead.json()).effects[0]).toMatchObject({
+      state: "succeeded",
+      attempt_count: 1,
+    });
     expect(writes).toBe(1);
   });
   it("refuses changed owner terms before consuming the attempt", async () => {

@@ -76,11 +76,18 @@ Renewals/Maintenance scopes; the harness never assigns or requests access.
 
 The September 10 owner amendment accepts the existing owner Admin session as the browser release
 prerequisite. It must use the explicit external `/home/josiah/pmi-assurance/owner-admin` profile and
-read back Admin on both candidate and canonical origins. Version 3 candidate/promotion receipts
+read back Admin on both candidate and canonical origins. Version 4 candidate/promotion receipts
 bind `owner-admin-2026-09-10`; candidate and predecessor results record Editor `not_run`.
 Admin access is not evidence of Editor restrictions. Existing Editor manifests and backend
 authorization tests remain intact; no claim or canary effect-refusal policy changes. A copied
 cookie, guessed profile, Demo auth or runner-entered security challenge cannot establish acceptance.
+
+The owner approved only the exact blocked legacy My Work reconcile exception on captured
+predecessor d243911 / pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at the canonical origin. Version 4 receipts
+retain Admin `failed_known_legacy_defect`, Editor `not_run`, and exact blocked-request evidence.
+The guard must successfully abort the single POST /api/work body {action:reconcile} before dispatch;
+all route landmarks, monitoring and other diagnostics must pass. The candidate and post-promotion
+checks still require zero mutation attempts. No business write is allowed by this exception.
 
 The offline-first browser startup is part of the safety boundary rather than a test convenience. The
 context launches with network offline, `serviceWorkers: "block"`, extension/sync/background-network
@@ -302,12 +309,12 @@ configuration readback proves alert delivery.
    in pure tests.
 2. Run focused tests, typecheck, the canonical verifier, core E2E, and fixture-only browser failure
    injection under S54.
-3. Resolve two explicit managed profiles that are authenticated on the exact candidate origin and
-   verify their current role/Space truth without changing it.
+3. Resolve the existing owner Admin profile on the exact candidate and canonical origins and verify
+   its current role/Space truth without changing it. Record Editor browser coverage as not_run.
 4. Deploy the exact zero-traffic candidate; read back commit/revision/predecessor; capture its full
    immutable configuration fingerprint; and verify the revision-bound Sheet coordinates and managed
    identities without serializing them.
-5. Run both offline-first candidate canaries, independent
+5. Run the owner-policy offline-first candidate canary, independent
    RentVine/Sheet/`live-review`/tracked-progress reconciliation, Sheet response-identity checks, and
    monitoring configuration readback. Run the exact predecessor's rollback-phase role/traffic/
    configuration baseline. Hold on any failed or inconclusive mandatory result, and emit one fresh,

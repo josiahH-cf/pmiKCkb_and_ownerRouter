@@ -490,6 +490,17 @@ async function projectReceiptEvidence(
  * Preview and status never write; execution requires the exact unexpired confirmation.
  */
 export async function POST(request: Request) {
+  return handleRequest(request, false);
+}
+
+/** Status is a genuine read, including when a workspace loads or refreshes. */
+export async function GET(request: Request) {
+  const response = await handleRequest(request, true);
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
+async function handleRequest(request: Request, statusOnly: boolean) {
   try {
     const user = await requireCapabilityInSpace(
       renewalRoleCapability("read_workspace"),
@@ -498,7 +509,18 @@ export async function POST(request: Request) {
     const descriptor = requireEnvironmentDescriptor();
     // Environment refusal precedes body parsing; the per-key mutating gate follows below.
     await assertRenewalWritebackExecutionAllowed(descriptor, "recovery");
-    const body = await parseJsonBody(request, BodySchema);
+    const query = new URL(request.url).searchParams;
+    if (
+      statusOnly &&
+      (Array.from(query.keys()).length !== 1 ||
+        !query.has("leaseId") ||
+        !LeaseIdSchema.safeParse(query.get("leaseId")).success)
+    ) {
+      throw new EditableLayerError("A single valid leaseId is required for status.", 400);
+    }
+    const body = statusOnly
+      ? { operation: "status" as const, leaseId: query.get("leaseId")! }
+      : await parseJsonBody(request, BodySchema);
 
     if (body.operation === "discard") {
       assertRenewalRoleAuthority("propose_source_write", user.role);

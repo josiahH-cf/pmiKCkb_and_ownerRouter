@@ -1,5 +1,7 @@
 import type { ReleaseBrowserPolicy } from "../lib/production-assurance/release-browser-policy.mjs";
+import type { PredecessorExceptionEvidence } from "../lib/production-assurance/predecessor-exception.mjs";
 export interface PredecessorBaseline {
+  readonly legacyException?: PredecessorExceptionEvidence | null;
   readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly verifiedAt: string;
   readonly canonicalOrigin: string;
@@ -7,14 +9,14 @@ export interface PredecessorBaseline {
   readonly expectedRevision: string;
   readonly expectedConfigurationFingerprint: string;
   readonly trafficPercent: 100;
-  readonly adminVerdict: "passed";
+  readonly adminVerdict: "passed" | "failed_known_legacy_defect";
   readonly editorVerdict: "passed" | "not_run";
   readonly monitoringState: "ready";
 }
 
 export interface CandidateAssuranceReceipt {
   readonly browserPolicy?: ReleaseBrowserPolicy;
-  readonly schemaVersion: "pmi-kc-candidate-assurance-receipt.v3";
+  readonly schemaVersion: "pmi-kc-candidate-assurance-receipt.v4";
   readonly candidateReceiptId: string;
   readonly issuedAt: string;
   readonly expiresAt: string;
@@ -36,7 +38,7 @@ export interface CandidateAssuranceReceipt {
 
 export interface PromotionReceipt {
   readonly browserPolicy?: ReleaseBrowserPolicy;
-  readonly schemaVersion: "pmi-kc-promotion-receipt.v3";
+  readonly schemaVersion: "pmi-kc-promotion-receipt.v4";
   readonly candidateReceiptId: string;
   readonly candidateReceiptIssuedAt: string;
   readonly promotionStartedAt: string;

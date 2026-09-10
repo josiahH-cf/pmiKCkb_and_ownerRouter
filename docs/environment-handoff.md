@@ -2,7 +2,9 @@
 
 Updated: 2026-09-10. Approved WSL CLI/ADC refresh passed this run. This does not establish the
 24-hour elapsed-session proof or managed browser assurance. Canonical still serves the predecessor;
-the previous readiness candidate remains unpromoted. The active S113 working tree is uncommitted.
+S113 candidate 00836a8 / pmi-kc-app-rmtvz9r9f-10904b929fad remains unpromoted after browser-assurance
+failure. Its exact CI, deployment, smoke, configuration and domains passed. Release corrections are
+being verified in the working tree; the older readiness checkpoint was archived as superseded.
 Current release gates and exact observations are recorded in docs/loop-state.md and docs/facts.md.
 
 ## Production
@@ -69,11 +71,13 @@ These S113 changes are not serving until their release gates pass.
   proof remains open; the owner-controlled session-policy exception was not changed by the runner.
 - The runner never changes that policy or enters a password, code, passkey or CAPTCHA. When Google
   needs a person, the dependent phase pauses with one recovery command; independent work continues.
-- Browser assurance reuses two existing managed profiles outside Git, each on both exact origins.
+- Browser assurance reuses the existing owner Admin profile outside Git on both exact origins.
+  Editor browser coverage is not_run under the September 10 owner amendment; backend Editor checks remain.
   Enroll through `npm run auth:enroll-canary`; unattended checks use `auth:ensure -- --need=canary`.
   The shared Linux browser resolver selects the installed executable, reused by the assurance harness.
-  Never copy a personal profile or infer a role from cookies. Verification accounts retain displayed
-  roles, but server boundaries refuse business effects. Authentication, logout and genuine reads work.
+  Never copy a personal profile or infer a role from cookies. Dedicated verification accounts retain
+  server-side business-effect refusal. The owner retains ordinary Admin authority; assurance uses
+  the guarded read-only browser, including state-changing GET refusals.
 - A successful attended browser enrollment writes an opaque local marker. After a challenge the
   watcher waits for that marker to change before another browser auth probe; it cannot loop login.
 

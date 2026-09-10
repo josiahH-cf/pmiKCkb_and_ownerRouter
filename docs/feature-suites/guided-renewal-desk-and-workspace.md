@@ -71,7 +71,7 @@ The reopened slice implements these bounded corrections without changing S82 act
   state and link cardinality without persisting customer values or importing the desk projection.
 
 Closure requires focused unit/browser tests, canonical verification, the expanded S51/S54 managed
-Admin/Editor candidate checks, exact RentVine/Sheet source reconciliation, promotion, monitoring
+Owner-approved Admin candidate checks, exact RentVine/Sheet source reconciliation, promotion, monitoring
 readback, and the required post-promotion observation. Until those gates pass and the serving
 revision is read back, the remediation remains **ACTIVE / UNRELEASED** and must not be presented as
 deployed.

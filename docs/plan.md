@@ -17,9 +17,17 @@ pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at https://pmi-kc-app-kq6wuvpiva-uc.a.run.app,
 The prior zero-traffic 6e77d18 candidate refuses fixed-row update/delete/restore; S113 replaces
 normal field-update refusal under explicit owner authority and preserves the deletion refusal.
 S96 — safe connector disconnect and reconciliation is serving. The readiness program already on
-main and the complete S113 working tree will release together through one exact new candidate.
+main and S113 are now in the unpromoted 00836a8 candidate.
 
-F1-F5 is implemented locally. Full units pass 6,454 tests with four existing skips; 201 backend
+S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
+34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
+The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
+Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
+anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
+still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
+Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+
+F1-F5 is implemented locally. Full units pass 6,488 tests with four existing skips; 201 backend
 checks pass through actual mounted controls, routes, Firestore, claims, receipts and readbacks.
 External effects use deterministic adapters; staff-recorded completion remains distinct from
 provider verification. Core HTTP E2E passes 31 tests, with 18 intentionally skipped in its separate
@@ -38,8 +46,8 @@ hashes and the existing Admin approver. Old review-only versions remain unchange
 
 1. Implementation/backend/browser acceptance and all 21 in-scope findings pass. H1-H8 model
    verdicts contain concrete evidence; human review stays NOT RUN. Final delivery checks pass.
-2. Record the verified publication, refresh final format/policy/redaction and mechanical extraction,
-   then commit/push the green full scope.
+2. Correct the three release-assurance findings, verify actual status GET/backend paths and the
+   exact approved predecessor exception, repeat affected review and canonical checks, and commit/push.
 3. Require green exact-main-SHA CI; create an isolated clean checkout and zero-traffic candidate.
    Archive the previous unpromoted checkpoint as superseded, without claiming it passed assurance.
 4. Verify exact candidate SHA/revision, runtime configuration, domains, existing owner Admin on
@@ -59,7 +67,14 @@ updates, RentCast restoration and supplied deterministic copy/Gmail repair. Exis
 require fresh exact preview/confirmation, one-attempt claims, receipts/readback and separately
 confirmed correction. No new provider-contract prerequisite or feature approval is required.
 The owner accepts Admin-only browser assurance on both origins; Editor remains not_run and backend
-role checks remain. No account, IAM, claim, action key, send authority or budget control changes.
+role checks remain.
+The owner approved only the exact blocked legacy My Work reconcile exception on captured
+predecessor d243911 / pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at the canonical origin. Version 4 receipts
+retain Admin `failed_known_legacy_defect`, Editor `not_run`, and exact blocked-request evidence.
+The guard must successfully abort the single POST /api/work body {action:reconcile} before dispatch;
+all route landmarks, monitoring and other diagnostics must pass. The candidate and post-promotion
+checks still require zero mutation attempts. No business write is allowed by this exception.
+No account, IAM, claim, action key, send authority or budget control changes.
 The 24-hour authentication longevity proof remains separate and unverified.
 
 Completed S97-S99 and S100 chat proofs are not rerun. B-GOLD1 remains closed under its exact

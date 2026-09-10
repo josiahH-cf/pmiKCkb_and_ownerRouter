@@ -55,6 +55,10 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   // S66 GET composes only an authenticated app-owned Firestore read handler. Its POST is separately
   // denied by the Live-read-only request policy and the handler's edit + renewals guard.
   "app/api/lease-renewal/packet-truth/route.ts:GET:createPacketTruthGetHandler",
+  // S113 status GETs set only their local response Cache-Control header. Shared handlers retain
+  // the same access/environment guards; persisted status reads construct no provider writer.
+  "app/api/lease-renewal/operating-sheet/route.ts:GET:response.headers.set",
+  "app/api/lease-renewal/rentvine-writeback/route.ts:GET:response.headers.set",
   // Hashing the bodyless source snapshot is a local, deterministic value transformation. It makes
   // no provider call and is supplied only as the disposition record's stale-source fence.
   "app/lease-renewal/live/desk/lease/[leaseId]/page.tsx:LiveRenewalLeaseWorkspacePage:createHash",

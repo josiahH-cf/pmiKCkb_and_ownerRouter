@@ -1,10 +1,10 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-09-09.
+Updated: 2026-09-10.
 
 Recorded authority remains in force. Runtime inputs below and the confirm-with-default questions
 remain open. None permits guessing values, substituting records, or stopping independent work.
-September 8 enrollment/fresh-shell/post-reboot proofs passed; September 9 CLI and ADC require reauth. Directory readback
+September 8 enrollment/fresh-shell/post-reboot proofs passed; September 10 CLI and ADC refresh passed. Directory readback
 found six managed users: three Admin and three default Editor, none disabled. Individual evidence
 stays private. A provisional reading example is selected from ten October leases with complete
 provider detail reads; its Sheet association and full workflow readiness still need review.
@@ -21,8 +21,10 @@ provider detail reads; its Sheet association and full workflow readiness still n
   proof merely because it was the authorized test target.
 - S98's bounded operating-Sheet proof is complete, both exact Registry keys remain open, and the
   temporary proof row was deleted and read back absent. Do not create a replacement proof row. The
-  unpromoted correction makes the normal product path append-only; field update/delete/restore report unavailable until
-  Google Sheets exposes the required stable logical-row and expected-generation operation.
+  owner-approved S113 contract retains append and requires normal existing-row field updates with
+  fresh server-resolved target/value checks, exact confirmation, one-attempt claim, receipt/readback
+  and separately confirmed correction. Row delete and historical restore remain unavailable. No
+  new provider safety-contract prerequisite is required.
 - S99's bounded work-order proofs are complete and its exact read/create/status-update keys are
   active. Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
 - S100's manual authenticated inbound work-order-chat synchronization is active. Its unsent Gmail

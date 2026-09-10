@@ -4,6 +4,7 @@ import {
 } from "@/lib/lease-renewal/workspace-sheet-sync";
 import { assembleSheetProposal } from "@/lib/lease-renewal/sheet-writeback/prepare";
 import { NextResponse } from "next/server";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import { postWriteResponse } from "@/lib/lease-renewal/post-write-response";
 import { z } from "zod";
 import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
@@ -191,6 +192,17 @@ async function assertProposalCurrent(
  * `provider_capability_unavailable` until a stable-row seam exists. Preview and status never write.
  */
 export async function POST(request: Request) {
+  return handleRequest(request, false);
+}
+
+/** The signed actor-bound workspace context stays out of URLs and cache keys. */
+export async function GET(request: Request) {
+  const response = await handleRequest(request, true);
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
+async function handleRequest(request: Request, statusOnly: boolean) {
   try {
     const user = await requireCapabilityInSpace(
       renewalRoleCapability("read_workspace"),
@@ -198,7 +210,20 @@ export async function POST(request: Request) {
     );
     const descriptor = requireEnvironmentDescriptor();
     await assertSheetWritebackV2ExecutionAllowed(descriptor, "recovery");
-    const body = await parseJsonBody(request, BodySchema);
+    const workspaceContext = request.headers.get("x-renewal-workspace-context");
+    if (
+      statusOnly &&
+      (new URL(request.url).search !== "" ||
+        !WorkspaceContextSchema.safeParse(workspaceContext).success)
+    ) {
+      throw new EditableLayerError(
+        "A valid workspace context header is required for status.",
+        400,
+      );
+    }
+    const body = statusOnly
+      ? { operation: "status" as const, workspaceContext: workspaceContext! }
+      : await parseJsonBody(request, BodySchema);
     const { leaseId } = verifySheetWorkspaceContext(body.workspaceContext, user.uid);
     const proposalScope = { kind: "lease_workspace" as const, leaseId };
 

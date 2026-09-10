@@ -42,16 +42,28 @@ const REVERSAL_LABELS = {
 } as const;
 
 async function postSheet(workspaceContext: string | null, body: Record<string, unknown>) {
+  return requestSheet(workspaceContext, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...body, workspaceContext }),
+  });
+}
+
+async function readSheetStatus(workspaceContext: string | null) {
+  return requestSheet(workspaceContext, {
+    method: "GET",
+    cache: "no-store",
+    headers: { "x-renewal-workspace-context": workspaceContext ?? "" },
+  });
+}
+
+async function requestSheet(workspaceContext: string | null, init: RequestInit) {
   if (!workspaceContext) {
     throw new Error(
       "This lease workspace needs a fresh secure page load before Sheet work.",
     );
   }
-  const response = await fetch("/api/lease-renewal/operating-sheet", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ...body, workspaceContext }),
-  });
+  const response = await fetch("/api/lease-renewal/operating-sheet", init);
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
     throw new Error(
@@ -165,7 +177,7 @@ export function OperatingSheetPanel({
     }
     let cancelled = false;
     setStatusPending(true);
-    void postSheet(workspaceContext, { operation: "status" })
+    void readSheetStatus(workspaceContext)
       .then((payload) => {
         if (cancelled) return;
         setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
@@ -207,7 +219,7 @@ export function OperatingSheetPanel({
   }
 
   async function refreshStatus() {
-    const payload = await postSheet(workspaceContext, { operation: "status" });
+    const payload = await readSheetStatus(workspaceContext);
     setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
     setEffects((payload.effects as SheetWritebackEffectStatus[] | undefined) ?? null);
   }

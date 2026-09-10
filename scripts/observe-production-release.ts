@@ -51,6 +51,8 @@ import {
   type VerifiedProductionAssuranceContext,
 } from "./production-assurance-preflight";
 import { runProductionCanary } from "./run-production-canary";
+import { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
+import { isApprovedPredecessor } from "../lib/production-assurance/predecessor-exception.mjs";
 import { runProductionReconciliation } from "./run-production-reconciliation";
 
 const DEFAULT_PROJECT = "pmi-kc-kb-prod";
@@ -506,12 +508,23 @@ async function capturePredecessorBaseline(input: {
     deadlineAtMs: input.deadlineAtMs,
     abortSignal: input.abortSignal,
   };
+  const predecessorContext = {
+    browserPolicy: input.browserPolicy,
+    canonicalOrigin: input.canonicalOrigin,
+    expectedCommit: version.commit,
+    expectedRevision: input.predecessorRevision,
+  };
+  const exceptionObserver = isApprovedPredecessor(predecessorContext)
+    ? new PredecessorExceptionObserver()
+    : undefined;
   const admin = await runProductionCanary({
     ...target,
     role: "Admin",
     profile: input.adminProfile,
     assuranceContext: input.assuranceContext,
+    predecessorExceptionObserver: exceptionObserver,
   });
+  const legacyException = exceptionObserver?.evidence(predecessorContext, admin) ?? null;
   const editor = input.editorProfile
     ? await runProductionCanary({
         ...target,
@@ -526,11 +539,13 @@ async function capturePredecessorBaseline(input: {
     remainingAssuranceTime(input.deadlineAtMs),
   );
   if (
-    !browserVerdictsAccepted(
-      input.browserPolicy,
-      admin.verdict,
-      editor?.verdict ?? "not_run",
-    ) ||
+    (!legacyException &&
+      !browserVerdictsAccepted(
+        input.browserPolicy,
+        admin.verdict,
+        editor?.verdict ?? "not_run",
+      )) ||
+    (legacyException !== null && editor !== null) ||
     !monitoringReady
   ) {
     throw new Error("predecessor_baseline_failed");
@@ -558,7 +573,8 @@ async function capturePredecessorBaseline(input: {
     expectedRevision: input.predecessorRevision,
     expectedConfigurationFingerprint,
     trafficPercent: 100,
-    adminVerdict: "passed",
+    adminVerdict: legacyException ? "failed_known_legacy_defect" : "passed",
+    legacyException,
     editorVerdict: editor ? "passed" : "not_run",
     monitoringState: "ready",
   };
@@ -619,6 +635,8 @@ export function assertRecoveredPredecessorBaseline(
     recovered.trafficPercent !== expected.trafficPercent ||
     recovered.browserPolicy !== expected.browserPolicy ||
     recovered.adminVerdict !== expected.adminVerdict ||
+    JSON.stringify(recovered.legacyException ?? null) !==
+      JSON.stringify(expected.legacyException ?? null) ||
     recovered.editorVerdict !== expected.editorVerdict ||
     recovered.monitoringState !== expected.monitoringState
   ) {

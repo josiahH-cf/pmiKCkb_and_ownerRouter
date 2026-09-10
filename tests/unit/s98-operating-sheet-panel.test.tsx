@@ -248,6 +248,11 @@ describe("S98 operating-sheet panel", () => {
       expect(screen.getByText(/Needs reconciliation/)).toBeInTheDocument();
     });
     expect(screen.queryByText(/Ready to confirm/)).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/lease-renewal/operating-sheet", {
+      method: "GET",
+      cache: "no-store",
+      headers: { "x-renewal-workspace-context": WORKSPACE_CONTEXT },
+    });
     expect(
       screen.getByRole("button", { name: "Discard the saved proposal" }),
     ).toBeDisabled();

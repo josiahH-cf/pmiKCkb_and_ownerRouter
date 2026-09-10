@@ -53,11 +53,22 @@ const REVERSAL_LABELS = {
 } as const;
 
 async function postWriteback(body: Record<string, unknown>) {
-  const response = await fetch("/api/lease-renewal/rentvine-writeback", {
+  return requestWriteback({
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+async function readWritebackStatus(leaseId: string) {
+  return requestWriteback(
+    { method: "GET", cache: "no-store" },
+    `?leaseId=${encodeURIComponent(leaseId)}`,
+  );
+}
+
+async function requestWriteback(init: RequestInit, query = "") {
+  const response = await fetch(`/api/lease-renewal/rentvine-writeback${query}`, init);
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
     throw new Error(
@@ -209,7 +220,7 @@ export function RentvineUpdatesPanel({
   }
 
   async function refreshStatus() {
-    const payload = await postWriteback({ operation: "status", leaseId });
+    const payload = await readWritebackStatus(leaseId);
     setProposal((payload.proposal as RentvineWritebackClientProposal | null) ?? null);
     setEffects((payload.effects as RentvineWritebackEffectStatus[] | undefined) ?? null);
     setHistory(
@@ -226,7 +237,7 @@ export function RentvineUpdatesPanel({
     statusLoadedPreviewRef.current = statusKey;
     let active = true;
     setPending(true);
-    void postWriteback({ operation: "status", leaseId })
+    void readWritebackStatus(leaseId)
       .then((payload) => {
         if (!active) return;
         setProposal((payload.proposal as RentvineWritebackClientProposal | null) ?? null);

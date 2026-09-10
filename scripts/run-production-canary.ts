@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url";
+import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
 
 import { chromium, type Page, type Response } from "playwright-core";
@@ -78,6 +79,7 @@ export interface LiveCanaryOptions extends ProductionTarget {
   readonly deadlineAtMs?: number;
   readonly abortSignal?: AbortSignal;
   readonly assuranceContext?: VerifiedProductionAssuranceContext;
+  readonly predecessorExceptionObserver?: PredecessorExceptionObserver;
 }
 
 export async function runProductionCanary(
@@ -145,6 +147,7 @@ async function runProductionCanaryWithin(
   );
   let activeCounts: DiagnosticCounts = emptyDiagnosticCounts();
   let active = false;
+  let activeRouteKey: string | null = null;
   let workspacePath: string | null = null;
   let mutationOutsideActiveRoute = false;
 
@@ -167,6 +170,8 @@ async function runProductionCanaryWithin(
       if (active) recordSignal({ kind: "mutation_attempt" });
       else mutationOutsideActiveRoute = true;
     },
+    onMutationBlocked: (request) =>
+      options.predecessorExceptionObserver?.mutationBlocked(activeRouteKey, request),
     abortSignal,
   });
   const routes: RouteAssuranceEvidence[] = [];
@@ -179,8 +184,15 @@ async function runProductionCanaryWithin(
       }
       const page = await runWithinCanaryDeadline(() => context.newPage(), deadlineAtMs);
       attachPageDiagnostics(page, options.origin, recordSignal);
+      page.on("requestfailed", (request) =>
+        options.predecessorExceptionObserver?.requestFailed(definition.key, request),
+      );
+      page.on("console", (message) =>
+        options.predecessorExceptionObserver?.consoleMessage(definition.key, message),
+      );
       activeCounts = emptyDiagnosticCounts();
       active = true;
+      activeRouteKey = definition.key;
       if (mutationOutsideActiveRoute) {
         recordSignal({ kind: "mutation_attempt" });
         mutationOutsideActiveRoute = false;
@@ -245,6 +257,7 @@ async function runProductionCanaryWithin(
         passed = false;
       }
       active = false;
+      activeRouteKey = null;
       const outcome =
         passed && !hasBrowserDiagnostics(activeCounts)
           ? definition.expectedOutcome
@@ -372,6 +385,33 @@ export function workspaceSelectorsForPhase(phase: AssurancePhase): readonly stri
     : [STRICT_WORKSPACE_SELECTOR];
 }
 
+export function isCancelledRoutePrefetch(
+  request: {
+    method(): string;
+    resourceType(): string;
+    isNavigationRequest(): boolean;
+    headers(): Record<string, string>;
+    failure(): { errorText: string } | null;
+    url(): string;
+  },
+  origin: string,
+): boolean {
+  if (
+    request.method() !== "GET" ||
+    request.resourceType() !== "fetch" ||
+    request.isNavigationRequest() ||
+    request.headers()["next-router-prefetch"] !== "1" ||
+    request.failure()?.errorText !== "net::ERR_ABORTED"
+  )
+    return false;
+  try {
+    const url = new URL(request.url());
+    return url.origin === origin && !/^\/(?:api|_next)(?:\/|$)/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function attachPageDiagnostics(
   page: Page,
   origin: string,
@@ -387,6 +427,9 @@ function attachPageDiagnostics(
   });
   page.on("pageerror", () => recordSignal({ kind: "page_error" }));
   page.on("requestfailed", (request) => {
+    // Next.js cancels speculative page prefetches as priorities change. This observed browser
+    // cancellation is not a failed loaded route; API reads, navigation and other failures stay fatal.
+    if (isCancelledRoutePrefetch(request, origin)) return;
     recordSignal({
       kind: "request_failed",
       firstParty: safeSameOrigin(request.url(), origin),
@@ -543,7 +586,7 @@ async function classifyRenderedBoundary(
   if (routeBoundary) record({ kind: "error_boundary", boundary: "route" });
 }
 
-async function resolveWorkspacePath(
+export async function resolveWorkspacePath(
   page: Page,
   origin: string,
   phase: AssurancePhase,
@@ -551,7 +594,11 @@ async function resolveWorkspacePath(
   // Never let provider row ordering decide which workspace is exercised. The table publishes the
   // same eligibility predicate as the server loader; absence is an honest inconclusive/failure signal.
   for (const selector of workspaceSelectorsForPhase(phase)) {
-    const href = await page.locator(selector).first().getAttribute("href");
+    const link = page.locator(selector).first();
+    // The captured predecessor can predate these attributes. Check presence before awaiting an
+    // attribute so its explicit legacy fallback is reachable; candidate selection stays strict.
+    if ((await link.count()) === 0) continue;
+    const href = await link.getAttribute("href");
     if (!href) continue;
     const target = new URL(href, origin);
     if (

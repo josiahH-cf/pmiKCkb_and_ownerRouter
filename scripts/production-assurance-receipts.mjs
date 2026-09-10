@@ -1,3 +1,4 @@
+import { acceptsPredecessorException } from "../lib/production-assurance/predecessor-exception.mjs";
 import {
   DUAL_ROLE_BROWSER_POLICY,
   browserVerdictsAccepted,
@@ -20,8 +21,8 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 
-export const CANDIDATE_ASSURANCE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v3";
-export const PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v3";
+export const CANDIDATE_ASSURANCE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v4";
+export const PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v4";
 export const CANDIDATE_RECEIPT_CLAIM_SCHEMA = "pmi-kc-candidate-assurance-claim.v1";
 export const CANDIDATE_RECEIPT_TTL_MS = 2 * 60 * 60 * 1000;
 
@@ -34,6 +35,7 @@ const RECEIPT_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const BASELINE_KEYS = Object.freeze([
+  "legacyException",
   "browserPolicy",
   "verifiedAt",
   "canonicalOrigin",
@@ -130,6 +132,7 @@ export function buildCandidateAssuranceReceipt(
       expectedConfigurationFingerprint: input.expectedConfigurationFingerprint,
       predecessorRevision: input.predecessorRevision,
       predecessorBaseline: {
+        legacyException: null,
         ...input.predecessorBaseline,
         browserPolicy:
           input.predecessorBaseline.browserPolicy ?? DUAL_ROLE_BROWSER_POLICY,
@@ -497,10 +500,14 @@ function assertPredecessorBaseline(value, service, code) {
     !value.expectedRevision.startsWith(`${service}-`) ||
     !FINGERPRINT.test(value.expectedConfigurationFingerprint) ||
     value.trafficPercent !== 100 ||
-    !browserVerdictsAccepted(
-      value.browserPolicy,
-      value.adminVerdict,
-      value.editorVerdict,
+    !(
+      (value.legacyException === null &&
+        browserVerdictsAccepted(
+          value.browserPolicy,
+          value.adminVerdict,
+          value.editorVerdict,
+        )) ||
+      acceptsPredecessorException(value)
     ) ||
     value.monitoringState !== "ready"
   ) {

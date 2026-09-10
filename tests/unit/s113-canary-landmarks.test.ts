@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Page } from "playwright-core";
 import {
   hasRenewalWorkspaceLandmarks,
+  isCancelledRoutePrefetch,
+  resolveWorkspacePath,
   workspaceSelectorsForPhase,
 } from "../../scripts/run-production-canary";
 
@@ -47,6 +49,51 @@ function pageFixture(
   } as unknown as Page;
 }
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
+  it("separates observed framework prefetch cancellation from failed navigation, API reads and mutations", () => {
+    const origin = "https://app.example";
+    const request = {
+      method: () => "GET",
+      resourceType: () => "fetch",
+      isNavigationRequest: () => false,
+      headers: () => ({ "next-router-prefetch": "1" }),
+      failure: () => ({ errorText: "net::ERR_ABORTED" }),
+      url: () => `${origin}/work?_rsc=opaque`,
+    };
+    expect(isCancelledRoutePrefetch(request, origin)).toBe(true);
+    for (const changed of [
+      { method: () => "POST" },
+      { resourceType: () => "document" },
+      { isNavigationRequest: () => true },
+      { headers: () => ({}) },
+      { failure: () => ({ errorText: "net::ERR_CONNECTION_RESET" }) },
+      { failure: () => null },
+      { url: () => `${origin}/api/work` },
+      { url: () => `${origin}/_next/static/example.js` },
+      { url: () => "https://elsewhere.example/work" },
+    ])
+      expect(isCancelledRoutePrefetch({ ...request, ...changed }, origin)).toBe(false);
+  });
+
+  it("uses the captured predecessor link when its old table lacks the new eligibility attributes", async () => {
+    const page = {
+      locator: (selector: string) => ({
+        first: () => ({
+          count: async () => (selector === "a.renewal-lease-link" ? 1 : 0),
+          getAttribute: async () => {
+            if (selector !== "a.renewal-lease-link") throw new Error("locator_timeout");
+            return "/lease-renewal/live/desk/lease/701?deskView=v%3D2";
+          },
+        }),
+      }),
+    } as unknown as Page;
+    await expect(
+      resolveWorkspacePath(page, "https://app.example", "rollback"),
+    ).resolves.toBe("/lease-renewal/live/desk/lease/701?deskView=v%3D2");
+    await expect(
+      resolveWorkspacePath(page, "https://app.example", "candidate"),
+    ).resolves.toBeNull();
+  });
+
   it("selects an active or tracked workflow for full dashboard assurance, not an inspection-only lease", () => {
     const selector = workspaceSelectorsForPhase("candidate");
     expect(selector).toHaveLength(1);

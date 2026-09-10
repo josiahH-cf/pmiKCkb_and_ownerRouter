@@ -14,6 +14,7 @@ export const GUARDED_BROWSER_BACKGROUND_ARGS = Object.freeze([
 export interface GuardedBrowserRequest {
   method(): string;
   url(): string;
+  postData?(): string | null;
 }
 
 export interface GuardedBrowserRoute {
@@ -67,6 +68,8 @@ export interface LaunchGuardedManagedBrowserInput<
   readonly launchTimeoutMs: number;
   readonly launchPersistentContext: GuardedManagedBrowserLauncher<Context>;
   readonly onMutationAttempt: () => void;
+  /** Called only after the firewall has successfully aborted the request before dispatch. */
+  readonly onMutationBlocked?: (request: GuardedBrowserRequest) => void;
   /** Shared run deadline. A context that resolves after cancellation is closed before use. */
   readonly abortSignal?: AbortSignal;
 }
@@ -213,6 +216,7 @@ export async function launchGuardedManagedBrowser<
         input.onMutationAttempt();
       } finally {
         await route.abort("blockedbyclient");
+        input.onMutationBlocked?.(request);
       }
     });
 

@@ -53,7 +53,7 @@ vi.mock("@/lib/lease-renewal/sheet-writeback/workspace-resolution", async (origi
   resolveFreshOperatingSheetLeaseContext: async () => testState.context!(),
 }));
 
-import { POST } from "@/app/api/lease-renewal/operating-sheet/route";
+import { GET, POST } from "@/app/api/lease-renewal/operating-sheet/route";
 import { mintSheetWorkspaceContext } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 import {
   getSheetWritebackProposal,
@@ -279,6 +279,17 @@ describe("S113 actual Sheet backend with persisted attempt and provider double",
     });
     const duplicate = await (await post(confirmation(proposal))).json();
     expect(duplicate).toMatchObject({ duplicate: true, receipt: result.receipt });
+    expect(mutations).toBe(1);
+    const statusRead = await GET(
+      new Request("http://local.test/api/lease-renewal/operating-sheet", {
+        headers: { "x-renewal-workspace-context": token },
+      }),
+    );
+    expect(statusRead.status).toBe(200);
+    expect((await statusRead.json()).effects[0]).toMatchObject({
+      state: "succeeded",
+      attempt_count: 1,
+    });
     expect(mutations).toBe(1);
     const correction = await propose(1150, proposal.previewHash);
     expect(correction.effects[0].effect).toMatchObject({
@@ -2061,7 +2072,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           return request.method === "GET"
             ? getMessageRoute(request)
             : postMessageRoute(request);
-        if (url.pathname.endsWith("/operating-sheet")) return POST(request);
+        if (url.pathname.endsWith("/operating-sheet"))
+          return request.method === "GET" ? GET(request) : POST(request);
         if (url.pathname.endsWith("/market-comps")) return compRoute(request);
         if (url.pathname.endsWith("/resource-locations"))
           return postResourceRoute(request);

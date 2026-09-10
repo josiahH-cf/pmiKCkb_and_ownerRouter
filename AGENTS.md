@@ -39,10 +39,14 @@ browser enrollment. Its current assurance, promotion and observation are not ver
 for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
 normal packet/signature/completion handoffs. The owner's subsequent renewal-consolidation direction
 is specified in S113: one full manual dashboard, staff-recorded workflow advancement, and required
-pre-approved in-app Sheet field updates. S113 implementation, actual backend verification, all seven compiled browser checks and the
-21-finding adversarial review pass locally. Final documentation/delivery checks pass; supplied owner
-and tenant v2 copy is published and read back approved. Exact release gates remain; S113 is not yet
-committed or deployed.
+pre-approved in-app Sheet field updates. S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
+34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
+The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
+Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
+anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
+still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
+Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+Both supplied v2 internal templates are published and read back approved.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
@@ -197,6 +201,13 @@ the runner never changes that policy or enters a password, code, passkey, or CAP
   The owner account retains ordinary Admin authority. Its assurance runs use the guarded read-only
   browser, including the existing state-changing GET refusals; they do not claim that the owner has
   the dedicated canary accounts' server-side mutation restriction.
+- September 10 owner approval permits only the exact predecessor exception below.
+  The owner approved only the exact blocked legacy My Work reconcile exception on captured
+  predecessor d243911 / pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at the canonical origin. Version 4 receipts
+  retain Admin `failed_known_legacy_defect`, Editor `not_run`, and exact blocked-request evidence.
+  The guard must successfully abort the single POST /api/work body {action:reconcile} before dispatch;
+  all route landmarks, monitoring and other diagnostics must pass. The candidate and post-promotion
+  checks still require zero mutation attempts. No business write is allowed by this exception.
 - The local release watcher may deploy exact-main-SHA green CI from an isolated clean checkout,
   serialize and resume phases outside Git, and catch up after this host starts. Documentation-only
   commits do not deploy. Missing authentication pauses only the dependent phase; no repeated login

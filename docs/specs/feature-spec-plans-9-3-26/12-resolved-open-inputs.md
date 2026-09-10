@@ -94,9 +94,9 @@ longer has to derive it first.
 
 ## What could not be answered here
 
-Promotion still waits on two access steps that exist precisely so a person proves them: the candidate
-origin must be an authorized sign-in domain, and two managed Admin and Editor profiles must be
-interactively authenticated on that exact origin. Automated password or MFA entry is refused by
+The candidate origin must be an authorized sign-in domain. Under the September 10 owner amendment,
+the existing owner Admin profile supplies browser assurance on both exact origins; Editor browser
+coverage is recorded as not_run and backend Editor restrictions remain verified. Automated password or MFA entry is refused by
 design, and building an agent path around it would defeat the check rather than satisfy it.
 
 The resident-draft proof in the adjacent chat-sync work also still waits on one synchronized resident

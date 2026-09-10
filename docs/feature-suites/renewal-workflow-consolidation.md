@@ -16,10 +16,18 @@ completion without navigating a six-phase barrier or entering internal identifie
 **Current state / intended end state.**
 
 Implementation started from `c9f46d8ff8718ff319a19581ff1119162d89c120`, preserving the supplied
-work and private template evidence. Local F1-F5 implementation passes 6,454 unit tests and all
+work and private template evidence. Local F1-F5 implementation passes 6,488 unit tests and all
 201 backend tests. The final production build, affected checks, core HTTP E2E and all seven compiled
-browser checks pass. Twenty-one in-scope findings and final documentation/delivery checks pass;
-exact release gates remain pending. Both supplied v2 templates are published and read back approved. See [current review evidence](../evidence/s113-implementation-review-2026-09-10.md)
+browser checks pass. All 25 in-scope findings and final documentation/delivery checks pass;
+exact release gates remain pending.
+S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
+34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
+The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
+Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
+anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
+still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
+Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+Both supplied v2 templates are published and read back approved. See [current review evidence](../evidence/s113-implementation-review-2026-09-10.md)
 and [serving status](../status.md) for the verified environment.
 
 | Feature                      | Current local implementation                                                                                                                                             | Remaining acceptance                                                                                                    |
