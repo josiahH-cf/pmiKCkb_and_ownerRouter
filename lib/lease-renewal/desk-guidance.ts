@@ -1,3 +1,4 @@
+import { MANUAL_ACTIVITIES } from "@/lib/lease-renewal/workspace-state";
 // S82 desk guidance — one pure, serializable projection of current base rent, rent verification,
 // deterministic overall status, blockers, and the single safe next action for every table row.
 //
@@ -47,7 +48,13 @@ const EVIDENCE_CAPABILITY: Partial<Record<string, Capability>> = {
 export interface DeskGuidanceInput {
   readonly summary: Pick<
     DeskLeaseSummaryBase,
-    "id" | "disposition" | "reason" | "reasonLabel" | "retention" | "followUp"
+    | "id"
+    | "disposition"
+    | "reason"
+    | "reasonLabel"
+    | "retention"
+    | "followUp"
+    | "manualProgress"
   >;
   readonly process: RenewalProcessProjection | null;
   readonly dataCheck: readonly DeskReconItem[] | null;
@@ -153,12 +160,12 @@ function blockersFrom(process: RenewalProcessProjection): DeskLeaseBlocker[] {
 function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
   const process = input.process;
   if (
-    input.progressStateAvailable === false ||
+    (input.progressStateAvailable === false && !input.summary.manualProgress) ||
     !input.readComplete ||
     input.currencyState === "expired" ||
     input.summary.disposition === "review" ||
-    process?.status === "needs_verification" ||
-    process?.migrationRequired === true
+    (!input.summary.manualProgress &&
+      (process?.status === "needs_verification" || process?.migrationRequired === true))
   ) {
     return "needs_verification";
   }
@@ -168,6 +175,16 @@ function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
   const rentCheck = input.dataCheck?.find((item) => item.fieldKey === "current_rent");
   if (rentCheck?.agreement === "missing" || rentCheck?.agreement === "single_source") {
     return "needs_verification";
+  }
+  if (input.summary.manualProgress) {
+    const manual = input.summary.manualProgress;
+    if (manual.complete) return "complete";
+    if (
+      manual.nextActivity === "owner_response" ||
+      manual.nextActivity === "tenant_response"
+    )
+      return "waiting";
+    return "ready";
   }
   if (!process) return "needs_review";
   const currentStep = process.steps[process.currentStepIndex];
@@ -221,6 +238,40 @@ function readyAction(process: RenewalProcessProjection): DeskLeaseAction {
 
 function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLeaseAction {
   const process = input.process;
+  const manual = input.summary.manualProgress;
+  if (manual && status !== "needs_verification" && status !== "blocked") {
+    const key = manual.nextActivity;
+    const section =
+      key === "owner_response"
+        ? "owner"
+        : key === "tenant_response"
+          ? "tenant"
+          : key in MANUAL_ACTIVITIES
+            ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].section
+            : "documents";
+    const label =
+      key in MANUAL_ACTIVITIES
+        ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].label
+        : key === "owner_response"
+          ? "Record owner response and exact terms"
+          : key === "tenant_response"
+            ? "Record tenant response"
+            : "Review recorded completion";
+    return {
+      kind: manual.complete ? "complete" : status === "waiting" ? "waiting" : "act",
+      label: manual.complete ? "Review completion recorded by staff." : label,
+      destination: {
+        kind: "workspace_phase",
+        stepId:
+          section === "owner"
+            ? "owner-decision"
+            : section === "tenant"
+              ? "tenant-decision"
+              : "compliance-close",
+        controlId: `renewal-manual-${key}`,
+      },
+    };
+  }
   switch (status) {
     case "blocked":
       return { kind: "blocked" };

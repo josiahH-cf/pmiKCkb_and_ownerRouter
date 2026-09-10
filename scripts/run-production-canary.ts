@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url";
+import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
 
 import { chromium, type Page, type Response } from "playwright-core";
 
@@ -54,7 +55,7 @@ const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
 const DEFAULT_SERVICE = "pmi-kc-app";
 const STRICT_WORKSPACE_SELECTOR =
-  'tr[data-workspace-available="true"] a.renewal-lease-link';
+  'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link';
 const LEGACY_WORKSPACE_SELECTOR = "a.renewal-lease-link";
 
 type RouteAssertion =
@@ -442,7 +443,7 @@ async function assertRouteOutcome(
     return { passed: false, diagnostic: "auth_mismatch" };
   }
   if (definition.dynamicFrom === "renewal_desk") {
-    return (await page.getByRole("navigation", { name: "Renewal phases" }).count()) === 1
+    return (await hasRenewalWorkspaceLandmarks(page))
       ? { passed: true }
       : { passed: false, diagnostic: "landmark_missing" };
   }
@@ -454,6 +455,43 @@ async function assertRouteOutcome(
     .count()) === 1
     ? { passed: true }
     : { passed: false, diagnostic: "landmark_missing" };
+}
+
+/** The candidate's complete S113 dashboard and the captured predecessor's six phases have distinct exact contracts. */
+export async function hasRenewalWorkspaceLandmarks(page: Page): Promise<boolean> {
+  const dashboard = page.getByRole("navigation", {
+    name: "Renewal dashboard sections",
+    exact: true,
+  });
+  const legacy = page.getByRole("navigation", { name: "Renewal phases", exact: true });
+  if (await dashboard.count()) {
+    if (
+      (await dashboard.count()) !== 1 ||
+      (await legacy.count()) !== 0 ||
+      (await dashboard.getByRole("link").count()) !== RENEWAL_DASHBOARD_SECTIONS.length
+    )
+      return false;
+    for (const section of RENEWAL_DASHBOARD_SECTIONS) {
+      const link = dashboard.getByRole("link", { name: section.label, exact: true });
+      const region = page.getByRole("region", { name: section.label, exact: true });
+      if (
+        (await link.count()) !== 1 ||
+        !(await link.isVisible()) ||
+        (await region.count()) !== 1 ||
+        !(await region.isVisible()) ||
+        (await link.getAttribute("href")) !== `#renewal-section-${section.id}`
+      )
+        return false;
+    }
+    return true;
+  }
+  if (
+    (await legacy.count()) !== 1 ||
+    !(await legacy.isVisible()) ||
+    (await legacy.getByRole("link").count()) !== 6
+  )
+    return false;
+  return true;
 }
 
 async function waitForSettledRoute(

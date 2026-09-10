@@ -1,3 +1,7 @@
+import {
+  requiresEditorBrowser,
+  type ReleaseBrowserPolicy,
+} from "./release-browser-policy.mjs";
 import { hasBrowserDiagnostics } from "./browser-policy";
 import { routesForRole } from "./manifest";
 import { MONITORING_INGESTION_DELAY_MS } from "./runtime-observation";
@@ -17,6 +21,7 @@ export const POST_PROMOTION_EVIDENCE_READY_MS =
   POST_PROMOTION_OBSERVATION_MS + MONITORING_INGESTION_DELAY_MS;
 
 export interface ReleaseObservationInput {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly expectedRevision: string;
   readonly observedRevision: string;
   readonly predecessorRevision: string;
@@ -35,6 +40,7 @@ export function evaluateReleaseObservation(
   input: ReleaseObservationInput,
 ): ObservationAssuranceEvidence {
   validateObservationInput(input);
+  requiresEditorBrowser(input.browserPolicy);
   const rollbackReasons: ObservationReason[] = [];
   const holdReasons: ObservationReason[] = [];
   const observationWindowComplete = input.elapsedMs >= POST_PROMOTION_OBSERVATION_MS;
@@ -59,12 +65,16 @@ export function evaluateReleaseObservation(
     "admin_canary_failed",
     rollbackReasons,
   );
-  classifyRouteResults(
-    input.editorRoutes,
-    "Editor",
-    "editor_canary_failed",
-    rollbackReasons,
-  );
+  if (requiresEditorBrowser(input.browserPolicy)) {
+    classifyRouteResults(
+      input.editorRoutes,
+      "Editor",
+      "editor_canary_failed",
+      rollbackReasons,
+    );
+  } else if (input.editorRoutes.length !== 0) {
+    rollbackReasons.push("editor_canary_failed");
+  }
 
   if (input.reconciliation.state === "mismatch") {
     rollbackReasons.push("reconciliation_mismatch");
@@ -98,6 +108,7 @@ export function evaluateReleaseObservation(
       successfulCheckpoints: input.successfulCheckpoints,
       elapsedMs: input.elapsedMs,
       windowMs: POST_PROMOTION_OBSERVATION_MS,
+      browserPolicy: input.browserPolicy ?? "admin-editor",
       reasons: uniqueReasons(rollbackReasons),
       rollbackRevision: input.predecessorRevision,
     };
@@ -108,6 +119,7 @@ export function evaluateReleaseObservation(
       successfulCheckpoints: input.successfulCheckpoints,
       elapsedMs: input.elapsedMs,
       windowMs: POST_PROMOTION_OBSERVATION_MS,
+      browserPolicy: input.browserPolicy ?? "admin-editor",
       reasons: uniqueReasons(holdReasons),
       rollbackRevision: null,
     };
@@ -122,6 +134,7 @@ export function evaluateReleaseObservation(
       successfulCheckpoints: input.successfulCheckpoints,
       elapsedMs: input.elapsedMs,
       windowMs: POST_PROMOTION_OBSERVATION_MS,
+      browserPolicy: input.browserPolicy ?? "admin-editor",
       reasons: ["window_incomplete"],
       rollbackRevision: null,
     };
@@ -131,6 +144,7 @@ export function evaluateReleaseObservation(
     successfulCheckpoints: input.successfulCheckpoints,
     elapsedMs: input.elapsedMs,
     windowMs: POST_PROMOTION_OBSERVATION_MS,
+    browserPolicy: input.browserPolicy ?? "admin-editor",
     reasons: [],
     rollbackRevision: null,
   };

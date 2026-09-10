@@ -3,19 +3,22 @@
 **Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday, 9 September 2026.
 Suggested owners are roles to assign. Names and dates are not yet commitments.
 
-## Renewal blockers
+## Renewal acceptance and localized inputs — updated 10 September
 
-| Blocker                                    | Impact / guide step                     | Next action and suggested owner                                                                                                                     | Resume when                                                               |
-| ------------------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Release and browser checks pending         | Reliable use of newer flow              | Josiah: restore sign-in, finish release checks and resolve slow/failed navigation.                                                                  | Intended build and actual browser journey pass.                           |
-| Owner-message evidence not fully connected | Owner response; step 3                  | Implementation owner: connect the real sent message to the response step.                                                                           | A sent owner message enables the response with current verified evidence. |
-| Dotloop access and setup incomplete        | Packet and signature handoff; steps 7-8 | Josiah/provider: obtain OAuth credentials. Account owner: connect and select office profile, renewal template, transaction type and initial status. | Setup reads ready and packet actions pass their separate checks.          |
-| Approved forms and mappings missing        | Correct documents and signers; step 7   | Client forms owner: approved private source, version, applicability and field/signer mappings.                                                      | Required forms resolve to approved content and verified participants.     |
-| Packet-to-completion click path unfinished | Verified finish; steps 7-9              | Implementation owner: finish preview/confirmation, provider evidence, signature return and completion controls.                                     | Real signed artifacts pass applicable completion checks.                  |
+| Item                                                    | Impact                                                  | Next action                                                                                                                                        | Resume when                                                                                             |
+| ------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| S113 backend and mounted acceptance in progress         | Requested workflow is not accepted complete or deployed | Implementation owner closes the actual route/store and operator-journey findings, then full adversarial review.                                    | H1-H8, affected checks and full verification pass.                                                      |
+| Exact-commit production release gates pending           | Serving app still runs its recorded prior revision      | Complete CI, candidate/config checks, managed browser assurance, promotion, observation and readback.                                              | Actual serving revision and backend state are verified.                                                 |
+| Informational and legal-form location inputs deferred   | Only an output needing the exact resource waits         | Use the persistent labeled boxes; blank is accepted pending-team input. Admin can save verified, applicable values later.                          | Actual content/location is available and its existing approval/execution contract passes.               |
+| Dotloop connection and selection absent                 | Provider packet creation/upload remains gated           | S106 owns approved client credentials, managed consent, profile/template and transaction/status selection.                                         | Genuine connection/resource readback passes.                                                            |
+| Approved forms/mappings and separate activation pending | S34 provider packet/signature handoff                   | Use actual private approved forms, versions, applicability and participant/field mappings; preserve closed keys until their exact activation gate. | Required publications resolve; normal controls and provider acceptance pass at the authorized boundary. |
 
-**Forms to cover:** standard lease, renewal extension, animal agreement, lead-based-paint disclosure,
-city addendum, HOA artifact and owner acknowledgment. Approved rules determine which apply to each
-lease; do not assume every lease needs every form.
+Required form families remain standard lease, renewal extension, animal agreement, lead disclosure,
+city addendum, HOA artifact and owner acknowledgment. Approved predicates decide applicability.
+A saved location is not legal content. The supplied email templates do not supply forms or signatures.
+
+Manual S113 work proceeds independently. Staff reports never manufacture a provider receipt, and
+uploaded document presence is not signature completion. Missing link values do not block S113 release.
 
 ## Side work and working defaults
 

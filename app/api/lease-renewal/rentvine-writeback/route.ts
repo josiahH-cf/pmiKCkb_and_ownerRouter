@@ -1,4 +1,11 @@
+import { EditableLayerError } from "@/lib/firestore/errors";
+import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import {
+  assertFutureRentSchedule,
+  futureRentInventoryHash,
+} from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { NextResponse } from "next/server";
+import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -22,10 +29,7 @@ import {
 } from "@/lib/lease-renewal/role-action-governance";
 import { refreshLiveLeaseSnapshotFromProvider } from "@/lib/lease-renewal/live-lease-cache";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
-import {
-  RENEWAL_SOURCE_REFRESH_COOKIE,
-  RENEWAL_SOURCE_REFRESH_COOKIE_MAX_AGE_SECONDS,
-} from "@/lib/lease-renewal/post-write-freshness";
+import { postWriteResponse } from "@/lib/lease-renewal/post-write-response";
 import {
   RenewalWritebackService,
   RenewalWritebackServiceError,
@@ -89,19 +93,6 @@ async function refreshProjectionAfterWrite(writeCompletedAtMs: number) {
  * render must meet it even if that render lands on a different Cloud Run instance with an older
  * module cache.
  */
-function postWriteResponse(payload: unknown, writeCompletedAtMs: number) {
-  const response = NextResponse.json(payload);
-  response.cookies.set({
-    name: RENEWAL_SOURCE_REFRESH_COOKIE,
-    value: String(writeCompletedAtMs),
-    httpOnly: true,
-    maxAge: RENEWAL_SOURCE_REFRESH_COOKIE_MAX_AGE_SECONDS,
-    path: "/lease-renewal",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-  return response;
-}
 
 const ProposedDatesSchema = z
   .object({
@@ -159,9 +150,19 @@ const ProposedChargeCreateSchema = z
   .strict();
 
 const BodySchema = z.discriminatedUnion("operation", [
+  z.object({ operation: z.literal("options"), leaseId: LeaseIdSchema }).strict(),
   z
     .object({
       operation: z.literal("propose"),
+      businessIntent: z.enum(["current_base", "future_rent"]).optional(),
+      renewalContext: z
+        .object({
+          cycleId: z.string().uuid(),
+          termsRevision: z.number().int().positive(),
+          scheduleReview: z.string().trim().min(1).max(240),
+        })
+        .strict()
+        .optional(),
       leaseId: LeaseIdSchema,
       expectedPriorPreviewHash: HashSchema.nullable(),
       evidenceRef: z.string().trim().min(1).max(500),
@@ -283,6 +284,23 @@ async function assembleProposal(
   body: Extract<Body, { operation: "propose" }>,
   deps: RenewalWritebackDependencies,
 ): Promise<RenewalWritebackProposal> {
+  if (body.businessIntent === "current_base") {
+    const inventory = await loadRenewalChargeInventory(deps.reads, body.leaseId);
+    const effect = body.effects[0];
+    const selected =
+      effect?.kind === "recurring_charge_update"
+        ? inventory.charges.find((charge) => charge.id === effect.chargeId)
+        : null;
+    if (
+      body.effects.length !== 1 ||
+      effect?.kind !== "recurring_charge_update" ||
+      Object.keys(effect.changes).some((key) => key !== "amount") ||
+      selected?.classification !== "rent" ||
+      selected.current !== true
+    ) {
+      throw new RenewalWritebackServiceError("provider_shape");
+    }
+  }
   const leaseState = leaseDateStateOf(await deps.reads.getLease(body.leaseId));
   const needsCreateBaseline = body.effects.some(
     (effect) => effect.kind === "recurring_charge_create",
@@ -338,7 +356,38 @@ async function assembleProposal(
       });
     }
   }
+  let renewalTerms;
+  if (body.businessIntent === "future_rent") {
+    const state = await getRenewalWorkspace(user, body.leaseId);
+    if (
+      !body.renewalContext ||
+      state?.cycleId !== body.renewalContext.cycleId ||
+      state?.termsRevision !== body.renewalContext.termsRevision ||
+      state?.ownerResponse?.outcome !== "approved_terms" ||
+      !state.ownerResponse.terms
+    )
+      throw new RenewalWritebackServiceError("confirmation_invalid");
+    const inventory = await loadRenewalChargeInventory(deps.reads, body.leaseId);
+    renewalTerms = {
+      ...body.renewalContext,
+      terms: state.ownerResponse.terms,
+      inventoryHash: futureRentInventoryHash(inventory),
+    };
+    if (effects.length !== 1)
+      throw new RenewalWritebackServiceError("confirmation_invalid");
+    try {
+      assertFutureRentSchedule(renewalTerms, inventory, effects[0]);
+    } catch (error) {
+      throw new EditableLayerError(
+        error instanceof Error ? error.message : "Review the future rent schedule.",
+        409,
+      );
+    }
+  } else if (body.renewalContext)
+    throw new RenewalWritebackServiceError("confirmation_invalid");
   return buildRenewalWritebackProposal({
+    ...(body.businessIntent ? { businessIntent: body.businessIntent } : {}),
+    ...(renewalTerms ? { renewalTerms } : {}),
     leaseId: body.leaseId,
     account: RENEWAL_WRITEBACK_ACCOUNT,
     actorUid: user.uid,
@@ -460,6 +509,13 @@ export async function POST(request: Request) {
     const deps = buildLiveRenewalWritebackDeps(descriptor);
     if ("status" in deps) {
       return NextResponse.json({ status: "not_configured" });
+    }
+
+    if (body.operation === "options") {
+      return NextResponse.json({
+        status: "ok",
+        inventory: await loadRenewalChargeInventory(deps.reads, body.leaseId),
+      });
     }
 
     if (body.operation === "propose") {
@@ -588,9 +644,13 @@ export async function POST(request: Request) {
       // S105: a confirmed RentVine effect carries the owner's approved terms into the system of
       // record. While the recorded owner response is not an approval, execution is refused before
       // the one-attempt claim, so a stale confirmation cannot ride a superseded decision.
-      const downstreamBlock = ownerOutcomeBlocksDownstream(
-        await getRenewalProgress(user, proposal.leaseId),
-      );
+      const downstreamBlock =
+        proposal.businessIntent === "current_base" ||
+        proposal.businessIntent === "future_rent"
+          ? null
+          : ownerOutcomeBlocksDownstream(
+              await getRenewalProgress(user, proposal.leaseId),
+            );
       if (downstreamBlock) {
         return NextResponse.json(
           { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },

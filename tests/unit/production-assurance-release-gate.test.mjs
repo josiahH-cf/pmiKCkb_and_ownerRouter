@@ -436,3 +436,60 @@ describe("production promotion assurance gate", () => {
     ]);
   });
 });
+
+describe("owner-approved Admin promotion and recovery", () => {
+  it("preflights the real external Admin directory without requiring an Editor directory", () => {
+    const directory = mkdtempSync(join(tmpdir(), "pmi-owner-recovery-"));
+    const adminProfile = mkdtempSync(join(tmpdir(), "pmi-owner-admin-"));
+    const candidatePath = join(directory, "candidate.json");
+    writeFileSync(candidatePath, "{}\n", { encoding: "utf8", mode: 0o600 });
+    try {
+      const input = {
+        browserPolicy: "owner-admin-2026-09-10",
+        argv: [
+          "--operator-email=josiah@pmikcmetro.com",
+          `--admin-profile=${adminProfile}`,
+        ],
+        candidateReceiptPath: candidatePath,
+        promotionReceiptPath: join(directory, "promotion.json"),
+      };
+      expect(preflightProductionPromotionRecovery(input)).toMatchObject({
+        adminProfile,
+        editorProfile: null,
+        operatorEmail: "josiah@pmikcmetro.com",
+      });
+      expect(() =>
+        preflightProductionPromotionRecovery({ ...input, browserPolicy: undefined }),
+      ).toThrow("managed_profile_required");
+      expect(() =>
+        preflightProductionPromotionRecovery({
+          ...input,
+          argv: ["--operator-email=josiah@pmikcmetro.com"],
+        }),
+      ).toThrow("managed_profile_required");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+      rmSync(adminProfile, { recursive: true, force: true });
+    }
+  });
+  it("keeps the actual CLI actor separate from the existing monitoring recipient during rollback", async () => {
+    const runCommand = vi.fn().mockResolvedValue(undefined);
+    await runPredecessorRecoveryGate({
+      browserPolicy: "owner-admin-2026-09-10",
+      argv: [
+        "--operator-email=josiah@pmikcmetro.com",
+        "--monitoring-operator-email=josiah+alerts@pmikcmetro.com",
+        "--admin-profile=/outside/owner-admin",
+      ],
+      candidateReceiptPath: "/outside/candidate.json",
+      runCommand,
+    });
+    expect(runCommand.mock.calls[0][1]).toContain(
+      "--operator-email=josiah+alerts@pmikcmetro.com",
+    );
+    expect(runCommand.mock.calls[0][1]).toContain("--admin-profile=/outside/owner-admin");
+    expect(
+      runCommand.mock.calls[0][1].some((v) => v.startsWith("--editor-profile=")),
+    ).toBe(false);
+  });
+});

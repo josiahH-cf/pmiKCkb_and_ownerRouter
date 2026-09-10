@@ -1,3 +1,8 @@
+import {
+  RENEWAL_WORKSPACE_COLLECTIONS,
+  renewalWorkspaceDocId,
+} from "./renewal-workspace";
+import { futureRentWorkspaceMatches } from "@/lib/lease-renewal/writeback/future-rent-intent";
 // S97's one-attempt transition and active proposal generation share one Firestore transaction.
 // This is the final server-side boundary after the route loads a proposal: if an Editor replaces or
 // discards that generation concurrently, the transaction retries against the new active document
@@ -79,6 +84,9 @@ export async function claimActiveS97RenewalEffect(
       active.leaseId !== proposal.leaseId ||
       active.account !== proposal.account ||
       active.previewHash !== proposal.previewHash ||
+      active.businessIntent !== proposal.businessIntent ||
+      canonicalJson(active.renewalTerms ?? null) !==
+        canonicalJson(proposal.renewalTerms ?? null) ||
       canonicalJson(storedEffect) !== canonicalJson(effect)
     ) {
       return "blocked";
@@ -93,6 +101,18 @@ export async function claimActiveS97RenewalEffect(
       return "blocked";
     }
     if (!existing && requested.id !== currentId) return "blocked";
+    if (proposal.businessIntent === "future_rent") {
+      const head = await transaction.get(
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
+          .doc(renewalWorkspaceDocId(proposal.leaseId)),
+      );
+      if (
+        !proposal.renewalTerms ||
+        !futureRentWorkspaceMatches(head.data(), proposal.renewalTerms)
+      )
+        return "blocked";
+    }
 
     const now = new Date().toISOString();
     const next: ExternalExecutionRecord = {

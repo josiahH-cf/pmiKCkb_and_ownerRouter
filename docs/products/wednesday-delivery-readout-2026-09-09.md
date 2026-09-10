@@ -2,38 +2,40 @@
 
 **Meeting source:** User-supplied meeting identity; not Calendar-verified. Wednesday, 9 September 2026.
 
-## What we did
+## Current delivery readout — updated 10 September
 
-- **Live:** the renewal desk, source-backed review, owner terms, reviewed unsent Gmail drafts,
-  controlled source changes, access requests and grouped navigation.
-- **Built and pushed:** clearer evidence, term and response handling, safer source changes,
-  release recovery and readiness corrections. Automated checks passed. The newer build is deployed
-  as a candidate, awaiting sign-in and release verification.
-- **Prepared for today:** reusable visual training guide, simple agenda, blocker sheet and this
-  readout. The old guide's nonexistent completion click and missing tenant-response step are corrected.
+S113 is implemented locally and remains under backend, mounted-journey and adversarial verification.
+No S113 commit, push or deployment is accepted yet. The serving app remains the revision in
+[current status](../status.md). Local fixtures do not establish live customer effects.
 
-## What we show today
+The local dashboard combines facts, corrections, comps, owner and tenant messages, documents and
+manual closeout. Staff can record actual outside work, with explicit owner terms and tenant response.
+Manual completion stays distinct from provider receipts and verified completion. The operator guide
+and three-page training PDF are updated; their semantic controls and complete journey still await
+acceptance. Use the [walkthrough](renewal-client-walkthrough-2026-09-09.md) to inspect the intended path.
 
-Let an operator open any lease, check facts and explain the next action using the
-[guide](renewal-client-walkthrough-2026-09-09.md). Use reading and explanation while release checks
-remain open. Trace the full process, including waiting, counteroffers, non-renewal, signatures and
-completion. Log where the real lease stops.
+## What the operator should demonstrate
 
-**Current limit:** a complete, repeatable live renewal is unproven. Sign-in needs renewal; five
-live-source browser checks remain failed or incomplete. The owner-message evidence handoff and
-document-to-completion path have gaps. Forms and Dotloop setup alone will not finish that work.
+Open the exact lease, inspect source values, identify its next action, prepare a correction and
+explain each source outcome. Review comps and message copy, then record actual outside activity.
+Close and reopen the lease to read the saved cycle. Return to the same filtered list. Include waiting,
+a counteroffer, non-renewal and missing information. Never create customer effects just for a demo.
 
-## What comes next
+Read-only rehearsal supports inspection/navigation only. Actual source writes require their exact
+preview, authorized human confirmation and receipt/readback. Every message send stays with a person.
 
-| Order | Work                                                                | How we know it is done                                                                      |
-| ----- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 1     | Restore sign-in and finish release/browser checks.                  | Intended build accepted; actual navigation passes; authentication longevity verified.       |
-| 2     | Connect owner-message and completion evidence steps.                | A new lease reaches each next stage through visible controls and verified evidence.         |
-| 3     | Finish approved forms, Dotloop setup and packet/signature handoffs. | Correct packet, participants and signed files are read back.                                |
-| 4     | Run the guide with a new operator and varied real leases.           | Each applicable path completes or stops for an explained reason; measure time and failures. |
+## Remaining acceptance and localized inputs
 
-Assign names and dates using the [blocker sheet](wednesday-decisions-and-inputs-2026-09-09.md).
-Suggested owners are not yet commitments.
+| Work                                                     | Completion evidence                                                                                                                                                  |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Finish S113 implementation and adversarial review        | Mounted controls reach actual routes/stores; H1-H8 and affected verification pass.                                                                                   |
+| Ship the exact reviewed commit                           | Green exact-commit CI, verified candidate/config, managed browser assurance, promotion and observation; serving revision and backend readback.                       |
+| Supply informational and legal-form locations when ready | Persistent labeled boxes may remain blank pending team input. Only an output needing the actual resource waits.                                                      |
+| Continue S106/S34 document work                          | Real approved forms/mappings, managed Dotloop connection/selection and separate exact-key activation. Current keys remain closed; signature work is a human handoff. |
+
+September 10 CLI/ADC refresh passed. Authentication longevity and the managed browser/release gates
+remain independent requirements. Missing resource URLs do not block S113 manual work or release.
+Use the [input sheet](wednesday-decisions-and-inputs-2026-09-09.md) for the exact localized dependency.
 
 ## Acceptance for repeatable work
 
@@ -42,6 +44,6 @@ source evidence and uncertain results when those real cases arise. Record time, 
 clicks and the last verified step privately. Set a throughput target with the client after measuring
 a baseline; no rate has been demonstrated.
 
-A finished renewal needs the actual signed packet and all applicable completion evidence.
-A test run, draft, upload or status label alone does not establish completion.
+Staff-recorded completion reports actual work with its source. Provider-verified completion requires
+its own applicable evidence. A test run, draft, upload or status label alone does not prove signatures.
 Technical evidence: [control review](../evidence/renewal-training-control-review-2026-09-09.md).

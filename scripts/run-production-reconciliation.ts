@@ -1,3 +1,12 @@
+import {
+  RENEWAL_WORKSPACE_COLLECTIONS,
+  RenewalWorkspaceStateSchema,
+} from "../lib/firestore/renewal-workspace";
+import {
+  independentLeaseDetailIds,
+  projectIndependentManualRenewal,
+  type IndependentManualRenewal,
+} from "../lib/production-assurance/manual-renewal-projection";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
@@ -117,6 +126,7 @@ export interface IndependentExpectedGuidanceState {
 }
 
 interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
+  readonly manual: IndependentManualRenewal | null;
   readonly workspaceExpected: boolean;
   readonly dispositionExpected:
     | "actionable"
@@ -131,6 +141,11 @@ interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
 }
 
 interface RenderedProjectionRow extends IndependentRenewalSourceRow {
+  readonly manual: {
+    complete: string | null;
+    nextActivity: string | null;
+    pendingSourceUpdates: string | null;
+  };
   readonly disposition: string | null;
   readonly retentionState: string | null;
   readonly processState: IndependentRenderedProcessState;
@@ -263,16 +278,18 @@ async function readIndependentLiveReviewResolutions(
 }
 
 interface IndependentDecisionFacts {
+  readonly manualByLease?: ReadonlyMap<string, IndependentManualRenewal>;
   readonly resolutions: readonly Readonly<Record<string, unknown>>[];
   readonly trackedIncompleteLeaseIds: ReadonlySet<string>;
 }
 
-async function readIndependentDecisionFacts(
+export async function readIndependentDecisionFacts(
   firestore: Firestore,
 ): Promise<IndependentDecisionFacts> {
-  const [resolutions, progress] = await Promise.all([
+  const [resolutions, progress, manual] = await Promise.all([
     readIndependentLiveReviewResolutions(firestore),
     firestore.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress).get(),
+    firestore.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get(),
   ]);
   const trackedIncompleteLeaseIds = new Set<string>();
   const seenLeaseIds = new Set<string>();
@@ -290,7 +307,15 @@ async function readIndependentDecisionFacts(
     seenLeaseIds.add(leaseId);
     if (!value.complete) trackedIncompleteLeaseIds.add(leaseId);
   }
-  return { resolutions, trackedIncompleteLeaseIds };
+  const manualByLease = new Map<string, IndependentManualRenewal>();
+  for (const document of manual.docs) {
+    const state = RenewalWorkspaceStateSchema.parse(document.data());
+    const expectedId = createHash("sha256").update(state.leaseId).digest("hex");
+    if (document.id !== expectedId || manualByLease.has(state.leaseId))
+      throw new Error("independent_manual_read_invalid");
+    manualByLease.set(state.leaseId, projectIndependentManualRenewal(state));
+  }
+  return { resolutions, trackedIncompleteLeaseIds, manualByLease };
 }
 
 async function createIndependentSourceClients(
@@ -414,6 +439,7 @@ function directProjectionDigest(
       processExpected: row.processExpected,
       rentReconciliationExpected: row.rentReconciliationExpected,
       rentExpectation: row.rentExpectation,
+      manual: row.manual,
     }));
   return createHash("sha256").update(JSON.stringify({ base, decisions })).digest("hex");
 }
@@ -599,15 +625,7 @@ async function readDirectProjection(
   // a missing rent for that lease, never a fallback to the export unit's listed rent.
   const leaseDetails: Map<string, Readonly<Record<string, unknown>>> = new Map();
   if (rentvineRead.ok && rentvineClient) {
-    const ids = rentvineRead.value.rows
-      .map((row) => {
-        const lease = (
-          row.lease && typeof row.lease === "object" ? row.lease : row
-        ) as Record<string, unknown>;
-        const value = lease.leaseID ?? lease.leaseId ?? lease.id;
-        return value === undefined || value === null ? null : String(value).trim();
-      })
-      .filter((id): id is string => id !== null && /^d+$/.test(id));
+    const ids = independentLeaseDetailIds(rentvineRead.value.rows);
     await withAssuranceTimeout(
       async () => {
         let next = 0;
@@ -726,6 +744,12 @@ function buildExpectedProjectionRows(
     // A definitive source skip outranks obsolete app-owned progress. It never creates a process,
     // action, or retained-incomplete workflow in the independent expectation. S103: a month-to-month
     // lease follows the annual review rhythm, so obsolete progress never retains it either.
+    const manual =
+      workspaceExpected && dispositionExpected !== "skip"
+        ? (decisions.manualByLease?.get(row.leaseId) ?? null)
+        : null;
+    const manualPending =
+      !!manual && (!manual.complete || manual.pendingSourceUpdates > 0);
     const trackedIncomplete =
       workspaceExpected &&
       dispositionExpected !== "periodic_review" &&
@@ -735,9 +759,10 @@ function buildExpectedProjectionRows(
       trackedIncomplete,
       referenceDateIso,
       workspaceExpected,
+      manualPending,
     );
     const rentReconciliationExpected =
-      dispositionExpected === "actionable" || trackedIncomplete;
+      dispositionExpected === "actionable" || retentionExpected === "tracked_incomplete";
     const processExpected = rentReconciliationExpected;
     const sourceExpectation: IndependentRentExpectation = row.leaseId
       ? projectIndependentRentExpectation({
@@ -765,6 +790,7 @@ function buildExpectedProjectionRows(
       processExpected,
       rentReconciliationExpected,
       rentExpectation,
+      manual,
     };
   });
 }
@@ -825,6 +851,7 @@ export function classifyIndependentRenewalRetention(input: {
   readonly trackedIncomplete: boolean;
   readonly referenceDateIso: string;
   readonly workspaceExpected?: boolean;
+  readonly manualPending?: boolean;
 }): IndependentRenewalRetentionState {
   const { row, trackedIncomplete, referenceDateIso, workspaceExpected = true } = input;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(referenceDateIso)) {
@@ -835,6 +862,7 @@ export function classifyIndependentRenewalRetention(input: {
     trackedIncomplete,
     referenceDateIso,
     workspaceExpected,
+    input.manualPending,
   );
 }
 
@@ -843,6 +871,7 @@ function independentRetentionExpected(
   trackedIncomplete: boolean,
   referenceDateIso: string,
   workspaceExpected = true,
+  manualPending = false,
 ): IndependentRenewalRetentionState {
   if (!workspaceExpected) return "outside";
   if (row.monthToMonth?.signal === true) {
@@ -857,12 +886,14 @@ function independentRetentionExpected(
     const window = independentRenewalWindow(referenceDateIso);
     return nextReviewIso >= window.startIso && nextReviewIso <= window.endIso
       ? "periodic_review"
-      : "outside";
+      : manualPending
+        ? "tracked_incomplete"
+        : "outside";
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(row.endDate)) return "needs_verification";
   const { startIso, endIso } = independentRenewalWindow(referenceDateIso);
   if (row.endDate >= startIso && row.endDate <= endIso) return "window";
-  return trackedIncomplete ? "tracked_incomplete" : "outside";
+  return trackedIncomplete || manualPending ? "tracked_incomplete" : "outside";
 }
 
 /**
@@ -877,6 +908,7 @@ export function projectIndependentExpectedGuidanceState(input: {
   readonly rentReconciliationExpected: boolean;
   readonly rentExpectation: IndependentRentExpectation;
   readonly processState: IndependentRenderedProcessState;
+  readonly manual?: IndependentManualRenewal | null;
 }): IndependentExpectedGuidanceState {
   const processStatuses = new Set([
     "active",
@@ -917,6 +949,23 @@ export function projectIndependentExpectedGuidanceState(input: {
     processState.currentStepState !== "none"
   ) {
     markerMismatches += 1;
+  }
+
+  if (input.manual) {
+    const sourceUnavailable =
+      input.dispositionExpected === "review" ||
+      ["missing_rentvine", "missing_sheet"].includes(input.rentExpectation.evidence);
+    return {
+      overallStatus: sourceUnavailable
+        ? "needs_verification"
+        : input.manual.complete
+          ? "complete"
+          : ["owner_response", "tenant_response"].includes(input.manual.nextActivity)
+            ? "waiting"
+            : "ready",
+      actionStepId: sourceUnavailable ? "verify-renewal" : input.manual.actionStepId,
+      markerMismatches,
+    };
   }
 
   let overallStatus: IndependentExpectedOverallStatus;
@@ -1249,6 +1298,11 @@ async function readRowsFromPage(
     }
     const leaseCell = leaseCells.first();
     const leaseId = (await row.getAttribute("data-lease-id")) ?? "";
+    const manual = {
+      complete: await row.getAttribute("data-manual-complete"),
+      nextActivity: await row.getAttribute("data-manual-next"),
+      pendingSourceUpdates: await row.getAttribute("data-manual-pending-source-updates"),
+    };
     const expected = expectedByLease.get(leaseId);
     const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
     const workspaceAvailable = await row.getAttribute("data-workspace-available");
@@ -1352,6 +1406,7 @@ async function readRowsFromPage(
       verificationCell,
       overallStatus,
       rentVerification,
+      expected?.manual?.complete === true,
     );
     const statusFilterHrefs = await hrefs(
       overallCell.locator(":scope > a.renewal-status-link"),
@@ -1384,6 +1439,7 @@ async function readRowsFromPage(
       }
     }
     rows.push({
+      manual,
       leaseId,
       address,
       owners,
@@ -1436,6 +1492,7 @@ async function countVisibleStatusLabelMismatches(
   verificationCell: ReturnType<Page["locator"]>,
   overallStatus: string | null,
   rentVerification: string | null,
+  staffComplete = false,
 ): Promise<number> {
   const overallLabels = overallCell.locator(".renewal-status-badge > span:last-child");
   const verificationLabels = verificationCell.locator(
@@ -1450,7 +1507,12 @@ async function countVisibleStatusLabelMismatches(
       ? (await verificationLabels.first().textContent())?.trim()
       : undefined;
   return (
-    (overallLabel === OVERALL_STATUS_LABELS[overallStatus ?? ""] ? 0 : 1) +
+    (overallLabel ===
+    (overallStatus === "complete" && staffComplete
+      ? "Completed: recorded by staff"
+      : OVERALL_STATUS_LABELS[overallStatus ?? ""])
+      ? 0
+      : 1) +
     (verificationLabel === RENT_VERIFICATION_LABELS[rentVerification ?? ""] ? 0 : 1)
   );
 }
@@ -1528,8 +1590,22 @@ function compareProjectionRows(
         rentReconciliationExpected: expectedRow.rentReconciliationExpected,
         rentExpectation: expectedRow.rentExpectation,
         processState: observedRow.processState,
+        manual: expectedRow.manual,
       });
       counts.fieldMismatches += countFieldMismatches(expectedRow, observedRow);
+      const expectedManual = expectedRow.manual;
+      if (
+        observedRow.manual.complete !==
+        (expectedManual ? String(expectedManual.complete) : "none")
+      )
+        counts.fieldMismatches++;
+      if (observedRow.manual.nextActivity !== (expectedManual?.nextActivity ?? "none"))
+        counts.fieldMismatches++;
+      if (
+        observedRow.manual.pendingSourceUpdates !==
+        (expectedManual ? String(expectedManual.pendingSourceUpdates) : "none")
+      )
+        counts.fieldMismatches++;
       counts.fieldMismatches += countDispositionMismatches(
         expectedRow.dispositionExpected,
         observedRow.disposition,
@@ -1542,6 +1618,7 @@ function compareProjectionRows(
       });
       counts.fieldMismatches += expectedGuidance.markerMismatches;
       counts.fieldMismatches +=
+        !expectedRow.manual &&
         expectedRow.rentReconciliationExpected &&
         expectedRow.dispositionExpected !== "review"
           ? countIndependentStatusMismatches(
@@ -1562,6 +1639,10 @@ function compareProjectionRows(
             origin,
             observed: observedRow.action,
             accessHandoffExpected: accessHandoffExpected(role, observedRow.action),
+            ...(expectedRow.manual &&
+            ["ready", "waiting", "complete"].includes(expectedGuidance.overallStatus)
+              ? { expectedFragment: `#renewal-manual-${expectedRow.manual.nextActivity}` }
+              : {}),
             ...(expectedGuidance.actionStepId
               ? { expectedStep: expectedGuidance.actionStepId }
               : {}),

@@ -68,6 +68,7 @@ export type RenewalDraftPreview =
       subject: string;
       /** The composed body, with the review-before-sending banner applied. */
       body: string;
+      htmlBody?: string;
       template: ReturnType<typeof prepareGovernedRenewalCopy>["template"];
       copy: RenewalCopySelection;
       /** The exact governed action to hand to executeRenewalNoticeDraft after human confirmation. */
@@ -85,6 +86,7 @@ export type RenewalDraftPreview =
       recipient: { to: string; sourceRef: string; cc?: string[] };
       subject: string;
       body: string;
+      htmlBody?: string;
       template: ReturnType<typeof prepareGovernedRenewalCopy>["template"];
       copy: RenewalCopySelection;
       reasons: string[];
@@ -109,9 +111,11 @@ export type RenewalDraftPreview =
  * resolved authoritatively from the lease (never invented); the notice is composed and authority-checked
  * by the governed artifact renderer; and only when both succeed is a real assembled action returned.
  */
-export function buildRenewalNoticeDraftPreview(
-  input: RenewalDraftPreviewInput,
-): RenewalDraftPreview {
+export function resolveSeparatedRenewalDraftRecipient(input: {
+  lease: RawLease;
+  channel: RenewalRecipientChannel;
+  recipientFieldMap?: RenewalRecipientFieldMap;
+}) {
   const resolution = resolveRenewalRecipient({
     lease: input.lease,
     channel: input.channel,
@@ -119,7 +123,7 @@ export function buildRenewalNoticeDraftPreview(
   });
   if (!resolution.verified || !resolution.to || !resolution.recipientSourceRef) {
     return {
-      status: "blocked",
+      status: "blocked" as const,
       channel: input.channel,
       reasons: resolution.missing.map((item) => `Recipient ${item} needs verification.`),
     };
@@ -146,7 +150,7 @@ export function buildRenewalNoticeDraftPreview(
   const collisions = requestedAddresses.filter((email) => otherAddresses.has(email));
   if (collisions.length > 0) {
     return {
-      status: "blocked",
+      status: "blocked" as const,
       channel: input.channel,
       reasons: collisions.map(
         (email) =>
@@ -154,6 +158,23 @@ export function buildRenewalNoticeDraftPreview(
       ),
     };
   }
+
+  return {
+    status: "ready" as const,
+    resolution: {
+      ...resolution,
+      to: resolution.to,
+      recipientSourceRef: resolution.recipientSourceRef,
+    },
+  };
+}
+
+export function buildRenewalNoticeDraftPreview(
+  input: RenewalDraftPreviewInput,
+): RenewalDraftPreview {
+  const recipientResult = resolveSeparatedRenewalDraftRecipient(input);
+  if (recipientResult.status === "blocked") return recipientResult;
+  const resolution = recipientResult.resolution;
 
   const recipient: AuthoritativeAddress = {
     email: resolution.to,

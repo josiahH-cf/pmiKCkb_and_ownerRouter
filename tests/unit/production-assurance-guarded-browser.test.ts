@@ -62,10 +62,10 @@ function fakeContext(
   return context;
 }
 
-function fakeRoute(method: string) {
+function fakeRoute(method: string, url = "https://app.example/lease-renewal") {
   return {
     route: {
-      request: () => ({ method: () => method }),
+      request: () => ({ method: () => method, url: () => url }),
       abort: vi.fn(async () => undefined),
       continue: vi.fn(async () => undefined),
     } satisfies GuardedBrowserRoute,
@@ -73,6 +73,38 @@ function fakeRoute(method: string) {
 }
 
 describe("offline-first managed assurance browser", () => {
+  it("refuses the known state-changing GETs even for an ordinary Admin profile", async () => {
+    const context = fakeContext([]);
+    const onMutationAttempt = vi.fn();
+    await launchGuardedManagedBrowser({
+      profile: "/outside/owner-admin",
+      executablePath: "/browser",
+      headless: true,
+      viewport: { width: 1440, height: 1000 },
+      launchTimeoutMs: 12_345,
+      onMutationAttempt,
+      launchPersistentContext: async () => context,
+    });
+    for (const url of [
+      "https://app.example/api/connections/dotloop/callback?code=unit-only",
+      "https://app.example/api/lease-renewal/comp-screenshot?operation=reconcile",
+      "invalid-url",
+    ]) {
+      const { route } = fakeRoute("GET", url);
+      await context.handler?.(route);
+      expect(route.abort).toHaveBeenCalledWith("blockedbyclient");
+      expect(route.continue).not.toHaveBeenCalled();
+    }
+    expect(onMutationAttempt).toHaveBeenCalledTimes(3);
+    const { route } = fakeRoute(
+      "GET",
+      "https://app.example/api/lease-renewal/comp-screenshot?operation=status",
+    );
+    await context.handler?.(route);
+    expect(route.continue).toHaveBeenCalledOnce();
+    expect(route.abort).not.toHaveBeenCalled();
+  });
+
   it("arms the firewall and rejects workers before bringing the context online", async () => {
     const events: string[] = [];
     const context = fakeContext(events);

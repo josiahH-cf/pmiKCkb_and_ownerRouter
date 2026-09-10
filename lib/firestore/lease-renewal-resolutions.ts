@@ -1,3 +1,4 @@
+import { currentRentCorrectionKey } from "@/lib/lease-renewal/current-rent-correction";
 // KB-owned persistence for the Lease Renewal Phase-1 resolution loop (connector design §3.5).
 //
 // The reconciliation FLAGS are recomputed from an injected ordinary Live run; only a
@@ -42,6 +43,7 @@ export const LEASE_RENEWAL_COLLECTIONS = {
 
 export const ResolveLeaseRenewalFlagInputSchema = z.object({
   run_id: z.string().min(1),
+  intent: z.literal("current_fact_correction").optional(),
   source_trigger_key: z.string().min(1),
   // Required client snapshot binding. The persistence boundary below also compares it with the
   // just-rebuilt Live flag so a decision can never silently move to unseen source facts.
@@ -206,10 +208,18 @@ export function planLeaseRenewalResolution(
 function toResolvableFlag(
   run: RenewalRunResult,
   sourceTriggerKey: string,
+  correction = false,
 ): ResolvableFlag | null {
-  const flag = run.flags.find(
+  const flagged = run.flags.find(
     (outcome) => outcome.queueMapping?.queueItem.source_trigger_key === sourceTriggerKey,
   );
+  const candidates =
+    correction && run.runId === "live-review"
+      ? run.outcomes.filter(
+          (outcome) => currentRentCorrectionKey(outcome, run.runId) === sourceTriggerKey,
+        )
+      : [];
+  const flag = flagged ?? (candidates.length === 1 ? candidates[0] : null);
   if (!flag) return null;
   return {
     source_trigger_key: sourceTriggerKey,
@@ -218,7 +228,7 @@ function toResolvableFlag(
     field_key: flag.fieldKey,
     field_label: flag.fieldLabel,
     candidate_fingerprint: flag.candidateFingerprint,
-    severity: flag.reconciliation.severity,
+    severity: flagged ? flag.reconciliation.severity : "High",
     suggested_source: flag.reconciliation.suggested_winner?.source,
     candidate_sources: flag.reconciliation.candidates.map((candidate) => ({
       source: candidate.source,
@@ -256,7 +266,16 @@ export async function resolveLeaseRenewalFlag(
   const run = await getRun(parsed.run_id);
   if (!run) throw new EditableLayerError("Renewal run was not found.", 404);
 
-  const flag = toResolvableFlag(run, parsed.source_trigger_key);
+  if (parsed.intent && parsed.kind !== "corrected_value")
+    throw new EditableLayerError(
+      "A current fact correction requires an exact reviewed value.",
+      400,
+    );
+  const flag = toResolvableFlag(
+    run,
+    parsed.source_trigger_key,
+    parsed.intent === "current_fact_correction",
+  );
   if (!flag) {
     throw new EditableLayerError("No open flag matches that key in this run.", 404);
   }
@@ -308,6 +327,7 @@ export async function resolveLeaseRenewalFlag(
           severity: flag.severity,
           status: plan.status,
           resolution_kind: plan.resolution_kind,
+          ...(parsed.intent ? { correction_intent: parsed.intent } : {}),
           chosen_source: plan.chosen_source,
           corrected_value: plan.corrected_value,
           reason,
@@ -332,6 +352,7 @@ export async function resolveLeaseRenewalFlag(
         candidate_fingerprint: flag.candidate_fingerprint,
         actor_uid: actor.uid,
         action: plan.resolution_kind,
+        ...(parsed.intent ? { correction_intent: parsed.intent } : {}),
         previous_status: previousStatus,
         new_status: plan.status,
         reason,

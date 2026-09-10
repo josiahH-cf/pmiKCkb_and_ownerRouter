@@ -1,4 +1,5 @@
 import { isCanaryRequestAllowed } from "./browser-policy";
+import { allowsVerificationRequest } from "../auth/canary-policy";
 
 export const GUARDED_BROWSER_BACKGROUND_ARGS = Object.freeze([
   "--disable-background-networking",
@@ -12,6 +13,7 @@ export const GUARDED_BROWSER_BACKGROUND_ARGS = Object.freeze([
 
 export interface GuardedBrowserRequest {
   method(): string;
+  url(): string;
 }
 
 export interface GuardedBrowserRoute {
@@ -186,7 +188,24 @@ export async function launchGuardedManagedBrowser<
     if (aborted) throw new Error("assurance_deadline_exceeded");
 
     await context.route("**/*", async (route) => {
-      if (isCanaryRequestAllowed(route.request().method())) {
+      const request = route.request();
+      const method = request.method().trim().toUpperCase();
+      let allowed = false;
+      if (isCanaryRequestAllowed(method)) {
+        try {
+          const url = new URL(request.url());
+          // The owner retains ordinary Admin authority. Apply the existing stateful-GET
+          // refusals here as well as the verb firewall, without changing the account or claims.
+          allowed = allowsVerificationRequest({
+            method,
+            pathname: url.pathname,
+            searchParams: url.searchParams,
+          });
+        } catch {
+          // An unparseable destination cannot establish a genuine read.
+        }
+      }
+      if (allowed) {
         await route.continue();
         return;
       }

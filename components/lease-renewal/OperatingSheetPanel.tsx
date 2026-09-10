@@ -1,9 +1,16 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
-import { Button } from "@/components/ui";
+import {
+  SHEET_FIELD_LABELS,
+  sheetFieldShape,
+  parseSheetFieldIntent,
+  type SheetEditableField,
+} from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import { Button, Field } from "@/components/ui";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   SheetWritebackClientEffect,
@@ -99,6 +106,7 @@ export function OperatingSheetPanel({
   workspaceContext,
   initialProposal,
   initialEffects = null,
+  initialFieldValues = {},
 }: Readonly<{
   role: Role;
   /** BEH-S98-1: append is offered only when no exact row exists; update only on an exact row. */
@@ -106,8 +114,20 @@ export function OperatingSheetPanel({
   workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
+  initialFieldValues?: Record<string, string>;
 }>) {
+  const router = useRouter();
   const [proposal, setProposal] = useState(initialProposal);
+  const [field, setField] = useState<SheetEditableField>(
+    (Object.keys(initialFieldValues).find((key) => key in SHEET_FIELD_LABELS) as
+      | SheetEditableField
+      | undefined) ?? "current_rent",
+  );
+  const [value, setValue] = useState(
+    sheetEditorValue(field, initialFieldValues[field] ?? ""),
+  );
+  const [source, setSource] = useState("");
+  const shape = sheetFieldShape(field);
   const [effects, setEffects] = useState<SheetWritebackEffectStatus[] | null>(
     initialEffects,
   );
@@ -203,6 +223,38 @@ export function OperatingSheetPanel({
     setNotice("Proposal saved from the fresh Sheet header. Review the exact row below.");
   }
 
+  async function proposeField() {
+    const payload = await postSheet(
+      workspaceContext,
+      field === "current_rent"
+        ? {
+            operation: "propose",
+            intent: "update_approved_current_rent",
+            expectedPriorPreviewHash: proposal?.preview_hash ?? null,
+          }
+        : {
+            operation: "propose",
+            intent: "update_field",
+            expectedPriorPreviewHash: proposal?.preview_hash ?? null,
+            fieldIntent: parseSheetFieldIntent({
+              field,
+              source,
+              value:
+                shape === "currency"
+                  ? Number(value)
+                  : shape === "yes_no" || shape === "boolean"
+                    ? value === "true"
+                    : value,
+            }),
+          },
+    );
+    setProposal(payload.proposal as SheetWritebackClientProposal);
+    setEffects(null);
+    setNotice(
+      "Field proposal saved. Review the current value and exact replacement below; an Admin confirms the source update.",
+    );
+  }
+
   async function discard() {
     if (!proposal) return;
     await postSheet(workspaceContext, {
@@ -230,6 +282,7 @@ export function OperatingSheetPanel({
         : "Applied to the operating Sheet with a receipt and exact readback.",
     );
     await refreshStatus();
+    router.refresh();
   }
 
   async function reconcileEffect(effectHash: string) {
@@ -435,22 +488,99 @@ export function OperatingSheetPanel({
       {editor ? (
         <details>
           <summary>
-            {hasSheetRow ? "Sheet row update unavailable" : "Add Sheet row"}
+            {hasSheetRow ? "Correct an operating Sheet field" : "Add Sheet row"}
           </summary>
           <form
             className="ui-stack"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!hasSheetRow) void run(proposeAppend);
+              void run(hasSheetRow ? proposeField : proposeAppend);
             }}
           >
             {hasSheetRow ? (
-              <p className="muted">
-                Current-rent updates are unavailable until the provider can atomically
-                bind the stable lease row, expected generation, idempotency key, and
-                durable operation status. A read followed by a fixed-cell write is not
-                used.
-              </p>
+              <>
+                <Field label="Field to update" htmlFor="sheet-field">
+                  <select
+                    id="sheet-field"
+                    value={field}
+                    onChange={(event) => {
+                      const next = event.target.value as SheetEditableField;
+                      setField(next);
+                      setValue(sheetEditorValue(next, initialFieldValues[next] ?? ""));
+                    }}
+                  >
+                    {(
+                      Object.entries(SHEET_FIELD_LABELS) as [SheetEditableField, string][]
+                    )
+                      .filter(
+                        ([key]) => key === "current_rent" || key in initialFieldValues,
+                      )
+                      .map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+                <p>Observed Sheet value: {initialFieldValues[field] || "Blank"}</p>
+                {field === "current_rent" ? (
+                  <p className="muted">
+                    Current base rent uses the existing reviewed source decision. Resolve
+                    and approve the source comparison, then prepare that exact value here.
+                  </p>
+                ) : (
+                  <>
+                    <Field label="New value" htmlFor="sheet-field-value" required>
+                      {shape === "yes_no" || shape === "boolean" ? (
+                        <select
+                          id="sheet-field-value"
+                          value={value}
+                          onChange={(event) => setValue(event.target.value)}
+                          required
+                        >
+                          <option value="">Select an answer</option>
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </select>
+                      ) : (
+                        <input
+                          id="sheet-field-value"
+                          type={
+                            shape === "date"
+                              ? "date"
+                              : shape === "currency"
+                                ? "number"
+                                : "text"
+                          }
+                          step={shape === "currency" ? "0.01" : undefined}
+                          min={shape === "currency" ? 0 : undefined}
+                          value={value}
+                          onChange={(event) => setValue(event.target.value)}
+                          required
+                        />
+                      )}
+                    </Field>
+                    <Field
+                      label="Source of this value"
+                      htmlFor="sheet-field-source"
+                      required
+                    >
+                      <input
+                        id="sheet-field-source"
+                        value={source}
+                        onChange={(event) => setSource(event.target.value)}
+                        maxLength={240}
+                        required
+                      />
+                    </Field>
+                  </>
+                )}
+                <p className="muted">
+                  Review before applying. Direct Sheet edits by other people can conflict;
+                  an uncertain update needs reconciliation. A correction is a new
+                  confirmed update.
+                </p>
+              </>
             ) : (
               <p className="muted">
                 The server will append one row only if a fresh RentVine-to-Sheet link
@@ -459,11 +589,14 @@ export function OperatingSheetPanel({
               </p>
             )}
             <div className="ui-actions">
-              {!hasSheetRow ? (
-                <Button disabled={pending || !workspaceContext} type="submit">
-                  Prepare exact missing-row append
-                </Button>
-              ) : null}
+              <Button
+                disabled={pending || !workspaceContext || proposalLifecycleLocked}
+                type="submit"
+              >
+                {hasSheetRow
+                  ? "Preview Sheet field update"
+                  : "Prepare exact missing-row append"}
+              </Button>
               {proposal ? (
                 <Button
                   disabled={pending || proposalLifecycleLocked}
@@ -503,4 +636,22 @@ export function OperatingSheetPanel({
       ) : null}
     </article>
   );
+}
+
+function sheetEditorValue(field: SheetEditableField, observed: string): string {
+  const shape = sheetFieldShape(field);
+  if (shape === "yes_no" || shape === "boolean") {
+    if (/^(yes|true)$/i.test(observed.trim())) return "true";
+    if (/^(no|false)$/i.test(observed.trim())) return "false";
+    return "";
+  }
+  if (shape === "currency") return observed.replace(/[$,]/g, "").trim();
+  if (shape === "date") {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(observed)) return observed;
+    const usDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(observed);
+    if (usDate)
+      return `${usDate[3]}-${usDate[1].padStart(2, "0")}-${usDate[2].padStart(2, "0")}`;
+    return "";
+  }
+  return observed;
 }

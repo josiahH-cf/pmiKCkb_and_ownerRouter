@@ -56,7 +56,7 @@ S54 adds deterministic coverage for the S51 assurance harness:
   predecessor binding, exclusive create-only paths, aggregate candidate gating, promotion readback,
   durable persistence, and compensating predecessor restoration after every post-traffic failure;
 - command-contract tests prove every production runner refuses without `--live`, an exact HTTPS Cloud
-  Run origin/commit/revision/configuration fingerprint, and exact Admin and Editor candidate-origin
+  Run origin/commit/revision/configuration fingerprint, and the owner-approved Admin candidate-origin
   managed profile directories outside the repository.
 - environment/cleanup tests prove live reconciliation refuses emulator, key-file, wrong project/
   database, and non-managed ADC state before source reads, and that deadline expiry aborts requests,
@@ -118,7 +118,7 @@ deployment configuration.
   application contradiction is fatal. Fixtures do not represent S72 markers as independent
   Gmail/policy/packet source corroboration.
 - **AC-S54-9** — Observation fixtures cannot pass at 299,999 ms and pass at 300,000 ms only with exact
-  revision/traffic/configuration, both role manifests, matched reconciliation, complete corroborated
+  revision/traffic/configuration, the policy-required Admin manifest, matched reconciliation, complete corroborated
   monitoring, two successful full checkpoints, zero candidate 5xx, and zero unresolved live effects.
   One checkpoint remains observing at minute five and requires rollback at minute seven. With monitoring configuration
   ready, missing metric/log corroboration remains `observing` at 300,000 and 419,999 ms and is

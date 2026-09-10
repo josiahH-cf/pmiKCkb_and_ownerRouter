@@ -55,7 +55,7 @@ describe("current provider and environment documentation", () => {
       "RentVine | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open",
     );
     expect(normalizedIntegrations).toContain(
-      "Google Sheets | Operating renewal read source and exact S98 append target | Both keys/switch on; active unreleased correction makes product path append-only",
+      "Google Sheets | Operating renewal read source and exact append/update target | Both keys/switch on; S113 normal field updates implemented locally and verified through backend paths; release pending",
     );
     expect(normalizedIntegrations).toContain(
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",

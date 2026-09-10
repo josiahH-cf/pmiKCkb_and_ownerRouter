@@ -8,12 +8,19 @@ import {
   DEFAULT_RENEWAL_DESK_QUERY,
   applyRenewalDeskQuery,
   buildRenewalDeskWindow,
+  buildRenewalDeskFilterOptions,
   parseRenewalDeskQuery,
   serializeRenewalDeskQuery,
   withRenewalDeskQueryKeys,
 } from "@/lib/lease-renewal/desk-query";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import { fixedTermProjection } from "@/tests/helpers/lease-term-fixtures";
+
+import {
+  emptyRenewalWorkspace,
+  manualRenewalSummary,
+  planRenewalWorkspaceAction,
+} from "@/lib/lease-renewal/workspace-state";
 
 function followUp(
   input: {
@@ -361,5 +368,67 @@ describe("S78 deterministic URL, filters, and ordering", () => {
       q: "tenant",
     });
     expect(items).toEqual(before);
+  });
+});
+
+describe("S113 manual desk projection", () => {
+  it("filters by current staff work while retaining historical provider-stage meaning", () => {
+    const state = planRenewalWorkspaceAction(
+      emptyRenewalWorkspace("701", "cycle", {
+        kind: "lease_end",
+        dateIso: "2026-09-30",
+        source: "Reviewed lease",
+      }),
+      {
+        kind: "owner_response",
+        outcome: "approved_terms",
+        source: "Owner call",
+        terms: { rent: 1500, effectiveDate: "2026-10-01", endDate: "2027-09-30" },
+      },
+      {
+        actorUid: "operator",
+        recordedAt: "2026-09-10T12:00:00.000Z",
+        eventId: "approval",
+      },
+    );
+    // Outreach is independently required; approving terms alone must not fabricate delivery.
+    const ready = planRenewalWorkspaceAction(
+      state,
+      {
+        kind: "activity",
+        activity: "owner_outreach",
+        outcome: "done",
+        source: "Owner call",
+      },
+      {
+        actorUid: "operator",
+        recordedAt: "2026-09-10T12:00:00.000Z",
+        eventId: "outreach",
+      },
+    );
+    const manual = manualRenewalSummary(ready);
+    const item = deskItem("701", { manualProgress: manual });
+    expect(item.workflowStepId).toBe("verify-renewal");
+    expect(item.queryKeys).toMatchObject({
+      workflowStepId: manual.step.id,
+      workflowStepIndex: 2,
+      waitingOn: "team",
+    });
+    expect(buildRenewalDeskFilterOptions([item]).steps).toEqual([
+      { value: manual.step.id, label: manual.step.label },
+    ]);
+    expect(
+      applyRenewalDeskQuery([item], {
+        ...DEFAULT_RENEWAL_DESK_QUERY,
+        step: manual.step.id,
+        waiting: "team",
+      }).items,
+    ).toEqual([item]);
+    expect(
+      applyRenewalDeskQuery([item], {
+        ...DEFAULT_RENEWAL_DESK_QUERY,
+        step: "verify-renewal",
+      }).items,
+    ).toEqual([]);
   });
 });

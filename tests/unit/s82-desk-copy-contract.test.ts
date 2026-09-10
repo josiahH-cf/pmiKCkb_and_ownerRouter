@@ -65,7 +65,10 @@ describe("S82 preserved copy roles remain", () => {
     expect(workspace).toContain("Recording is paused while the lease data is past");
     expect(workspace).toContain("DRAFT_BANNER");
     expect(workspace).toContain("Do this next");
-    expect(workspace).toContain("Go to current phase");
+    expect(workspace).toContain("renewalDashboardTarget");
+    expect(source("components/lease-renewal/RenewalDashboardNavigation.tsx")).toContain(
+      "Renewal dashboard sections",
+    );
     expect(table).toContain("sr-only");
     expect(table).toContain("<caption");
   });
@@ -75,7 +78,13 @@ describe("S82 preserved copy roles remain", () => {
       /\.renewal-workspace-link\s*\{[^}]*min-height:\s*44px;[^}]*min-width:\s*44px;/s,
     );
     expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(5);
-    expect(workspacePage).toContain('className="back-link renewal-workspace-link"');
+    expect(workspacePage).toContain("<RenewalDeskReturnLink");
+    expect(source("components/lease-renewal/RenewalDeskReturnLink.tsx")).toContain(
+      'className="back-link renewal-workspace-link"',
+    );
+    expect(source("components/lease-renewal/RenewalDashboardNavigation.tsx")).toContain(
+      'className="text-link renewal-workspace-link"',
+    );
     expect(workspacePage).toContain(
       'className="secondary-button renewal-workspace-link"',
     );

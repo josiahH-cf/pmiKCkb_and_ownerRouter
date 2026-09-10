@@ -1,10 +1,14 @@
 // S98 one-attempt operating-Sheet execution (ARCH-S98-2/3/4). A durable claim precedes the single
 // Sheets call; Sheets exposes no operation-status or idempotency ledger for these requests, so an
 // uncertain response never retries and reconciliation reports observed state without claiming
-// causality. Only normal `row_append` mutates; fixed-row update/delete paths are unavailable until
-// the provider exposes a stable-row, generation-bound, idempotent protocol with durable status.
+// causality. S113 also permits exact-confirmed normal field updates with fresh lease resolution
+// before and after the one replacement. Direct collaborator edits remain outside app isolation.
 
 import { RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS } from "@/lib/lease-renewal/execution/reconcile-age";
+import {
+  sheetCellRepresentationPreserved,
+  type SheetCellEvidence,
+} from "@/lib/google-sheets/cell-evidence";
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { assertLiveProviderActionAllowed } from "@/lib/environment/descriptor";
@@ -76,6 +80,7 @@ export interface SheetWritebackGate {
 
 /** The narrow live writer surface the service uses (implemented by GoogleSheetsApiWriter). */
 export interface SheetWritebackWriter {
+  getCellEvidence?(spreadsheetId: string, range: string): Promise<SheetCellEvidence>;
   getValues(spreadsheetId: string, range: string): Promise<string[][]>;
   getSheetIdByTitle(spreadsheetId: string, tabTitle: string): Promise<number>;
   appendRowWithNote(input: {
@@ -98,7 +103,7 @@ export interface SheetWritebackWriter {
     startRowNumber: number;
     endRowNumber: number;
   }): Promise<{ rowNumber: number; value: string; note: string }[]>;
-  /** Legacy fixed-A1 primitive retained only for compatibility; S98 execution never calls it. */
+  /** Narrow exact-cell replacement; no retry or collaborator-isolation guarantee. */
   replaceCellIfExactMatch(
     spreadsheetId: string,
     range: string,
@@ -120,6 +125,16 @@ export interface SheetWritebackDependencies {
     executionId: string;
     previewHash: string;
     authorization: NonNullable<SheetFieldUpdateEffectInput["authorization"]>;
+  }) => Promise<"claimed" | "duplicate" | "blocked">;
+  /** Active generation plus exact target serialization for normal field updates. */
+  claimLeaseScopedFieldUpdate?: (input: {
+    executionId: string;
+    previewHash: string;
+    effectHash: string;
+    spreadsheetId: string;
+    tabTitle: string;
+    leaseId: string;
+    propertyId: string;
   }) => Promise<"claimed" | "duplicate" | "blocked">;
   /** Firestore-only generation + lease scoped append claim; absent means append execution refuses. */
   claimLeaseScopedAppend?: (input: {
@@ -159,6 +174,13 @@ const NOTE_SCAN_MAX_ROW = 3_000;
  */
 export function sheetCellValueMatches(written: string, observed: string): boolean {
   if (written === observed) return true;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(written)) {
+    const date = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(observed.trim());
+    if (date)
+      return (
+        `${date[3]}-${date[1].padStart(2, "0")}-${date[2].padStart(2, "0")}` === written
+      );
+  }
   const numeric = (value: string): number | null => {
     const stripped = value.trim().replace(/^\$/, "").replace(/,/g, "");
     if (!stripped) return null;
@@ -216,6 +238,8 @@ export class SheetWritebackService {
     confirmation: SheetWritebackConfirmation;
     /** Fresh read-only source check performed after the durable claim but before provider mutation. */
     revalidateBeforeEffect?: () => Promise<void>;
+    /** Fresh exact lease/row/header resolution and typed after-value readback. Required for fields. */
+    revalidateAfterEffect?: () => Promise<void>;
   }): Promise<SheetWritebackReceiptDetails> {
     this.assertEnvironment();
     const { proposal } = input;
@@ -238,16 +262,29 @@ export class SheetWritebackService {
     if (proposal.scope.kind === "sealed_proof") {
       throw new SheetWritebackServiceError("proof_retired");
     }
-    // The live Google Sheets writer has no provider-owned stable-row + expected-generation +
-    // idempotency/status protocol. A read followed by fixed-A1 find/replace is not exact lease
-    // binding, so field updates remain unreachable until that provider seam exists.
-    if (effect.effect.kind === "field_update") {
-      throw new SheetWritebackServiceError("provider_capability_unavailable");
+    if (
+      effect.effect.kind === "field_update" &&
+      (!input.revalidateBeforeEffect || !input.revalidateAfterEffect)
+    ) {
+      throw new SheetWritebackServiceError("authorization_stale");
     }
 
     const executionId = sheetWritebackExecutionId(proposal, effect);
     const existing = await this.dependencies.store.get(executionId);
+    const verifyDuplicate = async (receipt: ExternalActionReceipt) => {
+      if (effect.effect.kind === "field_update") {
+        const observation = await this.observeEffectOutcome(proposal, effect);
+        if (
+          observation.state !== "after" ||
+          observation.readbackHash !== receipt.resultHash
+        ) {
+          throw new SheetWritebackServiceError("reconcile_drift");
+        }
+        await input.revalidateAfterEffect!();
+      }
+    };
     if (existing?.state === "succeeded" && existing.receipt) {
+      await verifyDuplicate(existing.receipt);
       try {
         await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
       } catch {
@@ -265,6 +302,12 @@ export class SheetWritebackService {
     // flag were already asserted above, so refusals never reach this construction.
     const writer = this.dependencies.createWriter();
     await this.assertHeaderFresh(proposal, writer);
+    if (effect.effect.kind === "field_update") {
+      await input.revalidateBeforeEffect!();
+      const before = await this.readAnchoredCell(proposal, effect.effect, writer);
+      if (before !== effect.effect.expectedValue)
+        throw new SheetWritebackServiceError("row_anchor_drift");
+    }
 
     if (!existing) {
       const record: ExternalExecutionRecord = {
@@ -286,6 +329,7 @@ export class SheetWritebackService {
       } catch {
         const concurrent = await this.dependencies.store.get(executionId);
         if (concurrent?.state === "succeeded" && concurrent.receipt) {
+          await verifyDuplicate(concurrent.receipt);
           try {
             await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
           } catch {
@@ -297,7 +341,11 @@ export class SheetWritebackService {
       }
     }
 
-    const claim = await this.dependencies.claimLeaseScopedAppend?.({
+    const claimFunction =
+      effect.effect.kind === "field_update"
+        ? this.dependencies.claimLeaseScopedFieldUpdate
+        : this.dependencies.claimLeaseScopedAppend;
+    const claim = await claimFunction?.({
       executionId,
       previewHash: proposal.previewHash,
       effectHash: effect.effectHash,
@@ -310,6 +358,7 @@ export class SheetWritebackService {
     if (claim === "duplicate") {
       const settled = await this.dependencies.store.get(executionId);
       if (settled?.state === "succeeded" && settled.receipt) {
+        await verifyDuplicate(settled.receipt);
         try {
           await this.settleAppendLifecycle(proposal, effect, executionId, "succeeded");
         } catch {
@@ -328,6 +377,13 @@ export class SheetWritebackService {
       await input.revalidateBeforeEffect?.();
       const gate = this.dependencies.gateFor(effect.actionKey);
       outcome = await gate.run(() => this.performEffect(proposal, effect, writer));
+      if (effect.effect.kind === "field_update") {
+        try {
+          await input.revalidateAfterEffect!();
+        } catch {
+          throw new SheetWritebackServiceError("provider_readback_mismatch");
+        }
+      }
     } catch (error) {
       if (
         error instanceof SheetWritebackServiceError &&
@@ -400,6 +456,13 @@ export class SheetWritebackService {
       throw new SheetWritebackServiceError("execution_state");
     }
     const observation = await this.observeEffectOutcome(input.proposal, effect);
+    // A matching field can have been written by a collaborator. It cannot resolve a lost response
+    // into provider causality, nor permit another attempt through a new proposal generation.
+    if (effect.effect.kind === "field_update") {
+      throw new SheetWritebackServiceError(
+        observation.state === "drift" ? "reconcile_drift" : "reconcile_not_proven",
+      );
+    }
     if (observation.state === "after") {
       const receipt: ExternalActionReceipt = {
         actionKey: effect.actionKey,
@@ -770,8 +833,29 @@ export class SheetWritebackService {
   ): Promise<string> {
     const header = await this.readHeader(proposal, writer);
     const columnIndex = header.columns.get(effect.field);
-    if (columnIndex === undefined) {
+    if (columnIndex === undefined || header.hash !== proposal.headerHash) {
       throw new SheetWritebackServiceError("header_drift");
+    }
+    const anchor = await this.readCell(
+      proposal,
+      proposal.tenantColumnIndex,
+      effect.rowNumber,
+      writer,
+    );
+    if (anchor !== effect.anchorTenantName)
+      throw new SheetWritebackServiceError("row_anchor_drift");
+    if (effect.rowKey) {
+      const located = await this.locateRowByOperationId(proposal, effect.rowKey, writer);
+      const identity = located ? parseRowNote(located.note) : null;
+      if (
+        !located ||
+        located.rowNumber !== effect.rowNumber ||
+        identity?.proof ||
+        identity?.leaseId !== proposal.scope.leaseId ||
+        identity?.propertyId !== proposal.scope.propertyId
+      ) {
+        throw new SheetWritebackServiceError("row_anchor_drift");
+      }
     }
     return this.readCell(proposal, columnIndex, effect.rowNumber, writer);
   }
@@ -894,7 +978,53 @@ export class SheetWritebackService {
       };
     }
 
-    throw new SheetWritebackServiceError("provider_capability_unavailable");
+    const effect = validated.effect;
+    const before = await this.readAnchoredCell(proposal, effect, writer);
+    if (before !== effect.expectedValue)
+      throw new SheetWritebackServiceError("row_anchor_drift");
+    const column = header.columns.get(effect.field);
+    if (column === undefined) throw new SheetWritebackServiceError("header_drift");
+    const letter = columnLetter(column);
+    const range = `'${proposal.tabTitle}'!${letter}${effect.rowNumber}`;
+    if (effect.staffIntent && !writer.getCellEvidence)
+      throw new SheetWritebackServiceError("provider_read_failed");
+    const representation = await writer.getCellEvidence?.(proposal.spreadsheetId, range);
+    if (
+      (effect.cellEvidence &&
+        canonicalJson(effect.cellEvidence) !== canonicalJson(representation)) ||
+      representation?.value.formulaValue !== undefined ||
+      (representation && representation.formattedValue !== before)
+    )
+      throw new SheetWritebackServiceError("row_anchor_drift");
+    const changed = await writer.replaceCellIfExactMatch(
+      proposal.spreadsheetId,
+      range,
+      effect.expectedValue,
+      effect.afterValue,
+    );
+    if (!changed) throw new SheetWritebackServiceError("cas_not_applied");
+    // Any failure after replacement is ambiguous, including an identity/header drift.
+    let after: string;
+    try {
+      after = await this.readAnchoredCell(proposal, effect, writer);
+    } catch {
+      throw new SheetWritebackServiceError("provider_readback_mismatch");
+    }
+    if (!sheetCellValueMatches(effect.afterValue, after))
+      throw new SheetWritebackServiceError("provider_readback_mismatch");
+    if (representation) {
+      const observed = await writer.getCellEvidence!(proposal.spreadsheetId, range);
+      if (!sheetCellRepresentationPreserved(representation, observed, effect.afterValue))
+        throw new SheetWritebackServiceError("provider_readback_mismatch");
+    }
+    return {
+      providerRef: `s98-cell:${effect.field}`,
+      readbackHash: hashExecutionPreview({
+        version: "s98-cell-readback/v1",
+        field: effect.field,
+        value: after,
+      }),
+    };
   }
 
   private async observeEffectOutcome(

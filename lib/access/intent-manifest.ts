@@ -9,6 +9,32 @@ import { buildAccessRequestHref } from "@/lib/access/handoff";
  */
 export const ACCESS_INTENT_MANIFEST = [
   {
+    key: "renewal_corrections.edit",
+    source_path: "components/lease-renewal/RenewalCorrections.tsx",
+    capability: "edit",
+    space: "renewals",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
+    key: "renewal_corrections.review",
+    source_path: "components/lease-renewal/RenewalCorrections.tsx",
+    capability: "approve",
+    space: "renewals",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
+    key: "renewal_corrections.approve",
+    source_path: "components/lease-renewal/RenewalCorrections.tsx",
+    capability: "manageAdmin",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
+    key: "renewal_resources.manage",
+    source_path: "components/lease-renewal/RenewalResourceLocations.tsx",
+    capability: "manageAdmin",
+    return_to: "/lease-renewal/live/desk",
+  },
+  {
     key: "connections.manage",
     source_path: "app/connections/page.tsx",
     capability: "manageAdmin",

@@ -3,9 +3,15 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 
 // The desk embeds the S58 client refresh control, which uses the app router.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/link", () => ({
+  default: ({ prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a {...props} data-prefetch={String(prefetch)} />
+  ),
+}));
 
 import { formatSnapshotAge, RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
@@ -21,6 +27,17 @@ afterEach(() => {
 });
 
 describe("RenewalDesk (S82 table)", () => {
+  it("loads desk and lease destinations only when selected, without speculative source reads", () => {
+    render(<RenewalDesk view={getRenewalDeskView()} />);
+    const links = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("href")?.includes("/desk"));
+    expect(links.length).toBeGreaterThan(10);
+    for (const link of links) {
+      expect(link).toHaveAttribute("data-prefetch", "false");
+    }
+  });
+
   it("renders one semantic table with every required column and no retired desk surface", () => {
     render(<RenewalDesk view={getRenewalDeskView()} />);
 
@@ -232,48 +249,57 @@ describe("RenewalDesk data currency", () => {
   });
 });
 
-describe("RenewalWorkspace (S82 guided phases)", () => {
-  it("renders the six-phase rail, one Do-this-next card, and only the selected phase", () => {
-    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7");
-    expect(workspace).not.toBeNull();
-    render(<RenewalWorkspace workspace={workspace!} />);
-
+describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
+  it("renders five section destinations, every section and one Do-this-next card", () => {
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    render(<RenewalWorkspace workspace={workspace} />);
     expect(
       screen.getByRole("heading", { name: "318 Cedar Ave, Unit 7", level: 1 }),
     ).toBeInTheDocument();
-    const rail = screen.getByRole("navigation", { name: "Renewal phases" });
-    expect(within(rail).getAllByRole("link")).toHaveLength(6);
-    expect(screen.getByText("Do this next")).toBeInTheDocument();
-
-    // Exactly one selected phase renders; the always-on evidence-engine stack is gone.
+    const navigation = screen.getByRole("navigation", {
+      name: "Renewal dashboard sections",
+    });
+    expect(within(navigation).getAllByRole("link")).toHaveLength(5);
+    for (const name of [
+      "Lease details",
+      "Comps",
+      "Owner",
+      "Tenant",
+      "Documents and completion",
+    ]) {
+      expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    }
+    expect(screen.getAllByText("Do this next")).toHaveLength(1);
     expect(screen.queryByText(/renewal-v1/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Build docs readiness")).not.toBeInTheDocument();
+    expect(screen.getByText("Build docs readiness")).toBeInTheDocument();
   });
 
-  it("shows an upcoming phase's unmet prerequisite instead of premature controls", () => {
-    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7");
-    render(<RenewalWorkspace selectedStepId="document-packet" workspace={workspace!} />);
-    // An upcoming phase cannot enable a premature control: no packet panel, only the
-    // earliest unmet prerequisite and the way back to the current phase.
-    expect(screen.queryByText("Build docs readiness")).not.toBeInTheDocument();
-    expect(screen.getByText(/unmet prerequisite/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to current phase" })).toBeInTheDocument();
-    cleanup();
+  it("keeps the complete dashboard inspectable from upcoming and invalid historical step URLs", () => {
+    const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+    for (const step of ["document-packet", "not-a-step"]) {
+      render(<RenewalWorkspace selectedStepId={step} workspace={workspace} />);
+      expect(screen.getByText("Build docs readiness")).toBeInTheDocument();
+      expect(
+        screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Do this next")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Confirm.*upload/i }),
+      ).not.toBeInTheDocument();
+      cleanup();
+    }
+  });
 
-    render(<RenewalWorkspace selectedStepId="not-a-step" workspace={workspace!} />);
-    // Invalid selection falls back to the process-current phase without an error surface.
+  it("shows upcoming tenant draft readiness while retaining the actual execution refusal", () => {
+    const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2")!;
+    render(<RenewalWorkspace selectedStepId="tenant-decision" workspace={workspace} />);
     expect(
-      screen.getByRole("navigation", { name: "Renewal phases" }),
+      within(screen.getByRole("region", { name: "Tenant" })).getByRole("heading", {
+        name: "Renewal-notice draft",
+        level: 2,
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Do this next")).toBeInTheDocument();
-  });
-
-  it("keeps the tenant composer unreachable while the tenant phase is still upcoming", () => {
-    const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2");
-    render(<RenewalWorkspace selectedStepId="tenant-decision" workspace={workspace!} />);
-
-    expect(screen.queryByText("Renewal-notice draft")).not.toBeInTheDocument();
-    expect(screen.getByText(/unmet prerequisite/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
   });
 
   it("keeps the data check with source-tagged candidates on the verify phase", () => {

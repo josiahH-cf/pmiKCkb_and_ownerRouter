@@ -1,3 +1,9 @@
+import {
+  OWNER_ADMIN_BROWSER_POLICY,
+  requiresEditorBrowser,
+  browserVerdictsAccepted,
+  type ReleaseBrowserPolicy,
+} from "../lib/production-assurance/release-browser-policy.mjs";
 import { pathToFileURL } from "node:url";
 
 import {
@@ -56,6 +62,7 @@ const LOG_PAGE_SIZE = 1_000;
 const CANDIDATE_ASSURANCE_TIMEOUT_MS = 30 * 60 * 1_000;
 
 interface ObservationTarget {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly project: string;
   readonly region: string;
   readonly service: string;
@@ -181,8 +188,11 @@ export async function observeProductionRelease(
   ) {
     throw new Error("promotion_receipt_mismatch");
   }
+  const browserPolicy = observationTarget.browserPolicy;
   const adminProfile = resolveNamedManagedProfile(argv, "--admin-profile");
-  const editorProfile = resolveNamedManagedProfile(argv, "--editor-profile");
+  const editorProfile = requiresEditorBrowser(browserPolicy)
+    ? resolveNamedManagedProfile(argv, "--editor-profile")
+    : null;
   const observationDeadlineAtMs = closedObservationInterval(
     observationTarget.promotionStartedAtMs,
     POST_PROMOTION_OBSERVATION_MS,
@@ -191,6 +201,7 @@ export async function observeProductionRelease(
   try {
     if (Date.now() >= observationDeadlineAtMs) {
       return buildObservationDeadlineRollbackReport({
+        browserPolicy,
         target,
         predecessorRevision: observationTarget.predecessorRevision,
         promotionStartedAtMs: observationTarget.promotionStartedAtMs,
@@ -226,20 +237,22 @@ export async function observeProductionRelease(
       abortSignal: deadline.signal,
       assuranceContext,
     });
-    const initialEditor = await runProductionCanary({
-      ...target,
-      project: observationTarget.project,
-      region: observationTarget.region,
-      service: observationTarget.service,
-      expectedConfigurationFingerprint:
-        observationTarget.expectedConfigurationFingerprint,
-      role: "Editor",
-      profile: editorProfile,
-      phase: "post_promotion",
-      deadlineAtMs: observationDeadlineAtMs,
-      abortSignal: deadline.signal,
-      assuranceContext,
-    });
+    const initialEditor = editorProfile
+      ? await runProductionCanary({
+          ...target,
+          project: observationTarget.project,
+          region: observationTarget.region,
+          service: observationTarget.service,
+          expectedConfigurationFingerprint:
+            observationTarget.expectedConfigurationFingerprint,
+          role: "Editor",
+          profile: editorProfile,
+          phase: "post_promotion",
+          deadlineAtMs: observationDeadlineAtMs,
+          abortSignal: deadline.signal,
+          assuranceContext,
+        })
+      : null;
     const initialReconciliation = await runProductionReconciliation({
       ...target,
       role: "Admin",
@@ -265,8 +278,10 @@ export async function observeProductionRelease(
       initialAdmin,
       initialEditor,
       initialReconciliation,
+      browserPolicy,
     );
     const initialDecision = evaluateReleaseObservation({
+      browserPolicy,
       expectedRevision: target.expectedRevision,
       observedRevision: initialRuntime.observedRevision,
       predecessorRevision: observationTarget.predecessorRevision,
@@ -281,14 +296,14 @@ export async function observeProductionRelease(
       ],
       elapsedMs: Math.max(0, Date.now() - observationTarget.promotionStartedAtMs),
       adminRoutes: initialAdmin.routes,
-      editorRoutes: initialEditor.routes,
+      editorRoutes: initialEditor?.routes ?? [],
       reconciliation: requireReconciliation(initialReconciliation),
       monitoring: initialRuntime.monitoring,
     });
     if (initialDecision.decision !== "observing") {
       return buildObservationReport(
         target,
-        [...initialAdmin.routes, ...initialEditor.routes],
+        [...initialAdmin.routes, ...(initialEditor?.routes ?? [])],
         requireReconciliation(initialReconciliation),
         initialRuntime.monitoring,
         initialDecision,
@@ -316,20 +331,22 @@ export async function observeProductionRelease(
       abortSignal: deadline.signal,
       assuranceContext,
     });
-    const finalEditor = await runProductionCanary({
-      ...target,
-      project: observationTarget.project,
-      region: observationTarget.region,
-      service: observationTarget.service,
-      expectedConfigurationFingerprint:
-        observationTarget.expectedConfigurationFingerprint,
-      role: "Editor",
-      profile: editorProfile,
-      phase: "post_promotion",
-      deadlineAtMs: observationDeadlineAtMs,
-      abortSignal: deadline.signal,
-      assuranceContext,
-    });
+    const finalEditor = editorProfile
+      ? await runProductionCanary({
+          ...target,
+          project: observationTarget.project,
+          region: observationTarget.region,
+          service: observationTarget.service,
+          expectedConfigurationFingerprint:
+            observationTarget.expectedConfigurationFingerprint,
+          role: "Editor",
+          profile: editorProfile,
+          phase: "post_promotion",
+          deadlineAtMs: observationDeadlineAtMs,
+          abortSignal: deadline.signal,
+          assuranceContext,
+        })
+      : null;
     const finalReconciliation = await runProductionReconciliation({
       ...target,
       role: "Admin",
@@ -344,11 +361,13 @@ export async function observeProductionRelease(
       abortSignal: deadline.signal,
       assuranceContext,
     });
-    const finalRoutes = [...finalAdmin.routes, ...finalEditor.routes];
+    const finalRoutes = [...finalAdmin.routes, ...(finalEditor?.routes ?? [])];
     const reconciliation = requireReconciliation(finalReconciliation);
     const successfulCheckpoints =
       (initialCheckpointPassed ? 1 : 0) +
-      (fullCheckpointPassed(finalAdmin, finalEditor, finalReconciliation) ? 1 : 0);
+      (fullCheckpointPassed(finalAdmin, finalEditor, finalReconciliation, browserPolicy)
+        ? 1
+        : 0);
     const monitoringDeadline = closedObservationInterval(
       observationTarget.promotionStartedAtMs,
       POST_PROMOTION_OBSERVATION_MS,
@@ -363,6 +382,7 @@ export async function observeProductionRelease(
     while (true) {
       const nowMs = Date.now();
       const decision = evaluateReleaseObservation({
+        browserPolicy,
         expectedRevision: target.expectedRevision,
         observedRevision: runtime.observedRevision,
         predecessorRevision: observationTarget.predecessorRevision,
@@ -381,7 +401,7 @@ export async function observeProductionRelease(
         ],
         elapsedMs: Math.max(0, nowMs - observationTarget.promotionStartedAtMs),
         adminRoutes: finalAdmin.routes,
-        editorRoutes: finalEditor.routes,
+        editorRoutes: finalEditor?.routes ?? [],
         reconciliation,
         monitoring: runtime.monitoring,
       });
@@ -411,6 +431,7 @@ export async function observeProductionRelease(
   } catch (error) {
     if (isAssuranceDeadlineFailure(error) || Date.now() >= observationDeadlineAtMs) {
       return buildObservationDeadlineRollbackReport({
+        browserPolicy,
         target,
         predecessorRevision: observationTarget.predecessorRevision,
         promotionStartedAtMs: observationTarget.promotionStartedAtMs,
@@ -424,23 +445,25 @@ export async function observeProductionRelease(
 
 export function fullCheckpointPassed(
   admin: Pick<ProductionAssuranceEvidence, "verdict">,
-  editor: Pick<ProductionAssuranceEvidence, "verdict">,
+  editor: Pick<ProductionAssuranceEvidence, "verdict"> | null,
   reconciliation: {
     readonly verdict: ProductionAssuranceEvidence["verdict"];
     readonly reconciliation: {
       readonly state: NonNullable<ProductionAssuranceEvidence["reconciliation"]>["state"];
     } | null;
   },
+  browserPolicy?: ReleaseBrowserPolicy,
 ): boolean {
   return (
     admin.verdict === "passed" &&
-    editor.verdict === "passed" &&
+    browserVerdictsAccepted(browserPolicy, admin.verdict, editor?.verdict ?? "not_run") &&
     reconciliation.verdict === "passed" &&
     reconciliation.reconciliation?.state === "matched"
   );
 }
 
 async function capturePredecessorBaseline(input: {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly client: AuthenticatedReadClient;
   readonly assuranceContext: VerifiedProductionAssuranceContext;
   readonly canonicalOrigin: string;
@@ -450,7 +473,7 @@ async function capturePredecessorBaseline(input: {
   readonly service: string;
   readonly operatorEmail: string;
   readonly adminProfile: string;
-  readonly editorProfile: string;
+  readonly editorProfile: string | null;
   readonly deadlineAtMs: number;
   readonly abortSignal: AbortSignal;
 }): Promise<PredecessorBaseline> {
@@ -489,18 +512,27 @@ async function capturePredecessorBaseline(input: {
     profile: input.adminProfile,
     assuranceContext: input.assuranceContext,
   });
-  const editor = await runProductionCanary({
-    ...target,
-    role: "Editor",
-    profile: input.editorProfile,
-    assuranceContext: input.assuranceContext,
-  });
+  const editor = input.editorProfile
+    ? await runProductionCanary({
+        ...target,
+        role: "Editor",
+        profile: input.editorProfile,
+        assuranceContext: input.assuranceContext,
+      })
+    : null;
   const monitoringReady = await withAssuranceTimeout(
     () => readMonitoringConfigurationReady(input, input.client, input.abortSignal),
     "predecessor_monitoring_timeout",
     remainingAssuranceTime(input.deadlineAtMs),
   );
-  if (admin.verdict !== "passed" || editor.verdict !== "passed" || !monitoringReady) {
+  if (
+    !browserVerdictsAccepted(
+      input.browserPolicy,
+      admin.verdict,
+      editor?.verdict ?? "not_run",
+    ) ||
+    !monitoringReady
+  ) {
     throw new Error("predecessor_baseline_failed");
   }
   const finalBinding = await readVerifiedCloudRunOriginBinding(
@@ -519,6 +551,7 @@ async function capturePredecessorBaseline(input: {
     throw new Error("predecessor_baseline_failed");
   }
   return {
+    browserPolicy: input.browserPolicy ?? "admin-editor",
     verifiedAt: new Date().toISOString(),
     canonicalOrigin: input.canonicalOrigin,
     expectedCommit: version.commit,
@@ -526,7 +559,7 @@ async function capturePredecessorBaseline(input: {
     expectedConfigurationFingerprint,
     trafficPercent: 100,
     adminVerdict: "passed",
-    editorVerdict: "passed",
+    editorVerdict: editor ? "passed" : "not_run",
     monitoringState: "ready",
   };
 }
@@ -538,7 +571,7 @@ export async function verifyPredecessorRecovery(input: {
   readonly service: string;
   readonly operatorEmail: string;
   readonly adminProfile: string;
-  readonly editorProfile: string;
+  readonly editorProfile: string | null;
   readonly deadlineAtMs?: number;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
@@ -552,6 +585,7 @@ export async function verifyPredecessorRecovery(input: {
     });
     const client = verifiedAssuranceClient(assuranceContext, input.project);
     const recovered = await capturePredecessorBaseline({
+      browserPolicy: input.baseline.browserPolicy,
       client,
       assuranceContext,
       canonicalOrigin: input.baseline.canonicalOrigin,
@@ -583,6 +617,7 @@ export function assertRecoveredPredecessorBaseline(
       expected.expectedConfigurationFingerprint ||
     recovered.canonicalOrigin !== expected.canonicalOrigin ||
     recovered.trafficPercent !== expected.trafficPercent ||
+    recovered.browserPolicy !== expected.browserPolicy ||
     recovered.adminVerdict !== expected.adminVerdict ||
     recovered.editorVerdict !== expected.editorVerdict ||
     recovered.monitoringState !== expected.monitoringState
@@ -639,6 +674,7 @@ export async function resolveObservationTarget(
     expectedConfigurationFingerprint,
     canonicalOrigin: receipt.canonicalOrigin,
     predecessorBaseline: receipt.predecessorBaseline,
+    browserPolicy: receipt.browserPolicy,
   };
 }
 
@@ -655,13 +691,16 @@ export async function verifyRollbackRecoveryFromReceipt(
   ) {
     throw new Error("internal_operator_required");
   }
+  const receipts = await receiptModule();
+  const receipt = receipts.readAssuranceReceiptForRecovery(path);
+  const browserPolicy = receipt.browserPolicy;
   const adminProfile = resolveNamedManagedProfile(argv, "--admin-profile");
-  const editorProfile = resolveNamedManagedProfile(argv, "--editor-profile");
+  const editorProfile = requiresEditorBrowser(browserPolicy)
+    ? resolveNamedManagedProfile(argv, "--editor-profile")
+    : null;
   if (adminProfile === editorProfile) {
     throw new Error("distinct_managed_profiles_required");
   }
-  const receipts = await receiptModule();
-  const receipt = receipts.readAssuranceReceiptForRecovery(path);
   await verifyPredecessorRecovery({
     baseline: receipt.predecessorBaseline,
     project: receipt.project,
@@ -693,8 +732,11 @@ export async function prepareCandidateAssuranceReceipt(
     ) {
       throw new Error("internal_operator_required");
     }
+    const browserPolicy = OWNER_ADMIN_BROWSER_POLICY;
     const adminProfile = resolveNamedManagedProfile(argv, "--admin-profile");
-    const editorProfile = resolveNamedManagedProfile(argv, "--editor-profile");
+    const editorProfile = requiresEditorBrowser(browserPolicy)
+      ? resolveNamedManagedProfile(argv, "--editor-profile")
+      : null;
     if (adminProfile === editorProfile)
       throw new Error("distinct_managed_profiles_required");
     const output = readArg(argv, "--candidate-assurance-receipt");
@@ -724,6 +766,7 @@ export async function prepareCandidateAssuranceReceipt(
     const predecessorRevision = binding.predecessorRevision;
     if (!predecessorRevision) throw new Error("exact_predecessor_required");
     const predecessorBaseline = await capturePredecessorBaseline({
+      browserPolicy,
       client,
       assuranceContext,
       canonicalOrigin: binding.canonicalOrigin,
@@ -750,17 +793,19 @@ export async function prepareCandidateAssuranceReceipt(
       abortSignal: deadline.signal,
       assuranceContext,
     });
-    const editor = await runProductionCanary({
-      ...target,
-      ...coordinates,
-      expectedConfigurationFingerprint,
-      role: "Editor",
-      profile: editorProfile,
-      phase: "candidate",
-      deadlineAtMs,
-      abortSignal: deadline.signal,
-      assuranceContext,
-    });
+    const editor = editorProfile
+      ? await runProductionCanary({
+          ...target,
+          ...coordinates,
+          expectedConfigurationFingerprint,
+          role: "Editor",
+          profile: editorProfile,
+          phase: "candidate",
+          deadlineAtMs,
+          abortSignal: deadline.signal,
+          assuranceContext,
+        })
+      : null;
     const reconciliation = await runProductionReconciliation({
       ...target,
       ...coordinates,
@@ -787,7 +832,11 @@ export async function prepareCandidateAssuranceReceipt(
     );
     if (
       admin.verdict !== "passed" ||
-      editor.verdict !== "passed" ||
+      !browserVerdictsAccepted(
+        browserPolicy,
+        admin.verdict,
+        editor?.verdict ?? "not_run",
+      ) ||
       reconciliation.verdict !== "passed" ||
       reconciliation.reconciliation?.state !== "matched" ||
       !monitoringReady
@@ -795,6 +844,7 @@ export async function prepareCandidateAssuranceReceipt(
       throw new Error("candidate_assurance_gate_failed");
     }
     const receipt = receipts.buildCandidateAssuranceReceipt({
+      browserPolicy,
       project: coordinates.project,
       region: coordinates.region,
       service: coordinates.service,
@@ -806,7 +856,7 @@ export async function prepareCandidateAssuranceReceipt(
       predecessorRevision,
       predecessorBaseline,
       adminVerdict: "passed",
-      editorVerdict: "passed",
+      editorVerdict: editor ? "passed" : "not_run",
       reconciliationState: "matched",
       monitoringState: "ready",
     });
@@ -1376,13 +1426,17 @@ function isAssuranceDeadlineFailure(error: unknown): boolean {
  * exact predecessor needed by the release compensator.
  */
 export function buildObservationDeadlineRollbackReport(input: {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly target: Parameters<typeof verifyExactVersion>[0];
   readonly predecessorRevision: string;
   readonly promotionStartedAtMs: number;
   readonly nowMs?: number;
 }): ProductionAssuranceEvidence {
   const nowMs = input.nowMs ?? Date.now();
-  const failedRoutes = (["Admin", "Editor"] as const).flatMap((role) =>
+  const requiredRoles = requiresEditorBrowser(input.browserPolicy)
+    ? (["Admin", "Editor"] as const)
+    : (["Admin"] as const);
+  const failedRoutes = requiredRoles.flatMap((role) =>
     routesForRole(role).map((definition) => ({
       actorRole: role,
       routeKey: definition.key,
@@ -1403,6 +1457,7 @@ export function buildObservationDeadlineRollbackReport(input: {
   };
   const monitoring = unavailableMonitoringSample(false);
   const observation = evaluateReleaseObservation({
+    browserPolicy: input.browserPolicy,
     expectedRevision: input.target.expectedRevision,
     observedRevision: "unverified",
     predecessorRevision: input.predecessorRevision,

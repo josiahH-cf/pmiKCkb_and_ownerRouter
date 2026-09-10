@@ -264,6 +264,44 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction:
       "Continue ordinary renewal work and ask an Admin to review configuration.",
   },
+  approve_message_template: {
+    label: "Approve the supplied renewal message publication",
+    roleCapability: "approve",
+    effect: "app_owned_approval",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason:
+      "Approver or Admin access is required to publish the reviewed renewal wording.",
+    safeNextAction:
+      "Retain preparation and ask an Approver or Admin to review the publication.",
+  },
+  execute_document_packet: {
+    label: "Confirm one exact supported document-packet effect",
+    roleCapability: "manageAdmin",
+    effect: "external_write",
+    externalRequirement: "exact_action",
+    actionKeys: ["dotloop.loop.create_from_template", "dotloop.document.upload"],
+    exactConfirmation: true,
+    audit: "external_receipt",
+    roleDeniedReason: "Admin access is required to execute a document-packet effect.",
+    safeNextAction:
+      "Keep the current packet for Admin review; its exact activation gate still applies.",
+  },
+  record_packet_readback: {
+    label: "Record exact packet provider readback",
+    roleCapability: "approve",
+    effect: "app_owned_write",
+    externalRequirement: "read_connection",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason:
+      "Approver or Admin access is required to record packet provider readback.",
+    safeNextAction:
+      "Read the retained evidence or ask an Approver or Admin to refresh the provider record.",
+  },
   send_renewal_message: {
     label: "Send a renewal message from the application",
     roleCapability: "read",
@@ -522,6 +560,36 @@ export const RENEWAL_CONTROL_INVENTORY = [
     capability: "draft_create",
     enforcementSources: ["app/api/lease-renewal/renewal-notice-draft/route.ts"],
   },
+  {
+    control: "Record actual staff work",
+    source: "components/lease-renewal/RenewalManualWorkspace.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    control: "Save a correction proposal",
+    source: "components/lease-renewal/RenewalCorrections.tsx",
+    capability: "record_discrepancy_disposition",
+    enforcementSources: ["app/api/lease-renewal/correction-review/route.ts"],
+  },
+  {
+    control: "Prepare current-cycle message and Gmail draft",
+    source: "components/lease-renewal/RenewalMessagePreparation.tsx",
+    capability: "draft_create",
+    enforcementSources: ["app/api/lease-renewal/message-preparation/route.ts"],
+  },
+  {
+    control: "Save reviewed resource location",
+    source: "components/lease-renewal/RenewalResourceLocations.tsx",
+    capability: "manage_renewal_configuration",
+    enforcementSources: ["app/api/lease-renewal/resource-locations/route.ts"],
+  },
+  {
+    control: "Confirm exact document packet effect",
+    source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    capability: "execute_document_packet",
+    enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
+  },
 ] as const satisfies readonly RenewalControlInventoryEntry[];
 
 /** Ordered, source-addressable inventory used to make page/API drift mechanically visible. */
@@ -725,5 +793,71 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/writeback-execute/route.ts",
     method: "POST",
     capability: "execute_source_write",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/correction-review/route.ts",
+    method: "POST",
+    capability: "record_discrepancy_disposition",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/document-artifact/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/document-handoff/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/document-handoff/route.ts",
+    method: "POST",
+    capability: "execute_document_packet",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/message-attachment/route.ts",
+    method: "GET",
+    capability: "screenshot_store",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/message-preparation/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/message-preparation/route.ts",
+    method: "POST",
+    capability: "approve_message_template",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/resource-locations/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/resource-locations/route.ts",
+    method: "POST",
+    capability: "manage_renewal_configuration",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/workspace/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/workspace/route.ts",
+    method: "POST",
+    capability: "save_renewal_progress",
   },
 ] as const satisfies readonly RenewalRouteInventoryEntry[];

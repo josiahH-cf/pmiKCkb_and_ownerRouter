@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { requiresEditorBrowser } from "../lib/production-assurance/release-browser-policy.mjs";
 // S40 blue/green release wrapper. Delivery is three separate, individually reviewable invocations:
 //
 //   npm run release -- --environment=production --plan-only        # prints; never runs gcloud
@@ -302,6 +303,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
         argv,
         verifyRecovery: () =>
           runPredecessorRecoveryGate({
+            browserPolicy: candidateReceipt.browserPolicy,
             argv,
             candidateReceiptPath: args.candidateAssuranceReceipt,
           }),
@@ -379,13 +381,13 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       `Smoke the candidate at its "${candidate.candidateTag}" tag URL, then run the complete candidate assurance gate:`,
     );
     console.log(
-      `  npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${deploy.revision} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --candidate-assurance-receipt=<new-candidate-assurance-receipt-path>`,
+      `  npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${deploy.revision} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --candidate-assurance-receipt=<new-candidate-assurance-receipt-path>`,
     );
     console.log(
       "Promote only with that fresh receipt and reserve a new promotion receipt:",
     );
     console.log(
-      `  npm run release -- --environment=production --promote --candidate-revision=${deploy.revision} --candidate-assurance-receipt=<candidate-assurance-receipt-path> --promotion-receipt=<new-promotion-receipt-path> --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path>\n`,
+      `  npm run release -- --environment=production --promote --candidate-revision=${deploy.revision} --candidate-assurance-receipt=<candidate-assurance-receipt-path> --promotion-receipt=<new-promotion-receipt-path> --operator-email=<managed-operator> --admin-profile=<admin-profile-path>\n`,
     );
   } else {
     console.log(
@@ -401,12 +403,24 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 export async function runPredecessorRecoveryGate({
   argv,
   candidateReceiptPath,
+  browserPolicy,
   runCommand = run,
 }) {
-  const required = ["--operator-email", "--admin-profile", "--editor-profile"]
+  const names = requiresEditorBrowser(browserPolicy)
+    ? ["--operator-email", "--admin-profile", "--editor-profile"]
+    : ["--operator-email", "--admin-profile"];
+  const required = names
     .map((name) => argv.find((entry) => entry.startsWith(`${name}=`)))
     .filter(Boolean);
-  if (required.length !== 3) throw new Error("predecessor_recovery_inputs_required");
+  if (required.length !== names.length)
+    throw new Error("predecessor_recovery_inputs_required");
+  const monitoringOperator = readFlag(argv, "--monitoring-operator-email");
+  if (monitoringOperator) {
+    if (!/^[a-z0-9][a-z0-9._%+-]{0,63}@pmikcmetro\.com$/i.test(monitoringOperator))
+      throw new Error("internal_operator_required");
+    required[0] = `--operator-email=${monitoringOperator}`;
+  }
+
   await runCommand(process.platform === "win32" ? "npm.cmd" : "npm", [
     "run",
     "assure:production-observation",
@@ -452,6 +466,7 @@ export function preflightProductionPromotionRecovery({
   candidateReceiptPath,
   promotionReceiptPath,
   repositoryRoot = process.cwd(),
+  browserPolicy,
 }) {
   const operatorEmail = readFlag(argv, "--operator-email")?.trim().toLowerCase();
   if (
@@ -464,10 +479,9 @@ export function preflightProductionPromotionRecovery({
     readFlag(argv, "--admin-profile"),
     repositoryRoot,
   );
-  const editorProfile = resolveRecoveryProfile(
-    readFlag(argv, "--editor-profile"),
-    repositoryRoot,
-  );
+  const editorProfile = requiresEditorBrowser(browserPolicy)
+    ? resolveRecoveryProfile(readFlag(argv, "--editor-profile"), repositoryRoot)
+    : null;
   if (adminProfile === editorProfile) {
     throw new Error("distinct_managed_profiles_required");
   }
@@ -532,6 +546,7 @@ export async function promoteProductionCandidate({
   now = Date.now,
 }) {
   const recoveryReadiness = await preflightRecovery({
+    browserPolicy: candidateReceipt.browserPolicy,
     argv,
     candidateReceiptPath,
     promotionReceiptPath,

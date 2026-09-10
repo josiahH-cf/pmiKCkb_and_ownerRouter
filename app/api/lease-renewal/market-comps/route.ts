@@ -1,3 +1,8 @@
+import {
+  CompCaptureSchema,
+  assertCompCaptureCycle,
+  captureMarketObservation,
+} from "@/lib/firestore/renewal-market-observations";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -96,7 +101,7 @@ function referenceProjection(queryBasis: MarketCompQueryBasis, cached: boolean) 
  * working. When the RentCast adapter is selected, the exact action key and runtime suspension gate
  * are enforced before a call; the manual adapter needs no provider gate and echoes operator input.
  */
-export async function POST(request: Request) {
+async function marketCompsResponse(request: Request) {
   try {
     const user = await requireCapabilityInSpace(
       renewalRoleCapability("request_reference_comps"),
@@ -247,6 +252,65 @@ export async function POST(request: Request) {
         { status: error.status },
       );
     }
+    return apiErrorResponse(error);
+  }
+}
+
+/** Additive S113 capture. Legacy callers retain the exact route/adapter/quota behavior. */
+export async function POST(request: Request) {
+  let raw: Record<string, unknown>;
+  try {
+    raw = await request.clone().json();
+  } catch {
+    return marketCompsResponse(request);
+  }
+  if (!raw || typeof raw !== "object" || !("capture" in raw))
+    return marketCompsResponse(request);
+  try {
+    const capture = CompCaptureSchema.parse(raw.capture);
+    const leaseId = z
+      .string()
+      .regex(/^[1-9]\d*$/)
+      .parse(raw.leaseId);
+    const actor = await requireCapabilityInSpace(
+      renewalRoleCapability("request_reference_comps"),
+      "renewals",
+    );
+    if (raw.operation === "trend") z.string().uuid().parse(capture.compObservationId);
+    await assertCompCaptureCycle(
+      actor,
+      leaseId,
+      capture.cycleId,
+      raw.operation === "trend" ? capture.compObservationId : undefined,
+    );
+    const { capture: _, ...body } = raw;
+    const response = await marketCompsResponse(
+      new Request(request.url, {
+        method: "POST",
+        headers: request.headers,
+        body: JSON.stringify(body),
+      }),
+    );
+    if (!response.ok) return response;
+    const payload = await response.json();
+    try {
+      const observationId = await captureMarketObservation(
+        actor,
+        leaseId,
+        capture,
+        body.operation === "trend" ? "trend" : "comps",
+        payload,
+      );
+      return NextResponse.json({ ...payload, observationId });
+    } catch {
+      // A storage failure must not erase a billed result or falsely claim that no lookup ran.
+      return NextResponse.json({
+        ...payload,
+        retentionError:
+          "Lookup returned; saving its evidence failed. Keep this displayed result and retry saving only after the connection recovers.",
+      });
+    }
+  } catch (error) {
     return apiErrorResponse(error);
   }
 }

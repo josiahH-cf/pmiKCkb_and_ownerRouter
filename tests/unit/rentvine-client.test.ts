@@ -154,7 +154,11 @@ describe("RentVineClient response handling", () => {
       ]),
     );
     await expect(client.listRecurringCharges("177")).resolves.toEqual([
-      { leaseRecurringChargeID: "651", accountID: "28" },
+      {
+        leaseRecurringChargeID: "651",
+        accountID: "28",
+        account: { accountID: "28", name: "Pet Rent - RES" },
+      },
       { leaseRecurringChargeID: "652", accountID: "9" },
     ]);
   });
@@ -202,5 +206,28 @@ describe("RentVine identity guard", () => {
           },
         ),
     ).toThrow(/apiKey/i);
+  });
+});
+
+describe("S113 recurring charge source classification", () => {
+  it("retains the provider account classification on both list and detail reads", async () => {
+    const entry = {
+      recurringCharge: {
+        leaseRecurringChargeID: "301",
+        leaseID: "81",
+        accountID: "20",
+        amount: "1100",
+      },
+      account: { accountID: "20", name: "Rent", isRent: "1" },
+    };
+    const { client } = makeClient((request) =>
+      jsonResponse(200, request.url.includes("/301") ? entry : [entry]),
+    );
+    expect((await client.listRecurringCharges("81"))[0]).toMatchObject({
+      account: entry.account,
+    });
+    expect(await client.getRecurringCharge("81", "301")).toMatchObject({
+      account: entry.account,
+    });
   });
 });

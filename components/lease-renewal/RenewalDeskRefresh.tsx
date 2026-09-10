@@ -14,7 +14,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function RenewalDeskRefresh({
   readAtMs,
   ttlMs,
-}: Readonly<{ readAtMs: number; ttlMs: number }>) {
+  id = "renewal-refresh",
+  label = "Refresh data",
+}: Readonly<{ readAtMs: number; ttlMs: number; id?: string; label?: string }>) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
@@ -53,12 +55,13 @@ export function RenewalDeskRefresh({
 
   return (
     <button
+      id={id}
       className="secondary-button"
       disabled={busy}
       onClick={() => void request("force")}
       type="button"
     >
-      {busy ? "Refreshing" : "Refresh data"}
+      {busy ? "Refreshing" : label}
     </button>
   );
 }

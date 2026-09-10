@@ -576,12 +576,12 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     label: "Retired broad Sheet writeback identifier (non-executable)",
     target_system: "Google Sheets",
     expected_action:
-      "None. This broad identifier is retired and permanently non-executable. The exact S98 row-append key owns the only currently executable operating-Sheet write; the historically activated field-update key remains registered for receipt compatibility but its product execution path fails closed until a provider-owned stable-row and generation-bound mutation seam exists.",
+      "None. This broad identifier is retired and permanently non-executable. The two exact operating-Sheet keys own separately confirmed row append and existing-row field update; no category-wide grant or fixed-row deletion is available.",
     product_lane: "Lease Renewal Agent",
     readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
-      "Retired by S98 (2026-09-02). The historical KB-Proposed abstraction required a provider-owned stable-row transaction/status/tombstone seam Google Sheets does not expose. S98 retains google_sheets.renewal_checklist.row_append and google_sheets.renewal_checklist.field_update so historical dispositions and receipts keep parsing, but only the append-only product path currently reaches a provider mutation; fixed-row update, delete, and restore operations fail closed before writer construction. This broad identifier cannot grant, prove, or inherit any Sheet write and no window or activation may open it.",
+      "Retired by S98 (2026-09-02). S113 explicitly authorizes google_sheets.renewal_checklist.field_update through fresh server-resolved identity/value checks and the existing narrow Sheets primitives. The exact google_sheets.renewal_checklist.row_append key remains separate; deletion and automatic historical restore remain refused. This broad identifier cannot grant, prove, or inherit any Sheet write and no window or activation may open it.",
     required_permissions: [
       "None. This identifier is retired and permanently non-executable.",
     ],
@@ -676,24 +676,24 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "google_sheets.renewal_checklist.field_update",
-    label: "Reserved operating renewal Sheet field update",
+    label: "Update a reviewed operating renewal Sheet field",
     target_system: "Google Sheets",
     expected_action:
-      "No current product mutation. The exact key remains registered and open for historical receipt compatibility, but the route refuses before writer construction until a provider-owned operation can atomically bind the logical lease row, expected generation, idempotency key, and durable operation status.",
+      "Update one supported field of an existing server-resolved operating-Sheet lease row after exact human preview and confirmation, a durable one-attempt claim, fresh identity/type/value checks, a receipt and readback.",
     product_lane: "Lease Renewal Agent",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "A Sheets findReplace request can atomically compare and replace a fixed grid cell, but it cannot prove that the fixed row still represents the intended logical lease after a collaborator inserts, deletes, sorts, or moves rows between reads. The live Google client also exposes no generation-bound mutation status or tombstone protocol. Therefore normal field update and restore paths report provider capability unavailable and issue no Sheets write. The historical bounded proof receipt remains valid evidence of what occurred at that time, not authority to use the unsafe fixed-row product path.",
+      "Owner-approved S113 normal-field contract (2026-09-09): fresh server-resolved target/value checks, exact typed preview/confirmation, durable one-attempt claim, narrow Sheets findReplace compare/replace, receipt and readback. App claims do not establish collaborator isolation. Ambiguous writes never retry or infer success from a match; correction requires a new current-state preview. Completed S98 proof receipts remain historical evidence and are not rerun.",
     required_permissions: [
-      "Historically activated after the bounded 2026-09-02 proof; that proof is complete and cannot be rerun. Registry activation alone does not override the current provider-capability refusal.",
+      "Exact key activated after the bounded 2026-09-02 proof; that proof is complete and cannot be rerun. S113 explicitly authorizes normal field updates. Existing Admin execution authority, runtime suspension and exact operation guards still apply.",
       "Sheets DWD write scope on the approved operating sheet plus the reviewed operating-write runtime switch",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
-      "The product surfaces the capability as unavailable rather than offering a confirmation. Historical records may still display their bodyless receipt and status.",
+      "Display the exact lease, tab/field, fresh before/after value and source. Confirm one current proposal generation; a replaced row, changed source, formula/type conflict or unavailable permission refuses the exact attempted operation.",
     rollback_note:
-      "No new normal field effect can execute, so no automated correction is offered. A future product path requires a separately reviewed stable-row and expected-generation provider contract.",
+      "Correction is a new separately previewed and confirmed field update from current source state. Row deletion and automatic historical restore remain unavailable.",
     connection_health_check_ref: "health.google_sheets.api",
     production_allowed: true,
   },

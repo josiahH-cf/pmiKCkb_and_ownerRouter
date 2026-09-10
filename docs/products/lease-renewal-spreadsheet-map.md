@@ -34,18 +34,20 @@ workbook must not be exported into the repository.
 - Current rent may represent different semantics across sources; disagreement is not automatically a
   RentVine error.
 - A resolution binds to the exact lease, row, and source versions.
-- Both S98 exact keys and the operating write switch remain on, but the hardened normal product path
-  executes only a source-backed row append. Field update and fixed-row delete/restore refuse before
-  writer construction until the provider supplies a stable logical-row and expected-generation
-  mutation seam. The broad compatibility key remains closed.
+- Both S98 exact keys and the operating write switch remain on. The candidate currently permits
+  normal append and refuses field updates. S113 F2 requires pre-approved in-app existing-row updates
+  to recognized renewal business fields with fresh server resolution, exact confirmation, one-attempt
+  claims and readback; no new provider-contract approval is needed. The broad key stays closed.
 
 ## Approved writeback target
 
 S98 resolves the live schema and authoritative lease/row association server-side. An append sets only
 fresh source-backed or exact human-confirmed fields and requires a fresh one-to-one proof that no row
 already represents the lease. `renewal_date` is never silently inferred from RentVine `endDate`.
-Fixed-row update/delete/restore is not offered: read-then-write against an A1 row cannot prove the row
-still represents the same lease after collaborator movement.
+S113 replaces normal-field refusal with narrow exact-value updates and new confirmed field corrections;
+identity/formula/formatting/unknown columns stay protected. Fresh reads and readback must surface
+observed collaborator drift without claiming logical-row transaction isolation. Row deletion and
+historical restore paths remain unavailable. This desired path is not yet implemented.
 
 The one authorized proof appended a temporary real-data row at the logical end, placed a visible test
 marker plus an opaque cell note, excluded that exact marker from downstream projections, read the

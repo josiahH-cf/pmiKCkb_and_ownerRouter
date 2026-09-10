@@ -3,7 +3,7 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 //
 // Runs read-only against the local rehearsal server (live-read-only sources; no mutation route is
 // ever called). It proves table semantics, header sort/filter behavior, exact-value shortcuts,
-// chips/clear recovery, workspace phase navigation, desk-view return continuity, browser Back,
+// chips/clear recovery, workspace section navigation, desk-view return continuity, browser Back,
 // narrow contained scroll, and a Chromium 200%-zoom layout equivalent without page-level overflow.
 
 import { mkdirSync } from "node:fs";
@@ -23,6 +23,8 @@ if (!baseUrlInput) {
 const baseUrl = requireLocalRehearsalOrigin(baseUrlInput);
 const DESK_ROUTE_DOM_BUDGET_MS = 60_000;
 const DESK_INTERACTION_BUDGET_MS = 20_000;
+const WORKFLOW_ROW_SELECTOR =
+  'tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"])';
 
 const artifactDir = join(process.cwd(), "temp", "renewal-desk-browser-s82");
 mkdirSync(artifactDir, { recursive: true });
@@ -40,7 +42,7 @@ try {
 }
 
 process.stdout.write(
-  `S82 renewal desk browser smoke passed: full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace phases, desk/workspace term parity, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
+  `S82 renewal desk browser smoke passed: full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace sections, desk/workspace term parity, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
 );
 
 async function verifyDeskAndWorkspace() {
@@ -287,15 +289,51 @@ async function verifyDeskAndWorkspace() {
     await table.waitFor();
   }
 
-  // Open a lease from the full-row primary label, walk one phase, and return to the exact view.
+  // Open a lease from the full-row primary label, walk one section, and return to the exact view.
   const deskUrlBefore = page.url();
-  const leaseLink = page
-    .locator('tbody tr[data-workspace-available="true"] a.renewal-lease-link')
+  // An out-of-window, untracked lease is deliberately inspection-only. Verify that branch
+  // separately; its source workspace must not masquerade as an active renewal dashboard.
+  const inspectionLink = page
+    .locator(
+      'tbody tr[data-workspace-available="true"]:not([data-disposition="actionable"]):not([data-retention-state="tracked_incomplete"]) a.renewal-lease-link',
+    )
     .first();
+  if (await inspectionLink.count()) {
+    interactionStartedAt = performance.now();
+    await inspectionLink.click();
+    await page.getByRole("region", { name: "Source facts", exact: true }).waitFor();
+    assertWithinBudget(
+      interactionStartedAt,
+      DESK_INTERACTION_BUDGET_MS,
+      "Inspection workspace navigation",
+    );
+    assert(
+      (await page
+        .getByRole("heading", { name: "Inspection only", exact: true })
+        .count()) === 1 &&
+        (await page.getByText("Data check", { exact: true }).count()) >= 1 &&
+        (await page
+          .getByRole("navigation", { name: "Renewal dashboard sections" })
+          .count()) === 0 &&
+        (await page
+          .getByRole("button", { name: "Create Gmail draft", exact: true })
+          .count()) === 0,
+      "The inspection-only lease lost its source facts or gained a workflow/draft control.",
+    );
+    await page.getByRole("link", { name: "← Back to renewals" }).click();
+    await page.waitForURL((url) => url.toString() === deskUrlBefore);
+    await table.waitFor();
+    process.stdout.write("Inspection-only source workspace and action refusal passed.\n");
+  } else {
+    process.stdout.write(
+      "Inspection-only branch not present in the current source cohort.\n",
+    );
+  }
+  const leaseLink = page.locator(`${WORKFLOW_ROW_SELECTOR} a.renewal-lease-link`).first();
   assert((await leaseLink.count()) > 0, "No lease link rendered.");
   // S104: capture the row's own term so the workspace can be compared against it, then compared
   // again after the return trip.
-  const parityRow = page.locator('tbody tr[data-workspace-available="true"]').first();
+  const parityRow = page.locator(WORKFLOW_ROW_SELECTOR).first();
   const rowTermBefore = await parityRow
     .locator('[data-renewal-field="lease-term"]')
     .getAttribute("data-lease-term");
@@ -308,7 +346,7 @@ async function verifyDeskAndWorkspace() {
   assert(await isFocused(leaseLink), "The lease workspace link did not receive focus.");
   interactionStartedAt = performance.now();
   await page.keyboard.press("Enter");
-  await page.getByRole("navigation", { name: "Renewal phases" }).waitFor();
+  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
   assertWithinBudget(
     interactionStartedAt,
     DESK_INTERACTION_BUDGET_MS,
@@ -318,27 +356,31 @@ async function verifyDeskAndWorkspace() {
     page.url().includes("deskView="),
     "The workspace link dropped the desk continuation.",
   );
-  const phases = page
-    .getByRole("navigation", { name: "Renewal phases" })
+  const sections = page
+    .getByRole("navigation", { name: "Renewal dashboard sections" })
     .getByRole("link");
-  assert((await phases.count()) === 6, "The six-phase rail is incomplete.");
-  await assertMinimumTargetSize(page, ".renewal-phase-link", "renewal phase");
-  await phases.nth(0).focus();
+  assert((await sections.count()) === 5, "The five-section dashboard is incomplete.");
+  await assertMinimumTargetSize(
+    page,
+    '[aria-label="Renewal dashboard sections"] .renewal-workspace-link',
+    "renewal section",
+  );
+  await sections.nth(0).focus();
   assert(
-    await isFocused(phases.nth(0)),
-    "The first renewal phase did not receive focus.",
+    await isFocused(sections.nth(0)),
+    "The first renewal section did not receive focus.",
   );
   interactionStartedAt = performance.now();
   await page.keyboard.press("Enter");
-  await page.waitForURL(/step=verify-renewal/);
+  await page.waitForURL((url) => url.hash === "#renewal-section-lease-details");
   assertWithinBudget(
     interactionStartedAt,
     DESK_INTERACTION_BUDGET_MS,
-    "Keyboard phase navigation",
+    "Keyboard section navigation",
   );
   assert(
     (await page.getByText("Data check").count()) >= 1,
-    "The verify phase lost its data check.",
+    "Lease details lost its data check.",
   );
   // S104 parity: the workspace states the same term the row it was opened from stated.
   const workspaceTerm = await page
@@ -364,7 +406,7 @@ async function verifyDeskAndWorkspace() {
 
   // Browser Back restores the workspace, then the desk again, without state invention.
   await page.goBack();
-  await page.getByRole("navigation", { name: "Renewal phases" }).waitFor();
+  await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
   await page.goBack();
   await page.goBack();
   await table.waitFor();

@@ -1,7 +1,21 @@
+import { currentRentCorrectionKey } from "@/lib/lease-renewal/current-rent-correction";
 // Fresh, server-only S98 lease→Sheet resolution. Normal product proposals never accept a row,
 // tenant, property, field, value, or source from browser JSON: they are rebuilt from the exact
 // RentVine hyperlink join, the current source candidates, and the current human decision records.
 
+import {
+  sheetCellRepresentationPreserved,
+  type SheetCellEvidence,
+} from "@/lib/google-sheets/cell-evidence";
+import {
+  parseSheetFieldIntent,
+  sheetIntentValue,
+  type SheetFieldIntent,
+} from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import {
+  hashSheetHeader,
+  sheetCellValueMatches,
+} from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { canonicalJson } from "@/lib/execution/preview-hash";
 import { getLeaseRenewalResolution } from "@/lib/firestore/lease-renewal-resolutions";
@@ -56,11 +70,16 @@ export interface FreshOperatingSheetLeaseContext {
   header: string[];
   columns: Map<string, number>;
   tenantColumnIndex: number;
+  tabId?: number | null;
   row: null | {
     rowNumber: number;
     rowKey: string | null;
     anchorTenantName: string;
     currentRentValue: string;
+    currentRentAgreement?: "agree" | "conflict" | "single_source" | "missing";
+    fieldValues?: Record<string, string>;
+    formulaFields?: string[];
+    cellEvidence?: Record<string, SheetCellEvidence>;
     currentRentSourceTriggerKey: string | null;
     currentRentCandidateFingerprint: string | null;
   };
@@ -184,6 +203,7 @@ function filteredForPipeline(
 export async function resolveFreshOperatingSheetLeaseContext(
   leaseId: string,
   readAtIso = new Date().toISOString(),
+  inspectField?: string,
 ): Promise<FreshOperatingSheetLeaseContext> {
   const config = buildLiveRenewalConfig();
   if (!config.ok || !config.sheetsReader.batchGetFormulas) {
@@ -204,6 +224,10 @@ export async function resolveFreshOperatingSheetLeaseContext(
     const propertyId = propertyIdOf(lease);
     if (!propertyId) throw new SheetWorkspaceResolutionError("lease_identity_mismatch");
 
+    const tabId =
+      (await config.sheetsReader
+        .getTabId?.(config.spreadsheetId, OPERATING_SHEET_TAB)
+        .catch(() => null)) ?? null;
     const joined = sheetResponsesToTablesWithJoinIds(evaluated, formulas);
     const rawTable = joined.tables[0] ?? [];
     const rawJoins = joined.tableJoinIds[0] ?? [];
@@ -267,6 +291,7 @@ export async function resolveFreshOperatingSheetLeaseContext(
         header,
         columns,
         tenantColumnIndex,
+        tabId,
         row: null,
       };
     }
@@ -286,6 +311,24 @@ export async function resolveFreshOperatingSheetLeaseContext(
     ) {
       throw new SheetWorkspaceResolutionError("row_state_mismatch");
     }
+    let cellEvidence: Record<string, SheetCellEvidence> | undefined;
+    if (inspectField && columns.has(inspectField)) {
+      if (!config.sheetsReader.getCellEvidence)
+        throw new SheetWorkspaceResolutionError("source_unavailable");
+      let col = columns.get(inspectField)! + 1,
+        letters = "";
+      while (col > 0) {
+        letters = String.fromCharCode(65 + ((col - 1) % 26)) + letters;
+        col = Math.floor((col - 1) / 26);
+      }
+      const cell = await config.sheetsReader.getCellEvidence(
+        config.spreadsheetId,
+        `'${OPERATING_SHEET_TAB.replaceAll("'", "''")}'!${letters}${rawRowIndex + 1}`,
+      );
+      if (cell.formattedValue !== (row[columns.get(inspectField)!] ?? ""))
+        throw new SheetWorkspaceResolutionError("row_state_mismatch");
+      cellEvidence = { [inspectField]: cell };
+    }
     const recordKey = renewalDecisionRecordKey(expectedJoin, {
       tab: "Renewals",
       tabNumber: null,
@@ -299,7 +342,8 @@ export async function resolveFreshOperatingSheetLeaseContext(
     const currentRentOutcome = live.run.outcomes.find(
       (outcome) =>
         outcome.fieldKey === "current_rent" &&
-        outcome.queueMapping?.queueItem.source_trigger_key === sourceTriggerKey,
+        (outcome.queueMapping?.queueItem.source_trigger_key ??
+          currentRentCorrectionKey(outcome, LIVE_REVIEW_RUN_ID)) === sourceTriggerKey,
     );
     return {
       leaseId,
@@ -309,13 +353,25 @@ export async function resolveFreshOperatingSheetLeaseContext(
       header,
       columns,
       tenantColumnIndex,
+      tabId,
       row: {
+        ...(cellEvidence ? { cellEvidence } : {}),
         rowNumber: rawRowIndex + 1,
         rowKey: parsedNote?.operationId ?? null,
         anchorTenantName: row[tenantColumnIndex] ?? "",
         currentRentValue: row[rentColumnIndex] ?? "",
-        currentRentSourceTriggerKey:
-          currentRentOutcome?.queueMapping?.queueItem.source_trigger_key ?? null,
+        currentRentAgreement: currentRentOutcome?.reconciliation.agreement,
+        fieldValues: Object.fromEntries(
+          [...columns].map(([field, index]) => [field, row[index] ?? ""]),
+        ),
+        formulaFields: [...columns]
+          .filter(([, index]) =>
+            String(
+              formulas.valueRanges?.[0]?.values?.[rawRowIndex]?.[index] ?? "",
+            ).startsWith("="),
+          )
+          .map(([field]) => field),
+        currentRentSourceTriggerKey: currentRentOutcome ? sourceTriggerKey : null,
         currentRentCandidateFingerprint: currentRentOutcome?.candidateFingerprint ?? null,
       },
     };
@@ -401,12 +457,14 @@ export function assertProposalMatchesFreshLeaseContext(
   proposal: SheetWritebackProposal,
   context: FreshOperatingSheetLeaseContext,
   authorized: AuthorizedCurrentRentUpdate | null,
+  after = false,
 ): void {
   if (
     proposal.scope.kind !== "lease_workspace" ||
     proposal.scope.leaseId !== context.leaseId ||
     proposal.scope.propertyId !== context.propertyId ||
-    proposal.effects.length !== 1
+    proposal.effects.length !== 1 ||
+    proposal.headerHash !== hashSheetHeader(context.header, context.columns)
   ) {
     throw new SheetWorkspaceResolutionError("proposal_stale");
   }
@@ -424,7 +482,37 @@ export function assertProposalMatchesFreshLeaseContext(
     }
     return;
   }
-  if (!context.row || !authorized) {
+  if (!context.row || context.row.formulaFields?.includes(effect.field)) {
+    throw new SheetWorkspaceResolutionError("proposal_stale");
+  }
+  if (after) {
+    if (
+      (effect.cellEvidence &&
+        (!context.row.cellEvidence?.[effect.field] ||
+          !sheetCellRepresentationPreserved(
+            effect.cellEvidence,
+            context.row.cellEvidence[effect.field],
+            effect.afterValue,
+          ))) ||
+      effect.rowNumber !== context.row.rowNumber ||
+      effect.rowKey !== context.row.rowKey ||
+      effect.anchorTenantName !== context.row.anchorTenantName ||
+      !sheetCellValueMatches(
+        effect.afterValue,
+        context.row.fieldValues?.[effect.field] ?? context.row.currentRentValue,
+      )
+    ) {
+      throw new SheetWorkspaceResolutionError("proposal_stale");
+    }
+    return;
+  }
+  if (effect.staffIntent) {
+    const expected = effectForSheetFieldIntent(context, effect.staffIntent);
+    if (canonicalJson(effect) !== canonicalJson(expected))
+      throw new SheetWorkspaceResolutionError("proposal_stale");
+    return;
+  }
+  if (!authorized) {
     throw new SheetWorkspaceResolutionError("proposal_stale");
   }
   const expected: SheetFieldUpdateEffectInput = {
@@ -461,6 +549,8 @@ export function effectForFreshLeaseContext(
     };
   }
   if (!authorized) throw new SheetWorkspaceResolutionError("approval_stale");
+  if (context.row.formulaFields?.includes("current_rent"))
+    throw new SheetWorkspaceResolutionError("row_state_mismatch");
   return {
     kind: "field_update",
     field: "current_rent",
@@ -471,5 +561,42 @@ export function effectForFreshLeaseContext(
     afterValue: authorized.authorization.proposedValue,
     source: authorized.authorization.sourceOfValue,
     authorization: authorized.authorization,
+  };
+}
+
+export function effectForSheetFieldIntent(
+  context: FreshOperatingSheetLeaseContext,
+  raw: SheetFieldIntent,
+): SheetFieldUpdateEffectInput {
+  const intent = parseSheetFieldIntent(raw);
+  if (
+    !context.row ||
+    intent.field === "current_rent" ||
+    !context.columns.has(intent.field) ||
+    !context.row.fieldValues ||
+    context.row.formulaFields?.includes(intent.field)
+  ) {
+    throw new SheetWorkspaceResolutionError("row_state_mismatch");
+  }
+  const expectedValue = context.row.fieldValues[intent.field];
+  if (expectedValue === undefined)
+    throw new SheetWorkspaceResolutionError("row_state_mismatch");
+  return {
+    kind: "field_update",
+    field: intent.field,
+    rowNumber: context.row.rowNumber,
+    rowKey: context.row.rowKey,
+    anchorTenantName: context.row.anchorTenantName,
+    expectedValue,
+    afterValue: sheetIntentValue(
+      intent,
+      expectedValue,
+      context.row.cellEvidence?.[intent.field]?.checkbox,
+    ),
+    ...(context.row.cellEvidence?.[intent.field]
+      ? { cellEvidence: context.row.cellEvidence[intent.field] }
+      : {}),
+    source: intent.source,
+    staffIntent: intent,
   };
 }

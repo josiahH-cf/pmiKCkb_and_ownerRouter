@@ -1,3 +1,4 @@
+import { FutureRentBindingSchema, type FutureRentBinding } from "./future-rent-intent";
 // S97 renewal-writeback proposal contract (`renewal-writeback-proposal/v1`).
 //
 // One versioned server schema binds actor, role/Space, lease, provider account, operation key,
@@ -316,6 +317,8 @@ export interface ValidatedRenewalWritebackEffect {
 }
 
 export interface RenewalWritebackProposalInput {
+  readonly businessIntent?: "current_base" | "future_rent";
+  readonly renewalTerms?: FutureRentBinding;
   readonly leaseId: string;
   readonly account: string;
   readonly actorUid: string;
@@ -329,6 +332,8 @@ export interface RenewalWritebackProposalInput {
 }
 
 export interface RenewalWritebackProposal {
+  readonly businessIntent?: "current_base" | "future_rent";
+  readonly renewalTerms?: FutureRentBinding;
   readonly version: typeof RENEWAL_WRITEBACK_PROPOSAL_VERSION;
   readonly leaseId: string;
   readonly account: string;
@@ -567,6 +572,32 @@ export function buildRenewalWritebackProposal(
   if (input.effects.length === 0) {
     fail("no_change", "A proposal requires at least one effect.");
   }
+  if (input.businessIntent === "current_base") {
+    const selected = input.effects[0];
+    if (
+      input.businessIntent !== "current_base" ||
+      input.effects.length !== 1 ||
+      selected.kind !== "recurring_charge_update" ||
+      Object.keys(selected.changes).some((field) => field !== "amount")
+    )
+      fail(
+        "unsupported_effect",
+        "Current base-rent correction changes only the selected current rent charge amount.",
+      );
+  }
+  if (input.businessIntent === "future_rent") {
+    FutureRentBindingSchema.parse(input.renewalTerms);
+    if (input.effects.length !== 1 || input.effects[0].kind === "renewal_dates_update")
+      fail(
+        "unsupported_effect",
+        "Review each future-rent schedule operation separately.",
+      );
+  } else if (
+    input.renewalTerms !== undefined ||
+    (input.businessIntent !== undefined && input.businessIntent !== "current_base")
+  ) {
+    fail("unsupported_effect", "Renewal terms must bind the future-rent intent.");
+  }
   assertIsoDate(input.leaseState.startDate, "Lease startDate");
 
   let datesEffects = 0;
@@ -630,6 +661,8 @@ export function buildRenewalWritebackProposal(
   }));
 
   const previewHash = hashExecutionPreview({
+    ...(input.businessIntent ? { businessIntent: input.businessIntent } : {}),
+    ...(input.renewalTerms ? { renewalTerms: input.renewalTerms } : {}),
     version: RENEWAL_WRITEBACK_PROPOSAL_VERSION,
     leaseId: input.leaseId,
     account: input.account,
@@ -645,6 +678,8 @@ export function buildRenewalWritebackProposal(
   });
 
   return {
+    ...(input.businessIntent ? { businessIntent: input.businessIntent } : {}),
+    ...(input.renewalTerms ? { renewalTerms: input.renewalTerms } : {}),
     version: RENEWAL_WRITEBACK_PROPOSAL_VERSION,
     leaseId: input.leaseId,
     account: input.account,

@@ -41,6 +41,7 @@ const EXPORT_ROWS = [
       // The lease's contractual base rent differs from the unit's listed rent, so a surface that
       // silently fell back to `unit.rent` would be visible in the parity assertion.
       baseRentAmount: 1250,
+      rentAmount: 1425,
       tenants: [{ name: "Jordan Maple" }],
     },
     property: { streetNumber: "4821", streetName: "Maple Ct" },
@@ -113,6 +114,8 @@ describe("S104 desk and workspace parity (ARCH-S104-1 / BEH-S104-1)", () => {
     const { row, workspace } = await surfacesFor("4821");
     expect(row.currentRent).toBe(1250);
     expect(row.currentRent).toBe(workspace.summary.currentRent);
+    expect(row.leaseTotalRent).toBe(1425);
+    expect(workspace.summary.leaseTotalRent).toBe(row.leaseTotalRent);
     expect(row.unitListedRent).toBe(1300);
     expect(row.unitListedRent).toBe(workspace.summary.unitListedRent);
     // The workspace's own reference field stays byte-equal to the shared projection.

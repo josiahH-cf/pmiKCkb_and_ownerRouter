@@ -1,3 +1,8 @@
+import {
+  DUAL_ROLE_BROWSER_POLICY,
+  browserVerdictsAccepted,
+  requiresEditorBrowser,
+} from "../lib/production-assurance/release-browser-policy.mjs";
 import { randomUUID } from "node:crypto";
 import {
   closeSync,
@@ -15,8 +20,8 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 
-export const CANDIDATE_ASSURANCE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v2";
-export const PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v2";
+export const CANDIDATE_ASSURANCE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v3";
+export const PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v3";
 export const CANDIDATE_RECEIPT_CLAIM_SCHEMA = "pmi-kc-candidate-assurance-claim.v1";
 export const CANDIDATE_RECEIPT_TTL_MS = 2 * 60 * 60 * 1000;
 
@@ -29,6 +34,7 @@ const RECEIPT_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const BASELINE_KEYS = Object.freeze([
+  "browserPolicy",
   "verifiedAt",
   "canonicalOrigin",
   "expectedCommit",
@@ -40,6 +46,7 @@ const BASELINE_KEYS = Object.freeze([
   "monitoringState",
 ]);
 const CANDIDATE_KEYS = Object.freeze([
+  "browserPolicy",
   "schemaVersion",
   "candidateReceiptId",
   "issuedAt",
@@ -60,6 +67,7 @@ const CANDIDATE_KEYS = Object.freeze([
   "monitoringState",
 ]);
 const PROMOTION_KEYS = Object.freeze([
+  "browserPolicy",
   "schemaVersion",
   "candidateReceiptId",
   "candidateReceiptIssuedAt",
@@ -121,7 +129,12 @@ export function buildCandidateAssuranceReceipt(
       expectedRevision: input.expectedRevision,
       expectedConfigurationFingerprint: input.expectedConfigurationFingerprint,
       predecessorRevision: input.predecessorRevision,
-      predecessorBaseline: input.predecessorBaseline,
+      predecessorBaseline: {
+        ...input.predecessorBaseline,
+        browserPolicy:
+          input.predecessorBaseline.browserPolicy ?? DUAL_ROLE_BROWSER_POLICY,
+      },
+      browserPolicy: input.browserPolicy ?? DUAL_ROLE_BROWSER_POLICY,
       adminVerdict: input.adminVerdict,
       editorVerdict: input.editorVerdict,
       reconciliationState: input.reconciliationState,
@@ -166,13 +179,17 @@ export function assertCandidateAssuranceReceipt(
     !FINGERPRINT.test(value.expectedConfigurationFingerprint) ||
     !RESOURCE.test(value.predecessorRevision) ||
     value.predecessorRevision === value.expectedRevision ||
+    baseline.browserPolicy !== value.browserPolicy ||
     baseline.canonicalOrigin !== value.canonicalOrigin ||
     baseline.expectedRevision !== value.predecessorRevision ||
     Date.parse(baseline.verifiedAt) > Date.parse(value.issuedAt) ||
     Date.parse(value.issuedAt) - Date.parse(baseline.verifiedAt) >
       CANDIDATE_RECEIPT_TTL_MS ||
-    value.adminVerdict !== "passed" ||
-    value.editorVerdict !== "passed" ||
+    !browserVerdictsAccepted(
+      value.browserPolicy,
+      value.adminVerdict,
+      value.editorVerdict,
+    ) ||
     value.reconciliationState !== "matched" ||
     value.monitoringState !== "ready"
   ) {
@@ -207,6 +224,7 @@ export function buildPromotionReceipt(
       expectedConfigurationFingerprint: checked.expectedConfigurationFingerprint,
       predecessorRevision: checked.predecessorRevision,
       predecessorBaseline: checked.predecessorBaseline,
+      browserPolicy: checked.browserPolicy,
     },
     {},
     promotionVerifiedAtMs,
@@ -250,6 +268,7 @@ export function assertPromotionReceipt(
     !FINGERPRINT.test(value.expectedConfigurationFingerprint) ||
     !RESOURCE.test(value.predecessorRevision) ||
     value.predecessorRevision === value.expectedRevision ||
+    baseline.browserPolicy !== value.browserPolicy ||
     baseline.canonicalOrigin !== value.canonicalOrigin ||
     baseline.expectedRevision !== value.predecessorRevision ||
     Date.parse(baseline.verifiedAt) > startedAtMs
@@ -468,6 +487,8 @@ function readJson(path) {
 function assertPredecessorBaseline(value, service, code) {
   assertPlainObject(value, code);
   assertExactKeys(value, BASELINE_KEYS, code);
+  if (typeof value.browserPolicy !== "string") throw new Error(code);
+  requiresEditorBrowser(value.browserPolicy);
   if (
     !validIso(value.verifiedAt) ||
     !validOrigin(value.canonicalOrigin) ||
@@ -476,8 +497,11 @@ function assertPredecessorBaseline(value, service, code) {
     !value.expectedRevision.startsWith(`${service}-`) ||
     !FINGERPRINT.test(value.expectedConfigurationFingerprint) ||
     value.trafficPercent !== 100 ||
-    value.adminVerdict !== "passed" ||
-    value.editorVerdict !== "passed" ||
+    !browserVerdictsAccepted(
+      value.browserPolicy,
+      value.adminVerdict,
+      value.editorVerdict,
+    ) ||
     value.monitoringState !== "ready"
   ) {
     throw new Error(code);

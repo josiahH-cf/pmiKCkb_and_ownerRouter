@@ -47,6 +47,7 @@ export interface DecodedGmailDraft {
   subject: string;
   messageId?: string;
   body: string;
+  htmlBody?: string;
   attachment?: DecodedGmailDraftAttachment;
 }
 
@@ -92,10 +93,13 @@ export function encodeRawDraft(input: {
   from?: string;
   /** Deterministic RFC Message-ID so a governed draft can be reconciled by identifier. */
   messageId?: string;
+  /** S113: the reviewed representation from the same content model as body. */
+  htmlBody?: string;
   /** S79's single, receipt-bound image. Omission preserves the historical text-only bytes exactly. */
   attachment?: GmailDraftAttachmentInput;
 }): string {
   const cc = (input.cc ?? []).filter((value) => value.trim());
+  if (input.htmlBody !== undefined) return encodeRichDraft(input, cc);
   if (input.attachment) {
     return encodeMultipartDraft(input, cc, validateAttachment(input.attachment));
   }
@@ -170,9 +174,122 @@ function encodeMultipartDraft(
   return Buffer.from(message, "utf8").toString("base64url");
 }
 
+/** Rich drafts use base64 for both UTF-8 representations, preserving exact reviewed newlines. */
+function encodeRichDraft(
+  input: Parameters<typeof encodeRawDraft>[0],
+  cc: readonly string[],
+): string {
+  const html = input.htmlBody!;
+  if (
+    !html.trim() ||
+    Buffer.byteLength(html, "utf8") + Buffer.byteLength(input.body, "utf8") > 128 * 1024
+  ) {
+    throw new Error("The reviewed rich draft exceeds its text limit or has no HTML.");
+  }
+  const attachment = input.attachment ? validateAttachment(input.attachment) : undefined;
+  const digest = createHash("sha256")
+    .update(input.body)
+    .update("\0")
+    .update(html)
+    .digest("hex");
+  // Hyphens cannot occur in the base64-encoded parts, so these boundaries cannot collide.
+  const alternative = `pmi-alt-${digest.slice(0, 40)}`;
+  const mixed = `pmi-mixed-${digest.slice(0, 40)}`;
+  const alternatives = [
+    `Content-Type: multipart/alternative; boundary="${alternative}"`,
+    "",
+    ...(
+      [
+        ["plain", input.body],
+        ["html", html],
+      ] as const
+    ).flatMap(([type, value]) => [
+      `--${alternative}`,
+      `Content-Type: text/${type}; charset="UTF-8"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      wrapBase64(Buffer.from(value, "utf8").toString("base64")),
+    ]),
+    `--${alternative}--`,
+  ].join("\r\n");
+  const content = attachment
+    ? [
+        `Content-Type: multipart/mixed; boundary="${mixed}"`,
+        "",
+        `--${mixed}`,
+        alternatives,
+        `--${mixed}`,
+        `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        "Content-Transfer-Encoding: base64",
+        "",
+        wrapBase64(Buffer.from(attachment.bytes).toString("base64")),
+        `--${mixed}--`,
+        "",
+      ].join("\r\n")
+    : alternatives;
+  const headers = [
+    ...(input.from ? [`From: ${safeHeader(input.from, "From")}`] : []),
+    `To: ${safeHeader(input.to, "To")}`,
+    ...(cc.length
+      ? [`Cc: ${cc.map((value) => safeHeader(value, "Cc")).join(", ")}`]
+      : []),
+    ...(input.messageId
+      ? [`Message-ID: ${safeHeader(input.messageId, "Message-ID")}`]
+      : []),
+    `Subject: ${safeHeader(input.subject, "Subject")}`,
+    "MIME-Version: 1.0",
+  ];
+  return Buffer.from([...headers, content].join("\r\n"), "utf8").toString("base64url");
+}
+
+function decodeAlternative(
+  contentType: string,
+  body: string,
+): { body: string; htmlBody: string } {
+  const boundary = multipartBoundaryFromHeader(contentType, "alternative");
+  const parts = splitMultipart(body, boundary);
+  const values = parts.map((part, index) => {
+    const split = splitHeaderBody(part, "alternative part");
+    const headers = parseHeaders(split.headers);
+    if (
+      headers.size !== 2 ||
+      requiredHeader(headers, "content-type").toLowerCase() !==
+        `text/${index === 0 ? "plain" : "html"}; charset="utf-8"` ||
+      requiredHeader(headers, "content-transfer-encoding").toLowerCase() !== "base64"
+    ) {
+      throw new Error(
+        "The rich draft requires exactly plain-text and HTML UTF-8 alternatives.",
+      );
+    }
+    const encoded = split.body.replace(/[\r\n]/g, "");
+    if (
+      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)
+    ) {
+      throw new Error("The rich draft has invalid base64 text.");
+    }
+    const bytes = Buffer.from(encoded, "base64");
+    const text = bytes.toString("utf8");
+    if (
+      bytes.toString("base64") !== encoded ||
+      !Buffer.from(text, "utf8").equals(bytes)
+    ) {
+      throw new Error("The rich draft has non-canonical or invalid UTF-8 text.");
+    }
+    return text;
+  });
+  if (
+    !values[1].trim() ||
+    Buffer.byteLength(values[0]) + Buffer.byteLength(values[1]) > 128 * 1024
+  ) {
+    throw new Error("The rich draft text is missing or too large.");
+  }
+  return { body: values[0], htmlBody: values[1] };
+}
+
 /**
  * Decode only the exact text-only or one-image draft shape emitted above. This is intentionally not
- * a general MIME parser: extra parts, nested MIME, HTML, inline content, folded unsafe filenames,
+ * a general MIME parser: extra parts, arbitrary nesting, inline content, folded unsafe filenames,
  * malformed transfer encoding, or an unbounded payload all fail closed.
  */
 export function decodeRawDraft(raw: string): DecodedGmailDraft {
@@ -192,6 +309,9 @@ export function decodeRawDraft(raw: string): DecodedGmailDraft {
     return { ...common, body: normalizeLf(top.body) };
   }
 
+  if (/^multipart\/alternative\s*;/i.test(contentType)) {
+    return { ...common, ...decodeAlternative(contentType, top.body) };
+  }
   const boundary = multipartBoundaryFromHeader(contentType);
   const parts = splitMultipart(top.body, boundary);
   if (parts.length !== 2) {
@@ -199,13 +319,22 @@ export function decodeRawDraft(raw: string): DecodedGmailDraft {
   }
   const text = splitHeaderBody(parts[0], "text part");
   const textHeaders = parseHeaders(text.headers);
-  if (
-    !/^text\/plain\s*;\s*charset="?UTF-8"?$/i.test(
-      requiredHeader(textHeaders, "content-type"),
-    ) ||
-    requiredHeader(textHeaders, "content-transfer-encoding").toLowerCase() !== "8bit"
-  ) {
-    throw new Error("The first Gmail MIME part must be UTF-8 plain text.");
+  const firstType = requiredHeader(textHeaders, "content-type");
+  let representation: { body: string; htmlBody?: string };
+  if (/^multipart\/alternative\s*;/i.test(firstType)) {
+    if (textHeaders.size !== 1)
+      throw new Error("Unexpected alternative container headers.");
+    representation = decodeAlternative(firstType, text.body);
+  } else {
+    if (
+      !/^text\/plain\s*;\s*charset="?UTF-8"?$/i.test(firstType) ||
+      requiredHeader(textHeaders, "content-transfer-encoding").toLowerCase() !== "8bit"
+    ) {
+      throw new Error(
+        "The first Gmail MIME part must be UTF-8 plain text or reviewed alternatives.",
+      );
+    }
+    representation = { body: normalizeLf(text.body) };
   }
 
   const binary = splitHeaderBody(parts[1], "attachment part");
@@ -243,7 +372,7 @@ export function decodeRawDraft(raw: string): DecodedGmailDraft {
   }
   return {
     ...common,
-    body: normalizeLf(text.body),
+    ...representation,
     attachment: {
       filename: attachmentType.filename,
       mimeType: attachmentType.mimeType,
@@ -378,11 +507,14 @@ function decodedEnvelope(
   };
 }
 
-function multipartBoundaryFromHeader(contentType: string): string {
-  const match =
-    /^multipart\/mixed\s*;\s*boundary=(?:"([A-Za-z0-9._-]+)"|([A-Za-z0-9._-]+))$/i.exec(
-      contentType,
-    );
+function multipartBoundaryFromHeader(
+  contentType: string,
+  kind: "mixed" | "alternative" = "mixed",
+): string {
+  const match = new RegExp(
+    `^multipart/${kind}\\s*;\\s*boundary=(?:"([A-Za-z0-9._-]+)"|([A-Za-z0-9._-]+))$`,
+    "i",
+  ).exec(contentType);
   const boundary = match?.[1] ?? match?.[2];
   if (!boundary || boundary.length > 120) {
     throw new Error("The Gmail draft is not the expected multipart/mixed shape.");

@@ -478,19 +478,14 @@ export function createDriver({
       if (await this.hasExactReceipt(cp)) return { verified: true };
       if (existsSync(candidateReceipt(cp)))
         return { verified: false, reason: "candidate_receipt_expired_or_invalid" };
-      const enrollmentVersion = browserEnrollmentVersion([adminProfile, editorProfile]);
+      const enrollmentVersion = browserEnrollmentVersion([adminProfile]);
       if (!browserEnrollmentChanged(cp, enrollmentVersion))
         return { verified: false, reason: "managed_browser_enrollment_required" };
       const sessions = await ensureAuth({
         need: ["canary"],
         unattended: true,
         canary: [
-          { label: "admin", profile: adminProfile, email: "canary-admin@pmikcmetro.com" },
-          {
-            label: "editor",
-            profile: editorProfile,
-            email: "canary-editor@pmikcmetro.com",
-          },
+          { label: "admin", profile: adminProfile, email: "josiah@pmikcmetro.com" },
         ].flatMap((profile) =>
           [CANONICAL, cp.candidateOrigin].map((origin) => ({ ...profile, origin })),
         ),
@@ -532,9 +527,9 @@ export function createDriver({
         `--promotion-receipt=${promotionReceipt(cp)}`,
         `--env-file=${join(source, ".env.production.local")}`,
         "--allow-multiple-spaces",
-        ...assuranceArgs(cp).filter((x) =>
-          /^(--operator-email|--admin-profile|--editor-profile)=/.test(x),
-        ),
+        "--operator-email=josiah@pmikcmetro.com",
+        `--monitoring-operator-email=${monitoring.operatorEmail}`,
+        ...assuranceArgs(cp).filter((x) => /^(--admin-profile)=/.test(x)),
       ]);
       if (result.status !== 0)
         return { verified: false, reason: "promotion_outcome_unresolved" };
@@ -643,7 +638,7 @@ export async function main(argv = process.argv.slice(2)) {
     const driver = createDriver({
       stateRoot,
       checkpointPath,
-      adminProfile: join(homedir(), "pmi-assurance", "canary-admin"),
+      adminProfile: join(homedir(), "pmi-assurance", "owner-admin"),
       editorProfile: join(homedir(), "pmi-assurance", "canary-editor"),
       operatorEmail: resolveWatcherMonitoringConfig().operatorEmail,
     });

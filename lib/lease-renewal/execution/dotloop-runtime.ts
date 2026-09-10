@@ -1,3 +1,4 @@
+import type { ExternalActionReceipt } from "@/lib/external-execution/types";
 import { createHash } from "node:crypto";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -6,6 +7,7 @@ import {
 } from "@/lib/connections/dotloop-runtime";
 import {
   executeExternalActionWithS20,
+  reconcileExternalActionWithS20,
   type ExecuteExternalActionWithS20Input,
 } from "@/lib/external-execution/s20-bridge";
 import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
@@ -31,6 +33,11 @@ export async function executeDotloopPacketWithS20(
       participantRef: string;
     })[];
     artifactContent?: LiveDotloopProviderDeps["artifactContent"];
+    reconcile?: boolean;
+    receiptStore?: {
+      read: () => Promise<ExternalActionReceipt | null>;
+      save: (receipt: ExternalActionReceipt) => Promise<void>;
+    };
     request: Omit<ExecuteExternalActionWithS20Input, "executor">;
   },
 ) {
@@ -146,10 +153,45 @@ export async function executeDotloopPacketWithS20(
         }
       : artifactContent,
   });
-  const result = await executeExternalActionWithS20(actor, {
+  const run = input.reconcile
+    ? reconcileExternalActionWithS20
+    : executeExternalActionWithS20;
+  const executor = new DotloopRenewalExecutor(provider);
+  const wrapped = input.receiptStore
+    ? {
+        validate: executor.validate.bind(executor),
+        execute: async (action: Parameters<typeof executor.execute>[0]) => {
+          const receipt = await executor.execute(action);
+          await input.receiptStore!.save(receipt);
+          return receipt;
+        },
+        reconcile: async (action: Parameters<typeof executor.reconcile>[0]) => {
+          const retained = await input.receiptStore!.read();
+          if (retained) return { ...retained, reconciled: true };
+          // A matching provider name cannot establish which attempt created a loop.
+          // Normal packet recovery uses a durable response/readback receipt; otherwise retain ambiguity.
+          void action;
+          return null;
+        },
+      }
+    : executor;
+  const response = await run(actor, {
     ...input.request,
-    executor: new DotloopRenewalExecutor(provider),
+    executor: wrapped,
   });
+  const recoveredReceipt =
+    response.execution.state === "Succeeded" && input.receiptStore
+      ? await input.receiptStore.read()
+      : null;
+  const result = {
+    ...response,
+    result:
+      "result" in response
+        ? response.result
+        : "receipt" in response
+          ? response.receipt
+          : (recoveredReceipt ?? undefined),
+  };
   // S20 owns the receipt. Loop presence is partial packet execution, never signed completion.
   if (
     result.execution.state === "Succeeded" &&

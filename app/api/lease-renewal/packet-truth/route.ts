@@ -1,3 +1,9 @@
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
+import {
+  assertMutationAllowed,
+  requireEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -8,7 +14,8 @@ import {
   getCurrentPacketSnapshot,
   savePacketSnapshot,
 } from "@/lib/firestore/lease-document-packet-snapshots";
-import { unavailableLeaseArtifactCatalog } from "@/lib/lease-documents/artifact-catalog";
+import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import type { PacketEvaluationInput } from "@/lib/lease-documents/packet-types";
 
@@ -33,28 +40,19 @@ export interface PacketTruthRouteDeps {
     leaseId: string,
     transactionId: string,
     observedAt: string,
+    actor?: AuthenticatedUser,
   ) => Promise<PacketEvaluationInput>;
 }
 
-/**
- * Current honest source seam after Spike S66-A: no approved catalog or mapped packet facts exist.
- * The route therefore stores an inspectable Needs-input result. It never accepts caller assertions
- * of provider/source truth, document content, participants, charges, or artifact mappings.
- */
-async function resolveUnavailableInput(
+/** Normal evaluation resolves current private mappings and S21 publications; a URL or browser assertion cannot provide legal content. */
+async function resolveCurrentInput(
   leaseId: string,
   transactionId: string,
   observedAt: string,
+  actor?: AuthenticatedUser,
 ): Promise<PacketEvaluationInput> {
-  return {
-    leaseId,
-    transactionId,
-    facts: [],
-    participants: [],
-    charges: [],
-    animals: [],
-    catalog: unavailableLeaseArtifactCatalog(observedAt),
-  };
+  if (!actor) throw new Error("Authenticated packet resolver context is required.");
+  return (await resolveLivePacketInput(actor, leaseId, transactionId, observedAt)).input;
 }
 
 const DEFAULT_DEPS: PacketTruthRouteDeps = {
@@ -62,7 +60,7 @@ const DEFAULT_DEPS: PacketTruthRouteDeps = {
   getCurrent: getCurrentPacketSnapshot,
   save: savePacketSnapshot,
   nowIso: () => new Date().toISOString(),
-  resolveInput: resolveUnavailableInput,
+  resolveInput: resolveCurrentInput,
 };
 
 export async function GET(request: Request) {
@@ -112,9 +110,20 @@ export function createPacketTruthPostHandler(
         renewalRoleCapability("save_packet_truth"),
         "renewals",
       );
+      if (isVerificationAccount(user))
+        throw new EditableLayerError(
+          "Verification accounts cannot save packet evaluations.",
+          403,
+        );
+      assertMutationAllowed(requireEnvironmentDescriptor());
       const body = await parseJsonBody(request, EvaluatePacketSchema);
       const observedAt = deps.nowIso();
-      const input = await deps.resolveInput(body.leaseId, body.transactionId, observedAt);
+      const input = await deps.resolveInput(
+        body.leaseId,
+        body.transactionId,
+        observedAt,
+        user,
+      );
       const evaluation = evaluateRenewalPacket(input);
       const snapshot = await deps.save(user, {
         evaluation,

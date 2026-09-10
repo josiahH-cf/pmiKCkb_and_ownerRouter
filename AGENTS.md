@@ -29,14 +29,20 @@ monitoring is READY with its existing managed recipient. The app records zero Se
 calls; vendor-account usage is not independently verified. No comp request was made.
 The local authentication policy was revised by the owner on 2026-09-08 as recorded below.
 Fresh-shell and paired post-reboot CLI/ADC/app refresh passed September 8 with unchanged enrollment.
-September 9 around 07:29 UTC full auth:ensure reports both CLI and ADC blocked with reauth.
-Current unattended readiness is NOT READY; the 24-hour proof was not reached or passed.
+September 10 implementation auth:ensure passed CLI and ADC refresh with the approved WSL identity
+and existing enrollment. Current unattended release acceptance is NOT READY; the 24-hour proof
+and managed app-browser assurance have not been established by this probe.
 A new enrollment restarts that proof. Independent documentation work continues.
 Readiness implementation 6e77d18 is pushed with green CI and its candidate public version is verified.
-The watcher reached assurance and is blocked on authentication after requesting managed browser
-enrollment. Promotion and observation are not verified. The owner requested a simple visual guide
+The watcher reached assurance and last recorded an authentication hold after requesting managed
+browser enrollment. Its current assurance, promotion and observation are not verified. The owner requested a simple visual guide
 for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
-normal packet/signature/completion handoffs. docs/plan.md records the work and acceptance checks.
+normal packet/signature/completion handoffs. The owner's subsequent renewal-consolidation direction
+is specified in S113: one full manual dashboard, staff-recorded workflow advancement, and required
+pre-approved in-app Sheet field updates. S113 implementation, actual backend verification, all seven compiled browser checks and the
+21-finding adversarial review pass locally. Final documentation/delivery checks pass; supplied owner
+and tenant v2 copy is published and read back approved. Exact release gates remain; S113 is not yet
+committed or deployed.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
 - Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
@@ -93,9 +99,9 @@ normal packet/signature/completion handoffs. docs/plan.md records the work and a
 - S98's proof-qualified baseline is deployed: both exact operating-Sheet keys are open, its write
   switch is on, and the temporary proof row was deleted and read back absent. The serving revision
   still exposes its historical fixed-row update/delete contract. An active unreleased correction
-  keeps normal server-derived row append but refuses normal field update and every fixed-row
-  delete/restore before writer construction because the current Google Sheets integration has no
-  provider-owned stable-logical-row, expected-generation, idempotency/status, and tombstone seam.
+  currently keeps normal server-derived row append but refuses normal field update and every fixed-row
+  delete/restore before writer construction. S113 replaces the normal-field refusal requirement with
+  the owner's pre-approved in-app update contract below; this is desired behavior, not deployed code.
   Historical proof receipts remain evidence and the completed proof runner must not mutate again.
 - S99 is COMPLETE and deployed. Its exact RentVine work-order read, create, and status-update keys
   passed bounded live proofs and are executable. Proof work order 1731 is in its final Cancelled
@@ -107,8 +113,8 @@ normal packet/signature/completion handoffs. docs/plan.md records the work and a
   resident email. No eligible record currently exists on the designated proof thread.
 - Eleven production Spaces are configured.
 - The operating renewal Sheet is a read source and an exact human-confirmed write target. Its
-  write-back runtime switch and two exact Registry keys are on; that configuration never overrides
-  the operation-level capability refusal described for the active S98 correction.
+  write-back runtime switch and two exact Registry keys are on. S113 explicitly authorizes replacing
+  the current normal-field refusal; all other exact-operation boundaries remain in force.
 - RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
   open.
 - RentVine read credentials are Secret Manager-bound. The retired S30 broad proof identifier
@@ -180,11 +186,17 @@ the runner never changes that policy or enters a password, code, passkey, or CAP
 - Personal accounts, unexpected managed accounts, impersonation, key files, and credential/store
   overrides cannot substitute for the approved account. Credentials and enrollment evidence stay
   outside Git and source uploads. Status contains no tokens or provider bodies.
-- Verification accounts retain their existing displayed roles. The server must refuse business
+- Existing dedicated verification accounts retain their displayed roles. The server must refuse business
   mutations before execution. Authentication, logout, and genuine reads remain available. No claim
   is granted or changed. Managed claim-less accounts remain Editor with all Spaces by owner decision.
-- Existing managed Admin and Editor browser profiles must authenticate on both the exact candidate
-  and canonical origins. The assurance receipt, promotion, and 300,000 ms observation remain gates.
+- September 10 owner direction accepts the existing `josiah@pmikcmetro.com` Admin browser session
+  for release assurance on both the exact candidate and canonical origins. An Editor browser
+  session is not required. Versioned receipts record `owner-admin-2026-09-10` and Editor `not_run`;
+  Admin access is not evidence of Editor restrictions. Preserve the complete backend Editor/role
+  tests and existing claims. The assurance receipt, promotion, and 300,000 ms observation remain gates.
+  The owner account retains ordinary Admin authority. Its assurance runs use the guarded read-only
+  browser, including the existing state-changing GET refusals; they do not claim that the owner has
+  the dedicated canary accounts' server-side mutation restriction.
 - The local release watcher may deploy exact-main-SHA green CI from an isolated clean checkout,
   serialize and resume phases outside Git, and catch up after this host starts. Documentation-only
   commits do not deploy. Missing authentication pauses only the dependent phase; no repeated login
@@ -251,7 +263,45 @@ The other 32 keys are closed. In particular:
 - the retired `rentvine.lease.renewal_writeback` compatibility identifier remains closed;
 - `google_sheets.renewal_checklist.writeback` remains closed.
 
-A runtime flag or open Registry key never outranks an operation-level provider-capability refusal.
+A runtime flag or open Registry key alone never outranks an operation-level refusal. The explicit
+owner direction below changes the S98 normal-field requirement; it is not inferred from a flag.
+
+### Owner-approved renewal consolidation — 2026-09-09
+
+September 10 unblock amendment: restore/repair the existing RentCast component and its existing
+operator-triggered comp/trend integration if hidden, disconnected or deleted. Incorporate the supplied
+private email templates/formatting; automatically assemble deterministic, copyable drafts and repair
+the existing governed Gmail draft transport. This is not background Gmail creation or send authority.
+Scope RentVine effects through the explicit S113 F2.4 matrix. Prepare the S106/S34 document end state
+and its deployment continuation when actual capabilities, forms, connection and exact activation gates
+are satisfied; manual S113 work proceeds independently. A signature API or approved legal content
+must not be invented. This amendment authorizes corresponding in-place handoff reconciliation.
+The owner then deferred collection of missing tenant links and legal-form locations: implement
+persistent labeled link-entry boxes now, with blank pending-team states. Verified values may be
+supplied or hardcoded later when applicable. Missing values do not block S113 implementation/release;
+only the exact resource-dependent output waits for real content and its existing execution contract.
+
+S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the next product implementation:
+F1 dashboard/facts, F2 corrections/source updates, F3 comps/messages, F4 manual progress, then F5
+integrated verification. New automation and Dotloop/signature execution are outside this program;
+their existing contracts remain separate. Authentication/release assurance continues independently.
+
+- A full lease dashboard replaces the six-phase navigation barrier while preserving routes,
+  source truth, historical process/evidence meaning, permissions and exact execution contracts.
+- Audited staff-recorded activity advances the manual workflow through completion. Staff reports
+  remain distinct from provider receipts and verified completion; owner approval of exact terms
+  remains explicit. No manual marker grants provider execution or invents an effect receipt.
+- Normal in-app existing-row Sheet field updates are required and pre-approved. The owner explicitly
+  rejected a new provider safety-contract prerequisite. Replace the blanket normal-field refusal
+  through existing narrow Sheets primitives, fresh server-resolved target/value checks, exact
+  preview/confirmation, a durable one-attempt claim, receipt/readback and separately confirmed
+  correction. Do not wait for a hypothetical provider-owned idempotency/tombstone seam or ask again
+  for this feature authorization. Actual permissions, connection failures and observed conflicts
+  still apply to the exact attempted write; app claims do not establish collaborator isolation.
+- Preserve row append. Row deletion and historical proof reruns remain unavailable. A field
+  correction is a new current-state preview/confirmation, not automatic historical restore.
+- This owner direction authorizes corresponding present-truth/router/spec reconciliation, not new
+  roles, identities, action keys, sends, budget changes, customer values or provider-proof targets.
 
 ### Owner-authorized activation program — current boundary
 
@@ -259,8 +309,9 @@ The owner directed on 2026-08-31 that the application graduate from categorical 
 to exact human-confirmed source-of-truth updates. S97, S98, S99, and the S100 chat-sync action passed
 their bounded per-key proof windows, mandatory close/readback, and separate final activations. An
 open key is authority, not proof that the provider currently exposes every safety primitive. The
-active S98 correction therefore refuses field update and fixed-row reversal even though their
-historical keys/receipts remain registered. No activation is a generic method/path/body, bulk,
+candidate's S98 code still refuses field update and fixed-row reversal. S113 now requires normal
+field updates under the explicit owner-approved contract above; completed receipts remain evidence.
+No activation is a generic method/path/body, bulk,
 autonomous, model-triggered, or send grant.
 
 The sole remaining activation-program key is
@@ -319,9 +370,10 @@ them.
 - S97's designated-lease proofs, S98's temporary-row append/update/delete proof, S99's work-order
   proofs, and S100's chat-sync proof are complete. Their receipts and final readbacks govern; do not
   rerun or substitute a new proof target.
-- Normal S97 and S99 effects remain bounded by their activated exact-key contracts. After the active
-  S98 correction is released, only its server-derived normal row append reaches Sheets; field update,
-  delete, and restore remain unavailable until a separately reviewed stable-row provider seam exists.
+- Normal S97 and S99 effects remain bounded by their activated exact-key contracts. S98's current
+  candidate permits server-derived append only. S113 requires normal Sheet field updates and fresh
+  confirmed field corrections under the owner-approved contract above; row delete and historical
+  proof mutations remain unavailable. No specification edit itself enables a provider effect.
   S100 synchronization remains manual and discloses that the official read marks manager messages
   read. Missing or ambiguous mappings fail only the exact action.
 - The remaining S100 resident-draft proof may use only a synchronized message with an exact mapped

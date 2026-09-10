@@ -159,7 +159,7 @@ export async function prepareRenewalNoticeDraft(
         deps.resolveCopyTemplate?.("tenant") ?? currentRenewalCopyTemplate("tenant"),
       ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
     });
-    return finalize(preview, browserRequest, input.mailbox, deps);
+    return finalizeRenewalNoticeDraft(preview, browserRequest, input.mailbox, deps);
   }
 
   const currentRentDecision =
@@ -206,12 +206,14 @@ export async function prepareRenewalNoticeDraft(
       ...(attachment ? [`comp-screenshot-receipt:${attachment.receiptId}`] : []),
     ],
   });
-  return finalize(preview, browserRequest, input.mailbox, deps);
+  return finalizeRenewalNoticeDraft(preview, browserRequest, input.mailbox, deps);
 }
 
-async function finalize(
+export async function finalizeRenewalNoticeDraft(
   preview: RenewalDraftPreview,
-  input: RenewalNoticeDraftRequest,
+  input: Pick<RenewalNoticeDraftRequest, "leaseId" | "confirm" | "reconcile"> & {
+    offer: { channel: "owner" | "tenant" };
+  },
   mailbox: RenewalNoticeMailbox,
   deps: RenewalNoticeDraftDeps,
 ): Promise<RenewalNoticeDraftOutcome> {
@@ -294,6 +296,7 @@ async function finalize(
       recipient: preview.recipient,
       subject: preview.subject,
       body: preview.body,
+      ...(preview.htmlBody !== undefined ? { htmlBody: preview.htmlBody } : {}),
       template: preview.template,
       copy: preview.copy,
       reasons: preview.reasons,
@@ -309,6 +312,7 @@ async function finalize(
       recipient: preview.recipient,
       subject: preview.subject,
       body: preview.body,
+      ...(preview.htmlBody !== undefined ? { htmlBody: preview.htmlBody } : {}),
       executionId: prepared.id,
       previewHash: prepared.preview_hash,
       template: preview.template,

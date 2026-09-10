@@ -1,10 +1,23 @@
+import { randomUUID } from "node:crypto";
+import {
+  RENEWAL_WORKSPACE_COLLECTIONS,
+  renewalWorkspaceDocId,
+  startRenewalCycle,
+  saveRenewalWorkspace,
+  getRenewalWorkspace,
+} from "@/lib/firestore/renewal-workspace";
+import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
+import {
+  futureRentInventoryHash,
+  futureRentWorkspaceMatches,
+} from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -12,10 +25,15 @@ import type {
   ExternalActionReceipt,
   ExternalExecutionRecord,
 } from "@/lib/external-execution/types";
-import { EXTERNAL_EXECUTION_COLLECTIONS } from "@/lib/firestore/external-action-executions";
+import {
+  EXTERNAL_EXECUTION_COLLECTIONS,
+  FirestoreExternalExecutionStore,
+} from "@/lib/firestore/external-action-executions";
+import { RenewalWritebackService } from "@/lib/lease-renewal/writeback/execution-service";
 import { claimActiveS97RenewalEffect } from "@/lib/firestore/s97-renewal-writeback-claim";
 import {
   buildRenewalWritebackProposal,
+  projectRecurringCharge,
   renewalWritebackExecutionId,
   renewalWritebackReversalExecutionId,
 } from "@/lib/lease-renewal/writeback/proposal-contract";
@@ -134,6 +152,276 @@ async function seedExecution(
 }
 
 describe("S97 active proposal generation and lifecycle", () => {
+  it("retains current-base intent through actual persistence, claim, receipt and duplicate readback", async () => {
+    const now = Date.parse("2026-09-10T12:00:00.000Z");
+    let charge = {
+      leaseRecurringChargeID: "701",
+      leaseID: "115",
+      accountID: "9",
+      amount: "1250.00",
+      description: "Emulator recurring rent",
+      dayDue: "1",
+      frequency: "1",
+      startDate: "01/01/2026",
+      endDate: null,
+      isMoveInCharge: "0",
+      isFromImport: "0",
+      nextChargeDate: null,
+      rentIncreaseID: null,
+      importSourceKey: null,
+      recurringStatusID: 1,
+      account: { accountID: "9", isRent: "1" },
+    };
+    const base = proposal(0);
+    const proposed = buildRenewalWritebackProposal({
+      ...base,
+      businessIntent: "current_base",
+      nowMs: now,
+      sourceReadAtIso: new Date(now).toISOString(),
+      effects: [
+        {
+          kind: "recurring_charge_update",
+          chargeId: "701",
+          before: projectRecurringCharge(charge),
+          changes: { amount: "1275.00" },
+        },
+      ],
+    });
+    await saveRenewalWritebackProposal(actor, proposed, null, db);
+    const persisted = (await getRenewalWritebackProposal(actor, "115", db))!;
+    expect(persisted.businessIntent).toBe("current_base");
+    const unbound = { ...persisted, businessIntent: undefined };
+    expect(
+      await claimActiveS97RenewalEffect(db, {
+        proposal: unbound,
+        effect: unbound.effects[0],
+        record: readyRecord(unbound),
+      }),
+    ).toBe("blocked");
+    const store = new FirestoreExternalExecutionStore(db);
+    let writes = 0;
+    const service = new RenewalWritebackService({
+      descriptor: {
+        environmentKind: "production",
+        dataContext: "live",
+        source: "explicit",
+      },
+      store,
+      now: () => now,
+      reads: {
+        getLease: async () => ({ ...base.leaseState }),
+        listRecurringCharges: async () => [charge],
+        getRecurringCharge: async () => charge,
+      },
+      gateFor: () => ({
+        isExecutable: async () => true,
+        run: async (effect) => effect(),
+      }),
+      claimActiveEffect: (input) => claimActiveS97RenewalEffect(db, input),
+      createWriter: () => ({
+        updateExistingRecurringCharge: async (_lease, _id, payload) => {
+          writes++;
+          charge = { ...charge, amount: payload.amount! };
+          return { recurringCharge: { leaseRecurringChargeID: "701" } };
+        },
+        updateLease: async () => {
+          throw new Error("No lease field change authorized by this fixture");
+        },
+        createRecurringCharge: async () => {
+          throw new Error("No new charge authorized by this fixture");
+        },
+        deleteRecurringChargeForCreateReversal: async () => {
+          throw new Error("No deletion authorized by this fixture");
+        },
+      }),
+    });
+    const input = {
+      proposal: persisted,
+      effectHash: persisted.effects[0].effectHash,
+      confirmation: {
+        previewHash: persisted.previewHash,
+        effectHash: persisted.effects[0].effectHash,
+        confirmedAtIso: new Date(now).toISOString(),
+      },
+    };
+    const result = await service.executeEffect(input);
+    expect(await store.get(result.executionId)).toMatchObject({
+      state: "succeeded",
+      attemptCount: 1,
+      receipt: result.receipt,
+    });
+    expect((await service.executeEffect(input)).duplicate).toBe(true);
+    expect(writes).toBe(1);
+    expect(charge.amount).toBe("1275.00");
+  });
+  it("binds future terms to the actual workspace head at claim and receipts the existing future-charge update", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    const cycleId = randomUUID();
+    const started = await startRenewalCycle(
+      actor,
+      {
+        leaseId: "115",
+        expectedCycleId: null,
+        expectedRevision: 0,
+        operationId: cycleId,
+        basis: { kind: "lease_end", dateIso: "2026-12-31", source: "Emulator lease" },
+        reason: "Reviewed cycle",
+      },
+      { kind: "lease_end", dateIso: "2026-12-31", source: "Emulator lease" },
+      db,
+    );
+    const saved = await saveRenewalWorkspace(
+      actor,
+      {
+        leaseId: "115",
+        cycleId,
+        expectedRevision: started.state!.revision,
+        operationId: randomUUID(),
+        action: {
+          kind: "owner_response",
+          outcome: "approved_terms",
+          source: "Emulator owner call",
+          terms: { rent: 1275, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+        },
+      },
+      db,
+    );
+    vi.unstubAllEnvs();
+    const now = Date.parse("2026-09-10T12:00:00.000Z");
+    let charge = {
+      leaseRecurringChargeID: "701",
+      leaseID: "115",
+      accountID: "9",
+      amount: "1250.00",
+      description: "Emulator recurring rent",
+      dayDue: "1",
+      frequency: "1",
+      startDate: "01/01/2027",
+      endDate: "12/31/2027",
+      isMoveInCharge: "0",
+      isFromImport: "0",
+      nextChargeDate: null,
+      rentIncreaseID: null,
+      importSourceKey: null,
+      recurringStatusID: 2,
+      account: { accountID: "9", isRent: "1" },
+    };
+    const base = proposal(0);
+    const reads = {
+      getLease: async () => ({ leaseID: "115", ...base.leaseState }),
+      listRecurringCharges: async () => [charge],
+      getRecurringCharge: async () => charge,
+    };
+    const inventory = await loadRenewalChargeInventory(reads, "115", "2026-09-10");
+    const binding = {
+      cycleId,
+      termsRevision: saved.state!.termsRevision,
+      terms: saved.state!.ownerResponse!.terms!,
+      inventoryHash: futureRentInventoryHash(inventory),
+      scheduleReview: "Reviewed future billing schedule",
+    };
+    const proposed = buildRenewalWritebackProposal({
+      ...base,
+      businessIntent: "future_rent",
+      renewalTerms: binding,
+      nowMs: now,
+      sourceReadAtIso: new Date(now).toISOString(),
+      effects: [
+        {
+          kind: "recurring_charge_update",
+          chargeId: "701",
+          before: projectRecurringCharge(charge),
+          changes: { amount: "1275.00" },
+        },
+      ],
+    });
+    await saveRenewalWritebackProposal(actor, proposed, null, db);
+    const persisted = (await getRenewalWritebackProposal(actor, "115", db))!;
+    expect(persisted.businessIntent).toBe("future_rent");
+    expect(persisted.renewalTerms).toEqual(binding);
+    const headRef = db
+      .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
+      .doc(renewalWorkspaceDocId("115"));
+    await headRef.update({ termsRevision: binding.termsRevision + 1 });
+    expect(
+      await claimActiveS97RenewalEffect(db, {
+        proposal: persisted,
+        effect: persisted.effects[0],
+        record: readyRecord(persisted),
+      }),
+    ).toBe("blocked");
+    expect(
+      (
+        await db
+          .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+          .doc(readyRecord(persisted).id)
+          .get()
+      ).exists,
+    ).toBe(false);
+    await headRef.set(saved.state!);
+    const unbound = { ...persisted, businessIntent: undefined };
+    expect(
+      await claimActiveS97RenewalEffect(db, {
+        proposal: unbound,
+        effect: unbound.effects[0],
+        record: readyRecord(unbound),
+      }),
+    ).toBe("blocked");
+    const store = new FirestoreExternalExecutionStore(db);
+    let writes = 0;
+    const service = new RenewalWritebackService({
+      descriptor: {
+        environmentKind: "production",
+        dataContext: "live",
+        source: "explicit",
+      },
+      store,
+      now: () => now,
+      reads,
+      assertCurrentRenewalTerms: async () =>
+        futureRentWorkspaceMatches(await getRenewalWorkspace(actor, "115", db), binding),
+      gateFor: () => ({
+        isExecutable: async () => true,
+        run: async (effect) => effect(),
+      }),
+      claimActiveEffect: (input) => claimActiveS97RenewalEffect(db, input),
+      createWriter: () => ({
+        updateExistingRecurringCharge: async (_lease, _id, payload) => {
+          writes++;
+          charge = { ...charge, amount: payload.amount! };
+          return { recurringCharge: { leaseRecurringChargeID: "701" } };
+        },
+        updateLease: async () => {
+          throw new Error("No lease field change authorized by this fixture");
+        },
+        createRecurringCharge: async () => {
+          throw new Error("No new charge authorized by this fixture");
+        },
+        deleteRecurringChargeForCreateReversal: async () => {
+          throw new Error("No deletion authorized by this fixture");
+        },
+      }),
+    });
+    const input = {
+      proposal: persisted,
+      effectHash: persisted.effects[0].effectHash,
+      confirmation: {
+        previewHash: persisted.previewHash,
+        effectHash: persisted.effects[0].effectHash,
+        confirmedAtIso: new Date(now).toISOString(),
+      },
+    };
+    const result = await service.executeEffect(input);
+    expect(await store.get(result.executionId)).toMatchObject({
+      state: "succeeded",
+      attemptCount: 1,
+      receipt: result.receipt,
+    });
+    expect((await service.executeEffect(input)).duplicate).toBe(true);
+    expect(writes).toBe(1);
+    expect(charge.amount).toBe("1275.00");
+  });
   it("atomically claims the exact active generation once", async () => {
     const current = proposal(0);
     await saveRenewalWritebackProposal(actor, current, null, db);

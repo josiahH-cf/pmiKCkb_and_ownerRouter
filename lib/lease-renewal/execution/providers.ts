@@ -71,6 +71,7 @@ export interface WorkflowMessagePayload {
   sender?: string;
   subject?: string;
   body?: string;
+  htmlBody?: string;
   threadRef?: string;
   label?: string;
   consentRef?: string;
@@ -207,7 +208,10 @@ export class LeaseGmailExecutor implements ExternalExecutor {
       if (templateRef === "owner-renewal:v1.0" && !attachment) {
         return "The owner renewal draft requires the current receipted comp screenshot attachment.";
       }
-      if (templateRef !== "owner-renewal:v1.0" && attachment) {
+      if (
+        !["owner-renewal:v1.0", "owner-renewal:v2.0"].includes(templateRef) &&
+        attachment
+      ) {
         return "Only the owner renewal draft can carry a comp screenshot attachment.";
       }
     }
@@ -725,6 +729,7 @@ function workflowMessagePayload(
       : {}),
     ...(text(input, "subject") ? { subject: text(input, "subject") } : {}),
     ...(text(input, "body") ? { body: text(input, "body") } : {}),
+    ...(text(input, "html_body") ? { htmlBody: text(input, "html_body") } : {}),
     ...(text(input, "thread_ref") ? { threadRef: text(input, "thread_ref") } : {}),
     ...(text(input, "suggested_label") ? { label: text(input, "suggested_label") } : {}),
     ...(text(input, "consent_ref") ? { consentRef: text(input, "consent_ref") } : {}),

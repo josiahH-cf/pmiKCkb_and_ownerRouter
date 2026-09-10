@@ -121,7 +121,7 @@ export async function establishAppSession(
     // A persisted Firebase user completes the session on its own; a live cookie redirects to `/`.
     await mainPage.waitForTimeout(2_000);
     if (classifyLocation(mainPage.url(), origin) === "app") {
-      return verifySession(mainPage, origin, "existing_session");
+      return await verifySession(mainPage, origin, "existing_session");
     }
 
     emit("click", "Sign in with Google");
@@ -137,7 +137,7 @@ export async function establishAppSession(
 
     for (;;) {
       if (classifyLocation(mainPage.url(), origin) === "app") {
-        return verifySession(
+        return await verifySession(
           mainPage,
           origin,
           humanDeadline ? "human_completed" : "google_session_reuse",
@@ -158,7 +158,7 @@ export async function establishAppSession(
       });
 
       if (decision.action === "app") {
-        return verifySession(
+        return await verifySession(
           authPage,
           origin,
           humanDeadline ? "human_completed" : "google_session_reuse",

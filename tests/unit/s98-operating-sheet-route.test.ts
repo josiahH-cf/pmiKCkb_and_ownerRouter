@@ -436,7 +436,7 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations).toEqual([]);
   });
 
-  it("refuses fixed-row field-update proposals before source or provider work", async () => {
+  it("S113 prepares the exact approved current-rent field proposal without a provider mutation", async () => {
     state.rows = [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }];
     mocks.resolveContext.mockResolvedValue(
       freshContext("115", {
@@ -462,13 +462,16 @@ describe("S98 operating-sheet route", () => {
         },
       ],
     });
-    expect(response.status).toBe(409);
-    expect((await response.json()) as { error_type: string }).toMatchObject({
-      error_type: "provider_capability_unavailable",
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "proposed" });
+    expect(mocks.resolveContext).toHaveBeenCalled();
+    expect(mocks.resolveAuthorization).toHaveBeenCalled();
+    expect(mocks.proposals.get("115")?.effects[0].effect).toMatchObject({
+      kind: "field_update",
+      field: "current_rent",
+      expectedValue: "999",
+      afterValue: "1200",
     });
-    expect(mocks.resolveContext).not.toHaveBeenCalled();
-    expect(mocks.resolveAuthorization).not.toHaveBeenCalled();
-    expect(mocks.proposals.has("115")).toBe(false);
     expect(mocks.writerMutations).toEqual([]);
   });
 
@@ -726,6 +729,30 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations).toEqual([]);
   });
 
+  it("refuses a current-rent preparation when the reviewed shared value differs from the fresh approved value", async () => {
+    state.rows = [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }];
+    mocks.resolveContext.mockResolvedValue(
+      freshContext("115", {
+        rowNumber: 2,
+        rowKey: null,
+        anchorTenantName: "Existing Tenant",
+        currentRentValue: "999",
+        currentRentSourceTriggerKey:
+          "lease_renewal:reconcile:live-review:key:current_rent",
+        currentRentCandidateFingerprint: CANDIDATE_FINGERPRINT,
+      }),
+    );
+    const response = await postUnmodified({
+      operation: "propose",
+      workspaceContext: WORKSPACE_CONTEXT,
+      intent: "update_approved_current_rent",
+      expectedPriorPreviewHash: null,
+      expectedCurrentRent: 1199,
+    });
+    expect(response.status).toBe(409);
+    expect(mocks.proposals.size).toBe(0);
+    expect(mocks.writerMutations).toEqual([]);
+  });
   it("rejects caller-selected lease, tenant, row, value, and source fields", async () => {
     const response = await postUnmodified({
       operation: "propose",

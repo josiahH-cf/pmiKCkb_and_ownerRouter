@@ -238,3 +238,59 @@ describe("production assurance release receipts", () => {
     );
   });
 });
+
+describe("owner Admin release receipt policy", () => {
+  const owner = () =>
+    buildCandidateAssuranceReceipt(
+      {
+        ...EXPECTED,
+        browserPolicy: "owner-admin-2026-09-10",
+        editorVerdict: "not_run",
+        predecessorBaseline: {
+          ...BASELINE,
+          browserPolicy: "owner-admin-2026-09-10",
+          editorVerdict: "not_run",
+        },
+      },
+      NOW,
+      RECEIPT_ID,
+    );
+  it("binds truthful Editor non-execution through promotion and the recovery baseline", () => {
+    const candidate = owner();
+    expect(candidate.editorVerdict).toBe("not_run");
+    expect(buildPromotionReceipt(candidate, NOW, NOW).browserPolicy).toBe(
+      "owner-admin-2026-09-10",
+    );
+    expect(
+      buildPromotionReceipt(candidate, NOW, NOW).predecessorBaseline.editorVerdict,
+    ).toBe("not_run");
+  });
+  it("rejects fabricated Editor passes, policy substitution, failed Admin and mismatched baselines", () => {
+    for (const patch of [
+      { editorVerdict: "passed" },
+      { adminVerdict: "failed" },
+      { browserPolicy: "unknown" },
+      { browserPolicy: "admin-editor" },
+      {
+        predecessorBaseline: {
+          ...owner().predecessorBaseline,
+          browserPolicy: "admin-editor",
+        },
+      },
+    ]) {
+      expect(() =>
+        assertCandidateAssuranceReceipt({ ...owner(), ...patch }, {}, NOW),
+      ).toThrow();
+    }
+    const promotion = buildPromotionReceipt(owner(), NOW, NOW);
+    expect(() =>
+      assertPromotionReceipt({ ...promotion, browserPolicy: "admin-editor" }, {}, NOW),
+    ).toThrow();
+    expect(() =>
+      assertCandidateAssuranceReceipt(owner(), { expectedCommit: "f".repeat(40) }, NOW),
+    ).toThrow();
+    expect(() =>
+      assertCandidateAssuranceReceipt(owner(), {}, Date.parse(owner().expiresAt)),
+    ).toThrow();
+  });
+});

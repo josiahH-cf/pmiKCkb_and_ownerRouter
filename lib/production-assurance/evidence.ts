@@ -1,3 +1,7 @@
+import {
+  requiresEditorBrowser,
+  type ReleaseBrowserPolicy,
+} from "./release-browser-policy.mjs";
 import { routesForRole } from "./manifest";
 import {
   ASSURANCE_PHASES,
@@ -110,7 +114,16 @@ export function assertProductionAssuranceEvidence(
       assertExactRoleManifest(routes, value.actorRole);
     }
   } else {
-    assertExactCombinedManifest(routes);
+    const policy = isRecord(value.observation)
+      ? value.observation.browserPolicy
+      : undefined;
+    if (
+      policy !== undefined &&
+      policy !== "admin-editor" &&
+      policy !== "owner-admin-2026-09-10"
+    )
+      throw new Error("release_browser_policy_invalid");
+    assertExactCombinedManifest(routes, policy);
   }
   if (value.reconciliation !== null) assertReconciliation(value.reconciliation);
   if (value.monitoring !== null) assertMonitoring(value.monitoring);
@@ -119,15 +132,19 @@ export function assertProductionAssuranceEvidence(
 
 function assertExactCombinedManifest(
   routes: ProductionAssuranceEvidence["routes"],
+  browserPolicy?: ReleaseBrowserPolicy,
 ): void {
-  const expectedCount = ASSURANCE_ROLES.reduce(
+  const roles = requiresEditorBrowser(browserPolicy)
+    ? ASSURANCE_ROLES
+    : (["Admin"] as const);
+  const expectedCount = roles.reduce(
     (count, role) => count + routesForRole(role).length,
     0,
   );
   if (routes.length !== expectedCount) {
     throw new Error("Combined assurance evidence is missing an exact role manifest.");
   }
-  for (const role of ASSURANCE_ROLES) {
+  for (const role of roles) {
     assertExactRoleManifest(
       routes.filter((route) => route.actorRole === role),
       role,
@@ -235,7 +252,19 @@ function assertMonitoring(value: unknown): void {
 
 function assertObservation(value: unknown): void {
   if (!isRecord(value)) throw new Error("Observation evidence is invalid.");
-  assertExactKeys(value, OBSERVATION_KEYS, "observation evidence");
+  assertExactKeys(
+    value,
+    value.browserPolicy === undefined
+      ? OBSERVATION_KEYS
+      : [...OBSERVATION_KEYS, "browserPolicy"],
+    "observation evidence",
+  );
+  if (
+    value.browserPolicy !== undefined &&
+    value.browserPolicy !== "admin-editor" &&
+    value.browserPolicy !== "owner-admin-2026-09-10"
+  )
+    throw new Error("release_browser_policy_invalid");
   if (
     !isOneOf(value.decision, [
       "observing",

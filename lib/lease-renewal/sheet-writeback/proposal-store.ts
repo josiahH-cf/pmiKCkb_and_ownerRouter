@@ -4,8 +4,9 @@
 // cross-workspace generations refuse instead of superseding each other.
 
 import { createHash } from "node:crypto";
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction, DocumentReference } from "firebase-admin/firestore";
 import { z } from "zod";
+import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -102,6 +103,23 @@ const EffectInputSchema = z.discriminatedUnion("kind", [
       afterValue: z.string(),
       source: z.string().min(1),
       authorization: AuthorizationSchema.optional(),
+      staffIntent: SheetFieldIntentSchema.optional(),
+      cellEvidence: z
+        .object({
+          value: z
+            .object({
+              numberValue: z.number().finite().optional(),
+              boolValue: z.boolean().optional(),
+              stringValue: z.string().optional(),
+              formulaValue: z.string().optional(),
+            })
+            .strict(),
+          formattedValue: z.string(),
+          numberFormat: z.string().nullable(),
+          checkbox: z.boolean(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
 ]);
@@ -178,6 +196,77 @@ const StoredProposalArchiveSchema = z
     archived_reason: z.enum(["replacement", "discard"]),
   })
   .strict();
+
+const StoredFieldArchiveSchema = z
+  .object({
+    version: z.literal("operating-sheet-field-archive/v1"),
+    proposal: StoredProposalSchema,
+    execution_id: z.string().min(1).max(500),
+    effect_hash: HashSchema,
+    archived_at: IsoSchema,
+    archived_by_uid: z.string().min(1).max(128),
+    archived_reason: z.enum(["replacement", "discard"]),
+  })
+  .strict();
+
+async function prepareFieldArchive(
+  transaction: Transaction,
+  db: Firestore,
+  ref: DocumentReference,
+  data: Record<string, unknown> | undefined,
+  actor: AuthenticatedUser,
+  reason: "replacement" | "discard",
+) {
+  if (!data) return null;
+  const proposal = proposalFromStoredData(data);
+  const fields = proposal.effects.filter((entry) => entry.effect.kind === "field_update");
+  if (!fields.length) return null;
+  if (fields.length !== 1 || proposal.effects.length !== 1)
+    throw new EditableLayerError(
+      "Review the existing Sheet generation before replacement.",
+      409,
+    );
+  const effect = fields[0];
+  const id = sheetWritebackExecutionId(proposal, effect);
+  const execution = await transaction.get(
+    db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(id),
+  );
+  if (
+    execution.exists &&
+    (!["ready", "succeeded", "failed"].includes(execution.get("state")) ||
+      execution.get("previewHash") !== proposal.previewHash)
+  ) {
+    throw new EditableLayerError(
+      "This Sheet attempt is unresolved. Reconcile it before replacing or discarding the proposal.",
+      409,
+    );
+  }
+  const archiveRef = ref
+    .collection(SHEET_WRITEBACK_PROPOSAL_HISTORY_SUBCOLLECTION)
+    .doc(proposal.previewHash);
+  const prior = await transaction.get(archiveRef);
+  if (prior.exists) {
+    const parsed = StoredFieldArchiveSchema.parse(prior.data());
+    if (
+      parsed.proposal.previewHash !== proposal.previewHash ||
+      parsed.execution_id !== id
+    )
+      throw new EditableLayerError("Conflicting Sheet history needs review.", 409);
+    return null;
+  }
+  return {
+    ref: archiveRef,
+    data: StoredFieldArchiveSchema.parse({
+      version: "operating-sheet-field-archive/v1",
+      proposal,
+      execution_id: id,
+      effect_hash: effect.effectHash,
+      archived_at: new Date().toISOString(),
+      archived_by_uid: actor.uid,
+      archived_reason: reason,
+    }),
+  };
+}
 
 export interface SheetWritebackProposalArchive {
   readonly proposal: SheetWritebackProposal;
@@ -421,6 +510,14 @@ export async function saveSheetWritebackProposal(
         );
       }
     }
+    const fieldArchive = await prepareFieldArchive(
+      transaction,
+      db,
+      ref,
+      existing.exists ? existing.data() : undefined,
+      actor,
+      "replacement",
+    );
     const claimedExecutionId = lifecycleExecutionId(
       lifecycle?.exists ? lifecycle.data() : undefined,
     );
@@ -450,6 +547,7 @@ export async function saveSheetWritebackProposal(
         archive.lifecycle,
       );
     }
+    if (fieldArchive) transaction.create(fieldArchive.ref, fieldArchive.data);
     transaction.set(ref, {
       ...parsed,
       updated_at: new Date().toISOString(),
@@ -509,6 +607,21 @@ export async function listSheetWritebackProposalHistory(
     .limit(20)
     .get();
   return snapshot.docs.map((document) => {
+    if (document.get("version") === "operating-sheet-field-archive/v1") {
+      const field = StoredFieldArchiveSchema.parse(document.data());
+      if (!scopeMatches(field.proposal.scope, scope))
+        throw new EditableLayerError(
+          "Archived Sheet evidence belongs to a different workspace.",
+          409,
+        );
+      return {
+        proposal: field.proposal as SheetWritebackProposal,
+        executionId: field.execution_id,
+        effectHash: field.effect_hash,
+        archivedAtIso: field.archived_at,
+        archivedReason: field.archived_reason,
+      };
+    }
     const parsed = StoredProposalArchiveSchema.parse(document.data());
     if (!scopeMatches(parsed.proposal.scope, scope)) {
       throw new EditableLayerError(
@@ -566,6 +679,14 @@ export async function discardSheetWritebackProposal(
     if (!rawScope.success || !scopeMatches(rawScope.data, scope)) {
       throw new EditableLayerError("The proposal belongs to a different workspace.", 409);
     }
+    const fieldArchive = await prepareFieldArchive(
+      transaction,
+      db,
+      ref,
+      snapshot.data(),
+      actor,
+      "discard",
+    );
     const claimedExecutionId = lifecycleExecutionId(
       lifecycle?.exists ? lifecycle.data() : undefined,
     );
@@ -595,6 +716,7 @@ export async function discardSheetWritebackProposal(
         archive.lifecycle,
       );
     }
+    if (fieldArchive) transaction.create(fieldArchive.ref, fieldArchive.data);
     transaction.delete(ref);
     if (archive && archiveRef && !archiveSnapshot?.exists) {
       transaction.create(archiveRef, {

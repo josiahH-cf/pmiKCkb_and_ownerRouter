@@ -94,6 +94,7 @@ describe("post-promotion assurance state machine", () => {
       successfulCheckpoints: 2,
       elapsedMs: POST_PROMOTION_OBSERVATION_MS,
       windowMs: POST_PROMOTION_OBSERVATION_MS,
+      browserPolicy: "admin-editor",
       reasons: [],
       rollbackRevision: null,
     });
@@ -113,6 +114,7 @@ describe("post-promotion assurance state machine", () => {
       successfulCheckpoints: 1,
       elapsedMs: POST_PROMOTION_OBSERVATION_MS,
       windowMs: POST_PROMOTION_OBSERVATION_MS,
+      browserPolicy: "admin-editor",
       reasons: ["window_incomplete"],
       rollbackRevision: null,
     });
@@ -224,5 +226,50 @@ describe("post-promotion assurance state machine", () => {
         /predecessor/,
       );
     }
+  });
+});
+
+// The owner changed browser acceptance, not Editor authorization or the remaining release gates.
+describe("owner-approved Admin browser acceptance", () => {
+  const ownerInput = (patch: Partial<ReleaseObservationInput> = {}) =>
+    input({ browserPolicy: "owner-admin-2026-09-10", editorRoutes: [], ...patch });
+  it("records the approved policy while requiring the complete real Admin manifest", () => {
+    expect(evaluateReleaseObservation(ownerInput())).toMatchObject({
+      decision: "passed",
+      browserPolicy: "owner-admin-2026-09-10",
+    });
+    expect(evaluateReleaseObservation(ownerInput({ adminRoutes: [] }))).toMatchObject({
+      decision: "rollback_required",
+      reasons: ["admin_canary_failed"],
+    });
+    expect(evaluateReleaseObservation(input({ editorRoutes: [] }))).toMatchObject({
+      decision: "rollback_required",
+      reasons: ["editor_canary_failed"],
+    });
+    expect(
+      evaluateReleaseObservation(ownerInput({ editorRoutes: routes("Editor") })),
+    ).toMatchObject({ decision: "rollback_required" });
+  });
+  it("retains duration, reconciliation, revision, diagnostics and monitoring gates", () => {
+    for (const patch of [
+      { observedRevision: PREDECESSOR },
+      { configurationVerified: false },
+      { trafficPercent: 99 },
+      { monitoring: { ...input().monitoring, candidateFiveXxCount: 1 } },
+      { monitoring: { ...input().monitoring, readComplete: false } },
+      { reconciliation: { ...input().reconciliation, state: "mismatch" as const } },
+      { successfulCheckpoints: 1 },
+    ])
+      expect(evaluateReleaseObservation(ownerInput(patch)).decision).toBe(
+        "rollback_required",
+      );
+    expect(evaluateReleaseObservation(ownerInput({ elapsedMs: 299999 })).decision).toBe(
+      "observing",
+    );
+    const bad = routes("Admin");
+    bad[0] = { ...bad[0], diagnostics: { ...bad[0].diagnostics, page_error: 1 } };
+    expect(evaluateReleaseObservation(ownerInput({ adminRoutes: bad })).decision).toBe(
+      "rollback_required",
+    );
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -186,13 +186,14 @@ describe("S75 shared follow-up consumers", () => {
 
     render(<RenewalWorkspace workspace={workspace} />);
 
-    expect(screen.getByText("Waiting on tenant")).toBeInTheDocument();
+    const tenant = within(screen.getByRole("region", { name: "Tenant" }));
+    expect(tenant.getByText("Waiting on tenant")).toBeInTheDocument();
     expect(
-      screen.getByText(/Last verified contact: 2026-08-20T12:00:00.000Z/),
+      tenant.getByText(/Last verified contact: 2026-08-20T12:00:00.000Z/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Policy version 9 · lease rule/)).toBeInTheDocument();
+    expect(tenant.getByText(/Policy version 9 · lease rule/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Follow-up due: 2026-08-23T12:00:00.000Z/),
+      tenant.getByText(/Follow-up due: 2026-08-23T12:00:00.000Z/),
     ).toBeInTheDocument();
   });
 });

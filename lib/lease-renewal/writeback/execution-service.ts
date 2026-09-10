@@ -1,3 +1,5 @@
+import { assertFutureRentSchedule } from "./future-rent-intent";
+import { loadRenewalChargeInventory } from "./charge-inventory";
 // S97 renewal-writeback execution service.
 //
 // One effect at a time: environment and gate checks, fresh provider before-read, revalidated
@@ -10,6 +12,8 @@
 // provider success reconciles the projection and never issues another provider write.
 
 import { RENEWAL_EFFECT_RECONCILE_MIN_AGE_MS } from "@/lib/lease-renewal/execution/reconcile-age";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { chargeDateIso } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type {
@@ -114,6 +118,7 @@ export interface RenewalWritebackDependencies {
     effect: ValidatedRenewalWritebackEffect;
     record: ExternalExecutionRecord;
   }) => Promise<"claimed" | "duplicate" | "blocked">;
+  assertCurrentRenewalTerms?: (proposal: RenewalWritebackProposal) => Promise<boolean>;
   now?: () => number;
 }
 
@@ -1093,6 +1098,58 @@ export class RenewalWritebackService {
     effect: ValidatedRenewalWritebackEffect,
   ): Promise<void> {
     const { effect: input } = effect;
+    if (proposal.businessIntent === "future_rent") {
+      if (
+        !proposal.renewalTerms ||
+        proposal.effects.length !== 1 ||
+        !(await this.dependencies.assertCurrentRenewalTerms?.(proposal))
+      )
+        throw new RenewalWritebackServiceError("confirmation_invalid");
+      const inventory = await loadRenewalChargeInventory(
+        this.dependencies.reads,
+        proposal.leaseId,
+        businessDateIso(this.now()),
+      );
+      try {
+        assertFutureRentSchedule(proposal.renewalTerms, inventory, input);
+      } catch {
+        throw new RenewalWritebackServiceError("provider_state_drift");
+      }
+    }
+    if (proposal.businessIntent === "current_base") {
+      if (
+        proposal.effects.length !== 1 ||
+        input.kind !== "recurring_charge_update" ||
+        Object.keys(input.changes).some((field) => field !== "amount")
+      )
+        throw new RenewalWritebackServiceError("provider_shape");
+      const raw = await this.dependencies.reads.getRecurringCharge(
+        proposal.leaseId,
+        input.chargeId,
+      );
+      const charge = projectRecurringCharge(raw);
+      const account =
+        raw.account && typeof raw.account === "object" && !Array.isArray(raw.account)
+          ? (raw.account as Record<string, unknown>)
+          : null;
+      const start = chargeDateIso(charge.startDate),
+        end = chargeDateIso(charge.endDate),
+        today = businessDateIso(this.now());
+      if (
+        charge.leaseID !== proposal.leaseId ||
+        charge.leaseRecurringChargeID !== input.chargeId ||
+        !account ||
+        String(account.accountID ?? "") !== charge.accountID ||
+        ![true, 1, "1"].includes(account.isRent as never) ||
+        charge.recurringStatusID !== 1 ||
+        !start ||
+        start > today ||
+        (charge.endDate !== null && (!end || end <= today)) ||
+        canonicalJson(charge) !== canonicalJson(input.before)
+      )
+        throw new RenewalWritebackServiceError("provider_state_drift");
+      return;
+    }
     if (input.kind === "renewal_dates_update") {
       const fresh = await this.readLeaseDates(proposal.leaseId);
       if (canonicalJson(fresh) !== canonicalJson(input.before)) {

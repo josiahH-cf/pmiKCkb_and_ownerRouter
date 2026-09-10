@@ -10,6 +10,7 @@ import {
 } from "@/components/lease-renewal/OperatingSheetPanel";
 import type { SheetWritebackClientProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 const fetchMock = vi.fn();
 const WORKSPACE_CONTEXT = "signed-workspace-context-token";
 
@@ -104,10 +105,12 @@ describe("S98 operating-sheet panel", () => {
         workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
-    expect(screen.getByText("Sheet row update unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Correct an operating Sheet field")).toBeInTheDocument();
     expect(screen.queryByText("Add Sheet row")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Exact Sheet row number")).not.toBeInTheDocument();
-    expect(screen.getByText(/fixed-cell write is not used/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Preview Sheet field update" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /approved rent correction/i }),
     ).not.toBeInTheDocument();

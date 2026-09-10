@@ -502,6 +502,7 @@ export function countIndependentActionDestinationMismatches(input: {
   readonly accessHandoffExpected?: boolean;
   /** Set when source/cohort truth independently requires one exact phase action. */
   readonly expectedStep?: string;
+  readonly expectedFragment?: string;
   readonly expectedDeskView?: string;
 }): number {
   const { observed } = input;
@@ -573,6 +574,7 @@ export function countIndependentActionDestinationMismatches(input: {
       input.leaseId,
       observed.stepId,
       expectedDeskView,
+      input.expectedFragment,
     )
   ) {
     mismatches += 1;
@@ -613,6 +615,7 @@ export function validPhaseWorkspaceDestination(
   leaseId: string,
   expectedStep?: string,
   expectedDeskView: string = PRODUCTION_RECONCILIATION_DESK_VIEW,
+  expectedFragment = "",
 ): boolean {
   return validWorkspaceDestination(
     href,
@@ -621,6 +624,7 @@ export function validPhaseWorkspaceDestination(
     true,
     expectedStep,
     expectedDeskView,
+    expectedFragment,
   );
 }
 
@@ -964,6 +968,7 @@ function validWorkspaceDestination(
   requireStep: boolean,
   expectedStep: string | undefined,
   expectedDeskView: string,
+  expectedFragment = "",
 ): boolean {
   if (!href || !leaseId) return false;
   let target: URL;
@@ -975,7 +980,7 @@ function validWorkspaceDestination(
   if (
     target.origin !== origin ||
     target.pathname !== `${WORKSPACE_PREFIX}${encodeURIComponent(leaseId)}` ||
-    target.hash
+    target.hash !== expectedFragment
   ) {
     return false;
   }

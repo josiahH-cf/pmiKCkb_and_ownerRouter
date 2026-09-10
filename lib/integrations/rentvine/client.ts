@@ -361,7 +361,7 @@ export class RentVineClient {
     const path = `leases/${encodeURIComponent(String(leaseId))}/recurring-charges/${encodeURIComponent(String(chargeId))}`;
     const response = await this.rawGet(path, { includes: "account" });
     this.ensureOk(response, path);
-    return unwrapRecord(await response.json(), "recurringCharge");
+    return unwrapRecurringCharge(await response.json());
   }
 
   /** S97: discovery list of a lease's recurring charges (read-only). */
@@ -379,7 +379,7 @@ export class RentVineClient {
         const record = entry as Record<string, unknown>;
         const inner = record["recurringCharge"];
         if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-          return inner as Record<string, unknown>;
+          return unwrapRecurringCharge(record);
         }
         return record;
       }
@@ -535,4 +535,16 @@ export class RentVineClient {
     }
     return { status: response.status, headers: response.headers, count };
   }
+}
+
+/** Keep verified account metadata separate from the canonical charge effect projection. */
+function unwrapRecurringCharge(value: unknown): Record<string, unknown> {
+  const charge = unwrapRecord(value, "recurringCharge");
+  const account =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>).account
+      : undefined;
+  return account && typeof account === "object" && !Array.isArray(account)
+    ? { ...charge, account }
+    : charge;
 }

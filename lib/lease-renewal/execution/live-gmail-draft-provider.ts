@@ -41,6 +41,7 @@ export interface RenewalDraftGmailClient {
     cc?: string[];
     subject: string;
     body: string;
+    htmlBody?: string;
     /** Deterministic RFC Message-ID stamped so the one attempt can be reconciled by identifier. */
     messageId?: string;
     attachment?: {
@@ -128,6 +129,7 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       ...(cc.length ? { cc } : {}),
       subject,
       body,
+      ...(input.htmlBody !== undefined ? { htmlBody: input.htmlBody } : {}),
       ...(input.expectedRfcMessageId ? { messageId: input.expectedRfcMessageId } : {}),
       ...(this.resolvedAttachment
         ? {
@@ -142,10 +144,10 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
 
     const { expectedRfcMessageId, idempotencyKey, ...payload } = input;
     void idempotencyKey;
-    if (input.attachment) {
+    if (input.attachment || input.htmlBody !== undefined) {
       if (!this.client.getDraftById) {
         throw new ExternalExecutionError(
-          "Gmail created the draft but exact attachment readback is unavailable.",
+          "Gmail created the draft but exact MIME readback is unavailable.",
           "ambiguous",
         );
       }
@@ -172,7 +174,7 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       } catch (error) {
         if (error instanceof ExternalExecutionError) throw error;
         throw new ExternalExecutionError(
-          "Gmail created the draft but its exact attachment MIME could not be verified.",
+          "Gmail created the draft but its exact reviewed MIME could not be verified.",
           "ambiguous",
         );
       }
@@ -208,10 +210,13 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
     }
     const found = await this.client.findDraftByRfcMessageId(rfcMessageId);
     if (!found) return null;
-    if (input.expectedPayload.attachment) {
+    if (
+      input.expectedPayload.attachment ||
+      input.expectedPayload.htmlBody !== undefined
+    ) {
       if (!found.raw) {
         throw new ExternalExecutionError(
-          "The exact draft was found, but Gmail did not return attachment MIME for reconciliation.",
+          "The exact draft was found, but Gmail did not return reviewed MIME for reconciliation.",
           "ambiguous",
         );
       }
@@ -252,6 +257,7 @@ function payloadFromRawDraft(
     decoded.to !== expected.recipient ||
     decoded.subject !== expected.subject ||
     decoded.body !== expected.body ||
+    decoded.htmlBody !== expected.htmlBody ||
     (expected.sender !== undefined && decoded.from !== expected.sender) ||
     decoded.cc.length !== expectedCc.length ||
     decoded.cc.some((value, index) => value !== expectedCc[index]) ||
@@ -263,14 +269,15 @@ function payloadFromRawDraft(
     );
   }
   if (
-    !attachment ||
-    !decoded.attachment ||
-    decoded.attachment.filename !== attachment.filename ||
-    decoded.attachment.mimeType !== attachment.mimeType ||
-    decoded.attachment.sizeBytes !== attachment.sizeBytes ||
-    decoded.attachment.sha256Checksum !== attachment.sha256Checksum ||
-    (exactBytes !== undefined &&
-      !Buffer.from(decoded.attachment.bytes).equals(Buffer.from(exactBytes.bytes)))
+    Boolean(attachment) !== Boolean(decoded.attachment) ||
+    (attachment !== undefined &&
+      (!decoded.attachment ||
+        decoded.attachment.filename !== attachment.filename ||
+        decoded.attachment.mimeType !== attachment.mimeType ||
+        decoded.attachment.sizeBytes !== attachment.sizeBytes ||
+        decoded.attachment.sha256Checksum !== attachment.sha256Checksum ||
+        (exactBytes !== undefined &&
+          !Buffer.from(decoded.attachment.bytes).equals(Buffer.from(exactBytes.bytes)))))
   ) {
     throw new ExternalExecutionError(
       "The provider-returned draft attachment did not match the exact reviewed receipt.",
@@ -285,7 +292,8 @@ function payloadFromRawDraft(
     ...(decoded.from ? { sender: decoded.from } : {}),
     subject: decoded.subject,
     body: decoded.body,
-    attachment,
+    ...(decoded.htmlBody !== undefined ? { htmlBody: decoded.htmlBody } : {}),
+    ...(attachment ? { attachment } : {}),
   };
 }
 

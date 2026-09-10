@@ -1,4 +1,10 @@
+import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
+import { RenewalCorrections } from "@/components/lease-renewal/RenewalCorrections";
+import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import { createHash } from "node:crypto";
+import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
+import { RenewalResourceLocations } from "@/components/lease-renewal/RenewalResourceLocations";
+import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -51,11 +57,9 @@ import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
 } from "@/lib/lease-renewal/live-desk";
-import { buildOperatingSheetDestination } from "@/lib/lease-renewal/desk-destinations";
-import {
-  buildDeskReturnHref,
-  validateDeskView,
-} from "@/lib/lease-renewal/desk-view-continuation";
+import { resolveFreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
+import { buildOperatingSheetCellDestination } from "@/lib/lease-renewal/desk-destinations";
+import { validateDeskView } from "@/lib/lease-renewal/desk-view-continuation";
 import {
   hasRenewalRoleAuthority,
   renewalRoleCapability,
@@ -80,8 +84,7 @@ interface LiveLeaseWorkspacePageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-// Renewals-space Editors and up. One live lease's renewal workspace, read-only / draft-only. The email step
-// renders the gated live composer; there is no sample email button and no sheet write-back here.
+// One live lease dashboard; each app record, exact source update and unsent draft retains its own authority.
 export const dynamic = "force-dynamic";
 
 const PANELS: Record<
@@ -120,40 +123,57 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // become an open redirect or partially restore a different view.
   const deskView = validateDeskView(rawDeskView);
 
-  const [progressRead, packetRead, policyRead, communicationsRead, dismissedRead] =
-    await Promise.all([
-      readRenewalAuxiliary("progress", () => getRenewalProgress(user, leaseId)),
-      readRenewalAuxiliary("packet", () =>
-        getCurrentPacketSnapshot(user, leaseId, leaseId),
-      ),
-      readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
-      readRenewalAuxiliary("communications", () =>
-        createGmailHubService(user).listCommunications(),
-      ),
-      readRenewalAuxiliary("dismissed_attention", () =>
-        listDismissedRenewalFollowUpKeys(user),
-      ),
-    ]);
-  const progress = renewalAuxiliaryValue(progressRead, null);
-  const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
-  const policy = renewalAuxiliaryValue(policyRead, {
-    state: "unreadable" as const,
-    ruleSet: DEFAULT_NOTICE_RULE_SET,
-    version: null,
-    updatedAtIso: null,
-  });
-  const communications = {
-    state:
-      communicationsRead.status === "available"
-        ? ("current" as const)
-        : ("unreadable" as const),
-    links: renewalAuxiliaryValue(communicationsRead, []),
-  };
-  const dismissedAttentionKeys = renewalAuxiliaryValue(dismissedRead, []);
-  // S60 (AC-S60-10): the approval re-verify recomputes against the AUTHORITATIVE current rent from
-  // the shared live read (a coalesced cache read the workspace loader reuses). Null when the live
-  // source is unavailable, which leaves the recompute visibly unclamped rather than guessed.
   const liveConfig = buildLiveRenewalConfig();
+  const operatingSheetId = liveOperatingSheetId();
+  const sheetWorkspaceContext = mintSheetWorkspaceContext(user.uid, leaseId);
+  // Start the complete fresh field rebuild now, but await it only after the independent
+  // dashboard projection. Preview/confirmation never reuse this display read.
+  const sheetFieldsReadPromise = liveConfig.ok
+    ? readRenewalAuxiliary("sheet_fields", () =>
+        resolveFreshOperatingSheetLeaseContext(leaseId),
+      )
+    : Promise.resolve(unavailableRenewalAuxiliary("sheet_fields"));
+  // Independent genuine reads start after both access guards, alongside the lease snapshot.
+  // Every result retains its typed failure; there is no cache or provider effect on navigation.
+  const supportingReads = Promise.all([
+    readRenewalAuxiliary("progress", () => getRenewalProgress(user, leaseId)),
+    readRenewalAuxiliary("packet", () =>
+      getCurrentPacketSnapshot(user, leaseId, leaseId),
+    ),
+    readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
+    readRenewalAuxiliary("communications", () =>
+      createGmailHubService(user).listCommunications(),
+    ),
+    readRenewalAuxiliary("dismissed_attention", () =>
+      listDismissedRenewalFollowUpKeys(user),
+    ),
+    readRenewalAuxiliary("manual_workspace", () => getRenewalWorkspace(user, leaseId)),
+    readRenewalAuxiliary("comp_screenshot", () => getRenewalCompScreenshotActionView()),
+    readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
+    readRenewalAuxiliary("term_reviews", () => getLeaseTermReview(user, leaseId)),
+    readRenewalAuxiliary("dispositions", () =>
+      listRenewalDiscrepancyDispositions(user, leaseId),
+    ),
+    readRenewalAuxiliary("rentvine_proposal", () =>
+      getRenewalWritebackProposal(user, leaseId),
+    ),
+    liveConfig.ok
+      ? readRenewalAuxiliary("recurring_charges", () =>
+          loadRenewalChargeInventory(liveConfig.rentvineClient, leaseId),
+        )
+      : Promise.resolve(unavailableRenewalAuxiliary("recurring_charges")),
+    readRenewalAuxiliary("resource_locations", () => getRenewalResourceLocations(user)),
+    operatingSheetId
+      ? readRenewalAuxiliary("sheet_proposal", () =>
+          getSheetWritebackProposal(user, operatingSheetId, OPERATING_SHEET_TAB, {
+            kind: "lease_workspace",
+            leaseId,
+          }),
+        )
+      : Promise.resolve(unavailableRenewalAuxiliary("sheet_proposal")),
+  ]);
+  // The current source attempt and post-write freshness floor remain authoritative for
+  // rent-suggestion verification and the workspace projection, including a typed failed attempt.
   const readTimestamp = new Date().toISOString();
   const readTimestampMs = Date.parse(readTimestamp);
   const sourceRefreshAfter = parseRenewalSourceRefreshAfter(
@@ -184,32 +204,52 @@ export default async function LiveRenewalLeaseWorkspacePage({
       leaseSnapshotAttempt = { status: "unavailable" };
     }
   }
-  // S29: the exact Admin-approved comp-derived rent number (or null). It flows into the owner-draft preview
-  // only when an Approved record still matches the current recompute; it is never the raw computed value.
-  const [suggestionRead, compScreenshotRead, resolutionsRead] = await Promise.all([
-    readRenewalAuxiliary("rent_suggestion", () =>
-      getApprovedRentSuggestion(
-        user,
-        leaseId,
-        authoritativeCurrentRent,
-        authoritativePortfolioId,
-      ),
+  const [
+    progressRead,
+    packetRead,
+    policyRead,
+    communicationsRead,
+    dismissedRead,
+    manualRead,
+    compScreenshotRead,
+    resolutionsRead,
+    termReviewRead,
+    dispositionsRead,
+    writebackProposalRead,
+    chargeInventoryRead,
+    resourceLocationsRead,
+    sheetProposalRead,
+  ] = await supportingReads;
+  const progress = renewalAuxiliaryValue(progressRead, null);
+  const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
+  const policy = renewalAuxiliaryValue(policyRead, {
+    state: "unreadable" as const,
+    ruleSet: DEFAULT_NOTICE_RULE_SET,
+    version: null,
+    updatedAtIso: null,
+  });
+  const communications = {
+    state:
+      communicationsRead.status === "available"
+        ? ("current" as const)
+        : ("unreadable" as const),
+    links: renewalAuxiliaryValue(communicationsRead, []),
+  };
+  const dismissedAttentionKeys = renewalAuxiliaryValue(dismissedRead, []);
+  // Only an approval verified against this exact authoritative rent and portfolio is projected.
+  const suggestionRead = await readRenewalAuxiliary("rent_suggestion", () =>
+    getApprovedRentSuggestion(
+      user,
+      leaseId,
+      authoritativeCurrentRent,
+      authoritativePortfolioId,
     ),
-    readRenewalAuxiliary("comp_screenshot", () => getRenewalCompScreenshotActionView()),
-    readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
-  ]);
-  // S103: this lease's recorded term review. An unavailable store projects no review, so the term
-  // stays at its provider-evidence value rather than looking resolved.
-  const termReviewRead = await readRenewalAuxiliary("term_reviews", () =>
-    getLeaseTermReview(user, leaseId),
   );
   const approvedSuggestion = renewalAuxiliaryValue(suggestionRead, null);
   const compScreenshotExecutable =
     compScreenshotRead.status === "available"
       ? compScreenshotRead.value.executable
       : false;
-  // An unavailable resolution store deliberately projects no resolution while also surfacing the
-  // failed state below. It can only keep an item blocked; it can never turn a value verified.
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const outcome = await loadLiveRenewalLeaseWorkspace(
@@ -229,54 +269,49 @@ export default async function LiveRenewalLeaseWorkspacePage({
     sourceRefreshAfter,
     leaseSnapshotAttempt,
     termReview,
+    renewalAuxiliaryValue(manualRead, null),
   );
-  const [dispositionsRead, writebackProposalRead] = await Promise.all([
-    readRenewalAuxiliary("dispositions", () =>
-      listRenewalDiscrepancyDispositions(user, leaseId),
-    ),
-    readRenewalAuxiliary("rentvine_proposal", () =>
-      getRenewalWritebackProposal(user, leaseId),
-    ),
-  ]);
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
-  const operatingSheetId = liveOperatingSheetId();
-  const sheetWorkspaceContext = mintSheetWorkspaceContext(user.uid, leaseId);
-  const sheetProposalRead = operatingSheetId
-    ? await readRenewalAuxiliary("sheet_proposal", () =>
-        getSheetWritebackProposal(user, operatingSheetId, OPERATING_SHEET_TAB, {
-          kind: "lease_workspace",
-          leaseId,
-        }),
-      )
-    : unavailableRenewalAuxiliary("sheet_proposal");
   const sheetProposal = renewalAuxiliaryValue(sheetProposalRead, null);
-  const sheetEffectsRead = sheetProposal
-    ? await readRenewalAuxiliary<SheetWritebackEffectStatus[]>(
-        "sheet_effect_status",
-        () =>
-          loadSheetWritebackEffectStatuses(
-            sheetProposal,
-            new FirestoreExternalExecutionStore(getAdminFirestore()),
-          ),
-      )
-    : null;
+  // These reads depend on the heads above, but do not depend on each other. Page loading never
+  // reconciles an attempt or changes a receipt; corrections keep their separate confirmation.
+  const [sheetEffectsRead, attemptSummaryRead, preparedSheetFieldsRead] =
+    await Promise.all([
+      sheetProposal
+        ? readRenewalAuxiliary<SheetWritebackEffectStatus[]>("sheet_effect_status", () =>
+            loadSheetWritebackEffectStatuses(
+              sheetProposal,
+              new FirestoreExternalExecutionStore(getAdminFirestore()),
+            ),
+          )
+        : Promise.resolve(null),
+      readRenewalAuxiliary("attempt_summary", () =>
+        projectWorkspaceAttemptSummary({
+          leaseId,
+          rentvineProposal: writebackProposal,
+          sheetProposal,
+          store: new FirestoreExternalExecutionStore(getAdminFirestore()),
+        }),
+      ),
+      sheetFieldsReadPromise,
+    ]);
   const sheetEffects = sheetEffectsRead
     ? renewalAuxiliaryValue(sheetEffectsRead, null)
     : null;
-  // S107: project this lease's confirmed attempts read-only. An orphaned attempt names the
-  // Admin-gated reconcile in its phase panel as the next action; the page load itself settles
-  // nothing and writes nothing.
-  const attemptSummaryRead = await readRenewalAuxiliary("attempt_summary", () =>
-    projectWorkspaceAttemptSummary({
-      leaseId,
-      rentvineProposal: writebackProposal,
-      sheetProposal: sheetProposal,
-      store: new FirestoreExternalExecutionStore(getAdminFirestore()),
-    }),
-  );
   const attemptSummary = renewalAuxiliaryValue(attemptSummaryRead, null);
+  const sheetFieldsRead =
+    outcome.status === "ok"
+      ? preparedSheetFieldsRead
+      : unavailableRenewalAuxiliary("sheet_fields");
+  const sheetFields = renewalAuxiliaryValue(sheetFieldsRead, null);
+  const sheetDestination = buildOperatingSheetCellDestination({
+    spreadsheetId: process.env.RENEWAL_SHEET_ID,
+    tabId: sheetFields?.tabId,
+    rowNumber: sheetFields?.row?.rowNumber,
+  });
   const auxiliaryFailures = renewalAuxiliaryFailures([
+    manualRead,
     progressRead,
     packetRead,
     policyRead,
@@ -288,7 +323,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
     termReviewRead,
     dispositionsRead,
     writebackProposalRead,
+    chargeInventoryRead,
+    resourceLocationsRead,
     sheetProposalRead,
+    sheetFieldsRead,
     attemptSummaryRead,
     ...(sheetEffectsRead ? [sheetEffectsRead] : []),
   ]);
@@ -296,18 +334,43 @@ export default async function LiveRenewalLeaseWorkspacePage({
   return (
     <AppShell user={user}>
       <section className="content">
-        <Link
-          className="back-link renewal-workspace-link"
-          href={buildDeskReturnHref(deskView)}
-        >
-          ← Back to renewals
-        </Link>
+        <RenewalDeskReturnLink deskView={deskView} />
         {outcome.status === "ok" ? (
           <RenewalWorkspace
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
+            manualState={manualRead.status === "available" ? manualRead.value : undefined}
+            manualReadUnavailable={manualRead.status !== "available"}
+            manualCycleBasis={
+              outcome.workspace.summary.endDateIso
+                ? {
+                    kind: "lease_end",
+                    dateIso: outcome.workspace.summary.endDateIso,
+                    source: "RentVine lease end",
+                  }
+                : null
+            }
             compScreenshotExecutable={compScreenshotExecutable}
             deskView={deskView}
+            correctionPanel={
+              <RenewalCorrections
+                dispositions={dispositions}
+                leaseId={leaseId}
+                role={user.role}
+                dataCheck={outcome.workspace.dataCheck}
+                sheetValues={sheetFields?.row?.fieldValues ?? null}
+                workspaceContext={sheetWorkspaceContext}
+                inventory={renewalAuxiliaryValue(chargeInventoryRead, null)}
+                sheetPreviewHash={sheetProposal?.previewHash ?? null}
+                rentvinePreviewHash={writebackProposal?.previewHash ?? null}
+                reviewHref={(() => {
+                  const key = outcome.workspace.dataCheck.find(
+                    (entry) => entry.fieldKey === "current_rent",
+                  )?.sourceTriggerKey;
+                  return key ? buildLiveRenewalReviewItemHref(key) : null;
+                })()}
+              />
+            }
             discrepancyPanel={
               dispositionsRead.status === "available" ? (
                 <DiscrepancyDispositionPanel
@@ -331,15 +394,14 @@ export default async function LiveRenewalLeaseWorkspacePage({
             }
             packetSnapshot={packetSnapshot ?? null}
             operatingSheetPanel={
-              sheetProposalRead.status === "available" ? (
+              sheetProposalRead.status === "available" &&
+              sheetFieldsRead.status === "available" ? (
                 <OperatingSheetPanel
+                  key={sheetProposal?.previewHash ?? "no-sheet-preview"}
                   hasSheetRow={
-                    outcome.workspace.dataCheck?.some((item) =>
-                      item.candidates.some((candidate) =>
-                        /sheet/i.test(candidate.sourceSystem),
-                      ),
-                    ) ?? false
+                    sheetFields?.row !== null && sheetFields?.row !== undefined
                   }
+                  initialFieldValues={sheetFields?.row?.fieldValues}
                   initialProposal={
                     sheetProposal ? clientSheetWritebackProposal(sheetProposal) : null
                   }
@@ -348,12 +410,26 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   workspaceContext={sheetWorkspaceContext}
                 />
               ) : (
-                <RenewalAuxiliaryNotice compact failures={[sheetProposalRead]} />
+                <RenewalAuxiliaryNotice
+                  compact
+                  failures={renewalAuxiliaryFailures([
+                    sheetProposalRead,
+                    sheetFieldsRead,
+                  ])}
+                />
               )
+            }
+            resourceLocationsPanel={
+              <RenewalResourceLocations
+                role={user.role}
+                initialSettings={renewalAuxiliaryValue(resourceLocationsRead, null)}
+              />
             }
             rentvineUpdatesPanel={
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel
+                  key={writebackProposal?.previewHash ?? "no-rentvine-preview"}
+                  initialInventory={renewalAuxiliaryValue(chargeInventoryRead, null)}
                   initialProposal={
                     writebackProposal
                       ? clientRenewalWritebackProposal(writebackProposal)
@@ -376,8 +452,17 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 : [];
             })}
             selectedStepId={stepParam}
-            sheetDestination={buildOperatingSheetDestination(
-              process.env.RENEWAL_SHEET_ID,
+            sheetDestination={sheetDestination}
+            sheetFieldDestinations={Object.fromEntries(
+              [...(sheetFields?.columns ?? [])].flatMap(([field, columnIndex]) => {
+                const destination = buildOperatingSheetCellDestination({
+                  spreadsheetId: process.env.RENEWAL_SHEET_ID,
+                  tabId: sheetFields?.tabId,
+                  rowNumber: sheetFields?.row?.rowNumber,
+                  columnIndex,
+                });
+                return destination ? [[field, destination.href]] : [];
+              }),
             )}
             termReviewPanel={
               termReviewRead.status === "available" ? (

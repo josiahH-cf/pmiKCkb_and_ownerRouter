@@ -1,48 +1,41 @@
 # Open blockers
 
-Last reconciled: 2026-09-09. Read after `docs/loop-state.md`. Each hold names its owner and the
+Last reconciled: 2026-09-10. Read after `docs/loop-state.md`. Each hold names its owner and the
 readback needed to close it. Work independent of a hold continues; no substitute value is invented.
 
-| Id      | Blocks                                                    | Owner                | Exact item to bring back                                                                                                                                                                                                                                  | Completion evidence                                                                                                                                                                        |
-| ------- | --------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| B-AUTH2 | Auth longevity, managed browser assurance and promotion   | owner                | Restore approved WSL authentication after the September 9 failure, then establish its 24-hour proof. Authenticate existing managed Admin and claim-less managed account (app resolves Editor) profiles on both the exact candidate and canonical origins. | September 8 fresh-shell/post-reboot proofs passed; current CLI/ADC require reauth. The 24-hour proof, both profiles on both origins and exact candidate assurance receipt remain required. |
-| B-DL1   | S106 live readiness and S34 live provider work            | external             | Approved Dotloop OAuth client id and secret through the recorded Secret Manager delivery path. Requested from support@dotloop.com on 2026-09-04; no follow-up sent.                                                                                       | Bound credentials exist and runtime configuration readback names no missing credential.                                                                                                    |
-| B-DL2   | S106 live readiness and S34 live provider work            | owner                | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                            | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                                                                       |
-| B-DL3   | S34 approved artifact content and packet workflow binding | owner                | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                                   | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                                                                                 |
-| B-S100  | Resident-reply draft proof and S36                        | owner                | One work-order identifier carrying resident chat and confirmation that the resident email is verified.                                                                                                                                                    | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass.                                                        |
-| B-MNT1  | S108 live preapproval routing proof                       | owner                | Unambiguous property identifiers, one amount per property, and effective dates.                                                                                                                                                                           | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                                                                               |
-| B-REH1  | Live walkthrough acceptance                               | release operator     | Resolve the live-source timing and full-guide failures on the intended demonstration runtime/origin.                                                                                                                                                      | All seven unchanged browser checks pass; no fixture or raised deadline substitutes.                                                                                                        |
-| B-FLOW1 | Normal owner-response and packet-to-completion journey    | implementation owner | Connect sent-message, packet preview/confirmation, signed-artifact and completion handoffs.                                                                                                                                                               | Mounted controls bind exact verified evidence and complete the applicable real workflow.                                                                                                   |
+| Id      | Blocks                                                    | Owner                | Exact item to bring back                                                                                                                                            | Completion evidence                                                                                                                                                                      |
+| ------- | --------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2 | Auth longevity and exact release assurance                | release operator     | Approved owner Admin enrolled on canonical; authenticate on the new exact candidate and complete assurance.                                                         | September 10 CLI/ADC and owner Admin enrollment passed. Editor browser waived by explicit owner direction; 24-hour longevity remains unverified and is not implied by release assurance. |
+| B-DL1   | S106 live readiness and S34 live provider work            | external             | Approved Dotloop OAuth client id and secret through the recorded Secret Manager delivery path. Requested from support@dotloop.com on 2026-09-04; no follow-up sent. | Bound credentials exist and runtime configuration readback names no missing credential.                                                                                                  |
+| B-DL2   | S106 live readiness and S34 live provider work            | owner                | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                      | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                                                                     |
+| B-DL3   | S34 approved artifact content and packet workflow binding | owner                | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                             | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                                                                               |
+| B-S100  | Resident-reply draft proof and S36                        | owner                | One work-order identifier carrying resident chat and confirmation that the resident email is verified.                                                              | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass.                                                      |
+| B-MNT1  | S108 live preapproval routing proof                       | owner                | Unambiguous property identifiers, one amount per property, and effective dates.                                                                                     | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                                                                             |
+| B-FLOW1 | Normal owner-response and packet-to-completion journey    | implementation owner | Connect sent-message, packet preview/confirmation, signed-artifact and completion handoffs.                                                                         | Mounted controls bind exact verified evidence and complete the applicable real workflow.                                                                                                 |
 
 ## B-AUTH2: current recovery and release gate
 
-September 9 full WSL auth:ensure reports BOTH CLI and ADC blocked with reauth. GitHub remains ready.
-Earlier fresh-shell/post-reboot proof is preserved, but current unattended readiness is NOT READY.
-The original 24-hour threshold was 2026-09-09T12:46:45.730Z; it was not reached or passed.
-Fresh enrollment restarts that proof. The owner controls session policy.
-Recovery: npm run auth:session -- --browser. Do not loop login attempts.
+September 10 approved WSL CLI/ADC refresh and human-completed canonical browser enrollment passed
+as `josiah@pmikcmetro.com`, displayed Admin. The owner explicitly changed release governance to
+accept that Admin session without an Editor browser check. Preserve actual roles and backend
+Editor authorization tests; record Editor `not_run`. No account, IAM or claim changed.
+The browser helper's final-verification lifetime fix passes its fail-before/pass-after tests.
+The old 6e77d18 watcher checkpoint remains an unpromoted historical candidate; S113 must release
+its own exact green main SHA. Candidate-origin session, receipts, promotion and observation remain
+pending. The separate 24-hour unattended longevity proof is unverified.
 
-Candidate: https://cand-rmtt039q1-c1463245a94c---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Candidate public version confirms 6e77d18f6d9916ba94078550d4b5ba73751e86c8 /
-pmi-kc-app-rmtt039q1-c1463245a94c. Watcher fingerprint:
-sha256:8810a5f8d31b6b1bb698f0e3cad9a361556c5abd4a57ae00b673dd4e099e016f.
-Phase is assurance, blocked authentication_required after managed browser enrollment was requested.
-Use existing Admin/Editor profiles on BOTH exact origins, then a fresh bound receipt, promotion
-and 300,000 ms observation. Do not change accounts, claims or IAM. Follow
-docs/environment-handoff.md; do not bypass the persisted watcher checkpoint.
+## B-FLOW1: local handoffs implemented; acceptance and release pending
 
-## B-FLOW1: normal user journey is incomplete
+S113 now implements the complete audited manual journey, including owner-message activity, explicit
+owner terms, tenant response, document activity and staff-recorded completion. Mounted fresh and
+already-underway backend journeys pass with actual persisted events and desk readback. Staff reports
+remain distinct from provider receipts and do not enter verified-completion inputs.
 
-The workspace needs owner-message-sent evidence before showing Record owner response, but the
-normal new-lease path does not supply it through a verified visible handoff. Thread linking is
-not a substitute. Packet evaluation exists; normal packet preview/confirmation and authenticated
-signature/completion handoffs are unfinished. The legacy completion button is not mounted.
-
-The implementation owner must connect those exact evidence paths and prove the mounted journey
-on authorized real cases. Do not invent evidence or add a completion bypass. Provider credentials,
-approved forms and B-REH1 remain separate gates.
-Source analysis: docs/evidence/renewal-training-control-review-2026-09-09.md.
+S106/S34's normal packet preparation, approval, exact S21 bytes, S20 execution and own-receipt
+recovery also pass deterministic backend acceptance. Actual catalog/forms, connection and exact key
+activation remain resource-dependent gates; a signature API is not available. These inputs do not
+block the manual lane or blank labeled link fields. Full repeat verification, final adversarial
+closure and production deployment still remain. B-REH1 tracks compiled real-browser acceptance.
 
 ## Closed verification item: B-GOLD1
 
@@ -54,21 +47,13 @@ label are unchanged, and every test assertion and ambiguous-name refusal remains
 The golden harness passes 4/4 and the corrected full native unit suite passes 6,360 tests with four
 skipped. B-GOLD1 is closed and is not a Wednesday client ask.
 
-## B-REH1: live-source walkthrough performance
+## Closed verification item: B-REH1
 
-Local Node 24 development reproduced the ArrayBuffer response error and a 60-second desk load
-timeout. The native built app on the existing Node 22 runtime loaded the desk, but base-rent sorting
-took 23.4 seconds against a 20-second limit; the Dashboard also exceeded its 60-second navigation
-limit. No deadline was widened. Maintenance blocker and intake browser checks passed. The guide's
-native disclosure locator was corrected and checked in Chromium; the full run still misses owner-phase
-navigation. Navbar /ask exceeded 90 seconds and theme /ask exceeded 45 seconds. Two of seven
-live-source smokes passed. These results do not establish that every intended control is available.
-
-The release operator owns closing this hold with the unchanged live-source browser checks on the
-intended demonstration runtime/origin. The Wednesday fallback is a source-backed reading and
-explanation session using the provisional October example, with no invented transaction. This hold
-does not change the passing canonical unit/emulator/build gate or authorize promotion without the
-existing exact candidate assurance receipt.
+All seven applicable compiled browser checks pass on the explicit native Node 22 Demo + Live-read-only
+runtime. The final R29 desk passes its full source cohort, sorting/filtering, inspection-only refusal,
+active dashboard/sections, term parity, exact return/Back, keyboard/targets and layout budgets. The
+42-step guide also passes. Source freshness and deadlines were not relaxed. B-REH1 is closed for
+local walkthrough acceptance; exact candidate assurance remains a separate mandatory release gate.
 
 ## Wednesday inputs
 
@@ -119,3 +104,35 @@ October walkthrough lease remain unverified. No comp request was made.
 The existing candidate fingerprint retains its 2026-09-06 evidence date. A new candidate needs
 its own fingerprint and complete assurance receipt. Client-facing asks are in
 [the Wednesday decisions sheet](products/wednesday-decisions-and-inputs-2026-09-09.md).
+
+## S113 unblock result — September 10
+
+The new private email PDFs clear the missing-source-template input: six pages were visually read,
+with hashes and normalized material preserved in the ignored source pack. They do not supply blank
+legal forms, the separately mentioned analysis file or machine-readable flyer/form destinations.
+Resolve existing runtime resources before requesting any missing link. Per-lease amounts and
+charge applicability stay sourced inputs, not invented global defaults.
+
+S113 F2.4–F5.1 closes agent-owned handoff ambiguity around RentVine scope, pending Sheet updates,
+RentCast repair, copy/Gmail separation, template formatting, cycle isolation and applicable completion.
+These features are implemented locally with mounted backend verification. The full unit suite
+passes 6,454 tests and all 201 backend tests pass; final browser/review and deployment acceptance
+remain pending. Current approved WSL CLI/ADC refresh passes.
+
+B-DL1/B-DL2/B-DL3 still constrain actual Dotloop activation; current local client configuration is
+absent. S106/S34 now owns a concrete prepare/upload/open-provider/returned-artifact end state and
+its conditional deployment path. Full signature execution is separately unavailable in the current
+public API. A provider-issued documented signature capability would need exact endpoint/scopes,
+recipient effects, completion evidence and correction review; its absence does not block packet
+implementation or S113 manual completion. No credential, form, grant or provider effect was invented.
+
+### B-S113-LINKS — tenant resource destinations
+
+The PDF insurance-flyer URL returned 404 on HEAD and GET; its RBP flyer returned 200 with PDF
+content type. The transcribed information-form URL returned 404, but image-only source prevents
+asserting an exact id/deletion. A bounded official-site search found no verified replacement.
+Owner disposition: source collection is deferred. Implement persistent labeled link-entry boxes
+for the insurance flyer, information form and approved legal-form locations. Empty pending-team
+values are accepted for S113 implementation/release. Validate real entries when supplied; never
+export placeholders or use a location box as approved legal content. Only dependent final copy/
+packet effects wait for actual resources. No further Q1/Q2 request is needed.

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import {
@@ -179,6 +180,8 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
       },
     }),
     writeFlagEnabled: () => flags.writeFlag,
+    claimLeaseScopedFieldUpdate: async (input) =>
+      store.claim(input.executionId, input.previewHash),
     claimLeaseScopedAppend: async (input) => {
       const key = `${input.spreadsheetId}:${input.tabTitle}:${input.leaseId}`;
       if (appendLifecycles.has(key)) return "blocked";
@@ -509,15 +512,12 @@ describe("S98 one-attempt sheet execution", () => {
     expect(h.calls.filter((call) => call.method === "appendRowWithNote")).toHaveLength(1);
   });
 
-  it("refuses fixed-row field mutation before writer construction or claim", async () => {
+  it("refuses field execution without fresh lease callbacks before writer construction or claim", async () => {
     const h = harness({
       rows: [{ values: ["", "", "Existing Tenant", "", ""], note: "" }],
     });
     const proposal = updateProposal(h);
-    await expectCode(
-      h.service.executeEffect(confirmed(proposal)),
-      "provider_capability_unavailable",
-    );
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "authorization_stale");
     expect(h.createWriterSpy).not.toHaveBeenCalled();
     expect(
       h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
@@ -608,5 +608,91 @@ describe("S98 one-attempt sheet execution", () => {
       "proof_retired",
     );
     expect(h.createWriterSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("S113 normal field execution", () => {
+  it("uses one exact replacement and returns the durable receipt with a fresh duplicate read", async () => {
+    const h = harness({
+      rows: [{ values: ["", "", "Existing Tenant", "", "1100"], note: "" }],
+    });
+    const proposal = updateProposal(h, { expectedValue: "1100", afterValue: "1200" });
+    const request = {
+      ...confirmed(proposal),
+      revalidateBeforeEffect: vi.fn(async () => {}),
+      revalidateAfterEffect: vi.fn(async () => {}),
+    };
+    const pending = await loadSheetWritebackEffectStatuses(proposal, h.store);
+    expect(pending[0]).toMatchObject({
+      effect_executable: true,
+      state: "not_started",
+      reversal_executable: false,
+    });
+    const first = await h.service.executeEffect(request);
+    expect((await loadSheetWritebackEffectStatuses(proposal, h.store))[0]).toMatchObject({
+      state: "succeeded",
+      attempt_count: 1,
+      receipt: { result_hash: first.receipt.resultHash },
+    });
+    const duplicate = await h.service.executeEffect(request);
+    expect(first.duplicate).toBe(false);
+    expect(first.receipt.actionKey).toBe("google_sheets.renewal_checklist.field_update");
+    expect(duplicate.receipt).toEqual(first.receipt);
+    expect(duplicate.duplicate).toBe(true);
+    expect(
+      h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
+    ).toHaveLength(1);
+    expect(h.state.rows[0].values[4]).toBe("1200");
+    expect(request.revalidateAfterEffect).toHaveBeenCalledTimes(2);
+    h.state.rows[0].values[4] = "1300";
+    await expect(h.service.executeEffect(request)).rejects.toMatchObject({
+      code: "reconcile_drift",
+    });
+  });
+
+  it("requires fresh exact-lease validation and rejects changed row or old value without a mutation", async () => {
+    const h = harness({
+      rows: [{ values: ["", "", "Other Tenant", "", "1100"], note: "" }],
+    });
+    const proposal = updateProposal(h, { expectedValue: "1100" });
+    await expect(h.service.executeEffect(confirmed(proposal))).rejects.toMatchObject({
+      code: "authorization_stale",
+    });
+    await expect(
+      h.service.executeEffect({
+        ...confirmed(proposal),
+        revalidateBeforeEffect: async () => {},
+        revalidateAfterEffect: async () => {},
+      }),
+    ).rejects.toMatchObject({ code: "row_anchor_drift" });
+    expect(
+      h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
+    ).toHaveLength(0);
+  });
+
+  it("never converts matching observed state after a lost field response into a success receipt", async () => {
+    const h = harness({
+      rows: [{ values: ["", "", "Existing Tenant", "", "1100"], note: "" }],
+      failure: { onMethod: "replaceCellIfExactMatch", error: new Error("lost response") },
+    });
+    const proposal = updateProposal(h, { expectedValue: "1100" });
+    const request = {
+      ...confirmed(proposal),
+      revalidateBeforeEffect: async () => {},
+      revalidateAfterEffect: async () => {},
+    };
+    await expect(h.service.executeEffect(request)).rejects.toMatchObject({
+      code: "provider_ambiguous",
+    });
+    h.state.rows[0].values[4] = "1200";
+    await expect(
+      h.service.reconcileEffect({ proposal, effectHash: proposal.effects[0].effectHash }),
+    ).rejects.toMatchObject({ code: "reconcile_not_proven" });
+    await expect(h.service.executeEffect(request)).rejects.toMatchObject({
+      code: "execution_state",
+    });
+    expect(
+      h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
+    ).toHaveLength(1);
   });
 });

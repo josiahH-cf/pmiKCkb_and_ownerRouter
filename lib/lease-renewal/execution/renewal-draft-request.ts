@@ -1,3 +1,4 @@
+import { escapeMessageHtml } from "@/lib/lease-renewal/renewal-message-content";
 // Assemble and run the governed "create renewal-notice Gmail draft" action for the live path.
 //
 // This is the join between the live renewal run (recipient from resolveRenewalRecipient, notice body
@@ -35,7 +36,11 @@ export const RENEWAL_DRAFT_CONTRACT_REF = "documented:gmail:drafts.create:v1" as
 export const RENEWAL_DRAFT_CONNECTION_REF = "gmail-dwd-renewal-draft:production" as const;
 export const RENEWAL_DRAFT_MAPPING_REF = "rentvine-lease-renewal-notice:v1" as const;
 
-export type RenewalNoticeTemplateRef = "owner-renewal:v1.0" | "tenant-renewal:v1.0";
+export type RenewalNoticeTemplateRef =
+  | "owner-renewal:v1.0"
+  | "tenant-renewal:v1.0"
+  | "owner-renewal:v2.0"
+  | "tenant-renewal:v2.0";
 
 const TEMPLATE_FOR_CHANNEL: Record<RenewalRecipientChannel, RenewalNoticeTemplateRef> = {
   owner: "owner-renewal:v1.0",
@@ -65,6 +70,7 @@ export interface RenewalNoticeDraftActionInput {
   subject: string;
   /** The composed notice body; the verbatim DRAFT_BANNER is prepended here if not already present. */
   body: string;
+  htmlBody?: string;
   workflowContext: string;
   sourceRefs: readonly string[];
   /** Owner channel only: exact current S79 receipt identity, with no bytes or Drive id. */
@@ -79,7 +85,11 @@ export interface RenewalNoticeDraftActionInput {
 export function buildRenewalNoticeDraftAction(
   input: RenewalNoticeDraftActionInput,
 ): ExternalActionInput {
-  if (input.templateRef !== TEMPLATE_FOR_CHANNEL[input.channel]) {
+  if (
+    ![TEMPLATE_FOR_CHANNEL[input.channel], `${input.channel}-renewal:v2.0`].includes(
+      input.templateRef,
+    )
+  ) {
     throw new Error(
       `The renewal ${input.channel} channel requires template ${TEMPLATE_FOR_CHANNEL[input.channel]}.`,
     );
@@ -109,6 +119,12 @@ export function buildRenewalNoticeDraftAction(
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
+  if (input.templateRef.endsWith(":v2.0") && !input.htmlBody?.trim())
+    throw new Error("Supplied renewal copy requires both reviewed representations.");
+  const htmlBody =
+    input.htmlBody === undefined
+      ? undefined
+      : `<p>${escapeMessageHtml(DRAFT_BANNER)}</p>${input.htmlBody}`;
   const cc = input.cc?.emails.length ? input.cc : undefined;
   const identity = {
     dataMode: "live" as const,
@@ -139,6 +155,7 @@ export function buildRenewalNoticeDraftAction(
         : {}),
       subject: input.subject,
       body,
+      ...(htmlBody !== undefined ? { html_body: htmlBody } : {}),
       recipient_source_ref: input.recipient.sourceRef,
       mailbox_source_ref: input.mailbox.sourceRef,
       draft_banner_present: true,

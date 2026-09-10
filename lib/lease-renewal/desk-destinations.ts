@@ -42,6 +42,47 @@ export function buildOperatingSheetDestination(
   };
 }
 
+/** Exact metadata-resolved tab/row/column. Unknown coordinates keep the caller in the comparison. */
+export function buildOperatingSheetCellDestination(input: {
+  spreadsheetId: string | undefined;
+  tabId: number | null | undefined;
+  rowNumber: number | null | undefined;
+  columnIndex?: number;
+}): ExternalDeskDestination | null {
+  const base = buildOperatingSheetDestination(input.spreadsheetId);
+  if (
+    !base ||
+    input.tabId == null ||
+    !Number.isInteger(input.tabId) ||
+    input.tabId < 0 ||
+    input.rowNumber == null ||
+    !Number.isInteger(input.rowNumber) ||
+    input.rowNumber < 2
+  )
+    return null;
+  let range = `${input.rowNumber}:${input.rowNumber}`;
+  if (input.columnIndex !== undefined) {
+    if (
+      !Number.isInteger(input.columnIndex) ||
+      input.columnIndex < 0 ||
+      input.columnIndex > 59
+    )
+      return null;
+    let number = input.columnIndex + 1,
+      letters = "";
+    while (number > 0) {
+      letters = String.fromCharCode(65 + ((number - 1) % 26)) + letters;
+      number = Math.floor((number - 1) / 26);
+    }
+    range = `${letters}${input.rowNumber}`;
+  }
+  return {
+    ...base,
+    href: `${base.href}/edit#gid=${input.tabId}&range=${encodeURIComponent(range)}`,
+    label: "Opens this lease’s matched operating Sheet location in a new tab.",
+  };
+}
+
 export interface RentvineDestinationInput {
   /** A current source-provided hyperlink (e.g. the Sheet row's RentVine link); never guessed. */
   readonly sourceUrl: string | null | undefined;

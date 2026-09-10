@@ -51,7 +51,7 @@ describe("S43 packet truth presentation", () => {
     );
     expect(screen.getByText("No packet has been evaluated.")).toBeTruthy();
     expect(
-      screen.getByText(/Approved artifact unavailable: Approved renewal extension/),
+      screen.getByText(/Approved renewal extension: pending evaluation/),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Evaluate packet" })).toBeTruthy();
   });
@@ -63,7 +63,7 @@ describe("S43 packet truth presentation", () => {
     ["Superseded", /Reload and evaluate/],
     ["Partially executed", /Reconcile the existing partial attempt/],
     ["Failed", /Preserve the receipt/],
-    ["Executed", /Tenant execution evidence is complete/],
+    ["Executed", /Document presence alone does not establish signatures/],
   ] as const)("renders %s with an exact next action", (state, nextAction) => {
     const value = snapshot(state);
     if (state === "Needs input") {

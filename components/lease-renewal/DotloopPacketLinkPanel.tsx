@@ -66,7 +66,8 @@ export function DotloopPacketLinkPanel({
         </ul>
       ) : (
         <p className="muted">
-          This renewal packet has no Dotloop loop yet. Confirm the packet to create one.
+          This renewal packet has no receipted Dotloop loop. Review document readiness and
+          the exact action gates before preparing creation.
         </p>
       )}
       <p className="muted">{handoff.detail}</p>

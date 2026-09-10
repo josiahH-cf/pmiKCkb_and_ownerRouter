@@ -1,32 +1,26 @@
-# What is next
+# What's next
 
-Updated: 2026-09-08.
+Complete verification and deployment of the implemented local S113 program:
+docs/feature-suites/renewal-workflow-consolidation.md. Its five feature specs execute once in order:
+dashboard/facts, simple corrections and pre-approved in-app Sheet updates, comps/messages, manual
+progression, then integrated verification. Implementation and the 201-test backend journey pass locally; browser/canonical verification,
+adversarial closure and every release gate remain.
 
-Push the reviewed green readiness work and prepare Wednesday's four deliverables in
-[the current plan](plan.md). The owner-approved captured-label correction closes B-GOLD1;
-original private evidence, source values and every assertion are preserved.
+Read AGENTS.md, docs/facts.md, docs/loop-state.md, docs/plan.md and S113. Freeze the deterministic
+architecture/behavior checks, separate preservation baseline and consolidated human litmus before
+product edits. The owner settled manual-dashboard scope, manual advancement and in-app Sheet
+updates; do not ask for another provider-contract approval or revive the old append-only target.
 
-Local CLI/ADC refresh and the app preflight work after reboot as josiah@pmikcmetro.com using the
-unchanged WSL enrollment. The 24-hour elapsed-session check is pending, earliest
-2026-09-09T12:46:45.730Z. Browser recovery is npm run auth:session -- --browser; the owner controls
-session policy. No identity, claim, IAM or impersonation change is needed.
+Authentication/release assurance continues independently. The September 10 PDFs supply template
+wording/formatting; current resource links and exact lease/mailbox inputs constrain only dependent
+final copy and live drafting. S106/S34 own the prepared Dotloop execution/deployment continuation.
+S36 still waits for complete S100. Current guides describe the local five-section controls; serving availability remains in docs/status.md.
 
-Exact-SHA CI, isolated candidate smoke/configuration, existing managed Admin and Editor browser
-coverage on both origins, a bound assurance receipt, exact promotion and 300,000 ms observation
-remain release gates. The local watcher preserves the existing monitoring recipient independently
-of the development login. Its automatic release lifecycle still needs live acceptance.
+Use the canonical queue in docs/feature-suites/README.md. Documentation-only changes do not deploy;
+product changes require exact CI, candidate, managed-browser assurance and production readback.
 
-Monitoring configuration, domains, managed role counts and app-recorded RentCast usage have current
-readbacks. A provisional October reading example is selected from ten leases with complete detail reads;
-its full workflow evidence and live-source browser rehearsal still need verification;
-customer evidence stays in excluded output. No comp request or completed provider proof was rerun.
-
-For Wednesday, use the walkthrough, proposed 45-minute agenda, decisions/inputs and current written
-delivery readout. Confirm the time and participants. Obtain named owners and dates for seven-family
-forms/mappings, a resident-chat work order with verified email and exact property preapproval inputs.
-Dotloop credentials remain external and its managed connection remains an owner action. The older
-deck/PDF need a content refresh before presentation.
-
-S34 still needs approved catalog/participant mappings and the public packet workflow binding.
-Both Dotloop keys and the resident-draft key stay closed. The wider queue remains S100, S36,
-S88-S92, S94, S93 plus its integration gate, S95, S87, then S101. No missing result becomes a pass.
+The unblock review expanded S113 F2.4–F5.1 with the exact RentVine operation map, existing RentCast
+restoration, always-available reviewed copy, charge/applicability rules, pending Sheet synchronization
+and renewal-cycle isolation. S34/S106 own the prepared Dotloop end state and exact activation/release
+continuation; public signature-send/status capability is still absent. Private source pack:
+docs/client_docs/renewal-template-source-2026-09-10/.

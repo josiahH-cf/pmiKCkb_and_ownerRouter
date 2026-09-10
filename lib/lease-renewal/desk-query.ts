@@ -207,9 +207,17 @@ export function withRenewalDeskQueryKeys(
     normalizedOwners: ownerLabels.map(normalizeRenewalDeskText),
     tenantLabels,
     normalizedTenants: tenantLabels.map(normalizeRenewalDeskText),
-    workflowStepId: summary.workflowStepId,
-    workflowStepIndex: summary.workflowStepId ? summary.stageIndex : null,
-    waitingOn: waitingKey(summary.followUp),
+    workflowStepId: summary.manualProgress?.step.id ?? summary.workflowStepId,
+    workflowStepIndex:
+      summary.manualProgress?.step.index ??
+      (summary.workflowStepId ? summary.stageIndex : null),
+    waitingOn: summary.manualProgress
+      ? summary.manualProgress.complete
+        ? "not_waiting"
+        : summary.manualProgress.waitingParty === "staff"
+          ? "team"
+          : summary.manualProgress.waitingParty
+      : waitingKey(summary.followUp),
     dueState,
     dueAtIso: summary.followUp?.due.atIso ?? null,
     sourceConflictCount: summary.workflowStepId === null ? null : summary.openConflicts,
@@ -423,8 +431,10 @@ export function buildRenewalDeskFilterOptions(
 ): RenewalDeskFilterOptions {
   const stepLabels = new Map<string, string>();
   for (const item of items) {
-    if (item.workflowStepId && item.stageLabel) {
-      stepLabels.set(item.workflowStepId, item.stageLabel);
+    const stepId = item.manualProgress?.step.id ?? item.workflowStepId;
+    const label = item.manualProgress?.step.label ?? item.stageLabel;
+    if (stepId && label) {
+      stepLabels.set(stepId, label);
     }
   }
   return {

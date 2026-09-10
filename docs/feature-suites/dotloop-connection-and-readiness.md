@@ -10,7 +10,8 @@
 > 120 seconds; ambiguous token outcomes retain credentials and refuse completion. Late failed
 > cleanup preserves exact references without reviving a disconnected/replacement generation.
 > Live vault permission, refresh, disconnect and reconnect remain unverified behind B-DL1/B-DL2.
-> Local ADC enrollment is verified. No completed live lifecycle or new action authority is claimed.
+> September 10 approved WSL CLI/ADC refresh passed; local Dotloop configuration is absent.
+> This does not establish managed browser assurance or Dotloop readiness. No completed live lifecycle or new action authority is claimed.
 
 **Goal.**
 
@@ -58,12 +59,12 @@ staff. Entry needs `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_CLIENT_SECRET`, and
 
 **What it is / how it functions.**
 
-1. **Connect.** A new Dotloop connect route under the connections API mints a CSRF `state`, stores it server-side, and
+1. **Connect.** The existing Dotloop connect route under the connections API mints a CSRF `state`, stores it server-side, and
    redirects to the authorize URL (existing `buildDotloopAuthorizeUrl`). The callback route exchanges
    the code server-side, stores access and refresh tokens only as `ConnectorSecretVault` refs, creates
    the `connector_connections` record through `createConnectedConnection`, and never returns a token
    to the browser. Denial or callback error records a bodyless failure and leaves no connection.
-2. **Client.** A new Dotloop client module under the integrations library: typed GET/POST/PATCH with bearer token from the
+2. **Client.** Complete and reuse the existing Dotloop client under the integrations library: typed GET/POST/PATCH with bearer token from the
    vault, automatic one-time refresh on 401, rate-limit backoff on 429, and no generic request
    function. A refresh failure marks the connection `refresh_needed`.
 3. **Discovery and selection.** `GET /profile` and `GET /profile/{id}/loop-template` populate a
@@ -88,6 +89,13 @@ integration, health check, and the provider fake. Out of scope: loop or document
 LeadSimple, and any inferred e-signature endpoint.
 
 **Open questions & assumptions.**
+
+September 10 official Public API v2 and current code were reread. Registration credentials, managed
+consent and selected resources are still exact external inputs. S113 F5.1 and S34 now define the
+prepared document/deployment continuation: finish agent-owned wiring independently, then resume
+verified connection/selection, exact activation and release when inputs arrive. Public signature
+send/status is unavailable; credential arrival does not change signatureApiAvailable to true.
+A future documented capability requires its own exact contract, tests and recipient-effect review.
 
 The Dotloop OAuth application registration (client id/secret/redirect) and a connected Dotloop
 account are owner inputs recorded in `docs/client-checklist.md`. Their absence blocks only the live

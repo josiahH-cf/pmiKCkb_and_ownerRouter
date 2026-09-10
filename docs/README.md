@@ -16,7 +16,8 @@ point for historical documents removed during the 2026-08-26 context reset.
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
 
-Use the four simplified Wednesday documents below for the client session. The training guide is
+Use S113 for the next product handoff: one suite with five feature specs for renewal consolidation.
+The four simplified Wednesday documents below describe the current software. The training guide is
 lease-agnostic, with a workflow map, actual phase labels, expected results and stopping points.
 docs/products/build-renewal-handouts.py renders the Markdown into two PDFs in output/pdf.
 Run with Python/reportlab; --font-dir C:/Windows/Fonts embeds Arial for this host's printable copy.
@@ -24,24 +25,25 @@ Release acceptance and full live workflow completion remain open.
 
 ## Current core
 
-| Need                   | Document                                           |
-| ---------------------- | -------------------------------------------------- |
-| Product contract       | `docs/spec.md`                                     |
-| Current status         | `docs/status.md`                                   |
-| Current plan           | `docs/plan.md`                                     |
-| Resume point           | `docs/loop-state.md`                               |
-| Open blockers          | `docs/open-blockers.md`                            |
-| Engineering/security   | `docs/engineering.md`                              |
-| Engineering checklist  | `docs/engineering-checklist.md`                    |
-| Runner workflow        | `docs/autonomous-agent-runner.md`                  |
-| Environment/release    | `docs/environment-handoff.md`                      |
-| Auth/identity          | `docs/auth-identity-and-access-strategy.md`        |
-| Cost controls          | `docs/budget-and-cost-policy.md`                   |
-| Incident response      | `docs/production-incident-runbook.md`              |
-| Provider/action model  | `docs/integration-architecture.md`                 |
-| Client actions         | `docs/client-checklist.md`                         |
-| Near-term work         | `docs/whats-next.md`                               |
-| Unattended auth (S112) | `docs/feature-suites/unattended-authentication.md` |
+| Need                         | Document                                                |
+| ---------------------------- | ------------------------------------------------------- |
+| Product contract             | `docs/spec.md`                                          |
+| Current status               | `docs/status.md`                                        |
+| Current plan                 | `docs/plan.md`                                          |
+| Resume point                 | `docs/loop-state.md`                                    |
+| Open blockers                | `docs/open-blockers.md`                                 |
+| Engineering/security         | `docs/engineering.md`                                   |
+| Engineering checklist        | `docs/engineering-checklist.md`                         |
+| Runner workflow              | `docs/autonomous-agent-runner.md`                       |
+| Environment/release          | `docs/environment-handoff.md`                           |
+| Auth/identity                | `docs/auth-identity-and-access-strategy.md`             |
+| Cost controls                | `docs/budget-and-cost-policy.md`                        |
+| Incident response            | `docs/production-incident-runbook.md`                   |
+| Provider/action model        | `docs/integration-architecture.md`                      |
+| Client actions               | `docs/client-checklist.md`                              |
+| Near-term work               | `docs/whats-next.md`                                    |
+| Unattended auth (S112)       | `docs/feature-suites/unattended-authentication.md`      |
+| Renewal consolidation (S113) | `docs/feature-suites/renewal-workflow-consolidation.md` |
 
 ## Current operating contracts
 
@@ -85,14 +87,18 @@ Release acceptance and full live workflow completion remain open.
 
 Use `docs/feature-suites/README.md`. It is the sole queue for the current initiative. S96, S85, S86,
 S83, S84, and S99 are complete and deployed. S82, S97, and S98 each have a deployed baseline plus a
-bounded integrity/conformance remediation that is active and unreleased. S98's correction preserves
-safe normal append while refusing fixed-row update/delete/restore operations unsupported by a stable
-provider seam. The expanded S51/S54 production-assurance gate owns their shared release. S100 chat
+bounded integrity/conformance remediation that is active and unreleased. S98's candidate currently
+refuses normal field updates. The owner-approved S113 contract requires replacing that refusal with
+pre-approved in-app field updates; it also specifies the full manual dashboard and audited manual
+advancement. S113 local implementation, actual backend/receipt and mounted journey verification,
+all seven compiled browser checks and the 21-finding review pass. Final documentation/delivery and
+exact release gates remain pending. It precedes new automation and Dotloop execution. The
+expanded S51/S54 production-assurance gate still owns release acceptance. S100 chat
 sync is deployed; its resident-draft
 action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
 them before S36; see the README bundle section. S36 is queued behind
 complete S100, and S87-S95 plus S101 remain specification-only desired behavior. S112 (unattended
-authentication) is active: September 8 enrollment/reboot proofs passed; September 9 CLI/ADC require reauth; elapsed-session and managed
+authentication) is active: September 8 enrollment/reboot proofs passed; September 10 approved CLI/ADC refresh passed; elapsed-session and managed
 browser acceptance remain in `docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
 and facts own their contract; Git history retains provenance.
 
@@ -138,3 +144,7 @@ appropriate current document.
 B-GOLD1 closed after owner-reviewed source evidence and a single expected-label correction;
 source values and all assertions are preserved. Local authentication works after reboot.
 Elapsed-session proof, exact browser assurance and release acceptance remain pending.
+
+September 10 unblock continuation is embedded in S113 F2.4–F5.1 and the updated S106/S34 contracts.
+The supplied private template pack now replaces the prior missing-wording assumption. Production
+credentials/forms and exact live release checks remain separately owned.

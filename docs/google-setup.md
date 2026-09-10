@@ -40,9 +40,10 @@ write switch is on only for the activated S98 keys
 `google_sheets.renewal_checklist.field_update`; the broad compatibility key remains closed. S98's
 bounded proof completed against one temporary real source-backed row in the operating table. That
 row was read back, separately deleted through its receipt-bound inverse, and proven absent. Do not
-rerun the proof or create a substitute proof row. The active unreleased hardened product route uses
-this scope only for normal server-derived append; field update and fixed-row delete/restore refuse
-before writer construction until a stable provider seam exists. DWD identifiers are non-secret;
+rerun the proof or create a substitute proof row. The local S113 implementation retains normal source-derived append and adds the owner-approved
+existing-row field update through fresh target/value checks, exact confirmation, a one-attempt
+claim and receipt/readback. Row delete and historical restore remain unavailable. S113 is not yet
+deployed; the older candidate still has its normal-field refusal. DWD identifiers are non-secret;
 customer Sheet contents and values are sensitive and never enter Git/logs. The legacy copy-only
 configuration has been removed and is not a fallback.
 

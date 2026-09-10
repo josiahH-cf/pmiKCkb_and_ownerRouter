@@ -22,7 +22,13 @@ describe("active feature-suite registration", () => {
 
   it("routes agents through the single current suite index", () => {
     expect(agents).toContain("Active suites: `docs/feature-suites/README.md`");
-    expect(agents).not.toMatch(/docs\/feature-suites\/(?!README\.md)[^`\s]+\.md/);
+    // Owner-directed program pointers may name a suite; every such path must resolve
+    // through the same current index rather than introducing an unregistered authority file.
+    for (const [path] of agents.matchAll(
+      /docs\/feature-suites\/(?!README\.md)[^`\s]+\.md/g,
+    )) {
+      expect(index.split(path)).toHaveLength(2);
+    }
   });
 
   it("finds current sentinel specs", () => {

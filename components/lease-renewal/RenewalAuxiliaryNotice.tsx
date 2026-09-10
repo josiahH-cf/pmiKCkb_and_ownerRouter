@@ -11,6 +11,7 @@ export interface RenewalAuxiliaryFailure {
 
 const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   progress: "saved renewal progress",
+  manual_workspace: "recorded manual cycle and preparation",
   packet: "document packet status",
   notice_policy: "notice timing policy",
   communications: "linked communication status",
@@ -20,7 +21,10 @@ const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   comp_screenshot: "comparable-rent screenshot status",
   dispositions: "source discrepancy decisions",
   term_reviews: "recorded lease term reviews",
+  resource_locations: "shared renewal resource links",
+  recurring_charges: "RentVine recurring charge inventory",
   rentvine_proposal: "RentVine update proposal status",
+  sheet_fields: "Operating Sheet fields",
   sheet_proposal: "renewal Sheet update proposal status",
   sheet_effect_status: "renewal Sheet action status",
   attempt_summary: "confirmed external step summary",

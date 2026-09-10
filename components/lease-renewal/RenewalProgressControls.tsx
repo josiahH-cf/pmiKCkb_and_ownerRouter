@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-input";
+import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
+import type { RenewalWorkspaceAction } from "@/lib/lease-renewal/workspace-state";
 import type { MarketCompQueryBasis } from "@/lib/lease-renewal/market-comp-query-basis";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
@@ -33,7 +35,9 @@ interface RecordedDecision {
 }
 
 /** A DISPLAY-only comp lookup result (mirrors the server MarketCompResult). Never bound to offeredRent. */
-interface CompLookup {
+export interface CompLookup {
+  observationId?: string;
+  retentionError?: string;
   rangeLow?: number;
   rangeHigh?: number;
   pointEstimate?: number;
@@ -72,6 +76,8 @@ interface CompLookup {
 
 /** S60: the /markets trend lookup result the composer persists with the provider basis. */
 interface TrendLookup {
+  observationId?: string;
+  retentionError?: string;
   zipCode?: string;
   retrievedAt?: string;
   history?: Record<string, { averageRent?: unknown; medianRent?: unknown }>;
@@ -195,6 +201,7 @@ export function OwnerDecisionForm({
   address,
   currentRent,
   compScreenshotExecutable = false,
+  preparation,
 }: Readonly<{
   leaseId: string;
   current: RecordedDecision | null;
@@ -204,8 +211,24 @@ export function OwnerDecisionForm({
   currentRent?: number;
   /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
   compScreenshotExecutable?: boolean;
+  preparation?: {
+    cycleId: string;
+    market?: RenewalMarketBasis;
+    source?: string;
+    analysisReference?: string;
+    initialLookup?: CompLookup | null;
+    onSave: (
+      action: Extract<RenewalWorkspaceAction, { kind: "preparation" }>,
+    ) => Promise<void>;
+  };
 }>) {
   const router = useRouter();
+  const currentMarket = preparation?.market ?? current?.market;
+  const [preparationSource, setPreparationSource] = useState(preparation?.source ?? "");
+  const [analysisReference, setAnalysisReference] = useState(
+    preparation?.analysisReference ?? "",
+  );
+  const lookupTouched = useRef(false);
   const [decision, setDecision] = useState<OwnerDecision>(
     current?.decision ?? "increase",
   );
@@ -220,16 +243,16 @@ export function OwnerDecisionForm({
     current?.charges?.insurance !== undefined ? String(current.charges.insurance) : "",
   );
   const [rangeLow, setRangeLow] = useState(
-    current?.market?.rangeLow !== undefined ? String(current.market.rangeLow) : "",
+    currentMarket?.rangeLow !== undefined ? String(currentMarket.rangeLow) : "",
   );
   const [rangeHigh, setRangeHigh] = useState(
-    current?.market?.rangeHigh !== undefined ? String(current.market.rangeHigh) : "",
+    currentMarket?.rangeHigh !== undefined ? String(currentMarket.rangeHigh) : "",
   );
   const [pmiNumber, setPmiNumber] = useState(
-    current?.market?.pmiNumber !== undefined ? String(current.market.pmiNumber) : "",
+    currentMarket?.pmiNumber !== undefined ? String(currentMarket.pmiNumber) : "",
   );
   const [compScreenshotRef, setCompScreenshotRef] = useState(
-    current?.market?.compScreenshotRef ?? "",
+    currentMarket?.compScreenshotRef ?? "",
   );
   const [screenshotStatus, setScreenshotStatus] = useState("");
   const [screenshotPending, setScreenshotPending] = useState(false);
@@ -242,7 +265,13 @@ export function OwnerDecisionForm({
   const [rollbackRecoveryPending, setRollbackRecoveryPending] = useState(false);
   const [rollbackPreview, setRollbackPreview] =
     useState<ScreenshotRollbackPreview | null>(null);
-  const [compLookup, setCompLookup] = useState<CompLookup | null>(null);
+  const [compLookup, setCompLookup] = useState<CompLookup | null>(
+    preparation?.initialLookup ?? null,
+  );
+  useEffect(() => {
+    if (!lookupTouched.current && preparation?.initialLookup)
+      setCompLookup(preparation.initialLookup);
+  }, [preparation?.initialLookup]);
   const [trendLookup, setTrendLookup] = useState<TrendLookup | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   // S60: the INTERNAL under-market signal. Computed only from a PROVIDER basis (a fresh live
@@ -251,7 +280,7 @@ export function OwnerDecisionForm({
   const providerPointEstimate =
     compLookup?.confidence === "Likely" && compLookup.source === "RentCast"
       ? compLookup.pointEstimate
-      : current?.market?.provider?.pointEstimate;
+      : currentMarket?.provider?.pointEstimate;
   const underMarketSignal =
     currentRent !== undefined
       ? computeUnderMarketSignal({ currentRent, providerPointEstimate })
@@ -279,6 +308,7 @@ export function OwnerDecisionForm({
   // "Unknown" is never sent. Otherwise the browser nominates only the lease identity; the server
   // re-resolves every address/unit fact and decides whether a trend read has a usable postal code.
   async function lookupComps() {
+    lookupTouched.current = true;
     const trimmedAddress = (address ?? "").trim();
     if (trimmedAddress === "") {
       setCompLookup({
@@ -311,6 +341,7 @@ export function OwnerDecisionForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           leaseId,
+          ...(preparation ? { capture: { cycleId: preparation.cycleId } } : {}),
           ...(Object.keys(manualBasis).length > 0 ? { manualBasis } : {}),
         }),
       });
@@ -333,7 +364,8 @@ export function OwnerDecisionForm({
       if (
         response.ok &&
         payload.confidence === "Likely" &&
-        payload.source === "RentCast"
+        payload.source === "RentCast" &&
+        (!preparation || Boolean(payload.observationId))
       ) {
         try {
           const trendResponse = await fetch("/api/lease-renewal/market-comps", {
@@ -342,6 +374,14 @@ export function OwnerDecisionForm({
             body: JSON.stringify({
               operation: "trend",
               leaseId,
+              ...(preparation && payload.observationId
+                ? {
+                    capture: {
+                      cycleId: preparation.cycleId,
+                      compObservationId: payload.observationId,
+                    },
+                  }
+                : {}),
             }),
           });
           const trendPayload = (await trendResponse
@@ -777,7 +817,56 @@ export function OwnerDecisionForm({
     rangeHighParsed.ok &&
     pmiNumberParsed.ok;
 
+  const preparationReady =
+    rangeLowParsed.ok &&
+    rangeHighParsed.ok &&
+    pmiNumberParsed.ok &&
+    Boolean(preparationSource.trim());
   async function submit() {
+    if (preparation) {
+      if (
+        !preparationReady ||
+        !rangeLowParsed.ok ||
+        !rangeHighParsed.ok ||
+        !pmiNumberParsed.ok
+      )
+        return;
+      setPending(true);
+      setError("");
+      setSaved(false);
+      try {
+        await preparation.onSave({
+          kind: "preparation",
+          source: preparationSource,
+          ...(rangeLowParsed.value !== undefined
+            ? { rangeLow: rangeLowParsed.value }
+            : {}),
+          ...(rangeHighParsed.value !== undefined
+            ? { rangeHigh: rangeHighParsed.value }
+            : {}),
+          ...(pmiNumberParsed.value !== undefined
+            ? { pmiNumber: pmiNumberParsed.value }
+            : {}),
+          ...(compLookup?.observationId && compLookup.confidence === "Likely"
+            ? { observationId: compLookup.observationId }
+            : {}),
+          ...(trendLookup?.observationId
+            ? { trendObservationId: trendLookup.observationId }
+            : {}),
+          ...(analysisReference.trim()
+            ? { analysisReference: analysisReference.trim() }
+            : {}),
+        });
+        setSaved(true);
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Preparation could not be saved.",
+        );
+      } finally {
+        setPending(false);
+      }
+      return;
+    }
     if (!ready || !offeredRentParsed.ok) {
       setError(
         "Enter money as 1500 or $1,500.00; negative or partial values are not accepted.",
@@ -919,64 +1008,68 @@ export function OwnerDecisionForm({
 
   return (
     <div className="ui-stack">
-      <Field htmlFor={id.decision} label="Owner decision" required>
-        <select
-          id={id.decision}
-          onChange={(event) => setDecision(event.target.value as OwnerDecision)}
-          value={decision}
-        >
-          {OWNER_DECISIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field
-        htmlFor={id.rent}
-        hint="The owner-approved monthly rent to offer the tenant."
-        label="Offered rent (monthly)"
-        required
-      >
-        <input
-          id={id.rent}
-          inputMode="decimal"
-          onChange={(event) => setOfferedRent(event.target.value)}
-          placeholder="$1,500"
-          type="text"
-          value={offeredRent}
-        />
-      </Field>
-      <div className="ui-row">
-        <Field htmlFor={id.rbp} label="Resident benefit package (optional)">
-          <input
-            id={id.rbp}
-            inputMode="decimal"
-            onChange={(event) => setRbp(event.target.value)}
-            placeholder="$25"
-            type="text"
-            value={rbp}
-          />
-        </Field>
-        <Field htmlFor={id.insurance} label="Insurance (optional)">
-          <input
-            id={id.insurance}
-            inputMode="decimal"
-            onChange={(event) => setInsurance(event.target.value)}
-            placeholder="$15"
-            type="text"
-            value={insurance}
-          />
-        </Field>
-      </div>
-      <Field htmlFor={id.form} label="Tenant info form URL (optional)">
-        <input
-          id={id.form}
-          onChange={(event) => setInfoFormUrl(event.target.value)}
-          type="url"
-          value={infoFormUrl}
-        />
-      </Field>
+      {!preparation ? (
+        <>
+          <Field htmlFor={id.decision} label="Owner decision" required>
+            <select
+              id={id.decision}
+              onChange={(event) => setDecision(event.target.value as OwnerDecision)}
+              value={decision}
+            >
+              {OWNER_DECISIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            htmlFor={id.rent}
+            hint="The owner-approved monthly rent to offer the tenant."
+            label="Offered rent (monthly)"
+            required
+          >
+            <input
+              id={id.rent}
+              inputMode="decimal"
+              onChange={(event) => setOfferedRent(event.target.value)}
+              placeholder="$1,500"
+              type="text"
+              value={offeredRent}
+            />
+          </Field>
+          <div className="ui-row">
+            <Field htmlFor={id.rbp} label="Resident benefit package (optional)">
+              <input
+                id={id.rbp}
+                inputMode="decimal"
+                onChange={(event) => setRbp(event.target.value)}
+                placeholder="$25"
+                type="text"
+                value={rbp}
+              />
+            </Field>
+            <Field htmlFor={id.insurance} label="Insurance (optional)">
+              <input
+                id={id.insurance}
+                inputMode="decimal"
+                onChange={(event) => setInsurance(event.target.value)}
+                placeholder="$15"
+                type="text"
+                value={insurance}
+              />
+            </Field>
+          </div>
+          <Field htmlFor={id.form} label="Tenant info form URL (optional)">
+            <input
+              id={id.form}
+              onChange={(event) => setInfoFormUrl(event.target.value)}
+              type="url"
+              value={infoFormUrl}
+            />
+          </Field>
+        </>
+      ) : null}
       <p className="muted">
         Comp basis (optional). Your own numbers, shown source-tagged in the owner email. A
         separate comp-derived suggestion needs Admin approval before it enters a draft.
@@ -1276,18 +1369,61 @@ export function OwnerDecisionForm({
           {underMarketSignal.message}
         </p>
       ) : null}
+      {preparation ? (
+        <>
+          <Field
+            htmlFor={`${id.rangeLow}-source`}
+            label="Typed evidence source / review note"
+          >
+            <input
+              id={`${id.rangeLow}-source`}
+              value={preparationSource}
+              onChange={(event) => setPreparationSource(event.target.value)}
+            />
+          </Field>
+          <Field
+            htmlFor={`${id.rangeLow}-analysis`}
+            label="External analysis reference (optional)"
+          >
+            <input
+              id={`${id.rangeLow}-analysis`}
+              value={analysisReference}
+              onChange={(event) => setAnalysisReference(event.target.value)}
+            />
+          </Field>
+          {currentMarket?.provider ? (
+            <p>
+              Retained provider basis: {currentMarket.provider.source}, retrieved{" "}
+              {currentMarket.provider.retrievedAt}. A failed lookup does not erase it.
+            </p>
+          ) : null}
+          {compLookup?.retentionError ? (
+            <p role="alert">{compLookup.retentionError}</p>
+          ) : null}
+        </>
+      ) : null}
       <div className="ui-row">
-        <Button disabled={!ready || pending} onClick={() => void submit()} type="button">
+        <Button
+          disabled={pending || (preparation ? !preparationReady : !ready)}
+          onClick={() => void submit()}
+          type="button"
+        >
           {pending
             ? "Saving…"
-            : current
-              ? "Update owner decision"
-              : "Record owner decision"}
+            : preparation
+              ? "Save comp preparation"
+              : current
+                ? "Update owner decision"
+                : "Record owner decision"}
         </Button>
       </div>
       {error ? <p className="muted">{error}</p> : null}
       {saved && !error ? (
-        <p className="muted">Decision recorded. The tenant offer is ready below.</p>
+        <p className="muted">
+          {preparation
+            ? "Preparation saved and read back. Owner approval remains separate."
+            : "Decision recorded. The tenant offer is ready below."}
+        </p>
       ) : null}
     </div>
   );

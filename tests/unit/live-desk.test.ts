@@ -42,6 +42,8 @@ import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 import type { DeskReconItem } from "@/lib/lease-renewal/desk-model";
 import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 
+import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
+
 // The loaders use the shared module-level export cache; reset it so cases don't leak reads.
 beforeEach(clearLiveLeaseCache);
 
@@ -225,6 +227,54 @@ type DeskConfigArg = Parameters<typeof loadLiveRenewalDesk>[2];
 type WorkspaceConfigArg = Parameters<typeof loadLiveRenewalLeaseWorkspace>[2];
 
 describe("loadLiveRenewalDesk", () => {
+  it("keeps the active window label and retains unfinished manual cycles outside it", async () => {
+    const manual = new Map(
+      ["4821", "8004", "7003", "9007"].map((id) => [
+        id,
+        emptyRenewalWorkspace(id, `cycle-${id}`, {
+          kind: "lease_end",
+          dateIso: id === "4821" ? "2026-08-31" : "2026-12-31",
+          source: "Reviewed lease",
+        }),
+      ]),
+    );
+    const result = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      true,
+      snapshotResult([
+        ...EXPORT_ROWS,
+        {
+          lease: {
+            leaseID: 9007,
+            endDate: "2026-08-31",
+            program: "PadSplit",
+            tenants: [{ name: "Program Tenant" }],
+          },
+          unit: { rent: "1200.00" },
+        },
+      ]),
+      undefined,
+      manual,
+    );
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") throw new Error("Expected desk read");
+    expect(result.view.items.find((item) => item.id === "4821")?.retention.state).toBe(
+      "window",
+    );
+    expect(result.view.items.find((item) => item.id === "8004")?.retention.state).toBe(
+      "tracked_incomplete",
+    );
+    const skipped = result.view.items.find((item) => item.id === "9007");
+    expect(skipped?.retention.state).toBe("outside");
+    expect(skipped?.manualProgress).toBeUndefined();
+    expect(manual.get("9007")).toBeDefined();
+  });
   it("reuses one injected lease generation instead of rereading the provider", async () => {
     let providerCalls = 0;
     const config = okConfig(async () => {

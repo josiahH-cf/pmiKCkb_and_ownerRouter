@@ -59,6 +59,7 @@ describe("S74 renewal copy authority boundary", () => {
     expect(callers).toEqual([
       "lib/lease-renewal/execution/renewal-draft-preview.ts",
       "lib/lease-renewal/execution/renewal-draft-request.ts",
+      "lib/lease-renewal/execution/supplied-renewal-draft-preview.ts",
     ]);
   });
 

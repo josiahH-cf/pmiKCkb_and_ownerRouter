@@ -250,7 +250,9 @@ export function RenewalNoticeDraftComposer({
       setCopySelections((current) =>
         next.templateRef === "owner-renewal:v1.0"
           ? { ...current, owner: next }
-          : { ...current, tenant: next },
+          : next.templateRef === "tenant-renewal:v1.0"
+            ? { ...current, tenant: next }
+            : current,
       );
       setPreviewBinding(null);
       setOutcome(null);

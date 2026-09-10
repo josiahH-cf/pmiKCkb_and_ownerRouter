@@ -160,6 +160,7 @@ export class GmailRuntimeClient {
           cc?: string[];
           subject: string;
           body: string;
+          htmlBody?: string;
           messageId?: string;
           attachment?: {
             filename: string;

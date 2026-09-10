@@ -8,6 +8,7 @@
 // write scope substituted. It never logs a cell value.
 
 import { GoogleAuth, type AuthClient } from "google-auth-library";
+import { readSheetCellEvidence, type SheetCellEvidence } from "./cell-evidence";
 
 // The read/WRITE Sheets scope. Enabling a live write requires this scope to be added to the SA's
 // domain-wide-delegation grant in Admin console → Security → API controls → Domain-wide delegation.
@@ -232,6 +233,17 @@ export class GoogleSheetsApiWriter implements SheetsValuesWriter {
     }
     const body = (await response.json()) as { values?: string[][] };
     return body.values ?? [];
+  }
+
+  async getCellEvidence(
+    spreadsheetId: string,
+    range: string,
+  ): Promise<SheetCellEvidence> {
+    return readSheetCellEvidence({
+      spreadsheetId,
+      range,
+      authorization: await this.authToken(),
+    });
   }
 
   async updateValues(

@@ -7,6 +7,7 @@
 
 export const RENEWAL_AUXILIARY_READ_KEYS = [
   "progress",
+  "manual_workspace",
   "packet",
   "notice_policy",
   "communications",
@@ -17,7 +18,10 @@ export const RENEWAL_AUXILIARY_READ_KEYS = [
   "dispositions",
   "term_reviews",
   "rentvine_proposal",
+  "recurring_charges",
+  "resource_locations",
   "sheet_proposal",
+  "sheet_fields",
   "sheet_effect_status",
   "attempt_summary",
 ] as const;

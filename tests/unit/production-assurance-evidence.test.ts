@@ -231,3 +231,37 @@ describe("production assurance evidence", () => {
     ).toThrow(/cannot exceed two/);
   });
 });
+
+it("serializes only actual Admin routes under the explicitly recorded owner policy", () => {
+  const evidence: ProductionAssuranceEvidence = {
+    ...validEvidence(),
+    phase: "post_promotion",
+    actorRole: null,
+    observation: {
+      browserPolicy: "owner-admin-2026-09-10",
+      decision: "passed",
+      successfulCheckpoints: 2,
+      elapsedMs: 300000,
+      windowMs: 300000,
+      reasons: [],
+      rollbackRevision: null,
+    },
+  };
+  const parsed = JSON.parse(serializeProductionAssuranceEvidence(evidence));
+  expect(parsed.observation.browserPolicy).toBe("owner-admin-2026-09-10");
+  expect(
+    parsed.routes.every((route: { actorRole: string }) => route.actorRole === "Admin"),
+  ).toBe(true);
+  expect(() =>
+    serializeProductionAssuranceEvidence({
+      ...evidence,
+      observation: { ...evidence.observation!, browserPolicy: "admin-editor" },
+    }),
+  ).toThrow();
+  expect(() =>
+    serializeProductionAssuranceEvidence({
+      ...evidence,
+      routes: [...evidence.routes, ...roleRoutes("Editor")],
+    }),
+  ).toThrow();
+});

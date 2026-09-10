@@ -72,6 +72,29 @@ const API_EXPECTATIONS = [
   ],
   ["app/api/lease-renewal/writeback-approvals/route.ts", "POST", "approve_source_write"],
   ["app/api/lease-renewal/writeback-execute/route.ts", "POST", "execute_source_write"],
+  [
+    "app/api/lease-renewal/correction-review/route.ts",
+    "POST",
+    "record_discrepancy_disposition",
+  ],
+  ["app/api/lease-renewal/document-artifact/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/document-handoff/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/document-handoff/route.ts", "POST", "execute_document_packet"],
+  ["app/api/lease-renewal/message-attachment/route.ts", "GET", "screenshot_store"],
+  ["app/api/lease-renewal/message-preparation/route.ts", "GET", "read_workspace"],
+  [
+    "app/api/lease-renewal/message-preparation/route.ts",
+    "POST",
+    "approve_message_template",
+  ],
+  ["app/api/lease-renewal/resource-locations/route.ts", "GET", "read_workspace"],
+  [
+    "app/api/lease-renewal/resource-locations/route.ts",
+    "POST",
+    "manage_renewal_configuration",
+  ],
+  ["app/api/lease-renewal/workspace/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/workspace/route.ts", "POST", "save_renewal_progress"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {

@@ -57,7 +57,10 @@ export async function loadSheetWritebackEffectStatuses(
           }
         : {}),
       reversal_state: reversalState,
-      effect_executable: entry.effect.kind === "row_append",
+      effect_executable:
+        proposal.scope.kind === "lease_workspace" &&
+        (entry.effect.kind === "row_append" ||
+          Boolean(entry.effect.staffIntent || entry.effect.authorization)),
       reversal_executable: false,
     });
   }

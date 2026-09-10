@@ -28,14 +28,16 @@ or cause provider effects.
 - Join by stable lease/row identity; never persist address/name as the sole key.
 - Land renewal work on one sortable, filterable table with per-lease identity, RentVine renewal
   date and current base rent, deterministic status/verification states, and direct blocker links;
-  the guided workspace shows a six-phase rail, one next action, and one selected phase.
+  serving software uses a six-phase workspace. Local S113 replaces that navigation barrier with one
+  dashboard, working source links, accessible sections and an actionable next control.
 - Classify agreement, conflict, one-sided, missing, intentional semantic difference, stale, and
   ambiguous joins.
 - Verify current rent only from fresh agreement or exact current resolution.
 - Use RentCast as a reference input with source link, cache, counter, and allowance stop.
 - Keep offered rent Admin-approved and separate from provider estimates.
-- Pin new renewal work to the immutable six-step `renewal-v1` process; derive substep state from exact
-  evidence, preserve historical legacy meaning, and reopen only affected downstream work.
+- Preserve the immutable six-step `renewal-v1` provider evidence and historical meaning. S113 adds
+  separate audited manual activity that advances the full checklist through staff-recorded
+  completion; it cannot fabricate provider receipts. Reopen affected work when its terms change.
 - Let Renewals-space Editors read and perform ordinary app-owned work; keep Approver reconciliation,
   Admin pricing/source approvals and configuration, and exact action readiness as independent terms.
 - Address all owners/tenants of record through separated channels.
@@ -57,10 +59,11 @@ provider idempotency, receipt, readback, ambiguity recovery, and separate revers
 manual chat sync is the sole specified non-reversible stateful-read exception: its explicit warning
 states that RentVine marks retrieved manager messages read and documents no unread restoration.
 The exact S97 renewal writes, S98 operating-Sheet keys, S99 work-order operations, and S100 manual
-chat sync are deployed and open only behind their exact contracts. S98's active unreleased
-hardening retains normal row append but refuses fixed-row field update/delete/restore because the
-current Sheets integration cannot atomically bind a logical row and expected generation; open-key
-state does not override that capability boundary. The S100
+chat sync are deployed and open only behind their exact contracts. The S98 candidate currently
+retains append but refuses normal field updates. Local S113 implements the owner-preapproved in-app updates to
+recognized renewal fields without a new provider-contract approval: fresh target/value checks,
+exact confirmation, one-attempt execution, receipt/readback and fresh confirmed correction remain.
+Row deletion and completed proof replay remain unavailable. The S100
 resident-reply Gmail draft remains closed pending its exact eligible mapping, proof, and activation.
 Direct notice sends, generic/bulk provider calls, vendor assignment, attachments, RentVine chat
 posting, and autonomous/model-triggered effects remain out of scope.
@@ -85,3 +88,10 @@ key. S36 is queued behind complete S100 and has not started. S87-S95 and S101 ar
 specification-only desired behavior, not current Dashboard AI, minimal-home, decluttering, or broad
 assistant-read capability. All product decisions are closed; a missing runtime input blocks only
 its dependent gate and is never permission to invent or substitute evidence.
+
+The September 10 S113 amendment explicitly repairs the existing RentCast comp/trend feature and
+incorporates supplied private owner/tenant templates. One deterministic content model supplies
+reviewed rich/plain copy and the existing governed Gmail draft path; mailbox readiness cannot block
+local preparation. Exact RentVine operations, pending Sheet synchronization, cycle isolation and
+manual applicability are specified in S113 F2.4–F4.1. S106/S34 own the prepared Dotloop packet end
+state and conditional deployment; absent signature-send/status capability is not invented.

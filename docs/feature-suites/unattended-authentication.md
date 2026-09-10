@@ -95,8 +95,9 @@ recipient, refusing missing/conflicting values without changing the approved loc
   CI for that exact main SHA, from a clean isolated checkout. The development worktree is unchanged.
 - **BEH-S112-3** — Enrolled browser profiles regain app sessions without credential entry. A fresh
   or challenged profile stops at `human_required` with one enrollment command.
-- **BEH-S112-4** — Both existing managed Admin and Editor profiles authenticate on both the exact
-  candidate and canonical origins. The complete receipt run passes before promotion.
+- **BEH-S112-4** — The existing owner Admin profile authenticates on both exact candidate and canonical
+  origins under the September 10 owner amendment. Editor browser is not required and is recorded
+  not run; backend Editor authorization remains tested. The complete receipt passes before promotion.
 - **BEH-S112-5** — An auth failure names one recovery command, stops only the dependent phase and
   does not loop interactive login or restart a comprehensive run.
 - **BEH-S112-6** — Canary reads and displayed roles remain intact; business effects return 403

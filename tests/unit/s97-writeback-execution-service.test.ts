@@ -13,6 +13,7 @@ import {
   buildRecurringChargeCreateBaseline,
   buildRenewalWritebackProposal,
   legacyRenewalWritebackExecutionId,
+  projectRecurringCharge,
   renewalWritebackReversalExecutionId,
   type RecurringChargeProjection,
   type RenewalWritebackProposal,
@@ -71,6 +72,7 @@ interface Harness {
     gateExecutable: boolean;
     /** S51 refusal shape; the injected gate resolves every one of these to non-executable. */
     gateRefusalState?: "action_suspended" | "global_suspended" | "unreadable";
+    beforeGateRun?: () => void;
   };
   createWriterSpy: ReturnType<typeof vi.fn>;
 }
@@ -223,6 +225,7 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
         if (!state.gateExecutable || state.gateRefusalState !== undefined) {
           throw new Error("gate closed");
         }
+        state.beforeGateRun?.();
         return effect();
       },
     }),
@@ -1290,5 +1293,68 @@ describe("S97 environment boundary", () => {
     });
     const proposal = buildRenewalWritebackProposal(proposalInput());
     await expectCode(service.executeEffect(confirmed(proposal)), "environment_refused");
+  });
+});
+
+describe("S113 persisted current-base billing intent", () => {
+  const current = () => ({ ...charge(), account: { accountID: "9", isRent: "1" } });
+  function currentProposal() {
+    return buildRenewalWritebackProposal(
+      proposalInput({
+        businessIntent: "current_base",
+        effects: [
+          {
+            kind: "recurring_charge_update",
+            chargeId: "701",
+            before: projectRecurringCharge(current()),
+            changes: { amount: "1275.00" },
+          },
+        ],
+      }),
+    );
+  }
+  it("binds the intent into its generation and verifies one current rent-charge update", async () => {
+    const h = harness({ charges: new Map([["701", current()]]) });
+    const proposal = currentProposal();
+    const ordinary = buildRenewalWritebackProposal(
+      proposalInput({ effects: proposal.effects.map((entry) => entry.effect) }),
+    );
+    expect(proposal.previewHash).not.toBe(ordinary.previewHash);
+    const result = await h.service.executeEffect(confirmed(proposal));
+    expect(result.receipt.liveEvidenceEligible).toBe(true);
+    expect(h.calls).toHaveLength(1);
+    expect(h.state.charges.get("701")?.amount).toBe("1275.00");
+    expect(h.state.lease).toEqual(proposal.leaseState);
+  });
+  it.each([
+    { account: { accountID: "9", isRent: "0" } },
+    { account: { accountID: "10", isRent: "1" } },
+    { startDate: "10/01/2026", recurringStatusID: 2 as const },
+    { endDate: "09/01/2026" },
+  ])(
+    "refuses reclassified, future or boundary-day charges before claiming: %j",
+    async (changed) => {
+      const h = harness({ charges: new Map([["701", { ...current(), ...changed }]]) });
+      await expectCode(
+        h.service.executeEffect(confirmed(currentProposal())),
+        "provider_state_drift",
+      );
+      expect(h.createWriterSpy).not.toHaveBeenCalled();
+      expect(h.calls).toHaveLength(0);
+    },
+  );
+  it("rereads classification inside the gate before writer construction", async () => {
+    const h = harness({ charges: new Map([["701", current()]]) });
+    h.state.beforeGateRun = () =>
+      h.state.charges.set("701", {
+        ...current(),
+        account: { accountID: "9", isRent: "0" },
+      } as RecurringChargeProjection);
+    await expectCode(
+      h.service.executeEffect(confirmed(currentProposal())),
+      "provider_state_drift",
+    );
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
+    expect(h.calls).toHaveLength(0);
   });
 });

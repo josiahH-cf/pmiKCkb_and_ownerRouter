@@ -34,6 +34,7 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("cc_source_refs", "Co-tenant Cc sources", "string", "KB Internal", false),
     f("subject", "Subject", "string"),
     f("body", "Exact draft body", "string"),
+    f("html_body", "Exact reviewed HTML body", "string", "KB Internal", false),
     f("recipient_source_ref", "Recipient source", "reference"),
     f("mailbox_source_ref", "Mailbox source", "reference"),
     f("draft_banner_present", "Review banner present", "boolean"),

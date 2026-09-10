@@ -1,3 +1,8 @@
+import { currentRentCorrectionKey } from "./current-rent-correction";
+import {
+  manualRenewalSummary,
+  type RenewalWorkspaceState,
+} from "@/lib/lease-renewal/workspace-state";
 // Server-only loaders for the owner-gated LIVE Renewal Desk (read-only / draft-only).
 //
 // This module projects the neutral `RenewalDeskView` / `RenewalLeaseWorkspace` shapes from a REAL
@@ -23,6 +28,7 @@ import {
   RENTVINE_SOURCE_SYSTEM,
   leaseCurrentRent,
   leaseUnitListedRent,
+  leaseTotalRentAmount,
   leaseEndDateIso,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
@@ -88,7 +94,10 @@ import {
   buildRenewalDeskWindow,
   withRenewalDeskQueryKeys,
 } from "@/lib/lease-renewal/desk-query";
-import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
+import {
+  readRenewalSheetGridsWithLinks,
+  type RenewalSheetReadWithLinks,
+} from "@/lib/lease-renewal/sheet-links";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import {
   effectiveStageIndex,
@@ -373,8 +382,13 @@ function outcomeToDeskItem(outcome: ReconciledFieldOutcome): DeskReconItem {
     // identity contract, so a workspace-only synonym would make an otherwise current decision look
     // stale even when its trigger and candidate fingerprint still match.
     fieldLabel: outcome.fieldLabel,
-    ...(outcome.queueMapping?.queueItem.source_trigger_key
-      ? { sourceTriggerKey: outcome.queueMapping.queueItem.source_trigger_key }
+    ...((outcome.queueMapping?.queueItem.source_trigger_key ??
+    currentRentCorrectionKey(outcome, LIVE_DESK_RUN_ID))
+      ? {
+          sourceTriggerKey:
+            outcome.queueMapping?.queueItem.source_trigger_key ??
+            currentRentCorrectionKey(outcome, LIVE_DESK_RUN_ID)!,
+        }
       : {}),
     candidateFingerprint: outcome.candidateFingerprint,
     agreement,
@@ -486,12 +500,18 @@ function retentionFor(
   windows: readonly DateWindow[],
   progress: RenewalProgress | null,
   progressStateAvailable = true,
+  manual?: RenewalWorkspaceState | null,
 ): RenewalDeskRetentionState {
   // A definitive source-backed skip is not renewal work, even if obsolete progress survived from a
   // prior classification. It remains visible as a skipped source row without a process/action.
   if (classification.disposition === "skip") {
     return { state: "outside", label: "Excluded from the renewal workflow" };
   }
+  const manualPending = Boolean(
+    manual &&
+    (!manualRenewalSummary(manual).complete ||
+      manualRenewalSummary(manual).pendingSourceUpdates > 0),
+  );
   // S103: a month-to-month lease follows the annual review rhythm instead of the monthly cohort.
   // Without an anchor its review date is unknown, so it stays visible for the operator to record.
   if (classification.disposition === "periodic_review") {
@@ -508,6 +528,12 @@ function retentionFor(
         label: `Periodic review due ${nextReviewIso}`,
       };
     }
+    if (manualPending)
+      return {
+        state: "tracked_incomplete",
+        label:
+          "Recorded renewal work or source updates retained outside the active window",
+      };
     return {
       state: "outside",
       label: `Periodic review scheduled ${nextReviewIso}, outside the active window`,
@@ -526,6 +552,11 @@ function retentionFor(
       label: "Inside the current-month renewal window",
     };
   }
+  if (manualPending)
+    return {
+      state: "tracked_incomplete",
+      label: "Recorded renewal work or source updates retained outside the active window",
+    };
   if (progress && !progress.complete) {
     return {
       state: "tracked_incomplete",
@@ -548,6 +579,7 @@ function toLiveSummary(
   dataCheck?: DeskReconItem[],
   progress?: RenewalProgress | null,
   progressStateAvailable = true,
+  manual?: RenewalWorkspaceState | null,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
@@ -556,6 +588,7 @@ function toLiveSummary(
     windows,
     progress ?? null,
     progressStateAvailable,
+    manual,
   );
   const isActionable = classification.disposition === "actionable";
   const processVisible =
@@ -575,6 +608,9 @@ function toLiveSummary(
   const ownerLabels = identity.owners.map((fact) => fact.label);
   return {
     id: leaseId,
+    ...(manual && classification.disposition !== "skip"
+      ? { manualProgress: manualRenewalSummary(manual) }
+      : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
     propertyNameLabel: identity.property?.label ?? null,
     tenantNameLabel: tenantLabels[0] ?? "Needs Verification",
@@ -588,6 +624,7 @@ function toLiveSummary(
     leaseTerm: classification.termProjection,
     currentRent: leaseCurrentRent(view) ?? null,
     unitListedRent: leaseUnitListedRent(view) ?? null,
+    leaseTotalRent: leaseTotalRentAmount(view) ?? null,
     retention,
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
@@ -1095,6 +1132,9 @@ export async function loadLiveRenewalDesk(
   leaseSnapshotResult?: LiveLeaseSnapshotResult,
   /** S103: current app-owned term reviews by lease id; a drifted record is ignored as stale. */
   termReviews: ReadonlyMap<string, LeaseTermReviewFact> | undefined = undefined,
+  manualByLease?: ReadonlyMap<string, RenewalWorkspaceState>,
+  /** Fresh read already started by this same desk render; never a cross-render Sheet cache. */
+  preparedSheetRead?: RenewalSheetReadWithLinks,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1103,11 +1143,12 @@ export async function loadLiveRenewalDesk(
       (await getLiveLeaseSnapshot(config.rentvineClient, Date.parse(readTimestamp)));
     const { views, complete } = snapshot;
     const { tables, tableJoinIds, tableRentvineSourceUrls } =
-      await readRenewalSheetGridsWithLinks({
+      preparedSheetRead ??
+      (await readRenewalSheetGridsWithLinks({
         reader: config.sheetsReader,
         spreadsheetId: config.spreadsheetId,
         tabTitles: LIVE_DESK_TABS,
-      });
+      }));
     const portfolioOutcomes = reconcileLeaseFields(
       views,
       tables,
@@ -1164,6 +1205,7 @@ export async function loadLiveRenewalDesk(
         undefined,
         progress,
         progressStateAvailable,
+        classification.leaseId ? manualByLease?.get(classification.leaseId) : null,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility. If the operating Sheet carries
@@ -1203,6 +1245,7 @@ export async function loadLiveRenewalDesk(
             dataCheck,
             progress,
             progressStateAvailable,
+            classification.leaseId ? manualByLease?.get(classification.leaseId) : null,
           )
         : initialSummary;
       if (
@@ -1363,6 +1406,7 @@ export async function loadLiveRenewalLeaseWorkspace(
   leaseSnapshotAttempt?: AttemptedLiveLeaseSnapshotResult,
   /** S103: this lease's current app-owned term review, when one was read. */
   termReview: LeaseTermReviewFact | null = null,
+  manual: RenewalWorkspaceState | null = null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1426,7 +1470,15 @@ export async function loadLiveRenewalLeaseWorkspace(
     const currentRent = currentRentDecision.currentRent;
     // S59: known unit attributes for the comp lookup; absent stays absent.
     const compAttributes = compAttributesOf(view);
-    let summary = toLiveSummary(view, classification, windows, dataCheck, progress);
+    let summary = toLiveSummary(
+      view,
+      classification,
+      windows,
+      dataCheck,
+      progress,
+      true,
+      manual,
+    );
     const workflowAvailable =
       classification.disposition === "actionable" ||
       summary.retention.state === "tracked_incomplete";

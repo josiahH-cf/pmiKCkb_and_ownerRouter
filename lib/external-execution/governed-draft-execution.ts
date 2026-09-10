@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   assertLiveProviderActionAllowed,
   requireEnvironmentDescriptor,
@@ -78,6 +79,15 @@ function assertEffectEnvironment(seams: GovernedDraftSeams) {
     return;
   }
   assertLiveProviderActionAllowed(requireEnvironmentDescriptor());
+}
+
+export class GovernedDraftConnectionError extends EditableLayerError {
+  constructor() {
+    super(
+      "Managed Gmail is unavailable. Your saved message remains copyable. No Gmail request was made by this connection check. Any earlier attempt keeps its saved status. Restore the connection, then use the same draft's confirmation or recovery control.",
+      409,
+    );
+  }
 }
 
 function trustedContext(
@@ -186,6 +196,13 @@ export async function executeGovernedDraft(
     }
     resolvedAttachment = resolved;
   }
+  // Keep construction in the exact gated entry point; connection failure does not claim an attempt.
+  let client: RenewalDraftGmailClient;
+  try {
+    client = request.createClient();
+  } catch {
+    throw new GovernedDraftConnectionError();
+  }
   const execute = seams.execute ?? executeExternalActionWithS20;
   return execute(actor, {
     action: request.action,
@@ -193,7 +210,7 @@ export async function executeGovernedDraft(
     definition: request.definition,
     executionId: request.executionId,
     executor: new LeaseGmailExecutor(
-      new LiveRenewalGmailDraftProvider(request.createClient(), resolvedAttachment),
+      new LiveRenewalGmailDraftProvider(client, resolvedAttachment),
     ),
     trustedContext: trustedContext(request.action),
   });
@@ -209,14 +226,19 @@ export async function reconcileGovernedDraft(
   seams: GovernedDraftSeams = {},
 ) {
   assertEffectEnvironment(seams);
+  // This client is used only for read-only recovery of the original attempt.
+  let client: RenewalDraftGmailClient;
+  try {
+    client = request.createClient();
+  } catch {
+    throw new GovernedDraftConnectionError();
+  }
   const reconcile = seams.reconcile ?? reconcileExternalActionWithS20;
   return reconcile(actor, {
     action: request.action,
     definition: request.definition,
     executionId: request.executionId,
-    executor: new LeaseGmailExecutor(
-      new LiveRenewalGmailDraftProvider(request.createClient()),
-    ),
+    executor: new LeaseGmailExecutor(new LiveRenewalGmailDraftProvider(client)),
     trustedContext: trustedContext(request.action),
   });
 }

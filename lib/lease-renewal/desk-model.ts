@@ -1,3 +1,4 @@
+import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
 // This module contains no records, fixtures, or constructors. Deterministic sample data belongs in
@@ -131,6 +132,7 @@ export interface RenewalDeskQueryKeys {
 }
 
 export interface DeskLeaseSummaryBase {
+  manualProgress?: ReturnType<typeof manualRenewalSummary>;
   id: string;
   addressLabel: string;
   propertyNameLabel: string | null;
@@ -151,6 +153,8 @@ export interface DeskLeaseSummaryBase {
    */
   currentRent: number | null;
   unitListedRent: number | null;
+  /** Provider lease total, kept separate from contractual base rent and unit reference. */
+  leaseTotalRent?: number | null;
   retention: RenewalDeskRetentionState;
   processVersion: string | null;
   workflowStepId: string | null;
@@ -172,7 +176,7 @@ export interface DeskLeaseSummary extends DeskLeaseSummaryBase {
 
 /** S82 guidance vocabulary — pure serializable types; the builder lives in `desk-guidance.ts`. */
 export type DeskGuidanceDestination =
-  | { kind: "workspace_phase"; stepId: RenewalProcessStepId }
+  | { kind: "workspace_phase"; stepId: RenewalProcessStepId; controlId?: string }
   | { kind: "none" };
 
 export type DeskBlockerType = "source" | "evidence" | "dependency";

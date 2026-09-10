@@ -121,3 +121,46 @@ function jsonResponse(body: object) {
     status: 200,
   });
 }
+
+describe("S113 exact typed cell readback", () => {
+  it("reads the exact cell value, formula, format and checkbox evidence without a mutation", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        sheets: [
+          {
+            data: [
+              {
+                rowData: [
+                  {
+                    values: [
+                      {
+                        userEnteredValue: { boolValue: true },
+                        formattedValue: "TRUE",
+                        effectiveFormat: { numberFormat: { type: "TEXT" } },
+                        dataValidation: { condition: { type: "BOOLEAN" } },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const writer = new GoogleSheetsApiWriter();
+    await expect(
+      writer.getCellEvidence("sheet-1", "'Lease Renewal'!F8"),
+    ).resolves.toEqual({
+      value: { boolValue: true },
+      formattedValue: "TRUE",
+      numberFormat: "TEXT",
+      checkbox: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(new URL(url).searchParams.get("ranges")).toBe("'Lease Renewal'!F8");
+    expect(options.method ?? "GET").toBe("GET");
+  });
+});

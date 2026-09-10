@@ -9,7 +9,7 @@
 **Goal.**
 
 Keep Production observable, identity-safe, recoverable, and releaseable, and prove that the exact
-served revision works for real Admin and Editor sessions without persisting customer data or
+served revision works for the owner-approved Admin session without persisting customer data or
 authentication material.
 
 **What it is / how it functions.**
@@ -24,10 +24,10 @@ The lane has six ordered parts:
    captured predecessor. Capture one SHA-256 fingerprint over that revision's complete runtime
    configuration, excluding only explicit output-only control-plane fields, and require that exact
    fingerprint in all later candidate and post-promotion reads. Before promotion, prove the exact
-   predecessor at 100-percent traffic with its commit, configuration fingerprint, both managed-role
-   rollback-phase canaries, and monitoring readiness; persist only those bodyless baseline results.
-2. Run the same read-only route manifest with dedicated managed `pmikcmetro.com` Admin and Editor
-   browser profiles that are already authenticated on the exact candidate origin. Start each
+   predecessor at 100-percent traffic with its commit, configuration fingerprint, the complete Admin
+   rollback-phase canary, and monitoring readiness; persist only those bodyless baseline results.
+2. Run the same read-only route manifest with the existing managed `josiah@pmikcmetro.com` Admin
+   browser profile that are already authenticated on the exact candidate origin. Start each
    persistent browser context offline with Service Workers blocked, install the GET/HEAD-only
    firewall, close restored bootstrap pages, prove no Service Worker survived, and only then bring
    the context online. No form submission, action confirmation, provider write, draft creation, or
@@ -36,6 +36,11 @@ The lane has six ordered parts:
    `lease_renewal_progress` reads against an independent source/retention projection and the semantic
    Renewal Desk rendered by that revision. Progress is read directly to derive tracked-incomplete
    retention and expected dispositions; a malformed or duplicate progress identity fails closed.
+   Read S113 manual workspace heads directly through the persisted schema and exact hashed lease
+   identity. Independently derive next activity, staff completion and pending source updates; bind
+   them into before/after drift detection and verify the rendered markers, label and exact action
+   anchor. Pending manual work retains an eligible lease outside the window; a definitive source
+   skip still wins. Staff completion never becomes provider-verified evidence.
    Separately validate the app-owned S72 process-status/current-step/current-step-state/waiting
    markers and map them with external source precedence to the exact displayed status and action.
    The exact verified revision supplies the Sheet id, project service account, and managed
@@ -48,14 +53,14 @@ The lane has six ordered parts:
    be enabled with the exact type and address and not `UNVERIFIED` (the API omits
    `verificationStatus` for a channel type that needs no verification). Configuration readback
    proves configuration, not human receipt of an alert.
-5. Emit one fresh candidate-assurance receipt only after the exact origin binding, both role
-   manifests, source reconciliation, immutable configuration, predecessor identity, and monitoring
+5. Emit one fresh candidate-assurance receipt only after the exact origin binding, the complete Admin
+   manifest, source reconciliation, immutable configuration, predecessor identity, and monitoring
    configuration pass. Production promotion accepts no collection of independently invoked commands
    as a substitute for that aggregate receipt. It reserves a new promotion-receipt path before
    traffic changes and durably records the exact promotion coordinates only after 100-percent serving
    readback.
 6. After promotion, observe the exact revision over the closed interval from promotion through minute
-   five. Run the Admin/Editor canaries and source reconciliation immediately and again at the end,
+   five. Run the Admin canaries and source reconciliation immediately and again at the end,
    then read candidate-revision 5xx and unresolved-live-effect metrics/logs for that exact interval.
    Complete corroborated evidence may pass at minute five. If metric/log ingestion is still missing,
    remain `observing` for at most two additional minutes; missing evidence hard-fails at minute seven.
@@ -69,12 +74,13 @@ Editor manifest covers the shared routes and proves Admin and People routes rema
 enumerating Admin data. The managed actors must already carry the expected roles and required
 Renewals/Maintenance scopes; the harness never assigns or requests access.
 
-The two managed sessions are release prerequisites, not credentials the harness creates. Each must
-be an explicit profile directory outside the repository, carry exactly the expected current role and
-Space access, and prove authentication on the tagged zero-traffic candidate origin. A session that
-works only on the canonical production hostname, a copied cookie, a default or guessed browser
-profile, Demo auth, password/MFA automation, or one actor standing in for both roles is not candidate
-evidence.
+The September 10 owner amendment accepts the existing owner Admin session as the browser release
+prerequisite. It must use the explicit external `/home/josiah/pmi-assurance/owner-admin` profile and
+read back Admin on both candidate and canonical origins. Version 3 candidate/promotion receipts
+bind `owner-admin-2026-09-10`; candidate and predecessor results record Editor `not_run`.
+Admin access is not evidence of Editor restrictions. Existing Editor manifests and backend
+authorization tests remain intact; no claim or canary effect-refusal policy changes. A copied
+cookie, guessed profile, Demo auth or runner-entered security challenge cannot establish acceptance.
 
 The offline-first browser startup is part of the safety boundary rather than a test convenience. The
 context launches with network offline, `serviceWorkers: "block"`, extension/sync/background-network
@@ -159,7 +165,7 @@ forces authoritative readback and exact-predecessor restoration; the runner neve
 provider made no change. Monitoring begins at the recorded pre-invocation promotion start, not the
 later serving-readback time, so incidents during cutover are inside the closed interval. A traffic
 restoration becomes a recorded recovery only after the receipt-bound predecessor commit,
-configuration, 100-percent traffic, both role canaries, and monitoring gate pass again; otherwise it
+configuration, 100-percent traffic, the complete Admin canary, and monitoring gate pass again; otherwise it
 remains an unresolved production failure and forward recovery requires a new candidate assurance.
 
 Every assurance deadline is a cancellation boundary. One shared deadline signal reaches browser,
@@ -182,7 +188,7 @@ the following attributable to the candidate requires restoration of the exact ca
 A changed or unavailable provider source without a candidate-attributable application failure is a
 hold/inconclusive result, not an invented success or automatic claim that rollback fixes the
 provider. Before promotion, record a predecessor recovery baseline using the exact predecessor
-commit, revision, configuration fingerprint, 100% traffic, both managed-role manifests, and
+commit, revision, configuration fingerprint, 100% traffic, the complete Admin manifest, and
 monitoring configuration. After an exact rollback, repeat that versioned predecessor gate before
 recovery is recorded. The rollback-only canary may fall back from the new workspace-eligibility
 marker to the predecessor's existing lease link, but candidate and post-promotion canaries may not.
@@ -199,7 +205,7 @@ and readback.
 
 **Open questions & assumptions.**
 
-No product decision remains open. Exact candidate-origin Admin and Editor managed sessions, current
+No product decision remains open. The exact candidate-origin owner Admin session, current
 provider credentials, an exact internal monitoring-channel address, the candidate origin, immutable
 configuration fingerprint, and explicit external receipt paths are runtime inputs. Promotion time
 and captured predecessor come only from the bound receipts. Their
@@ -252,7 +258,7 @@ role, Space grant, action key, or client-send boundary.
 - **AC-S51-11** — Every rollback predicate returns only the exact captured predecessor; missing,
   malformed, equal-to-candidate, or drifted targets refuse.
 - **AC-S51-12** — A predecessor baseline and post-rollback recovery check both require the same exact
-  predecessor commit/revision/configuration, 100% traffic, both managed-role manifests, and ready
+  predecessor commit/revision/configuration, 100% traffic, the complete Admin manifest, and ready
   monitoring. Only `phase=rollback` may use the predecessor-compatible lease-link fallback; it does
   not claim that an older revision implements the candidate's new semantic reconciliation schema.
 - **AC-S51-13** — Production promotion refuses a missing, expired, malformed, reused, wrong-origin,
@@ -263,7 +269,7 @@ role, Space grant, action key, or client-send boundary.
   predecessor or promotion time is rejected, so the closed interval and rollback target cannot be
   rebound by the caller.
 - **AC-S51-15** — Candidate assurance records a green versioned predecessor baseline before it emits
-  a receipt. Every rollback repeats that exact commit/revision/configuration/traffic/Admin/Editor/
+  a receipt. Every rollback repeats that exact commit/revision/configuration/traffic/Admin/
   monitoring gate; revision-only traffic readback is restoration evidence, not a healthy-recovery
   claim.
 - **AC-S51-16** — A traffic command that errors, times out, or loses its response after invocation is

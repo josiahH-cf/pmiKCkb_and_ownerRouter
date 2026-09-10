@@ -121,10 +121,15 @@ describe("S78 canonical renewal route", () => {
     expect(table).toContain('row.disposition !== "skip"');
     expect(table).toContain("data-workspace-available=");
 
-    const selector = 'tr[data-workspace-available="true"] a.renewal-lease-link';
+    const selector =
+      'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link';
     const browser = source("scripts/smoke-renewal-desk-browser.mjs");
     const canary = source("scripts/run-production-canary.ts");
-    expect(browser).toContain(selector);
+    expect(browser).toContain(selector.replace(" a.renewal-lease-link", ""));
+    expect(browser).toContain("`${WORKFLOW_ROW_SELECTOR} a.renewal-lease-link`");
+    expect(browser).toContain(
+      "Inspection-only source workspace and action refusal passed.",
+    );
     expect(canary).toContain(selector);
     expect(canary).toContain("workspaceSelectorsForPhase");
     expect(canary).toMatch(/page\.locator\(selector\)\.first\(\)/);

@@ -1,3 +1,5 @@
+import { assertCurrentPacketActionClaim } from "./lease-document-action-claim";
+import { assertCurrentRenewalMessageClaim } from "./renewal-message-claim";
 import { createHash } from "node:crypto";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
@@ -362,6 +364,8 @@ export async function claimActionExecution(
       throw new EditableLayerError(decision.reason, 409);
     }
 
+    await assertCurrentRenewalMessageClaim(transaction, db, actor, current);
+    await assertCurrentPacketActionClaim(transaction, db, current);
     transaction.update(ref, {
       attempt_count: 1,
       claim_actor_uid: actor.uid,

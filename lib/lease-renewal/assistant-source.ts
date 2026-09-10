@@ -1,3 +1,5 @@
+import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
+import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
@@ -50,24 +52,36 @@ export async function runRenewalAssistantSource(
   // period parser and the workspace reference date read, so the three never disagree at a month end.
   const window = buildRenewalDeskWindow(businessDateIso(now), RENEWAL_DESK_WINDOW_DAYS);
   const liveConfig = buildLiveRenewalConfig();
-  let leaseSnapshotResult: LiveLeaseSnapshotResult | undefined;
-  if (liveConfig.ok) {
+  // Start this render's fresh Sheet read before waiting for independent supporting stores.
+  // Capture rejection immediately; failure remains a primary read_error, never an empty Sheet.
+  const sheetRead = liveConfig.ok
+    ? readRenewalSheetGridsWithLinks({
+        reader: liveConfig.sheetsReader,
+        spreadsheetId: liveConfig.spreadsheetId,
+        tabTitles: ["Lease Renewal"],
+      }).then(
+        (value) => value,
+        () => null,
+      )
+    : Promise.resolve(null);
+  const leaseRead: Promise<LiveLeaseSnapshotResult | undefined> = (async () => {
+    if (!liveConfig.ok) return undefined;
     try {
-      leaseSnapshotResult =
-        sourceRefreshAfter === null
-          ? await getLiveLeaseSnapshot(liveConfig.rentvineClient, now.getTime())
-          : await getLiveLeaseSnapshotAtOrAfter(
-              liveConfig.rentvineClient,
-              now.getTime(),
-              sourceRefreshAfter,
-            );
+      return await (sourceRefreshAfter === null
+        ? getLiveLeaseSnapshot(liveConfig.rentvineClient, now.getTime())
+        : getLiveLeaseSnapshotAtOrAfter(
+            liveConfig.rentvineClient,
+            now.getTime(),
+            sourceRefreshAfter,
+          ));
     } catch {
-      leaseSnapshotResult = undefined;
+      return undefined;
     }
-  }
+  })();
 
   const [
     progressRead,
+    manualRead,
     policyRead,
     communicationsRead,
     dismissedRead,
@@ -76,6 +90,7 @@ export async function runRenewalAssistantSource(
     packetRead,
   ] = await Promise.all([
     readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
+    readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
     readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
     readRenewalAuxiliary("communications", () =>
       createGmailHubService(user).listCommunications(),
@@ -90,6 +105,7 @@ export async function runRenewalAssistantSource(
     // so a lease with absent provider evidence stays visibly unresolved rather than resolved.
     readRenewalAuxiliary("term_reviews", () => listLeaseTermReviews(user)),
     readRenewalAuxiliary("packet", async () => {
+      const leaseSnapshotResult = await leaseRead;
       if (!liveConfig.ok || !leaseSnapshotResult) {
         throw new Error("Live renewal sources are unavailable.");
       }
@@ -118,6 +134,7 @@ export async function runRenewalAssistantSource(
     links: renewalAuxiliaryValue(communicationsRead, []),
   };
   const auxiliaryFailures = renewalAuxiliaryFailures([
+    manualRead,
     progressRead,
     policyRead,
     communicationsRead,
@@ -127,9 +144,11 @@ export async function runRenewalAssistantSource(
     packetRead,
   ]);
 
+  const leaseSnapshotResult = await leaseRead;
+  const preparedSheetRead = await sheetRead;
   const outcome = !liveConfig.ok
     ? ({ status: liveConfig.reason } as const)
-    : !leaseSnapshotResult
+    : !leaseSnapshotResult || !preparedSheetRead
       ? ({ status: "read_error" } as const)
       : await loadLiveRenewalDesk(
           [window],
@@ -147,6 +166,8 @@ export async function runRenewalAssistantSource(
           progressRead.status === "available",
           leaseSnapshotResult,
           renewalAuxiliaryValue(termReviewsRead, new Map()),
+          renewalAuxiliaryValue(manualRead, new Map()),
+          preparedSheetRead,
         );
 
   return { outcome, auxiliaryFailures, coverage: window };

@@ -1,3 +1,4 @@
+import { SUPPLIED_RENEWAL_COPY } from "@/lib/lease-renewal/renewal-message-content";
 import { createHash } from "node:crypto";
 
 import {
@@ -28,13 +29,15 @@ export const GOVERNED_ARTIFACT_REFS = [
   "owner-renewal:v1.0",
   "tenant-renewal:v1.0",
   "maintenance-owner:v1.0",
+  "owner-renewal:v2.0",
+  "tenant-renewal:v2.0",
 ] as const;
 
 export type GovernedArtifactRef = (typeof GOVERNED_ARTIFACT_REFS)[number];
 
 export interface GovernedArtifactDefinition {
   ref: GovernedArtifactRef;
-  version: "v1.0";
+  version: "v1.0" | "v2.0";
   purpose: WorkflowCommunicationPurpose;
   sourcePath: string;
   contentHash: string;
@@ -43,10 +46,39 @@ export interface GovernedArtifactDefinition {
   /** Client-copy publication is separate from governance registration. */
   clientPublicationStatus: "review_only" | "approved";
   /** Governance registration date; not evidence that renewal wording is client-approved. */
-  approvedAt: "2026-07-14";
+  approvedAt: "2026-07-14" | "2026-09-10";
 }
 
 const artifactSources = {
+  "owner-renewal:v2.0": {
+    purpose: "renewal_owner",
+    sourcePath: "lib/lease-renewal/renewal-message-content.ts",
+    allowedContext: "authorized renewal owner workflow",
+    requiredValues: [
+      "authoritative recipient",
+      "authenticated mailbox",
+      "reviewed source facts",
+      "exact published supplied copy",
+      "reviewed rich and plain content",
+    ],
+    copy: SUPPLIED_RENEWAL_COPY.owner,
+    // Actual v2 publication resolves the exact Approved editable-store record at the draft boundary.
+    clientPublicationStatus: "review_only",
+  },
+  "tenant-renewal:v2.0": {
+    purpose: "renewal_tenant",
+    sourcePath: "lib/lease-renewal/renewal-message-content.ts",
+    allowedContext: "authorized renewal tenant workflow",
+    requiredValues: [
+      "authoritative recipient",
+      "authenticated mailbox",
+      "explicit owner-approved terms",
+      "exact published supplied copy",
+      "reviewed rich and plain content",
+    ],
+    copy: SUPPLIED_RENEWAL_COPY.tenant,
+    clientPublicationStatus: "review_only",
+  },
   "owner-renewal:v1.0": {
     purpose: "renewal_owner",
     sourcePath: "lib/lease-renewal/owner-draft.ts",
@@ -100,14 +132,16 @@ export const GOVERNED_ARTIFACT_REGISTRY: readonly GovernedArtifactDefinition[] =
       const source = artifactSources[ref];
       return Object.freeze({
         ref,
-        version: "v1.0" as const,
+        version: ref.endsWith(":v2.0") ? ("v2.0" as const) : ("v1.0" as const),
         purpose: source.purpose,
         sourcePath: source.sourcePath,
         contentHash: sha256(canonicalJson(source.copy)),
         allowedContext: source.allowedContext,
         requiredValues: Object.freeze([...source.requiredValues]),
         clientPublicationStatus: source.clientPublicationStatus,
-        approvedAt: "2026-07-14" as const,
+        approvedAt: ref.endsWith(":v2.0")
+          ? ("2026-09-10" as const)
+          : ("2026-07-14" as const),
       });
     }),
   );

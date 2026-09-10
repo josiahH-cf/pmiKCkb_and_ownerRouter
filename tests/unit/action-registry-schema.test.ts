@@ -418,7 +418,7 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(reconcile.expected_action).toMatch(/flags only/i);
   });
 
-  it("retires the broad Sheet identifier and records the append-only S98 capability boundary", () => {
+  it("retires the broad Sheet identifier and records the exact S113 normal-field contract while preserving S98 append", () => {
     const retired = entry("google_sheets.renewal_checklist.writeback");
     expect(retired.production_allowed).toBe(false);
     expect(retired.expected_action).toContain("retired");
@@ -441,13 +441,18 @@ describe("Lease-renewal checklist registry entries", () => {
     const update = entry("google_sheets.renewal_checklist.field_update");
     expect(update.production_allowed).toBe(true);
     expect(update.required_permissions.join(" ")).toContain(
-      "Historically activated after the bounded 2026-09-02 proof",
+      "Exact key activated after the bounded 2026-09-02 proof",
     );
-    expect(update.expected_action).toContain("No current product mutation");
-    expect(update.expected_action).toContain("refuses before writer construction");
+    expect(update.expected_action).toContain(
+      "existing server-resolved operating-Sheet lease row",
+    );
+    expect(update.expected_action).toContain("durable one-attempt claim");
+    expect(update.rollback_note).toContain(
+      "Row deletion and automatic historical restore remain unavailable",
+    );
     expect(update.documented_evidence).toContain("findReplace");
     expect(update.documented_evidence).toContain(
-      "normal field update and restore paths report",
+      "App claims do not establish collaborator isolation",
     );
   });
 

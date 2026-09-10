@@ -1,7 +1,7 @@
-// S82 — the canonical table-first Renewal Desk worklist. One semantic <table>, one row per loaded
+// S82: the canonical table-first Renewal Desk worklist. One semantic <table>, one row per loaded
 // lease, with column-owned sort and filter controls, exact-value shortcuts, active-filter chips, a
 // Clear filters control, and truthful zero states. Server component: every control is a GET link or
-// GET form over the canonical `renewal-desk-query/v2` URL contract — no client state, no mutation.
+// GET form over the canonical `renewal-desk-query/v2` URL contract: no client state, no mutation.
 
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -471,7 +471,12 @@ function currentDestinationHref(
   deskView: string | null,
 ): string | null {
   if (destination.kind === "workspace_phase" && leaseId) {
-    return buildWorkspaceHref({ leaseId, step: destination.stepId, deskView });
+    return (
+      buildWorkspaceHref({ leaseId, step: destination.stepId, deskView }) +
+      (destination.controlId && /^renewal-manual-[a-z_]+$/.test(destination.controlId)
+        ? `#${destination.controlId}`
+        : "")
+    );
   }
   return null;
 }
@@ -532,7 +537,7 @@ function ActionCell({
                   ) : null}
                 </span>
               ) : target ? (
-                <Link className="text-link" href={target}>
+                <Link prefetch={false} className="text-link" href={target}>
                   {blocker.label}
                 </Link>
               ) : (
@@ -574,7 +579,7 @@ function ActionCell({
     const target = currentDestinationHref(action.destination, row.id, deskView);
     if (target) {
       return (
-        <Link className="text-link" href={target}>
+        <Link prefetch={false} className="text-link" href={target}>
           {action.label}
         </Link>
       );
@@ -624,6 +629,7 @@ function PartyCell({
         return (
           <li key={`${label}-${index}`}>
             <Link
+              prefetch={false}
               className="text-link"
               href={href({ ...state, [key]: token })}
               title={`Show only this ${kind}'s leases`}
@@ -704,6 +710,7 @@ export function RenewalDeskTable({
                 <span className="renewal-filter-chip">
                   <span>{chip.label}</span>
                   <Link
+                    prefetch={false}
                     aria-label={`Remove filter: ${chip.label}`}
                     className="renewal-filter-chip-remove"
                     href={href(chip.withoutFilter)}
@@ -716,7 +723,7 @@ export function RenewalDeskTable({
           </ul>
         ) : null}
         {filtersActive ? (
-          <Link className="secondary-button" href={clearedHref}>
+          <Link prefetch={false} className="secondary-button" href={clearedHref}>
             Clear filters
           </Link>
         ) : (
@@ -1013,6 +1020,13 @@ function DeskRow({
       data-disposition={row.disposition}
       data-is-blocked={guidance.isBlocked ? "true" : "false"}
       data-lease-id={row.id}
+      data-manual-complete={
+        row.manualProgress ? String(row.manualProgress.complete) : "none"
+      }
+      data-manual-next={row.manualProgress?.nextActivity ?? "none"}
+      data-manual-pending-source-updates={
+        row.manualProgress ? String(row.manualProgress.pendingSourceUpdates) : "none"
+      }
       data-process-current-step={row.processState?.currentStepId ?? "none"}
       data-process-current-step-state={row.processState?.currentStepState ?? "none"}
       data-process-status={row.processState?.status ?? "none"}
@@ -1027,7 +1041,7 @@ function DeskRow({
     >
       <th className="renewal-td-lease" scope="row">
         {workspaceHref ? (
-          <Link className="renewal-lease-link" href={workspaceHref}>
+          <Link prefetch={false} className="renewal-lease-link" href={workspaceHref}>
             {row.addressLabel}
           </Link>
         ) : (
@@ -1059,6 +1073,7 @@ function DeskRow({
       <td>
         {row.endDateIso ? (
           <Link
+            prefetch={false}
             className="text-link"
             href={href(
               withDateDimension(state, { kind: "endDate", value: row.endDateIso }),
@@ -1069,6 +1084,7 @@ function DeskRow({
           </Link>
         ) : (
           <Link
+            prefetch={false}
             className="text-link"
             href={href(withDateDimension(state, { kind: "endDate", value: "missing" }))}
             title="Show only leases with a missing renewal date"
@@ -1082,6 +1098,7 @@ function DeskRow({
           data-lease-term={row.leaseTerm.term}
         >
           <Link
+            prefetch={false}
             className="text-link"
             href={href({ ...state, term: row.leaseTerm.term })}
             title="Show only this lease term"
@@ -1098,14 +1115,14 @@ function DeskRow({
       <td className="renewal-td-rent">
         {guidance.currentBaseRent !== null ? (
           rentVerificationHref ? (
-            <Link className="text-link" href={rentVerificationHref}>
+            <Link prefetch={false} className="text-link" href={rentVerificationHref}>
               {CURRENCY.format(guidance.currentBaseRent)}
             </Link>
           ) : (
             <span>{CURRENCY.format(guidance.currentBaseRent)}</span>
           )
         ) : rentVerificationHref ? (
-          <Link className="text-link" href={rentVerificationHref}>
+          <Link prefetch={false} className="text-link" href={rentVerificationHref}>
             Needs Verification
           </Link>
         ) : (
@@ -1128,16 +1145,35 @@ function DeskRow({
       </td>
       <td data-renewal-field="overall-status" data-status={status}>
         <Link
+          prefetch={false}
           className="renewal-status-link"
           href={href({ ...state, overallStatus: status })}
           title="Show only this status"
         >
-          <StatusBadge tone={OVERALL_STATUS_TONE[status]}>
-            {OVERALL_STATUS_LABEL[status]}
+          <StatusBadge
+            tone={
+              status === "complete" && row.manualProgress?.complete
+                ? "neutral"
+                : OVERALL_STATUS_TONE[status]
+            }
+          >
+            {status === "complete" && row.manualProgress?.complete
+              ? "Completed: recorded by staff"
+              : OVERALL_STATUS_LABEL[status]}
           </StatusBadge>
         </Link>
-        {row.stageLabel ? (
-          <span className="renewal-td-secondary">{row.stageLabel}</span>
+        {row.manualProgress ? (
+          <span className="renewal-td-secondary">
+            {row.manualProgress.label}
+            {row.manualProgress.pendingSourceUpdates
+              ? ` · ${row.manualProgress.pendingSourceUpdates} pending source updates`
+              : ""}
+          </span>
+        ) : null}
+        {row.manualProgress?.step.label || row.stageLabel ? (
+          <span className="renewal-td-secondary">
+            {row.manualProgress?.step.label ?? row.stageLabel}
+          </span>
         ) : null}
       </td>
       <td
@@ -1148,7 +1184,11 @@ function DeskRow({
         }
       >
         {rentVerificationHref ? (
-          <Link className="renewal-status-link" href={rentVerificationHref}>
+          <Link
+            prefetch={false}
+            className="renewal-status-link"
+            href={rentVerificationHref}
+          >
             <StatusBadge tone={RENT_VERIFICATION_TONE[guidance.rentVerification.state]}>
               {RENT_VERIFICATION_LABEL[guidance.rentVerification.state]}
             </StatusBadge>

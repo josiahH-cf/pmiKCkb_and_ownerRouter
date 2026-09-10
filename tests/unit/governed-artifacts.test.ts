@@ -28,11 +28,13 @@ describe("governed v1.0 communication artifacts", () => {
       GOVERNED_ARTIFACT_REFS,
     );
     expect(new Set(GOVERNED_ARTIFACT_REGISTRY.map((item) => item.contentHash)).size).toBe(
-      3,
+      5,
     );
     for (const artifact of GOVERNED_ARTIFACT_REGISTRY) {
-      expect(artifact.version).toBe("v1.0");
-      expect(artifact.approvedAt).toBe("2026-07-14");
+      const supplied = artifact.ref.endsWith(":v2.0");
+      expect(artifact.version).toBe(supplied ? "v2.0" : "v1.0");
+      expect(artifact.approvedAt).toBe(supplied ? "2026-09-10" : "2026-07-14");
+      if (supplied) expect(artifact.clientPublicationStatus).toBe("review_only");
       expect(artifact.contentHash).toMatch(/^[a-f0-9]{64}$/);
       expect(Object.isFrozen(artifact)).toBe(true);
       expect(Object.isFrozen(artifact.requiredValues)).toBe(true);

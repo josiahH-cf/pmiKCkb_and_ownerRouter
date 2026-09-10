@@ -37,7 +37,7 @@ const ORCHESTRATION_FACTORY_WRAPPERS = new Set([
 // instead of silently becoming an unwired runtime-suspension call site.
 const EXPECTED_BOUNDARIES = [
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
-  "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
+  "app/api/lease-renewal/market-comps/route.ts:marketCompsResponse:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
   "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
@@ -133,6 +133,12 @@ const EXPECTED_BOUNDARIES = [
 // and the Connection Center's explicit operator diagnostics. Inventory every wrapper invocation so
 // classifying the leaf constructors cannot hide a new reachable, ungated caller.
 const EXPECTED_LIVE_CONFIG_CALLS = [
+  // S113: fresh source reads for packet input, message verification and manual cycle identity.
+  // These wrappers construct readers only; the separate effect entry points keep their gates.
+  "lib/lease-documents/live-input.ts:resolveLivePacketInput:buildLiveRentVineConfig",
+  "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRenewalConfig",
+  "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRentVineConfig",
+  "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalCycleBasis:buildLiveRentVineConfig",
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
   "app/api/lease-renewal/refresh/route.ts:POST:buildLiveRentVineConfig",
@@ -304,7 +310,7 @@ const EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES = new Set([
 
 const GATED_PROVIDER_ADAPTERS = new Set([
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
-  "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
+  "app/api/lease-renewal/market-comps/route.ts:marketCompsResponse:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
   "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
   "lib/gmail-hub/service.ts:connection:this.createClient",
@@ -350,7 +356,7 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     },
   ],
   [
-    "app/api/lease-renewal/market-comps/route.ts:POST:createMarketCompProvider",
+    "app/api/lease-renewal/market-comps/route.ts:marketCompsResponse:createMarketCompProvider",
     {
       file: "tests/unit/market-comp-provider.test.ts",
       marker: "S51_DYNAMIC_REFUSAL:market-comp-provider",

@@ -1,6 +1,6 @@
 # Integration architecture
 
-Updated: 2026-09-02.
+Updated: 2026-09-10.
 
 ## Effect model
 
@@ -57,17 +57,17 @@ attachments, RentVine chat posting, and every other unlisted effect remain close
 
 ## Providers
 
-| Provider                 | Current role                                                                    | Write/effect state                                                               |
-| ------------------------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| RentVine                 | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open              |
-| Google Sheets            | Operating renewal read source and exact S98 append target                       | Both keys/switch on; active unreleased correction makes product path append-only |
-| RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50         | Exact read key open; never sets offered rent                                     |
-| Gmail                    | Workflow reads, replies, labels, unsent renewal/maintenance drafts              | Direct/generic notice sends closed                                               |
-| Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                                                 |
-| Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                                               |
-| Dotloop                  | Typed packet/binding seam; S106 connection and S34 packet lifecycle specified   | OAuth app registration, connected account, and per-key activation pending        |
-| LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                                              |
-| Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync open; resident draft and Vendor effects closed                  |
+| Provider                 | Current role                                                                    | Write/effect state                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| RentVine                 | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open                                                    |
+| Google Sheets            | Operating renewal read source and exact append/update target                    | Both keys/switch on; S113 normal field updates implemented locally and verified through backend paths; release pending |
+| RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50         | Exact read key open; never sets offered rent                                                                           |
+| Gmail                    | Workflow reads, replies, labels, unsent renewal/maintenance drafts              | Direct/generic notice sends closed                                                                                     |
+| Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                                                                                       |
+| Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                                                                                     |
+| Dotloop                  | Typed packet/binding seam; S106 connection and S34 packet lifecycle specified   | OAuth app registration, connected account, and per-key activation pending                                              |
+| LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                                                                                    |
+| Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync open; resident draft and Vendor effects closed                                                        |
 
 ## RentVine write boundary
 
@@ -94,14 +94,14 @@ webhook.
 switch is on only for `google_sheets.renewal_checklist.row_append` and
 `google_sheets.renewal_checklist.field_update`; both passed historical bounded proofs and remain open.
 The temporary proof row was deleted and read back absent, the proof mutation runner and copy-only path
-are retired, and the broad compatibility key remains closed. The active unreleased hardened product
-route derives one append from fresh server-side lease/Sheet state, transactionally claims one lease
-generation, and never retries an uncertain request. Normal field update and every fixed-row
-delete/restore refuse before writer construction because the live Google client has no atomic
-stable-logical-row, expected-generation, idempotency/status, and tombstone mutation seam. Historical
-receipts remain readable; they do not make that missing capability current. The serving revision
-continues to expose its historical two-operation baseline until this correction is promoted and read
-back.
+are retired, and the broad compatibility key remains closed. Current candidate code derives normal
+append from fresh server-side lease/Sheet state, claims one generation, preserves immutable history
+and refuses field updates. S113 F2 now requires pre-approved normal in-app field updates using the
+existing narrow writer, fresh server-resolved targets/values, exact confirmation, one-attempt claims,
+receipts/readback and new confirmed corrections. The owner rejected a new provider-contract approval
+prerequisite. That replacement is implemented locally and backend acceptance passes; it is not serving.
+App locks and exact-cell comparisons do not prove isolation from direct Sheet collaborators. Ambiguous outcomes remain read-only reconciliation, never
+blind retry or invented success. Row deletion and historical proof mutation remain unavailable.
 
 ## Messaging boundary
 

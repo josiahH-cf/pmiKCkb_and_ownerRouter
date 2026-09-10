@@ -1,6 +1,12 @@
-import { randomUUID } from "node:crypto";
+import {
+  assertManualSheetProposalCurrent,
+  syncManualSheetReceipt,
+} from "@/lib/lease-renewal/workspace-sheet-sync";
+import { assembleSheetProposal } from "@/lib/lease-renewal/sheet-writeback/prepare";
 import { NextResponse } from "next/server";
+import { postWriteResponse } from "@/lib/lease-renewal/post-write-response";
 import { z } from "zod";
+import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
@@ -20,7 +26,6 @@ import { invalidateLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 import {
   SheetWritebackService,
   SheetWritebackServiceError,
-  hashSheetHeader,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import {
   OPERATING_SHEET_TAB,
@@ -30,8 +35,6 @@ import {
 } from "@/lib/lease-renewal/sheet-writeback/live";
 import {
   SheetWritebackContractError,
-  buildSheetWritebackProposal,
-  type SheetWritebackEffectInput,
   type SheetWritebackProposal,
   type ValidatedSheetWritebackEffect,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
@@ -51,7 +54,6 @@ import {
 import {
   SheetWorkspaceResolutionError,
   assertProposalMatchesFreshLeaseContext,
-  effectForFreshLeaseContext,
   resolveAuthorizedCurrentRentUpdate,
   resolveFreshOperatingSheetLeaseContext,
 } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
@@ -65,7 +67,13 @@ const BodySchema = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("propose"),
       workspaceContext: WorkspaceContextSchema,
-      intent: z.enum(["append_missing_row", "update_approved_current_rent"]),
+      intent: z.enum([
+        "append_missing_row",
+        "update_approved_current_rent",
+        "update_field",
+      ]),
+      fieldIntent: SheetFieldIntentSchema.optional(),
+      expectedCurrentRent: z.number().finite().positive().optional(),
       expectedPriorPreviewHash: HashSchema.nullable(),
     })
     .strict(),
@@ -126,8 +134,6 @@ const BodySchema = z.discriminatedUnion("operation", [
     .strict(),
 ]);
 
-type Body = z.infer<typeof BodySchema>;
-
 function serviceError(code: SheetWritebackServiceError["code"]): never {
   throw new SheetWritebackServiceError(code);
 }
@@ -156,58 +162,25 @@ function effectByHash(
   return effect;
 }
 
-async function assembleProposal(
-  user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
-  spreadsheetId: string,
-  leaseId: string,
-  intent: Extract<Body, { operation: "propose" }>["intent"],
-): Promise<SheetWritebackProposal> {
-  const context = await resolveFreshOperatingSheetLeaseContext(leaseId);
-  if (
-    (intent === "append_missing_row" && context.row !== null) ||
-    (intent === "update_approved_current_rent" && context.row === null)
-  ) {
-    throw new SheetWorkspaceResolutionError("row_state_mismatch");
-  }
-  const authorized = context.row
-    ? await resolveAuthorizedCurrentRentUpdate(user, context)
-    : null;
-  const effects: SheetWritebackEffectInput[] = [
-    effectForFreshLeaseContext(context, authorized, `op-${randomUUID()}`),
-  ];
-
-  return buildSheetWritebackProposal({
-    generationId: `proposal-${randomUUID()}`,
-    spreadsheetId,
-    tabTitle: OPERATING_SHEET_TAB,
-    headerHash: hashSheetHeader(context.header, context.columns),
-    headerWidth: context.header.length,
-    tenantColumnIndex: context.tenantColumnIndex,
-    scope: {
-      kind: "lease_workspace",
-      leaseId: context.leaseId,
-      propertyId: context.propertyId,
-    },
-    actorUid: user.uid,
-    actorEmail: user.email ?? "",
-    actorRole: user.role,
-    sourceReadAtIso: context.sourceReadAtIso,
-    evidenceRef: `workspace:${context.leaseId}:fresh-live-join`,
-    effects,
-    nowMs: Date.now(),
-  });
-}
-
 async function assertProposalCurrent(
   user: Awaited<ReturnType<typeof requireCapabilityInSpace>>,
   proposal: SheetWritebackProposal,
+  after = false,
 ): Promise<void> {
-  const context = await resolveFreshOperatingSheetLeaseContext(proposal.scope.leaseId);
-  const authorized =
+  const context = await resolveFreshOperatingSheetLeaseContext(
+    proposal.scope.leaseId,
+    undefined,
     proposal.effects[0]?.effect.kind === "field_update"
+      ? proposal.effects[0].effect.staffIntent?.field
+      : undefined,
+  );
+  const authorized =
+    !after &&
+    proposal.effects[0]?.effect.kind === "field_update" &&
+    !proposal.effects[0].effect.staffIntent
       ? await resolveAuthorizedCurrentRentUpdate(user, context)
       : null;
-  assertProposalMatchesFreshLeaseContext(proposal, context, authorized);
+  assertProposalMatchesFreshLeaseContext(proposal, context, authorized, after);
 }
 
 /**
@@ -253,10 +226,23 @@ export async function POST(request: Request) {
 
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
-      if (body.intent === "update_approved_current_rent") {
-        serviceError("provider_capability_unavailable");
-      }
-      const proposal = await assembleProposal(user, spreadsheetId, leaseId, body.intent);
+      if ((body.intent === "update_field") !== (body.fieldIntent !== undefined))
+        serviceError("confirmation_invalid");
+      const proposal = await assembleSheetProposal(
+        user,
+        spreadsheetId,
+        leaseId,
+        body.intent,
+        body.fieldIntent,
+      );
+      if (
+        body.expectedCurrentRent !== undefined &&
+        (body.intent !== "update_approved_current_rent" ||
+          proposal.effects.length !== 1 ||
+          proposal.effects[0].effect.kind !== "field_update" ||
+          Number(proposal.effects[0].effect.afterValue) !== body.expectedCurrentRent)
+      )
+        serviceError("confirmation_invalid");
       await saveSheetWritebackProposal(
         user,
         proposal,
@@ -299,7 +285,7 @@ export async function POST(request: Request) {
           archived,
           capabilities: {
             row_append: true,
-            field_update: false,
+            field_update: true,
             reversal: false,
           },
         });
@@ -312,7 +298,7 @@ export async function POST(request: Request) {
         expired: Date.now() > Date.parse(proposal.confirmationExpiresAtIso),
         capabilities: {
           row_append: true,
-          field_update: false,
+          field_update: true,
           reversal: false,
         },
       });
@@ -323,7 +309,7 @@ export async function POST(request: Request) {
     const effect = effectByHash(proposal, body.effectHash);
     const service = new SheetWritebackService(deps);
 
-    if (body.operation === "execute") {
+    if (body.operation === "execute" && effect.effect.kind === "row_append") {
       // S105: the appended renewal row records the owner's approved terms. While the recorded
       // owner response is not an approval, the append is refused before the one-attempt claim.
       const downstreamBlock = ownerOutcomeBlocksDownstream(
@@ -376,8 +362,17 @@ export async function POST(request: Request) {
           effectHash: body.effectHash,
           confirmedAtIso: new Date().toISOString(),
         },
+        revalidateAfterEffect: async () => {
+          try {
+            await assertManualSheetProposalCurrent(user, proposal);
+            await assertProposalCurrent(user, proposal, true);
+          } catch {
+            throw new SheetWritebackServiceError("provider_readback_mismatch");
+          }
+        },
         revalidateBeforeEffect: async () => {
           try {
+            await assertManualSheetProposalCurrent(user, proposal);
             await assertProposalCurrent(user, proposal);
           } catch {
             throw new SheetWritebackServiceError("authorization_stale");
@@ -385,18 +380,25 @@ export async function POST(request: Request) {
         },
       });
       invalidateLiveLeaseCache();
-      return NextResponse.json({
-        status: "executed",
-        duplicate: outcome.duplicate,
-        receipt: {
-          provider_ref: outcome.receipt.providerRef,
-          result_hash: outcome.receipt.resultHash,
-          reconciled: outcome.receipt.reconciled,
+      const workspaceSynchronization = await syncManualSheetReceipt(user, proposal).catch(
+        () => ({ state: "pending" as const }),
+      );
+      return postWriteResponse(
+        {
+          status: "executed",
+          workspaceSynchronization,
+          duplicate: outcome.duplicate,
+          receipt: {
+            provider_ref: outcome.receipt.providerRef,
+            result_hash: outcome.receipt.resultHash,
+            reconciled: outcome.receipt.reconciled,
+          },
+          ...(outcome.appendedRowNumber !== undefined
+            ? { appended_row_number: outcome.appendedRowNumber }
+            : {}),
         },
-        ...(outcome.appendedRowNumber !== undefined
-          ? { appended_row_number: outcome.appendedRowNumber }
-          : {}),
-      });
+        Date.now(),
+      );
     }
 
     const outcome = await service.executeReversal({

@@ -11,8 +11,8 @@ describe("S98 correction capability presented to reviewers", () => {
         (entry) => entry.key === key,
       )?.correction;
       expect(description).toContain("receipt");
-      expect(description).toContain("verified Sheet destination");
-      expect(description).toContain("manual correction");
+      expect(description).toContain("new current-state preview and confirmation");
+      expect(description).toContain("row deletion remains unavailable");
       expect(description).not.toMatch(
         /defines the (reversal|correction)|deleting only|compare-and-setting/,
       );

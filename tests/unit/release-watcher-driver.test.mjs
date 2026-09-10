@@ -128,6 +128,21 @@ describe("release watcher command-path recovery", () => {
     const paused = { ...h.cp, ...first.patch, blocked: first.reason };
     await h.driver.assurance(paused);
     expect(h.ensureAuth).toHaveBeenCalledOnce();
+    expect(h.ensureAuth.mock.calls[0][0].canary).toEqual([
+      {
+        label: "admin",
+        profile: join(h.root, "admin"),
+        email: "josiah@pmikcmetro.com",
+        origin: "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app",
+      },
+      {
+        label: "admin",
+        profile: join(h.root, "admin"),
+        email: "josiah@pmikcmetro.com",
+        origin: h.cp.candidateOrigin,
+      },
+    ]);
+
     mkdirSync(join(h.root, "admin"));
     recordBrowserEnrollment(join(h.root, "admin"));
     await h.driver.assurance(paused);

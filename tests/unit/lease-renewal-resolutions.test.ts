@@ -1,3 +1,4 @@
+import { currentRentCorrectionKey } from "@/lib/lease-renewal/current-rent-correction";
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 
@@ -297,5 +298,97 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
       message: expect.stringMatching(/source facts changed/i),
     });
     expect(db.store.size).toBe(0);
+  });
+});
+
+describe("S113 explicit correction of agreeing current sources", () => {
+  it("persists an exact Admin correction without manufacturing an open conflict", async () => {
+    const base = getSimulationRun(SIMULATION_RUN_ID)!;
+    const original = base.outcomes.find((entry) => entry.fieldKey === "current_rent")!;
+    const outcome = {
+      ...original,
+      queueMapping: null,
+      matchedCandidateJoinIds: ["lease:81"],
+      reconciliation: {
+        ...original.reconciliation,
+        agreement: "agree" as const,
+        raise_flag: false,
+      },
+    };
+    const run = {
+      ...base,
+      runId: "live-review",
+      flags: [],
+      queueItems: [],
+      outcomes: [outcome],
+    };
+    const key = currentRentCorrectionKey(outcome, run.runId)!;
+    const input = {
+      run_id: run.runId,
+      source_trigger_key: key,
+      candidate_fingerprint: outcome.candidateFingerprint,
+      kind: "corrected_value" as const,
+      corrected_value: "1500.00",
+      reason: "Reviewed current contract",
+      intent: "current_fact_correction" as const,
+    };
+    const db = new ResolutionTestFirestore();
+    await expect(
+      resolveLeaseRenewalFlag(
+        approver,
+        input,
+        db as unknown as Firestore,
+        async () => run,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    const saved = await resolveLeaseRenewalFlag(
+      admin,
+      input,
+      db as unknown as Firestore,
+      async () => run,
+    );
+    expect(saved).toMatchObject({
+      source_trigger_key: key,
+      severity: "High",
+      corrected_value: "1500.00",
+      proposed_writeback: { status: "Queued", production_allowed: false },
+    });
+    expect(run.flags).toEqual([]);
+    expect(run.outcomes[0].reconciliation.agreement).toBe("agree");
+    await expect(
+      resolveLeaseRenewalFlag(
+        admin,
+        { ...input, candidate_fingerprint: "stale" },
+        db as unknown as Firestore,
+        async () => run,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      resolveLeaseRenewalFlag(
+        admin,
+        { ...input, intent: undefined },
+        db as unknown as Firestore,
+        async () => run,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+  it("has no correction key for ambiguous joins or unrelated fields", () => {
+    const original = getSimulationRun(SIMULATION_RUN_ID)!.outcomes[0];
+    expect(
+      currentRentCorrectionKey(
+        {
+          ...original,
+          fieldKey: "current_rent",
+          matchedCandidateJoinIds: ["lease:81", "lease:82"],
+        },
+        "live-review",
+      ),
+    ).toBeNull();
+    expect(
+      currentRentCorrectionKey(
+        { ...original, fieldKey: "renewal_date", matchedCandidateJoinIds: ["lease:81"] },
+        "live-review",
+      ),
+    ).toBeNull();
   });
 });

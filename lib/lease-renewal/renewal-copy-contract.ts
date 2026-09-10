@@ -3,6 +3,8 @@ import { z } from "zod";
 export const RENEWAL_COPY_TEMPLATE_REFS = [
   "owner-renewal:v1.0",
   "tenant-renewal:v1.0",
+  "owner-renewal:v2.0",
+  "tenant-renewal:v2.0",
 ] as const;
 
 export type RenewalCopyChannel = "owner" | "tenant";
@@ -139,9 +141,25 @@ export const TenantRenewalCopySelectionSchema = z
   })
   .strict();
 
+export const SuppliedOwnerRenewalCopySelectionSchema = z
+  .object({
+    templateRef: z.literal("owner-renewal:v2.0"),
+    templateVersion: z.literal("v2.0"),
+    editableRegions: z.object({ responseRequest: z.string().max(700) }).strict(),
+  })
+  .strict();
+export const SuppliedTenantRenewalCopySelectionSchema = z
+  .object({
+    templateRef: z.literal("tenant-renewal:v2.0"),
+    templateVersion: z.literal("v2.0"),
+    editableRegions: z.object({ responseRequest: z.string().max(700) }).strict(),
+  })
+  .strict();
 export const RenewalCopySelectionSchema = z.discriminatedUnion("templateRef", [
   OwnerRenewalCopySelectionSchema,
   TenantRenewalCopySelectionSchema,
+  SuppliedOwnerRenewalCopySelectionSchema,
+  SuppliedTenantRenewalCopySelectionSchema,
 ]);
 
 export type OwnerRenewalCopySelection = z.infer<typeof OwnerRenewalCopySelectionSchema>;
@@ -172,7 +190,7 @@ export function defaultRenewalCopySelection(
 export const RenewalCopyTemplateSummarySchema = z
   .object({
     ref: z.enum(RENEWAL_COPY_TEMPLATE_REFS),
-    version: z.literal("v1.0"),
+    version: z.enum(["v1.0", "v2.0"]),
     contentHash: z.string().regex(/^[a-f0-9]{64}$/),
     status: z.enum(["review_only", "approved", "retired"]),
   })

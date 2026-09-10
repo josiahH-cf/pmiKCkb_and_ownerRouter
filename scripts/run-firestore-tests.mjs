@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 const projectId = "pmi-kc-kb-test";
-const testCommand = "vitest run --config vitest.firestore.config.ts";
+// Reuse native WSL staging and bounded workers for mounted UI/backend integration as well.
+const testCommand = "node scripts/run-unit-tests.mjs --config vitest.firestore.config.ts";
 
 const env = { ...process.env };
 const requestedTarget = env.FIRESTORE_EMULATOR_HOST?.trim();

@@ -1,9 +1,18 @@
-// S98 lease-scoped append and legacy field-authorization claims. The append proposal generation,
-// lease identity, one-attempt transition, and recovery lifecycle share one Firestore transaction.
-// Field execution is currently unavailable because the live provider has no stable-row protocol;
-// its authorization claim remains readable for compatibility only.
+import {
+  RENEWAL_WORKSPACE_COLLECTIONS,
+  renewalWorkspaceDocId,
+} from "@/lib/firestore/renewal-workspace";
+import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { sheetWritebackExecutionId } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+// Lease-scoped active proposal and one-attempt claims. App target serialization does not
+// isolate direct Sheet collaborators; the execution service revalidates exact source state.
 
 import type { Firestore } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
+import {
+  parseSheetFieldIntent,
+  sheetIntentValue,
+} from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { v7 as uuidv7 } from "uuid";
 
 import { EXTERNAL_EXECUTION_COLLECTIONS } from "@/lib/firestore/external-action-executions";
@@ -17,7 +26,10 @@ import type {
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 import type { ExternalExecutionRecord } from "@/lib/external-execution/types";
-import type { SheetFieldUpdateAuthorization } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import type {
+  SheetFieldUpdateAuthorization,
+  SheetWritebackProposal,
+} from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import { writebackApprovalMatchesResolution } from "@/lib/lease-renewal/writeback-approval";
 import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 import {
@@ -36,6 +48,176 @@ export interface S98AppendClaimInput {
   tabTitle: string;
   leaseId: string;
   propertyId: string;
+}
+
+export const SHEET_FIELD_LIFECYCLES_COLLECTION = "operating_sheet_field_lifecycles";
+
+/** One target and the active proposal are claimed with the immutable attempt in one transaction. */
+export async function claimLeaseScopedS113FieldUpdate(
+  db: Firestore,
+  input: S98AppendClaimInput,
+): Promise<"claimed" | "duplicate" | "blocked"> {
+  const executionRef = db
+    .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+    .doc(input.executionId);
+  const proposalRef = db.collection(SHEET_WRITEBACK_PROPOSALS_COLLECTION).doc(
+    sheetWritebackProposalDocId(input.spreadsheetId, input.tabTitle, {
+      kind: "lease_workspace",
+      leaseId: input.leaseId,
+    }),
+  );
+  return db.runTransaction(async (transaction) => {
+    const [executionSnapshot, proposalSnapshot] = await Promise.all([
+      transaction.get(executionRef),
+      transaction.get(proposalRef),
+    ]);
+    if (!executionSnapshot.exists || !proposalSnapshot.exists) return "blocked";
+    const proposal = proposalSnapshot.data() as SheetWritebackProposal;
+    const effect = proposal.effects?.find(
+      (entry) => entry.effectHash === input.effectHash,
+    );
+    if (
+      proposal.previewHash !== input.previewHash ||
+      proposal.scope?.kind !== "lease_workspace" ||
+      proposal.scope.leaseId !== input.leaseId ||
+      proposal.scope.propertyId !== input.propertyId ||
+      proposal.spreadsheetId !== input.spreadsheetId ||
+      proposal.tabTitle !== input.tabTitle ||
+      effect?.effect.kind !== "field_update" ||
+      (!effect.effect.authorization && !effect.effect.staffIntent)
+    )
+      return "blocked";
+    if (sheetWritebackExecutionId(proposal, effect) !== input.executionId)
+      return "blocked";
+    if (proposal.evidenceRef.includes(":manual:")) {
+      const reference =
+        /^workspace:([1-9]\d*):cycle:([a-f0-9-]{36}):manual:([a-f0-9-]{36})$/.exec(
+          proposal.evidenceRef,
+        );
+      if (!reference || reference[1] !== input.leaseId || !effect.effect.staffIntent)
+        return "blocked";
+      const workspace = await transaction.get(
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
+          .doc(renewalWorkspaceDocId(input.leaseId)),
+      );
+      const pending = workspace.get(`sourceUpdates.${effect.effect.staffIntent.field}`);
+      if (
+        !workspace.exists ||
+        workspace.get("leaseId") !== input.leaseId ||
+        workspace.get("cycleId") !== reference[2] ||
+        !pending ||
+        pending.eventId !== reference[3] ||
+        pending.proposalId !== proposal.generationId ||
+        hashExecutionPreview(pending.intent) !==
+          hashExecutionPreview(effect.effect.staffIntent)
+      )
+        return "blocked";
+    }
+    if (effect.effect.staffIntent) {
+      const intent = parseSheetFieldIntent(effect.effect.staffIntent);
+      if (
+        intent.field === "current_rent" ||
+        intent.field !== effect.effect.field ||
+        intent.source !== effect.effect.source ||
+        sheetIntentValue(
+          intent,
+          effect.effect.expectedValue,
+          effect.effect.cellEvidence?.checkbox,
+        ) !== effect.effect.afterValue ||
+        effect.effect.authorization
+      )
+        return "blocked";
+    } else {
+      const authorization = effect.effect.authorization!;
+      const decisionId = resolutionDocId(authorization.sourceTriggerKey);
+      const [resolution, approval] = await Promise.all([
+        transaction.get(
+          db.collection(LEASE_RENEWAL_COLLECTIONS.resolutions).doc(decisionId),
+        ),
+        transaction.get(
+          db.collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals).doc(decisionId),
+        ),
+      ]);
+      if (
+        !resolution.exists ||
+        !approval.exists ||
+        !authorizationMatches(
+          authorization,
+          normalizeRecord<LeaseRenewalResolutionRecord>(
+            resolution.id,
+            resolution.data()!,
+          ),
+          normalizeRecord<LeaseRenewalWritebackApprovalRecord>(
+            approval.id,
+            approval.data()!,
+          ),
+        )
+      )
+        return "blocked";
+    }
+    const execution = executionSnapshot.data() as ExternalExecutionRecord;
+    if (
+      execution.id !== input.executionId ||
+      execution.previewHash !== input.previewHash ||
+      execution.contextHash !== input.previewHash ||
+      execution.actionKey !== effect.actionKey
+    )
+      return "blocked";
+    if (execution.state === "succeeded") return "duplicate";
+    if (execution.state !== "ready" || execution.attemptCount !== 0) return "blocked";
+    const targetId = createHash("sha256")
+      .update(
+        JSON.stringify({
+          spreadsheet: input.spreadsheetId,
+          tab: input.tabTitle,
+          row: effect.effect.rowNumber,
+          field: effect.effect.field,
+        }),
+      )
+      .digest("hex");
+    const targetRef = db.collection(SHEET_FIELD_LIFECYCLES_COLLECTION).doc(targetId);
+    const target = await transaction.get(targetRef);
+    if (target.exists) {
+      const previousId = target.get("execution_id");
+      if (typeof previousId !== "string") return "blocked";
+      const previous = await transaction.get(
+        db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(previousId),
+      );
+      if (!previous.exists || !["succeeded", "failed"].includes(previous.get("state")))
+        return "blocked";
+    }
+    const now = new Date().toISOString();
+    transaction.set(executionRef, {
+      ...execution,
+      state: "running",
+      attemptCount: 1,
+      updatedAt: now,
+    });
+    transaction.set(targetRef, {
+      version: "operating-sheet-field-lifecycle/v1",
+      execution_id: input.executionId,
+      proposal_preview_hash: input.previewHash,
+      lease_id: input.leaseId,
+      updated_at: now,
+    });
+    transaction.create(
+      db.collection(EXTERNAL_EXECUTION_COLLECTIONS.audit).doc(uuidv7()),
+      {
+        execution_id: execution.id,
+        action_key: execution.actionKey,
+        data_mode: execution.dataMode,
+        live_evidence_eligible: false,
+        context_hash: execution.contextHash,
+        preview_hash: execution.previewHash,
+        action: "attempt_claimed_with_active_lease_generation",
+        state: "running",
+        attempt_count: 1,
+        created_at: now,
+      },
+    );
+    return "claimed";
+  });
 }
 
 /**

@@ -19,7 +19,8 @@ const NEXT_ACTION: Record<PacketVisibleState, string> = {
   Superseded: "Reload and evaluate the current successor snapshot.",
   "Provider pending": "Reconcile the existing provider attempt before retrying.",
   "Partially executed": "Reconcile the existing partial attempt before retrying.",
-  Executed: "Tenant execution evidence is complete for this packet.",
+  Executed:
+    "Inspect the exact completion evidence. Document presence alone does not establish signatures.",
   Failed: "Preserve the receipt, correct the blocker, and reconcile before retrying.",
   Cancelled: "Evidence is preserved; evaluate a successor before continuing.",
 };
@@ -142,12 +143,21 @@ export function PacketTruthPanel({
       <div className="ui-stack-tight">
         <strong>Current approved-artifact dependencies</strong>
         <p className="muted">
-          Spike S66-A found no verified field/signature catalog. These are dependencies,
-          not fallback templates or generated legal copy.
+          Required families are evaluated against current approved publications and their
+          applicability mappings. Pending locations do not provide legal content.
         </p>
         <ul className="ui-rows">
           {REQUIRED_LEASE_ARTIFACTS.map((artifact) => (
-            <li key={artifact.kind}>Approved artifact unavailable: {artifact.label}</li>
+            <li key={artifact.kind}>
+              {artifact.label}:{" "}
+              {snapshot?.manifest?.includedArtifacts.some(
+                (item) => item.kind === artifact.kind,
+              )
+                ? "included in the evaluated packet"
+                : (snapshot?.manifest?.excludedArtifacts.find(
+                    (item) => item.kind === artifact.kind,
+                  )?.ruleResult ?? "pending evaluation and applicable approved mapping")}
+            </li>
           ))}
         </ul>
       </div>

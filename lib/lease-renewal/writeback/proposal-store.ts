@@ -1,3 +1,4 @@
+import { FutureRentBindingSchema } from "./future-rent-intent";
 // Durable per-lease S97 renewal-writeback proposals. The proposal preview hash is the immutable
 // generation identity. Replacement and discard use compare-and-set and inspect every deterministic
 // execution record in the same Firestore transaction, so a route that loaded an older generation
@@ -168,6 +169,8 @@ const ValidatedEffectSchema = z
 
 const StoredProposalSchema = z
   .object({
+    businessIntent: z.enum(["current_base", "future_rent"]).optional(),
+    renewalTerms: FutureRentBindingSchema.optional(),
     version: z.literal(RENEWAL_WRITEBACK_PROPOSAL_VERSION),
     leaseId: z.string().regex(/^[1-9]\d*$/),
     account: z.string().min(1),

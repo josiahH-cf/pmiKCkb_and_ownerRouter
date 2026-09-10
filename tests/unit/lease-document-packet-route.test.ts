@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createPacketTruthGetHandler,
@@ -30,6 +30,49 @@ function snapshot(): RenewalPacketSnapshot {
 }
 
 describe("S66 packet truth route", () => {
+  beforeEach(() => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+  it.each(["verification", "read-only"])(
+    "refuses %s persistence before resolving packet sources",
+    async (kind) => {
+      const resolveInput = vi.fn(),
+        save = vi.fn();
+      if (kind === "read-only") {
+        vi.stubEnv("ENVIRONMENT_KIND", "demo");
+        vi.stubEnv("DATA_CONTEXT", "live_readonly");
+      }
+      const response = await createPacketTruthPostHandler({
+        requireCapabilityInSpace: vi.fn().mockResolvedValue({
+          ...editor,
+          email: kind === "verification" ? "canary-editor@pmikcmetro.com" : editor.email,
+        }),
+        resolveInput,
+        save,
+      })(
+        new Request("http://localhost/api/lease-renewal/packet-truth", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "evaluate",
+            leaseId: "701",
+            transactionId: "701",
+            expectedCurrentSnapshotId: null,
+          }),
+        }),
+      );
+      expect(response.status).toBe(kind === "read-only" ? 409 : 403);
+      expect(JSON.stringify(await response.json())).toContain(
+        kind === "read-only"
+          ? "Live read-only is an inspection context."
+          : "Verification accounts cannot save packet evaluations.",
+      );
+      expect(resolveInput).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
   it("gates GET by read + renewals and returns the current snapshot", async () => {
     const requireCapabilityInSpace = vi.fn().mockResolvedValue(editor);
     const getCurrent = vi.fn().mockResolvedValue(snapshot());
@@ -104,6 +147,7 @@ describe("S66 packet truth route", () => {
       "fixture-lease",
       "fixture-transaction",
       "2026-08-10T12:00:00.000Z",
+      expect.objectContaining({ uid: "fixture-editor", role: "Editor" }),
     );
     expect(save).toHaveBeenCalledWith(
       editor,

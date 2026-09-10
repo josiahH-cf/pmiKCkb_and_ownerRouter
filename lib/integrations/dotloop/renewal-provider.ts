@@ -42,6 +42,8 @@ export interface DotloopRenewalSelection {
 
 /** One participant to add, already resolved from the confirmed packet binding. */
 export interface DotloopRenewalParticipant {
+  /** Normal packet mappings use opaque references, bound to an exact observed contact. */
+  readonly participantRef?: string;
   readonly fullName: string;
   readonly email: string;
   readonly role: DotloopParticipantRole;
@@ -126,7 +128,13 @@ export class LiveDotloopProvider implements DotloopProvider {
     const name = this.loopName(input.idempotencyKey);
     // A lost response is reconciled by name, so check before creating a second loop.
     const existing = await this.#findByName(name);
-    if (existing) return { loopRef: existing };
+    if (existing) {
+      if (participants.some((participant) => participant.participantRef))
+        throw new Error(
+          "A loop with this packet name already exists without this attempt's create receipt. Retain the existing attempt for review; a name match cannot prove creation.",
+        );
+      return { loopRef: existing };
+    }
 
     // One documented `loop-it` call carries the template, the participants, and the property
     // address together; the plain loop create documents none of them.
@@ -222,8 +230,17 @@ export class LiveDotloopProvider implements DotloopProvider {
       templateRef:
         expectedName !== null && loop.name === expectedName ? selection.templateId : "",
       participantRefs: observedParticipants
-        .map((participant) => participant.email)
-        .filter((email) => email !== ""),
+        .map((observed) => {
+          const mapped = this.#deps.participants.filter(
+            (expected) =>
+              expected.email.toLowerCase() === observed.email.toLowerCase() &&
+              expected.role === observed.role,
+          );
+          return mapped.length === 1
+            ? (mapped[0].participantRef ?? observed.email)
+            : observed.email;
+        })
+        .filter((reference) => reference !== ""),
       active: loop.status !== "ARCHIVED",
     };
   }

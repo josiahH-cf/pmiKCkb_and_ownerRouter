@@ -1,4 +1,6 @@
+import type { ReleaseBrowserPolicy } from "../lib/production-assurance/release-browser-policy.mjs";
 export interface PredecessorBaseline {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly verifiedAt: string;
   readonly canonicalOrigin: string;
   readonly expectedCommit: string;
@@ -6,12 +8,13 @@ export interface PredecessorBaseline {
   readonly expectedConfigurationFingerprint: string;
   readonly trafficPercent: 100;
   readonly adminVerdict: "passed";
-  readonly editorVerdict: "passed";
+  readonly editorVerdict: "passed" | "not_run";
   readonly monitoringState: "ready";
 }
 
 export interface CandidateAssuranceReceipt {
-  readonly schemaVersion: "pmi-kc-candidate-assurance-receipt.v2";
+  readonly browserPolicy?: ReleaseBrowserPolicy;
+  readonly schemaVersion: "pmi-kc-candidate-assurance-receipt.v3";
   readonly candidateReceiptId: string;
   readonly issuedAt: string;
   readonly expiresAt: string;
@@ -26,13 +29,14 @@ export interface CandidateAssuranceReceipt {
   readonly predecessorRevision: string;
   readonly predecessorBaseline: PredecessorBaseline;
   readonly adminVerdict: "passed";
-  readonly editorVerdict: "passed";
+  readonly editorVerdict: "passed" | "not_run";
   readonly reconciliationState: "matched";
   readonly monitoringState: "ready";
 }
 
 export interface PromotionReceipt {
-  readonly schemaVersion: "pmi-kc-promotion-receipt.v2";
+  readonly browserPolicy?: ReleaseBrowserPolicy;
+  readonly schemaVersion: "pmi-kc-promotion-receipt.v3";
   readonly candidateReceiptId: string;
   readonly candidateReceiptIssuedAt: string;
   readonly promotionStartedAt: string;

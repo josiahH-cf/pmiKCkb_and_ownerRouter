@@ -188,10 +188,10 @@ describe("RenewalWorkspace live mode", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Waiting on the tenant")).not.toBeInTheDocument();
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
-    expect(screen.getAllByText("State unavailable")).toHaveLength(7);
     expect(document.querySelector('[data-current="true"]')).not.toBeInTheDocument();
-    expect(document.querySelectorAll('[data-state="unavailable"]')).toHaveLength(6);
-    expect(screen.getAllByRole("link", { name: /State unavailable/ })).toHaveLength(6);
+    expect(document.querySelectorAll('[data-progress-state="unavailable"]')).toHaveLength(
+      5,
+    );
     expect(screen.getAllByText(/Dependent actions are paused/i).length).toBeGreaterThan(
       0,
     );
@@ -200,7 +200,7 @@ describe("RenewalWorkspace live mode", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders source-update controls only inside the verification phase", () => {
+  it("keeps source-update controls inspectable from an old phase bookmark", () => {
     const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2");
     if (!workspace) throw new Error("Missing sample workspace.");
 
@@ -218,8 +218,12 @@ describe("RenewalWorkspace live mode", () => {
         workspace={workspace}
       />,
     );
-    expect(screen.queryByText("Sheet proposal controls")).not.toBeInTheDocument();
-    expect(screen.queryByText("RentVine proposal controls")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Sheet proposal controls").closest("section"),
+    ).toHaveAttribute("aria-label", "Lease details");
+    expect(
+      screen.getByText("RentVine proposal controls").closest("section"),
+    ).toHaveAttribute("aria-label", "Lease details");
 
     rerender(
       <RenewalWorkspace

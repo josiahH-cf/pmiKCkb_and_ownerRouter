@@ -20,6 +20,7 @@ export interface RentvineWritebackClientEffect {
 }
 
 export interface RentvineWritebackClientProposal {
+  business_intent?: "current_base" | "future_rent";
   lease_id: string;
   account: string;
   actor_uid: string;
@@ -51,6 +52,7 @@ export function clientRenewalWritebackProposal(
   proposal: RenewalWritebackProposal,
 ): RentvineWritebackClientProposal {
   return {
+    ...(proposal.businessIntent ? { business_intent: proposal.businessIntent } : {}),
     lease_id: proposal.leaseId,
     account: proposal.account,
     actor_uid: proposal.actorUid,

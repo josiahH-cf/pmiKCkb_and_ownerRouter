@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  chargeDateIso,
+  type RenewalChargeInventory,
+} from "@/lib/lease-renewal/writeback/charge-inventory-model";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Button, Field } from "@/components/ui";
@@ -124,14 +128,18 @@ export function RentvineUpdatesPanel({
   initialProposal,
   initialEffects = null,
   initialHistory = null,
+  initialInventory = null,
 }: Readonly<{
   leaseId: string;
   role: Role;
   initialProposal: RentvineWritebackClientProposal | null;
   initialEffects?: RentvineWritebackEffectStatus[] | null;
   initialHistory?: ArchivedRenewalWritebackGeneration[] | null;
+  initialInventory?: RenewalChargeInventory | null;
 }>) {
   const router = useRouter();
+  const [inventory, setInventory] = useState(initialInventory);
+  const [billingIntent, setBillingIntent] = useState("recurring");
   const [proposal, setProposal] = useState(initialProposal);
   const [effects, setEffects] = useState<RentvineWritebackEffectStatus[] | null>(
     initialEffects,
@@ -154,8 +162,10 @@ export function RentvineUpdatesPanel({
   const statusLoadedPreviewRef = useRef<string | null>(null);
 
   // Propose-form state (Editor+). Empty fields mean "not part of this proposal".
-  const [endDate, setEndDate] = useState("");
-  const [increaseEligibilityDate, setIncreaseEligibilityDate] = useState("");
+  const [endDate, setEndDate] = useState(initialInventory?.leaseDates.endDate ?? "");
+  const [increaseEligibilityDate, setIncreaseEligibilityDate] = useState(
+    initialInventory?.leaseDates.increaseEligibilityDate ?? "",
+  );
   const [updateChargeId, setUpdateChargeId] = useState("");
   const [updateFields, setUpdateFields] = useState<Record<string, string>>({});
   const [createFields, setCreateFields] = useState<Record<string, string>>({});
@@ -250,15 +260,27 @@ export function RentvineUpdatesPanel({
   function proposedEffects(): Record<string, unknown>[] {
     const list: Record<string, unknown>[] = [];
     const after: Record<string, string> = {};
-    if (endDate.trim()) after.endDate = endDate.trim();
-    if (increaseEligibilityDate.trim()) {
+    if (endDate.trim() && endDate !== inventory?.leaseDates.endDate)
+      after.endDate = endDate.trim();
+    if (
+      increaseEligibilityDate.trim() &&
+      increaseEligibilityDate !== inventory?.leaseDates.increaseEligibilityDate
+    ) {
       after.increaseEligibilityDate = increaseEligibilityDate.trim();
     }
     if (Object.keys(after).length > 0) {
       list.push({ kind: "renewal_dates_update", after });
     }
     const changes = Object.fromEntries(
-      Object.entries(updateFields).filter(([, value]) => value.trim() !== ""),
+      Object.entries(updateFields).filter(
+        ([key, value]) =>
+          value.trim() !== "" &&
+          value !==
+            (
+              inventory?.charges.find((charge) => charge.id === updateChargeId)
+                ?.projection as unknown as Record<string, unknown> | undefined
+            )?.[key],
+      ),
     );
     if (updateChargeId.trim() && Object.keys(changes).length > 0) {
       list.push({
@@ -267,6 +289,8 @@ export function RentvineUpdatesPanel({
         changes,
       });
     }
+    if (billingIntent === "current_base")
+      return list.filter((effect) => effect.kind === "recurring_charge_update");
     const create = Object.fromEntries(
       Object.entries(createFields).filter(([, value]) => value.trim() !== ""),
     );
@@ -274,6 +298,15 @@ export function RentvineUpdatesPanel({
       list.push({ kind: "recurring_charge_create", create });
     }
     return list;
+  }
+
+  async function loadInventory() {
+    const payload = await postWriteback({ operation: "options", leaseId });
+    if (!payload.inventory) throw new Error("The verified charge list is unavailable.");
+    setInventory(payload.inventory as RenewalChargeInventory);
+    setNotice(
+      "Current RentVine charges loaded. Select the exact billing item to correct.",
+    );
   }
 
   async function propose() {
@@ -286,6 +319,7 @@ export function RentvineUpdatesPanel({
       leaseId,
       expectedPriorPreviewHash: proposal?.preview_hash ?? null,
       evidenceRef: evidenceRef.trim() || `workspace:${leaseId}`,
+      ...(billingIntent === "current_base" ? { businessIntent: "current_base" } : {}),
       effects: list,
     });
     setProposal(payload.proposal as RentvineWritebackClientProposal);
@@ -696,6 +730,60 @@ export function RentvineUpdatesPanel({
         </section>
       ) : null}
 
+      <section className="ui-stack" aria-label="Current recurring charges">
+        <h3>Current recurring charges</h3>
+        {inventory ? (
+          <>
+            <p className="muted">
+              Source: RentVine, read for {inventory.asOfDate}. Individual charges do not
+              redefine contractual base rent.
+            </p>
+            <ul className="ui-rows">
+              {inventory.charges.map((charge) => (
+                <li key={charge.id}>
+                  <strong>{charge.accountLabel ?? charge.projection.description}</strong>:
+                  ${charge.projection.amount}, every {charge.projection.frequency}{" "}
+                  month(s), due day {charge.projection.dayDue}.{" "}
+                  {charge.projection.startDate} to{" "}
+                  {charge.projection.endDate ?? "no end date"}.
+                  <span className="muted">
+                    {" "}
+                    {charge.classification === "rent"
+                      ? "Rent account"
+                      : charge.classification === "non_rent"
+                        ? "Other recurring charge"
+                        : "Account classification unavailable"}
+                    ;{" "}
+                    {charge.current === true
+                      ? "within current schedule"
+                      : charge.current === false
+                        ? "outside current schedule"
+                        : "schedule boundary needs review"}
+                    .
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {inventory.charges.length === 0 ? (
+              <p>No recurring charges returned for this lease.</p>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted">The current charge list has not been loaded.</p>
+        )}
+        <Button
+          type="button"
+          disabled={pending}
+          onClick={() => void run(loadInventory)}
+          variant="secondary"
+        >
+          Refresh verified charges
+        </Button>
+        <p className="muted">
+          One-time fees, deposit or ledger changes, party changes and insurance enrollment
+          are outside these RentVine actions.
+        </p>
+      </section>
       {editor ? (
         <details>
           <summary>Prepare a RentVine update proposal</summary>
@@ -712,10 +800,11 @@ export function RentvineUpdatesPanel({
               the exact generation shown above when it has no unresolved attempt. Nothing
               is written to RentVine until an Admin confirms one effect at a time.
             </p>
-            <fieldset className="ui-stack">
+            <fieldset className="ui-stack" disabled={billingIntent === "current_base"}>
               <legend>Lease renewal dates</legend>
               <Field htmlFor="s97-end-date" label="New end date (YYYY-MM-DD)">
                 <input
+                  type="date"
                   id="s97-end-date"
                   onChange={(event) => setEndDate(event.target.value)}
                   value={endDate}
@@ -726,6 +815,7 @@ export function RentvineUpdatesPanel({
                 label="New increase eligibility date (YYYY-MM-DD)"
               >
                 <input
+                  type="date"
                   id="s97-increase-date"
                   onChange={(event) => setIncreaseEligibilityDate(event.target.value)}
                   value={increaseEligibilityDate}
@@ -734,13 +824,81 @@ export function RentvineUpdatesPanel({
             </fieldset>
             <fieldset className="ui-stack">
               <legend>Update one existing recurring charge</legend>
-              <Field htmlFor="s97-charge-id" label="Charge id">
-                <input
-                  id="s97-charge-id"
-                  onChange={(event) => setUpdateChargeId(event.target.value)}
-                  value={updateChargeId}
-                />
+              <Field htmlFor="s113-billing-intent" label="Billing correction">
+                <select
+                  id="s113-billing-intent"
+                  value={billingIntent}
+                  onChange={(event) => {
+                    setBillingIntent(event.target.value);
+                    setUpdateChargeId("");
+                    setUpdateFields({});
+                  }}
+                >
+                  <option value="recurring">Correct a recurring charge</option>
+                  <option value="current_base">Correct current base-rent billing</option>
+                </select>
               </Field>
+              <Field htmlFor="s97-charge-id" label="Recurring charge to correct">
+                <select
+                  id="s97-charge-id"
+                  disabled={!inventory}
+                  value={updateChargeId}
+                  onChange={(event) => {
+                    setUpdateChargeId(event.target.value);
+                    const selected = inventory?.charges.find(
+                      (charge) => charge.id === event.target.value,
+                    );
+                    setUpdateFields(
+                      selected
+                        ? Object.fromEntries(
+                            (billingIntent === "current_base"
+                              ? ["amount"]
+                              : [
+                                  "amount",
+                                  "description",
+                                  "dayDue",
+                                  "frequency",
+                                  "startDate",
+                                  "endDate",
+                                ]
+                            ).map((key) => [
+                              key,
+                              String(
+                                (
+                                  selected.projection as unknown as Record<
+                                    string,
+                                    unknown
+                                  >
+                                )[key] ?? "",
+                              ),
+                            ]),
+                          )
+                        : {},
+                    );
+                  }}
+                >
+                  <option value="">Select the observed billing item</option>
+                  {(inventory?.charges ?? [])
+                    .filter(
+                      (charge) =>
+                        billingIntent !== "current_base" ||
+                        (charge.classification === "rent" && charge.current === true),
+                    )
+                    .map((charge) => (
+                      <option key={charge.id} value={charge.id}>
+                        {charge.accountLabel ?? charge.projection.description} · $
+                        {charge.projection.amount} · {charge.projection.startDate}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              {billingIntent === "current_base" ? (
+                <p className="muted">
+                  Select one verified current rent-account charge. The app never divides
+                  an aggregate among charges. Charge readback and the displayed
+                  contractual base rent are checked separately.
+                </p>
+              ) : null}
               {(
                 [
                   ["amount", "Amount (e.g. 1450.00)"],
@@ -749,28 +907,74 @@ export function RentvineUpdatesPanel({
                   ["frequency", "Frequency in months (1-24)"],
                   ["startDate", "Start date (MM/DD/YYYY)"],
                   ["endDate", "End date (MM/DD/YYYY)"],
-                  ["accountID", "Account id"],
                 ] as const
-              ).map(([key, label]) => (
-                <Field htmlFor={`s97-update-${key}`} key={key} label={label}>
-                  <input
-                    id={`s97-update-${key}`}
-                    onChange={(event) =>
-                      setUpdateFields((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
-                    }
-                    value={updateFields[key] ?? ""}
-                  />
-                </Field>
-              ))}
+              )
+                .filter(([key]) => billingIntent !== "current_base" || key === "amount")
+                .map(([key, label]) => (
+                  <Field htmlFor={`s97-update-${key}`} key={key} label={label}>
+                    <input
+                      disabled={!updateChargeId}
+                      type={
+                        key.endsWith("Date")
+                          ? "date"
+                          : ["amount", "dayDue", "frequency"].includes(key)
+                            ? "number"
+                            : "text"
+                      }
+                      step={key === "amount" ? "0.01" : undefined}
+                      id={`s97-update-${key}`}
+                      onChange={(event) =>
+                        setUpdateFields((current) => ({
+                          ...current,
+                          [key]: key.endsWith("Date")
+                            ? dateForProvider(event.target.value)
+                            : event.target.value,
+                        }))
+                      }
+                      value={
+                        key.endsWith("Date")
+                          ? (chargeDateIso(updateFields[key] ?? null) ?? "")
+                          : (updateFields[key] ?? "")
+                      }
+                    />
+                  </Field>
+                ))}
             </fieldset>
-            <fieldset className="ui-stack">
+            <fieldset className="ui-stack" disabled={billingIntent === "current_base"}>
               <legend>Create one new recurring charge</legend>
+              <Field htmlFor="s97-create-accountID" label="Verified billing account">
+                <select
+                  id="s97-create-accountID"
+                  value={createFields.accountID ?? ""}
+                  disabled={!inventory}
+                  onChange={(event) =>
+                    setCreateFields((current) => ({
+                      ...current,
+                      accountID: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Select an existing account</option>
+                  {[
+                    ...new Map(
+                      (inventory?.charges ?? [])
+                        .filter((charge) => charge.accountLabel !== null)
+                        .map((charge) => [charge.accountId, charge]),
+                    ).values(),
+                  ].map((charge) => (
+                    <option key={charge.accountId} value={charge.accountId}>
+                      {charge.accountLabel}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <p className="muted">
+                Only accounts verified on this lease are available here. Review the full
+                schedule above for overlaps or gaps; matching end/start dates need a
+                boundary review.
+              </p>
               {(
                 [
-                  ["accountID", "Account id"],
                   ["amount", "Amount (e.g. 1450.00)"],
                   ["description", "Description"],
                   ["dayDue", "Day due (1-31)"],
@@ -781,19 +985,33 @@ export function RentvineUpdatesPanel({
               ).map(([key, label]) => (
                 <Field htmlFor={`s97-create-${key}`} key={key} label={label}>
                   <input
+                    type={
+                      key.endsWith("Date")
+                        ? "date"
+                        : ["amount", "dayDue", "frequency"].includes(key)
+                          ? "number"
+                          : "text"
+                    }
+                    step={key === "amount" ? "0.01" : undefined}
                     id={`s97-create-${key}`}
                     onChange={(event) =>
                       setCreateFields((current) => ({
                         ...current,
-                        [key]: event.target.value,
+                        [key]: key.endsWith("Date")
+                          ? dateForProvider(event.target.value)
+                          : event.target.value,
                       }))
                     }
-                    value={createFields[key] ?? ""}
+                    value={
+                      key.endsWith("Date")
+                        ? (chargeDateIso(createFields[key] ?? null) ?? "")
+                        : (createFields[key] ?? "")
+                    }
                   />
                 </Field>
               ))}
             </fieldset>
-            <Field htmlFor="s97-evidence-ref" label="Evidence reference">
+            <Field htmlFor="s97-evidence-ref" label="Source of the reviewed terms">
               <input
                 id="s97-evidence-ref"
                 onChange={(event) => setEvidenceRef(event.target.value)}
@@ -842,4 +1060,10 @@ export function RentvineUpdatesPanel({
       ) : null}
     </article>
   );
+}
+
+function dateForProvider(iso: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso)
+    ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`
+    : "";
 }

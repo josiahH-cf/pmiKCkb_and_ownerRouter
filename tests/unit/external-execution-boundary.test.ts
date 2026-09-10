@@ -236,33 +236,28 @@ describe("external execution fail-closed boundary", () => {
       const definition = LEASE_EXECUTION_DEFINITION_MAP.get(key)!;
       expect(definition.dependsOn).toEqual([]);
       expect(definition.correction).toContain(
-        "refused as provider_capability_unavailable until a stable-row seam exists",
+        "new current-state preview and confirmation; row deletion remains unavailable",
       );
     }
   });
 
   it("accepts dependencies only from the same workflow with matching receipts", async () => {
-    // The Dotloop loop create depends on the operating-Sheet append: a real pair of exact keys.
-    const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
-      "dotloop.loop.create_from_template",
-    )!;
-    expect(definition.dependsOn).toEqual(["google_sheets.renewal_checklist.row_append"]);
+    // The Dotloop document upload depends on the approved loop create: a real pair of exact keys.
+    const definition = LEASE_EXECUTION_DEFINITION_MAP.get("dotloop.document.upload")!;
+    expect(definition.dependsOn).toEqual(["dotloop.loop.create_from_template"]);
     const input = synthetic(definition);
     const store = new MemoryExternalExecutionStore();
     const boundary = orchestrator(definition, store, receiptExecutor());
-    const dependency = dependencyRecord(
-      input,
-      "google_sheets.renewal_checklist.row_append",
-    );
+    const dependency = dependencyRecord(input, "dotloop.loop.create_from_template");
 
     const crossWorkflow = { ...dependency, workflowId: "lease-other" };
     let record = await boundary.prepare(input, [crossWorkflow]);
     expect(record.state).toBe("blocked");
-    expect(record.blocker).toContain("google_sheets.renewal_checklist.row_append");
+    expect(record.blocker).toContain("dotloop.loop.create_from_template");
 
     const nextInput = synthetic(definition, 1);
     const wrongReceipt = {
-      ...dependencyRecord(nextInput, "google_sheets.renewal_checklist.row_append"),
+      ...dependencyRecord(nextInput, "dotloop.loop.create_from_template"),
       receipt: {
         ...dependency.receipt!,
         actionKey: "gmail.label.apply",
@@ -273,18 +268,17 @@ describe("external execution fail-closed boundary", () => {
 
     const laneInput = synthetic(definition, 2);
     const crossLane = {
-      ...dependencyRecord(laneInput, "google_sheets.renewal_checklist.row_append"),
+      ...dependencyRecord(laneInput, "dotloop.loop.create_from_template"),
       dataMode: "live" as const,
       receipt: {
-        ...dependencyRecord(laneInput, "google_sheets.renewal_checklist.row_append")
-          .receipt!,
+        ...dependencyRecord(laneInput, "dotloop.loop.create_from_template").receipt!,
         dataMode: "live" as const,
         liveEvidenceEligible: true,
       },
     };
     record = await boundary.prepare(laneInput, [crossLane]);
     expect(record.state).toBe("blocked");
-    expect(record.blocker).toContain("google_sheets.renewal_checklist.row_append");
+    expect(record.blocker).toContain("dotloop.loop.create_from_template");
   });
 
   it("marks a wrong-action provider receipt ambiguous after exactly one claim", async () => {

@@ -16,6 +16,7 @@ const SUITES_DIR = join(root, "docs", "feature-suites");
 const SENTINEL = "<!-- spec-shape: overhaul-v1 -->";
 const HANDOFF_SENTINEL = /^<!-- feature-handoff: [a-z0-9-]+ -->$/m;
 const STRICT_HANDOFF_BUNDLES = new Set([
+  "renewal-consolidation-v1",
   "renewal-stabilization-v2",
   "source-of-truth-writeback-v1",
   "maintenance-provider-sync-v1",

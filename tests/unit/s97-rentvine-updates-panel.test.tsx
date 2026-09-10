@@ -455,4 +455,76 @@ describe("S97 RentVine updates panel", () => {
       { kind: "renewal_dates_update", after: { endDate: "2027-08-31" } },
     ]);
   });
+  it("uses the verified billing item and one changed amount without asking for provider ids", async () => {
+    const proposal = datesProposal();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: "proposed", proposal }),
+    });
+    render(
+      <RentvineUpdatesPanel
+        initialHistory={[]}
+        initialProposal={null}
+        leaseId="4821"
+        role="Editor"
+        initialInventory={{
+          leaseId: "4821",
+          asOfDate: "2026-09-10",
+          leaseDates: {
+            startDate: "2025-09-01",
+            endDate: "2026-08-31",
+            increaseEligibilityDate: null,
+          },
+          charges: [
+            {
+              id: "301",
+              accountId: "9",
+              accountLabel: "Residential rent",
+              classification: "rent",
+              current: true,
+              projection: {
+                leaseRecurringChargeID: "301",
+                leaseID: "4821",
+                accountID: "9",
+                amount: "1200",
+                description: "Rent",
+                dayDue: "1",
+                frequency: "1",
+                startDate: "01/01/2026",
+                endDate: null,
+                isMoveInCharge: "0",
+                isFromImport: "0",
+                nextChargeDate: null,
+                rentIncreaseID: null,
+                importSourceKey: null,
+                recurringStatusID: 1,
+              },
+            },
+          ],
+        }}
+      />,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Prepare a RentVine update proposal"));
+    expect(screen.queryByLabelText("Charge id")).toBeNull();
+    expect(screen.queryByLabelText("Account id")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Billing correction"), {
+      target: { value: "current_base" },
+    });
+    fireEvent.change(screen.getByLabelText("Recurring charge to correct"), {
+      target: { value: "301" },
+    });
+    const amount = screen.getByLabelText("Amount (e.g. 1450.00)", {
+      selector: "input:not(:disabled)",
+    });
+    expect(amount).toHaveValue(1200);
+    fireEvent.change(amount, { target: { value: "1250" } });
+    fireEvent.click(screen.getByText("Save proposal from fresh RentVine state"));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.businessIntent).toBe("current_base");
+    expect(body.effects).toEqual([
+      { kind: "recurring_charge_update", chargeId: "301", changes: { amount: "1250" } },
+    ]);
+  });
 });

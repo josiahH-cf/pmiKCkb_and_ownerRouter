@@ -1,10 +1,9 @@
 # Environment and release handoff
 
-Updated: 2026-09-09. Public version endpoints confirm the canonical predecessor and new
-readiness candidate. The watcher is in assurance, blocked on authentication; CLI and ADC require
-reauth. September 8 fresh-shell/post-reboot proofs remain evidence, not current READY.
-The 24-hour proof is incomplete. Numeric traffic/configuration below retains its September 8
-authenticated evidence date. Fresh readback is required after recovery. No promotion is verified.
+Updated: 2026-09-10. Approved WSL CLI/ADC refresh passed this run. This does not establish the
+24-hour elapsed-session proof or managed browser assurance. Canonical still serves the predecessor;
+the previous readiness candidate remains unpromoted. The active S113 working tree is uncommitted.
+Current release gates and exact observations are recorded in docs/loop-state.md and docs/facts.md.
 
 ## Production
 
@@ -29,14 +28,20 @@ authenticated evidence date. Fresh readback is required after recovery. No promo
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
-The active unreleased S98 correction preserves the two open keys and this switch but makes the
-normal product path append-only. Its field-update and fixed-row reversal routes must fail before
-writer construction; do not describe that behavior as serving until candidate promotion and
-readback pass.
+The older deployed candidate preserves the two keys and switch while refusing normal field updates.
+The local S113 implementation replaces that refusal under the owner's explicit contract: fresh
+server-resolved identity/type/value, exact confirmation, one-attempt claim, receipt/readback and
+separately confirmed current-state correction. Row deletion and historical restore remain unavailable.
+These S113 changes are not serving until their release gates pass.
 
 ## Local host and authentication
 
 - The repository is on the Windows-mounted workspace; Node/npm application commands run through WSL.
+- September 10 rehearsal uses the existing Node 22.23.2 runtime and native Linux Cloud SDK
+  (`/snap/google-cloud-cli/current/bin`) ahead of the inherited Windows-mounted SDK path. The same
+  approved WSL CLI/ADC store passes refresh; fresh Sheet timing improves from 13.135 to 2.298 seconds.
+  Mounted-filesystem cold route startup is separate from ready-process browser acceptance. No source
+  cache, browser deadline, account, credential store or production configuration is changed.
 - Keep `GOOGLE_APPLICATION_CREDENTIALS` unset. Service-account keys cannot be created for this
   project (org policy) and every preflight refuses them.
 - `.gcloudignore` inherits `.gitignore` and excludes `.claude/`, `output/`, and local env files
@@ -135,6 +140,9 @@ imports .env.local into test configuration. See the bodyless readiness review fo
 npm run preflight:identity
 npm run preflight:adc
 npm run release -- --environment=production --plan-only \
+  --operator-email=josiah@pmikcmetro.com \
+  --monitoring-operator-email=josiah+alerts@pmikcmetro.com \
+  --admin-profile=/home/josiah/pmi-assurance/owner-admin \
   --budget-confirmed --allow-multiple-spaces
 ```
 
@@ -147,6 +155,9 @@ enrollment command it names; do not bridge a token by hand.
 
 ```bash
 npm run release -- --environment=production --execute \
+  --operator-email=josiah@pmikcmetro.com \
+  --monitoring-operator-email=josiah+alerts@pmikcmetro.com \
+  --admin-profile=/home/josiah/pmi-assurance/owner-admin \
   --budget-confirmed --allow-multiple-spaces
 ```
 
@@ -179,14 +190,14 @@ Do not promote until the anonymous smoke and the complete S51 candidate assuranc
 
 Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA. Add
 the exact candidate hostname to Firebase authorized domains through a reviewed managed cloud change
-and read it back. Two distinct canary profile directories outside the repository must then hold
-sessions as the expected Admin and Editor on BOTH the exact candidate origin and the canonical
-origin: the receipt run drives the predecessor baseline against the canonical host before the
-candidate canaries, and the session cookie is host-only. Enroll each profile once per origin with
-`npm run auth:enroll-canary`, then let `npm run auth:ensure -- --need=canary --origins=<canonical>,<candidate> --admin-profile=<path> --editor-profile=<path>`
-re-establish both sessions unattended immediately before the receipt run. A managed account with
-no role claim is an Editor at the application layer. Copied cookies, guessed/default profiles, and
-any password or one-time code typed by the runner are not evidence.
+and read it back. The owner's September 10 direction accepts the existing
+`josiah@pmikcmetro.com` Admin profile on both the candidate and canonical origins. The enrolled
+profile is `/home/josiah/pmi-assurance/owner-admin`, outside the repository. Re-establish its
+session with `npm run auth:ensure -- --need=canary --origins=<canonical>,<candidate> --admin-profile=/home/josiah/pmi-assurance/owner-admin --admin-email=josiah@pmikcmetro.com`.
+Version 3 candidate/promotion receipts bind `browserPolicy=owner-admin-2026-09-10`; the candidate
+and predecessor baseline explicitly record Editor `not_run`. Admin access does not prove Editor
+restrictions; backend role tests remain required. No role, claim or canary business-refusal identity
+changes. Copied cookies, guessed profiles and runner-entered security challenges remain forbidden.
 
 Capture the immutable revision-configuration fingerprint:
 
@@ -198,7 +209,7 @@ npm run assure:production-observation -- \
 ```
 
 Choose two new, explicit receipt paths outside the repository. Run the aggregate candidate gate; it
-serially runs the exact Admin and Editor canaries, independent Admin source reconciliation, origin/
+serially runs the complete Admin canary, independent Admin source reconciliation, origin/
 traffic/configuration binding, predecessor recovery baseline, and monitoring readback. Production
 promotion does not accept independently run diagnostic commands as a substitute for this receipt:
 
@@ -211,7 +222,6 @@ npm run assure:production-observation -- \
   --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
   --operator-email=<managed-operator@pmikcmetro.com> \
   --admin-profile=<absolute-external-admin-profile> \
-  --editor-profile=<absolute-external-editor-profile> \
   --candidate-assurance-receipt=<new-absolute-external-candidate-receipt-path>
 ```
 
@@ -247,11 +257,11 @@ The fresh-setup plan refuses while any managed S51 resource already exists, so a
 reviewed in-place repair to the committed definitions rather than a rerun of setup.
 
 Before promotion, establish the versioned recovery baseline on the still-serving predecessor. Read
-its exact commit, revision, configuration fingerprint, and 100% traffic, then run the Admin and
-Editor canaries against the canonical origin with `--phase=rollback`. That phase alone may select a
+its exact commit, revision, configuration fingerprint, and 100% traffic, then run the Admin
+canary against the canonical origin with `--phase=rollback`. That phase alone may select a
 workspace through the predecessor's existing `.renewal-lease-link` when the newer
 `data-workspace-available` marker does not exist. It still requires exact version/configuration,
-both complete role manifests, no browser diagnostic, and ready monitoring. Do not run the
+the complete Admin route manifest, no browser diagnostic, and ready monitoring. Do not run the
 candidate-era semantic reconciliation against a predecessor that does not publish its markers.
 
 ## Promotion and observation
@@ -264,6 +274,9 @@ npm run release -- --environment=production --promote \
   --candidate-revision=<candidate-revision> \
   --candidate-assurance-receipt=<absolute-external-candidate-receipt-path> \
   --promotion-receipt=<new-absolute-external-promotion-receipt-path> \
+  --operator-email=josiah@pmikcmetro.com \
+  --monitoring-operator-email=josiah+alerts@pmikcmetro.com \
+  --admin-profile=/home/josiah/pmi-assurance/owner-admin \
   --budget-confirmed --allow-multiple-spaces
 ```
 
@@ -272,7 +285,7 @@ any post-traffic readback or receipt-persistence step fails, it restores the rec
 predecessor and verifies that restoration before reporting failure.
 
 Run the canonical-origin observation with the bound promotion receipt, fingerprint, managed
-operator, and both explicit profiles. The observer rejects caller-supplied predecessor or promotion
+operator, and the explicit Admin profile. The observer rejects caller-supplied predecessor or promotion
 time:
 
 ```bash
@@ -283,14 +296,13 @@ npm run assure:production-observation -- \
   --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
   --promotion-receipt=<absolute-external-promotion-receipt-path> \
   --operator-email=<managed-operator@pmikcmetro.com> \
-  --admin-profile=<absolute-external-admin-profile> \
-  --editor-profile=<absolute-external-editor-profile>
+  --admin-profile=/home/josiah/pmi-assurance/owner-admin
 ```
 
-The runner executes immediate and end-of-300,000-ms Admin/Editor canaries and reconciliation. It may
+The runner executes immediate and end-of-300,000-ms Admin canaries and reconciliation. It may
 wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision
 and never changes traffic. A `rollback_required` result requires restoring the exact captured
-predecessor, then repeating its recorded `--phase=rollback` Admin/Editor canaries plus exact
+predecessor, then repeating its recorded `--phase=rollback` Admin canaries plus exact
 commit/revision/configuration, ready monitoring, and 100% stable-traffic readback. Do not claim that
 an older predecessor implements the candidate's new Renewal Desk reconciliation schema.
 
@@ -298,9 +310,11 @@ After a passed observation, independently read back traffic, Ready state, servic
 Production + Live descriptor, exact Space maps, expected secret references, allowance 50, current
 Sheet/action/runtime state, bounded routes, and `/api/version`. The operating-Sheet switch remains
 enabled for S98's two activated keys; the legacy copy-only setting and broad Sheet action remain
-absent/closed. Candidate assurance must also prove that normal field update and fixed-row reversal
-return the typed provider-capability refusal without constructing a writer, while normal row append
-remains behind its exact lease-scoped claim. The Registry must remain 48 keys/16 open unless a
+absent/closed. S113 replaces the older candidate's blanket normal-field refusal: normal field updates
+require the exact current proposal, Admin confirmation, claim and receipt/readback. Row deletion and
+historical fixed-row reversal remain refused; normal append keeps its exact lease-scoped claim.
+Read-only managed canaries must not perform a source write to demonstrate these paths; route/store
+acceptance and actual operational receipts remain distinct evidence. The Registry remains 48 keys/16 open unless a
 separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
@@ -336,8 +350,9 @@ A routine release preserves:
 - managed runtime service account;
 - eleven Space maps;
 - existing Secret Manager bindings, including the S82 `RENEWAL_DESK_PARTY_FILTER_KEY` reference;
-- current operating-Sheet action/runtime state: both exact keys and the switch stay on, while the
-  hardened route permits normal append only and refuses fixed-row update/delete/restore;
+- current operating-Sheet action/runtime state: both exact keys and the switch stay on. The S113
+  release carries the explicitly approved normal field-update contract and preserves append;
+  fixed-row deletion and historical restore remain refused;
 - local/Demo auth false;
 - RentCast provider and allowance 50;
 - no legacy copy-only Sheet setting; renewal-comp storage unchanged unless separately authorized;
@@ -347,11 +362,11 @@ A routine release preserves:
 A difference requires explicit review; do not let stale local state replace current production
 configuration. Documentation-only changes are not deployed.
 
-### Current live rehearsal result — 2026-09-08
+### Current live rehearsal result — 2026-09-10
 
-Node 24 development reproduced the ArrayBuffer response error. The built app in native Linux
-storage with the installed Node 22 runtime loaded the desk, but sorting exceeded 20 seconds
-(23.4 seconds); Dashboard exceeded 60 seconds, navbar /ask exceeded 90 seconds and theme /ask
-exceeded 45 seconds. Maintenance blocker/intake checks passed. The guide summary locator is
-corrected and verified in Chromium; its full run still misses owner-phase navigation. Deadlines
-are unchanged. This is B-REH1, separate from the passing canonical verify and exact-SHA CI.
+All seven applicable native Node 22 compiled browser checks pass. The final R29 full-cohort desk
+passes sorting/filtering, inspection-only refusal, active dashboard/sections, term parity, exact
+return/Back, keyboard/targets and narrow/zoom layout budgets. The guide passes all 42 semantic
+steps. Independent page reads now run in parallel with their existing source/failure contracts;
+fragment history restores the dashboard. Source freshness and every deadline remain unchanged.
+B-REH1 is closed for local acceptance. Exact-SHA candidate assurance remains a separate release gate.

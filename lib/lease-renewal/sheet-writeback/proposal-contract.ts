@@ -4,6 +4,12 @@
 // fields, and proof mode are structurally unreachable; only the secure proof packet path may set
 // proof mode.
 
+import type { SheetCellEvidence } from "@/lib/google-sheets/cell-evidence";
+import {
+  parseSheetFieldIntent,
+  sheetIntentValue,
+  type SheetFieldIntent,
+} from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { RENEWAL_TAB_SCHEMAS, type ColumnSchemaField } from "@/lib/lease-renewal/headers";
 
@@ -125,6 +131,9 @@ export interface SheetFieldUpdateEffectInput {
    * updates require it; the sealed historical proof scope is the only branch that may omit it.
    */
   readonly authorization?: SheetFieldUpdateAuthorization;
+  /** Non-reconciliation business intent; physical targets are always server-resolved. */
+  readonly staffIntent?: SheetFieldIntent;
+  readonly cellEvidence?: SheetCellEvidence;
 }
 
 export interface SheetFieldUpdateAuthorization {
@@ -323,6 +332,23 @@ function validateScope(input: SheetWritebackProposalInput): void {
       continue;
     }
     if (input.scope.kind === "sealed_proof") continue;
+    if (effect.staffIntent) {
+      const intent = parseSheetFieldIntent(effect.staffIntent);
+      if (
+        intent.field === "current_rent" ||
+        effect.authorization ||
+        intent.field !== effect.field ||
+        intent.source !== effect.source ||
+        sheetIntentValue(intent, effect.expectedValue, effect.cellEvidence?.checkbox) !==
+          effect.afterValue
+      ) {
+        fail(
+          "authorization_invalid",
+          "Current rent requires its existing reconciliation approval.",
+        );
+      }
+      continue;
+    }
     const authorization = effect.authorization;
     if (
       !authorization ||

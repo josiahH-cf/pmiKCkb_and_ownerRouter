@@ -15,6 +15,7 @@ import {
 import { LEASE_RENEWAL_WRITEBACK_COLLECTIONS } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import {
   claimAuthorizedS98FieldUpdate,
+  claimLeaseScopedS113FieldUpdate,
   claimLeaseScopedS98Append,
   settleLeaseScopedS98Append,
 } from "@/lib/firestore/s98-sheet-writeback-claim";
@@ -34,6 +35,8 @@ import {
   SHEET_WRITEBACK_PROPOSALS_COLLECTION,
   getSheetWritebackProposal,
   saveSheetWritebackProposal,
+  listSheetWritebackProposalHistory,
+  discardSheetWritebackProposal,
   sheetAppendLifecycleDocId,
   sheetWritebackProposalDocId,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
@@ -317,7 +320,7 @@ async function seedAppend(current: ReturnType<typeof appendProposal>) {
     dataMode: "live",
     workflowId: "s98:Lease Renewal",
     actionId: executionId,
-    actionKey: "google_sheets.renewal_checklist.row_append",
+    actionKey: effect.actionKey,
     contextHash: current.previewHash,
     previewHash: current.previewHash,
     idempotencyKey: executionId,
@@ -440,5 +443,152 @@ describe("S98 lease-scoped append claim", () => {
           .get()
       ).get("state"),
     ).toBe("succeeded");
+  });
+});
+
+function fieldProposal(generationId: string) {
+  const base = appendProposal(generationId);
+  return buildSheetWritebackProposal({
+    generationId,
+    spreadsheetId: base.spreadsheetId,
+    tabTitle: base.tabTitle,
+    headerHash: base.headerHash,
+    headerWidth: 2,
+    tenantColumnIndex: 0,
+    scope: base.scope,
+    actorUid: editor.uid,
+    actorEmail: editor.email,
+    actorRole: editor.role,
+    sourceReadAtIso: base.sourceReadAtIso,
+    evidenceRef: base.evidenceRef,
+    effects: [
+      {
+        kind: "field_update",
+        rowNumber: 3,
+        field: "market_value",
+        rowKey: null,
+        anchorTenantName: "Tenant 115",
+        expectedValue: "1000",
+        afterValue: "1100",
+        source: "Reviewed comparables",
+        staffIntent: {
+          field: "market_value",
+          value: 1100,
+          source: "Reviewed comparables",
+        },
+      },
+    ],
+    nowMs: Date.parse("2026-09-02T12:00:00.000Z"),
+  });
+}
+
+describe("S113 field generation and persisted correction history", () => {
+  const scope = { kind: "lease_workspace" as const, leaseId: "115" };
+  it("serializes active field replacement against the first provider attempt", async () => {
+    const current = fieldProposal("field-race-current");
+    const replacement = fieldProposal("field-race-next");
+    const input = await seedAppend(current);
+    const [claim, replace] = await Promise.allSettled([
+      claimLeaseScopedS113FieldUpdate(db, input),
+      saveSheetWritebackProposal(editor, replacement, scope, current.previewHash, db),
+    ]);
+    const claimWon = claim.status === "fulfilled" && claim.value === "claimed";
+    expect(Number(claimWon) + Number(replace.status === "fulfilled")).toBe(1);
+    const active = await getSheetWritebackProposal(
+      editor,
+      current.spreadsheetId,
+      current.tabTitle,
+      scope,
+      db,
+    );
+    expect(active?.previewHash).toBe(
+      claimWon ? current.previewHash : replacement.previewHash,
+    );
+    const record = (
+      await db
+        .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+        .doc(input.executionId)
+        .get()
+    ).data();
+    expect(record).toMatchObject({
+      state: claimWon ? "running" : "ready",
+      attemptCount: claimWon ? 1 : 0,
+    });
+  });
+  it("cannot discard or replace an ambiguous field attempt", async () => {
+    const current = fieldProposal("field-ambiguous");
+    const input = await seedAppend(current);
+    expect(await claimLeaseScopedS113FieldUpdate(db, input)).toBe("claimed");
+    await db
+      .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+      .doc(input.executionId)
+      .update({ state: "ambiguous" });
+    await expect(
+      saveSheetWritebackProposal(
+        editor,
+        fieldProposal("field-next"),
+        scope,
+        current.previewHash,
+        db,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      discardSheetWritebackProposal(
+        editor,
+        current.spreadsheetId,
+        current.tabTitle,
+        scope,
+        current.previewHash,
+        db,
+      ),
+    ).rejects.toThrow();
+    expect(
+      (
+        await getSheetWritebackProposal(
+          editor,
+          current.spreadsheetId,
+          current.tabTitle,
+          scope,
+          db,
+        )
+      )?.previewHash,
+    ).toBe(current.previewHash);
+  });
+  it("preserves before-values and exact attempt identity when a settled proposal is replaced", async () => {
+    const current = fieldProposal("field-settled");
+    const input = await seedAppend(current);
+    expect(await claimLeaseScopedS113FieldUpdate(db, input)).toBe("claimed");
+    await db
+      .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+      .doc(input.executionId)
+      .update({ state: "failed" });
+    await saveSheetWritebackProposal(
+      editor,
+      fieldProposal("field-new-preview"),
+      scope,
+      current.previewHash,
+      db,
+    );
+    const history = await listSheetWritebackProposalHistory(
+      editor,
+      current.spreadsheetId,
+      current.tabTitle,
+      scope,
+      db,
+    );
+    expect(history).toHaveLength(1);
+    expect(history[0].proposal.previewHash).toBe(current.previewHash);
+    expect(history[0].proposal.effects[0].effect).toMatchObject({
+      expectedValue: "1000",
+      afterValue: "1100",
+    });
+    expect(
+      (
+        await db
+          .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+          .doc(input.executionId)
+          .get()
+      ).get("attemptCount"),
+    ).toBe(1);
   });
 });

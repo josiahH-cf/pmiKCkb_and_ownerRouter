@@ -1,3 +1,4 @@
+import type { ReleaseBrowserPolicy } from "./release-browser-policy.mjs";
 export const PRODUCTION_ASSURANCE_SCHEMA_VERSION =
   "pmi-kc-production-assurance.v1" as const;
 
@@ -111,6 +112,7 @@ export type ObservationReason = (typeof OBSERVATION_REASONS)[number];
 export type ObservationDecision = "observing" | "passed" | "hold" | "rollback_required";
 
 export interface ObservationAssuranceEvidence {
+  readonly browserPolicy?: ReleaseBrowserPolicy;
   readonly decision: ObservationDecision;
   /** Successful full Admin+Editor+reconciliation checkpoints; release success requires exactly 2. */
   readonly successfulCheckpoints: number;

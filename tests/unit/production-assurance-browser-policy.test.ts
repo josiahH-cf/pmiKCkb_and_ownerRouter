@@ -46,7 +46,7 @@ describe("production assurance browser policy", () => {
     expect(workspaceSelectorsForPhase("candidate")).toHaveLength(1);
     expect(workspaceSelectorsForPhase("post_promotion")).toHaveLength(1);
     expect(workspaceSelectorsForPhase("rollback")).toEqual([
-      'tr[data-workspace-available="true"] a.renewal-lease-link',
+      'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link',
       "a.renewal-lease-link",
     ]);
   });

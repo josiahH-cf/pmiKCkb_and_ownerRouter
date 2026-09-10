@@ -60,7 +60,7 @@ async function verifyGuideControls() {
   await page.goto(`${baseUrl}/lease-renewal`, { waitUntil: "domcontentloaded" });
   const firstWorkspace = page
     .locator(
-      'table.renewal-table tbody tr[data-workspace-available="true"] a.renewal-lease-link',
+      'table.renewal-table tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link',
     )
     .first();
   await firstWorkspace.waitFor();

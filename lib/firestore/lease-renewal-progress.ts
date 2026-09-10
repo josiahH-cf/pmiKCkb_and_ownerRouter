@@ -419,7 +419,7 @@ function activityRef(db: Firestore, docId: string) {
   return db.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity).doc(docId);
 }
 
-async function resolveCurrentCompScreenshotAttachment(
+export async function resolveCurrentCompScreenshotAttachment(
   transaction: Transaction,
   db: Firestore,
   leaseId: string,

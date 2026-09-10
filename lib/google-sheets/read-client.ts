@@ -8,6 +8,7 @@
 // Read-only: GET spreadsheet metadata (tab titles) and GET values:batchGet. No write scope, no write
 // method. Credential tabs 4 & 7 are excluded downstream by ingest Stage B's content-signature guard.
 
+import { readSheetCellEvidence, type SheetCellEvidence } from "./cell-evidence";
 import { GoogleAuth, Impersonated, type AuthClient } from "google-auth-library";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 // Relative (not "@/") so the read-only `tsx` smoke can load this module without a path-alias
@@ -19,6 +20,8 @@ export const SHEETS_READONLY_SCOPE =
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 
 export interface SheetsValuesReader {
+  getCellEvidence?(spreadsheetId: string, range: string): Promise<SheetCellEvidence>;
+  getTabId?(spreadsheetId: string, title: string): Promise<number | null>;
   listTabTitles(spreadsheetId: string): Promise<string[]>;
   batchGet(spreadsheetId: string, ranges: string[]): Promise<SheetsBatchGetResponse>;
   /**
@@ -176,6 +179,22 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
       .filter((title) => title !== "");
   }
 
+  async getTabId(spreadsheetId: string, title: string): Promise<number | null> {
+    const token = await this.authToken();
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties(sheetId,title)`,
+      { headers: { Authorization: token }, signal: this.requestSignal() },
+    );
+    if (!response.ok) throw new Error("Sheets tab identity read failed.");
+    const body = (await response.json()) as {
+      sheets?: { properties?: { sheetId?: number; title?: string } }[];
+    };
+    const matches =
+      body.sheets?.filter((sheet) => sheet.properties?.title === title) ?? [];
+    const id = matches.length === 1 ? matches[0].properties?.sheetId : undefined;
+    return typeof id === "number" && Number.isInteger(id) && id >= 0 ? id : null;
+  }
+
   async batchGet(
     spreadsheetId: string,
     ranges: string[],
@@ -214,6 +233,18 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
       throw new Error(`Sheets formula read failed (HTTP ${response.status}).`);
     }
     return (await response.json()) as SheetsBatchGetResponse;
+  }
+
+  async getCellEvidence(
+    spreadsheetId: string,
+    range: string,
+  ): Promise<SheetCellEvidence> {
+    return readSheetCellEvidence({
+      spreadsheetId,
+      range,
+      authorization: await this.authToken(),
+      signal: this.requestSignal(),
+    });
   }
 
   /** Read-only cell notes per tab (fields-limited spreadsheets.get). Null when a cell has none. */
