@@ -3,17 +3,7 @@
 
 # S107 — Confirmed renewal effect continuation and recovery
 
-> Status: IMPLEMENTED. One recorded authority conflict stands: no automatic retry is added. The
-> repository still has no durable job queue, scheduler, or worker, and `AGENTS.md` still forbids
-> autonomous or model-triggered writes and sends. `lib/lease-renewal/execution/attempt-continuation.ts`
-> owns the read-only continuation projection, `attempt-loader.ts` reads the lease's attempts from the
-> durable store, `workspace-continuation.ts` loads those attempts and projects them without
-> constructing a service or writing anything (the 2026-09-06 review found the load-time pass had
-> called the S97/S98 services' `reconcileEffect` for any viewer, which can settle an attempt with no
-> role gate; reconcile is now only the Admin-gated route control the card names as the next action),
-> and the live lease workspace renders one consolidated `Confirmed external steps` card. The
-> continuation covers the RentVine and operating-Sheet families; S34 has no runtime effect route, so
-> no Dotloop attempt exists to load.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Read-only continuation covers RentVine, Sheet and normal S34 packet state. Status mounts use genuine GETs; only exact Admin controls reconcile. Confirmed execution and own-receipt recovery add no autonomous queue, scheduler, worker, sweep or automatic retry.
 
 **Goal.**
 
@@ -31,10 +21,10 @@ blocked lease never stops another.
 | Repeated delivery yields one effective action         | Already satisfied                  | One-attempt claims and idempotent preview creation                                                                                                                      |
 | Retry transient failures automatically                | Conflicting with project authority | `AGENTS.md`: an uncertain attempt never retries; every live write is human-initiated and exact-confirmed                                                                |
 | Continue unrelated leases                             | Already satisfied                  | Per-lease claims and guidance                                                                                                                                           |
-| Visible background state and next action              | Partially                          | Panels show pending/ambiguous/succeeded; no shared `last attempt` / `next action` summary across phases                                                                 |
+| Visible background state and next action              | Deployed                           | One read-only durable continuation card and owning panels show attempt state and authorized next action.                                                                |
 | Reuse existing pause/resume/retry/reconcile controls  | Already satisfied                  | `reconcile` operations in S97/S98/S99 routes                                                                                                                            |
-| Recover abandoned work without database edits         | Partially                          | Reconcile exists per effect; nothing sweeps orphaned attempts on load                                                                                                   |
-| Leave the page and let work continue                  | Partially                          | Server-side execution completes within the request; a client disconnect mid-attempt relies on reconcile                                                                 |
+| Recover abandoned work without database edits         | Deployed                           | Orphaned attempts are surfaced read-only; only an explicit authorized reconciliation can settle them.                                                                   |
+| Leave the page and let work continue                  | Deployed                           | Exact confirmed server execution does not forward the browser abort signal; durable readback and explicit recovery own uncertainty.                                     |
 
 Intended end state: no new job platform. A confirmed effect runs to completion server-side with the
 request detached from the browser connection; on the next load of the workspace, orphaned attempts

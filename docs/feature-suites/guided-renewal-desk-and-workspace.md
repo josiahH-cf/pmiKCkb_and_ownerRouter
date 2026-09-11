@@ -3,17 +3,7 @@
 
 # S82 — Table-first renewal desk and guided lease workspace
 
-> Status: Reopened for active, unreleased conformance remediation. The original baseline was deployed
-> on 2026-09-01 through commit
-> `da91e5cc7e3a85db7f4bcf9c7aa036bca554e76c`, exact-SHA CI `33575465575`, zero-traffic candidate
-> `pmi-kc-app-rmtjd24ee-17d334db377f`, bounded candidate smoke, normalized runtime parity excluding
-> only image, exact `APP_COMMIT_SHA`, and the one specified `RENEWAL_DESK_PARTY_FILTER_KEY`
-> binding, exact promotion, and repeated canonical readback. Focused desk/query/continuation/
-> guidance/destination/access-return/table/copy suites, the real-Chromium production-build matrix,
-> canonical verification, and core E2E passed; the party-filter secret and its runtime-SA accessor
-> were created and read back without printing the value. Navigation performs no verification,
-> progress, source write, draft, send, or role change. The remediation below is implemented in the
-> current working tree but is not deployed; production closure remains pending.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Reopened conformance is closed. S113 replaces the phase navigation barrier with the full dashboard while preserving historical process evidence, read-only navigation, source truth and role/effect gates.
 
 **Goal.**
 
@@ -23,12 +13,10 @@ while the lease workspace itself remains focused on one safe next action.
 
 **Current state / intended end state.**
 
-The deployed 2026-09-01 baseline supplies the sortable semantic table, persistent desk query,
-clickable phase/blocker navigation, and phase-selected workspace. Exact validated source
-destinations and the other corrections below are not part of that deployed baseline. A later
-adversarial conformance review found bounded gaps between the baseline and this contract's
-source-truth, failure-state, filter, and action-placement requirements. The current remediation
-closes those gaps locally; it remains unreleased until the post-deployment closure gate below passes.
+Serving S82/S113 provides the sortable semantic desk, persistent canonical query, exact source
+destinations, typed failures and the full lease dashboard. All bounded conformance findings are
+closed through backend, compiled browser and exact production release acceptance. Phase identifiers
+remain historical evidence/navigation anchors; they no longer hide dashboard sections.
 
 The intended desk is one sortable, filterable semantic table. Each lease appears once with its
 location, authoritative owners and tenants, RentVine renewal date and current contractual base rent,
@@ -45,7 +33,7 @@ card, and one selected phase instead of the complete operational evidence engine
 iteration deliberately increases structured desk data while continuing to remove explanatory and
 infrastructure prose.
 
-### Post-deployment conformance remediation (active, unreleased)
+### Verified conformance contract
 
 The reopened slice implements these bounded corrections without changing S82 action authority:
 

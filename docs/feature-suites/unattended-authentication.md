@@ -1,6 +1,6 @@
 # S112 — Local authentication and release continuity
 
-Status: ACTIVE / UNRELEASED. Owner-approved revision: 2026-09-08. Existing login implementation
+Status: RELEASE VERIFIED / SEPARATE LONGEVITY OPEN. Owner-approved revision: 2026-09-08. Existing login implementation
 at `30d21482e3f0fee5cb516f3f6b83c92b1e1f350a` is preserved and revised by the explicit local-host
 plan. Implementation is not evidence of enrollment, long-session survival, deployment or promotion.
 
@@ -50,19 +50,17 @@ The delivery implementation uses `scripts/release-watcher-plan.mjs` and
 checkpoint, exact candidate readbacks, assurance receipt, promotion and observation each have
 separate outcomes. An uncertain provider result never authorizes a second deployment or promotion.
 
-The limited interactive-user task `PMI KC release watcher` is installed with logon
-catch-up and one-instance readback. It refuses current main with `foundation_not_in_target`; no
-deployment occurred. Twenty-one watcher tests cover plan and command paths, durable rollback intent,
-uncertain responses, restart recovery and browser challenges paused until new attended enrollment.
-The task is running after recovery from an unexplained Windows launcher exit that left its idle
-Linux watcher alive. Restart readback confirms the launcher and one Linux watcher; no release
-checkpoint or deployment existed. Automatic release acceptance remains pending.
+The existing limited interactive-user task `PMI KC release watcher` retains its logon/catch-up/
+one-instance contract. The real serialized driver completed SHA `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` after exact
+CI 34556917662, candidate/readback/domain gates, Admin assurance, v4 receipt-bound promotion and 300,000 ms
+observation. Older unfinished candidates were archived honestly. No new identity, claim or store
+was created. Monitoring configuration retains its existing managed recipient independently of login.
 Fresh-shell and paired post-reboot CLI/ADC refresh passed as the approved account using unchanged
 enrollment, without login or browser. The post-reboot app ADC preflight exited 0. An unavailable
 Google identity lookup gets one bounded retry and stays blocked with accurate guidance if it fails;
 61 focused auth tests pass. The required 24-hour elapsed-session acceptance remains pending.
-B-AUTH2 remains the exact
-candidate/canonical managed-browser assurance gate. B-GOLD1 closed after owner-reviewed live
+B-AUTH2 remains only the separate 24-hour longevity proof; exact candidate/canonical Admin
+assurance passed under the owner-approved policy. Editor remains not_run with backend restrictions preserved. B-GOLD1 closed after owner-reviewed live
 source evidence and one expected-label correction; the original capture, all source values and
 all assertions are preserved. The watcher separately configures the existing managed monitoring
 recipient, refusing missing/conflicting values without changing the approved local identity.
@@ -133,7 +131,7 @@ recipient, refusing missing/conflicting values without changing the approved loc
 | No secret or identity-grant side effect | ARCH-S112-3, ARCH-S112-6 | BEH-S112-5             | auth-no-credential-entry and credential-store tests; protected-path audit                             |
 | Consistent isolated verification        | ARCH-S112-4, ARCH-S112-5 | BEH-S112-2, BEH-S112-3 | golden-capture-location, unit-test-runner, shared-browser-resolver tests                              |
 | Read-only verification accounts         | ARCH-S112-7              | BEH-S112-4, BEH-S112-6 | canary-request-boundary and auth-session tests; live browser proof pending                            |
-| Safe automatic delivery and recovery    | ARCH-S112-1, ARCH-S112-6 | BEH-S112-2, BEH-S112-7 | release-watcher and existing release/assurance tests; actual release proof pending                    |
+| Safe automatic delivery and recovery    | ARCH-S112-1, ARCH-S112-6 | BEH-S112-2, BEH-S112-7 | release-watcher and existing release/assurance tests; actual S113 exact release proof passed          |
 
 ## Human litmus outcome
 
@@ -144,7 +142,7 @@ all their recorded human controls.
 
 - Model verdict: pending complete foundation checks and external proof.
 - Human verdict: NOT RUN. Machine-observed paired post-reboot CLI/ADC refresh passed with unchanged
-  enrollment. The 24-hour elapsed-session and unattended release acceptance remain unverified.
+  enrollment. The 24-hour elapsed-session proof remains unverified; S113 exact release acceptance passed.
 
 ## Owner recovery and preservation
 

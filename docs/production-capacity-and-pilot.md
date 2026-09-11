@@ -38,8 +38,9 @@ Neither trigger authorizes automatic scaling.
 - S97 is complete and deployed. Its date, recurring-charge-create, and recurring-charge-update keys
   passed separate bounded proofs and are active through their exact human-confirmed contracts.
 - S98's proof-qualified baseline is deployed and its two exact keys remain open; the temporary proof
-  row was deleted and read back absent. Active unreleased hardening keeps normal row append and
-  refuses field update/delete/restore until a stable provider row-generation seam exists.
+  row was deleted and read back absent. Serving S113 preserves normal append and supports owner-approved existing-row field updates
+  with fresh exact confirmation, claims, receipt/readback and separate correction. Row deletion,
+  historical restore and completed proof mutations remain unavailable.
 - S99 is complete and deployed. Exact RentVine work-order read, create, and status update are active;
   proof work order 1731 is in its final `Cancelled` state.
 - S100's manual, mark-read-aware chat sync passed proof and is active. Its unsent resident-reply

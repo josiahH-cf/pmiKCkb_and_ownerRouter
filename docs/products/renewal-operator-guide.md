@@ -1,7 +1,7 @@
 # Renewal operator guide
 
-Updated: 2026-09-10 for S113. Implementation verification and production release are still in
-progress; consult [current status](../status.md) before using this guide against the serving app.
+Updated: 2026-09-10 for the verified S113 production release. Consult
+[current status](../status.md) for the exact serving revision and backend evidence.
 Use the [staff walkthrough](renewal-client-walkthrough-2026-09-09.md) and
 [printable training guide](renewal-training-guide.pdf) for the meeting.
 

@@ -3,18 +3,7 @@
 
 # S34 — Dotloop renewal packet lifecycle
 
-> Status: foundation COMMITTED (`7b26107`) and carried by the current unpromoted candidate in
-> `docs/facts.md` F-CANDIDATE. The 2026-09-07 readiness slice locally assembles the provider/executor
-> behind S106 and S20, records transaction/status selection, and projects receipted loop links and
-> document presence. Provider document identity/name is `presence_only`; the submitted content hash
-> is app evidence, checked against uploaded bytes, and is never called a provider content hash.
-> Exact active validated Live S21 publication bytes now resolve from approved catalog metadata,
-> with Space/version/hash/byte checks before an upload execution claim. The September 10 S113
-> working tree adds normal catalog/source readers, packet controls, receipt recovery and claim binding;
-> actual route/S20/S21/HTTP-adapter and mounted acceptance pass; full release verification remains. Real approved catalog/participant inputs are
-> absent. B-DL1,
-> B-DL2, B-DL3 and separate exact-key authorization block live creation/upload. Both keys remain
-> closed. No real packet or signature completion is claimed.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Normal packet controls/readers, exact S21 bytes, S20 approval/execution and own-receipt recovery pass actual backend paths with deterministic external adapters. Real approved catalog/forms/mappings, credentials/connection/selection and separate exact-key activation remain gates. Both keys stay closed; provider presence is not signature or content-hash verification.
 
 **Goal.**
 
@@ -24,7 +13,7 @@ Dotloop for signature work the API cannot perform.
 
 **Current state / intended end state.**
 
-September 10 code reread and focused tests establish the following local/candidate foundation.
+September 10 code reread and focused tests establish the following deployed foundation.
 This is not live provider acceptance.
 
 | Component                        | Present implementation                                                                                                               | Remaining work                                                                                                                                                           |
@@ -45,7 +34,7 @@ queue; another current Admin may review the Editor's immutable preparation under
 rules. Its durable companion retains the exact response/readback receipt so a lost packet projection
 can be rebuilt without a provider write. A preexisting matching loop name cannot establish creation
 by this normal attempt; without its own receipt, an uncertain outcome remains unresolved. This
-stronger normal-path behavior is under verification and does not claim live provider causality.
+normal path passes actual backend acceptance and does not claim live provider causality.
 
 The included file download/upload transports exact approved S21 publication bytes. The mapped field
 preview does not fill those bytes. Applicable fields must be completed and reviewed by a person in

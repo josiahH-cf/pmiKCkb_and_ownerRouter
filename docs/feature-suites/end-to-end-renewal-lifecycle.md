@@ -3,12 +3,7 @@
 
 # S105 — End-to-end renewal lifecycle closure
 
-> Status: COMMITTED (`13523c5`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
-> (carried by the current unpromoted zero-traffic candidate named in `docs/facts.md` F-CANDIDATE; anonymous smoke passed); NOT PROMOTED. The
-> Dotloop phase link is the one part still outstanding and waits on S106 and S34. The
-> typed owner outcome, its reopening and exit routing, the version-binding audit, and the lifecycle
-> and branch proofs are in place through the existing paths. Production still serves the S72
-> baseline without typed owner outcomes.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Owner outcomes persist and block incompatible downstream effects before claim. S113 adds complete audited manual cycles through staff completion, separate from provider verification. Resource-dependent document execution keeps its exact gates.
 
 **Goal.**
 

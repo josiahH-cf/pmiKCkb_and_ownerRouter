@@ -19,143 +19,51 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-08
+## Present production truth — 2026-09-11
 
-The serving and candidate version endpoints, traffic, exact revision identities, Production + Live
-descriptors, managed runtime identity, eleven-Space count, Sheet switch, Demo flags, RentVine
-and RentCast secret bindings, RentCast selection/allowance 50 and absent Dotloop client bindings
-were reread on 2026-09-08. Nine authorized domains and the S51 monitoring set were reread;
-monitoring is READY with its existing managed recipient. The app records zero September RentCast
-calls; vendor-account usage is not independently verified. No comp request was made.
-The local authentication policy was revised by the owner on 2026-09-08 as recorded below.
-Fresh-shell and paired post-reboot CLI/ADC/app refresh passed September 8 with unchanged enrollment.
-September 10 implementation auth:ensure passed CLI and ADC refresh with the approved WSL identity
-and existing enrollment. After the 2026-09-11 01:22 UTC reauthentication requirement, the owner
-completed enrollment; exact CLI/ADC identity and fresh refresh passed at 01:36 UTC. The 24-hour proof
-and managed app-browser assurance have not been established by this probe.
-A new enrollment restarts that proof. Independent documentation work continues.
-Readiness implementation 6e77d18 is pushed with green CI and its candidate public version is verified.
-The watcher reached assurance and last recorded an authentication hold after requesting managed
-browser enrollment. Its current assurance, promotion and observation are not verified. The owner requested a simple visual guide
-for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
-normal packet/signature/completion handoffs. The owner's subsequent renewal-consolidation direction
-is specified in S113: one full manual dashboard, staff-recorded workflow advancement, and required
-pre-approved in-app Sheet field updates. S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
-Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
-an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
-configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
-2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
-Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
-browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
-420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
-predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
-/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
-R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
-independent canary pages retain every assertion, source-before/after read, mutation guard and
-shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
-tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
-tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
-and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
-the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
-CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
-The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
-Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
-New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+Production serves `f5faf1665121db9cacff913a57e7fdcc80513116` as `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic. Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662), candidate version/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and 300,000 ms observation passed. Canonical and tagged version endpoints and Cloud Run traffic/configuration were read back.
 
-The earlier 00836a8 candidate also remains unpromoted.
-Both supplied v2 internal templates are published and read back approved.
+S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
+RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
+messages with governed unsent Gmail drafting, audited manual progress and the integrated journey.
+Full verification passes 6,528 unit tests (four existing skips), all 201 backend tests, policy
+checks and production build. All 33 in-scope adversarial findings are closed; seven compiled browser
+checks passed, including the 42-step guide. Human verdicts remain NOT RUN.
 
-- Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.
-- Canonical URL: `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
-- Serving revision: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`, 100% traffic.
-- Deployed code: `d243911cb20ffb01773072c0e27c723648eeea34`.
-- The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
-  `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
-  then-current `pmi-kc-app-rmtbh280n-61b78ef991cc` revision, and passed the same smoke again. The
-  current release captured `pmi-kc-app-rmtkgn08q-db89a37c43dc` as its immediate rollback target.
-- Runtime: explicit `ENVIRONMENT_KIND=production` and `DATA_CONTEXT=live`.
-- Production is Live-only. Product Demo/Test records, seeders, simulations, and fake provider effects
-  are not production features.
-- Local rehearsal is explicit Demo + Live-read-only and must refuse every persistence/provider effect.
-- S96 connector disconnect/reconciliation is deployed. Production currently has no
-  `connector_connections` records, so its served inertness gate used the specified no-target path and
-  no credential or vault effect ran.
-- S85's theme/Appearance system is deployed with the OFFICIAL PMI brand values. The owner ruled
-  (2026-09-02) the published PMI Brand Style Guide 071525 the approved source; its extracted
-  values (PMI Orange #ff6d00, Black #000000, White #ffffff, Poppins) drive the brand source layer
-  with contrast-derived accessible tones where official orange fails a floor. `brand_conformance`
-  is resolved.
-- S86's shared action/link/icon/help/busy/notice/dialog/page-state and transient-layer system is
-  deployed. Its migrated consequential actions use exact cancel-first in-app confirmation and
-  returned-state feedback without widening routes, permissions, action keys, or provider effects.
-- S83's capability-guided access-request workflow is deployed. Every managed staff user can inspect
-  and request additive role/Space access; only a different current Admin can deny or exact-confirm
-  application, and Firebase directory readback is required before a request becomes applied. The
-  Firestore Admin mirror matches the authoritative 48-key/16-open registry.
-- S84's grouped navbar navigation is deployed. One actor-filtered manifest renders the My Work,
-  Operations, and Admin disclosure groups with descriptive rows over unchanged routes and guards;
-  visible navigation/landing terminology is Dashboard and Internal Processes while `/`, `/ask`,
-  `/spaces`, internal Console/Space contracts, and stored provenance values are unchanged.
-- S82's original table-first renewal desk and guided workspace are deployed. Its canonical
-  `renewal-desk-query/v2` URL carries owner/tenant filters only as opaque Secret Manager-derived
-  `p1_` tokens, and navigation performs no verification, progress, source write, or send. A current
-  adversarial review reopened S82 conformance: nullable rent, typed auxiliary-read failure,
-  desk/workspace evidence parity, source destinations, phase-local controls, freshness, filter
-  discoverability, and browser-assurance corrections are committed and carried by the unpromoted
-  zero-traffic candidate; production still serves the pre-correction baseline.
-- S97 is COMPLETE and deployed. Each exact key passed its own bounded serial live proof on the
-  owner-designated test lease 115 (property 84) before its protected activation: dates
-  forward/readback/duplicate-replay/restore; charge create with honest ambiguity reconciliation,
-  receipt-bound DELETE, delete-reconciliation, and a durable approved update-target charge; charge
-  update with a restore whose hash equals the original creation receipt. The three keys are open
-  in the committed seed and both executable allow-lists with proof citations; every execution
-  still requires the runtime-suspension term, Admin role, exact preview/confirm, one-attempt
-  claim, receipt, readback, and reversal-by-new-confirmation. The permanent labeled TEST row in
-  the operating Sheet (below a spacer at the tab tail) anchors the designated lease.
-  That historical proof used the then-serving bounded contract; it does not authorize current
-  normal-product attribution from matching observations. Generation-bound replay, fresh duplicate
-  after-state verification, and fail-closed ambiguous-create handling are committed and carried by
-  the unpromoted candidate, not yet serving: without provider-owned causality, a matching charge cannot mint a success receipt
-  or receipt-bound delete authority.
-- S98's proof-qualified baseline is deployed: both exact operating-Sheet keys are open, its write
-  switch is on, and the temporary proof row was deleted and read back absent. The serving revision
-  still exposes its historical fixed-row update/delete contract. An active unreleased correction
-  currently keeps normal server-derived row append but refuses normal field update and every fixed-row
-  delete/restore before writer construction. S113 replaces the normal-field refusal requirement with
-  the owner's pre-approved in-app update contract below; this is desired behavior, not deployed code.
-  Historical proof receipts remain evidence and the completed proof runner must not mutate again.
-- S99 is COMPLETE and deployed. Its exact RentVine work-order read, create, and status-update keys
-  passed bounded live proofs and are executable. Proof work order 1731 is in its final Cancelled
-  state; Vendor assignment, attachments, chat posting, provider notifications, and sends remain out
-  of scope.
-- S100's closed-safe implementation is deployed, and `rentvine.work_order.chat.sync` passed its live
-  proof and is executable. `gmail.maintenance_resident_reply.draft_create` remains closed and S100
-  remains BLOCKED on one exact runtime input: a synchronized resident message mapped to a verified
-  resident email. No eligible record currently exists on the designated proof thread.
-- Eleven production Spaces are configured.
-- The operating renewal Sheet is a read source and an exact human-confirmed write target. Its
-  write-back runtime switch and two exact Registry keys are on. S113 explicitly authorizes replacing
-  the current normal-field refusal; all other exact-operation boundaries remain in force.
-- RentCast is selected, allowance-capped at 50 requests per measured period, and its exact read key is
-  open.
-- RentVine read credentials are Secret Manager-bound. The retired S30 broad proof identifier
-  remains closed; the S97 proof runner and the three proven exact keys supersede it.
-- Budget controls are live: $25 alert-only budget, $100 project hard stop, $100 account backstop, and
-  active Node.js 22 guardrail with `KILL_SWITCH_CAP_USD=100`.
-- S36 has not started because its S100 prerequisite is incomplete. S82 conformance, S97 integrity,
-  S98 append/receipt integrity plus fixed-row capability refusal, and expanded S51/S54 production
-  assurance are committed (`e6b76f9`) and, together with the owner's 2026-09-03 renewal-completion
-  program (S102-S111 and the rewritten S34) and the 2026-09-06 re-verification corrections,
-  deployed as zero-traffic candidate `pmi-kc-app-rmtt039q1-c1463245a94c` from commit
-  `6e77d18f6d9916ba94078550d4b5ba73751e86c8`; its anonymous smoke passed, the S51 monitoring set
-  reads `READY`, and promotion waits on authentication recovery, managed-browser assurance on both origins and
-  the remaining release gates. The program executes before S36 and the S88-S95 program.
-  S87-S95 and S101 remain specification-only desired behavior.
+Staff-recorded completion reports actual outside work and remains separate from provider-verified effects. Backend journeys use actual controls, routes, Firestore, claims, receipts and readbacks with deterministic external adapters; no live customer effect was created to demonstrate completion.
 
-The owner approved removing one unsupported historical expected rent-conflict label after private
-source readback. B-GOLD1 is closed; the original capture, all source values and every assertion are
-preserved. The corrected full native suite passes 6,360 tests with four skipped; all 21 watcher tests pass. Exact-SHA CI, browser assurance and release acceptance remain required.
-No label correction or authentication result permits a weaker assertion or a changed identity.
+Persistent labeled insurance-flyer, renewal-information-form and seven legal-form location boxes accept blank pending-team inputs. Only output requiring a real verified resource waits; placeholders never become customer links or legal content.
+
+S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
+
+- Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+- Captured immediate predecessor/rollback: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`.
+- Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
+  write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
+- S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
+  updates, S102-S110/readiness corrections and S51/S54 assurance are serving. Row deletion and
+  historical restore/proof mutations remain unavailable. Matching observations cannot establish
+  provider creation causality or mint receipt-bound reversal authority.
+- S96 and the S83-S86 access/navigation/theme/interaction foundation remain deployed. S97-S99 and
+  S100 chat-sync proof-qualified exact keys retain their contracts; completed proofs were not rerun.
+- The Registry remains 48 exact keys, 16 open and 32 closed. Only two Sheet descriptive metadata
+  entries were aligned with backup, compare-and-set and readback; no activation changed.
+- S100 resident-draft activation still needs the exact synchronized resident/verified-email input;
+  S36 remains queued behind complete S100. S87-S95 and S101 remain specification-only.
+- Existing monitoring and domain gates passed. The managed alert recipient remains unchanged.
+  No paid comp request, live customer draft/send, new provider proof or signature effect ran.
+- Both private supplied v2 templates are published and read back approved. Private sources and
+  customer data remain outside Git. Staff and provider evidence retain their separate meanings.
+- Approved WSL CLI/ADC and owner Admin browser authentication passed. Separate 24-hour authentication
+  longevity remains unverified after the owner-completed 01:36 UTC enrollment; no identity, IAM or claim changed.
+
+The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
+
+The 919a2ae candidate passed CI 34549763928, candidate assurance and promotion, then failed final observation at 420,140 ms and verified rollback to d243911. Its consumed candidate receipt, promotion receipt, failed observation and terminal rollback checkpoint remain preserved; the failure was never rewritten as a pass.
+
+The earlier 6e77d18, 00836a8 and 297af97 candidates were archived as superseded without claiming their failed
+or unfinished assurance passed. Current release evidence is in
+`docs/evidence/s113-implementation-review-2026-09-10.md`.
 
 ## Product boundary
 
@@ -309,7 +217,7 @@ persistent labeled link-entry boxes now, with blank pending-team states. Verifie
 supplied or hardcoded later when applicable. Missing values do not block S113 implementation/release;
 only the exact resource-dependent output waits for real content and its existing execution contract.
 
-S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the next product implementation:
+S113 (`docs/feature-suites/renewal-workflow-consolidation.md`) is the completed product implementation:
 F1 dashboard/facts, F2 corrections/source updates, F3 comps/messages, F4 manual progress, then F5
 integrated verification. New automation and Dotloop/signature execution are outside this program;
 their existing contracts remain separate. Authentication/release assurance continues independently.
@@ -398,8 +306,7 @@ them.
 - S97's designated-lease proofs, S98's temporary-row append/update/delete proof, S99's work-order
   proofs, and S100's chat-sync proof are complete. Their receipts and final readbacks govern; do not
   rerun or substitute a new proof target.
-- Normal S97 and S99 effects remain bounded by their activated exact-key contracts. S98's current
-  candidate permits server-derived append only. S113 requires normal Sheet field updates and fresh
+- Normal S97 and S99 effects remain bounded by their activated exact-key contracts. S98/S113 serves server-derived append, normal Sheet field updates and fresh
   confirmed field corrections under the owner-approved contract above; row delete and historical
   proof mutations remain unavailable. No specification edit itself enables a provider effect.
   S100 synchronization remains manual and discloses that the official read marks manager messages

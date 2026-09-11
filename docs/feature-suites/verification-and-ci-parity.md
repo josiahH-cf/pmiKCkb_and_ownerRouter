@@ -2,9 +2,7 @@
 
 # S54 — Verification and continuous assurance
 
-> Status: Active verification contract with an unreleased S51 assurance remediation. Canonical
-> local/CI lanes remain current; the new deterministic checks do not become deployed evidence until
-> their exact revision passes the managed live gates.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Local verification and exact CI pass 6,528 units/four existing skips, 201 backend tests and production build. All 33 S113 review findings are closed; live gates have their own bound evidence.
 
 **Goal.**
 

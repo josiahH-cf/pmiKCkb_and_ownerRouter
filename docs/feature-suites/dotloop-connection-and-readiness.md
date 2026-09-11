@@ -3,15 +3,7 @@
 
 # S106 — Dotloop connection and renewal readiness
 
-> Status: foundation COMMITTED (`af23da4`) and carried by the unpromoted candidate in
-> `docs/facts.md` F-CANDIDATE. The local unreleased slice wires Secret Manager storage,
-> generation-bound refresh, Connection Center readiness and documented provider revoke/401
-> readback into exact-confirmed S96 disconnect. Interrupted refresh can be quarantined after
-> 120 seconds; ambiguous token outcomes retain credentials and refuse completion. Late failed
-> cleanup preserves exact references without reviving a disconnected/replacement generation.
-> Live vault permission, refresh, disconnect and reconnect remain unverified behind B-DL1/B-DL2.
-> September 10 approved WSL CLI/ADC refresh passed; local Dotloop configuration is absent.
-> This does not establish managed browser assurance or Dotloop readiness. No completed live lifecycle or new action authority is claimed.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. OAuth/vault/readiness, generation-bound refresh/quarantine and S96 revoke/cleanup contracts are serving. Actual credentials, managed connection/selection and live lifecycle proof remain blocked by B-DL1/B-DL2; no signature API or new grant is invented.
 
 **Goal.**
 
@@ -29,7 +21,7 @@ connection reconnects cleanly, and readiness blockers are exact.
 | Profile and template discovery and selection   | Already satisfied | `DotloopClient.listProfiles` / `listLoopTemplates` plus the Admin-gated `dotloop_renewal_settings` record, selected by stable provider id                                                                                               |
 | Verify loop/participant/folder/document access | Partially         | `dotloopHealthCheckTransport` runs the four `health.dotloop.oauth_app` steps against the client; only the LIVE run waits on the owner's account                                                                                         |
 | Token refresh through one project-owned path   | Already satisfied | The client refreshes exactly once on 401 through the injected token provider and reports `refresh_needed` when the refresh token is revoked                                                                                             |
-| Disconnect and reconnect without losing links  | Partially         | Documented provider revoke/readback and exact vault cleanup are wired locally; ambiguous tokens remain blocked; packet links survive disconnect                                                                                         |
+| Disconnect and reconnect without losing links  | Partially         | Documented provider revoke/readback and exact vault cleanup are deployed; ambiguous tokens remain blocked; packet links survive disconnect                                                                                              |
 | Webhook and signature capability detection     | Already satisfied | `readSubscriptionsAvailable` sets `webhooksAvailable`; `signatureApiAvailable` is always false because the official documentation lists no e-signature operation                                                                        |
 | Exact readiness blockers                       | Already satisfied | `projectDotloopReadiness` names client registration, callback configuration, secure storage, account connection, compatible profile, renewal template, and loop write scope                                                             |
 

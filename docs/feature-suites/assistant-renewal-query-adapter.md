@@ -5,7 +5,7 @@
 
 > Status: Specified and not implemented. S82's original table and causal-blocker baseline is
 > deployed; its nullable-rent, auxiliary-state, packet-parity, source-destination, and freshness
-> conformance remediation is active and unreleased. This suite cannot register either renewal intent
+> conformance remediation is deployed with S113. This suite cannot register either renewal intent
 > until that remediation is promoted and read back.
 
 **Goal.**

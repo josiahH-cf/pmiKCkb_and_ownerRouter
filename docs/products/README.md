@@ -24,5 +24,7 @@ not separate Demo products. Use `docs/status.md` for deployment truth and
 - [PDF generator](build-renewal-handouts.py): render maintained S113 copy with Python/reportlab after documented release acceptance.
 
 Output filenames: renewal-training-guide.pdf and wednesday-meeting-brief.pdf, in output/pdf.
-Render there, inspect every page, then copy the reviewed PDFs beside these maintained sources.
+The generator reads the serving commit and closed finding count from current status; it performs
+no live verification and refuses an unaccepted release. Render there, inspect every page, then copy
+the reviewed PDFs beside these maintained sources.
 These are training documents; no refreshed PowerPoint is claimed.

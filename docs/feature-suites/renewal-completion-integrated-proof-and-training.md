@@ -3,15 +3,7 @@
 
 # S111 — Integrated model-run proof and operator training guide
 
-> Status: foundation COMMITTED and carried by the current unpromoted candidate; readiness changes
-> are local and unreleased. The isolated integration suite now derives lease rent and ambiguous
-> provider-attempt recovery through owning implementations. Approval/communication prerequisites
-> remain supplied fixtures and do not prove a live model run. The 37-row guide uses exact scoped
-> semantic locators, separately reports conditional availability, and has a behavioral guard against
-> heading/substring/wrong-panel matches. Required live-source browser checks remain blocked or failed
-> as recorded in `docs/evidence/wednesday-readiness-review-2026-09-07.md`; the Dashboard smoke passed
-> after the hydration correction in constrained Node 22 rehearsal. No human or live lease completion
-> is claimed.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. S113 integrates actual mounted routes/Firestore/claims/receipts, with deterministic external adapters. All seven compiled browser checks pass, including 42 guide steps. The three-page guide is delivered. Human verdict is NOT RUN; no live customer completion is claimed.
 
 **Goal.**
 
@@ -21,17 +13,17 @@ training guide Bailey and Chasity can follow with real application controls.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-11)                            | Classification    | Evidence                                                                                                        |
-| ------------------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| Reuse existing test, browser, fake, sandbox conventions | Already satisfied | `bash scripts/verify.sh`, `npm run test:e2e:core`, `npm run smoke:*-browser` against the local rehearsal server |
-| Integrated renewal foundation proof                     | Missing           | Added by S102–S104 parity suites; one combined fixture here                                                     |
-| Fixed-term renewal end to end                           | Missing           | S105 lifecycle fixture reused                                                                                   |
-| Alternate paths                                         | Missing           | S105 branch fixtures reused                                                                                     |
-| Dotloop authentication and packet lifecycle             | Missing           | S106 and S34 fake-provider matrices reused; live account is an owner input                                      |
-| Unattended continuation                                 | Missing           | S107 fixtures reused                                                                                            |
-| Maintenance and intake                                  | Missing           | S108/S109 fixtures reused                                                                                       |
-| Dashboard assistant                                     | Missing           | S110 parity reused                                                                                              |
-| Training guide                                          | Missing           | No operator guide exists; `docs/products/` holds product lane documents                                         |
+| Package requirement (PMI-11)                            | Classification                 | Evidence                                                                                                                |
+| ------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Reuse existing test, browser, fake, sandbox conventions | Already satisfied              | `bash scripts/verify.sh`, `npm run test:e2e:core`, `npm run smoke:*-browser` against the local rehearsal server         |
+| Integrated renewal foundation proof                     | Verified                       | Owning source/parity services and actual S113 routes/Firestore journeys pass.                                           |
+| Fixed-term renewal end to end                           | Verified backend               | Fresh and underway mounted manual journeys persist cycle state; no production completion is seeded.                     |
+| Alternate paths                                         | Verified backend               | Waiting, counter/reapproval, non-renewal, reopening and incomplete evidence pass.                                       |
+| Dotloop authentication and packet lifecycle             | Implemented; live inputs gated | Normal S106/S34/S20/S21 paths pass deterministic adapter acceptance; real forms/connection/key activation remain gates. |
+| Unattended continuation                                 | Verified bounded contract      | Read-only durable status and confirmed-effect recovery pass; autonomous retry remains outside authority.                |
+| Maintenance and intake                                  | Verified                       | Owning backend and compiled blocker/intake checks pass; localized live preapproval/resident inputs remain.              |
+| Dashboard assistant                                     | Verified                       | Three-intent source/role/coverage parity and compiled browser checks pass.                                              |
+| Training guide                                          | Delivered                      | Three-page operator guide and 42 semantic steps pass; Human verdict stays NOT RUN.                                      |
 
 Intended end state: one new integration suite under the test tree that composes the
 owning services on one fixture portfolio, one extended rehearsal-browser smoke, a proof report in

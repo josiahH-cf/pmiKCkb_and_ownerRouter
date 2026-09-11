@@ -1,11 +1,13 @@
 # Environment and release handoff
 
-Updated: 2026-09-10. Approved WSL CLI/ADC refresh passed this run. This does not establish the
-24-hour elapsed-session proof. Canonical still serves the predecessor. S113 candidate 297af97 /
-pmi-kc-app-rmtw2vx4h-8fd8a42bbddf remains unpromoted after independent reconciliation failed.
-Its exact CI, deployment, smoke, configuration, domains and complete Admin canary passed.
-Four reconciliation corrections are in full verification; prior unpromoted checkpoints are archived.
-Current release gates and exact observations are recorded in docs/loop-state.md and docs/facts.md.
+Updated: 2026-09-11 (UTC). S113 is complete and deployed as `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic.
+Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662) passed all
+five jobs, including 6,528 unit tests (four existing skips) and all 201 backend tests. Candidate
+version/configuration/domain checks, Admin browser assurance, independent source/manual-state
+reconciliation, v4 receipt-bound promotion, 300,000 ms observation and serving/backend readback passed.
+
+The separate 24-hour authentication longevity proof remains unverified. Exact release evidence is
+in docs/evidence/s113-implementation-review-2026-09-10.md; no identity or claim changed.
 
 ## Production
 
@@ -15,13 +17,13 @@ Current release gates and exact observations are recorded in docs/loop-state.md 
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`             |
-| Serving commit            | `d243911cb20ffb01773072c0e27c723648eeea34`      |
+| Serving revision          | `pmi-kc-app-rmtwdl4di-4439f17911f4`             |
+| Serving commit            | `f5faf1665121db9cacff913a57e7fdcc80513116`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
 | Spaces                    | 11                                              |
-| Sheet write-back          | true for two exact S98 keys (serving baseline)  |
+| Sheet write-back          | true for exact normal append/field updates      |
 | Legacy copy-only Sheet id | not configured                                  |
 | RentCast                  | selected; allowance 50                          |
 | Action Registry           | 48 exact keys; 16 open and 32 closed            |
@@ -30,11 +32,9 @@ Current release gates and exact observations are recorded in docs/loop-state.md 
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
-The older deployed candidate preserves the two keys and switch while refusing normal field updates.
-The local S113 implementation replaces that refusal under the owner's explicit contract: fresh
-server-resolved identity/type/value, exact confirmation, one-attempt claim, receipt/readback and
-separately confirmed current-state correction. Row deletion and historical restore remain unavailable.
-These S113 changes are not serving until their release gates pass.
+Serving S113 supports normal append and owner-approved field updates: fresh server-resolved
+identity/type/value, exact confirmation, one-attempt claim, receipt/readback and separately
+confirmed current-state correction. Row deletion and historical restore remain unavailable.
 
 ## Local host and authentication
 
@@ -83,14 +83,12 @@ These S113 changes are not serving until their release gates pass.
 
 ### Local release watcher
 
-`scripts/install-release-watcher.ps1` installs and reads back the limited interactive-user task
-`PMI KC release watcher`. The logon trigger, catch-up and one-instance policy passed readback. After
-an unexplained Windows launcher exit left an idle Linux watcher alive, the exact process was stopped
-without a release checkpoint and the task restarted at 2026-09-08T16:41:36Z. Readback confirms a
-running launcher and one Linux watcher; live automatic release acceptance remains pending.
-`-CheckOnly` inspects without reinstalling. The hidden launcher is
-`scripts/run-release-watcher.ps1`; its non-secret logs are under `%LOCALAPPDATA%/PMI-KC/release-watcher`.
-WSL checkpoints and serialized locks live under `~/.local/state/pmi-kc-release`, outside Git.
+`scripts/install-release-watcher.ps1` owns the existing limited interactive-user task
+`PMI KC release watcher`. `-CheckOnly` inspects its logon/catch-up/one-instance contract without
+reinstalling. The hidden launcher is `scripts/run-release-watcher.ps1`; non-secret host logs remain
+under `%LOCALAPPDATA%/PMI-KC/release-watcher`. WSL checkpoints and locks stay outside Git under
+`~/.local/state/pmi-kc-release`. The watcher was stopped only to serialize this S113 release;
+the real driver completed its exact phases before restoring the existing watcher.
 
 Set MONITORING_OPERATOR_EMAIL in ignored .env.local to the existing verified managed alert
 recipient. It is independent of the approved CLI/ADC login. Missing, non-managed or conflicting
@@ -98,14 +96,12 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The installed task runs `release:watch`. Pushed implementation 6e77d18f6d9916ba94078550d4b5ba73751e86c8
-passed exact-SHA CI run 34262698002. The watcher accepted it, completed isolated preparation, captured
-the serving predecessor and deployed pmi-kc-app-rmtt039q1-c1463245a94c. September 9 public version
-readback confirms its exact identity. The checkpoint is in assurance, blocked on authentication.
-Only exact-main-SHA green push CI permits an isolated runtime/served-asset release. Documentation-only
-commits do not deploy. Candidate readbacks, domain replacement, fresh assurance receipt, exact
-promotion and 300,000 ms observation remain gates. Durable rollback intent is stored before traffic
-mutation; lost responses are read back and restart recovery cannot overwrite unrelated traffic.
+The real serialized driver completed exact SHA `f5faf1665121db9cacff913a57e7fdcc80513116`, CI 34556917662, revision `pmi-kc-app-rmtwdl4di-4439f17911f4`.
+Checkpoint phase is complete. Earlier checkpoints retain their actual outcomes, including the 919a2ae failed observation and verified rollback.
+Only exact-main-SHA green push CI permits an isolated runtime/served-asset release; documentation-only
+commits do not deploy. Fresh candidate receipts, exact promotion and 300,000 ms observation remain
+mandatory on future releases. Durable rollback intent precedes traffic mutation; lost responses
+require actual readback and restart recovery cannot overwrite unrelated traffic.
 
 ## Local rehearsal
 
@@ -129,14 +125,10 @@ Use the required two-worker ceiling for Vitest and complete scratch logs without
 Local Demo + Live-read-only refuses every persistence/provider effect, including app-owned progress.
 Do not manufacture source data or bypass identity policy to make a browser smoke pass.
 
-The 2026-09-07 verification used native WSL storage for a byte-identical manifest/lockfile install
-and the Firestore emulator tests. Turbopack refused the external dependency symlink, so the original
-mounted Linux installation was restored. No package version, bundler configuration, or assertion
-was changed. B-GOLD1 subsequently closed after live source readback and the owner's explicit
-approval of one expected-label correction. All source values and assertions are preserved. Native
-and direct checks use the same excluded capture directory. Corrected full units pass 6,360 tests
-with four skipped; 168 Firestore tests and production build pass. The native helper no longer
-imports .env.local into test configuration. See the bodyless readiness review for check outcomes.
+Current canonical phases pass on native Node 22 with the same manifest/lockfile: full units
+6,528/four skips, all 201 backend tests and production build. The mounted filesystem's slow cold
+startup is separate from ready-process browser acceptance. All seven compiled checks passed without
+relaxing deadlines or source freshness. Private captures remain ignored and unchanged.
 
 ## Preflight
 
@@ -170,14 +162,10 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-Current candidate public version (reread 2026-09-09) is commit
-6e77d18f6d9916ba94078550d4b5ba73751e86c8, revision pmi-kc-app-rmtt039q1-c1463245a94c,
-tag cand-rmtt039q1-c1463245a94c. Captured predecessor pmi-kc-app-rmtkmhj1z-8855e4c6dbfb
-still answers canonical. Watcher completed smoke, fingerprint and domains before assurance.
-Fingerprint: sha256:8810a5f8d31b6b1bb698f0e3cad9a361556c5abd4a57ae00b673dd4e099e016f.
-It is blocked authentication_required after managed_browser_enrollment_required. Numeric traffic
-and current domain enumeration were not independently reread today. Do not promote without the
-exact receipt and remaining release gates.
+The accepted candidate is now serving: `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`, tag `cand-rmtwdl4di-4439f17911f4`.
+Captured predecessor is `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Fingerprint `sha256:a68c3459ab680b1230662f1becab6c975c5cc86f2ec349d6404ba4b5a0976282`.
+Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
+The commands below remain the required contract for future releases.
 
 Run the anonymous, GET-only candidate smoke before any authenticated browser check:
 
@@ -330,16 +318,8 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtkgn08q-db89a37c43dc` from commit
-`e69e913acaf1d507f1b228d2064138a6a55e8629`.
-
-```bash
-gcloud run services update-traffic pmi-kc-app \
-  --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtkgn08q-db89a37c43dc=100 --quiet
-```
-
-Forward restoration to the current serving revision:
+Captured predecessor: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` from commit
+`d243911cb20ffb01773072c0e27c723648eeea34`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
@@ -347,11 +327,22 @@ gcloud run services update-traffic pmi-kc-app \
   --to-revisions=pmi-kc-app-rmtkmhj1z-8855e4c6dbfb=100 --quiet
 ```
 
+Forward restoration to the current serving revision:
+
+```bash
+gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmtwdl4di-4439f17911f4=100 --quiet
+```
+
+These are exact recovery coordinates, not a request to change current traffic. Every recovery
+requires the existing baseline/receipt checks and actual version/configuration/traffic readback.
+Historical rollback rehearsals remain in Git and their receipts; none was rerun for this release.
+The earlier d243911 release captured `pmi-kc-app-rmtkgn08q-db89a37c43dc` as its predecessor.
 The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
 `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
-then-current `pmi-kc-app-rmtbh280n-61b78ef991cc`, and passed the same smoke again. Later suite and
-release lineage remains recoverable from Git and release receipts; it is provenance, not current
-traffic instruction.
+then-current `pmi-kc-app-rmtbh280n-61b78ef991cc`, and passed the same smoke. These retained proof
+coordinates preserve router-required provenance; the current S113 recovery coordinates are above.
 
 ## Configuration invariants
 

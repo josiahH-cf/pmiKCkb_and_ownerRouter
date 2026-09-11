@@ -3,16 +3,7 @@
 
 # S97 — Governed RentVine renewal writeback
 
-> Status: Baseline COMPLETE and deployed. Closed slice at commit
-> `f2153b00087516cf06c4f9776f2fc3562e146c83` (CI `33583463885`); three serial
-> per-key live proofs passed 2026-09-02 on the owner-designated test lease with receipts, exact
-> readback, duplicate-replay proof, honest ambiguity reconciliation, receipt-bound delete with
-> absence proof, and restores (the update restore hash equals the original creation receipt);
-> protected activation promoted at commit `642269cab5afba563c41ce769541680c04d5c60c` with the
-> then-current mirror read back at 44 keys/ten open. The current registry is 48 keys/16 open. The
-> retired broad identifier stays closed. A current integrity remediation adds generation-bound
-> replay, fresh duplicate verification, and fail-closed ambiguous-create handling; it is
-> implemented in the working tree but remains unreleased until the current S51/S54 gate passes.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. The three historical proof-qualified keys retain their exact authority. Generation-bound replay, fresh duplicate verification and fail-closed ambiguous creation are serving. Completed proof targets were not rerun; matching state cannot mint creation causality or delete authority.
 
 **Goal.**
 
@@ -28,7 +19,7 @@ human-entered or approved terms, reviewed in the lease workspace, and executed o
 operation key. A successful business update remains applied; reversal is a separately previewed and
 confirmed correction. The completed proof windows are closed and must not be rerun or assigned a new
 target. The broad `rentvine.lease.renewal_writeback` compatibility key remains closed and retired.
-The active unreleased correction does not repeat a proof or widen a key: it closes replay and
+The deployed integrity correction does not repeat a proof or widen a key: it closes replay and
 ambiguous-create attribution gaps in the normal product path.
 
 **Actors and entry conditions.**

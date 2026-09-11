@@ -3,10 +3,7 @@
 
 # S98 — Operating renewal Sheet append, field updates, and execution integrity
 
-> Status: DEPLOYED PROOF-QUALIFIED BASELINE; CANDIDATE INTEGRITY CORRECTIONS UNPROMOTED.
-> The candidate currently permits normal append and refuses field updates. The owner's September 9
-> S113 direction requires pre-approved normal in-app field updates; that replacement is implemented locally with actual route/store/claim/receipt acceptance,
-> not yet deployed. Historical proofs remain complete and must not run again.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Normal append and owner-approved existing-row field updates are supported with fresh target/value checks, exact confirmation, one-attempt claim and receipt/readback. Row deletion and historical restore remain unavailable. Historical proofs were not rerun.
 
 **Goal.**
 
@@ -17,16 +14,13 @@ using the current S98 execution services.
 
 **Current state / intended end state.**
 
-The serving baseline passed bounded append/field-update proofs. Both exact keys and the operating
-write switch remain open; the temporary proof row was deleted and read back absent. Current candidate
-code binds append terms to a fresh lease, serializes claims/generations, preserves immutable history,
-and refuses normal field update and fixed-row reversal before writer construction.
-
-The owner expressly required in-app existing-row Sheet updates and rejected a new provider
-safety-contract prerequisite. S113 F2 replaces that refusal using existing narrow APIs, fresh exact
-target/value checks, preview/confirmation, one-attempt claims, receipts/readback and new confirmed
-corrections. Do not wait for a hypothetical provider-owned logical-row/idempotency/status/tombstone
-protocol or ask for this feature approval again. Documentation does not enable the current code path.
+The historical bounded proofs remain complete; both exact keys and the operating write switch
+remain open. Serving code binds append and supported field updates to fresh server-resolved
+lease/row/header/value evidence, serializes one-attempt claims and retains immutable history.
+S113 implements the owner's approved normal-field contract through the existing narrow APIs and
+exact preview/confirmation, receipt/readback and separately confirmed current-state correction.
+Row deletion, historical restore and completed proof replay remain unavailable. No hypothetical
+provider-contract prerequisite or new feature approval is required.
 
 A batch applies atomically, but Google permits collaborator changes. The implementation must detect
 observed drift, report ambiguous outcomes and preserve private correction evidence rather than certify

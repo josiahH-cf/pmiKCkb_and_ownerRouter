@@ -1,8 +1,8 @@
 # Renew a lease, one dashboard
 
 Updated for S113 on 10 September 2026. This is the same staff/Wednesday packet location.
-Implementation verification and release are in progress; the facilitator must check
-[current status](../status.md) before recording work in the serving app. Read-only rehearsal
+The verified S113 workflow is deployed. Read
+[current status](../status.md) for the exact serving result before the session. Read-only rehearsal
 cannot save changes. Use the [operator guide](renewal-operator-guide.md) for exact controls and
 [printable guide](renewal-training-guide.pdf) for the session.
 

@@ -3,7 +3,7 @@
 
 # S113 — One lease renewal dashboard, source updates, and manual completion
 
-> Status: IMPLEMENTATION VERIFIED / RELEASE PENDING. The owner accepted F1–F5 and explicitly
+> Status: COMPLETE / DEPLOYED / ALL_GATES_GREEN. The owner accepted F1–F5 and explicitly
 > required pre-approved in-app existing-row Sheet updates, a full manual dashboard, and manual
 > workflow advancement. This suite is one queue entry with five ordered feature specifications.
 
@@ -15,44 +15,22 @@ completion without navigating a six-phase barrier or entering internal identifie
 
 **Current state / intended end state.**
 
-Implementation started from `c9f46d8ff8718ff319a19581ff1119162d89c120`, preserving the supplied
-work and private template evidence. Local F1-F5 implementation passes 6,528 unit tests and all
-201 backend tests. The final production build, affected checks, core HTTP E2E and all seven compiled
-browser checks pass. All 33 in-scope review findings are corrected and verified;
-exact release gates remain pending.
-S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
-Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
-an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
-configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
-2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
-Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
-browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
-420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
-predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
-/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
-R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
-independent canary pages retain every assertion, source-before/after read, mutation guard and
-shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
-tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
-tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
-and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
-the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
-CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
-The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
-Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
-New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+Implementation started from `c9f46d8ff8718ff319a19581ff1119162d89c120`, preserving supplied work
+and all private template evidence. F1-F5 is serving in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic.
+Exact CI 34556917662, candidate/config/domain/browser assurance, independent reconciliation, v4 bound
+promotion, 300,000 ms observation and serving/backend readback passed. All 33 review findings are
+closed. Local and CI units pass 6,528 tests with four existing skips; all 201 backend tests pass.
+Production build, core HTTP E2E and all seven compiled browser checks pass, including the 42-step guide.
+Both supplied v2 templates are published/read back approved. Human verdict remains NOT RUN.
+See [review evidence](../evidence/s113-implementation-review-2026-09-10.md) and [status](../status.md).
 
-The earlier 00836a8 candidate also remains unpromoted.
-Both supplied v2 templates are published and read back approved. See [current review evidence](../evidence/s113-implementation-review-2026-09-10.md)
-and [serving status](../status.md) for the verified environment.
-
-| Feature                      | Current local implementation                                                                                                                                             | Remaining acceptance                                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| F1 — Dashboard and facts     | Five mounted sections share attributed facts, exact source destinations, distinct rent concepts, manual guidance and retained desk context.                              | Exact candidate assurance and deployment readback.                                                                      |
-| F2 — Corrections and updates | Typed minimal editor reaches actual normal Sheet and supported RentVine paths with separate previews, claims, receipts, readbacks and correction.                        | Release the verified code; each real customer action retains its exact confirmation.                                    |
-| F3 — Comps and messages      | Deliberate RentCast comp/trend preparation persists; supplied v2 rich/plain copy and governed Gmail drafting have mounted backend verification.                          | Pass release gates. Exact approved v2 publication/readback passed; no live customer draft is needed as a demonstration. |
-| F4 — Manual renewal progress | Audited cycle state advances through staff completion, counteroffer, non-renewal, reopening and independent desk readback.                                               | Exact deployed readback; staff completion remains distinct from provider effects.                                       |
-| F5 — Integrated journey      | Fresh/underway mounted journeys and normal S106/S34 packet continuation pass actual backend paths with deterministic effect adapters. Required link boxes accept blanks. | Exact-commit CI, candidate assurance, promotion and observation.                                                        |
+| Feature                      | Verified delivered behavior                                                                          | Remaining per-use boundary                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| F1 — Dashboard and facts     | Five connected sections, attributed source values, exact destinations and retained desk context.     | Actual unavailable source evidence stays unavailable.                                    |
+| F2 — Corrections and updates | Typed normal Sheet and supported RentVine paths with independent claims/receipts/readbacks.          | Each source write retains exact authorized human confirmation.                           |
+| F3 — Comps and messages      | Operator-triggered RentCast preparation, approved rich/plain copy and governed Gmail draft recovery. | Actual recipient/mailbox/resource evidence and per-action confirmation remain required.  |
+| F4 — Manual renewal progress | Audited cycles through staff completion, counteroffer, non-renewal and reopening.                    | Staff evidence remains distinct from provider verification.                              |
+| F5 — Integrated journey      | Fresh/underway backend journeys, normal S106/S34 handoff and exact deployed acceptance.              | Actual forms/connection/closed-key activation constrain only dependent document effects. |
 
 **Actors and entry conditions.**
 
@@ -453,9 +431,10 @@ External inputs are approved Dotloop client credentials, managed account consent
 selection, and approved blank forms with participant/field mappings. Required form families remain
 standard lease, renewal extension, animal agreement, lead disclosure, city addendum, HOA artifact
 and owner acknowledgment, with applicability governed by the catalog. Supplied emails are not forms.
-Current local Dotloop configuration is absent. September 10 approved WSL CLI/ADC refresh passed;
-full production Dotloop binding and release-assurance readbacks remain required. Implementation and
-deterministic provider checks continue; no connection, activation or signature result is inferred.
+Actual managed Dotloop credentials, connection/selection and approved resources remain missing
+inputs. The normal application handoff and deterministic provider checks are implemented and
+release-verified with S113. Production binding, live lifecycle proof and separately authorized exact
+activation remain gates for dependent effects; no connection or signature result is inferred.
 
 For an available capability, finish agent-owned wiring and tests, publish actual approved artifacts,
 connect/select verified resources, complete separately authorized exact-key activation requirements,

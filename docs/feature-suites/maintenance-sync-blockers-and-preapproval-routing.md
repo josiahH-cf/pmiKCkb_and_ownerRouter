@@ -3,13 +3,7 @@
 
 # S108 — Maintenance work-order alignment, blockers, and preapproval routing
 
-> Status: IMPLEMENTED. The link document now carries a `provider_snapshot` recorded only from the
-> human-initiated `rentvine.work_order.read` path, `projectMaintenanceWaitingOn` derives one blocker
-> for the queue, the report, and the S109 handoff, `maintenance_property_preapprovals` holds the
-> Admin-managed versioned amount, and the ticket carries an exact `estimate_amount_cents`. Photo and
-> attachment synchronization into RentVine remains closed, and the app never sets `isOwnerApproved`.
-> The report links to the ticket rather than to a RentVine dashboard URL: none is documented, and
-> this project never guesses one.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Verified provider snapshots and property-bound effective preapproval drive one waiting-on projection. Missing/conflicting/legacy property evidence remains unresolved. B-MNT1 live proof still needs exact properties, amounts and dates.
 
 **Goal.**
 

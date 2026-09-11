@@ -1,13 +1,15 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-09-10.
+Updated: 2026-09-11 (UTC).
 
-Recorded authority remains in force. Runtime inputs below and the confirm-with-default questions
-remain open. None permits guessing values, substituting records, or stopping independent work.
-September 8 enrollment/fresh-shell/post-reboot proofs passed; September 10 CLI and ADC refresh passed. Directory readback
-found six managed users: three Admin and three default Editor, none disabled. Individual evidence
-stays private. A provisional reading example is selected from ten October leases with complete
-provider detail reads; its Sheet association and full workflow readiness still need review.
+Recorded authority remains in force. S113 is deployed after backend/review, exact CI, candidate,
+promotion, observation and final serving/backend readbacks. The existing owner account passed
+CLI/ADC refresh and displayed Admin assurance on both origins. Separate 24-hour authentication
+longevity remains unverified; no broader directory inventory is inferred from the owner readback.
+
+Persistent labeled insurance, renewal-information and legal-form location fields accept blanks.
+Verified applicable inputs can be supplied later. Only resource-dependent output waits; placeholders
+never become customer links or legal content. No client effect or completion was seeded for proof.
 
 ## Recorded owner decisions
 
@@ -32,8 +34,9 @@ provider detail reads; its Sheet association and full workflow readiness still n
   resident email in the signed-in user's connected managed mailbox.
 - S36 runs one temporary provision/import/query/readback/retirement pilot and restores the original
   eleven-store/config baseline.
-- Dotloop is the next integration under the owner's 2026-09-03 renewal-completion direction (S106
-  connection, S34 packet lifecycle). LeadSimple remains deferred to a later separately grounded scope.
+- Normal S106 connection/readiness and S34 packet handoffs are deployed. Real managed connection,
+  approved resources and separately activated exact keys still govern dependent effects. LeadSimple
+  remains deferred to a later separately grounded scope.
 - Month-to-month leases are reviewed twelve months after their month-to-month anchor date (owner
   direction 2026-09-03); the cadence drives in-app review visibility only.
 
@@ -42,7 +45,7 @@ provider detail reads; its Sheet association and full workflow readiness still n
 | Input                                                                               | Needed by   | Refusal rule when absent                                                                                                                                                 |
 | ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. Dotloop issues credentials by approved request, not self-registration. |
-| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; fake-provider proof still completes.                                                                                              |
+| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; deterministic adapter verification runs independently.                                                                            |
 | Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                                                                                                      |
 | Exact property identifiers, amounts, and effective dates entered by an Admin        | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
 | Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                                                                                                  |
@@ -51,13 +54,13 @@ provider detail reads; its Sheet association and full workflow readiness still n
 
 ## Runtime evidence by suite
 
-| Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                                             |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S97   | For each normal action: current managed Admin/Renewals actor, exact account/lease/charge target, source-backed proposed values, fresh before read, exact preview/confirmation, runtime-suspension clearance, and active exact-key readback                                         | Stop on any target/state/actor/key/value drift; never infer a charge or term; every reversal/correction needs a new exact confirmation and readback. Completed proof phases and targets are not rerun.                                            |
-| S98   | Current candidate append plus required S113 normal field updates: managed Admin, configured workbook/tab, resolved lease/row/header and typed before/after value, exact preview/confirmation, open exact key and write switch.                                                     | Current candidate field refusal is replaced by the owner-preapproved S113 contract. Reject target/value/generation drift; preserve claims/readback and fresh corrections. No row delete, proof replay or new hypothetical provider-contract gate. |
-| S99   | For each normal action: current managed staff actor, RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal, and exact preview/confirmation                                    | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; correction must use the exact receipted work order. Do not reuse proof work order 1731 as a proof target.                                          |
-| S100  | For manual chat sync: current managed actor, exact account/work-order/message identities, and disclosed mark-read effect. For the one remaining resident-draft proof: a synchronized resident message mapped to a verified resident email plus the signed-in managed Gmail mailbox | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send. The draft proof cannot run until the exact eligible message exists.                                                  |
-| S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                                             |
+| Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                      |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S97   | For each normal action: current managed Admin/Renewals actor, exact account/lease/charge target, source-backed proposed values, fresh before read, exact preview/confirmation, runtime-suspension clearance, and active exact-key readback                                         | Stop on any target/state/actor/key/value drift; never infer a charge or term; every reversal/correction needs a new exact confirmation and readback. Completed proof phases and targets are not rerun.                     |
+| S98   | Deployed normal append and S113 existing-row field updates: managed Admin, configured workbook/tab, resolved lease/row/header and typed before/after value, exact preview/confirmation, open exact key and write switch.                                                           | Serving code implements the owner-preapproved S113 contract. Reject target/value/generation drift; preserve claims/readback and fresh corrections. No row delete, proof replay or new hypothetical provider-contract gate. |
+| S99   | For each normal action: current managed staff actor, RentVine account, official work-order/status/priority catalogs, exact ticket/property/unit/work-order mapping, fresh target state or exact create proposal, and exact preview/confirmation                                    | Never hardcode provider ids, send notifications, assign a vendor, attach a file, or post chat; correction must use the exact receipted work order. Do not reuse proof work order 1731 as a proof target.                   |
+| S100  | For manual chat sync: current managed actor, exact account/work-order/message identities, and disclosed mark-read effect. For the one remaining resident-draft proof: a synchronized resident message mapped to a verified resident email plus the signed-in managed Gmail mailbox | Manual sync only; deduplicate by account/message id; unmapped events go to review; no webhook/polling/chat post/direct send. The draft proof cannot run until the exact eligible message exists.                           |
+| S36   | Managed Admin, deterministic saved Space request, one existing approved source object selected by the suite rule, temporary copied-object generation/hash/schema/expected document ids/count, preview/expiry                                                                       | Retire only the exact temporary store, delete only the temporary copy, preserve the source object, prove eleven stores and flag false                                                                                      |
 
 ## Wednesday decisions and staff authority
 
@@ -67,11 +70,10 @@ and effective dates. `docs/open-blockers.md` owns their complete readback gates.
 remain external (B-DL1); the managed Dotloop account and verified selection are owner-owned (B-DL2).
 Both Dotloop keys remain closed. V-DL checks readiness and cannot perform loop/upload proof itself.
 
-Confirm the remaining questions in `docs/facts.md` Open Questions: whether monthly answers should include
-periodic-review rows (default keeps lease end month); whether annual review rolls forward (default
-keeps next anniversary); whether retired Demo sign-in domains remain and future candidate pruning
-has standing authority. The owner approved Editor with every Space for claim-less managed accounts on 2026-09-08.
-This task permits only replacement of its superseded candidate domain. No domain change occurred.
+The remaining confirm-with-default questions in docs/facts.md concern monthly-answer scope and
+annual-review cadence. The owner-approved claim-less managed-account Editor policy is preserved.
+This release replaced only its exact superseded candidate domain and verified the required origins;
+no broader domain pruning occurred. Current release assurance has passed.
 
 | Work                                                               | Required authority                                                                   |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
@@ -80,11 +82,11 @@ This task permits only replacement of its superseded candidate domain. No domain
 | Approve pricing/source changes; execute or reconcile S97/S98       | Admin plus Renewals access                                                           |
 | Apply staff access                                                 | A different current Admin through S83 with exact confirmation and directory readback |
 
-Individual directory evidence is in excluded output. Map meeting participants to required access
-before the walkthrough. The runner never creates, elevates, demotes, or grants an identity. B-AUTH2 needs existing profiles on both
-origins and the bound receipt before promotion. The approved local S112 revision is in scope;
-its September 8 enrollment/reboot proofs passed, but current authentication requires reauth; elapsed-session and full live release
-acceptance remain pending. The owner directed preparation of the four Wednesday deliverables.
+Individual directory evidence remains excluded. The runner does not create or change an identity.
+The owner-approved existing Admin profile passed both exact origins and all bound release gates;
+Editor browser coverage remains not_run with backend role restrictions preserved. B-AUTH2 now
+tracks only the separate 24-hour unchanged-enrollment longevity proof. The maintained Wednesday
+handouts record the verified S113 delivery and retain the user-supplied meeting identity.
 
 The transcript's no-approval claim does not match recorded governance. Direct lease changes are
 allowed only under their exact-key, role, preview, confirmation, receipt, readback, and correction

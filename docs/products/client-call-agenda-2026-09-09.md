@@ -6,8 +6,8 @@
 **Goal:** everyone can find a lease, follow its next step, recognize a blocker and know who will
 remove it. Leave with a named owner and agreed date for each next action.
 
-**Summary:** the core app is live. Improvements await release checks. The full journey still has
-message-evidence and document-completion gaps.
+**Summary:** the consolidated renewal workflow is live with verified backend and release gates.
+Actual forms/connection/activation still constrain dependent provider document work.
 
 ## Proposed 45-minute agenda
 
@@ -26,8 +26,8 @@ message-evidence and document-completion gaps.
 
 Use the [training guide](renewal-client-walkthrough-2026-09-09.md). Have a renewal operator drive
 and an Admin available. Josiah facilitates; these are requested roles, not confirmed attendees.
-Keep the demo to reading while release or workflow gates remain open. Explain later stages using
-the diagram. A real change needs the actual lease's normal approvals.
+Use reading/navigation for demonstration. Record only actual work and use real changes only with
+the exact lease's normal approvals; do not create customer effects to prove the software.
 
 ## Open questions
 
@@ -41,6 +41,5 @@ If time remains, confirm maintenance inputs and the two working defaults on the
 **Recommended posture:** show the real stopping point, agree the smallest next action, and keep
 unavailable steps visibly open.
 
-**Confidence and gaps:** labels match current code. The newer build is not the main app.
-Sign-in requires renewal; no fresh managed-browser pass is claimed. The full journey and
-throughput remain unproven. Start with the [readout](wednesday-delivery-readout-2026-09-09.md).
+**Confidence and gaps:** current controls, backend journeys and managed Admin release assurance
+passed. No live customer completion, human usability verdict or throughput rate is claimed. Start with the [readout](wednesday-delivery-readout-2026-09-09.md).

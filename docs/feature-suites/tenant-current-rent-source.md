@@ -3,13 +3,7 @@
 
 # S102 — Tenant current rent from the active RentVine lease
 
-> Status: Implemented and committed on 2026-09-03 (`ff200d3`, exact-SHA CI green), and
-> carried by the current unpromoted zero-traffic candidate named in `docs/facts.md` F-CANDIDATE. The shared lease view now
-> carries `currentRent` from the documented lease detail `baseRentAmount` inside the live lease
-> generation, keeps `unit.rent` only as the labelled `unitListedRent` reference, and the S51 oracle,
-> live review, console provider, and scripts read the same source; the 2026-09-06 review moved the
-> last `unit.rent` consumer, the RentCast comp query basis, onto the same lease-detail current rent. The serving revision still reads
-> `unit.rent`, which the owner's review showed moving with the property-level market rent.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Shared views and RentCast query basis use lease-detail baseRentAmount; unit.rent stays a separately labeled reference and missing values stay unavailable.
 
 **Goal.**
 
@@ -19,14 +13,14 @@ unavailable.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-01)                                | Classification    | Evidence                                                                                                                                                                                                                     |
-| ----------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Current rent comes from the active lease, not market rent   | Incorrect         | `lib/integrations/rentvine/lease-mapper.ts (unit-rent lift)` lifts `unit.rent` onto the lease view as `currentRent`; `docs/products/rentvine-live-field-map-2026-07-22.md` records 0/306 lease-level rent keys on the export |
-| One shared read path feeds table, workspace, proposals, Ask | Already satisfied | `leaseCurrentRent()` is the single reader used by `lib/lease-renewal/live-desk.ts`, `desk-guidance.ts`, the S97 proposal preview, and the owner draft                                                                        |
-| Market rent stays separately named                          | Missing           | No projection field distinguishes the unit's listed rent from the tenant's lease rent                                                                                                                                        |
-| Missing rent is unavailable, never `$0`                     | Already satisfied | Active S82 remediation keeps missing rent `null` (`docs/feature-suites/guided-renewal-desk-and-workspace.md`, "nullable rent"); `Needs Verification` renders instead of zero                                                 |
-| RentVine/Sheet disagreement blocks the renewal              | Already satisfied | S82 rent-verification states `Verified` / `Needs verification` / `Unavailable`; `lib/lease-renewal/effective-data-check.ts` owns the resolution-aware projection                                                             |
-| Post-correction refresh shows the same value everywhere     | Already satisfied | `lib/lease-renewal/post-write-freshness.ts` forces a complete post-write source read                                                                                                                                         |
+| Package requirement (PMI-01)                                | Classification    | Evidence                                                                                                                                                                     |
+| ----------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Current rent comes from the active lease, not market rent   | Deployed          | Live generation enriches documented lease detail baseRentAmount; the mapper no longer lifts unit.rent into contractual rent.                                                 |
+| One shared read path feeds table, workspace, proposals, Ask | Already satisfied | `leaseCurrentRent()` is the single reader used by `lib/lease-renewal/live-desk.ts`, `desk-guidance.ts`, the S97 proposal preview, and the owner draft                        |
+| Market rent stays separately named                          | Deployed          | unitListedRent retains the distinct unit reference; shared consumers and RentCast basis use contractual currentRent.                                                         |
+| Missing rent is unavailable, never `$0`                     | Already satisfied | Active S82 remediation keeps missing rent `null` (`docs/feature-suites/guided-renewal-desk-and-workspace.md`, "nullable rent"); `Needs Verification` renders instead of zero |
+| RentVine/Sheet disagreement blocks the renewal              | Already satisfied | S82 rent-verification states `Verified` / `Needs verification` / `Unavailable`; `lib/lease-renewal/effective-data-check.ts` owns the resolution-aware projection             |
+| Post-correction refresh shows the same value everywhere     | Already satisfied | `lib/lease-renewal/post-write-freshness.ts` forces a complete post-write source read                                                                                         |
 
 Intended end state: the shared RentVine lease view carries `currentRent` only from a lease-scoped
 source, carries the unit value under a separately named reference field, and every consumer keeps

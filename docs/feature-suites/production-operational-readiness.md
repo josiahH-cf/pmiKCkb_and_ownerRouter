@@ -2,9 +2,7 @@
 
 # S51 — Production operational readiness
 
-> Status: Active production operating contract with an unreleased assurance remediation. The
-> deterministic harness may be proven locally, but neither the remediation nor a release is assured
-> until the exact revision completes every managed live gate below.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. This remains the active release contract. The exact approved predecessor exception is recorded honestly; candidate and post-promotion checks passed with zero mutation attempts.
 
 **Goal.**
 

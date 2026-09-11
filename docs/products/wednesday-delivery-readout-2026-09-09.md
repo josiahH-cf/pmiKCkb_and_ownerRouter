@@ -4,15 +4,15 @@
 
 ## Current delivery readout — updated 10 September
 
-S113 is implemented locally and remains under backend, mounted-journey and adversarial verification.
-No S113 commit, push or deployment is accepted yet. The serving app remains the revision in
-[current status](../status.md). Local fixtures do not establish live customer effects.
+The consolidated renewal workflow is live. Implementation, actual backend verification,
+adversarial review, exact-commit CI, candidate assurance, promotion and observation passed.
+The [current status](../status.md) records its serving revision and backend readback.
 
-The local dashboard combines facts, corrections, comps, owner and tenant messages, documents and
-manual closeout. Staff can record actual outside work, with explicit owner terms and tenant response.
-Manual completion stays distinct from provider receipts and verified completion. The operator guide
-and three-page training PDF are updated; their semantic controls and complete journey still await
-acceptance. Use the [walkthrough](renewal-client-walkthrough-2026-09-09.md) to inspect the intended path.
+The dashboard combines facts, corrections, comps, owner and tenant messages, documents and manual
+closeout. Staff can record actual outside work, explicit owner terms and tenant responses. Manual
+completion remains distinct from provider receipts. The three-page guide and all 42 semantic steps
+passed, alongside the complete desk browser check. Human review remains NOT RUN; fixtures do not
+establish live customer effects.
 
 ## What the operator should demonstrate
 
@@ -24,17 +24,17 @@ a counteroffer, non-renewal and missing information. Never create customer effec
 Read-only rehearsal supports inspection/navigation only. Actual source writes require their exact
 preview, authorized human confirmation and receipt/readback. Every message send stays with a person.
 
-## Remaining acceptance and localized inputs
+## Completed delivery and localized inputs
 
 | Work                                                     | Completion evidence                                                                                                                                                  |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Finish S113 implementation and adversarial review        | Mounted controls reach actual routes/stores; H1-H8 and affected verification pass.                                                                                   |
-| Ship the exact reviewed commit                           | Green exact-commit CI, verified candidate/config, managed browser assurance, promotion and observation; serving revision and backend readback.                       |
+| S113 implementation and adversarial review complete      | Actual routes/stores, H1-H8 model checks, all 33 review findings and full verification passed. Human verdict remains NOT RUN.                                        |
+| Exact reviewed commit deployed                           | Exact-commit CI, candidate/config/browser assurance, promotion, observation and serving/backend readback passed.                                                     |
 | Supply informational and legal-form locations when ready | Persistent labeled boxes may remain blank pending team input. Only an output needing the actual resource waits.                                                      |
 | Continue S106/S34 document work                          | Real approved forms/mappings, managed Dotloop connection/selection and separate exact-key activation. Current keys remain closed; signature work is a human handoff. |
 
-September 10 CLI/ADC refresh passed. Authentication longevity and the managed browser/release gates
-remain independent requirements. Missing resource URLs do not block S113 manual work or release.
+September 10 CLI/ADC refresh passed. Managed Admin browser/release gates passed; the separate
+authentication longevity proof remains unverified. Missing resource URLs do not block S113 manual work or release.
 Use the [input sheet](wednesday-decisions-and-inputs-2026-09-09.md) for the exact localized dependency.
 
 ## Acceptance for repeatable work

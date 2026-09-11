@@ -7,8 +7,8 @@ written_by: unblock pass, 2026-09-04
 
 # Resolved open inputs
 
-Every specification in this package is implemented, committed, exact-SHA CI green, and carried by one
-unpromoted zero-traffic Cloud Run candidate. This document records what an unblock pass on 2026-09-04
+The package implementation and S113 consolidation are deployed after exact-SHA CI and all release
+gates. Real provider forms/connection/activation inputs remain separately gated. This document records what an unblock pass on 2026-09-04
 answered, changed, or could not answer, so a later reader does not re-derive it.
 
 It adds to the package; it changes none of the eleven specifications above it. Where a decision

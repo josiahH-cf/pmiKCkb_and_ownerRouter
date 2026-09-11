@@ -19,8 +19,7 @@ It provides:
 - reviewed unsent Gmail drafts;
 - packet-state/prefill machinery;
 - work/attention/approval integration;
-- exact human-confirmed operating-Sheet append and the historically proof-qualified field-update
-  baseline; the older candidate refuses normal fields, while local S113 replaces that refusal; and
+- exact human-confirmed operating-Sheet append and S113 normal existing-row field updates; and
 - exact human-confirmed RentVine renewal-date and recurring-charge updates through S97.
 
 ## Safety
@@ -28,7 +27,7 @@ It provides:
 RentCast does not set offered rent. Drafts do not send themselves. S97 and the safe S98 append path
 are active only through individual human-initiated preview/confirmation/receipt/readback contracts.
 S113 explicitly authorizes normal field updates with fresh exact target/value checks, one-attempt
-claims and receipt/readback; its local implementation is not yet deployed. Broad compatibility
+claims and receipt/readback; this implementation is deployed. Broad compatibility
 keys and generic/bulk/autonomous effects remain closed. Missing legal or
 provider artifacts fail closed.
 
@@ -54,14 +53,12 @@ provider artifacts fail closed.
 - Renewals-space Editor ordinary work, optional constrained AI phrasing, exact screenshot attachment,
   and narrow task-oriented Admin/Connections navigation under the deployed S72/S59/S80/S74/S79/S81
   baseline.
-- S82's original table-first/guided UI, S97 exact RentVine renewal-date and recurring-charge
-  writeback, and S98's historical two-key baseline are deployed. The older S98 candidate correction retains
-  normal append and refuses fields; local S113 implements the explicitly approved normal updates. Current S82 conformance corrections
-  for nullable rent, auxiliary-read failure, evidence parity, source destinations, phase-local
-  controls, freshness, filter discoverability, and browser assurance remain active and unreleased.
+- S82 conformance, S97 generation/replay/ambiguity integrity and S98/S113 normal append/field
+  updates are deployed. Row deletion and historical restore remain unavailable. Exact candidate,
+  promotion, observation and readback gates passed; completed provider proofs were not rerun.
 
-The local S113 dashboard mounts all five sections and provides simple corrections, deliberate
+The serving S113 dashboard mounts all five sections and provides simple corrections, deliberate
 RentCast/trend capture, formatted/copyable supplied-template preparation, exact governed Gmail
 drafting and audited manual progression. Staff-recorded completion remains separate from provider
 verification. Persistent resource-location boxes accept blank pending-team inputs. Actual backend
-journeys pass; current review and release gates are recorded in docs/status.md.
+journeys pass; completed review and release gates are recorded in docs/status.md.

@@ -70,23 +70,21 @@ posting, and autonomous/model-triggered effects remain out of scope.
 
 ## Current acceptance
 
-Production serves commit `d243911cb20ffb01773072c0e27c723648eeea34` as revision
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100% traffic. Its captured immediate rollback is
-`pmi-kc-app-rmtkgn08q-db89a37c43dc`. Live readback confirms Production + Live, eleven Spaces, the
-managed runtime identity, an enabled operating-Sheet switch, and a 48-key Registry with 16 open and
-32 closed. The current S82/S51/S54 remediation remains worktree behavior until its complete test,
-exact-SHA CI, candidate, promotion, observation, and readback gates pass.
+Production serves `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic. Exact CI 34556917662, candidate/config/domain
+checks, Admin browser assurance, independent reconciliation, v4 receipt-bound promotion,
+300,000 ms observation and serving/backend readback passed. Production + Live, eleven Spaces,
+managed runtime identity, enabled Sheet switch and the 48-key/16-open Registry remain unchanged.
+S113 and carried S82/S97/S98/S102-S110/readiness corrections are serving; all 33 review findings
+are closed. No live customer completion or provider effect was seeded for verification.
 
 ## Current unfinished work
 
 Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. The original S82 delivery is
-deployed, but its bounded conformance remediation plus expanded S51/S54 assurance is active and
-unreleased. S97-S99 are complete and deployed. S100 chat sync is complete, proven, and open; S100
+superseded proof specifications are not part of this contract. S82 conformance, S113 consolidation and expanded S51/S54 assurance are deployed. S97-S99 are complete and deployed. S100 chat sync is complete, proven, and open; S100
 remains blocked only on the exact mapped resident/email input required for its closed unsent-draft
 key. S36 is queued behind complete S100 and has not started. S87-S95 and S101 are
-specification-only desired behavior, not current Dashboard AI, minimal-home, decluttering, or broad
-assistant-read capability. All product decisions are closed; a missing runtime input blocks only
+specification-only desired behavior for minimal-home, decluttering and broad assistant-read
+coverage. S110's bounded three-intent Dashboard assistant is deployed. All product decisions are closed; a missing runtime input blocks only
 its dependent gate and is never permission to invent or substitute evidence.
 
 The September 10 S113 amendment explicitly repairs the existing RentCast comp/trend feature and

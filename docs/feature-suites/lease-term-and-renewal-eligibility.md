@@ -3,12 +3,7 @@
 
 # S103 — Lease term and renewal eligibility
 
-> Status: COMMITTED (`0158c90`, exact-SHA CI green) AND CANDIDATE-DEPLOYED
-> (carried by the current unpromoted zero-traffic candidate named in `docs/facts.md` F-CANDIDATE; anonymous smoke passed); NOT PROMOTED. `projectLeaseTerm` owns the term for the cohort, desk,
-> workspace, and query; month-to-month leases carry the new `periodic_review` disposition with a
-> 12-month review anchor; the app-owned `lease_renewal_term_reviews` record and its Editor-gated
-> route resolve leases whose provider evidence is absent or contradictory. Production still uses the
-> heuristic skip signals and shows no term.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. One projectLeaseTerm projection owns the term across surfaces, with exact provider evidence, annual periodic review and fresh actor-gated app review records. No provider term write is inferred.
 
 **Goal.**
 
@@ -18,16 +13,16 @@ annual review instead of reappearing as monthly renewals.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-02)                            | Classification    | Evidence                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Use the provider field when reliable                    | Partially         | `lib/lease-renewal/cohort.ts` matches `isMonthToMonth`/`leaseType`/`term`-style keys heuristically against the export row, which carries none of them; bodyless discovery on 2026-09-03 proved the lease detail (`GET /leases/{leaseID}`) carries `isMonthToMonth`, `monthToMonthStartDate`, and `hasPendingMonthToMonthConversion` |
-| Visible term in lease and renewal views                 | Missing           | Desk rows carry only the cohort reason label `Month-to-month` for skipped rows (`lib/lease-renewal/desk-model.ts`); no term column, status, or workspace fact                                                                                                                                                                       |
-| Dates are evidence, not the classifier                  | Partially         | `classifyRenewalCohort` routes no end date to `review`; an expired end date still classifies as out-of-window fixed-term                                                                                                                                                                                                            |
-| Fixed-term enters the window from the verified end date | Already satisfied | `buildRenewalDeskWindow` (`lib/lease-renewal/desk-query.ts`) and `retentionFor` in `live-desk.ts`                                                                                                                                                                                                                                   |
-| Month-to-month leaves the monthly cycle                 | Already satisfied | Skip disposition `Excluded from the renewal workflow`                                                                                                                                                                                                                                                                               |
-| Annual review anchor                                    | Missing           | No review anchor, review scope, or recorded next review point                                                                                                                                                                                                                                                                       |
-| Recalculate everywhere the term changes                 | Missing           | No app-owned term record exists to change                                                                                                                                                                                                                                                                                           |
-| Reuse RentVine writeback if representable               | Unsupported       | S97 writes only `endDate` and `increaseEligibilityDate`; no documented term field is writable                                                                                                                                                                                                                                       |
+| Package requirement (PMI-02)                            | Classification    | Evidence                                                                                                                              |
+| ------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Use the provider field when reliable                    | Deployed          | projectLeaseTerm reads exact lease-detail isMonthToMonth and conversion evidence; unreadable/conflicting evidence stays needs_review. |
+| Visible term in lease and renewal views                 | Deployed          | Shared leaseTerm renders in the cohort, desk, dashboard and query projection.                                                         |
+| Dates are evidence, not the classifier                  | Deployed          | Exact term evidence controls classification; missing/expired/contradictory evidence requires review.                                  |
+| Fixed-term enters the window from the verified end date | Already satisfied | `buildRenewalDeskWindow` (`lib/lease-renewal/desk-query.ts`) and `retentionFor` in `live-desk.ts`                                     |
+| Month-to-month leaves the monthly cycle                 | Deployed          | periodic_review has its own inspection-only scope and annual anchor.                                                                  |
+| Annual review anchor                                    | Deployed          | Next anniversary on or after the reference month; no reminder, draft or timer follows.                                                |
+| Recalculate everywhere the term changes                 | Deployed          | App-owned term-review record binds a fresh server fingerprint; shared reads enforce staleness.                                        |
+| Reuse RentVine writeback if representable               | Unsupported       | S97 writes only `endDate` and `increaseEligibilityDate`; no documented term field is writable                                         |
 
 Intended end state: one `leaseTerm` projection (`fixed_term` | `month_to_month` | `needs_review`)
 derived from proven provider evidence plus one app-owned, audited term-review record when provider

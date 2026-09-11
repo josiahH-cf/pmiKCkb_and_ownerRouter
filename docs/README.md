@@ -16,13 +16,11 @@ point for historical documents removed during the 2026-08-26 context reset.
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
 
-Use S113 for the next product handoff: one suite with five feature specs for renewal consolidation.
-The four simplified Wednesday documents below describe the current software. The training guide is
-lease-agnostic, with a workflow map, actual phase labels, expected results and stopping points.
-docs/products/build-renewal-handouts.py renders maintained S113 handout copy into output/pdf.
-Run with Python/reportlab after current status records release acceptance; --output-dir selects
-the output folder. The renderer performs no live verification and refuses an unaccepted release.
-Release acceptance and full live workflow completion remain open.
+S113 is complete and deployed. Its five feature specifications and current review evidence define
+the consolidated renewal workflow and accepted resource-input limits. The Wednesday materials below
+describe the serving dashboard, manual progress, actual controls and source/provider boundaries.
+The three-page training guide and one-page brief are current printable handouts. Backend and exact
+release acceptance passed; no live customer completion or human usability verdict is inferred.
 
 ## Current core
 
@@ -86,22 +84,22 @@ Release acceptance and full live workflow completion remain open.
 
 ## Active feature contracts
 
-Use `docs/feature-suites/README.md`. It is the sole queue for the current initiative. S96, S85, S86,
-S83, S84, and S99 are complete and deployed. S82, S97, and S98 each have a deployed baseline plus a
-bounded integrity/conformance remediation that is active and unreleased. S98's candidate currently
-refuses normal field updates. The owner-approved S113 contract requires replacing that refusal with
-pre-approved in-app field updates; it also specifies the full manual dashboard and audited manual
-advancement. S113 local implementation, actual backend/receipt and mounted journey verification,
-all seven compiled browser checks and the 21-finding review pass. Final documentation/delivery and
-exact release gates remain pending. It precedes new automation and Dotloop execution. The
-expanded S51/S54 production-assurance gate still owns release acceptance. S100 chat
-sync is deployed; its resident-draft
-action remains blocked on the exact live input named in `docs/facts.md`. The owner's 2026-09-03 renewal-completion direction adds S102-S111, rewrites S34, and executes
-them before S36; see the README bundle section. S36 is queued behind
-complete S100, and S87-S95 plus S101 remain specification-only desired behavior. S112 (unattended
-authentication) is active: September 8 enrollment/reboot proofs passed; September 10 approved CLI/ADC refresh passed; elapsed-session and managed
-browser acceptance remain in `docs/open-blockers.md` B-AUTH2. Completed suite narratives are removed once current code, tests,
-and facts own their contract; Git history retains provenance.
+Use `docs/feature-suites/README.md`, the sole current implementation queue. S113 F1-F5 is complete
+and deployed after actual backend/integrated verification, closure of all 33 in-scope findings,
+exact CI and every candidate/promotion/observation gate. It serves one dashboard, supported source
+corrections, restored RentCast preparation, supplied formatted/copyable drafts, governed Gmail
+recovery and audited manual progress. Blank labeled resource fields are accepted pending-team inputs.
+
+S82 conformance, S97 integrity, S98 normal append and owner-approved field updates, S102-S110/readiness
+corrections and normal S106/S34 packet handoffs are serving. Real forms/mappings, managed Dotloop
+connection/selection and exact closed-key activation still govern dependent document effects.
+S96, S83-S86 and S99 retain their deployed contracts. S100 chat sync is deployed; resident-draft
+still requires its exact eligible message/email and separate activation. S36 remains queued behind
+complete S100. S87-S95 and S101 remain specification-only. S112 release authentication passed;
+its separate 24-hour unchanged-enrollment longevity proof remains unverified.
+
+Current code, tests, facts and the S113 evidence report own the verified result. Staff-recorded
+completion is distinct from provider verification; no live customer completion was seeded.
 
 ## Current evidence and templates
 

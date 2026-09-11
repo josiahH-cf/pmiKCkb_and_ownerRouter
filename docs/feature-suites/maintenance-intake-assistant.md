@@ -3,17 +3,7 @@
 
 # S109 — Maintenance intake triage and troubleshooting assistant
 
-> Status: IMPLEMENTED. The S47 public route accepts bounded structured answers, the pure
-> `projectIntakeTriage` owns urgency, required evidence, expectation copy, and completion, the
-> reviewed troubleshooting catalog carries the owner's three reviewed links (Electrical, HVAC,
-> Plumbing; Appliance and General stay empty on purpose), an optional model adapter may only suggest
-> a trade and nothing in the product calls it yet, and promotion carries the triage onto the ticket where S108
-> reads `photos_needed` as a blocker. Public file upload stays forbidden: the recorded conflict is
-> unchanged, and the form states exactly which photos are needed instead. The resident-facing form is
-> `app/maintenance/report`, an inert public shell whose bridge clears the fragment-delivered token
-> before any request. Since 2026-09-06 the life-safety and water terms match whole words or phrases only (an `s`, `es`, `d`, `ed`, `ing`, or `y` ending still counts, so `smoked` and `leaky` escalate; `smoky` and `gasoline` are listed explicitly). Any
-> extension of the required-evidence table remains an owner input; an empty catalog entry disables
-> only that resource offer.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Bounded structured intake, pure triage and approved matching troubleshooting resources preserve the public route boundary and writer-derived evidence; no upload or provider/draft path is added.
 
 **Goal.**
 

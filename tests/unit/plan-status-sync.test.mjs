@@ -24,11 +24,11 @@ describe("plan.md present-truth freshness", () => {
   });
 
   it("pins current production, the exact effect boundary, canonical endpoints, and terminal rule", () => {
-    expect(plan).toContain("d243911cb20ffb01773072c0e27c723648eeea34");
-    expect(plan).toContain("pmi-kc-app-rmtkmhj1z-8855e4c6dbfb");
+    expect(plan).toContain("f5faf1665121db9cacff913a57e7fdcc80513116");
+    expect(plan).toContain("pmi-kc-app-rmtwdl4di-4439f17911f4");
     expect(plan).toContain("Completed S97-S99 and S100 chat proofs are not rerun");
     expect(plan).toContain("S36 is queued behind complete S100");
-    expect(plan).toContain("refuses fixed-row update/delete/restore");
+    expect(plan).toContain("refuses row deletion and historical restore");
     expect(plan).toContain("S96 — safe connector disconnect and reconciliation");
     expect(plan).toContain("S87 — final six-cohort product-wide content reconciliation");
     expect(plan).toContain("ALL_GATES_GREEN");

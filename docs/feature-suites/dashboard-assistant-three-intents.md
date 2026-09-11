@@ -3,16 +3,7 @@
 
 # S110 — Dashboard assistant V1: three read-only intents
 
-> Status: IMPLEMENTED. `runAssistantQuery` is the one boundary, `lib/assistant/intent-registry.ts`
-> holds the closed versioned registry (`assistant-query/v1`), the work and renewal adapters read
-> through the owning services, and `POST /api/assistant/query` returns the envelope. The Renewals
-> desk orchestration is extracted into `lib/lease-renewal/assistant-source.ts`, which the desk page
-> and the assistant both call, and since 2026-09-06 the renewal adapters apply the desk's own exported
-> scope, month, and blocked predicates on the one business calendar (`America/Chicago`), so the
-> answer is the table's row set by construction and a source that throws is reported as
-> `unavailable`. `AskForm` routes a question
-> there first. This remains the first executable slice of the S88 boundary, the S90 work adapter, and
-> the S91 renewal adapter, limited to three intents; S93 streaming and S94 actions stay out.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Three deterministic read-only intents preserve role/Space/source coverage and owning-page parity. Incomplete coverage asks clarification; no model-triggered effect exists.
 
 **Goal.**
 
