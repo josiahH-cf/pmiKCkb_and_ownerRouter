@@ -10,6 +10,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
+import { isCancelledRoutePrefetch } from "./run-production-canary";
 
 import {
   applicationDefault,
@@ -63,6 +64,7 @@ import {
   type IndependentRentExpectation,
   type IndependentRenewalSourceRow,
   type IndependentSheetProjection,
+  type IndependentSheetIdentitySource,
   type IndependentWorkspaceDestinationObservation,
 } from "../lib/production-assurance/renewal-source-projection";
 import {
@@ -400,6 +402,7 @@ async function readIndependentSheetProjection(
   reader: GoogleSheetsApiReader,
   spreadsheetId: string,
   expectedRentvineHost: string,
+  identitySource: IndependentSheetIdentitySource,
 ): Promise<IndependentSheetProjection> {
   const [evaluated, formulas, notes] = await Promise.all([
     reader.batchGet(spreadsheetId, [RENEWAL_SHEET_TITLE]),
@@ -414,7 +417,13 @@ async function readIndependentSheetProjection(
   ) {
     throw new Error("renewal_sheet_notes_identity_mismatch");
   }
-  return projectIndependentSheetLinks(evaluated, formulas, notes, expectedRentvineHost);
+  return projectIndependentSheetLinks(
+    evaluated,
+    formulas,
+    notes,
+    expectedRentvineHost,
+    identitySource,
+  );
 }
 
 export function aggregateReadStates(
@@ -650,21 +659,27 @@ async function readDirectProjection(
     ).catch(() => undefined);
   }
   const expectedRentvineHost = clients.expectedRentvineHost;
-  const sheetRead = expectedRentvineHost
-    ? await withAssuranceTimeout(
-        () =>
-          readIndependentSheetProjection(
-            clients.sheet.reader,
-            clients.sheet.spreadsheetId,
-            expectedRentvineHost,
-          ),
-        "sheet_assurance_read_timeout",
-        providerTimeoutMs,
-        { onTimeout: () => beginSourceClientClose(clients) },
-      )
-        .then((value) => ({ ok: true as const, value }))
-        .catch(() => ({ ok: false as const }))
-    : ({ ok: false as const } as const);
+  const sheetRead =
+    expectedRentvineHost && rentvineRead.ok
+      ? await withAssuranceTimeout(
+          () =>
+            readIndependentSheetProjection(
+              clients.sheet.reader,
+              clients.sheet.spreadsheetId,
+              expectedRentvineHost,
+              {
+                complete: rentvineRead.value.complete,
+                rows: rentvineRead.value.rows,
+                leaseDetails,
+              },
+            ),
+          "sheet_assurance_read_timeout",
+          providerTimeoutMs,
+          { onTimeout: () => beginSourceClientClose(clients) },
+        )
+          .then((value) => ({ ok: true as const, value }))
+          .catch(() => ({ ok: false as const }))
+      : ({ ok: false as const } as const);
   const decisionRead = await withAssuranceTimeout(
     () => readIndependentDecisionFacts(clients.firestore),
     "firestore_assurance_read_timeout",
@@ -969,7 +984,17 @@ export function projectIndependentExpectedGuidanceState(input: {
   }
 
   let overallStatus: IndependentExpectedOverallStatus;
-  if (input.dispositionExpected === "review") {
+  const missingRent =
+    input.dispositionExpected !== "skip" &&
+    ["missing_rentvine", "missing_sheet"].includes(input.rentExpectation.evidence);
+  if (
+    input.dispositionExpected === "review" ||
+    (input.processExpected &&
+      ["needs_verification", "migration_required"].includes(
+        processState.processStatus ?? "",
+      )) ||
+    missingRent
+  ) {
     overallStatus = "needs_verification";
   } else if (
     input.rentReconciliationExpected &&
@@ -979,11 +1004,6 @@ export function projectIndependentExpectedGuidanceState(input: {
       input.rentExpectation.evidence === "conflict" ? "blocked" : "needs_verification";
   } else if (!input.processExpected) {
     overallStatus = "needs_review";
-  } else if (
-    processState.processStatus === "needs_verification" ||
-    processState.processStatus === "migration_required"
-  ) {
-    overallStatus = "needs_verification";
   } else if (
     processState.currentStepState === "blocked" &&
     processState.processStatus !== "waiting"
@@ -1115,10 +1135,17 @@ async function readRenderedProjection(
   });
   const page = await context.newPage();
   let firstPartyFailure = false;
+  page.on("console", (message) => {
+    const url = message.location().url;
+    if (message.type() === "error" && (!url || safeSameOrigin(url, options.origin))) {
+      firstPartyFailure = true;
+    }
+  });
   page.on("pageerror", () => {
     firstPartyFailure = true;
   });
   page.on("requestfailed", (request) => {
+    if (isCancelledRoutePrefetch(request, options.origin)) return;
     if (safeSameOrigin(request.url(), options.origin)) firstPartyFailure = true;
   });
   page.on("response", (response) => {
@@ -1128,20 +1155,30 @@ async function readRenderedProjection(
   });
   let rendered = unavailableRenderedProjection();
   try {
+    const pageDeadlineAtMs = Math.min(deadlineAtMs, Date.now() + PAGE_TIMEOUT_MS);
+    const navigationTimeoutMs = remainingAssuranceTime(pageDeadlineAtMs, PAGE_TIMEOUT_MS);
+    if (navigationTimeoutMs <= 0)
+      throw new Error("rendered_projection_deadline_exceeded");
     const response = await page.goto(
       `${options.origin}/lease-renewal/live/desk?v=2&scope=all`,
-      { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS },
+      {
+        waitUntil: "domcontentloaded",
+        timeout: navigationTimeoutMs,
+      },
     );
     await page.waitForTimeout(750);
     if (
       !response?.ok() ||
       mutationAttempt ||
       firstPartyFailure ||
-      !(await waitForSettledRenewalDesk(page))
+      !(await waitForFreshRenderedRenewalDesk(page, pageDeadlineAtMs))
     ) {
       throw new Error("rendered_projection_unavailable");
     }
-    if (new URL(page.url()).pathname === "/sign-in") {
+    if (
+      new URL(page.url()).origin !== options.origin ||
+      new URL(page.url()).pathname !== "/lease-renewal/live/desk"
+    ) {
       throw new Error("rendered_projection_auth_unavailable");
     }
     const renderedRole = (await page.locator(".user-role").first().textContent())?.trim();
@@ -1237,8 +1274,61 @@ async function readRenderedApplicationState(page: Page): Promise<SourceReadState
   return source;
 }
 
-async function waitForSettledRenewalDesk(page: Page): Promise<boolean> {
+/** Inspect a completed fresh render within the original page deadline. A stale server render does
+ * not update when its demand-driven background read finishes. Only that explicit pending state
+ * permits a bounded GET reload; incomplete, expired, failed and unknown source states still fail. */
+export async function waitForFreshRenderedRenewalDesk(
+  page: Page,
+  deadlineAtMs: number,
+): Promise<boolean> {
   try {
+    for (let reloads = 0; reloads <= 12; reloads += 1) {
+      if (remainingAssuranceTime(deadlineAtMs) <= 0) return false;
+      if (!(await waitForSettledRenewalDesk(page, deadlineAtMs))) return false;
+      const roots = page.locator(
+        "div.ui-stack[data-source-currency-state][data-source-read-complete][data-source-refresh-failed][data-source-refreshing]",
+      );
+      if ((await roots.count()) !== 1) return false;
+      const root = roots.first();
+      const state = {
+        currency: await root.getAttribute("data-source-currency-state"),
+        readComplete: await root.getAttribute("data-source-read-complete"),
+        refreshing: await root.getAttribute("data-source-refreshing"),
+        refreshFailed: await root.getAttribute("data-source-refresh-failed"),
+      };
+      if (remainingAssuranceTime(deadlineAtMs) <= 0) return false;
+      if (classifyRenderedSourceState(state) === "complete") return true;
+      if (
+        reloads === 12 ||
+        state.currency !== "stale" ||
+        state.readComplete !== "true" ||
+        state.refreshing !== "true" ||
+        state.refreshFailed !== "false"
+      )
+        return false;
+      const remaining = remainingAssuranceTime(deadlineAtMs, PAGE_TIMEOUT_MS);
+      await page.waitForTimeout(Math.min(1_000, remaining));
+      const reloadTimeoutMs = remainingAssuranceTime(deadlineAtMs, PAGE_TIMEOUT_MS);
+      if (reloadTimeoutMs <= 0) return false;
+      const response = await page.reload({
+        waitUntil: "domcontentloaded",
+        timeout: reloadTimeoutMs,
+      });
+      if (!response?.ok()) return false;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+async function waitForSettledRenewalDesk(
+  page: Page,
+  deadlineAtMs: number,
+): Promise<boolean> {
+  try {
+    const timeoutMs = remainingAssuranceTime(deadlineAtMs, SETTLED_TIMEOUT_MS);
+    if (timeoutMs <= 0) return false;
     await page.waitForFunction(
       () =>
         [...document.querySelectorAll<HTMLElement>('[aria-busy="true"]')].every(
@@ -1254,7 +1344,7 @@ async function waitForSettledRenewalDesk(page: Page): Promise<boolean> {
           },
         ),
       undefined,
-      { timeout: SETTLED_TIMEOUT_MS },
+      { timeout: timeoutMs },
     );
     return true;
   } catch {
@@ -1306,10 +1396,7 @@ async function readRowsFromPage(
     const expected = expectedByLease.get(leaseId);
     const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
     const workspaceAvailable = await row.getAttribute("data-workspace-available");
-    const linkedAddress = (await primaryWorkspace.first().textContent())?.trim() ?? "";
-    const address =
-      linkedAddress ||
-      ((await leaseCell.locator(":scope > span").first().textContent())?.trim() ?? "");
+    const address = await readRenderedLeaseAddress(leaseCell);
     const owners = await partyValues(cells.nth(0));
     const tenants = await partyValues(cells.nth(1));
     const endDate =
@@ -1473,6 +1560,20 @@ async function hrefs(locator: ReturnType<Page["locator"]>): Promise<(string | nu
   return values;
 }
 
+/** Skipped leases intentionally have no workspace link. Check cardinality before textContent so
+ * their plain source address is read immediately, while missing/duplicate identity markup fails. */
+export async function readRenderedLeaseAddress(
+  leaseCell: ReturnType<Page["locator"]>,
+): Promise<string> {
+  const linked = leaseCell.locator(".renewal-lease-link");
+  const count = await linked.count();
+  if (count === 1) return (await linked.first().textContent())?.trim() ?? "";
+  if (count !== 0) throw new Error("rendered_lease_identity_invalid");
+  const plain = leaseCell.locator(":scope > span:not(.renewal-td-secondary)");
+  if ((await plain.count()) !== 1) throw new Error("rendered_lease_identity_invalid");
+  return (await plain.first().textContent())?.trim() ?? "";
+}
+
 const OVERALL_STATUS_LABELS: Readonly<Record<string, string>> = Object.freeze({
   needs_verification: "Needs verification",
   blocked: "Blocked",
@@ -1619,13 +1720,23 @@ function compareProjectionRows(
       counts.fieldMismatches += expectedGuidance.markerMismatches;
       counts.fieldMismatches +=
         !expectedRow.manual &&
-        expectedRow.rentReconciliationExpected &&
-        expectedRow.dispositionExpected !== "review"
-          ? countIndependentStatusMismatches(
+        observedRow.processState.processStatus === "migration_required"
+          ? countIndependentMigrationHoldMismatches(
               expectedRow.rentExpectation,
               observedRow.status,
             )
-          : countCoreStatusMismatches(expectedRow.rentExpectation, observedRow.status);
+          : !expectedRow.manual &&
+              expectedRow.rentReconciliationExpected &&
+              expectedRow.dispositionExpected !== "review" &&
+              !(
+                expectedRow.rentExpectation.evidence === "conflict" &&
+                expectedGuidance.overallStatus === "needs_verification"
+              )
+            ? countIndependentStatusMismatches(
+                expectedRow.rentExpectation,
+                observedRow.status,
+              )
+            : countCoreStatusMismatches(expectedRow.rentExpectation, observedRow.status);
       counts.fieldMismatches += countActionStatusMismatches(observedRow);
       counts.invalidDestinations += countIndependentWorkspaceDestinationMismatches({
         workspaceExpected: expectedRow.workspaceExpected,
@@ -1694,6 +1805,20 @@ function countDispositionMismatches(
   observed: string | null,
 ): number {
   return observed === expected ? 0 : 1;
+}
+
+export function countIndependentMigrationHoldMismatches(
+  expected: IndependentRentExpectation,
+  observed: IndependentRenderedStatus,
+): number {
+  // The migration hold suppresses obsolete phase blockers. Its exact status and blocked flag,
+  // current rent evidence, and absence of those blockers must all agree. The caller separately
+  // verifies process markers, the visible status, and the exact review destination.
+  return (
+    countCoreStatusMismatches(expected, observed) +
+    Number(observed.overallStatus !== "needs_verification") +
+    Number(observed.blockerCount !== 0)
+  );
 }
 
 function countCoreStatusMismatches(

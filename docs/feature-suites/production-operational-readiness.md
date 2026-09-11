@@ -43,6 +43,9 @@ The lane has six ordered parts:
    skip still wins. Staff completion never becomes provider-verified evidence.
    Separately validate the app-owned S72 process-status/current-step/current-step-state/waiting
    markers and map them with external source precedence to the exact displayed status and action.
+   A migration-required hold must retain Needs verification and the blocked flag, preserve rent
+   evidence, suppress obsolete process blockers and expose the exact current review destination.
+   It is not a completed migration or an ordinary actionable phase.
    The exact verified revision supplies the Sheet id, project service account, and managed
    `pmikcmetro.com` delegation subject; ambient local values cannot select a different Sheet or
    identity. Every evaluated and FORMULA values response must echo that exact `spreadsheetId`. Live
@@ -100,6 +103,9 @@ Each route fails on an app-origin console error, uncaught page exception, first-
 unexpected first-party HTTP error, rendered route/global error boundary, attempted non-read browser
 request, authentication/role mismatch, missing required landmark, or unresolved loading state.
 Third-party text and raw browser diagnostics are not allow-listed evidence.
+The measured Next.js cancellation exception is limited to same-origin, non-navigation page fetches
+with `next-router-prefetch: 1` and `net::ERR_ABORTED`, outside API and static paths. The canary and
+reconciliation share that exact predicate; navigation, API, asset and other failures remain fatal.
 
 Renewal reconciliation distinguishes `matched`, `mismatch`, `inconclusive_source_changed`, and
 `inconclusive_source_unavailable`. It independently reads RentVine lease facts, pairs operating-Sheet
@@ -111,6 +117,11 @@ identity, rent verification, resolution-difference state, overall status, blocke
 eligibility, independent disposition, blocker count, action kind, and destination kind. It also
 requires exact link cardinality and exact same-origin workspace/phase/access destinations or the
 independently read RentVine source URL.
+The complete independent RentVine identity read also supports the operating Sheet's existing
+name-candidate contract. Only a one-to-one association across all eligible identities and all Sheet
+rows may supply a rent comparison. Exact linked identities take precedence; duplicate, ambiguous
+or unmatched candidates supply no association. A name candidate supplies no source URL or write
+authority, and every unmatched row remains included in source-drift detection.
 
 Overall-status and action parity intentionally have a split trust boundary. External reads establish
 lease/source/disposition/retention/rent holds. The rendered S72 process markers establish only the
@@ -129,6 +140,10 @@ disagreement is not itself an application defect when the product renders the in
 verification/conflict state; a wrong disposition, retention, Ready/Verified/blocked state, missing
 causal link, extra or missing destination, omitted/duplicate row, or field mismatch is a definite
 application mismatch when sources are complete and stable.
+To inspect a refreshed server render, only an explicit stale/complete/refreshing/nonfailed state may
+trigger up to twelve guarded GET reloads within the original 60-second page deadline and 10-second
+settlement bound. Acceptance still requires a final fresh, complete, nonrefreshing render. Expired,
+failed, incomplete, unknown, nonpending and failed-navigation results remain unavailable.
 
 Revision binding is exact and immutable. The runner reads the Cloud Run v2 resource for the explicit
 project, region, service, and revision, verifies its full resource name, and recomputes the required

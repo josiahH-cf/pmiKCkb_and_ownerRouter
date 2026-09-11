@@ -39,13 +39,18 @@ browser enrollment. Its current assurance, promotion and observation are not ver
 for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
 normal packet/signature/completion handoffs. The owner's subsequent renewal-consolidation direction
 is specified in S113: one full manual dashboard, staff-recorded workflow advancement, and required
-pre-approved in-app Sheet field updates. S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
-34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
-The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
-Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
-anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
-still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
-Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+pre-approved in-app Sheet field updates. S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
+Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
+Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
+`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
+standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
+it has no acceptance receipt, promotion or observation. Production still serves
+`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
+The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
+201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
+are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
+unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+The earlier 00836a8 candidate also remains unpromoted.
 Both supplied v2 internal templates are published and read back approved.
 
 - Project: `pmi-kc-kb-prod`; Cloud Run service: `pmi-kc-app`; region: `us-central1`.

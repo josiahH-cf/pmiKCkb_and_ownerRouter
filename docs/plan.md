@@ -17,17 +17,22 @@ pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at https://pmi-kc-app-kq6wuvpiva-uc.a.run.app,
 The prior zero-traffic 6e77d18 candidate refuses fixed-row update/delete/restore; S113 replaces
 normal field-update refusal under explicit owner authority and preserves the deletion refusal.
 S96 — safe connector disconnect and reconciliation is serving. The readiness program already on
-main and S113 are now in the unpromoted 00836a8 candidate.
+main and S113 are now in the unpromoted 297af97 candidate.
 
-S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
-34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
-The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
-Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
-anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
-still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
-Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
+Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
+Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
+`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
+standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
+it has no acceptance receipt, promotion or observation. Production still serves
+`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
+The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
+201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
+are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
+unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+The earlier 00836a8 candidate also remains unpromoted.
 
-F1-F5 is implemented locally. Full units pass 6,488 tests with four existing skips; 201 backend
+F1-F5 is implemented locally. Full units pass 6,511 tests with four existing skips; 201 backend
 checks pass through actual mounted controls, routes, Firestore, claims, receipts and readbacks.
 External effects use deterministic adapters; staff-recorded completion remains distinct from
 provider verification. Core HTTP E2E passes 31 tests, with 18 intentionally skipped in its separate
@@ -44,10 +49,9 @@ hashes and the existing Admin approver. Old review-only versions remain unchange
 
 ## Canonical closure sequence
 
-1. Implementation/backend/browser acceptance and all 21 in-scope findings pass. H1-H8 model
+1. Implementation/backend/browser acceptance and all 31 in-scope findings pass. H1-H8 model
    verdicts contain concrete evidence; human review stays NOT RUN. Final delivery checks pass.
-2. Correct the three release-assurance findings, verify actual status GET/backend paths and the
-   exact approved predecessor exception, repeat affected review and canonical checks, and commit/push.
+2. Commit/push the green source/reconciliation correction after final documentation checks. Preserve the verified status GET and exact predecessor exception.
 3. Require green exact-main-SHA CI; create an isolated clean checkout and zero-traffic candidate.
    Archive the previous unpromoted checkpoint as superseded, without claiming it passed assurance.
 4. Verify exact candidate SHA/revision, runtime configuration, domains, existing owner Admin on

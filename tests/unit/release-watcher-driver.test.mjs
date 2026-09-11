@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   createDriver,
   resolveWatcherMonitoringConfig,
+  resolveWatcherSourceEnvironment,
 } from "../../scripts/release-watcher.mjs";
 import { recordBrowserEnrollment } from "../../scripts/auth/browser-enrollment.mjs";
 import { parseReleaseArgs } from "../../scripts/release-candidate.mjs";
@@ -26,6 +27,10 @@ function harness({
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "pmi-watcher-driver-"));
   roots.push(root);
+  writeFileSync(
+    join(root, ".env.local"),
+    "RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager\nRENTVINE_API_KEY=isolated-key\nRENTVINE_API_SECRET=isolated-secret\n",
+  );
   const checkpointPath = join(root, "checkpoint.json");
   let serving = initialTraffic ?? revision;
   const cp = {
@@ -95,6 +100,46 @@ function harness({
 }
 
 describe("release watcher command-path recovery", () => {
+  it("passes only reviewed RentVine source settings into isolated assurance and refuses conflicts", async () => {
+    const h = harness();
+    const supplied = {
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENTVINE_API_KEY: "isolated-key",
+      RENTVINE_API_SECRET: "isolated-secret",
+    };
+    writeFileSync(
+      join(h.root, ".env.local"),
+      Object.entries({
+        ...supplied,
+        GOOGLE_APPLICATION_CREDENTIALS: "/forbidden/key.json",
+        DATA_CONTEXT: "demo",
+      })
+        .map(([key, value]) => `${key}=${value}`)
+        .join("\n"),
+    );
+    expect(resolveWatcherSourceEnvironment(h.root, {})).toEqual(supplied);
+    expect(() =>
+      resolveWatcherSourceEnvironment(h.root, { RENTVINE_API_KEY: "other" }),
+    ).toThrow(/disagree/);
+    await h.driver.observe(h.cp);
+    const call = h.runCommand.mock.calls.find(([, args]) =>
+      args.some((arg) => arg.endsWith("observe-production-release.ts")),
+    );
+    expect(call[2].env).toMatchObject({
+      ...supplied,
+      DATA_CONTEXT: "live",
+      ENVIRONMENT_KIND: "production",
+    });
+    expect(call[2].env.GOOGLE_APPLICATION_CREDENTIALS).not.toBe("/forbidden/key.json");
+  });
+  it("refuses partial independent provider configuration before constructing an assurance subprocess", () => {
+    const h = harness();
+    writeFileSync(
+      join(h.root, ".env.local"),
+      "RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager\n",
+    );
+    expect(() => resolveWatcherSourceEnvironment(h.root, {})).toThrow(/required/);
+  });
   it("uses the explicit monitoring recipient independently of the authenticated principal", async () => {
     const h = harness();
     await h.driver.observe(h.cp);

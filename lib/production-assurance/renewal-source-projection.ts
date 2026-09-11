@@ -71,9 +71,15 @@ export interface IndependentSheetProjection {
 }
 
 export interface IndependentSheetLeaseFact {
-  readonly sourceUrl: string;
+  readonly sourceUrl: string | null;
   /** Null means the exact linked row exists but Current Rent is blank or non-numeric. */
   readonly currentRent: number | null;
+}
+
+export interface IndependentSheetIdentitySource {
+  readonly complete: boolean;
+  readonly rows: readonly Record<string, unknown>[];
+  readonly leaseDetails?: IndependentLeaseDetailMap;
 }
 
 export type IndependentRentEvidence =
@@ -147,7 +153,7 @@ export function projectIndependentRentVineRows(
     const address = independentAddress(lease, exportRow);
     const owners = independentOwners(lease, exportRow);
     const tenants = independentTenants(lease);
-    const endDate = independentDate(lease.endDate);
+    const endDate = independentLeaseEndDate(lease);
     const rent = independentRentVineCurrentRent(exportRow, leaseDetails);
     return {
       leaseId,
@@ -172,6 +178,7 @@ export function projectIndependentSheetLinks(
   formulas: SheetsBatchGetResponse,
   notesByTab: NotesByTab,
   expectedRentvineHost: string,
+  identitySource?: IndependentSheetIdentitySource,
 ): IndependentSheetProjection {
   const evaluatedRange = exactRenewalRange(evaluated, "evaluated");
   const formulaRange = exactRenewalRange(formulas, "FORMULA");
@@ -203,6 +210,19 @@ export function projectIndependentSheetLinks(
   const [{ rowIndex: headerRowIndex, columnIndex: currentRentColumn }] =
     currentRentColumns;
 
+  const identities = identitySource
+    ? independentSheetIdentityCandidates(identitySource)
+    : null;
+  const tenantColumns = (evaluatedValues[headerRowIndex] ?? []).flatMap((cell, index) =>
+    normalizeHeader(cell) === "what is the lease tenant name" ? [index] : [],
+  );
+  if (identities && tenantColumns.length !== 1) {
+    throw new Error(
+      "The independent Sheet association requires one exact tenant header.",
+    );
+  }
+  const unlinked: { name: string; currentRent: number | null }[] = [];
+
   const leaseUrls = new Map<string, string>();
   const byLeaseId = new Map<string, IndependentSheetLeaseFact>();
   for (
@@ -229,6 +249,18 @@ export function projectIndependentSheetLinks(
       formulaRow,
       expectedRentvineHost,
     );
+    // The existing read pipeline refuses rows wider than their declared header. They cannot
+    // supply an aligned identity or amount, but remain in the raw-source drift digest below.
+    if (identities && evaluatedRow.length > evaluatedValues[headerRowIndex].length) {
+      continue;
+    }
+    if (references.length === 0 && identities) {
+      unlinked.push({
+        name: String(evaluatedRow[tenantColumns[0]] ?? "").trim(),
+        currentRent: finiteAmount(evaluatedRow[currentRentColumn]),
+      });
+      continue;
+    }
     if (references.length !== 1) {
       throw new Error(
         references.length === 0
@@ -248,6 +280,30 @@ export function projectIndependentSheetLinks(
     leaseUrls.set(reference.leaseId, reference.url);
   }
 
+  if (identities) {
+    // The operating Sheet permits name-based candidate associations. Independently reproduce only
+    // that existing read contract: exact ids take precedence; one-to-many and many-to-one matches
+    // remain unresolved. An association supplies a rent comparison, never a source URL or write
+    // authority. Every unmatched row remains in the full source digest below.
+    const available = identities.filter((candidate) => !byLeaseId.has(candidate.leaseId));
+    const matches = unlinked.map((row) =>
+      available.filter((candidate) => independentNameCandidate(row.name, candidate.name)),
+    );
+    const occurrences = new Map<string, number>();
+    for (const candidates of matches) {
+      for (const candidate of candidates) {
+        occurrences.set(candidate.leaseId, (occurrences.get(candidate.leaseId) ?? 0) + 1);
+      }
+    }
+    matches.forEach((candidates, index) => {
+      if (candidates.length !== 1 || occurrences.get(candidates[0].leaseId) !== 1) return;
+      byLeaseId.set(candidates[0].leaseId, {
+        sourceUrl: null,
+        currentRent: unlinked[index].currentRent,
+      });
+    });
+  }
+
   return {
     leaseUrls,
     byLeaseId,
@@ -258,6 +314,66 @@ export function projectIndependentSheetLinks(
       byLeaseId: [...byLeaseId].sort(([left], [right]) => left.localeCompare(right)),
     }),
   };
+}
+
+function independentNameCandidate(left: string, right: string): boolean {
+  const tokens = (value: string) =>
+    new Set(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+  const a = tokens(left),
+    b = tokens(right);
+  if (!a.size || !b.size) return false;
+  const overlap = [...a].filter((token) => b.has(token)).length;
+  // Existing source contract: a >= .85 Jaccard result is only a candidate. Bijection above is
+  // required across the complete portfolio and all unlinked Sheet rows, including missing rent.
+  return overlap / new Set([...a, ...b]).size >= 0.85;
+}
+
+function independentSheetIdentityCandidates(source: IndependentSheetIdentitySource) {
+  if (source.complete !== true)
+    throw new Error("A complete independent identity read is required.");
+  const ids = new Set<string>();
+  const names = [
+    "tenantName",
+    "primaryTenantName",
+    "primaryTenant",
+    "leaseName",
+    "tenant",
+    "name",
+  ];
+  return source.rows.flatMap((exportRow) => {
+    const lease = asRecord(exportRow.lease) ?? exportRow;
+    const leaseId = firstText(lease, ["leaseID", "leaseId", "id"]);
+    if (!leaseId || !/^[1-9]\d*$/.test(leaseId) || ids.has(leaseId)) {
+      throw new Error(
+        "The independent identity read has an invalid or duplicate lease identity.",
+      );
+    }
+    ids.add(leaseId);
+    const firstTenant = Array.isArray(lease.tenants) ? asRecord(lease.tenants[0]) : null;
+    const name =
+      firstText(lease, names) ??
+      (firstTenant
+        ? (firstText(firstTenant, names) ??
+          [
+            firstTenant.firstName ?? firstTenant.first_name,
+            firstTenant.lastName ?? firstTenant.last_name,
+          ]
+            .filter((part) => part !== undefined && part !== null)
+            .join(" ")
+            .trim())
+        : null);
+    const hasDate = independentLeaseEndDate(lease) !== null;
+    const hasRent =
+      independentRentVineCurrentRent(exportRow, source.leaseDetails) !== null;
+    return name && (hasDate || hasRent) ? [{ leaseId, name }] : [];
+  });
 }
 
 /** A stable in-memory digest over only the direct source projection; callers must not serialize it. */
@@ -1140,6 +1256,31 @@ function finiteAmount(value: unknown): number | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const amount = Number(value.replace(/[$,\s]/g, ""));
   return Number.isFinite(amount) ? amount : null;
+}
+
+function independentLeaseEndDate(
+  lease: Readonly<Record<string, unknown>>,
+): string | null {
+  // Existing first-present source contract. The live export has two absent endDate fields whose
+  // supported moveOutDate fallback supplies the displayed date; never substitute for invalid data.
+  for (const key of [
+    "endDate",
+    "leaseEndDate",
+    "leaseTo",
+    "expirationDate",
+    "dateEnd",
+    "moveOutDate",
+  ]) {
+    const value = lease[key];
+    if (
+      value === undefined ||
+      value === null ||
+      (typeof value === "string" && !value.trim())
+    )
+      continue;
+    return independentDate(value);
+  }
+  return null;
 }
 
 function independentDate(value: unknown): string | null {

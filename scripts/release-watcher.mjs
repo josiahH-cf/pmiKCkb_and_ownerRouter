@@ -153,6 +153,24 @@ export function resolveWatcherMonitoringConfig(source = SOURCE, env = process.en
   });
 }
 
+// Independent reconciliation needs the existing reviewed RentVine read configuration. Pass only
+// these provider fields, never an env-file wholesale or an identity/credential-store override.
+export function resolveWatcherSourceEnvironment(source = SOURCE, env = process.env) {
+  const file = join(source, ".env.local");
+  const configured = existsSync(file) ? parseEnv(readFileSync(file, "utf8")) : {};
+  return Object.fromEntries(
+    ["RENTVINE_API_BASE_URL", "RENTVINE_API_KEY", "RENTVINE_API_SECRET"].map((key) => {
+      const local = configured[key]?.trim();
+      const inherited = env[key]?.trim();
+      if (local && inherited && local !== inherited)
+        throw new Error("reviewed_rentvine_source_settings_disagree");
+      const value = inherited || local;
+      if (!value) throw new Error("reviewed_rentvine_source_configuration_required");
+      return [key, value];
+    }),
+  );
+}
+
 export function createDriver({
   source = SOURCE,
   stateRoot,
@@ -201,8 +219,14 @@ export function createDriver({
     ).data;
   };
   const checkout = (cp) => join(stateRoot, "checkouts", cp.sha);
-  const runScript = (cp, script, args = [], timeoutMs = 30 * 60_000) =>
-    runCommand(
+  const runScript = (cp, script, args = [], timeoutMs = 30 * 60_000) => {
+    const sourceEnvironment =
+      script === "observe-production-release.ts" &&
+      (args.includes("--prepare-candidate-receipt") ||
+        args.some((arg) => arg.startsWith("--promotion-receipt=")))
+        ? resolveWatcherSourceEnvironment(source)
+        : {};
+    return runCommand(
       process.execPath,
       [
         join(checkout(cp), "node_modules", "tsx", "dist", "cli.mjs"),
@@ -214,6 +238,7 @@ export function createDriver({
         timeoutMs,
         env: {
           ...process.env,
+          ...sourceEnvironment,
           ENVIRONMENT_KIND: "production",
           DATA_CONTEXT: "live",
           PLAYWRIGHT_CHROME_PATH: browserExecutable(),
@@ -221,6 +246,7 @@ export function createDriver({
         },
       },
     );
+  };
   const assuranceArgs = (cp, origin = cp.candidateOrigin) => [
     "--live",
     `--base-url=${origin}`,

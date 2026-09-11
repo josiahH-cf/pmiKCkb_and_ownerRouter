@@ -9,13 +9,18 @@ pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, 100% traffic, at
 https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The prior zero-traffic candidate is
 6e77d18f6d9916ba94078550d4b5ba73751e86c8 / pmi-kc-app-rmtt039q1-c1463245a94c.
 It remains unpromoted; its assurance, promotion and observation never passed.
-S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
-34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
-The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
-Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
-anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
-still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
-Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
+Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
+Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
+`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
+standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
+it has no acceptance receipt, promotion or observation. Production still serves
+`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
+The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
+201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
+are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
+unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+The earlier 00836a8 candidate also remains unpromoted.
 Both exact supplied v2 internal templates are published.
 
 September 10 compact Cloud Run readback confirms Production + Live, the managed runtime identity,
@@ -24,7 +29,7 @@ reread all runtime configuration, eleven Spaces, authorized domains and monitori
 
 ## Verified implementation
 
-S113 F1-F5 is implemented locally. Five visible dashboard sections retain source truth and desk
+S113 F1-F5 is implemented and carried by the unpromoted candidate. Five visible dashboard sections retain source truth and desk
 context. Typed corrections support the approved exact Sheet and RentVine operations. RentCast
 comp/trend preparation is visible and persisted. Supplied v2 messages retain rich/plain formatting,
 copy fallback and governed unsent Gmail draft creation/recovery. Audited manual activity progresses
@@ -32,7 +37,7 @@ through staff-recorded completion, which remains distinct from provider-verified
 Persistent insurance, renewal information and seven legal-form location fields accept blanks.
 Only resource-dependent output waits for a real verified value or approved legal content.
 
-Full units pass 6,488 tests with four existing skips. All 201 backend tests pass through actual
+Current full units pass 6,511 tests with four existing skips. All 201 backend tests pass through actual
 mounted controls, routes, Firestore, claims, receipts/readbacks and the independent desk oracle.
 Deterministic adapters provide external effects; no live customer record, draft or send proves this.
 Core HTTP E2E passes 31 tests; 18 Firestore-dependent cases are intentionally skipped in that group
@@ -45,10 +50,10 @@ resource fields and retained return view. Navbar, Dashboard assistant, theme, ma
 and maintenance intake pass. The final full desk passes sorting/filtering, inspection refusal,
 active workspace/section navigation, exact return and Back, term parity and layout checks. Final
 read scheduling passes 45 affected tests, all 201 backend tests and the R28 production build.
-The initial 21 implementation findings are closed. Release assurance exposed three additional
-findings: legacy selector fallback, canceled speculative prefetch classification, and automatic
-POST status reads. All corrections pass the full unit/backend repeat, policy checks and production build. Deadlines and
-source freshness remain unchanged.
+All 31 implementation/release findings are closed locally. Source configuration, independent
+Sheet association and supported date aliases, typed invalid rent, migration/source holds, bounded
+fresh-render reads and skipped-row identity now pass affected and full verification. No assertion,
+browser deadline, source-freshness floor, role boundary or provider confirmation is weakened.
 See docs/evidence/s113-implementation-review-2026-09-10.md for findings, evidence and limits.
 
 ## Downstream handoff and resources

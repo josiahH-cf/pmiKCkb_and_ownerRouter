@@ -120,6 +120,7 @@ import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
 import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 import { parseCurrencyInput } from "@/lib/currency-input";
+import { toRentAmount } from "@/lib/lease-renewal/rent";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { buildRentvineDestination } from "@/lib/lease-renewal/desk-destinations";
@@ -370,12 +371,23 @@ function toDeskCandidate(candidate: ReconCandidate): DeskReconCandidate {
  */
 function outcomeToDeskItem(outcome: ReconciledFieldOutcome): DeskReconItem {
   const recon = outcome.reconciliation;
+  // A nonnumeric or nonpositive rent candidate supplies no comparable amount. Keep its raw
+  // evidence and correction identity, but do not present it as a disagreement between prices.
+  const missingRentAmount =
+    outcome.fieldKey === RENT_FIELD_KEY &&
+    recon.agreement === "conflict" &&
+    recon.candidates.some((candidate) => {
+      const amount = toRentAmount(candidate.value);
+      return amount === null || amount <= 0;
+    });
   const openConflict = recon.raise_flag && recon.agreement === "conflict";
-  const agreement: DeskReconItem["agreement"] = openConflict
-    ? "conflict"
-    : recon.agreement === "conflict"
-      ? "agree"
-      : recon.agreement;
+  const agreement: DeskReconItem["agreement"] = missingRentAmount
+    ? "missing"
+    : openConflict
+      ? "conflict"
+      : recon.agreement === "conflict"
+        ? "agree"
+        : recon.agreement;
   return {
     fieldKey: outcome.fieldKey,
     // Preserve the canonical pipeline label. Persisted decisions include this label in their exact

@@ -1,10 +1,10 @@
 # Environment and release handoff
 
 Updated: 2026-09-10. Approved WSL CLI/ADC refresh passed this run. This does not establish the
-24-hour elapsed-session proof or managed browser assurance. Canonical still serves the predecessor;
-S113 candidate 00836a8 / pmi-kc-app-rmtvz9r9f-10904b929fad remains unpromoted after browser-assurance
-failure. Its exact CI, deployment, smoke, configuration and domains passed. Release corrections are
-being verified in the working tree; the older readiness checkpoint was archived as superseded.
+24-hour elapsed-session proof. Canonical still serves the predecessor. S113 candidate 297af97 /
+pmi-kc-app-rmtw2vx4h-8fd8a42bbddf remains unpromoted after independent reconciliation failed.
+Its exact CI, deployment, smoke, configuration, domains and complete Admin canary passed.
+Four reconciliation corrections are in full verification; prior unpromoted checkpoints are archived.
 Current release gates and exact observations are recorded in docs/loop-state.md and docs/facts.md.
 
 ## Production
@@ -198,10 +198,17 @@ and read it back. The owner's September 10 direction accepts the existing
 `josiah@pmikcmetro.com` Admin profile on both the candidate and canonical origins. The enrolled
 profile is `/home/josiah/pmi-assurance/owner-admin`, outside the repository. Re-establish its
 session with `npm run auth:ensure -- --need=canary --origins=<canonical>,<candidate> --admin-profile=/home/josiah/pmi-assurance/owner-admin --admin-email=josiah@pmikcmetro.com`.
-Version 3 candidate/promotion receipts bind `browserPolicy=owner-admin-2026-09-10`; the candidate
+Version 4 candidate/promotion receipts bind `browserPolicy=owner-admin-2026-09-10`; the candidate
 and predecessor baseline explicitly record Editor `not_run`. Admin access does not prove Editor
 restrictions; backend role tests remain required. No role, claim or canary business-refusal identity
 changes. Copied cookies, guessed profiles and runner-entered security challenges remain forbidden.
+
+The watcher supplies only the three existing reviewed RentVine source settings to source-reading
+assurance subprocesses, rejecting missing or conflicting values. Identity/store overrides are never
+imported from the ignored provider file. Independent Sheet reconciliation requires a complete
+RentVine identity read and accepts only unambiguous one-to-one candidate associations; it invents
+no link or write authority. A pending server render may be reloaded read-only up to twelve times
+within the existing page deadline; freshness, completeness and all other diagnostic gates remain.
 
 Capture the immutable revision-configuration fingerprint:
 

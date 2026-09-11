@@ -6,27 +6,26 @@ in the ignored September 10 pack; customer values and raw correspondence are not
 
 ## Current acceptance
 
-F1-F5 implementation, actual backend paths and all 25 in-scope review findings pass acceptance.
-The final compiled desk and guide pass with unchanged deadlines. Final documentation/contracts pass
-241 checks, all policy/redaction checks pass and mechanical delivery passes. S113 00836a8 is pushed
-with green exact CI and a verified zero-traffic candidate; browser assurance exposed the three
-release findings below. Their corrections pass full ship verification; the new exact release remains pending.
-Human verdicts remain NOT RUN.
-No live customer effect is used to demonstrate completion.
+F1-F5 implementation, actual backend paths and all 31 in-scope review findings pass local
+acceptance. Full units pass 6,511 tests with four existing skips; all 201 backend tests, canonical
+policies and production build pass. The final compiled dashboard and 42-step guide repeat passes
+with unchanged deadlines. Exact-commit CI and a new candidate's assurance, promotion, observation
+and serving/backend readback remain required. Human verdicts remain NOT RUN. No live customer
+effect is used to demonstrate completion.
 
-| Gate                                          | Verified result                                                                                                                                                                                                                                                                                                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full unit suite                               | `temp/s113-release-verify-r3.log`: 699 files / 6,488 tests passed, four existing skips.                                                                                                                                                                                                                                                                       |
-| Actual backend paths                          | `temp/s113-release-verify-r3.log`: all 34 files / 201 backend tests pass, including actual GET receipt/status readbacks with no additional provider effects.                                                                                                                                                                                                  |
-| Final policy/oracle/receipt/read-order checks | `temp/s113-final-focused-r4.log`: 11 files / 179 passed.                                                                                                                                                                                                                                                                                                      |
-| Final correction/UI/documentation checks      | `temp/s113-affected-r10.log`: 13 files / 260 passed, including the new visibility regression.                                                                                                                                                                                                                                                                 |
-| Final history controls and assurance boundary | R19 passes 52 affected UI/guide/route checks. `temp/s113-owner-get-guard-r20.log` passes 85 guard, policy, observation, receipt and watcher checks. The state-changing GET test fails before the guard correction and passes afterward.                                                                                                                       |
-| Core HTTP E2E                                 | `temp/s113-canonical-r9.log`: 8 files / 31 passed; 18 Firestore-dependent cases intentionally skipped in this no-Firestore group. The separate backend suite passes.                                                                                                                                                                                          |
-| Canonical ship verification                   | Accepted npm install, formatting, lint, types, full units/backend, router, falsification, current-doc paths/traceability/freshness, copy, redaction, budget and build phases across R7-R9. Final affected tests and lint pass; R28 production build and 45 affected role/read-only/freshness checks pass with the final workspace read-scheduling correction. |
-| Compiled guide                                | R29 passes all 42 semantic steps with required correction/resource controls visible and exact desk return; conditional availability is reported separately.                                                                                                                                                                                                   |
-| Other compiled browser checks                 | Navbar, Dashboard assistant, theme, maintenance blockers and maintenance intake pass in the retained compiled-browser logs.                                                                                                                                                                                                                                   |
-| Desk browser                                  | R29 full-cohort smoke passes sorting/filtering, inspection refusal, active dashboard/sections, exact term parity/return, browser Back, keyboard, targets, narrow containment and zoom checks. All deadlines remain unchanged.                                                                                                                                 |
-| Mechanical delivery                           | Complete 217-file patch extracted, reverse-checked against the worktree and checked against a clean starting Git index. Exact final extraction repeats after documentation closure.                                                                                                                                                                           |
+| Gate                                          | Verified result                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full unit suite                               | `temp/s113-reconciliation-verify-remainder.log`: 705 files / 6,511 tests passed; four existing skips.                                                                                                                                                                                                                                                                         |
+| Actual backend paths                          | `temp/s113-reconciliation-verify-remainder.log`: 34 files / all 201 tests pass through mounted routes, Firestore, claims and receipts/readbacks with deterministic external adapters.                                                                                                                                                                                         |
+| Final policy/oracle/receipt/read-order checks | `temp/s113-final-focused-r4.log`: 11 files / 179 passed.                                                                                                                                                                                                                                                                                                                      |
+| Final correction/UI/documentation checks      | `temp/s113-affected-r10.log`: 13 files / 260 passed, including the new visibility regression.                                                                                                                                                                                                                                                                                 |
+| Final history controls and assurance boundary | R19 passes 52 affected UI/guide/route checks. `temp/s113-owner-get-guard-r20.log` passes 85 guard, policy, observation, receipt and watcher checks. The state-changing GET test fails before the guard correction and passes afterward.                                                                                                                                       |
+| Core HTTP E2E                                 | `temp/s113-canonical-r9.log`: 8 files / 31 passed; 18 Firestore-dependent cases intentionally skipped in this no-Firestore group. The separate backend suite passes.                                                                                                                                                                                                          |
+| Canonical ship verification                   | `temp/s113-reconciliation-final-verify.log` records install/format/lint; a new test-adapter typing error was corrected. `temp/s113-reconciliation-verify-remainder.log` passes the affected formatting/lint, full types/units/backend, all canonical policy gates and production build.                                                                                       |
+| Compiled guide                                | `temp/s113-browser-reconciliation-final-renewal-guide-controls.log` passes all 42 semantic steps with correction/resource controls visible and exact desk return; conditional availability is reported separately.                                                                                                                                                            |
+| Other compiled browser checks                 | Navbar, Dashboard assistant, theme, maintenance blockers and maintenance intake pass in the retained compiled-browser logs.                                                                                                                                                                                                                                                   |
+| Desk browser                                  | The cold local attempt in `temp/s113-browser-reconciliation-final-renewal-desk.log` exceeded 60 seconds at 70.3 seconds. The unchanged repeat in `temp/s113-desk-final-repeat.log` passes the full-cohort contract, exact return/Back, source/term parity and layout/accessibility checks. The failure remains retained; exact-candidate fresh-source gates remain mandatory. |
+| Mechanical delivery                           | Complete 217-file patch extracted, reverse-checked against the worktree and checked against a clean starting Git index. Exact final extraction repeats after documentation closure.                                                                                                                                                                                           |
 
 ## Release-correction closure
 
@@ -173,6 +172,57 @@ Gmail creations, legal-form/signature effects or production release proof.
     same check passes and a unit regression covers it. The runtime exception remains exact and
     does not change candidate or post-promotion acceptance.
 
+26. The isolated release subprocess inherited none of the three existing RentVine source settings.
+    Direct configuration-presence diagnostics identified the omission. The watcher now forwards only
+    the reviewed base URL/key/secret to source-reading assurance; it rejects missing or conflicting
+    fields and cannot import identity/store overrides. Fail-first tests show two failures before
+    correction and all 23 watcher-driver tests pass afterward. No runtime credential or cloud binding changed.
+27. The independent Sheet adapter required a hyperlink on every nonblank row, contrary to the actual
+    operating Sheet and the application's established name-candidate association. Its optional complete
+    RentVine identity input now derives only one-to-one candidates, with exact-id precedence and full
+    ambiguity refusal. It invents no URL, source write authority or customer value. The original strict
+    four-argument behavior and 42 tests remain; four new tests fail before and all 46 pass afterward.
+    Direct values/FORMULA/notes reads and all 311 RentVine details pass; the pure adapter independently
+    derives 42 associations and zero source links after preserving the existing refusal of rows wider
+    than the declared header. Same-input application/oracle diagnosis confirms 103 such rows; all raw
+    rows remain in drift detection. A fifth association regression covers width and digest preservation.
+28. Rendered reconciliation counted the same cancelled Next.js prefetches already classified by the
+    canary, and inspected a stale server render after its demand-driven background refresh finished.
+    Bodyless diagnostics show 311 rows, zero mutations/errors and only that exact prefetch class.
+    The existing strict classifier is shared. Up to twelve read-only reloads may inspect only the explicit
+    stale/complete/pending/nonfailed state within the original 60-second page deadline and 10-second
+    settlement bound. The actual diagnostic reaches fresh/complete after three reloads. Incomplete,
+    expired, failed, unknown, nonpending and failed-navigation states remain failures; zero remaining
+    time cannot become Playwright's unlimited timeout. Focused deadline/refusal regressions and the
+    full canonical repeat verify this correction. These diagnostics are not a candidate acceptance receipt.
+    The first complete-source diagnostic still refused after four rapid reloads; the corrected loop
+    spaces at most twelve reloads inside the same page deadline. It never accepts the stale snapshot.
+29. The full-cohort reader waited for a workspace link before checking a skipped lease's plain address.
+    The component deliberately omits that link. The reader now checks exact cardinality before reading
+    linked or plain identity text; missing or duplicate markup fails. Two focused regressions cover
+    skipped and active rows plus missing/duplicate elements. Final full-cohort comparison remains required.
+30. Full-portfolio comparison exposed two omitted supported date aliases and source-hold precedence
+    outside the execution cohort. The independent reader now honors first-present date fields,
+    including the two observed moveOutDate fallbacks, without substituting for an invalid primary.
+    Missing rent still requires verification outside the cohort without inventing an execution-phase
+    action. Existing process verification/migration holds precede price conflicts; rent evidence and
+    destination checks remain intact. Four new date/hold regressions pass.
+    The remaining live mismatch was a migration-required row with correctly suppressed old-process
+    blockers. Its new fail-first regression reproduces the checker defect. Migration validation now
+    requires Needs verification, the blocked flag, exact rent evidence and zero obsolete blockers;
+    the existing process-marker and exact review-destination checks still run. It does not accept
+    a missing review link or treat the migration as complete.
+31. Two nonnumeric Sheet rent values were classified by the app as price conflicts. Five fail-first
+    cases reproduced this for text, zero and negative rent. The shared desk/workspace projection now
+    treats those as missing comparable rent, preserves raw candidates and correction identity, and
+    retains the valid RentVine amount without claiming verification. All six regression cases pass,
+    including valid agreement and genuine numeric disagreement. No source value is changed.
+
+The final affected source, desk and assurance repeat passes 323 tests across 28 files. The full ship run
+passed 6,499 tests before the final date/hold/typed-rent additions; its backend phase had one timeout.
+An unchanged full backend repeat passed all 201 tests. The final repeat now passes 6,511 unit tests and all 201 backend tests, policy gates and build.
+A new exact candidate remains required; working-tree read diagnostics cannot authorize promotion.
+
 The owner approved only the exact blocked legacy My Work reconcile exception on captured
 predecessor d243911 / pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at the canonical origin. Version 4 receipts
 retain Admin `failed_known_legacy_defect`, Editor `not_run`, and exact blocked-request evidence.
@@ -185,13 +235,18 @@ one blocked attempt, one matching request failure and one matching browser conso
 dispatched writes. The original report remains failed. Evidence:
 `temp/s113-predecessor-exception-check.log`. No promotion is implied by that diagnostic.
 
-S113 commit `00836a82b26aedf4d439fec6280c54ab7548cdd4` is pushed to main. Exact CI run
-34525701558 passed all five jobs: 6,460 unit tests (four existing skips) and 201 backend tests.
-The first backend lane had one mounted-journey wait timeout; its unchanged rerun passed.
-Zero-traffic candidate `pmi-kc-app-rmtvz9r9f-10904b929fad` passed build, exact version/configuration,
-anonymous smoke and domain gates. It failed browser assurance and remains unpromoted. Production
-still serves `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
-Release corrections pass full verification and adversarial review; a new green commit and candidate are required.
+S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
+Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
+Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
+`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
+standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
+it has no acceptance receipt, promotion or observation. Production still serves
+`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
+The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
+201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
+are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
+unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+The earlier 00836a8 candidate also remains unpromoted.
 
 ## Scope, authority and downstream handoff
 
