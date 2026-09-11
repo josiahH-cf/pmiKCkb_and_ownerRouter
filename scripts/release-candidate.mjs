@@ -152,15 +152,14 @@ export function parseReleaseArgs(argv = []) {
   if (promote && environment === "production" && !promotionReceipt) {
     errors.push("--promote requires --promotion-receipt=<new receipt path>.");
   }
-  if (
-    promote &&
-    environment === "production" &&
-    (!operatorEmail || !adminProfile || !editorProfile)
-  ) {
+  if (promote && environment === "production" && (!operatorEmail || !adminProfile)) {
     errors.push(
-      "Production promotion requires --operator-email, --admin-profile, and --editor-profile for rollback recovery.",
+      "Production promotion requires --operator-email and --admin-profile for rollback recovery.",
     );
   }
+
+  // The validated candidate receipt determines whether Editor recovery is required. The
+  // receipt-aware preflight in release.mjs enforces that policy before any traffic mutation.
 
   return {
     candidateRevision,
@@ -382,8 +381,8 @@ export function buildReleasePlan({
           {
             name: "assure-candidate",
             description:
-              "Run the complete Admin, Editor, source-reconciliation, origin-binding, and monitoring gate and write its exclusive candidate receipt.",
-            command: `npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --candidate-assurance-receipt=${candidateReceiptPath}`,
+              "Run the complete owner-approved Admin, source-reconciliation, origin-binding, and monitoring gate and write its exclusive candidate receipt; record Editor as not_run.",
+            command: `npm run assure:production-observation -- --prepare-candidate-receipt --live --base-url=<candidate-tag-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --candidate-assurance-receipt=${candidateReceiptPath}`,
           },
         ]
       : []),
@@ -391,7 +390,7 @@ export function buildReleasePlan({
       name: "promote-exact-revision",
       description: `Send 100% of traffic to the exact revision ${revisionName}.`,
       command: production
-        ? `npm run release -- --environment=production --promote --candidate-revision=${revisionName} --candidate-assurance-receipt=${candidateReceiptPath} --promotion-receipt=${promotionReceiptPath} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path>`
+        ? `npm run release -- --environment=production --promote --candidate-revision=${revisionName} --candidate-assurance-receipt=${candidateReceiptPath} --promotion-receipt=${promotionReceiptPath} --operator-email=<managed-operator> --admin-profile=<admin-profile-path>`
         : formatCommand(
             command,
             buildPromotionPlan({ ...target, revision: revisionName }).args,
@@ -403,7 +402,7 @@ export function buildReleasePlan({
             name: "observe-promoted-revision",
             description:
               "Consume the bound promotion receipt for the fixed post-promotion observation and exact-predecessor decision.",
-            command: `npm run assure:production-observation -- --live --base-url=<canonical-service-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --editor-profile=<editor-profile-path> --promotion-receipt=${promotionReceiptPath}`,
+            command: `npm run assure:production-observation -- --live --base-url=<canonical-service-origin> --expected-commit=<git-commit> --expected-revision=${revisionName} --expected-config-fingerprint=<verified-config-fingerprint> --project=${target.project} --region=${target.region} --service=${target.service} --operator-email=<managed-operator> --admin-profile=<admin-profile-path> --promotion-receipt=${promotionReceiptPath}`,
           },
         ]
       : []),

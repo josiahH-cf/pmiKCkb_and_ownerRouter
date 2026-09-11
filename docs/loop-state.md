@@ -6,19 +6,17 @@ Last updated: 2026-09-10. Read AGENTS.md and docs/facts.md first.
 
 Complete S113 through exact CI, new candidate assurance, promotion, 300,000 ms observation,
 serving/backend readbacks and current documentation. Do not stop at an unpromoted candidate.
-S113 and first corrections are pushed through main 297af97192c79256a5c176dee5a7767f0789ea49.
-Its CI 34535390084 passed all five jobs (6,488 units/four skips, 201 backend tests).
-Candidate pmi-kc-app-rmtw2vx4h-8fd8a42bbddf passed deployment/smoke/configuration/domains and the
-complete Admin canary. Aggregate reconciliation failed; it has no acceptance/promotion/observation.
-Fingerprint sha256:b2ce250cb5a413610e0a838f6afddf319da5bda853456171f4934284ba72bb45.
-Serving remains d243911cb20ffb01773072c0e27c723648eeea34 /
-pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at 100%, https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Checkpoint /home/josiah/.local/state/pmi-kc-release/checkpoint.json is 297af97 / assurance_unverified.
-Earlier 00836a8 and 6e77d18 checkpoints are archived honestly as superseded.
+Current main a3c1d97730f93b1d76766e8cc811879f824684db has exact green CI 34545979699.
+Candidate pmi-kc-app-rmtw7rs42-1866da112c6e passed aggregate Admin/source assurance and has a valid
+unconsumed v4 receipt. Promotion was refused before dispatch by the stale CLI Editor prerequisite.
+The checkpoint remains promote / promotion_outcome_unresolved; traffic remains 100% predecessor
+pmi-kc-app-rmtkmhj1z-8855e4c6dbfb / d243911cb20ffb01773072c0e27c723648eeea34.
+The R32 parser correction and two fail-first regressions pass all 76 affected release tests.
+A new exact green commit/candidate is required; archive this checkpoint honestly when superseding.
 
 ## Verified current correction
 
-All 31 in-scope findings are resolved locally. Current units pass 6,511 tests/four existing skips
+All 32 in-scope findings are resolved locally. Current units pass 6,513 tests/four existing skips
 (705 files passed/one skipped); all 201 backend tests in 34 files pass. Full types, canonical
 policy gates, production build and the final 323-test affected set pass.
 Logs: temp/s113-reconciliation-final-verify.log (install/format/lint; test-adapter typing failure),
@@ -41,7 +39,7 @@ Skipped-row plain addresses have exact cardinality checks. The app treats nonnum
 rent as missing comparable evidence, preserving values/correction identity and valid disagreements.
 Migration holds retain Needs verification, blocked state and rent evidence, suppress obsolete
 blockers and retain exact review links. Its fail-first regression and five negative cases pass.
-R8 bodyless live diagnosis reads all 311 records fresh/complete, with no mutations/errors and no
+R8 bodyless live diagnosis reads all 321 records fresh/complete, with no mutations/errors and no
 identity/source/disposition/destination mismatch. Its three old-candidate status mismatches are the
 two now-fixed app rent labels and the now-corrected migration assertion. Diagnostics are not receipts.
 
@@ -67,19 +65,14 @@ S100 resident-draft, S36 and B-MNT1 remain outside this scope.
 
 ## Next steps
 
-1. Finish the current documentation check and mechanical diff/private/protected audit, commit and
-   push the green correction. No code changes remain planned. Preserve all original work.
-2. Require new exact-main-SHA green CI. temp/s113-release-current.mjs now expects/archive-preserves
-   the current 297af97 checkpoint; initialize it with the NEW SHA only after exact CI passes.
-3. Run the real driver through new candidate smoke/configuration/domains, predecessor baseline,
-   aggregate Admin plus independent source/manual-state assurance, promotion and 300,000 ms observe.
-4. Update hardcoded SHA/revision in temp/s113-final-readbacks.sh and final helpers; verify serving
-   version/traffic/backend and apply only the reviewed two-key Sheet descriptive metadata CAS.
-   All 48 entries and 16 open flags must remain unchanged. Freshly reread all resulting state.
-5. Final documentation helpers temp/s113-close-\*.py are prepared but NOT applied and still require
-   297af97/revision rmtw2vx4h, 6,488 tests and 25 findings. Update them to the actual final SHA/revision,
-   CI, 6,511 unit tests/201 backend tests, 31 findings and new evidence before use. Keep prior failures
-   honest. Update downstream suites, current rollback target and meeting-brief PDF; visually verify.
-6. Verify/push docs-only closure, restore the existing scheduled watcher and confirm no extra deploy.
-   Do not deploy docs-only changes or begin new product work. Mark the goal complete only after all
-   requested work is running in the app and final evidence/documentation is pushed.
+1. Finish canonical verification and documentation/private/protected diff audit for R32, then
+   commit/push the green correction. All product implementation and backend checks remain valid.
+2. Require new exact-main-SHA green CI. Update the ignored release initializer to archive only
+   a3c1d97's promote checkpoint, preserving its passed candidate receipt and unattempted promotion.
+3. Run new candidate smoke/configuration/domains, predecessor baseline, aggregate Admin and
+   independent source/manual-state assurance, promotion and full 300,000 ms observation.
+4. Update guarded final helpers to the actual final SHA/revision/counts. Then run serving/backend
+   readbacks and the reviewed two-key Sheet metadata CAS, preserving 48 entries/16 open flags.
+5. Apply final current/downstream documentation helpers, update and visually verify the brief,
+   validate and push docs-only closure, and restore the existing scheduled release watcher.
+6. Confirm the serving exact revision and resulting backend state. Only then complete the goal.

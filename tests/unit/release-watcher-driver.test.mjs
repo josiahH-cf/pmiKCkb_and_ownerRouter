@@ -262,6 +262,29 @@ describe("release watcher command-path recovery", () => {
       ),
     ).toHaveLength(1);
   });
+  it("dispatches promotion arguments accepted by the receipt-aware release entry point", async () => {
+    const h = harness();
+    h.runCommand.mockImplementation(async (bin, args) => {
+      if (bin === "gcloud" && args.includes("services"))
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            status: { traffic: [{ revisionName: predecessor, percent: 100 }] },
+          }),
+        };
+      expect(args.some((arg) => arg.endsWith("/release.mjs"))).toBe(true);
+      expect(args).toContain("--promote");
+      expect(parseReleaseArgs(args.slice(2)).errors).toEqual([]);
+      expect(args.some((arg) => arg.startsWith("--editor-profile="))).toBe(false);
+      return { status: 1, stdout: "" };
+    });
+    expect(
+      await h.driver.promote({
+        ...h.cp,
+        baselineTraffic: [{ revision: predecessor, percent: 100 }],
+      }),
+    ).toMatchObject({ verified: false, reason: "promotion_outcome_unresolved" });
+  });
   it("requires the observation report to identify the exact promoted commit", async () => {
     const h = harness({ reportOverride: { expectedCommit: "c".repeat(40) } });
     expect((await h.driver.observe(h.cp)).verified).toBe(false);

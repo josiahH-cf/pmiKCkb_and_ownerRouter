@@ -19,20 +19,24 @@ normal field-update refusal under explicit owner authority and preserves the del
 S96 — safe connector disconnect and reconciliation is serving. The readiness program already on
 main and S113 are now in the unpromoted 297af97 candidate.
 
-S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
-Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
-Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
-`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
-standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
-it has no acceptance receipt, promotion or observation. Production still serves
+S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
+Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
+Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
+browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
+receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
+Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
+receipt is unconsumed; no promotion or observation is claimed. Production still serves
 `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
-201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
-are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
-unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
+Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
+receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
+No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
+(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
+are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
+candidate must pass every release gate.
 The earlier 00836a8 candidate also remains unpromoted.
 
-F1-F5 is implemented locally. Full units pass 6,511 tests with four existing skips; 201 backend
+F1-F5 is implemented locally. Full units pass 6,513 tests with four existing skips; 201 backend
 checks pass through actual mounted controls, routes, Firestore, claims, receipts and readbacks.
 External effects use deterministic adapters; staff-recorded completion remains distinct from
 provider verification. Core HTTP E2E passes 31 tests, with 18 intentionally skipped in its separate
@@ -49,7 +53,7 @@ hashes and the existing Admin approver. Old review-only versions remain unchange
 
 ## Canonical closure sequence
 
-1. Implementation/backend/browser acceptance and all 31 in-scope findings pass. H1-H8 model
+1. Implementation/backend/browser acceptance and all 32 in-scope findings pass. H1-H8 model
    verdicts contain concrete evidence; human review stays NOT RUN. Final delivery checks pass.
 2. Commit/push the green source/reconciliation correction after final documentation checks. Preserve the verified status GET and exact predecessor exception.
 3. Require green exact-main-SHA CI; create an isolated clean checkout and zero-traffic candidate.

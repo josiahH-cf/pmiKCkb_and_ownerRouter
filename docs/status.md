@@ -9,17 +9,21 @@ pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, 100% traffic, at
 https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The prior zero-traffic candidate is
 6e77d18f6d9916ba94078550d4b5ba73751e86c8 / pmi-kc-app-rmtt039q1-c1463245a94c.
 It remains unpromoted; its assurance, promotion and observation never passed.
-S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
-Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
-Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
-`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
-standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
-it has no acceptance receipt, promotion or observation. Production still serves
+S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
+Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
+Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
+browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
+receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
+Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
+receipt is unconsumed; no promotion or observation is claimed. Production still serves
 `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
-201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
-are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
-unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
+Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
+receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
+No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
+(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
+are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
+candidate must pass every release gate.
 The earlier 00836a8 candidate also remains unpromoted.
 Both exact supplied v2 internal templates are published.
 
@@ -37,7 +41,7 @@ through staff-recorded completion, which remains distinct from provider-verified
 Persistent insurance, renewal information and seven legal-form location fields accept blanks.
 Only resource-dependent output waits for a real verified value or approved legal content.
 
-Current full units pass 6,511 tests with four existing skips. All 201 backend tests pass through actual
+Current full units pass 6,513 tests with four existing skips. All 201 backend tests pass through actual
 mounted controls, routes, Firestore, claims, receipts/readbacks and the independent desk oracle.
 Deterministic adapters provide external effects; no live customer record, draft or send proves this.
 Core HTTP E2E passes 31 tests; 18 Firestore-dependent cases are intentionally skipped in that group
@@ -50,7 +54,7 @@ resource fields and retained return view. Navbar, Dashboard assistant, theme, ma
 and maintenance intake pass. The final full desk passes sorting/filtering, inspection refusal,
 active workspace/section navigation, exact return and Back, term parity and layout checks. Final
 read scheduling passes 45 affected tests, all 201 backend tests and the R28 production build.
-All 31 implementation/release findings are closed locally. Source configuration, independent
+All 32 implementation/release findings are closed locally. Source configuration, independent
 Sheet association and supported date aliases, typed invalid rent, migration/source holds, bounded
 fresh-render reads and skipped-row identity now pass affected and full verification. No assertion,
 browser deadline, source-freshness floor, role boundary or provider confirmation is weakened.

@@ -6,8 +6,8 @@ in the ignored September 10 pack; customer values and raw correspondence are not
 
 ## Current acceptance
 
-F1-F5 implementation, actual backend paths and all 31 in-scope review findings pass local
-acceptance. Full units pass 6,511 tests with four existing skips; all 201 backend tests, canonical
+F1-F5 implementation, actual backend paths and all 32 in-scope review findings pass local
+acceptance. Full units pass 6,513 tests with four existing skips; all 201 backend tests, canonical
 policies and production build pass. The final compiled dashboard and 42-step guide repeat passes
 with unchanged deadlines. Exact-commit CI and a new candidate's assurance, promotion, observation
 and serving/backend readback remain required. Human verdicts remain NOT RUN. No live customer
@@ -15,7 +15,7 @@ effect is used to demonstrate completion.
 
 | Gate                                          | Verified result                                                                                                                                                                                                                                                                                                                                                               |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full unit suite                               | `temp/s113-reconciliation-verify-remainder.log`: 705 files / 6,511 tests passed; four existing skips.                                                                                                                                                                                                                                                                         |
+| Full unit suite                               | `temp/s113-reconciliation-verify-remainder.log`: 705 files / 6,513 tests passed; four existing skips.                                                                                                                                                                                                                                                                         |
 | Actual backend paths                          | `temp/s113-reconciliation-verify-remainder.log`: 34 files / all 201 tests pass through mounted routes, Firestore, claims and receipts/readbacks with deterministic external adapters.                                                                                                                                                                                         |
 | Final policy/oracle/receipt/read-order checks | `temp/s113-final-focused-r4.log`: 11 files / 179 passed.                                                                                                                                                                                                                                                                                                                      |
 | Final correction/UI/documentation checks      | `temp/s113-affected-r10.log`: 13 files / 260 passed, including the new visibility regression.                                                                                                                                                                                                                                                                                 |
@@ -182,7 +182,7 @@ Gmail creations, legal-form/signature effects or production release proof.
     RentVine identity input now derives only one-to-one candidates, with exact-id precedence and full
     ambiguity refusal. It invents no URL, source write authority or customer value. The original strict
     four-argument behavior and 42 tests remain; four new tests fail before and all 46 pass afterward.
-    Direct values/FORMULA/notes reads and all 311 RentVine details pass; the pure adapter independently
+    Direct values/FORMULA/notes reads and all 321 RentVine details pass; the pure adapter independently
     derives 42 associations and zero source links after preserving the existing refusal of rows wider
     than the declared header. Same-input application/oracle diagnosis confirms 103 such rows; all raw
     rows remain in drift detection. A fifth association regression covers width and digest preservation.
@@ -218,9 +218,17 @@ Gmail creations, legal-form/signature effects or production release proof.
     retains the valid RentVine amount without claiming verification. All six regression cases pass,
     including valid agreement and genuine numeric disagreement. No source value is changed.
 
+32. The actual watcher promotion invocation was rejected by the CLI parser before authentication,
+    receipt reservation or traffic mutation because it still demanded an Editor argument. The
+    parser now requires the managed operator and Admin profile, with the validated receipt policy
+    enforced by the existing recovery preflight before any effect. Two fail-first regressions cover
+    parser and actual driver arguments. All 76 affected tests pass, including legacy Editor-profile,
+    managed identity, receipt freshness/consumption and recovery refusals. Candidate a3c1d97 passed
+    aggregate assurance but was never promoted; its original checkpoint/receipt remain evidence.
+
 The final affected source, desk and assurance repeat passes 323 tests across 28 files. The full ship run
 passed 6,499 tests before the final date/hold/typed-rent additions; its backend phase had one timeout.
-An unchanged full backend repeat passed all 201 tests. The final repeat now passes 6,511 unit tests and all 201 backend tests, policy gates and build.
+An unchanged full backend repeat passed all 201 tests. The final repeat now passes 6,513 unit tests and all 201 backend tests, policy gates and build.
 A new exact candidate remains required; working-tree read diagnostics cannot authorize promotion.
 
 The owner approved only the exact blocked legacy My Work reconcile exception on captured
@@ -235,17 +243,21 @@ one blocked attempt, one matching request failure and one matching browser conso
 dispatched writes. The original report remains failed. Evidence:
 `temp/s113-predecessor-exception-check.log`. No promotion is implied by that diagnostic.
 
-S113 and its first release corrections are pushed through `297af97192c79256a5c176dee5a7767f0789ea49`.
-Exact CI 34535390084 passed all five jobs: 6,488 unit tests (four existing skips) and 201 backend tests.
-Cloud Build d64c622f-6d86-4f21-ba1f-560d4b4a2044 succeeded. Zero-traffic candidate
-`pmi-kc-app-rmtw2vx4h-8fd8a42bbddf` passed deployment, smoke, configuration, domains and the complete
-standalone Admin canary with zero mutations. Aggregate assurance failed independent reconciliation;
-it has no acceptance receipt, promotion or observation. Production still serves
+S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
+Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
+Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
+browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
+receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
+Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
+receipt is unconsumed; no promotion or observation is claimed. Production still serves
 `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-The final source/reconciliation corrections pass 6,511 unit tests (four existing skips), all
-201 backend tests, canonical policy checks and production build. All 31 in-scope review findings
-are closed locally. The final compiled full-cohort dashboard and 42-step guide checks pass with
-unchanged deadlines. A new exact green commit and candidate must pass every release gate.
+Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
+Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
+receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
+No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
+(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
+are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
+candidate must pass every release gate.
 The earlier 00836a8 candidate also remains unpromoted.
 
 ## Scope, authority and downstream handoff

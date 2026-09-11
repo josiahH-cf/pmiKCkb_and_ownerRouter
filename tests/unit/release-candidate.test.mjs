@@ -39,6 +39,23 @@ function planArgs(overrides = {}) {
 }
 
 describe("release argument contract", () => {
+  it("defers Editor recovery requirements to the validated receipt policy", () => {
+    const argv = [
+      "--environment=production",
+      "--promote",
+      "--candidate-revision=pmi-kc-app-candidate-123",
+      "--candidate-assurance-receipt=/tmp/candidate.json",
+      "--promotion-receipt=/tmp/promotion.json",
+      "--operator-email=josiah@pmikcmetro.com",
+      "--admin-profile=/tmp/admin-profile",
+    ];
+    expect(parseReleaseArgs(argv).errors).toEqual([]);
+    for (const flag of ["--operator-email=", "--admin-profile="]) {
+      expect(
+        parseReleaseArgs(argv.filter((arg) => !arg.startsWith(flag))).errors,
+      ).not.toEqual([]);
+    }
+  });
   it("requires a known environment", () => {
     expect(parseReleaseArgs([]).errors.join(" ")).toMatch(/--environment is required/);
     expect(parseReleaseArgs(["--environment=staging"]).errors.join(" ")).toMatch(
