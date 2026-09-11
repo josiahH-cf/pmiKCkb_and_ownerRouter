@@ -19,8 +19,9 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 Use S113 for the next product handoff: one suite with five feature specs for renewal consolidation.
 The four simplified Wednesday documents below describe the current software. The training guide is
 lease-agnostic, with a workflow map, actual phase labels, expected results and stopping points.
-docs/products/build-renewal-handouts.py renders the Markdown into two PDFs in output/pdf.
-Run with Python/reportlab; --font-dir C:/Windows/Fonts embeds Arial for this host's printable copy.
+docs/products/build-renewal-handouts.py renders maintained S113 handout copy into output/pdf.
+Run with Python/reportlab after current status records release acceptance; --output-dir selects
+the output folder. The renderer performs no live verification and refuses an unaccepted release.
 Release acceptance and full live workflow completion remain open.
 
 ## Current core

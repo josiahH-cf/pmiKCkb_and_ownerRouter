@@ -6,22 +6,22 @@ in the ignored September 10 pack; customer values and raw correspondence are not
 
 ## Current acceptance
 
-F1-F5 implementation, actual backend paths and all 32 in-scope review findings pass local
-acceptance. Full units pass 6,513 tests with four existing skips; all 201 backend tests, canonical
-policies and production build pass. The final compiled dashboard and 42-step guide repeat passes
-with unchanged deadlines. Exact-commit CI and a new candidate's assurance, promotion, observation
-and serving/backend readback remain required. Human verdicts remain NOT RUN. No live customer
-effect is used to demonstrate completion.
+F1-F5 implementation, actual backend paths and all 33 in-scope review findings pass local
+acceptance. The exact native canonical run passes 6,528 unit tests with four existing skips,
+all 201 backend tests, policies and production build. All seven compiled browser checks and the
+42-step guide previously passed; the R33 assurance-only correction preserves those app controls.
+New exact-commit CI, candidate assurance, promotion, observation and final readbacks remain required.
+Human verdicts remain NOT RUN. No live customer effect is used to demonstrate completion.
 
 | Gate                                          | Verified result                                                                                                                                                                                                                                                                                                                                                               |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Full unit suite                               | `temp/s113-reconciliation-verify-remainder.log`: 705 files / 6,513 tests passed; four existing skips.                                                                                                                                                                                                                                                                         |
-| Actual backend paths                          | `temp/s113-reconciliation-verify-remainder.log`: 34 files / all 201 tests pass through mounted routes, Firestore, claims and receipts/readbacks with deterministic external adapters.                                                                                                                                                                                         |
+| Full unit suite                               | `temp/s113-observation-full-native.log`: 709 files / 6,528 tests passed; four existing skips.                                                                                                                                                                                                                                                                                 |
+| Actual backend paths                          | `temp/s113-observation-full-native.log`: 34 files / all 201 tests pass through mounted routes, Firestore, claims and receipts/readbacks with deterministic external adapters.                                                                                                                                                                                                 |
 | Final policy/oracle/receipt/read-order checks | `temp/s113-final-focused-r4.log`: 11 files / 179 passed.                                                                                                                                                                                                                                                                                                                      |
 | Final correction/UI/documentation checks      | `temp/s113-affected-r10.log`: 13 files / 260 passed, including the new visibility regression.                                                                                                                                                                                                                                                                                 |
 | Final history controls and assurance boundary | R19 passes 52 affected UI/guide/route checks. `temp/s113-owner-get-guard-r20.log` passes 85 guard, policy, observation, receipt and watcher checks. The state-changing GET test fails before the guard correction and passes afterward.                                                                                                                                       |
 | Core HTTP E2E                                 | `temp/s113-canonical-r9.log`: 8 files / 31 passed; 18 Firestore-dependent cases intentionally skipped in this no-Firestore group. The separate backend suite passes.                                                                                                                                                                                                          |
-| Canonical ship verification                   | `temp/s113-reconciliation-final-verify.log` records install/format/lint; a new test-adapter typing error was corrected. `temp/s113-reconciliation-verify-remainder.log` passes the affected formatting/lint, full types/units/backend, all canonical policy gates and production build.                                                                                       |
+| Canonical ship verification                   | `temp/s113-observation-full-native.log`: exact 19-file working overlay in a detached native checkout; clean install, format, lint, types, all units/backend, every canonical policy, budget check and production build pass.                                                                                                                                                  |
 | Compiled guide                                | `temp/s113-browser-reconciliation-final-renewal-guide-controls.log` passes all 42 semantic steps with correction/resource controls visible and exact desk return; conditional availability is reported separately.                                                                                                                                                            |
 | Other compiled browser checks                 | Navbar, Dashboard assistant, theme, maintenance blockers and maintenance intake pass in the retained compiled-browser logs.                                                                                                                                                                                                                                                   |
 | Desk browser                                  | The cold local attempt in `temp/s113-browser-reconciliation-final-renewal-desk.log` exceeded 60 seconds at 70.3 seconds. The unchanged repeat in `temp/s113-desk-final-repeat.log` passes the full-cohort contract, exact return/Back, source/term parity and layout/accessibility checks. The failure remains retained; exact-candidate fresh-source gates remain mandatory. |
@@ -243,21 +243,28 @@ one blocked attempt, one matching request failure and one matching browser conso
 dispatched writes. The original report remains failed. Evidence:
 `temp/s113-predecessor-exception-check.log`. No promotion is implied by that diagnostic.
 
-S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
-Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
-Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
-browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
-receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
-Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
-receipt is unconsumed; no promotion or observation is claimed. Production still serves
-`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
-Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
-receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
-No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
-(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
-are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
-candidate must pass every release gate.
+S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
+Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
+an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
+configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
+2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
+Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
+browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
+420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
+predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
+/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
+R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
+independent canary pages retain every assertion, source-before/after read, mutation guard and
+shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
+tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
+tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
+and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
+the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
+CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
+The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
+Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
+New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+
 The earlier 00836a8 candidate also remains unpromoted.
 
 ## Scope, authority and downstream handoff
@@ -292,3 +299,47 @@ stopped at its unchanged unpromoted assurance checkpoint to serialize this relea
 be retained as superseded when the exact new green main SHA is initialized. The separate 24-hour
 longevity proof is unverified. Candidate-origin assurance, exact CI, candidate/configuration/domain
 readback, promotion, 300,000 ms observation and serving/backend readback remain release gates.
+
+## R33: final observation deadline and verified rollback
+
+The 919a2ae candidate and promotion v4 receipts passed; its final observation report failed at
+420,140 ms and required rollback. Thirteen final Admin routes rendered without diagnostics or
+mutation attempts, but only one complete checkpoint existed. The driver verified predecessor
+recovery and retained terminalFailure; no completion, final backend alignment or documentation
+acceptance is claimed. The original report stays outside Git:
+`observation-pmi-kc-app-rmtw9sc8z-1ffcfff358ae-1789091363389.json` under the release state directory.
+
+The bodyless baseline diagnostic (`temp/s113-observation-timing-before.log`) measured source-before
+30,809 ms, rendered read 112,226 ms (87,255 ms in row extraction), source-after 13,973 ms; all 311
+source/projected/rendered rows matched with stable source digests and zero mismatch counts. This
+is diagnosis only, never a receipt. The fixed release deadlines and source freshness are unchanged.
+Bounded scheduling first failed three new concurrency/cancellation tests against serial behavior;
+`temp/s113-observation-bounded-before.log` preserves 3 FAIL/1 PASS. The first corrected affected
+set passed 81 tests; the final affected run passes 89, including actual DOM isolation, complete
+mismatch counting, dependency ordering, cancellation and row-set changes.
+
+R33's first eight-row RPC batch improved extraction to 60,733 ms, still insufficient. The new
+memory-only DOM snapshot repeats every prior selector/attribute/cardinality/value/link assertion
+and rechecks the live row set. An initial live snapshot probe failed closed with no rendered rows;
+its report is retained and never called PASS. The browser callback now uses a self-contained
+iterative capture, tested in an isolated JavaScript context. The corrected probe reads all 311 rows
+with stable direct-source digests and zero mismatches: canary 37,217 ms, sources-before 30,119 ms,
+rendered 30,863 ms including extraction 3,581 ms, sources-after 13,512 ms. This is timing diagnosis,
+not a release receipt (`temp/s113-observation-combined-timing-r2.log`). The affected suite passes
+87 tests at that stage. The final desk-dependent refinement and its new ordering/failure tests
+then passed all 89 affected checks and the full canonical verification.
+
+The final dependency-aware canary timing is 42,204 ms including its own authentication/configuration
+preflight: all 13 routes rendered with zero diagnostics (`temp/s113-canary-batched-diagnostic.log`).
+The workspace waits only for its actual source desk; output stays in manifest order. Adversarial
+review retains per-page diagnostics through closure, conservative attribution of background
+mutations, serial predecessor exception, source-before/rendered/source-after ordering, stable
+source digest, row-set change detection and per-row mismatch isolation. The 420,000 ms rollback
+cutoff and 300,000 ms minimum are unchanged. The first full canonical run stopped at 6,526 unit
+passes and two failures: the resume date and an exact literal-selector pin. Both were corrected
+without changing tests. The exact native rerun passes 6,528 units/four existing skips, all 201
+backend tests, every canonical policy and production build. The original failure remains in
+`temp/s113-observation-full-verify.log`; the green complete run is
+`temp/s113-observation-full-native.log`, with exact overlay hashes in ignored evidence.
+R33 is closed locally. No deadline, source assertion, role, provider authority or effect changed.
+A fresh exact release is still required; diagnostics never substitute for receipts.

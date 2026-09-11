@@ -1,4 +1,9 @@
 import {
+  captureAssuranceDom,
+  type AssuranceDomPlan,
+} from "./production-assurance-dom-snapshot";
+import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
+import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   RenewalWorkspaceStateSchema,
 } from "../lib/firestore/renewal-workspace";
@@ -1194,6 +1199,7 @@ async function readRenderedProjection(
       options.origin,
       expectedRows,
       expectedRentvineHost,
+      abortSignal,
     );
     rendered = { ...result, application };
   } catch {
@@ -1352,22 +1358,84 @@ async function waitForSettledRenewalDesk(
   }
 }
 
-async function readRowsFromPage(
+const RENEWAL_BODY_ROWS =
+  'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr';
+const RENEWAL_DATA_ROWS =
+  'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr[data-lease-id]';
+const RENEWAL_CELL_PLAN: AssuranceDomPlan = {
+  "a, span": {},
+  li: {},
+  'a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
+  'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]': {},
+  "ul.renewal-blocker-list > li[data-blocker-id]": { ":scope > a": {} },
+  ':scope > a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
+  'a[href^="/admin/access?"]': {},
+  ":scope > a.renewal-status-link": {},
+  "a.renewal-source-link": {},
+  ".renewal-status-badge > span:last-child": {},
+};
+const RENEWAL_ROW_PLAN: AssuranceDomPlan = {
+  td: RENEWAL_CELL_PLAN,
+  ":scope > th": {
+    ".renewal-lease-link": {},
+    ":scope > span:not(.renewal-td-secondary)": {},
+  },
+};
+const RENEWAL_DOM_PLAN: AssuranceDomPlan = {
+  [RENEWAL_BODY_ROWS]: { 'td[colspan="8"]': {} },
+  [RENEWAL_DATA_ROWS]: RENEWAL_ROW_PLAN,
+};
+const RENEWAL_DOM_ATTRIBUTES = [
+  "href",
+  "target",
+  "rel",
+  "data-lease-id",
+  "data-manual-complete",
+  "data-manual-next",
+  "data-manual-pending-source-updates",
+  "data-workspace-available",
+  "data-disposition",
+  "data-retention-state",
+  "data-process-status",
+  "data-process-current-step",
+  "data-process-current-step-state",
+  "data-waiting-party",
+  "data-status",
+  "data-is-blocked",
+  "data-rent-verification",
+  "data-rent-verification-differs",
+  "data-blocker-type",
+  "data-blocker-id",
+  "data-required-capability",
+  "data-blocker-destination-kind",
+  "data-blocker-phase-id",
+  "data-blocker-step-id",
+  "data-action-kind",
+  "data-action-destination-kind",
+  "data-action-step-id",
+  "data-action-required-capability",
+  "data-blocker-count",
+] as const;
+
+export async function readRowsFromPage(
   page: Page,
   origin: string,
   expectedRows: readonly ExpectedProjectionRow[],
   expectedRentvineHost: string | null,
+  abortSignal: AbortSignal,
 ): Promise<Pick<RenderedProjection, "rows" | "invalidDestinations" | "fieldMismatches">> {
-  const rows: RenderedProjectionRow[] = [];
   let invalidDestinations = 0;
   let fieldMismatches = 0;
   const expectedByLease = new Map(expectedRows.map((row) => [row.leaseId, row] as const));
-  const allBodyRows = page.locator(
-    'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr',
+  abortSignal.throwIfAborted();
+  const snapshot = await captureAssuranceDom(
+    page,
+    RENEWAL_DOM_PLAN,
+    RENEWAL_DOM_ATTRIBUTES,
   );
-  const rowLocators = page.locator(
-    'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr[data-lease-id]',
-  );
+  abortSignal.throwIfAborted();
+  const allBodyRows = snapshot.locator(RENEWAL_BODY_ROWS);
+  const rowLocators = snapshot.locator(RENEWAL_DATA_ROWS);
   const allCount = await allBodyRows.count();
   const dataCount = await rowLocators.count();
   if (allCount !== dataCount) {
@@ -1378,178 +1446,221 @@ async function readRowsFromPage(
       (await allBodyRows.first().locator('td[colspan="8"]').count()) === 1;
     if (!validEmpty) invalidDestinations += allCount - dataCount;
   }
-  for (let index = 0; index < (await rowLocators.count()); index += 1) {
-    const row = rowLocators.nth(index);
-    const cells = row.locator("td");
-    const leaseCells = row.locator(":scope > th");
-    if ((await cells.count()) !== 7 || (await leaseCells.count()) !== 1) {
-      invalidDestinations += 1;
-      continue;
-    }
-    const leaseCell = leaseCells.first();
-    const leaseId = (await row.getAttribute("data-lease-id")) ?? "";
-    const manual = {
-      complete: await row.getAttribute("data-manual-complete"),
-      nextActivity: await row.getAttribute("data-manual-next"),
-      pendingSourceUpdates: await row.getAttribute("data-manual-pending-source-updates"),
-    };
-    const expected = expectedByLease.get(leaseId);
-    const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
-    const workspaceAvailable = await row.getAttribute("data-workspace-available");
-    const address = await readRenderedLeaseAddress(leaseCell);
-    const owners = await partyValues(cells.nth(0));
-    const tenants = await partyValues(cells.nth(1));
-    const endDate =
-      (await cells.nth(2).locator("a, span").first().textContent())?.trim() ?? "";
-    const baseRent =
-      (await cells.nth(3).locator("a, span").first().textContent())?.trim() ?? "";
-    const overallCell = cells.nth(4);
-    const verificationCell = cells.nth(5);
-    const actionCell = cells.nth(6);
-    const disposition = await row.getAttribute("data-disposition");
-    const retentionState = await row.getAttribute("data-retention-state");
-    const processState: IndependentRenderedProcessState = {
-      processStatus: await row.getAttribute("data-process-status"),
-      currentStepId: await row.getAttribute("data-process-current-step"),
-      currentStepState: await row.getAttribute("data-process-current-step-state"),
-      waitingParty: await row.getAttribute("data-waiting-party"),
-    };
-    const overallStatus = await row.getAttribute("data-status");
-    const isBlocked = await row.getAttribute("data-is-blocked");
-    const rentVerification = await row.getAttribute("data-rent-verification");
-    const verifiedByResolutionDiffers = await row.getAttribute(
-      "data-rent-verification-differs",
-    );
-    const blockerLocators = actionCell.locator(
-      "ul.renewal-blocker-list > li[data-blocker-id]",
-    );
-    const blockerCount = await blockerLocators.count();
-    const workspace: IndependentWorkspaceDestinationObservation = {
-      workspaceAvailable,
-      primaryHrefs: await hrefs(primaryWorkspace),
-      baseRentPhaseHrefs: await hrefs(
-        cells.nth(3).locator('a.text-link[href*="/lease-renewal/live/desk/lease/"]'),
-      ),
-      rentVerificationPhaseHrefs: await hrefs(
-        verificationCell.locator(
-          'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]',
+  // Independent checks read one coherent fresh DOM snapshot and preserve row order. No source
+  // request, assertion, cardinality check or deadline is removed; private values remain in memory.
+  const results = await mapAssuranceReads(
+    Array.from({ length: dataCount }, (_, index) => index),
+    8,
+    abortSignal,
+    async (
+      index,
+    ): Promise<{
+      row: RenderedProjectionRow | null;
+      invalidDestinations: number;
+      fieldMismatches: number;
+    }> => {
+      let rowInvalidDestinations = 0;
+      let rowFieldMismatches = 0;
+      const row = rowLocators.nth(index);
+      const cells = row.locator("td");
+      const leaseCells = row.locator(":scope > th");
+      if ((await cells.count()) !== 7 || (await leaseCells.count()) !== 1) {
+        rowInvalidDestinations += 1;
+        return {
+          row: null,
+          invalidDestinations: rowInvalidDestinations,
+          fieldMismatches: rowFieldMismatches,
+        };
+      }
+      const leaseCell = leaseCells.first();
+      const leaseId = (await row.getAttribute("data-lease-id")) ?? "";
+      const manual = {
+        complete: await row.getAttribute("data-manual-complete"),
+        nextActivity: await row.getAttribute("data-manual-next"),
+        pendingSourceUpdates: await row.getAttribute(
+          "data-manual-pending-source-updates",
         ),
-      ),
-    };
-    const blockers: Array<IndependentActionDestinationObservation["blockers"][number]> =
-      [];
-    for (let blockerIndex = 0; blockerIndex < blockerCount; blockerIndex += 1) {
-      const blocker = blockerLocators.nth(blockerIndex);
-      const links = blocker.locator(":scope > a");
-      const linkCount = await links.count();
-      const shouldLink = expected?.workspaceExpected === true;
-      if (linkCount !== (shouldLink ? 1 : 0)) invalidDestinations += 1;
-      const blockerType = await blocker.getAttribute("data-blocker-type");
-      const blockerId = await blocker.getAttribute("data-blocker-id");
-      const requiredCapability = await blocker.getAttribute("data-required-capability");
-      if (
-        !blockerId ||
-        !["source", "evidence", "dependency"].includes(blockerType ?? "") ||
-        !["none", "edit", "approve"].includes(requiredCapability ?? "")
-      ) {
-        fieldMismatches += 1;
+      };
+      const expected = expectedByLease.get(leaseId);
+      const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
+      const workspaceAvailable = await row.getAttribute("data-workspace-available");
+      const address = await readRenderedLeaseAddress(leaseCell);
+      const owners = await partyValues(cells.nth(0));
+      const tenants = await partyValues(cells.nth(1));
+      const endDate =
+        (await cells.nth(2).locator("a, span").first().textContent())?.trim() ?? "";
+      const baseRent =
+        (await cells.nth(3).locator("a, span").first().textContent())?.trim() ?? "";
+      const overallCell = cells.nth(4);
+      const verificationCell = cells.nth(5);
+      const actionCell = cells.nth(6);
+      const disposition = await row.getAttribute("data-disposition");
+      const retentionState = await row.getAttribute("data-retention-state");
+      const processState: IndependentRenderedProcessState = {
+        processStatus: await row.getAttribute("data-process-status"),
+        currentStepId: await row.getAttribute("data-process-current-step"),
+        currentStepState: await row.getAttribute("data-process-current-step-state"),
+        waitingParty: await row.getAttribute("data-waiting-party"),
+      };
+      const overallStatus = await row.getAttribute("data-status");
+      const isBlocked = await row.getAttribute("data-is-blocked");
+      const rentVerification = await row.getAttribute("data-rent-verification");
+      const verifiedByResolutionDiffers = await row.getAttribute(
+        "data-rent-verification-differs",
+      );
+      const blockerLocators = actionCell.locator(
+        "ul.renewal-blocker-list > li[data-blocker-id]",
+      );
+      const blockerCount = await blockerLocators.count();
+      const workspace: IndependentWorkspaceDestinationObservation = {
+        workspaceAvailable,
+        primaryHrefs: await hrefs(primaryWorkspace),
+        baseRentPhaseHrefs: await hrefs(
+          cells.nth(3).locator('a.text-link[href*="/lease-renewal/live/desk/lease/"]'),
+        ),
+        rentVerificationPhaseHrefs: await hrefs(
+          verificationCell.locator(
+            'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]',
+          ),
+        ),
+      };
+      const blockers: Array<IndependentActionDestinationObservation["blockers"][number]> =
+        [];
+      for (let blockerIndex = 0; blockerIndex < blockerCount; blockerIndex += 1) {
+        const blocker = blockerLocators.nth(blockerIndex);
+        const links = blocker.locator(":scope > a");
+        const linkCount = await links.count();
+        const shouldLink = expected?.workspaceExpected === true;
+        if (linkCount !== (shouldLink ? 1 : 0)) rowInvalidDestinations += 1;
+        const blockerType = await blocker.getAttribute("data-blocker-type");
+        const blockerId = await blocker.getAttribute("data-blocker-id");
+        const requiredCapability = await blocker.getAttribute("data-required-capability");
+        if (
+          !blockerId ||
+          !["source", "evidence", "dependency"].includes(blockerType ?? "") ||
+          !["none", "edit", "approve"].includes(requiredCapability ?? "")
+        ) {
+          rowFieldMismatches += 1;
+        }
+        blockers.push({
+          href: linkCount === 1 ? await links.first().getAttribute("href") : null,
+          destinationKind: await blocker.getAttribute("data-blocker-destination-kind"),
+          phaseId: await blocker.getAttribute("data-blocker-phase-id"),
+          stepId: await blocker.getAttribute("data-blocker-step-id"),
+        });
       }
-      blockers.push({
-        href: linkCount === 1 ? await links.first().getAttribute("href") : null,
-        destinationKind: await blocker.getAttribute("data-blocker-destination-kind"),
-        phaseId: await blocker.getAttribute("data-blocker-phase-id"),
-        stepId: await blocker.getAttribute("data-blocker-step-id"),
-      });
-    }
-    const phaseHrefs = await hrefs(
-      actionCell.locator(':scope > a.text-link[href*="/lease-renewal/live/desk/lease/"]'),
-    );
-    const accessHrefs = await hrefs(actionCell.locator('a[href^="/admin/access?"]'));
-    const action: IndependentActionDestinationObservation = {
-      actionKind: await actionCell.getAttribute("data-action-kind"),
-      destinationKind: await actionCell.getAttribute("data-action-destination-kind"),
-      stepId: await actionCell.getAttribute("data-action-step-id"),
-      requiredCapability: await actionCell.getAttribute(
-        "data-action-required-capability",
-      ),
-      declaredBlockerCount: await actionCell.getAttribute("data-blocker-count"),
-      blockers,
-      phaseHrefs,
-      accessHrefs,
-    };
-    if (
-      (await row.getAttribute("data-action-kind")) !== action.actionKind ||
-      (await row.getAttribute("data-blocker-count")) !== action.declaredBlockerCount ||
-      (await overallCell.getAttribute("data-status")) !== overallStatus ||
-      (await verificationCell.getAttribute("data-rent-verification")) !==
-        rentVerification ||
-      (await verificationCell.getAttribute("data-rent-verification-differs")) !==
-        verifiedByResolutionDiffers
-    ) {
-      fieldMismatches += 1;
-    }
-    fieldMismatches += await countVisibleStatusLabelMismatches(
-      overallCell,
-      verificationCell,
-      overallStatus,
-      rentVerification,
-      expected?.manual?.complete === true,
-    );
-    const statusFilterHrefs = await hrefs(
-      overallCell.locator(":scope > a.renewal-status-link"),
-    );
-    if (
-      statusFilterHrefs.length !== 1 ||
-      !validStatusFilterDestination(statusFilterHrefs[0], origin, overallStatus)
-    ) {
-      invalidDestinations += 1;
-    }
-    const sourceLink = cells.nth(3).locator("a.renewal-source-link");
-    const sourceCount = await sourceLink.count();
-    const expectedSourceHref = expected?.rentvineSourceUrl ?? null;
-    const sourceHref = sourceCount === 1 ? await sourceLink.getAttribute("href") : null;
-    if (sourceCount !== (expectedSourceHref ? 1 : 0)) {
-      invalidDestinations += 1;
-    } else if (sourceCount === 1) {
+      const phaseHrefs = await hrefs(
+        actionCell.locator(
+          ':scope > a.text-link[href*="/lease-renewal/live/desk/lease/"]',
+        ),
+      );
+      const accessHrefs = await hrefs(actionCell.locator('a[href^="/admin/access?"]'));
+      const action: IndependentActionDestinationObservation = {
+        actionKind: await actionCell.getAttribute("data-action-kind"),
+        destinationKind: await actionCell.getAttribute("data-action-destination-kind"),
+        stepId: await actionCell.getAttribute("data-action-step-id"),
+        requiredCapability: await actionCell.getAttribute(
+          "data-action-required-capability",
+        ),
+        declaredBlockerCount: await actionCell.getAttribute("data-blocker-count"),
+        blockers,
+        phaseHrefs,
+        accessHrefs,
+      };
       if (
-        !expectedRentvineHost ||
-        !validRenderedRentvineSourceDestination({
-          href: sourceHref,
-          expectedHref: expectedSourceHref,
-          expectedHost: expectedRentvineHost,
-          leaseId,
-          target: await sourceLink.getAttribute("target"),
-          rel: await sourceLink.getAttribute("rel"),
-        })
+        (await row.getAttribute("data-action-kind")) !== action.actionKind ||
+        (await row.getAttribute("data-blocker-count")) !== action.declaredBlockerCount ||
+        (await overallCell.getAttribute("data-status")) !== overallStatus ||
+        (await verificationCell.getAttribute("data-rent-verification")) !==
+          rentVerification ||
+        (await verificationCell.getAttribute("data-rent-verification-differs")) !==
+          verifiedByResolutionDiffers
       ) {
-        invalidDestinations += 1;
+        rowFieldMismatches += 1;
       }
-    }
-    rows.push({
-      manual,
-      leaseId,
-      address,
-      owners,
-      tenants,
-      endDate,
-      baseRent,
-      rentvineSourceUrl: sourceHref,
-      disposition,
-      retentionState,
-      processState,
-      status: {
-        rentVerification,
-        verifiedByResolutionDiffers,
+      rowFieldMismatches += await countVisibleStatusLabelMismatches(
+        overallCell,
+        verificationCell,
         overallStatus,
-        isBlocked,
-        blockerCount,
-      },
-      workspace,
-      action,
-      statusFilterHrefs,
-    });
+        rentVerification,
+        expected?.manual?.complete === true,
+      );
+      const statusFilterHrefs = await hrefs(
+        overallCell.locator(":scope > a.renewal-status-link"),
+      );
+      if (
+        statusFilterHrefs.length !== 1 ||
+        !validStatusFilterDestination(statusFilterHrefs[0], origin, overallStatus)
+      ) {
+        rowInvalidDestinations += 1;
+      }
+      const sourceLink = cells.nth(3).locator("a.renewal-source-link");
+      const sourceCount = await sourceLink.count();
+      const expectedSourceHref = expected?.rentvineSourceUrl ?? null;
+      const sourceHref = sourceCount === 1 ? await sourceLink.getAttribute("href") : null;
+      if (sourceCount !== (expectedSourceHref ? 1 : 0)) {
+        rowInvalidDestinations += 1;
+      } else if (sourceCount === 1) {
+        if (
+          !expectedRentvineHost ||
+          !validRenderedRentvineSourceDestination({
+            href: sourceHref,
+            expectedHref: expectedSourceHref,
+            expectedHost: expectedRentvineHost,
+            leaseId,
+            target: await sourceLink.getAttribute("target"),
+            rel: await sourceLink.getAttribute("rel"),
+          })
+        ) {
+          rowInvalidDestinations += 1;
+        }
+      }
+      return {
+        row: {
+          manual,
+          leaseId,
+          address,
+          owners,
+          tenants,
+          endDate,
+          baseRent,
+          rentvineSourceUrl: sourceHref,
+          disposition,
+          retentionState,
+          processState,
+          status: {
+            rentVerification,
+            verifiedByResolutionDiffers,
+            overallStatus,
+            isBlocked,
+            blockerCount,
+          },
+          workspace,
+          action,
+          statusFilterHrefs,
+        },
+        invalidDestinations: rowInvalidDestinations,
+        fieldMismatches: rowFieldMismatches,
+      };
+    },
+  );
+  const rows: RenderedProjectionRow[] = [];
+  for (const result of results) {
+    invalidDestinations += result.invalidDestinations;
+    fieldMismatches += result.fieldMismatches;
+    if (result.row) rows.push(result.row);
   }
-  return { rows, invalidDestinations, fieldMismatches };
+  // A changing row set cannot pass from a truncated snapshot.
+  if (
+    (await page.locator(RENEWAL_DATA_ROWS).count()) !== dataCount ||
+    (await page.locator(RENEWAL_BODY_ROWS).count()) !== allCount
+  )
+    fieldMismatches += 1;
+  return {
+    rows,
+    invalidDestinations,
+    fieldMismatches,
+  };
 }
 
 async function hrefs(locator: ReturnType<Page["locator"]>): Promise<(string | null)[]> {

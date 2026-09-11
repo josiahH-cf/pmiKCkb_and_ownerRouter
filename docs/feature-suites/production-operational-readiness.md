@@ -195,6 +195,20 @@ HTTP, monitoring, and source reads; browser contexts and Firestore clients close
 A timeout cannot return while a late-created browser, Firestore client, socket, or non-cancellable
 child process continues running or later emits evidence.
 
+The R33 working correction keeps one guarded managed context and at most three active canary
+pages. The workspace waits for its actual completed desk read; output remains in manifest order.
+The exact predecessor exception stays serial. Every page owns its diagnostics through close;
+unattributed mutations fail all active routes or are retained for the next/final route. A failed
+or cancelled read stops scheduling and all started reads settle before cleanup returns.
+
+Reconciliation captures one coherent DOM snapshot in browser memory, limited to the exact selectors
+and attributes used by the existing field/link/cardinality oracle. It performs the same checks
+against that snapshot, aggregates isolated per-row counters, and rechecks the live row count.
+Raw values stay in process memory; no snapshot becomes a report, receipt or cache. Independent
+RentVine/Sheet/manual-state snapshots still bracket the browser read and require a stable digest.
+No browser, source, cancellation, 300,000 ms observation or 420,000 ms cutoff requirement is relaxed.
+This correction still requires full verification, exact CI and a new accepted production release.
+
 During post-promotion observation, any of
 the following attributable to the candidate requires restoration of the exact captured predecessor:
 

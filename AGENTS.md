@@ -30,7 +30,8 @@ calls; vendor-account usage is not independently verified. No comp request was m
 The local authentication policy was revised by the owner on 2026-09-08 as recorded below.
 Fresh-shell and paired post-reboot CLI/ADC/app refresh passed September 8 with unchanged enrollment.
 September 10 implementation auth:ensure passed CLI and ADC refresh with the approved WSL identity
-and existing enrollment. Current unattended release acceptance is NOT READY; the 24-hour proof
+and existing enrollment. After the 2026-09-11 01:22 UTC reauthentication requirement, the owner
+completed enrollment; exact CLI/ADC identity and fresh refresh passed at 01:36 UTC. The 24-hour proof
 and managed app-browser assurance have not been established by this probe.
 A new enrollment restarts that proof. Independent documentation work continues.
 Readiness implementation 6e77d18 is pushed with green CI and its candidate public version is verified.
@@ -39,21 +40,28 @@ browser enrollment. Its current assurance, promotion and observation are not ver
 for any lease and the Wednesday packet. Code review identifies B-FLOW1: missing owner-message and
 normal packet/signature/completion handoffs. The owner's subsequent renewal-consolidation direction
 is specified in S113: one full manual dashboard, staff-recorded workflow advancement, and required
-pre-approved in-app Sheet field updates. S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
-Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
-Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
-browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
-receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
-Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
-receipt is unconsumed; no promotion or observation is claimed. Production still serves
-`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
-Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
-receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
-No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
-(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
-are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
-candidate must pass every release gate.
+pre-approved in-app Sheet field updates. S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
+Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
+an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
+configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
+2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
+Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
+browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
+420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
+predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
+/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
+R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
+independent canary pages retain every assertion, source-before/after read, mutation guard and
+shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
+tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
+tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
+and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
+the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
+CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
+The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
+Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
+New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+
 The earlier 00836a8 candidate also remains unpromoted.
 Both supplied v2 internal templates are published and read back approved.
 

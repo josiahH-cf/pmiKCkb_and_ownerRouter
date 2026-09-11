@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-09-10.
+Last updated: 2026-09-11 (UTC).
 
 ## Serving and candidate
 
@@ -9,21 +9,28 @@ pmi-kc-app-rmtkmhj1z-8855e4c6dbfb, 100% traffic, at
 https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The prior zero-traffic candidate is
 6e77d18f6d9916ba94078550d4b5ba73751e86c8 / pmi-kc-app-rmtt039q1-c1463245a94c.
 It remains unpromoted; its assurance, promotion and observation never passed.
-S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
-Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
-Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
-browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
-receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
-Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
-receipt is unconsumed; no promotion or observation is claimed. Production still serves
-`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
-Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
-receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
-No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
-(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
-are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
-candidate must pass every release gate.
+S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
+Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
+an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
+configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
+2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
+Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
+browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
+420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
+predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
+/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
+R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
+independent canary pages retain every assertion, source-before/after read, mutation guard and
+shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
+tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
+tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
+and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
+the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
+CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
+The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
+Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
+New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+
 The earlier 00836a8 candidate also remains unpromoted.
 Both exact supplied v2 internal templates are published.
 
@@ -33,7 +40,7 @@ reread all runtime configuration, eleven Spaces, authorized domains and monitori
 
 ## Verified implementation
 
-S113 F1-F5 is implemented and carried by the unpromoted candidate. Five visible dashboard sections retain source truth and desk
+S113 F1-F5 is implemented; the latest attempted candidate was promoted and then rolled back as recorded above. Five visible dashboard sections retain source truth and desk
 context. Typed corrections support the approved exact Sheet and RentVine operations. RentCast
 comp/trend preparation is visible and persisted. Supplied v2 messages retain rich/plain formatting,
 copy fallback and governed unsent Gmail draft creation/recovery. Audited manual activity progresses
@@ -41,7 +48,7 @@ through staff-recorded completion, which remains distinct from provider-verified
 Persistent insurance, renewal information and seven legal-form location fields accept blanks.
 Only resource-dependent output waits for a real verified value or approved legal content.
 
-Current full units pass 6,513 tests with four existing skips. All 201 backend tests pass through actual
+Current full units pass 6,528 tests with four existing skips. All 201 backend tests pass through actual
 mounted controls, routes, Firestore, claims, receipts/readbacks and the independent desk oracle.
 Deterministic adapters provide external effects; no live customer record, draft or send proves this.
 Core HTTP E2E passes 31 tests; 18 Firestore-dependent cases are intentionally skipped in that group
@@ -54,7 +61,7 @@ resource fields and retained return view. Navbar, Dashboard assistant, theme, ma
 and maintenance intake pass. The final full desk passes sorting/filtering, inspection refusal,
 active workspace/section navigation, exact return and Back, term parity and layout checks. Final
 read scheduling passes 45 affected tests, all 201 backend tests and the R28 production build.
-All 32 implementation/release findings are closed locally. Source configuration, independent
+All 33 implementation/release findings are closed locally. Source configuration, independent
 Sheet association and supported date aliases, typed invalid rent, migration/source holds, bounded
 fresh-render reads and skipped-row identity now pass affected and full verification. No assertion,
 browser deadline, source-freshness floor, role boundary or provider confirmation is weakened.

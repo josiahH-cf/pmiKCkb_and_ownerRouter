@@ -1,3 +1,4 @@
+import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
 import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
@@ -145,16 +146,12 @@ async function runProductionCanaryWithin(
       ),
     deadlineAtMs,
   );
-  let activeCounts: DiagnosticCounts = emptyDiagnosticCounts();
-  let active = false;
-  let activeRouteKey: string | null = null;
+  const activeRoutes = new Map<
+    string,
+    (signal: Parameters<typeof classifyBrowserSignal>[0]) => void
+  >();
   let workspacePath: string | null = null;
   let mutationOutsideActiveRoute = false;
-
-  const recordSignal = (signal: Parameters<typeof classifyBrowserSignal>[0]): void => {
-    if (!active) return;
-    activeCounts = addDiagnostic(activeCounts, classifyBrowserSignal(signal));
-  };
 
   // This helper owns Playwright's finite launch timeout and waits for any late-created context to
   // be force-closed. Do not Promise-race it here or a timed-out launch could outlive this run.
@@ -167,21 +164,36 @@ async function runProductionCanaryWithin(
     launchPersistentContext: (profile, launchOptions) =>
       chromium.launchPersistentContext(profile, launchOptions),
     onMutationAttempt: () => {
-      if (active) recordSignal({ kind: "mutation_attempt" });
-      else mutationOutsideActiveRoute = true;
+      if (activeRoutes.size > 0) {
+        // The firewall cannot safely attribute every background request to a page. Conservatively
+        // fail every active route; an unattributed mutation must never disappear in concurrent work.
+        for (const record of activeRoutes.values()) record({ kind: "mutation_attempt" });
+      } else mutationOutsideActiveRoute = true;
     },
     onMutationBlocked: (request) =>
-      options.predecessorExceptionObserver?.mutationBlocked(activeRouteKey, request),
+      options.predecessorExceptionObserver?.mutationBlocked(
+        activeRoutes.keys().next().value ?? null,
+        request,
+      ),
     abortSignal,
   });
-  const routes: RouteAssuranceEvidence[] = [];
+  let routes: RouteAssuranceEvidence[] = [];
   try {
-    for (const definition of routesForRole(options.role)) {
+    const readRoute = async (
+      definition: CanaryRouteDefinition,
+    ): Promise<RouteAssuranceEvidence> => {
       const remainingForRoute = remainingAssuranceTime(deadlineAtMs, ROUTE_TIMEOUT_MS);
       if (remainingForRoute <= 0) {
-        routes.push(failedRoute(options.role, definition));
-        continue;
+        return failedRoute(options.role, definition);
       }
+      let activeCounts: DiagnosticCounts = emptyDiagnosticCounts();
+      let active = false;
+      const recordSignal = (
+        signal: Parameters<typeof classifyBrowserSignal>[0],
+      ): void => {
+        if (active)
+          activeCounts = addDiagnostic(activeCounts, classifyBrowserSignal(signal));
+      };
       const page = await runWithinCanaryDeadline(() => context.newPage(), deadlineAtMs);
       attachPageDiagnostics(page, options.origin, recordSignal);
       page.on("requestfailed", (request) =>
@@ -192,7 +204,7 @@ async function runProductionCanaryWithin(
       );
       activeCounts = emptyDiagnosticCounts();
       active = true;
-      activeRouteKey = definition.key;
+      activeRoutes.set(definition.key, recordSignal);
       if (mutationOutsideActiveRoute) {
         recordSignal({ kind: "mutation_attempt" });
         mutationOutsideActiveRoute = false;
@@ -257,12 +269,12 @@ async function runProductionCanaryWithin(
         passed = false;
       }
       active = false;
-      activeRouteKey = null;
+      activeRoutes.delete(definition.key);
       const outcome =
         passed && !hasBrowserDiagnostics(activeCounts)
           ? definition.expectedOutcome
           : "failed";
-      routes.push({
+      return {
         actorRole: options.role,
         routeKey: definition.key,
         outcome,
@@ -270,10 +282,16 @@ async function runProductionCanaryWithin(
         elapsedMs: Date.now() - startedAt,
         landmarkPresent: passed,
         diagnostics: activeCounts,
-      });
-    }
+      };
+    };
+    routes = await readCanaryRoutes(
+      routesForRole(options.role),
+      Boolean(options.predecessorExceptionObserver),
+      abortSignal,
+      readRoute,
+    );
   } finally {
-    active = false;
+    activeRoutes.clear();
     await withAssuranceTimeout(
       () => closeGuardedManagedBrowser(context),
       "canary_context_close_timeout",
@@ -313,6 +331,57 @@ async function runProductionCanaryWithin(
     monitoring: null,
     observation: null,
   };
+}
+
+/** One managed context, bounded pages, stable manifest order. The exact predecessor exception
+ * stays serial so its blocked request and matching diagnostics retain one unambiguous route. */
+export async function readCanaryRoutes(
+  definitions: readonly CanaryRouteDefinition[],
+  serialPredecessor: boolean,
+  signal: AbortSignal,
+  read: (definition: CanaryRouteDefinition) => Promise<RouteAssuranceEvidence>,
+): Promise<RouteAssuranceEvidence[]> {
+  if (serialPredecessor) return mapAssuranceReads(definitions, 1, signal, read);
+  const completions = new Map<
+    string,
+    {
+      promise: Promise<void>;
+      resolve: () => void;
+      reject: (error: unknown) => void;
+    }
+  >();
+  for (const [index, definition] of definitions.entries()) {
+    if (!definition.dynamicFrom) continue;
+    if (
+      !definitions.slice(0, index).some((source) => source.key === definition.dynamicFrom)
+    )
+      throw new Error("canary_route_dependency_invalid");
+    if (!completions.has(definition.dynamicFrom)) {
+      let resolve!: () => void;
+      let reject!: (error: unknown) => void;
+      const promise = new Promise<void>((done, fail) => {
+        resolve = done;
+        reject = fail;
+      });
+      // A deadline can prevent the dependent route from starting; retain the original rejection
+      // for any active waiter without allowing an unused rejected promise to escape cleanup.
+      void promise.catch(() => undefined);
+      completions.set(definition.dynamicFrom, { promise, resolve, reject });
+    }
+  }
+  return mapAssuranceReads(definitions, 3, signal, async (definition) => {
+    try {
+      // The workspace depends on the actual desk result, not unrelated pages finishing first.
+      if (definition.dynamicFrom) await completions.get(definition.dynamicFrom)!.promise;
+      signal.throwIfAborted();
+      const result = await read(definition);
+      completions.get(definition.key)?.resolve();
+      return result;
+    } catch (error) {
+      completions.get(definition.key)?.reject(error);
+      throw error;
+    }
+  });
 }
 
 function runWithinCanaryDeadline<T>(

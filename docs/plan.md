@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-09-10.
+Updated: 2026-09-11 (UTC).
 
 ## Outcome
 
@@ -16,27 +16,34 @@ Production serves d243911cb20ffb01773072c0e27c723648eeea34 as
 pmi-kc-app-rmtkmhj1z-8855e4c6dbfb at https://pmi-kc-app-kq6wuvpiva-uc.a.run.app, 100% traffic.
 The prior zero-traffic 6e77d18 candidate refuses fixed-row update/delete/restore; S113 replaces
 normal field-update refusal under explicit owner authority and preserves the deletion refusal.
-S96 — safe connector disconnect and reconciliation is serving. The readiness program already on
-main and S113 are now in the unpromoted 297af97 candidate.
+S96 — safe connector disconnect and reconciliation is serving. The readiness program and S113 are on main; the latest 919a2ae attempt was promoted and then
+rolled back as recorded below.
 
-S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
-Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
-Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
-browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
-receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
-Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
-receipt is unconsumed; no promotion or observation is claimed. Production still serves
-`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
-Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
-receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
-No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
-(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
-are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
-candidate must pass every release gate.
+S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
+Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
+an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
+configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
+2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
+Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
+browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
+420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
+predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
+/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
+R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
+independent canary pages retain every assertion, source-before/after read, mutation guard and
+shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
+tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
+tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
+and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
+the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
+CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
+The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
+Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
+New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+
 The earlier 00836a8 candidate also remains unpromoted.
 
-F1-F5 is implemented locally. Full units pass 6,513 tests with four existing skips; 201 backend
+F1-F5 is implemented locally. Full units pass 6,528 tests with four existing skips; 201 backend
 checks pass through actual mounted controls, routes, Firestore, claims, receipts and readbacks.
 External effects use deterministic adapters; staff-recorded completion remains distinct from
 provider verification. Core HTTP E2E passes 31 tests, with 18 intentionally skipped in its separate
@@ -53,11 +60,11 @@ hashes and the existing Admin approver. Old review-only versions remain unchange
 
 ## Canonical closure sequence
 
-1. Implementation/backend/browser acceptance and all 32 in-scope findings pass. H1-H8 model
+1. Implementation/backend/browser acceptance and all 33 in-scope findings pass. H1-H8 model
    verdicts contain concrete evidence; human review stays NOT RUN. Final delivery checks pass.
 2. Commit/push the green source/reconciliation correction after final documentation checks. Preserve the verified status GET and exact predecessor exception.
 3. Require green exact-main-SHA CI; create an isolated clean checkout and zero-traffic candidate.
-   Archive the previous unpromoted checkpoint as superseded, without claiming it passed assurance.
+   Archive the terminal 919a2ae checkpoint with its passed promotion, failed observation and verified rollback.
 4. Verify exact candidate SHA/revision, runtime configuration, domains, existing owner Admin on
    both exact origins, independent source reconciliation and the bound candidate receipt.
 5. Promote that exact revision, pass the 300,000 ms observation and read back serving revision,

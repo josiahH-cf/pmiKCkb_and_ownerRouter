@@ -16,25 +16,32 @@ completion without navigating a six-phase barrier or entering internal identifie
 **Current state / intended end state.**
 
 Implementation started from `c9f46d8ff8718ff319a19581ff1119162d89c120`, preserving the supplied
-work and private template evidence. Local F1-F5 implementation passes 6,513 unit tests and all
+work and private template evidence. Local F1-F5 implementation passes 6,528 unit tests and all
 201 backend tests. The final production build, affected checks, core HTTP E2E and all seven compiled
-browser checks pass. All 32 in-scope review findings are corrected and verified;
+browser checks pass. All 33 in-scope review findings are corrected and verified;
 exact release gates remain pending.
-S113 and its first release corrections are pushed through `a3c1d97730f93b1d76766e8cc811879f824684db`.
-Exact CI 34545979699 passed all five jobs: 6,511 unit tests (four existing skips) and 201 backend tests.
-Candidate `pmi-kc-app-rmtw7rs42-1866da112c6e` passed smoke/configuration/domains, aggregate Admin
-browser assurance and independent full-cohort source/manual-state reconciliation. Its v4 candidate
-receipt records Admin passed, Editor not_run, reconciliation matched and monitoring ready.
-Promotion was refused before dispatch by a stale CLI Editor-argument requirement. The candidate
-receipt is unconsumed; no promotion or observation is claimed. Production still serves
-`d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` at 100%.
-Finding R32 now defers Editor-profile requirements to the validated receipt's recovery policy.
-Both new parser/actual-driver regressions failed before the correction; all 76 affected release,
-receipt and recovery checks pass afterward, including missing-Editor refusal for legacy receipts.
-No role or receipt assertion is weakened. Final canonical verification passes 6,513 unit tests
-(four existing skips), all 201 backend tests, policy gates and production build. All 32 findings
-are closed locally. Evidence: temp/s113-promotion-parser-verify.log. A new exact green commit and
-candidate must pass every release gate.
+S113 and its first release corrections are pushed through `919a2ae70c23ff304cef7e1699cee1539712e40f`.
+Exact CI 34549763928 passed all five jobs (the retained first backend attempt was 199 PASS/2 FAIL;
+an unchanged retry passed all 201). Candidate `pmi-kc-app-rmtw9sc8z-1ffcfff358ae` passed smoke,
+configuration, domains and aggregate Admin/source assurance. Its v4 candidate receipt was issued
+2026-09-11 01:48:59 UTC and its promotion receipt verified 01:49:17 UTC.
+Post-promotion observation FAILED at 420,140 ms: all 13 final Admin routes rendered with zero
+browser diagnostics/mutations, but the final reconciliation did not finish before the fixed
+420,000 ms cutoff. One complete checkpoint is insufficient. The real driver restored the captured
+predecessor and verified rollback; canonical again serves `d243911cb20ffb01773072c0e27c723648eeea34`
+/ `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Checkpoint remains terminal `rolled_back_verified`.
+R33 is corrected and locally verified. One coherent memory-only DOM snapshot and at most three
+independent canary pages retain every assertion, source-before/after read, mutation guard and
+shared cancellation. The 300,000 ms window and 420,000 ms cutoff are unchanged. All 89 affected
+tests and the full canonical native run pass: 6,528 units, four existing skips, all 201 backend
+tests, policies and production build. Live timing diagnosis read all 311 rows with stable sources
+and zero mismatches; it is not a release receipt. All 33 in-scope findings are closed locally;
+the new exact release must establish observation acceptance. Owner-completed enrollment at 01:36 UTC verified exact
+CLI/ADC refresh; Admin-only policy and the exact predecessor exception remain approved.
+The superseded a3c1d97 candidate passed aggregate assurance but never attempted promotion.
+Its unconsumed receipt remains preserved. All failed receipts/checkpoints retain their actual results.
+New exact CI, candidate assurance, promotion, observation and final readbacks remain mandatory.
+
 The earlier 00836a8 candidate also remains unpromoted.
 Both supplied v2 templates are published and read back approved. See [current review evidence](../evidence/s113-implementation-review-2026-09-10.md)
 and [serving status](../status.md) for the verified environment.

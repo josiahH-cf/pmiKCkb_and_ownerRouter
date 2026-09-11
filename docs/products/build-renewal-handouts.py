@@ -1,323 +1,121 @@
-"""Render the maintained Markdown training/meeting documents as printable handouts.
+"""Render the maintained S113 handouts after documented production release acceptance.
 
-Run with Python plus reportlab. Outputs are private/local in output/pdf; no live reads.
-The flow diagram is a schematic guide, not an app screenshot. Review rendered pages
-after changing the Markdown or diagram. No customer values belong in these sources.
+Run with Python/reportlab. This performs no live reads or verification; it requires the current
+serving result in docs/status.md. Review every rendered page after changes. Default outputs are
+local output/pdf; --output-dir docs/products refreshes the published documentation artifacts.
 """
-
 from pathlib import Path
 import argparse
-import html
 import re
-
+from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Flowable,
-)
-
 ROOT = Path(__file__).resolve().parents[2]
-DOCS = ROOT / "docs/products"
-ORANGE = colors.HexColor("#ff6d00")
-INK = colors.HexColor("#17242d")
-MUTED = colors.HexColor("#475569")
-LINE = colors.HexColor("#dce3e8")
-PALE = colors.HexColor("#f3f6f8")
-STOP = colors.HexColor("#8e3424")
-FONT = "Helvetica"
-BOLD = "Helvetica-Bold"
 
+def render_training(path):
+    c = canvas.Canvas(str(path), pagesize=(612, 792))
+    c.setTitle('PMI KC - Renewal dashboard operator guide')
+    c.setAuthor('PMI KC')
+    orange = colors.HexColor('#ff6d00')
+    ink = colors.HexColor('#17212b')
+    light = colors.HexColor('#f3f5f7')
+    body = ParagraphStyle('body', fontName='Helvetica', fontSize=10.5, leading=15, textColor=ink, spaceAfter=8)
+    small = ParagraphStyle('small', parent=body, fontSize=9, leading=12)
+    heading = ParagraphStyle('heading', parent=body, fontName='Helvetica-Bold', fontSize=14, leading=18)
 
-def typography(font_dir):
-    global FONT, BOLD
-    if font_dir:
-        regular, bold = Path(font_dir) / "arial.ttf", Path(font_dir) / "arialbd.ttf"
-        if not regular.is_file() or not bold.is_file():
-            raise ValueError("Font directory must contain arial.ttf and arialbd.ttf")
-        pdfmetrics.registerFont(TTFont("Guide", str(regular)))
-        pdfmetrics.registerFont(TTFont("GuideBold", str(bold)))
-        pdfmetrics.registerFontFamily("Guide", normal="Guide", bold="GuideBold")
-        FONT, BOLD = "Guide", "GuideBold"
+    def p(text, x, y, w=516, style=body):
+        q = Paragraph(text, style)
+        _, h = q.wrap(w, 700)
+        q.drawOn(c, x, y - h)
+        return y - h - 10
 
+    def page(n, title, subtitle):
+        c.setFillColor(orange)
+        c.rect(0, 774, 612, 18, fill=1, stroke=0)
+        c.setFillColor(ink)
+        c.setFont('Helvetica-Bold', 11)
+        c.drawString(48, 744, 'PMI KC  /  LEASE RENEWALS')
+        y = p(title, 48, 711, style=ParagraphStyle('title', parent=heading, fontSize=25, leading=29))
+        y = p(subtitle, 48, y, style=small)
+        c.setStrokeColor(colors.HexColor('#cbd3dc'))
+        c.line(48, 45, 564, 45)
+        c.setFont('Helvetica', 8)
+        c.drawString(48, 30, 'S113 guide - 10 September 2026 - check current release status before use')
+        c.drawRightString(564, 30, f'{n} / 3')
+        return y - 9
+    y = page(1, 'One lease. One dashboard.', 'Use for a fresh renewal or one already underway. Opening a section does not complete it.')
+    steps = [('1  Lease details', 'Confirm the exact people, dates and base rent. Compare sources; keep additional charges and listed rent separate.'), ('2  Comps', 'Run RentCast deliberately, inspect comp/trend evidence, and save preparation before asking the owner.'), ('3  Owner', 'Review and copy the owner request or prepare an unsent Gmail draft. Record actual outreach and the exact response.'), ('4  Tenant', 'Use the current owner-approved rent and dates. Review applicable charges and links; record the actual tenant response.'), ('5  Documents and completion', 'Record applicable documents, signatures and follow-ups. Finish with explicit staff-recorded completion.')]
+    for title, text in steps:
+        c.setFillColor(light)
+        c.roundRect(48, y - 72, 516, 72, 8, fill=1, stroke=0)
+        c.setFillColor(orange)
+        c.rect(48, y - 72, 5, 72, fill=1, stroke=0)
+        p(title, 64, y - 10, 480, heading)
+        p(text, 64, y - 33, 480, small)
+        y -= 85
+    p('<b>Decision branches:</b> waiting keeps the lease open; a counteroffer returns to owner review; a decline uses the approved non-renewal handoff.', 48, y, style=small)
+    c.showPage()
+    y = page(2, 'Do the work, then record it.', 'The same dashboard keeps recorded activity, source changes and provider evidence distinct.')
+    blocks = [('Correct a fact', 'In <b>Correct a lease fact</b>, select the fact, reviewed value, source/reason and supported destination. An Editor saves a proposal; the approving role reviews it. Admin confirms each exact source effect and reads its returned result.'), ('Understand separate outcomes', 'An existing-row Sheet update and a RentVine change each have their own preview, confirmation and receipt. A partial success stays partial. Recover an uncertain existing attempt before another write. Corrections use a new current-state preview; row deletion is unavailable.'), ('Prepare the message', 'Use <b>Owner message preparation</b> or <b>Tenant message preparation</b>. Review wording, applicability, separate charges, links and your signature. Save the reviewed preparation. <b>Copy formatted body</b> preserves formatting; <b>Copy plain text</b> supports a manually reviewed portal/text message.'), ('Create an unsent draft', '<b>Preview unsent Gmail draft</b> shows exact recipients, subject, body and any attachment. Confirm only that draft. A person reviews and sends in Gmail. A draft is never evidence of sending; recover an uncertain draft through its exact saved attempt.'), ('Resume and finish', 'Record actual outside work with its source/channel and occurrence evidence. Owner approval and tenant response are separate. <b>Not applicable</b> needs its approved rule and reason; unknown stays unfinished. <b>Record staff completion</b> explicitly means completion recorded by staff. Reopening the page retains the cycle; a later renewal starts a new reviewed cycle.')]
+    for title, text in blocks:
+        y = p(title, 48, y, style=heading)
+        y = p(text, 48, y)
+        y -= 5
+    if y < 55:
+        raise RuntimeError(f'Page 2 overflow: {y}')
+    c.showPage()
+    y = page(3, 'Links, documents and evidence.', 'Missing team inputs are localized. They do not block the dashboard, manual work or release.')
+    blocks = [('Leave unknown links blank', 'The persistent labeled boxes include <b>Insurance flyer</b>, <b>Renewal information form</b>, the resident benefits flyer and all seven legal-form locations. Admin may save verified, applicable HTTPS links later. Blank means pending team input. Blank or unverified values never become customer links or legal content.'), ('Use the exact document handoff', 'The document panel names missing approved forms/mappings, connection/selection and activation gates. S106 owns connection; S34 owns exact loop and upload actions. The Dotloop keys remain closed until their separate gates pass. A location link alone is not an approved publication.'), ('Inspect files before signature work', 'The normal packet preview shows exact participants, mapped facts and included publications. Download and inspect the approved file. Mapped facts shown in the preview do not fill its bytes; review and complete applicable fields in Dotloop before a person sends for signature.'), ('Read evidence honestly', 'A provider receipt proves only its bounded operation. <b>Refresh from Dotloop</b> records loop metadata. A file name proves document presence, not signatures or verified content. A matching loop name without the attempt receipt does not prove creation. Record actual returned signed artifacts through the existing evidence/manual controls.'), ('Facilitator checklist', 'Choose the exact lease; inspect its sources; propose a correction; distinguish source outcomes; recover an uncertain attempt; prepare/copy a message; record outside work; close and reopen the lease. Cover a fresh and an already-started renewal, a counteroffer and missing data. Never create a customer effect just to demonstrate a control.')]
+    for title, text in blocks:
+        y = p(title, 48, y, style=heading)
+        y = p(text, 48, y)
+        y -= 3
+    if y < 55:
+        raise RuntimeError(f'Page 3 overflow: {y}')
+    c.save()
 
-def styles():
-    base = dict(fontName=FONT, textColor=INK, alignment=TA_LEFT)
-    return {
-        "body": ParagraphStyle("body", **base, fontSize=10.4, leading=14.9, spaceAfter=9),
-        "small": ParagraphStyle("small", **base, fontSize=8.5, leading=11.5, spaceAfter=7),
-        "h1": ParagraphStyle("h1", fontName=BOLD, textColor=INK, fontSize=24,
-                             leading=28, spaceAfter=15, keepWithNext=True),
-        "h2": ParagraphStyle("h2", fontName=BOLD, textColor=INK, fontSize=18,
-                             leading=22, spaceAfter=13, keepWithNext=True),
-        "h3": ParagraphStyle("h3", fontName=BOLD, textColor=INK, fontSize=13,
-                             leading=17, spaceBefore=8, spaceAfter=9, keepWithNext=True),
-        "cell": ParagraphStyle("cell", **base, fontSize=9.1, leading=12.4),
-        "quote": ParagraphStyle("quote", **base, fontSize=11, leading=16,
-                                borderColor=ORANGE, borderWidth=0,
-                                backColor=PALE, borderPadding=10, spaceAfter=17),
-    }
+def render_brief(path, release_commit, findings):
+    c = canvas.Canvas(str(path), pagesize=(612, 792))
+    c.setTitle('PMI KC - Wednesday renewal meeting brief')
+    c.setAuthor('PMI KC')
+    c.setFillColor(colors.HexColor('#ff6d00'))
+    c.rect(0, 774, 612, 18, fill=1, stroke=0)
+    s = ParagraphStyle('body', fontName='Helvetica', fontSize=10.5, leading=15, textColor=colors.HexColor('#17212b'))
 
-
-def inline(value):
-    value = value.replace("—", " - ").replace("–", "-").replace("\u2011", "-")
-    value = value.replace("←", "Back:") if FONT == "Helvetica" else value
-    value = html.escape(value)
-
-    def link(match):
-        label, destination = match.groups()
-        if destination.startswith("https://"):
-            return f'<link href="{destination}" color="#174c72"><u>{label}</u></link>'
-        if "renewal-client-walkthrough" in destination:
-            target = "renewal-training-guide.pdf"
-        elif any(part in destination for part in ("client-call-agenda", "wednesday-")):
-            target = "wednesday-meeting-brief.pdf"
-        else:
-            return label
-        return f'<link href="{target}" color="#174c72"><u>{label}</u></link>'
-
-    value = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link, value)
-    value = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", value)
-    return value
-
-
-class ProcessMap(Flowable):
-    """Main sequence plus all conditional branches from the maintained guide."""
-
-    def __init__(self):
-        super().__init__()
-        self.width, self.height = 516, 400
-
-    def draw(self):
-        c = self.canv
-        left, width, right, side = 0, 302, 324, 192
-
-        def para(text, x, y, w, size=9.6, bold=False):
-            p = Paragraph(text, ParagraphStyle("map", fontName=BOLD if bold else FONT,
-                          fontSize=size, leading=size + 3, textColor=INK))
-            _, h = p.wrap(w, 100)
-            p.drawOn(c, x, y - h)
-
-        def box(text, y, h=31, x=left, w=width, stop=False):
-            c.setFillColor(colors.white if not stop else colors.HexColor("#fff3ed"))
-            c.setStrokeColor(STOP if stop else LINE)
-            c.roundRect(x, y - h, w, h, 5, fill=1, stroke=1)
-            para(text, x + 10, y - 7, w - 20, bold=True)
-
-        def arrow(x, top, bottom, horizontal=None):
-            c.setStrokeColor(MUTED)
-            c.setFillColor(MUTED)
-            c.setLineWidth(1)
-            if horizontal is not None:
-                c.line(x, top, horizontal, top)
-                d = 1 if horizontal > x else -1
-                p = c.beginPath()
-                p.moveTo(horizontal, top)
-                p.lineTo(horizontal - 4*d, top + 2.5)
-                p.lineTo(horizontal - 4*d, top - 2.5)
-            else:
-                c.line(x, top, x, bottom)
-                p = c.beginPath()
-                p.moveTo(x, bottom)
-                p.lineTo(x - 2.5, bottom + 4)
-                p.lineTo(x + 2.5, bottom + 4)
-            p.close()
-            c.drawPath(p, fill=1, stroke=0)
-
-        items = [
-            ("1  Choose a lease", False),
-            ("2  Verify renewal", False),
-            ("3  Owner decision", True),
-            ("4  Tenant offer: draft, then Gmail send", False),
-            ("5  Record tenant response", False),
-            ("7  Document packet", True),
-            ("8  Signatures in Dotloop", True),
-            ("9  Compliance and verified completion", True),
-            ("10  Back to renewals: next lease", False),
-        ]
-        for index, (label, blocked) in enumerate(items):
-            y = 395 - index * 44
-            box(label, y, stop=blocked)
-            if index < len(items) - 1:
-                arrow(150, y - 31, y - 44)
-
-        box("Owner / tenant answers", 307, h=132, x=right, w=side)
-        para("Agrees / accepted: continue.<br/><br/>Waiting or unclear: pause.<br/>",
-             right + 10, 278, side - 20)
-        para("Changes or counteroffer: step 3.<br/><br/>Declined: separate approved non-renewal handoff.",
-             right + 10, 237, side - 20)
-        arrow(width, 289, 0, horizontal=right)
-        arrow(width, 205, 0, horizontal=right)
-
-        box("6  Source changes, if needed", 166, h=79, x=right, w=side)
-        para("Admin reviews and confirms each approved effect. Then return to the current phase.",
-             right + 10, 137, side - 20)
-        c.setStrokeColor(MUTED)
-        c.line(width, 192, 313, 192)
-        c.line(313, 192, 313, 150)
-        arrow(313, 150, 0, horizontal=right)
-
-        para("Tinted stages have an open workflow gap today. Follow the stop instructions.",
-             right + 3, 60, side - 6, size=9.1)
-
-
-class PhaseRail(Flowable):
-    """A labelled schematic of the real phase links, with this page's phase marked."""
-
-    def __init__(self, active):
-        super().__init__()
-        self.width, self.height, self.active = 516, 59, active
-
-    def draw(self):
-        c = self.canv
-        c.setFillColor(MUTED)
-        c.setFont(FONT, 8.3)
-        c.drawString(0, 49, "WHERE TO CLICK IN THE WORKSPACE  /  phase links")
-        labels = ["Verify renewal", "Owner decision", "Tenant decision",
-                  "Document packet", "Signatures", "Compliance"]
-        for i, label in enumerate(labels):
-            x = i * 86
-            c.setFillColor(colors.HexColor("#fff3ed") if i in self.active else PALE)
-            c.setStrokeColor(ORANGE if i in self.active else LINE)
-            c.roundRect(x, 15, 81, 25, 4, fill=1, stroke=1)
-            c.setFillColor(INK)
-            c.setFont(BOLD if i in self.active else FONT, 8.1)
-            c.drawCentredString(x + 40.5, 24, label)
-
-
-def table(rows, sty):
-    cells = [[Paragraph(inline(t), sty["cell"]) for t in row] for row in rows]
-    n = len(rows[0])
-    widths = {2: [156, 360], 3: [91, 238, 187], 4: [108, 100, 195, 113],
-              5: [118, 80, 74, 115, 129]}.get(n, [516 / n] * n)
-    t = Table(cells, colWidths=widths, repeatRows=1, hAlign="LEFT")
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), PALE),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LINEBELOW", (0, 0), (-1, 0), 1.2, ORANGE),
-        ("LINEBELOW", (0, 1), (-1, -1), 0.5, LINE),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]))
-    return t
-
-
-def parse(markdown, sty, training=False):
-    result = []
-    lines = markdown.splitlines()
-    i, section = 0, 0
-    while i < len(lines):
-        line = lines[i].strip()
-        if not line:
-            i += 1
-            continue
-        if line.startswith(("~~~", "```")):
-            i += 1
-            while i < len(lines) and not lines[i].startswith(("~~~", "```")):
-                i += 1
-            if training:
-                result.append(ProcessMap())
-                result.append(Spacer(1, 6))
-            i += 1
-            continue
-        if line.startswith("# "):
-            result.append(Paragraph(inline(line[2:]), sty["h1"]))
-            i += 1
-            continue
-        if line.startswith("## "):
-            section += 1
-            if training and section > 1:
-                result.append(PageBreak())
-            result.append(Paragraph(inline(line[3:]), sty["h2"]))
-            phases = {2: [0], 3: [1], 4: [2], 5: [2], 6: [0], 7: [3, 4, 5]}
-            if training and section in phases:
-                result.append(PhaseRail(phases[section]))
-            i += 1
-            continue
-        if line.startswith("### "):
-            result.append(Paragraph(inline(line[4:]), sty["h3"]))
-            i += 1
-            continue
-        if line.startswith("|"):
-            rows = []
-            while i < len(lines) and lines[i].strip().startswith("|"):
-                cells = [s.strip() for s in lines[i].strip().strip("|").split("|")]
-                if not all(re.fullmatch(r"[:\- ]+", s) for s in cells):
-                    rows.append(cells)
-                i += 1
-            result.extend([table(rows, sty), Spacer(1, 12)])
-            continue
-        quote = line.startswith("> ")
-        bullet = line.startswith("- ")
-        parts = [line[2:] if quote or bullet else line]
-        i += 1
-        while i < len(lines) and lines[i].strip():
-            nxt = lines[i].strip()
-            if nxt.startswith(("#", "|", "- ", "~~~", "```")) or re.match(r"\d+\. ", nxt):
-                break
-            parts.append(nxt[2:] if quote and nxt.startswith("> ") else nxt)
-            i += 1
-        body = " ".join(parts)
-        prefix = "• " if bullet else ""
-        style = sty["quote"] if quote else sty["body"]
-        if training and section == 0:
-            style = sty["small"]
-        if training and section == 1:
-            style = sty["small"]
-        p = Paragraph(inline(prefix + body), style)
-        result.append(p)
-    return result
-
-
-def render(path, story, label):
-    def footer(canvas, doc):
-        canvas.saveState()
-        canvas.setFillColor(ORANGE)
-        canvas.rect(48, 753, 30, 3, stroke=0, fill=1)
-        canvas.setFillColor(MUTED)
-        canvas.setFont(FONT, 8)
-        canvas.drawString(87, 752, "PMI KC  /  " + label)
-        canvas.setStrokeColor(LINE)
-        canvas.line(48, 38, 564, 38)
-        canvas.drawString(48, 24, "Checked 9 September 2026  |  Read current availability before acting")
-        canvas.drawRightString(564, 24, str(doc.page))
-        canvas.restoreState()
-
-    doc = SimpleDocTemplate(str(path), pagesize=letter, rightMargin=48, leftMargin=48,
-                            topMargin=56, bottomMargin=51, title=label, author="PMI KC",
-                            pageCompression=1)
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
-
+    def para(text, y, bold=False):
+        q = Paragraph(text, ParagraphStyle('title' if bold else 'p', parent=s, fontName='Helvetica-Bold' if bold else 'Helvetica', fontSize=15 if bold else 10.5, leading=20 if bold else 15))
+        _, height = q.wrap(516, 700)
+        q.drawOn(c, 48, y - height)
+        return y - height - 12
+    y = 744
+    y = para('PMI KC / Renewal meeting brief', y, True)
+    y = para('Wednesday, 9 September 2026: user-supplied meeting identity. Updated 10 September after the verified S113 production release.', y)
+    for title, text in [('Current delivery', f'The consolidated renewal workflow is live. Backend verification, all {findings} review findings, exact-commit CI, candidate assurance, promotion and five-minute observation passed. The three-page operator guide and all 42 control steps passed. Human usability review remains unrecorded.'), ('Walk through one lease', 'Choose the exact lease. Inspect facts and sources. Prepare a correction and distinguish each source result. Review comps and copyable messages. Record actual owner/tenant responses and outside work. Close and reopen the saved cycle; return to the same filtered list. Include waiting, a counteroffer and missing data.'), ('Keep evidence distinct', 'A staff completion record reports actual work. A provider receipt proves only its bounded operation. A draft is unsent; a document name proves presence, not signatures. Every message send stays with a person. Do not create customer effects merely to demonstrate completion.'), ('Accepted pending-team inputs', 'Insurance flyer, renewal information form and approved legal-form location boxes may remain blank. Admin can save verified, applicable links later. Blank or unverified values never become real customer links or legal content. Only the resource-dependent output waits; manual S113 work and release proceed independently.'), ('Document continuation', 'S106 owns real Dotloop credentials, managed connection and resource selection. S34 owns approved forms/mappings and separately activated exact loop/upload effects. Current keys remain closed. The preview does not fill file bytes. A person completes/reviews applicable form fields and sends for signature in Dotloop; actual returned artifacts are recorded separately.'), ('Verified release, actual work', f'Serving commit {release_commit[:7]} passed canonical version, traffic, configuration and backend readbacks. Both supplied templates are approved. No customer completion, live draft, paid comp or signature effect was created for demonstration. Assign only real owners and agreed dates; no commitment is inferred.')]:
+        y = para(title, y, True)
+        y = para(text, y)
+    if y < 55:
+        raise RuntimeError(f'Overflow {y}')
+    c.setStrokeColor(colors.HexColor('#cbd3dc'))
+    c.line(48, 45, 564, 45)
+    c.setFillColor(colors.HexColor('#17212b'))
+    c.setFont('Helvetica', 8)
+    c.drawString(48, 30, 'Read with the current operator guide, delivery readout and input sheet.')
+    c.drawRightString(564, 30, '1 / 1')
+    c.save()
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "output/pdf")
-    parser.add_argument("--font-dir", type=Path)
+    parser.add_argument('--output-dir', type=Path, default=ROOT / 'output/pdf')
     args = parser.parse_args()
-    typography(args.font_dir)
-    sty = styles()
+    status = (ROOT / 'docs/status.md').read_text(encoding='utf-8')
+    commit = re.search('Production serves `([a-f0-9]{40})`', status)
+    findings = re.search('All (\\d+) in-scope adversarial findings are closed', status)
+    if not commit or not findings or 'S113 F1-F5 is COMPLETE / DEPLOYED' not in status:
+        raise SystemExit('Current documented production acceptance is required; no PDF was written.')
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    training = (DOCS / "renewal-client-walkthrough-2026-09-09.md").read_text(encoding="utf-8-sig")
-    render(args.output_dir / "renewal-training-guide.pdf", parse(training, sty, training=True),
-           "Renewal training guide")
-    meeting = []
-    sty["body"].fontSize, sty["body"].leading, sty["body"].spaceAfter = 9.7, 13.2, 7
-    sty["h1"].fontSize, sty["h1"].leading, sty["h1"].spaceAfter = 20, 24, 11
-    sty["h2"].fontSize, sty["h2"].leading, sty["h2"].spaceAfter = 13, 17, 8
-    sty["quote"].fontSize, sty["quote"].leading, sty["quote"].spaceAfter = 10, 14, 13
-    for filename in ["client-call-agenda-2026-09-09.md", "wednesday-delivery-readout-2026-09-09.md",
-                     "wednesday-decisions-and-inputs-2026-09-09.md"]:
-        if meeting:
-            meeting.append(PageBreak())
-        meeting.extend(parse((DOCS / filename).read_text(encoding="utf-8-sig"), sty))
-    render(args.output_dir / "wednesday-meeting-brief.pdf", meeting, "Wednesday meeting brief")
-    print("Rendered renewal-training-guide.pdf and wednesday-meeting-brief.pdf")
-
-
-if __name__ == "__main__":
+    render_training(args.output_dir / 'renewal-training-guide.pdf')
+    render_brief(args.output_dir / 'wednesday-meeting-brief.pdf', commit.group(1), findings.group(1))
+    print('Rendered three-page training guide and one-page meeting brief; visual review required.')
+if __name__ == '__main__':
     main()
