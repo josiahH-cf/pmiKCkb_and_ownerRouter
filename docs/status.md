@@ -1,6 +1,23 @@
 # PMI KC current status
 
-Last updated: 2026-09-11 (UTC).
+Last updated: 2026-09-14 (UTC).
+
+## Current feature
+
+September 14 Feature 1 (lease information and record distinction) is implemented locally on
+`codex/renewal-record-information`, with established verification complete. It is not deployed.
+Unit facts and every source-backed tenant/client contact are visible in the
+desk and header; owner-header links select all matching leases. Current guidance is near the top.
+Features 2-6 have not started and wait for successful Feature 1 production completion.
+
+Feature 1 local verification: 6,528 unit tests passed (four existing skips), all 201 backend tests,
+policy checks and production build passed. One earlier documentation-heading failure was corrected;
+one backend comp-button wait failed on an earlier run and passed with unchanged deadlines on the
+final full run. Complete local logs remain outside Git in `/tmp/pmi-renewal-f1-verify-gFvhmL`.
+
+The complete live RentVine export read returned 311 leases. Unit `address2` is present on 85;
+property `address2` on five. Tenant `name`, `email`, `phone`, `contactID` and `isActive`, and owner
+`name`, `email`, `contactID` and `isActive` were inspected as field names/counts only.
 
 ## Serving release
 
@@ -45,6 +62,7 @@ separate; S36 is queued behind complete S100. S87-S95 and S101 remain outside th
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
-Approved WSL CLI/ADC refresh and existing Admin browser authentication passed. No account, IAM,
+September 14 `auth:ensure` verified the approved WSL CLI token refresh and GitHub login, but ADC
+identity is unverified and requires owner enrollment before its token probe. No account, IAM,
 claim, store location or security policy changed. Separate 24-hour authentication longevity remains unverified.
 Earlier checkpoints retain their actual passed, failed or unpromoted outcomes; 919a2ae was promoted then rolled back after failed observation. Documentation-only closure does not deploy.

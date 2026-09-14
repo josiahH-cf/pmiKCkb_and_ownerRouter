@@ -88,11 +88,23 @@ export interface DeskIdentityFact {
   sourceRef: string;
 }
 
+export interface DeskPartyIdentity extends DeskIdentityFact {
+  email?: DeskIdentityFact;
+  phone?: DeskIdentityFact;
+  contactId?: DeskIdentityFact;
+  status?: DeskIdentityFact;
+}
+
 export interface RenewalDeskIdentity {
   address: DeskIdentityFact | null;
   property: DeskIdentityFact | null;
-  tenants: DeskIdentityFact[];
-  owners: DeskIdentityFact[];
+  unit?: {
+    label: DeskIdentityFact | null;
+    recordId: DeskIdentityFact | null;
+    address: DeskIdentityFact | null;
+  };
+  tenants: DeskPartyIdentity[];
+  owners: DeskPartyIdentity[];
 }
 
 export type RenewalDeskRetentionState =

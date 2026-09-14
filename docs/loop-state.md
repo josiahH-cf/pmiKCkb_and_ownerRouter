@@ -1,8 +1,24 @@
 # Loop state
 
-Last updated: 2026-09-11 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-14 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## Current result
+## Active September 14 feature
+
+Feature 1 of six is implemented locally on `codex/renewal-record-information` from main `70c3329`.
+It surfaces actual unit/contact details and current guidance and adds owner-header all-lease links.
+Full verification passed 6,528 unit tests (four skips), 201 backend tests, policy checks and build.
+Continue this feature's branch/PR integration and production release from the actual Git/CI state.
+Local verification logs: `/tmp/pmi-renewal-f1-verify-gFvhmL/verification-final.log`.
+Features 2-6 have not started. Do not advance until the existing serialized release checkpoint
+records Feature 1 production completion after exact candidate/promotion/observation.
+
+`npm run auth:ensure`: approved WSL CLI refresh and GitHub passed; ADC identity is unverified.
+The owner recovery command is `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
+Independent implementation continues. No token, account, IAM, claim or authentication policy changed.
+The existing Windows release watcher is running; its checkpoint still records the completed
+`f5faf16` release below. Do not start a competing watcher or bypass enrollment.
+
+## Serving S113 baseline
 
 S113 requested F1-F5 scope is COMPLETE / DEPLOYED / ALL_GATES_GREEN.
 Serving SHA: f5faf1665121db9cacff913a57e7fdcc80513116

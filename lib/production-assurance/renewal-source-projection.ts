@@ -1217,12 +1217,30 @@ function independentOwners(
 
 function personArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return dedupe(
-    value.flatMap((entry) => {
-      const name = personName(asRecord(entry));
-      return name ? [name] : [];
-    }),
-  );
+  const seen = new Set<string>();
+  return value.flatMap((entry) => {
+    const record = asRecord(entry);
+    const name = personName(record);
+    if (!record || !name) return [];
+    // Independently retain different source contacts that share a displayed name.
+    const identity = JSON.stringify([
+      name.trim().toLocaleLowerCase("en-US"),
+      firstText(record, ["contactID"]),
+      firstText(record, [
+        "email",
+        "emailAddress",
+        "email_address",
+        "primaryEmail",
+      ])?.toLocaleLowerCase("en-US") ?? null,
+      firstText(record, ["phone"]),
+      [0, 1, "0", "1"].includes(record.isActive as number | string)
+        ? String(record.isActive)
+        : null,
+    ]);
+    if (seen.has(identity)) return [];
+    seen.add(identity);
+    return [name];
+  });
 }
 
 function personName(value: Record<string, unknown> | null): string | null {

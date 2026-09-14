@@ -1,12 +1,22 @@
 # Current plan
 
-Updated: 2026-09-11 (UTC).
+Updated: 2026-09-14 (UTC).
 
 ## Outcome
 
-S113 requested scope is complete and deployed: one dashboard, supported source corrections,
-RentCast comp/trend preparation, supplied rich/plain copy with governed Gmail drafting, audited
-manual completion and the integrated journey. Persistent labeled insurance-flyer, renewal-information-form and seven legal-form location boxes accept blank pending-team inputs. Only output requiring a real verified resource waits; placeholders never become customer links or legal content.
+The September 14 renewal updates execute as six separate feature-to-production cycles.
+Feature 1 is in progress on `codex/renewal-record-information`: source-backed unit distinctions,
+all tenant/client contact information, prominent status/blockers/next action, and owner-header
+navigation to all that owner's leases. Existing provider and unsent-draft contracts remain.
+
+Local verification passed 6,528 unit tests (four existing skips), 201 backend tests, policy checks
+and production build. After push and merge, the existing serialized watcher must complete
+candidate assurance, promotion and observation before Feature 2 begins. ADC enrollment currently
+blocks dependent release work; CLI token refresh and GitHub authentication passed.
+
+The remaining order is process glossary/guided completion; external record/message destinations;
+RentCast repair; dark-mode readability; global clarity/response times. None has started.
+Each starts from the then-current main on its own branch and finishes production before the next.
 
 ## Current implementation baseline
 
@@ -23,6 +33,8 @@ Staff-recorded completion reports actual outside work and remains separate from 
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 ## Canonical closure sequence
+
+The serving S113 baseline completed these established stages; Feature 1 must complete its own cycle.
 
 1. Implementation, actual backend paths, integrated journey and adversarial review passed.
 2. The exact corrected commit passed all five CI jobs and isolated candidate/config/domain gates.

@@ -194,6 +194,9 @@ export function withRenewalDeskQueryKeys(
   const exactSearchLabels = [
     summary.identity.address?.label,
     summary.identity.property?.label,
+    summary.identity.unit?.label?.label,
+    summary.identity.unit?.recordId?.label,
+    summary.identity.unit?.address?.label,
     ...tenantLabels,
     ...ownerLabels,
   ].filter((value): value is string => Boolean(value));

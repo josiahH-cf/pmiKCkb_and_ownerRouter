@@ -17,6 +17,8 @@ import type {
   DeskLeaseAction,
   DeskLeaseRow,
   DeskGuidanceDestination,
+  DeskPartyIdentity,
+  RenewalDeskIdentity,
 } from "@/lib/lease-renewal/desk-model";
 import {
   PARTY_FILTER_TOKEN_PATTERN,
@@ -68,7 +70,7 @@ export const PARTY_FILTERING_UNAVAILABLE_NOTICE = "Party filtering is unavailabl
 export const UNFILTERED_EMPTY_COPY = "No renewals are in the current worklist.";
 export const FILTERED_EMPTY_COPY = "No renewals match these filters.";
 
-const OVERALL_STATUS_LABEL: Record<RenewalOverallStatus, string> = {
+export const OVERALL_STATUS_LABEL: Record<RenewalOverallStatus, string> = {
   needs_verification: "Needs verification",
   blocked: "Blocked",
   complete: "Complete",
@@ -602,14 +604,60 @@ function StatusBadge({
   );
 }
 
+export function PartyContactDetails({ party }: { party?: DeskPartyIdentity }) {
+  if (!party) return null;
+  return (
+    <>
+      {party.email ? (
+        <span className="renewal-td-secondary">Email: {party.email.label}</span>
+      ) : null}
+      {party.phone ? (
+        <span className="renewal-td-secondary">Phone: {party.phone.label}</span>
+      ) : null}
+      {party.contactId ? (
+        <span className="renewal-td-secondary">Contact ID: {party.contactId.label}</span>
+      ) : null}
+      {party.status ? (
+        <span className="renewal-td-secondary">Contact status: {party.status.label}</span>
+      ) : null}
+    </>
+  );
+}
+
+export function UnitIdentityDetails({
+  identity,
+  addressLabel,
+}: {
+  identity: RenewalDeskIdentity;
+  addressLabel: string;
+}) {
+  const unit = identity.unit;
+  if (!unit) return null;
+  return (
+    <>
+      {unit.label ? (
+        <span className="renewal-td-secondary">Unit: {unit.label.label}</span>
+      ) : null}
+      {unit.recordId ? (
+        <span className="renewal-td-secondary">Unit record: {unit.recordId.label}</span>
+      ) : null}
+      {unit.address && unit.address.label !== addressLabel ? (
+        <span className="renewal-td-secondary">Unit address: {unit.address.label}</span>
+      ) : null}
+    </>
+  );
+}
+
 function PartyCell({
   labels,
+  parties,
   normalized,
   kind,
   shortcuts,
   state,
 }: Readonly<{
   labels: readonly string[];
+  parties: readonly DeskPartyIdentity[];
   normalized: readonly string[];
   kind: "owner" | "tenant";
   shortcuts: DeskPartyShortcuts;
@@ -623,19 +671,25 @@ function PartyCell({
           ? shortcuts.tokenFor(kind, normalized[index] ?? "")
           : null;
         if (!token || !PARTY_FILTER_TOKEN_PATTERN.test(token)) {
-          return <li key={`${label}-${index}`}>{label}</li>;
+          return (
+            <li key={`${label}-${index}`}>
+              <span className="renewal-party-name">{label}</span>
+              <PartyContactDetails party={parties[index]} />
+            </li>
+          );
         }
         const key = kind === "owner" ? "ownerKey" : "tenantKey";
         return (
           <li key={`${label}-${index}`}>
             <Link
               prefetch={false}
-              className="text-link"
+              className="text-link renewal-party-name"
               href={href({ ...state, [key]: token })}
               title={`Show only this ${kind}'s leases`}
             >
               {label}
             </Link>
+            <PartyContactDetails party={parties[index]} />
           </li>
         );
       })}
@@ -1051,11 +1105,13 @@ function DeskRow({
           {row.propertyNameLabel ? `${row.propertyNameLabel} · ` : ""}
           Lease {row.id || "Needs Verification"}
         </span>
+        <UnitIdentityDetails identity={row.identity} addressLabel={row.addressLabel} />
       </th>
       <td>
         <PartyCell
           kind="owner"
           labels={row.ownerNameLabels}
+          parties={row.identity.owners}
           normalized={row.queryKeys.normalizedOwners}
           shortcuts={shortcuts}
           state={state}
@@ -1065,6 +1121,7 @@ function DeskRow({
         <PartyCell
           kind="tenant"
           labels={row.tenantNameLabels}
+          parties={row.identity.tenants}
           normalized={row.queryKeys.normalizedTenants}
           shortcuts={shortcuts}
           state={state}
