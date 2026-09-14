@@ -14,6 +14,17 @@ import type {
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import {
+  OVERALL_STATUS_LABEL,
+  PartyContactDetails,
+  UnitIdentityDetails,
+} from "@/components/lease-renewal/RenewalDeskTable";
+import {
+  createPartyFilterResolver,
+  readPartyFilterKeyConfig,
+} from "@/lib/lease-renewal/party-filter-key";
+import { normalizeRenewalDeskText } from "@/lib/lease-renewal/desk-query";
+import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
 
 import { RenewalAttemptSummaryCard } from "@/components/lease-renewal/RenewalAttemptSummaryCard";
 import type { RenewalAttemptSummary } from "@/lib/lease-renewal/execution/attempt-continuation";
@@ -57,7 +68,10 @@ import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
-import { buildWorkspaceHref } from "@/lib/lease-renewal/desk-view-continuation";
+import {
+  buildDeskHref,
+  buildWorkspaceHref,
+} from "@/lib/lease-renewal/desk-view-continuation";
 import { LEASE_TERM_LABELS } from "@/lib/lease-renewal/lease-term";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
@@ -160,6 +174,7 @@ export function RenewalWorkspace({
   const dataExpired = workspace.dataCurrency?.state === "expired";
   const unavailableKeys = new Set(auxiliaryFailures.map((failure) => failure.key));
   const progressStateAvailable = !unavailableKeys.has("progress");
+  const partyFilters = createPartyFilterResolver(readPartyFilterKeyConfig(), "renewals");
 
   return (
     <div className="ui-stack">
@@ -175,11 +190,80 @@ export function RenewalWorkspace({
             ) : null}
           </>
         }
-        subtitle={`${summary.tenantNameLabel}${summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}`}
+        subtitle={`Lease ${summary.id}${summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}`}
         title={summary.addressLabel}
       />
 
+      <div className="renewal-record-summary">
+        <UnitIdentityDetails
+          identity={summary.identity}
+          addressLabel={summary.addressLabel}
+        />
+        <div className="renewal-record-parties">
+          {(["owners", "tenants"] as const).map((kind) => (
+            <div key={kind}>
+              <strong>{kind === "owners" ? "Owners / clients" : "Tenants"}</strong>
+              <ul className="renewal-party-list">
+                {summary.identity[kind].length ? (
+                  summary.identity[kind].map((party) => {
+                    const ownerKey =
+                      kind === "owners"
+                        ? partyFilters.tokenFor(
+                            "owner",
+                            normalizeRenewalDeskText(party.label),
+                          )
+                        : null;
+                    return (
+                      <li key={party.sourceRef}>
+                        {ownerKey ? (
+                          <Link
+                            prefetch={false}
+                            className="text-link"
+                            href={buildDeskHref({
+                              ...DEFAULT_RENEWAL_DESK_QUERY_V2,
+                              scope: "all",
+                              ownerKey,
+                            })}
+                            title="Show all leases belonging to this owner"
+                          >
+                            {party.label}
+                          </Link>
+                        ) : (
+                          party.label
+                        )}
+                        <PartyContactDetails party={party} />
+                      </li>
+                    );
+                  })
+                ) : (
+                  <li>Needs Verification</li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p>
+          <strong>Status: </strong>
+          {workspace.guidance.overallStatus === "complete" &&
+          summary.manualProgress?.complete
+            ? "Completed: recorded by staff"
+            : OVERALL_STATUS_LABEL[workspace.guidance.overallStatus]}
+          {summary.manualProgress?.step.label || summary.stageLabel
+            ? ` · ${summary.manualProgress?.step.label ?? summary.stageLabel}`
+            : ""}
+        </p>
+      </div>
+
       <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+
+      {workspace.workflowAvailable ? (
+        <DoThisNext
+          deskView={deskView}
+          leaseId={summary.id}
+          progressStateAvailable={progressStateAvailable}
+          workspace={workspace}
+        />
+      ) : null}
 
       {!workspace.workflowAvailable ? (
         <>
@@ -220,13 +304,6 @@ export function RenewalWorkspace({
           cycleBasis={manualCycleBasis}
         >
           <RenewalDashboardNavigation selectedStepId={selectedStepId} />
-
-          <DoThisNext
-            deskView={deskView}
-            leaseId={summary.id}
-            progressStateAvailable={progressStateAvailable}
-            workspace={workspace}
-          />
 
           {attemptSummary ? <RenewalAttemptSummaryCard summary={attemptSummary} /> : null}
 

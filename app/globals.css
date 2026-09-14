@@ -2399,6 +2399,21 @@ textarea:disabled {
 }
 
 .gmail-hub button,
+.renewal-record-summary {
+  overflow-wrap: anywhere;
+}
+
+.renewal-record-parties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.renewal-party-list li {
+  overflow-wrap: anywhere;
+}
+
 .gmail-hub .draft-box,
 .gmail-hub .summary-list dd,
 .gmail-hub p,

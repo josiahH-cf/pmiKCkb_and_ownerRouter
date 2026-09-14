@@ -1,7 +1,10 @@
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { leaseAddressLabel, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import { composeRentVineAddress } from "@/lib/integrations/rentvine/address";
+import { DEFAULT_RENEWAL_RECIPIENT_FIELD_MAP } from "@/lib/lease-renewal/recipient-resolution";
 import type {
   DeskIdentityFact,
+  DeskPartyIdentity,
   RenewalDeskIdentity,
 } from "@/lib/lease-renewal/desk-model";
 
@@ -59,30 +62,63 @@ function fact(
   };
 }
 
-function dedupeFacts(facts: readonly DeskIdentityFact[]): DeskIdentityFact[] {
+function partyFact(
+  root: string,
+  path: string,
+  object: Record<string, unknown>,
+  name: { path: string; label: string },
+): DeskPartyIdentity {
+  const result: DeskPartyIdentity = fact(root, path, name);
+  const fields = {
+    email: DEFAULT_RENEWAL_RECIPIENT_FIELD_MAP.scopedEmailKeys,
+    phone: ["phone"],
+    contactId: ["contactID"],
+  } as const;
+  for (const field of ["email", "phone", "contactId"] as const) {
+    const value = firstString(object, fields[field]);
+    if (value) result[field] = fact(root, path, { path: value.key, label: value.value });
+  }
+  if ([0, 1, "0", "1"].includes(object.isActive as number | string)) {
+    result.status = fact(root, path, {
+      path: "isActive",
+      label: String(object.isActive) === "1" ? "Active" : "Inactive",
+    });
+  }
+  return result;
+}
+
+function dedupeFacts(facts: readonly DeskPartyIdentity[]): DeskPartyIdentity[] {
   const seen = new Set<string>();
   return facts.filter((candidate) => {
-    const key = candidate.label.trim().toLocaleLowerCase("en-US");
+    // Names alone do not identify a person: retain distinct contacts with the same name.
+    const key = JSON.stringify([
+      candidate.label.trim().toLocaleLowerCase("en-US"),
+      candidate.contactId?.label ?? null,
+      candidate.email?.label.toLocaleLowerCase("en-US") ?? null,
+      candidate.phone?.label ?? null,
+      candidate.status?.label ?? null,
+    ]);
     if (!key || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
-function tenantFacts(lease: RawLease, root: string): DeskIdentityFact[] {
-  const facts: DeskIdentityFact[] = [];
+function tenantFacts(lease: RawLease, root: string): DeskPartyIdentity[] {
+  const facts: DeskPartyIdentity[] = [];
   if (Array.isArray(lease.tenants)) {
     lease.tenants.forEach((value, index) => {
       const object = asObject(value);
       const name = object ? personName(object) : null;
-      if (name) facts.push(fact(root, `tenants[${index}]`, name));
+      if (name && object) facts.push(partyFact(root, `tenants[${index}]`, object, name));
     });
   }
   if (facts.length > 0) return dedupeFacts(facts);
 
   const nestedTenant = asObject(lease.tenant);
   const nestedName = nestedTenant ? personName(nestedTenant) : null;
-  if (nestedName) facts.push(fact(root, "tenant", nestedName));
+  if (nestedName && nestedTenant)
+    facts.push(partyFact(root, "tenant", nestedTenant, nestedName));
 
   if (facts.length === 0) {
     const direct = firstString(lease, [
@@ -99,7 +135,7 @@ function tenantFacts(lease: RawLease, root: string): DeskIdentityFact[] {
 }
 
 function addOwnerArray(
-  facts: DeskIdentityFact[],
+  facts: DeskPartyIdentity[],
   root: string,
   value: unknown,
   path: string,
@@ -108,22 +144,22 @@ function addOwnerArray(
   value.forEach((entry, index) => {
     const object = asObject(entry);
     const name = object ? personName(object) : null;
-    if (name) facts.push(fact(root, `${path}[${index}]`, name));
+    if (name && object) facts.push(partyFact(root, `${path}[${index}]`, object, name));
   });
 }
 
 function addOwnerObject(
-  facts: DeskIdentityFact[],
+  facts: DeskPartyIdentity[],
   root: string,
   value: unknown,
   path: string,
 ): void {
   const object = asObject(value);
   const name = object ? personName(object) : null;
-  if (name) facts.push(fact(root, path, name));
+  if (name && object) facts.push(partyFact(root, path, object, name));
 }
 
-function ownerFacts(lease: RawLease, root: string): DeskIdentityFact[] {
+function ownerFacts(lease: RawLease, root: string): DeskPartyIdentity[] {
   const portfolio = asObject(lease.portfolio);
   const property = asObject(lease.property);
 
@@ -136,7 +172,7 @@ function ownerFacts(lease: RawLease, root: string): DeskIdentityFact[] {
     [lease.owners, "owners"],
   ];
   for (const [value, path] of arrayTiers) {
-    const facts: DeskIdentityFact[] = [];
+    const facts: DeskPartyIdentity[] = [];
     addOwnerArray(facts, root, value, path);
     if (facts.length > 0) return dedupeFacts(facts);
   }
@@ -147,7 +183,7 @@ function ownerFacts(lease: RawLease, root: string): DeskIdentityFact[] {
     [lease.owner, "owner"],
   ];
   for (const [value, path] of objectTiers) {
-    const facts: DeskIdentityFact[] = [];
+    const facts: DeskPartyIdentity[] = [];
     addOwnerObject(facts, root, value, path);
     if (facts.length > 0) return facts;
   }
@@ -180,9 +216,29 @@ function propertyFact(lease: RawLease, root: string): DeskIdentityFact | null {
  */
 export function projectRenewalDeskIdentity(lease: RawLease): RenewalDeskIdentity {
   const root = sourceRoot(lease);
+  const unit = asObject(lease.unit);
+  // Confirmed export fields: address2 is the unit designator; name is an occasional fallback.
+  const label = unit ? firstString(unit, ["address2", "name"]) : null;
+  const recordId = unit ? firstString(unit, ["unitID"]) : null;
+  const address = composeRentVineAddress(unit);
   return {
     address: addressFact(lease, root),
     property: propertyFact(lease, root),
+    ...(label || recordId || address
+      ? {
+          unit: {
+            label: label
+              ? fact(root, "unit", { path: label.key, label: label.value })
+              : null,
+            recordId: recordId
+              ? fact(root, "unit", { path: recordId.key, label: recordId.value })
+              : null,
+            address: address
+              ? { label: address, sourceRef: `${root}:unit.address` }
+              : null,
+          },
+        }
+      : {}),
     tenants: tenantFacts(lease, root),
     owners: ownerFacts(lease, root),
   };

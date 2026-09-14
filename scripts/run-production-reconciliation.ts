@@ -1364,7 +1364,7 @@ const RENEWAL_DATA_ROWS =
   'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr[data-lease-id]';
 const RENEWAL_CELL_PLAN: AssuranceDomPlan = {
   "a, span": {},
-  li: {},
+  li: { ":scope > .renewal-party-name": {} },
   'a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
   'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]': {},
   "ul.renewal-blocker-list > li[data-blocker-id]": { ":scope > a": {} },
@@ -1758,8 +1758,20 @@ export function validStatusFilterDestination(
 async function partyValues(
   cell: ReturnType<Page["locator"]>,
 ): Promise<readonly string[]> {
-  const items = await cell.locator("li").allTextContents();
-  if (items.length > 0) return items.map((item) => item.trim());
+  const items = cell.locator("li");
+  const count = await items.count();
+  if (count > 0) {
+    const names: string[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const item = items.nth(index);
+      const name = item.locator(":scope > .renewal-party-name");
+      const nameCount = await name.count();
+      if (nameCount > 1) throw new Error("renewal_party_name_not_unique");
+      // The serving predecessor has name-only list items; newer rows also show contact details.
+      names.push(((await (nameCount === 1 ? name : item).textContent()) ?? "").trim());
+    }
+    return names;
+  }
   const fallback = (await cell.textContent())?.trim();
   return fallback ? [fallback] : [];
 }
