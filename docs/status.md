@@ -4,8 +4,12 @@ Last updated: 2026-09-14 (UTC).
 
 ## Current feature
 
-September 14 Feature 1 (lease information and record distinction) is implemented locally on
-`codex/renewal-record-information`, with established verification complete. It is not deployed.
+September 14 Feature 1 (lease information and record distinction) is implemented, pushed as
+`90bbaa0` on `codex/renewal-record-information`, and merged through
+[PR #83](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/83) as `2950542`.
+Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548)
+passed all five jobs. It is not deployed: the existing watcher records `prepare` /
+`authentication_required` for the merged SHA. No candidate, promotion or observation completed.
 Unit facts and every source-backed tenant/client contact are visible in the
 desk and header; owner-header links select all matching leases. Current guidance is near the top.
 Features 2-6 have not started and wait for successful Feature 1 production completion.
@@ -13,7 +17,9 @@ Features 2-6 have not started and wait for successful Feature 1 production compl
 Feature 1 local verification: 6,528 unit tests passed (four existing skips), all 201 backend tests,
 policy checks and production build passed. One earlier documentation-heading failure was corrected;
 one backend comp-button wait failed on an earlier run and passed with unchanged deadlines on the
-final full run. Complete local logs remain outside Git in `/tmp/pmi-renewal-f1-verify-gFvhmL`.
+final full run. PR CI 34899631985 first failed the existing asynchronous tenant-draft rent wait;
+its failed-job retry passed unchanged. Exact merged-main CI then passed on its first attempt.
+Complete local logs remain outside Git in `/tmp/pmi-renewal-f1-verify-gFvhmL`.
 
 The complete live RentVine export read returned 311 leases. Unit `address2` is present on 85;
 property `address2` on five. Tenant `name`, `email`, `phone`, `contactID` and `isActive`, and owner

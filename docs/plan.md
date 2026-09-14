@@ -9,10 +9,12 @@ Feature 1 is in progress on `codex/renewal-record-information`: source-backed un
 all tenant/client contact information, prominent status/blockers/next action, and owner-header
 navigation to all that owner's leases. Existing provider and unsent-draft contracts remain.
 
+Implementation `90bbaa0` is pushed and merged through PR #83 as `2950542`.
 Local verification passed 6,528 unit tests (four existing skips), 201 backend tests, policy checks
-and production build. After push and merge, the existing serialized watcher must complete
-candidate assurance, promotion and observation before Feature 2 begins. ADC enrollment currently
-blocks dependent release work; CLI token refresh and GitHub authentication passed.
+and production build. Exact merged-main CI 34900353548 passed all five jobs.
+The existing serialized watcher is paused at `prepare` / `authentication_required` for that SHA.
+After attended ADC enrollment, resume that exact checkpoint through candidate assurance, promotion
+and observation before Feature 2 begins. No Feature 1 deployment stage has completed.
 
 The remaining order is process glossary/guided completion; external record/message destinations;
 RentCast repair; dark-mode readability; global clarity/response times. None has started.

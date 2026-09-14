@@ -4,19 +4,28 @@ Last updated: 2026-09-14 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Active September 14 feature
 
-Feature 1 of six is implemented locally on `codex/renewal-record-information` from main `70c3329`.
+Feature 1 of six is implemented and pushed as `90bbaa0` on `codex/renewal-record-information`.
+PR #83 merged it to main as `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
 It surfaces actual unit/contact details and current guidance and adds owner-header all-lease links.
-Full verification passed 6,528 unit tests (four skips), 201 backend tests, policy checks and build.
-Continue this feature's branch/PR integration and production release from the actual Git/CI state.
+Full local verification passed 6,528 unit tests (four skips), 201 backend tests, policy checks and build.
+PR CI 34899631985 passed on failed-job retry with unchanged tests; exact main CI 34900353548 passed.
 Local verification logs: `/tmp/pmi-renewal-f1-verify-gFvhmL/verification-final.log`.
-Features 2-6 have not started. Do not advance until the existing serialized release checkpoint
-records Feature 1 production completion after exact candidate/promotion/observation.
 
-`npm run auth:ensure`: approved WSL CLI refresh and GitHub passed; ADC identity is unverified.
-The owner recovery command is `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
-Independent implementation continues. No token, account, IAM, claim or authentication policy changed.
-The existing Windows release watcher is running; its checkpoint still records the completed
-`f5faf16` release below. Do not start a competing watcher or bypass enrollment.
+Feature 1 is NOT DEPLOYED. The existing WSL watcher is running. Its current checkpoint is:
+`sha=2950542dbcf9611838d6337fb0ea41db744e7ad0`, `ciRunId=34900353548`,
+`phase=prepare`, `blocked=authentication_required`, `lastDeployedSha=f5faf1665121db9cacff913a57e7fdcc80513116`.
+No candidate deployment, promotion or observation completed. Canonical /api/version still serves
+`f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`.
+
+`npm run auth:ensure` verified the approved WSL CLI refresh and GitHub; ADC identity is unverified.
+Owner recovery: `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
+Resume the existing exact-SHA release checkpoint after enrollment; do not merge or deploy it again
+through another process. No identity, IAM, claim, security policy or provider grant changed.
+
+The Windows development checkout remains clean on the feature branch. Fetch is blocked by an
+invalid pre-existing `refs/codex/turn-diffs/checkpoints/...` object. Those refs were not altered.
+A clean main checkout is `/tmp/pmi-renewal-f1-integration-zbt2es`; the watcher has independent Git.
+Features 2-6 have not started. Begin Feature 2 only after successful Feature 1 production completion.
 
 ## Serving S113 baseline
 
@@ -43,7 +52,8 @@ Evidence: docs/evidence/s113-implementation-review-2026-09-10.md.
 
 ## Release and backend evidence
 
-Checkpoint: /home/josiah/.local/state/pmi-kc-release/checkpoint.json, complete.
+Current checkpoint: /home/josiah/.local/state/pmi-kc-release/checkpoint.json; Feature 1 state above.
+The completed S113 receipts below remain the serving baseline.
 Captured predecessor: pmi-kc-app-rmtkmhj1z-8855e4c6dbfb / d243911cb20ffb01773072c0e27c723648eeea34.
 Fingerprint: sha256:a68c3459ab680b1230662f1becab6c975c5cc86f2ec349d6404ba4b5a0976282.
 Older 6e77d18, 00836a8 and 297af97 checkpoints are archived as superseded, without assurance PASS claims.
@@ -65,10 +75,9 @@ gated; no signature API or legal content is invented. Blank resource boxes do no
 S100 resident-draft still needs its exact mapped/verified input and proof; S36 remains dependent.
 B-MNT1 and the separate 24-hour auth longevity proof remain unverified. S87-S95/S101 are out of scope.
 
-## Final closure
+## Prior S113 closure
 
-Current documentation and meeting brief record the verified serving result. Documentation-only
-closure must not trigger deployment. The existing local watcher was restored and reads current
-for f5faf16. No new automation or next product scope was started. Final documentation formatting,
+S113 closure documentation and meeting brief record the verified serving result. Documentation-only
+closure must not trigger deployment. The existing local watcher was restored after that release. No new automation was created. Final documentation formatting,
 policy checks and all 462 documentation/guide tests pass; all four PDF pages were visually checked.
 Evidence: temp/s113-final-docs-native-verify.log. Documentation-only commits never deploy.
