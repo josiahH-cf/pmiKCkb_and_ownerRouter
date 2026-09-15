@@ -4,13 +4,19 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-September 14 Feature 1 of six is COMPLETE / PUSHED / MERGED / DEPLOYED.
-Branch `codex/renewal-record-information`, implementation `90bbaa0`, PR #83, merged main `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
-Actual unit/contact details, prominent guidance and owner-header all-lease links are serving.
-Feature 2 is in progress on `codex/renewal-process-glossary` from freshly inspected main `91bc576`.
-The nested glossary explains current steps, optionality, value destinations and completion branches.
-Existing cycle-scoped saves and draft/document routing remain. Finish verification, push, merge and
-the serialized production release before Feature 3. Features 3-6 have not started.
+Features 1 and 2 remain sequential. Feature 1 is deployed; Feature 2 is implemented/pushed/merged
+but NOT DEPLOYED after verified rollback. Features 3-6 have not started.
+Feature 2 branch: `codex/renewal-process-glossary`, based on current main `4e1a4a0`.
+PRs #84/#85 merged glossary/guidance and deferred hidden entries until first expansion. Full local
+verification passed 6,528 unit tests/four skips, 201 backend tests, policy/build. Exact main CI
+34917214663 passed on a failed-job retry; earlier failed async UI waits retain their outcomes.
+Candidate `pmi-kc-app-rmu1zycgi-d28f58f32910` passed build/smoke/config/domains/Admin assurance
+and promotion. First observation had no report; retry failed `checkpoint_schedule_invalid` after
+317,523 ms and one checkpoint. Monitoring reported zero 5xx/unresolved live effects. Cause of the
+missing report is not established. The watcher verified rollback to Feature 1 and recorded terminalFailure.
+The same watcher was stopped while idle after verified rollback; no lock/checkpoint/receipt was deleted.
+Repair its missing-report path to use existing durable exact-predecessor rollback immediately.
+Finish verification, push, merge and a fresh complete serialized release of Feature 2 before Feature 3.
 
 ## Verified production
 
@@ -39,8 +45,10 @@ existing browser session. It verified and rebound ADC; CLI/ADC readiness is READ
 Admin browser authenticated on canonical and candidate origins. No password/code/passkey/CAPTCHA
 was entered and no account, policy or permission scope changed. The former ADC binding mismatch
 is resolved. Do not repeat enrollment without a fresh failure. The separate longevity proof is unverified.
-The same serialized watcher runs with documented native Node/Cloud SDK PATH. Its checkpoint is
-`/home/josiah/.local/state/pmi-kc-release/checkpoint.json`, phase complete, lastDeployedSha `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
+The serialized watcher is stopped after the verified Feature 2 rollback. Its checkpoint is
+`/home/josiah/.local/state/pmi-kc-release/checkpoint.json`, phase observe, blocked rolled_back_verified,
+terminalFailure true; lastDeployedSha remains `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
+Restart the same watcher from the updated clean checkout with native Node/Cloud SDK PATH after the repair.
 Host logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status.log and native-errors.log.
 Candidate/promotion v4 receipts and observation report are under `/home/josiah/.local/state/pmi-kc-release`.
 Observation: observation-pmi-kc-app-rmu1rxk29-9d8d576379d9-1789432240908.json.
@@ -51,7 +59,8 @@ Use the existing watcher and lock; do not create competing deployments. Document
 Clean main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`.
 The original Windows checkout remains on the Feature 1 branch. Fetch has a broken existing
 `refs/codex/turn-diffs/checkpoints` ref; those unrelated refs were not altered. The watcher has independent Git.
-Local verification log: `/tmp/pmi-renewal-f1-verify-gFvhmL/verification-final.log`.
+Feature 2 local verification log: `/tmp/pmi-f2-verify-final.log`.
+Failed observation: `observation-pmi-kc-app-rmu1zycgi-d28f58f32910-1789436833060.json`.
 Private sources, customer evidence, provider configuration and credentials remain outside Git.
 
 ## Preserved boundaries
