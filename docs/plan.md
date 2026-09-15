@@ -4,31 +4,33 @@ Updated: 2026-09-15 (UTC).
 
 ## Outcome
 
-All six September 14 feature sets are implemented, pushed, merged and deployed in their
-requested order. Feature 6 completed through PR #91; its production release is complete.
+The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
+S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
+spec import/registration commit `986e82eb` and is integrated on main. Its production release has not
+started; S115-S120 have not started.
 
-The shared navigation now describes each destination's purpose. The Dashboard and renewal table
-explain where to start; lease sections name the work they contain and explain their inputs and saved
-destinations. Market estimates, charge frequency, source notes and staff activity fields use plain
-wording. Existing field identifiers, source provenance, value routing and draft/write boundaries remain.
+S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
+slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
+source records, each value separately selectable with an explicit copy control, one-audience
+"Copy all" controls and owner and tenant desk click-back links over opaque party tokens) and Process
+guide (glossary entries with step needs plus the single "Renewal dashboard sections" navigation).
+Both panels stay open independently, close on Escape or their close control and return focus to their
+toggle. A refused clipboard keeps the selectable value on screen and says so; copying records nothing
+and grants no send, approval or provider authority. The operator guide step table gained the two panel
+toggles and the tenant audience copy control, and steps 8-10 now use the serving section labels.
 
-The global Admin navigation previously loaded request rows and the managed-user directory just to
-show a pending count. It now calls the existing count query after the same current-Admin check.
-Independent Dashboard and shared decision-summary reads run together, retaining scope filtering,
-source freshness and independent failure handling. No cache lifetime, policy or runtime setting changed.
-These are observed code-path improvements; no numerical response-time claim is made.
+Verification on the exact commit in the native checkout: format, lint, types, 6,575 unit tests
+(711 files), 201 backend tests, every policy check and the production build passed
+(`/tmp/pmi-s114-verify.log`); core E2E passed with 8 files and 4 intentional skips
+(`/tmp/pmi-s114-e2e.log`). The eight S114 tests failed before the implementation and pass after it.
+The compiled renewal-desk and renewal-guide browser checks have not run: the local rehearsal refuses
+to start while WSL ADC is blocked (`/tmp/pmi-s114-dev.log`). They run before promotion once ADC is
+enrolled. No client message was sent and no live record was written. Human verdict: NOT RUN.
 
-Existing label assertions are aligned with the new copy. The release reader requires the captured
-Feature 5 commit's old section labels and the candidate's new labels, preserving all section,
-destination, visibility and safety checks. Full verification passed: 6,532 unit tests, 201 backend
-tests, formatting, lint, types, policy checks and production build. Existing selectors were corrected
-for the renamed sections; no test or deadline was added or weakened. Unit results are retained in
-`/tmp/pmi-f6-verify-final.log`, backend results in `/tmp/pmi-f6-backend-rerun.log`, and remaining policy
-and build results in `/tmp/pmi-f6-policy-build.log`. PR CI 34940379104 passed on its first attempt.
-Exact-main CI 34940745236 passed on its third attempt after two existing backend journey waits failed
-at different points; their failures remain recorded. Candidate assurance passed, promotion was verified
-at 07:33:32 UTC, and both production observation checkpoints passed. Independent serving/version/
-configuration readback passed at 07:40:24 UTC. No client message was sent or unconfirmed live record written.
+Remaining order: S115 plain-language section guidance, S116 source links and Sheet contact integrity,
+S117 master facts and confirmed source updates, S118 market defaults and sourced comparisons, S119
+manual status and desk filtering, S120 downstream preparation and completion UX. Each feature completes
+its own verification, exact-main CI and serialized release before the next begins.
 
 ## Current implementation baseline
 

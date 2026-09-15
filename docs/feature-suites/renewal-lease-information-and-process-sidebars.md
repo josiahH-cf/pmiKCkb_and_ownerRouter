@@ -3,7 +3,7 @@
 
 # S114 — Independent lease-information and process sidebars
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `24b0be59`; verify.sh and core E2E passed on that exact commit. Compiled browser checks and the production release are paused on WSL ADC enrollment (owner step). Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-lease-information-and-process-sidebars.md`.  

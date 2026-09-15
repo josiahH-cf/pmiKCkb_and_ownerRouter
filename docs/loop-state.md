@@ -4,31 +4,20 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-All six September 14 feature sets are implemented, pushed, merged and deployed in their
-requested order. Feature 6 completed through PR #91; its production release is complete.
-
-The shared navigation now describes each destination's purpose. The Dashboard and renewal table
-explain where to start; lease sections name the work they contain and explain their inputs and saved
-destinations. Market estimates, charge frequency, source notes and staff activity fields use plain
-wording. Existing field identifiers, source provenance, value routing and draft/write boundaries remain.
-
-The global Admin navigation previously loaded request rows and the managed-user directory just to
-show a pending count. It now calls the existing count query after the same current-Admin check.
-Independent Dashboard and shared decision-summary reads run together, retaining scope filtering,
-source freshness and independent failure handling. No cache lifetime, policy or runtime setting changed.
-These are observed code-path improvements; no numerical response-time claim is made.
-
-Existing label assertions are aligned with the new copy. The release reader requires the captured
-Feature 5 commit's old section labels and the candidate's new labels, preserving all section,
-destination, visibility and safety checks. Full verification passed: 6,532 unit tests, 201 backend
-tests, formatting, lint, types, policy checks and production build. Existing selectors were corrected
-for the renamed sections; no test or deadline was added or weakened. Unit results are retained in
-`/tmp/pmi-f6-verify-final.log`, backend results in `/tmp/pmi-f6-backend-rerun.log`, and remaining policy
-and build results in `/tmp/pmi-f6-policy-build.log`. PR CI 34940379104 passed on its first attempt.
-Exact-main CI 34940745236 passed on its third attempt after two existing backend journey waits failed
-at different points; their failures remain recorded. Candidate assurance passed, promotion was verified
-at 07:33:32 UTC, and both production observation checkpoints passed. Independent serving/version/
-configuration readback passed at 07:40:24 UTC. No client message was sent or unconfirmed live record written.
+Renewal operator hub bundle (S114-S120) in progress. S114 is implemented at `24b0be59` (spec import
+`986e82eb`) and integrated on main; its release has not started. S115-S120 have not started.
+Two independent slide-out panels (Lease information; Process guide with the section navigation)
+replace the expanded header summary and inline glossary. Values are separately selectable with copy
+controls, one-audience "Copy all" controls, owner and tenant desk click-back links over opaque party
+tokens and source-record links. The operator guide table gained the two toggles and the tenant copy
+control; steps 8-10 use the serving section labels.
+Full gate on 24b0be59 in `/tmp/pmi-renewal-f1-integration-zbt2es`: format, lint, types, 6,575 unit
+tests (711 files), 201 backend tests, policy checks and build passed (`/tmp/pmi-s114-verify.log`).
+Core E2E passed, 8 files and 4 skips (`/tmp/pmi-s114-e2e.log`). Fail-first: eight S114 tests failed
+before the implementation and pass after it.
+Not run: compiled renewal-desk and renewal-guide browser checks; the local rehearsal refuses to start
+while WSL ADC is blocked (`/tmp/pmi-s114-dev.log`). Run them before promotion once ADC is enrolled.
+Next: exact-main CI for the integrated head, then the serialized release of that exact SHA, then S115.
 
 ## Verified production
 
@@ -61,12 +50,19 @@ Its failed receipts and terminal checkpoint remain; the resumed 2bf21ff release 
 
 ## Authentication and watcher
 
-Automatic approved CLI/ADC and Admin browser authentication work; no identity/IAM/claim changes.
-Separate 24-hour longevity remains unverified. Source: `/tmp/pmi-renewal-f1-integration-zbt2es`.
-Active native Node PID 1038352; Windows WSL helper PID 3848. Do not start a competing watcher.
+WSL gcloud CLI refresh is READY for josiah@pmikcmetro.com. WSL ADC is BLOCKED: the ADC file digest no
+longer matches the local enrollment binding (file rewritten 2026-09-15 18:00:35 UTC; cause not
+inferred), so `auth:ensure` stops before any token probe. One `auth:session -- --browser` attempt
+printed Google's link and timed out unopened: WSL has no browser launcher and the runner enters no
+credentials. Owner recovery in the WSL repository:
+`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` (or `auth:session -- --browser`).
+The enrolled owner Admin browser profile remains READY on the canonical origin.
+The release watcher is not running: the flock is free, no watcher process exists, and the scheduled
+task "PMI KC release watcher" is Ready but its last run ended blocked `ci_not_successful` for e903b68.
+After `auth:ensure` reports READY, resume the same lock with `npm run release:watch:once` (native
+Node) or restart that task. Do not start a competing watcher.
 State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; complete, lastDeployedSha 0fe69bb.
 Logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f4-resume.log and native-errors-f4-resume.log.
-Earlier logs remain. Keep the existing lock and serialized release mechanism.
 
 ## Working checkout and evidence
 
