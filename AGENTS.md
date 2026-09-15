@@ -25,7 +25,8 @@ Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1
 
 September 14 Feature 1 (lease information and record distinction) is complete and deployed through
 PR #83. Actual unit/contact facts, prominent guidance and owner-header all-lease links are serving.
-Features 2-6 have not started; continue Feature 2 from current main after this completed release.
+Feature 2 is in progress from current main on `codex/renewal-process-glossary`; finish its
+independent verification, merge and production release before Feature 3. Features 3-6 have not started.
 Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15 without entering
 passwords, codes, passkeys or CAPTCHAs. Existing identity, permission and safety boundaries remain.
 

@@ -17,7 +17,7 @@ passed. Its failure was not relabeled as a pass. Checkpoint phase is complete.
 
 CLI/ADC and enrolled Admin browser authentication on both origins passed automatically on
 September 15. Existing account, policy, permission scope, action keys and unsent-draft boundaries
-remain. Features 2-6 have not started; Feature 2 is next from current main.
+remain. Feature 2 is in progress on `codex/renewal-process-glossary`, based on freshly inspected main `91bc576`. Its collapsible process glossary explains the current checklist, optional inputs, value destinations and completion branches. Existing cycle-scoped saves, dirty-input preservation and approved-term document routing are retained. Features 3-6 have not started.
 Current receipts and observation report remain outside Git under `/home/josiah/.local/state/pmi-kc-release`.
 
 ## Fact Ledger

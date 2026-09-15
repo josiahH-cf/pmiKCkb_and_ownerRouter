@@ -10,7 +10,7 @@ as `2950542dbcf9611838d6337fb0ea41db744e7ad0` and now serves at 100% traffic. Ac
 contact rosters, prominent guidance and owner-header all-lease navigation are serving.
 Exact main CI 34900353548 and all existing release stages passed. The initial aggregate assurance
 reported unverified; the unchanged retry passed before promotion. Final observation passed in
-378,690 ms with a 300,000 ms window. Features 2-6 have not started; Feature 2 is next.
+378,690 ms with a 300,000 ms window. Feature 2 is in progress on `codex/renewal-process-glossary`; its glossary and guided completion changes are not yet merged or deployed. Features 3-6 have not started.
 
 Feature 1 local verification: 6,528 unit tests passed (four existing skips), all 201 backend tests,
 policy checks and production build passed. One earlier documentation-heading failure was corrected;

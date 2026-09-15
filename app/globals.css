@@ -1917,6 +1917,59 @@ textarea:disabled {
   padding: 0;
 }
 
+/* The glossary collapses independently; editors stay mounted during navigation. */
+.renewal-guided-workspace {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.renewal-guided-content {
+  min-width: 0;
+}
+
+.renewal-process-sidebar {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--ui-text);
+  background: var(--ui-surface);
+}
+
+.renewal-glossary-entry {
+  border-left: 1px solid var(--ui-border);
+  margin-block: var(--space-2);
+  padding-left: var(--space-2);
+}
+
+.renewal-process-sidebar summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: var(--space-2);
+  font-weight: 600;
+}
+
+.renewal-process-sidebar summary:focus-visible {
+  outline: 2px solid var(--ui-border-interactive);
+  outline-offset: 2px;
+}
+
+.renewal-process-sidebar p {
+  font-size: 0.9rem;
+}
+
+@media (min-width: 1200px) {
+  .renewal-guided-workspace:has(.renewal-process-glossary[open]) {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  }
+  .renewal-process-sidebar:has(.renewal-process-glossary[open]) {
+    position: sticky;
+    top: var(--space-4);
+    max-height: calc(100dvh - 2 * var(--space-4));
+    overflow-y: auto;
+  }
+}
+
 /* S82: the table-first renewal desk. Column-owned controls, one labelled contained scroll region on
    narrow layouts (never page-level overflow), 44px targets, and non-color status treatments. */
 .renewal-table-toolbar {
