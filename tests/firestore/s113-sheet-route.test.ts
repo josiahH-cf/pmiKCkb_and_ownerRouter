@@ -2148,9 +2148,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       let mounted = await mountCurrent();
       for (const name of [
         "Lease details",
-        "Comps",
-        "Owner",
-        "Tenant",
+        "Market rent comparison",
+        "Owner approval",
+        "Tenant offer and response",
         "Documents and completion",
       ])
         expect(screen.getByRole("region", { name })).toBeInTheDocument();
@@ -2219,7 +2219,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ).toBeNull();
 
         // No owner decision is needed for the restored operator-triggered lookup.
-        const comps = within(screen.getByRole("region", { name: "Comps" }));
+        const comps = within(
+          screen.getByRole("region", { name: "Market rent comparison" }),
+        );
         fireEvent.click(
           comps.getByRole("button", { name: "Look up market comps (reference only)" }),
         );
@@ -2230,7 +2232,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).toBeEnabled(),
         );
         change(
-          comps.getByLabelText("Typed evidence source / review note"),
+          comps.getByLabelText("Source of the comparison and review notes"),
           "Reviewed retained fixture RentCast results",
         );
         fireEvent.click(comps.getByRole("button", { name: "Save comp preparation" }));
@@ -2272,7 +2274,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         rent = "1100",
       ) {
         const root = within(
-          screen.getByRole("region", { name: audience === "owner" ? "Owner" : "Tenant" }),
+          screen.getByRole("region", {
+            name: audience === "owner" ? "Owner approval" : "Tenant offer and response",
+          }),
         );
         const control = root.getByLabelText(
           audience === "owner" ? "Owner response" : "Tenant response",
@@ -2304,7 +2308,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       }
       await respond("owner", "approved_terms");
       if (start === "fresh") {
-        const tenant = within(screen.getByRole("region", { name: "Tenant" }));
+        const tenant = within(
+          screen.getByRole("region", { name: "Tenant offer and response" }),
+        );
         await waitFor(() =>
           expect(
             (tenant.getByLabelText("tenant plain text body") as HTMLTextAreaElement)
@@ -2334,18 +2340,18 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ).toBe(200);
         mounted.unmount();
         mounted = await mountCurrent();
-        const message = within(screen.getByRole("region", { name: "Tenant" }));
+        const message = within(
+          screen.getByRole("region", { name: "Tenant offer and response" }),
+        );
         await message.findByLabelText("Current lease origin");
         change(message.getByLabelText("Current lease origin"), "pmi");
         change(
           message.getByLabelText("Lease-origin source"),
           "Reviewed fixture original lease",
         );
-        for (const control of message.getAllByLabelText("Applicability"))
+        for (const control of message.getAllByLabelText("Does this charge apply?"))
           change(control, "false");
-        for (const control of message.getAllByLabelText(
-          "Applicability and charge source",
-        ))
+        for (const control of message.getAllByLabelText("Charge source"))
           change(control, "Reviewed fixture original charge schedule");
         change(message.getByLabelText("Sender name"), "Emulator Staff");
         change(
@@ -2371,7 +2377,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         mounted.unmount();
         mounted = await mountCurrent();
-        const resumed = within(screen.getByRole("region", { name: "Tenant" }));
+        const resumed = within(
+          screen.getByRole("region", { name: "Tenant offer and response" }),
+        );
         await waitFor(() =>
           expect(
             resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),

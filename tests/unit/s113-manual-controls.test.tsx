@@ -201,7 +201,7 @@ describe("S113 mounted manual and comp controls", () => {
         },
       },
     ]);
-    fireEvent.change(screen.getByLabelText("Typed evidence source / review note"), {
+    fireEvent.change(screen.getByLabelText("Source of the comparison and review notes"), {
       target: { value: "Reviewed provider range" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save comp preparation" }));

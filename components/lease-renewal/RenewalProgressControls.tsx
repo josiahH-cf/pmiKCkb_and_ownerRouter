@@ -1109,11 +1109,12 @@ export function OwnerDecisionForm({
         </>
       ) : null}
       <p className="muted">
-        Comp basis (optional). Your own numbers, shown source-tagged in the owner email. A
-        separate comp-derived suggestion needs Admin approval before it enters a draft.
+        Market comparison (optional). Your saved numbers and their source appear in the
+        owner message. A separate provider-derived suggestion still needs Admin approval
+        before it enters a draft.
       </p>
       <div className="ui-row">
-        <Field htmlFor={id.rangeLow} label="Comp low (typed, optional)">
+        <Field htmlFor={id.rangeLow} label="Market rent: low estimate (optional)">
           <input
             id={id.rangeLow}
             inputMode="decimal"
@@ -1123,7 +1124,7 @@ export function OwnerDecisionForm({
             value={rangeLow}
           />
         </Field>
-        <Field htmlFor={id.rangeHigh} label="Comp high (typed, optional)">
+        <Field htmlFor={id.rangeHigh} label="Market rent: high estimate (optional)">
           <input
             id={id.rangeHigh}
             inputMode="decimal"
@@ -1133,7 +1134,7 @@ export function OwnerDecisionForm({
             value={rangeHigh}
           />
         </Field>
-        <Field htmlFor={id.pmiNumber} label="PMI rental-analysis number (optional)">
+        <Field htmlFor={id.pmiNumber} label="PMI recommended monthly rent (optional)">
           <input
             id={id.pmiNumber}
             inputMode="decimal"
@@ -1432,7 +1433,8 @@ export function OwnerDecisionForm({
         <>
           <Field
             htmlFor={`${id.rangeLow}-source`}
-            label="Typed evidence source / review note"
+            label="Source of the comparison and review notes"
+            hint="Required to save comparison preparation. Identify the actual listings, report, or review supporting your numbers."
           >
             <input
               id={`${id.rangeLow}-source`}

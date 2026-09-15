@@ -262,23 +262,23 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
     expect(within(navigation).getAllByRole("link")).toHaveLength(5);
     for (const name of [
       "Lease details",
-      "Comps",
-      "Owner",
-      "Tenant",
+      "Market rent comparison",
+      "Owner approval",
+      "Tenant offer and response",
       "Documents and completion",
     ]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
     expect(screen.getAllByText("Do this next")).toHaveLength(1);
     expect(screen.queryByText(/renewal-v1/)).not.toBeInTheDocument();
-    expect(screen.getByText("Build docs readiness")).toBeInTheDocument();
+    expect(screen.getByText("Document preparation")).toBeInTheDocument();
   });
 
   it("keeps the complete dashboard inspectable from upcoming and invalid historical step URLs", () => {
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     for (const step of ["document-packet", "not-a-step"]) {
       render(<RenewalWorkspace selectedStepId={step} workspace={workspace} />);
-      expect(screen.getByText("Build docs readiness")).toBeInTheDocument();
+      expect(screen.getByText("Document preparation")).toBeInTheDocument();
       expect(
         screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
       ).toBeInTheDocument();
@@ -294,10 +294,13 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
     const workspace = getRenewalLeaseWorkspace("lease-1207-walnut-2")!;
     render(<RenewalWorkspace selectedStepId="tenant-decision" workspace={workspace} />);
     expect(
-      within(screen.getByRole("region", { name: "Tenant" })).getByRole("heading", {
-        name: "Renewal-notice draft",
-        level: 2,
-      }),
+      within(screen.getByRole("region", { name: "Tenant offer and response" })).getByRole(
+        "heading",
+        {
+          name: "Renewal-notice draft",
+          level: 2,
+        },
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
   });

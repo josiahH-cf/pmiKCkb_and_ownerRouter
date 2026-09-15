@@ -10,7 +10,7 @@ import type {
 
 export const DASHBOARD_NAVIGATION_COPY = {
   "current-operations":
-    "Review current operations and ask about approved PMI KC guidance.",
+    "Ask about a property or process, and see work that needs attention.",
   "shared-ai-work": "Ask AI about current work, then open My Work to act.",
 } as const;
 
@@ -55,7 +55,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "my-work",
         label: "My Work",
-        description: "See assigned work, follow-ups, and items you own.",
+        description: "Open your assigned tasks and follow-ups.",
         href: "/work",
         activePaths: ["/work"],
         icon: "clipboard-checklist",
@@ -73,7 +73,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "approval-queue",
         label: "Approval Queue",
-        description: "Review work waiting for an authorized decision.",
+        description: "See requests waiting for an approval decision.",
         href: "/approval-queue",
         activePaths: ["/approval-queue"],
         icon: "approval-tray",
@@ -89,7 +89,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "lease-renewal",
         label: "Lease Renewal",
-        description: "Review upcoming renewals and complete the next required action.",
+        description: "Find a lease, check its details, and follow the renewal steps.",
         href: "/lease-renewal",
         activePaths: ["/lease-renewal"],
         icon: "calendar-renew",
@@ -107,7 +107,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "internal-processes",
         label: "Internal Processes",
-        description: "Browse internal workflows and the process areas that support them.",
+        description: "Find the instructions and tools for each type of work.",
         href: "/spaces",
         activePaths: ["/spaces", "/processes"],
         icon: "workflow-nodes",
@@ -132,7 +132,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "connections",
         label: "Connections",
-        description: "Check connected-service status and available setup actions.",
+        description: "Check service connections and open their setup controls.",
         href: "/connections",
         activePaths: ["/connections"],
         icon: "plug-connected",
@@ -141,7 +141,7 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
       {
         id: "communications",
         label: "Communications",
-        description: "Review workflow-linked messages, replies, and unsent drafts.",
+        description: "Open messages, replies, and unsent drafts linked to your work.",
         href: "/gmail-hub",
         activePaths: ["/gmail-hub"],
         icon: "message-envelope",

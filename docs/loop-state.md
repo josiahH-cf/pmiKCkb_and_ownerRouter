@@ -4,22 +4,28 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Feature 5 (dark-mode readability) is implemented, pushed, merged through PR #90 and deployed.
-Features 1-5 are complete. Feature 6 has not started.
+Feature 6 (global clarity and response times) is implemented on
+`codex/renewal-clarity-response-times`; verification passed. It is not yet pushed,
+merged or deployed. Features 1-5 remain deployed.
 
-The message renderer emits inline black body text and a fixed orange role span for email formatting.
-That HTML was displayed directly against the application's dark surface. The on-screen preview now
-uses the existing semantic body/link text colors, overriding only those inline presentation colors.
-The generated HTML, clipboard bytes, plain-text field, subject/actions and governed unsent Gmail
-transport retain their existing behavior. No provider effect or customer value changed.
+The shared navigation now describes each destination's purpose. The Dashboard and renewal table
+explain where to start; lease sections name the work they contain and explain their inputs and saved
+destinations. Market estimates, charge frequency, source notes and staff activity fields use plain
+wording. Existing field identifiers, source provenance, value routing and draft/write boundaries remain.
 
-Existing message-content, preparation-control and theme-token tests passed (11). Full repository
-verification passed: 6,532 unit tests, 201 backend tests, formatting, lint, types, policy checks and
-production build (`/tmp/pmi-f5-verify-final.log`). The existing release-metadata assertion was aligned
-with the verified predecessor. PR CI 34935499548 passed after retrying the unchanged backend job
-following one existing packet-save test timeout; exact-main CI 34935971798 passed on its first attempt.
-The watcher completed candidate assurance, promotion and two production observation checkpoints.
-Independent serving/version/configuration readback passed at 06:44:16 UTC. No live customer effect ran.
+The global Admin navigation previously loaded request rows and the managed-user directory just to
+show a pending count. It now calls the existing count query after the same current-Admin check.
+Independent Dashboard and shared decision-summary reads run together, retaining scope filtering,
+source freshness and independent failure handling. No cache lifetime, policy or runtime setting changed.
+These are observed code-path improvements; no numerical response-time claim is made.
+
+Existing label assertions are aligned with the new copy. The release reader requires the captured
+Feature 5 commit's old section labels and the candidate's new labels, preserving all section,
+destination, visibility and safety checks. Full verification passed: 6,532 unit tests, 201 backend
+tests, formatting, lint, types, policy checks and production build. Existing selectors were corrected
+for the renamed sections; no test or deadline was added or weakened. Unit results are retained in
+`/tmp/pmi-f6-verify-final.log`, backend results in `/tmp/pmi-f6-backend-rerun.log`, and remaining policy
+and build results in `/tmp/pmi-f6-policy-build.log`. Push, merge and serialized production release remain.
 
 ## Verified production
 
@@ -61,10 +67,11 @@ Earlier logs remain. Keep the existing lock and serialized release mechanism.
 
 ## Working checkout and evidence
 
-Main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`; both reviewed ignored env files are present.
+Feature checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`; both reviewed ignored env files are present.
 Original Windows checkout remains on Feature 1; its unrelated broken turn-diff ref was not altered.
 Use native Node 22.23.2 and the existing Java 21 runtime for verification.
-Feature 5 local verification: `/tmp/pmi-f5-verify-final.log` (passed); focused output: `/tmp/pmi-f5-focused.log`.
+Feature 6 verification uses the three logs above; focused checks are retained in `/tmp/pmi-f6-focused-final.log`,
+`/tmp/pmi-f6-desk-focused.log` and `/tmp/pmi-f6-follow-up-focused.log`.
 Observation: `observation-pmi-kc-app-rmu2a59tx-28c0417b4693-1789454242206.json` under the watcher state directory.
 Failed-candidate diagnostics: `f3-canary-diagnostic.json` and `f3-reconciliation-diagnostic.json`.
 Archived checkpoint: `checkpoint-3287f8a0874f939abfa2df7260b523b97545e14b-superseded-by-a5852eaf8b19c1af48295ec8fff77814a91a10c7.json` plus `.reason.json`.
@@ -91,4 +98,4 @@ is `sha256:72ebf49f248c6c409fab424ab24cd1f9153c0d32b96d64185bfd0b1099c8a3da`.
 
 Successful Feature 4 observation: `observation-pmi-kc-app-rmu286tg6-b24d5e15315b-1789450852413.json`,
 with matching v4 receipts in the watcher state directory. Earlier failed evidence remains unchanged.
-Next: Feature 6 global clarity and response times, beginning with fresh read-only inspection of main.
+Current: push and merge verified Feature 6, then complete its existing serialized production release.

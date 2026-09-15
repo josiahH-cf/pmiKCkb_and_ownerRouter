@@ -377,10 +377,10 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
     render(
       <OwnerDecisionForm address="104 NE Lindsay Ave" current={null} leaseId="L1" />,
     );
-    expect(screen.getByLabelText(/Comp low \(typed/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Comp high \(typed/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Comp low \(typed/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Comp high \(typed/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Market rent: low estimate/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Market rent: high estimate/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Market rent: low estimate/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Market rent: high estimate/)).toBeInTheDocument();
   });
 
   // AC-S60-8 + AC-S60-9 (component half): the internal signal renders from a PERSISTED provider

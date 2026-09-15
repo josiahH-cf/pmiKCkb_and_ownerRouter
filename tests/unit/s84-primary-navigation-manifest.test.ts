@@ -62,7 +62,7 @@ describe("S84 primary-navigation manifest", () => {
   it("keeps the transitional Dashboard copy paired to the pre-S95 composition", () => {
     expect(ACTIVE_DASHBOARD_COMPOSITION).toBe("current-operations");
     expect(DASHBOARD_NAVIGATION_COPY[ACTIVE_DASHBOARD_COMPOSITION]).toBe(
-      "Review current operations and ask about approved PMI KC guidance.",
+      "Ask about a property or process, and see work that needs attention.",
     );
     expect(DASHBOARD_NAVIGATION_COPY["shared-ai-work"]).toBe(
       "Ask AI about current work, then open My Work to act.",
@@ -98,7 +98,7 @@ describe("S84 primary-navigation manifest", () => {
     ]);
     expect(findItem(renewalsOnly, "approval-queue")).toMatchObject({
       href: "/approval-queue",
-      description: "Review work waiting for an authorized decision.",
+      description: "See requests waiting for an approval decision.",
     });
   });
 
@@ -177,8 +177,7 @@ describe("S84 primary-navigation manifest", () => {
           {
             id: "lease-renewal",
             label: "Lease Renewal",
-            description:
-              "Review upcoming renewals and complete the next required action.",
+            description: "Find a lease, check its details, and follow the renewal steps.",
             href: "/lease-renewal",
             activePaths: ["/lease-renewal"],
             icon: "calendar-renew",

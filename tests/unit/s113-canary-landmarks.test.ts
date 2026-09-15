@@ -7,7 +7,13 @@ import {
   workspaceSelectorsForPhase,
 } from "../../scripts/run-production-canary";
 
-const names = ["Lease details", "Comps", "Owner", "Tenant", "Documents and completion"];
+const names = [
+  "Lease details",
+  "Market rent comparison",
+  "Owner approval",
+  "Tenant offer and response",
+  "Documents and completion",
+];
 const ids = ["lease-details", "comps", "owner", "tenant", "documents"];
 function pageFixture(
   options: {
@@ -107,7 +113,7 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
   it("requires the complete five-section candidate with exact destinations", async () => {
     expect(await hasRenewalWorkspaceLandmarks(pageFixture())).toBe(true);
     for (const options of [
-      { missingRegion: "Tenant" },
+      { missingRegion: "Tenant offer and response" },
       { badHref: true },
       { hidden: true },
       { duplicateNav: true },

@@ -186,7 +186,9 @@ describe("S75 shared follow-up consumers", () => {
 
     render(<RenewalWorkspace workspace={workspace} />);
 
-    const tenant = within(screen.getByRole("region", { name: "Tenant" }));
+    const tenant = within(
+      screen.getByRole("region", { name: "Tenant offer and response" }),
+    );
     expect(tenant.getByText("Waiting on tenant")).toBeInTheDocument();
     expect(
       tenant.getByText(/Last verified contact: 2026-08-20T12:00:00.000Z/),

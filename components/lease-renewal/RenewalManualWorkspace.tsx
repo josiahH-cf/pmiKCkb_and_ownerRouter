@@ -271,7 +271,7 @@ function CycleControl({
       <p>
         {current
           ? "Starting another cycle preserves this cycle as history. Its approvals and completion will not carry over."
-          : "Select the current reviewed cycle before saving preparation or staff activity."}
+          : "Start by checking the date and source below. Confirm this renewal cycle to save message inputs, comparisons and completed work against this lease."}
       </p>
       <Field
         htmlFor={`${id}-date`}
@@ -469,7 +469,11 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
             ) : null}
           </select>
         </Field>
-        <Field htmlFor={`${id}-source`} label="Source or channel">
+        <Field
+          htmlFor={`${id}-source`}
+          label="Source or channel"
+          hint="Identify the actual email, call, document or system record that supports this entry."
+        >
           <input
             id={`${id}-source`}
             value={source}
@@ -494,7 +498,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
           <>
             <Field
               htmlFor={`${id}-policy`}
-              label="Existing approved policy or artifact predicate"
+              label="Approved policy or document supporting Not applicable"
             >
               <input
                 id={`${id}-policy`}
@@ -518,11 +522,11 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
             <p>
               If applicability or policy is unknown, keep this work Not started or
               Waiting. Required documents and signatures cannot be waived here; their
-              artifact predicates remain in the packet review.
+              document requirements remain in the packet review.
             </p>
           </>
         ) : null}
-        <Field htmlFor={`${id}-when`} label="Actual occurrence time (optional)">
+        <Field htmlFor={`${id}-when`} label="When the work happened (optional)">
           <input
             type="datetime-local"
             id={`${id}-when`}

@@ -408,8 +408,8 @@ function MessagePreparationEditor({
       ariaLabel={`${channel === "owner" ? "Owner" : "Tenant"} message preparation`}
     >
       <p className="muted">
-        Supplied September 10 template · preparation and copy do not require Gmail. A
-        saved preparation or draft does not mark this message sent.
+        Review the message inputs, save your edits, then copy the message or prepare an
+        unsent Gmail draft. A person sends it; saving here does not record delivery.
       </p>
       {!cycleId ? <p>Select the current renewal cycle above to retain edits.</p> : null}
       {notice ? <p role="status">{notice}</p> : null}
@@ -499,7 +499,7 @@ function MessagePreparationEditor({
                         <div className="ui-stack">
                           <Field
                             htmlFor={`${base}-${charge.id}-applies`}
-                            label="Applicability"
+                            label="Does this charge apply?"
                           >
                             <select
                               id={`${base}-${charge.id}-applies`}
@@ -526,7 +526,7 @@ function MessagePreparationEditor({
                             <>
                               <Field
                                 htmlFor={`${base}-${charge.id}-amount`}
-                                label="Amount"
+                                label="Charge amount ($)"
                               >
                                 <input
                                   id={`${base}-${charge.id}-amount`}
@@ -546,7 +546,7 @@ function MessagePreparationEditor({
                               </Field>
                               <Field
                                 htmlFor={`${base}-${charge.id}-cadence`}
-                                label="Cadence"
+                                label="How often is it charged?"
                               >
                                 <select
                                   id={`${base}-${charge.id}-cadence`}
@@ -565,7 +565,7 @@ function MessagePreparationEditor({
                               </Field>
                               <Field
                                 htmlFor={`${base}-${charge.id}-date`}
-                                label="Effective date"
+                                label="Charge start date"
                               >
                                 <input
                                   id={`${base}-${charge.id}-date`}
@@ -602,7 +602,8 @@ function MessagePreparationEditor({
                           ) : null}
                           <Field
                             htmlFor={`${base}-${charge.id}-source`}
-                            label="Applicability and charge source"
+                            label="Charge source"
+                            hint="Identify the record or approved policy used to confirm this charge and whether it applies."
                           >
                             <input
                               id={`${base}-${charge.id}-source`}

@@ -295,16 +295,15 @@ describe("RenewalDesk live link", () => {
   it("shows the live-review link only when a href is provided", () => {
     const { rerender } = render(<RenewalDesk view={getRenewalDeskView()} />);
     expect(
-      screen.queryByRole("link", { name: /View live review/ }),
+      screen.queryByRole("link", { name: /Review source differences/ }),
     ).not.toBeInTheDocument();
 
     rerender(
       <RenewalDesk liveReviewHref="/lease-renewal/live" view={getRenewalDeskView()} />,
     );
-    expect(screen.getByRole("link", { name: /View live review/ })).toHaveAttribute(
-      "href",
-      "/lease-renewal/live",
-    );
+    expect(
+      screen.getByRole("link", { name: /Review source differences/ }),
+    ).toHaveAttribute("href", "/lease-renewal/live");
   });
 });
 

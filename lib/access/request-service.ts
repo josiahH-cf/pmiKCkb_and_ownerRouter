@@ -311,6 +311,15 @@ export async function cancelAccessRequest(
   return toAccessRequestReceipt(updated);
 }
 
+/** The global navigation needs only the current count, not request rows or directory listings. */
+export async function readAdminAccessRequestCount(
+  actor: AuthenticatedUser,
+  dependencies: AccessRequestServiceDependencies = defaultDependencies(),
+): Promise<number> {
+  await assertCurrentAdmin(actor, dependencies.directoryAuth);
+  return dependencies.repository.countPendingRequests();
+}
+
 export async function listAdminAccessRequests(
   actor: AuthenticatedUser,
   filters: AccessAdminListFilters,

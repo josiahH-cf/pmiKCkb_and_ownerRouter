@@ -46,9 +46,9 @@ describe("S113 F1 consolidated dashboard", () => {
     render(<RenewalWorkspace workspace={workspace} selectedStepId="verify-renewal" />);
     for (const name of [
       "Lease details",
-      "Comps",
-      "Owner",
-      "Tenant",
+      "Market rent comparison",
+      "Owner approval",
+      "Tenant offer and response",
       "Documents and completion",
     ]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("S113 F1 consolidated dashboard", () => {
     expect(screen.queryByRole("navigation", { name: "Renewal phases" })).toBeNull();
     expect(
       within(screen.getByRole("region", { name: "Documents and completion" })).getByText(
-        "Build docs readiness",
+        "Document preparation",
       ),
     ).toBeInTheDocument();
   });
