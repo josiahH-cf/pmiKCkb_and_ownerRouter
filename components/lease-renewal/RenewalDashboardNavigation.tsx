@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   RENEWAL_DASHBOARD_SECTIONS,
@@ -267,6 +267,7 @@ export function RenewalDashboardNavigation({
   selectedStepId?: string;
   children?: ReactNode;
 }) {
+  const [glossaryOpened, setGlossaryOpened] = useState(false);
   useEffect(() => {
     const focusTarget = () => {
       const id =
@@ -300,16 +301,23 @@ export function RenewalDashboardNavigation({
   return (
     <div className="renewal-guided-workspace">
       <aside className="renewal-process-sidebar" aria-label="Renewal process help">
-        <details className="renewal-process-glossary">
+        <details
+          className="renewal-process-glossary"
+          onToggle={(event) => {
+            if (event.currentTarget.open) setGlossaryOpened(true);
+          }}
+        >
           <summary>Process glossary</summary>
           <p>
             Start with Lease details and the reviewed cycle. Follow the next action above,
             then use this guide to see what each step needs and where saved values go.
             Expand any item independently.
           </p>
-          {PROCESS_GLOSSARY.map((item) => (
-            <GlossaryEntry key={item.title} item={item} />
-          ))}
+          {glossaryOpened
+            ? PROCESS_GLOSSARY.map((item) => (
+                <GlossaryEntry key={item.title} item={item} />
+              ))
+            : null}
         </details>
       </aside>
       <div className="ui-stack renewal-guided-content">
