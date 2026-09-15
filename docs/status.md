@@ -4,31 +4,18 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-Feature 4 is IMPLEMENTED / PUSHED / MERGED / DEPLOYED. PR #89 merged `32d3ab5` as `4ece4ba`.
-Serving SHA `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` / `pmi-kc-app-rmu286tg6-b24d5e15315b`
-completed the resumed production release. Features 1-4 are deployed; Features 5-6 have not started.
+Feature 5 (dark-mode readability) is implemented and verified on `codex/renewal-dark-mode-text`. It is not yet pushed, merged or deployed. Features 1-4 remain deployed; Feature 6 waits.
 
-The reported retained lookup records HTTP 400. The exact query returned an insufficient-comparables
-error. With subject attributes unchanged, 2- and 5-mile requests failed; 10 miles returned HTTP 200
-with 15 comparables. The repair explains this refusal and allows an operator-selected radius retained
-through query/cache/observation/market basis. Base rent, separate recurring charges, source provenance,
-provider order, quota and action controls remain. Historical results no longer claim a fresh request.
-Provider guidance: https://developers.rentcast.io/reference/property-valuation.
-One successful diagnostic read was billable; raw responses/customer values remain outside Git.
-No customer draft/send or system-of-record write ran.
+The message renderer emits inline black body text and a fixed orange role span for email formatting.
+That HTML was displayed directly against the application's dark surface. The on-screen preview now
+uses the existing semantic body/link text colors, overriding only those inline presentation colors.
+The generated HTML, clipboard bytes, plain-text field, subject/actions and governed unsent Gmail
+transport retain their existing behavior. No provider effect or customer value changed.
 
-Existing focused tests passed (65); full local verification passed 6,532 units, 201 backend tests,
-policies/build. PR CI 34929220447 passed after two failed-job retries at different existing journey
-waits; no code or assertions changed. Main CI 34929736602 and final CI 34931918778 passed.
-The resumed release passed v4 assurance/promotion and two observation checkpoints in 378,909 ms.
-Independent serving/version/runtime readback passed at 05:47:39 UTC. The watcher is active and complete.
-
-The earlier `4ece4ba` / `pmi-kc-app-rmu26u6xc-9a156b302dac` observation failed on a 30,006 ms
-Dashboard navigation timeout and verified rollback. Failed evidence remains outside Git. Aggregate
-assurance failures retain their actual outcomes without an inferred cause. The existing complete
-assurance function passed during a private diagnostic with the watcher paused between attempts;
-no code, deadline, route assertion or release gate was weakened. The watcher then promoted the exact
-receipted revision and completed observation. Feature 5 starts next from freshly inspected main.
+Existing message-content, preparation-control and theme-token tests passed (11). Full repository
+verification passed: 6,532 unit tests, 201 backend tests, formatting, lint, types, policy checks and
+production build (`/tmp/pmi-f5-verify-final.log`). The existing release-metadata assertion was aligned
+with the verified Feature 3 predecessor. Push, merge and the serialized production release remain.
 
 ## Serving release
 

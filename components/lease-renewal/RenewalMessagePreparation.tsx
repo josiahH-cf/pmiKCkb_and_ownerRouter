@@ -936,6 +936,7 @@ function MessagePreparationEditor({
               ))}
               <div
                 aria-label={`${channel} formatted body`}
+                className="renewal-message-preview"
                 dangerouslySetInnerHTML={{ __html: content.htmlBody }}
               />
               {channel === "tenant" ? (

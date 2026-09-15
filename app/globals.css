@@ -3303,3 +3303,13 @@ textarea:disabled {
     width: 100%;
   }
 }
+
+/* Email HTML keeps its approved inline colors for clipboard/Gmail. Only the in-app
+   preview follows theme roles; renderMessageParagraphs emits one wrapper and role spans. */
+.renewal-message-preview > div {
+  color: var(--ui-text) !important;
+}
+
+.renewal-message-preview span {
+  color: var(--action-link) !important;
+}

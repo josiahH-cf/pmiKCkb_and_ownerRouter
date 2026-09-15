@@ -34,7 +34,7 @@ describe("current provider and environment documentation", () => {
     expect(handoff).toContain(
       "Captured predecessor: `pmi-kc-app-rmu2508wj-67ca3e173ab5` from commit",
     );
-    expect(handoff).toContain("e689586ffd1a8b369a86df4c1a1bffa478bd609d");
+    expect(handoff).toContain("a5852eaf8b19c1af48295ec8fff77814a91a10c7");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");

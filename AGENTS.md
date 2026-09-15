@@ -27,8 +27,8 @@ September 14 Features 1-4 are complete and deployed. PR #83 provides lease/unit/
 and owner filtering; PRs #84/#85/#86 provide the glossary and missing-report rollback repair;
 PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs RentCast refusal handling
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
-remain preserved. Its resumed release passed all existing gates. The watcher is active; Features 5-6
-have not started. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
+remain preserved. Its resumed release passed all existing gates. The watcher is active; Feature 5 is being implemented and Feature 6
+has not started. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
 identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
