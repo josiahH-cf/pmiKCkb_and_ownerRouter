@@ -7,25 +7,40 @@ is not active guidance.
 
 ## Current feature
 
-September 14 Feature 4 (RentCast failure repair) is implemented on
-`codex/renewal-rentcast-repair`; full verification passed. It is not yet pushed, merged or deployed.
-Features 1-3 remain deployed; Features 5-6 have not started.
+September 14 Feature 4 (RentCast failure repair) is IMPLEMENTED / PUSHED / MERGED, but its
+production release FAILED OBSERVATION and was ROLLED BACK. Features 1-3 remain deployed;
+Features 5-6 have not started. Remain on Feature 4.
 
-The retained reported lookup records HTTP 400. Replaying its exact query returned RentCast's
-insufficient-comparables error. Keeping every subject attribute unchanged, 2- and 5-mile requests
+Implementation `32d3ab5566f4a6e4a46672c298e44491fca1a923` was pushed on
+`codex/renewal-rentcast-repair` and merged through PR #89 as
+`4ece4ba11e5cb35c0f6703fd19d586a423d57697`. Existing focused tests passed (65), and full local
+verification passed 6,532 units, 201 backend tests, policies and production build. PR CI 34929220447
+passed after two failed-job retries: different waits in the existing mounted backend journey failed
+before the unchanged job passed. Exact main CI 34929736602 passed all five jobs on its first attempt.
+
+The reported retained lookup records HTTP 400. An exact-query diagnostic returned the provider's
+insufficient-comparables error. Keeping all subject attributes unchanged, 2- and 5-mile requests
 failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
-customer values remain outside Git. These diagnostic reads made one billable successful request;
-no customer draft/send or system-of-record write ran.
-
-The repair distinguishes that provider refusal, exposes an operator-selected positive radius and
-retains the actual radius through the query/cache/observation/market basis. Each lookup remains one
-operator-triggered request; no automatic radius fallback occurs. Source attributes, property-type
-omission, base-rent provenance and separate recurring charges remain intact. The initial 2-mile
-radius remains; historical lookup display no longer claims a fresh request occurred on page load.
+customer values remain outside Git. Diagnostic reads made one successful billable request; no
+customer draft/send or system-of-record write ran. The adapter passed replay of both actual responses.
+The repair explains this refusal and exposes an operator-selected radius, retaining that radius
+through the query, cache, observation and saved market basis. Source provenance, contractual base
+rent, separate recurring charges, provider order and existing quota/action controls remain intact.
 Provider guidance: https://developers.rentcast.io/reference/property-valuation.
-Existing focused tests passed (65); the actual private failure/success responses passed adapter replay.
-Full verification passed: 6,532 unit tests, 201 backend tests, policies and production build.
-The existing PR/CI/serialized production release remains to complete Feature 4.
+
+Candidate `pmi-kc-app-rmu26u6xc-9a156b302dac` passed build, smoke, configuration, domains and eventual
+v4 assurance, then promotion at 05:00:16 UTC. Earlier aggregate assurance failures remain in the
+watcher log; separate Admin and reconciliation diagnostics passed without establishing their cause.
+Production observation failed after 417,350 ms with one successful checkpoint: Dashboard navigation
+timed out at 30,006 ms, with one request failure and missing landmark. All 311 records reconciled;
+monitoring reported zero candidate 5xx and unresolved effects. No auth mismatch or mutation occurred.
+The existing process required rollback and verified Feature 3 restored at 100% traffic. Independent
+canonical/tagged version and runtime readback confirmed that restoration at 05:09:18 UTC.
+
+The checkpoint is terminal `rolled_back_verified`, not complete. The watcher process was stopped
+between attempts to prevent documentation closure from requeuing the same failed runtime. Its
+scheduled task and release lock file remain intact. Resume Feature 4 from the preserved failure;
+do not start Feature 5 or clear the failed receipt/checkpoint. Automatic approved authentication works.
 
 ## Fact Ledger
 
@@ -68,7 +83,7 @@ The existing PR/CI/serialized production release remains to complete Feature 4.
 | F-ASSURANCE-CANARY      | The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain. Exact candidate and canonical post-promotion Admin browser checks passed.                                                                                                                                                                                                                                                                                                                                                                                                                               | Verified | Current committed code/tests; docs/evidence/s113-implementation-review-2026-09-10.md; exact release receipts and bodyless readbacks.                                | 2026-09-11  | —          | 2026-10-11 |
 | F-AUTHORIZED-DOMAINS    | The release completed exact authorized-domain readback and bounded superseded-candidate/new-candidate replacement. Canonical and exact new candidate authentication passed; no broader domain pruning was performed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Verified | Current committed code/tests; docs/evidence/s113-implementation-review-2026-09-10.md; exact release receipts and bodyless readbacks.                                | 2026-09-11  | —          | 2026-10-11 |
 | F-AUTH-AUTOMATION       | Owner rulings September 8 and 10 authorize only the existing josiah@pmikcmetro.com account and bound WSL CLI/ADC store for local release work, and its displayed Admin browser session on both exact origins. Editor browser is not_run; backend role restrictions remain. The owner retains ordinary Admin authority, while assurance applies its read-only request guard including known state-changing GET refusals. Dedicated verification accounts retain their separate server mutation refusal. No new account/IAM/claim/store or provider grant. The 24-hour longevity proof remains separate and unverified.                                                                                                                                                                                                                                                                                                                                                                                                    | Verified | docs/evidence/s113-implementation-review-2026-09-10.md; current code/tests and bodyless readbacks.                                                                  | 2026-09-10  | —          | 2026-10-10 |
-| F-LOCAL-RELEASE         | The serialized watcher completed Feature 3 at a5852eaf8b19c1af48295ec8fff77814a91a10c7, CI 34926252129, revision pmi-kc-app-rmu2508wj-67ca3e173ab5, with v4 assurance/promotion and passed observation. Checkpoint is complete and lastDeployedSha is a5852eaf8b19c1af48295ec8fff77814a91a10c7. The same watcher uses the native checkout and unchanged reviewed ignored env files. Failed candidates, observations and checkpoints remain outside Git. Exact CI, locking, monitoring, receipts and the full observation remain required. Documentation-only commits do not deploy.                                                                                                                                                                                                                                                                                                                                                                                                                                      | Verified | Current watcher checkpoint and exact release/readback evidence.                                                                                                     | 2026-09-15  | —          | 2026-10-15 |
+| F-LOCAL-RELEASE         | The serialized watcher completed Feature 3 at a5852eaf8b19c1af48295ec8fff77814a91a10c7. Feature 4 (4ece4ba, CI 34929736602, revision pmi-kc-app-rmu26u6xc-9a156b302dac) passed promotion but failed production observation; the process verified rollback to Feature 3. The current checkpoint is terminal rolled_back_verified and the watcher process is stopped. Authentication is usable; the production observation is the blocker. Failed evidence remains outside Git.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Verified | Current watcher checkpoint and exact release/readback evidence.                                                                                                     | 2026-09-15  | —          | 2026-10-15 |
 | F-S113                  | F1-F5 is COMPLETE / DEPLOYED with all 33 in-scope review findings closed. Full local verification: 6,528 units/four skips, 201 backend tests, policy/build; exact CI 34556917662 and all release gates passed. Persistent labeled insurance-flyer, renewal-information-form and seven legal-form location boxes accept blank pending-team inputs. Only output requiring a real verified resource waits; placeholders never become customer links or legal content. Production readback: resource version 0, 0 configured entries, 0 verified resources; lease_renewal_workspaces=1, lease_renewal_workspace_cycles=1, renewal_resource_locations=0, renewal_message_preparations=0, renewal_message_draft_heads=0, renewal_message_draft_snapshots=0. Both supplied v2 owner/tenant publications read approved with exact immutable hashes. Actual serving GETs read the selected lease workspace, RentVine durable status and both publication states with zero mutation attempts. No production completion was seeded. | Verified | Current committed code/tests; docs/evidence/s113-implementation-review-2026-09-10.md; exact release receipts and bodyless readbacks. September 15 backend readback. | 2026-09-15  | —          | 2026-10-15 |
 | F-S113-UNBLOCK          | All six supplied private PDF pages were reviewed and preserved outside Git. Both exact v2 publications are approved and read back. The serving supported RentVine matrix, RentCast restoration, copy/Gmail repair and blank-resource behavior pass acceptance. No paid comp, customer Gmail draft/send, historical provider proof or new key activation was used for demonstration.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Verified | Current committed code/tests; docs/evidence/s113-implementation-review-2026-09-10.md; exact release receipts and bodyless readbacks.                                | 2026-09-11  | —          | 2026-10-11 |
 

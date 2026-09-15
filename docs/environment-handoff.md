@@ -105,8 +105,11 @@ The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
 Its terminalFailure / rolled_back_verified checkpoint is preserved outside Git. The missing-report
 rollback repair is merged. Feature 3 superseded its unpromoted candidate only after unchanged predecessor
-traffic/version readback; the corrected independent reader and fresh release are complete. The active watcher runs from the native
-checkout with both reviewed ignored env files; its checkpoint is complete. Earlier failed reports,
+traffic/version readback; the corrected independent reader and fresh release are complete. The watcher is configured for the native
+checkout with both reviewed ignored env files. Feature 4 (PR #89, `4ece4ba`) then failed production
+observation and verified rollback restored Feature 3. The current checkpoint is terminal
+`rolled_back_verified`; the watcher process is stopped while this blocker remains unresolved.
+Earlier failed reports,
 receipts and terminal checkpoints retain their actual outcomes, including the 919a2ae rollback.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release; documentation-only
 commits do not deploy. Fresh candidate receipts, exact promotion and 300,000 ms observation remain

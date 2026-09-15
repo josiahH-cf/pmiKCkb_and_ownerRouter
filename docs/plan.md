@@ -10,25 +10,40 @@ process glossary and stable value routing; actual external record/message destin
 merged through PRs #87/#88 and completed exact-main CI plus the serialized production release.
 Its original unpromoted candidate and Feature 2's earlier verified rollback retain their actual evidence.
 
-September 14 Feature 4 (RentCast failure repair) is implemented on
-`codex/renewal-rentcast-repair`; full verification passed. It is not yet pushed, merged or deployed.
-Features 1-3 remain deployed; Features 5-6 have not started.
+September 14 Feature 4 (RentCast failure repair) is IMPLEMENTED / PUSHED / MERGED, but its
+production release FAILED OBSERVATION and was ROLLED BACK. Features 1-3 remain deployed;
+Features 5-6 have not started. Remain on Feature 4.
 
-The retained reported lookup records HTTP 400. Replaying its exact query returned RentCast's
-insufficient-comparables error. Keeping every subject attribute unchanged, 2- and 5-mile requests
+Implementation `32d3ab5566f4a6e4a46672c298e44491fca1a923` was pushed on
+`codex/renewal-rentcast-repair` and merged through PR #89 as
+`4ece4ba11e5cb35c0f6703fd19d586a423d57697`. Existing focused tests passed (65), and full local
+verification passed 6,532 units, 201 backend tests, policies and production build. PR CI 34929220447
+passed after two failed-job retries: different waits in the existing mounted backend journey failed
+before the unchanged job passed. Exact main CI 34929736602 passed all five jobs on its first attempt.
+
+The reported retained lookup records HTTP 400. An exact-query diagnostic returned the provider's
+insufficient-comparables error. Keeping all subject attributes unchanged, 2- and 5-mile requests
 failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
-customer values remain outside Git. These diagnostic reads made one billable successful request;
-no customer draft/send or system-of-record write ran.
-
-The repair distinguishes that provider refusal, exposes an operator-selected positive radius and
-retains the actual radius through the query/cache/observation/market basis. Each lookup remains one
-operator-triggered request; no automatic radius fallback occurs. Source attributes, property-type
-omission, base-rent provenance and separate recurring charges remain intact. The initial 2-mile
-radius remains; historical lookup display no longer claims a fresh request occurred on page load.
+customer values remain outside Git. Diagnostic reads made one successful billable request; no
+customer draft/send or system-of-record write ran. The adapter passed replay of both actual responses.
+The repair explains this refusal and exposes an operator-selected radius, retaining that radius
+through the query, cache, observation and saved market basis. Source provenance, contractual base
+rent, separate recurring charges, provider order and existing quota/action controls remain intact.
 Provider guidance: https://developers.rentcast.io/reference/property-valuation.
-Existing focused tests passed (65); the actual private failure/success responses passed adapter replay.
-Full verification passed: 6,532 unit tests, 201 backend tests, policies and production build.
-The existing PR/CI/serialized production release remains to complete Feature 4.
+
+Candidate `pmi-kc-app-rmu26u6xc-9a156b302dac` passed build, smoke, configuration, domains and eventual
+v4 assurance, then promotion at 05:00:16 UTC. Earlier aggregate assurance failures remain in the
+watcher log; separate Admin and reconciliation diagnostics passed without establishing their cause.
+Production observation failed after 417,350 ms with one successful checkpoint: Dashboard navigation
+timed out at 30,006 ms, with one request failure and missing landmark. All 311 records reconciled;
+monitoring reported zero candidate 5xx and unresolved effects. No auth mismatch or mutation occurred.
+The existing process required rollback and verified Feature 3 restored at 100% traffic. Independent
+canonical/tagged version and runtime readback confirmed that restoration at 05:09:18 UTC.
+
+The checkpoint is terminal `rolled_back_verified`, not complete. The watcher process was stopped
+between attempts to prevent documentation closure from requeuing the same failed runtime. Its
+scheduled task and release lock file remain intact. Resume Feature 4 from the preserved failure;
+do not start Feature 5 or clear the failed receipt/checkpoint. Automatic approved authentication works.
 
 ## Current implementation baseline
 
