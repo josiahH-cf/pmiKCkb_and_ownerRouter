@@ -578,7 +578,17 @@ export function createDriver({
         `--report=${reportPath}`,
       ]);
       const report = readState(reportPath);
-      if (!report) return { verified: false, reason: "observation_unavailable" };
+      if (!report) {
+        // A later retry cannot recreate the checkpoint at the original promotion time.
+        // Missing post-promotion evidence uses the same durable, exact-predecessor
+        // rollback and readback as an explicitly failed observation.
+        const recovery = {
+          ...cp,
+          rollback: { revision: cp.predecessor, reason: "observation_unavailable" },
+        };
+        await this.save(recovery);
+        return this.recoverRollback(recovery);
+      }
       if (
         report.phase !== "post_promotion" ||
         report.expectedCommit !== cp.sha ||

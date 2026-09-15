@@ -27,6 +27,8 @@ September 14 Feature 1 (lease information and record distinction) is complete an
 PR #83. Actual unit/contact facts, prominent guidance and owner-header all-lease links are serving.
 Feature 2 is in progress from current main on `codex/renewal-process-glossary`; finish its
 independent verification, merge and production release before Feature 3. Features 3-6 have not started.
+Its first promoted candidate rolled back with verified recovery after missing observation evidence
+and an invalid retry schedule. Preserve that failure and repair the existing recovery path before retrying.
 Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15 without entering
 passwords, codes, passkeys or CAPTCHAs. Existing identity, permission and safety boundaries remain.
 

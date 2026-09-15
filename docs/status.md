@@ -23,6 +23,16 @@ The complete live RentVine export read returned 311 leases. Unit `address2` is p
 property `address2` on five. Tenant `name`, `email`, `phone`, `contactID` and `isActive`, and owner
 `name`, `email`, `contactID` and `isActive` were inspected as field names/counts only.
 
+Feature 2 remains incomplete after the watcher verified rollback to Feature 1. PRs #84/#85
+merged as `4e1a4a061cd8b49ef57e910831f6515c57e0089c`; exact CI 34917214663 passed on a failed-job retry.
+Candidate `pmi-kc-app-rmu1zycgi-d28f58f32910` passed build, smoke, configuration, domains and
+Admin assurance and was promoted. The first observation produced no report; its retry recorded
+`checkpoint_schedule_invalid`, one successful checkpoint, 317,523 ms elapsed and rollback required.
+Monitoring reported zero candidate 5xx and zero unresolved live effects. The cause of the missing
+report is not established. The failed observation and terminal rollback checkpoint remain outside Git.
+The existing watcher's missing-report path is being repaired to use its durable exact-predecessor
+rollback immediately, retaining the full observation requirement for a fresh release.
+
 ## Serving release
 
 Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.

@@ -14,7 +14,9 @@ Feature 2 is in progress from freshly inspected main `91bc576` on `codex/renewal
 Its objective is a toggleable, nested process glossary explaining checklist connections, optionality,
 next steps and saved-value destinations. Existing cycle-scoped value persistence and confirmed
 external-write boundaries remain. Finish its existing verification, push, merge and serialized
-production release before Feature 3.
+production release before Feature 3. The first promoted candidate rolled back after a missing observation
+report and an invalid retry schedule. Repair the existing missing-report rollback path and complete
+a fresh release with the original observation requirement; preserve the failed receipts.
 
 The remaining order is process glossary/guided completion; external record/message destinations;
 RentCast repair; dark-mode readability; global clarity/response times. Features 3-6 have not started.

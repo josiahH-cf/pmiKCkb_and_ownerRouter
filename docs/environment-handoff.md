@@ -102,8 +102,12 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The real serialized driver completed exact SHA `2950542dbcf9611838d6337fb0ea41db744e7ad0`, CI 34900353548, revision `pmi-kc-app-rmu1rxk29-9d8d576379d9`.
-Checkpoint phase is complete. Earlier checkpoints retain their actual outcomes, including the 919a2ae failed observation and verified rollback.
+The last successful serialized release completed exact SHA `2950542dbcf9611838d6337fb0ea41db744e7ad0`, CI 34900353548, revision `pmi-kc-app-rmu1rxk29-9d8d576379d9`.
+Feature 2 subsequently promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
+then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
+Its current checkpoint is terminalFailure / rolled_back_verified. The idle watcher was stopped pending
+the missing-report rollback repair; its full observation contract remains. Earlier failed reports,
+receipts and terminal checkpoints retain their actual outcomes, including the 919a2ae rollback.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release; documentation-only
 commits do not deploy. Fresh candidate receipts, exact promotion and 300,000 ms observation remain
 mandatory on future releases. Durable rollback intent precedes traffic mutation; lost responses
