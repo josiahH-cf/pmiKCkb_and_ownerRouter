@@ -19,6 +19,23 @@ if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" || -n "${CLOUDSDK_CONFIG:-}" || -
   echo "NOT READY: unset credential-file, token and store overrides before WSL enrollment." >&2; exit 2
 fi
 command -v gcloud >/dev/null || { echo "NOT READY: gcloud is missing from WSL PATH."; exit 2; }
+# npm run from PowerShell reaches this script through a non-login WSL bash whose PATH has no Node.
+# Reuse the login shell's PATH; this touches no credential, identity, store or policy.
+if ! command -v node >/dev/null 2>&1; then
+  login_path="$(bash -lc 'printf %s "$PATH"' </dev/null 2>/dev/null || true)"
+  [[ -n "$login_path" ]] && export PATH="$login_path:$PATH"
+fi
+command -v node >/dev/null || { echo "NOT READY: Node is missing from the WSL login PATH." >&2; exit 2; }
+# Windows npm reaches this script through the WSL interop relay, which gives Google's code prompt no
+# terminal input, so that launch path uses Google's browser callback through the default Windows browser.
+parent_command="$(cat "/proc/$PPID/comm" 2>/dev/null || true)"
+if [[ "$parent_command" == Relay* && "$PMI_ENROLL_BROWSER" == 0 ]]; then
+  PMI_ENROLL_BROWSER=1
+  echo "Windows started this enrollment; Google's browser callback replaces the code prompt."
+fi
+if [[ "$PMI_ENROLL_BROWSER" == 1 && -z "${BROWSER:-}" && -x /mnt/c/Windows/System32/rundll32.exe ]]; then
+  export BROWSER="$PWD/scripts/auth/open-windows-browser.sh"
+fi
 
 enroll_google() {
   local credential="$1"
