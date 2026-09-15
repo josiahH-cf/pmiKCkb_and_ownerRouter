@@ -53,6 +53,7 @@ function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMess
     draftAttempt: current.draftAttempt,
     previousDraftAttempts: current.previousDraftAttempts,
     senderEmail: current.senderEmail,
+    destinations: current.destinations,
     cycleId: current.workspace?.cycleId ?? null,
     saved: current.saved,
     inputs: current.inputs,

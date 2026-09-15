@@ -11,10 +11,12 @@ destinations, retaining existing editors and persistence. Its deployment continu
 existing missing-observation-report rollback path. PRs #84/#85/#86 merged as `e689586`; exact main
 CI 34919964550 and the complete serialized release passed. No failed attempt was relabeled as passed.
 
-Feature 3 is next: actual external record and messaging destinations. Establish its standalone
-objective, inspect then-current main, and create its own branch before implementation. Follow with
-RentCast repair, dark-mode readability, then global clarity and response times. Features 3-6 have not
-started. Each must complete implementation, push, merge and production before the next begins.
+Feature 3 is in implementation on `codex/renewal-external-destinations`, based on freshly inspected
+main `b0cba8a`: validated RentVine verification links, lease/owner record and Messages links, and
+managed Gmail Drafts beside message copy/draft actions. Provider UI routes and managed mailbox
+selection were read back. Existing focused tests passed (84); 6,532 unit tests, 201 backend tests, policies and build passed.
+Complete push, merge and the existing serialized production release before starting Feature 4.
+Features 4-6 remain unstarted: RentCast repair, dark-mode readability, then global clarity and response times.
 
 ## Current implementation baseline
 

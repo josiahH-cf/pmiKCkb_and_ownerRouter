@@ -1,11 +1,10 @@
 // S82 destination manifest — every phase, blocker, status, and evidence link type resolves to
 // exactly one authenticated internal target or one server-validated external https source.
 //
-// External rules are exact: the operating Sheet link is built only from the configured spreadsheet
-// id; a RentVine link opens externally only when a current source-provided hyperlink's host matches
-// the expected tenant and its parsed lease id matches this row; RentCast uses only its
-// provider-returned URL elsewhere; Gmail stays workflow-bounded in-app. When no trustworthy
-// destination exists the caller renders a non-interactive status plus the internal fallback.
+// Table source links validate the current Sheet hyperlink against the configured tenant and lease.
+// Message actions use observed provider UI routes with current source record IDs; Gmail Drafts
+// selects the current managed sender. Unknown identities never become a homepage or guessed link.
+// The operating Sheet uses its configured ID; RentCast links use provider-returned URLs.
 
 import { parseRentvineRef } from "@/lib/lease-renewal/rentvine-link";
 import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
@@ -144,3 +143,40 @@ export function resolveWorkspacePhaseHref(
 
 export const EXTERNAL_LINK_REL = "noopener noreferrer";
 export const EXTERNAL_LINK_TARGET = "_blank";
+
+/** Provider UI routes read back on 2026-09-15. IDs must come from the current lease/owner roster. */
+export function buildRentvineRecordDestination(input: {
+  expectedHost: string | null | undefined;
+  recordId: string | null | undefined;
+  recordType: "lease" | "owner";
+  messages?: boolean;
+}): ExternalDeskDestination | null {
+  const host = input.expectedHost?.trim().toLowerCase();
+  const id = input.recordId?.trim();
+  if (!host || !/^[a-z0-9-]+\.rentvine\.com$/.test(host) || !id || !/^[1-9]\d*$/.test(id))
+    return null;
+  const path = input.recordType === "lease" ? "leases" : "contacts/owners";
+  const url = new URL(`https://${host}/${path}/${id}`);
+  if (input.messages) {
+    url.searchParams.set("page", "1");
+    url.searchParams.set("tab", "messages");
+  }
+  return {
+    kind: "external",
+    href: url.toString(),
+    label: `Opens this ${input.recordType}${input.messages ? "’s messages" : ""} in RentVine in a new tab.`,
+  };
+}
+
+/** Gmail account selection and Drafts route verified in the managed mailbox on 2026-09-15. */
+export function buildManagedGmailDraftsDestination(
+  senderEmail: string,
+): ExternalDeskDestination | null {
+  const email = senderEmail.trim().toLowerCase();
+  if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@pmikcmetro\.com$/.test(email)) return null;
+  return {
+    kind: "external",
+    href: `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#drafts`,
+    label: "Opens Drafts in the displayed managed Gmail mailbox in a new tab.",
+  };
+}

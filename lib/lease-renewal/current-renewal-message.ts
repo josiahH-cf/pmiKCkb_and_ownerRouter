@@ -1,3 +1,8 @@
+import {
+  buildManagedGmailDraftsDestination,
+  buildRentvineRecordDestination,
+  expectedRentvineHost,
+} from "@/lib/lease-renewal/desk-destinations";
 import { messageResourceFingerprint } from "./message-claim-basis";
 import {
   getCurrentMessageDraft,
@@ -67,6 +72,7 @@ export async function currentRenewalMessage(
     throw new EditableLayerError("The live lease is missing or ambiguous.", 409);
   const lease = matching[0];
   const identity = projectRenewalDeskIdentity(lease);
+  const rentvineHost = expectedRentvineHost(process.env.RENTVINE_API_BASE_URL);
   const saved = workspace
     ? await getMessagePreparation(actor, leaseId, workspace.cycleId, channel, db)
     : null;
@@ -254,6 +260,37 @@ export async function currentRenewalMessage(
     previousDraftAttempts,
     draftJournalAvailable,
     senderEmail: actor.email,
+    destinations: {
+      gmailDrafts: buildManagedGmailDraftsDestination(actor.email),
+      lease: buildRentvineRecordDestination({
+        expectedHost: rentvineHost,
+        recordId: leaseId,
+        recordType: "lease",
+      }),
+      messages: buildRentvineRecordDestination({
+        expectedHost: rentvineHost,
+        recordId: leaseId,
+        recordType: "lease",
+        messages: true,
+      }),
+      owners:
+        channel === "owner"
+          ? identity.owners.flatMap((owner) => {
+              const record = buildRentvineRecordDestination({
+                expectedHost: rentvineHost,
+                recordId: owner.contactId?.label,
+                recordType: "owner",
+              });
+              const messages = buildRentvineRecordDestination({
+                expectedHost: rentvineHost,
+                recordId: owner.contactId?.label,
+                recordType: "owner",
+                messages: true,
+              });
+              return record && messages ? [{ name: owner.label, record, messages }] : [];
+            })
+          : [],
+    },
     lease,
     workspace,
     saved,

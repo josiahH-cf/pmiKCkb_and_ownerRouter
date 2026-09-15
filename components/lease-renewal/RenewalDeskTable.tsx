@@ -1240,7 +1240,19 @@ function DeskRow({
           guidance.rentVerification.verifiedByResolutionDiffers ? "true" : "false"
         }
       >
-        {rentVerificationHref ? (
+        {guidance.rentVerification.state === "verified" &&
+        row.sourceDestinations?.rentvine ? (
+          <a
+            className="renewal-status-link"
+            href={row.sourceDestinations.rentvine.href}
+            rel={EXTERNAL_LINK_REL}
+            target={EXTERNAL_LINK_TARGET}
+            title={row.sourceDestinations.rentvine.label}
+            aria-label={`Verified · Open lease ${row.id} in RentVine in a new tab`}
+          >
+            <StatusBadge tone={RENT_VERIFICATION_TONE.verified}>Verified</StatusBadge>
+          </a>
+        ) : guidance.rentVerification.state !== "verified" && rentVerificationHref ? (
           <Link
             prefetch={false}
             className="renewal-status-link"

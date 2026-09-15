@@ -4,14 +4,20 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Features 1 and 2 are IMPLEMENTED / PUSHED / MERGED / DEPLOYED. Features 3-6 have not started.
+Features 1 and 2 are IMPLEMENTED / PUSHED / MERGED / DEPLOYED. Feature 3 is in implementation; Features 4-6 have not started.
 Feature 1: PR #83, implementation `90bbaa0`; actual unit/contact details and owner-filtered navigation remain serving.
 Feature 2: branch `codex/renewal-process-glossary`, PRs #84/#85/#86; implementations `6e77fd5`,
 `a38a8cb` and `cc005df`, merged/serving SHA `e689586ffd1a8b369a86df4c1a1bffa478bd609d`.
 Nested glossary and guidance preserve editors, cycle-scoped saves and draft/document value routing.
 The release continuation repaired missing-observation-report recovery through existing verified rollback.
-Next: establish Feature 3's standalone objective and freshly inspect current main, then create its own branch.
-Complete its external record/message destination work and full production release before Feature 4.
+Feature 3: branch `codex/renewal-external-destinations`, based on freshly inspected main `b0cba8a`.
+Objective: verified badges open validated RentVine lease links; message copy/draft controls expose the
+actual lease/owner Messages and record destinations and managed Gmail Drafts. Provider UI routes were
+read back without customer writes; account-selected Gmail Drafts opened the approved managed mailbox.
+Owner header filtering, draft governance and existing duplicate-source refusal remain intact.
+Focused existing tests passed (84); 6,532 unit and 201 backend tests, policies and build passed.
+The existing router check allows only the observed managed Gmail Drafts URL. Not yet pushed, merged or deployed.
+Finish its existing production release before beginning Feature 4.
 
 ## Verified production
 
@@ -56,7 +62,7 @@ Documentation-only closure does not deploy.
 
 ## Working checkout and evidence
 
-Clean main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`. Both reviewed ignored env files are present.
+Working checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`. Both reviewed ignored env files are present.
 Original Windows checkout remains on Feature 1; its broken existing turn-diff ref was not altered.
 Use native Node 22.23.2 and the existing Java 21 runtime for verification.
 Final local verification: `/tmp/pmi-f2-release-verify.log`.
