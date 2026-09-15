@@ -15,7 +15,10 @@ Feature 3 is in implementation on `codex/renewal-external-destinations`, based o
 main `b0cba8a`: validated RentVine verification links, lease/owner record and Messages links, and
 managed Gmail Drafts beside message copy/draft actions. Provider UI routes and managed mailbox
 selection were read back. Existing focused tests passed (84); 6,532 unit tests, 201 backend tests, policies and build passed.
-Complete push, merge and the existing serialized production release before starting Feature 4.
+PR #87 merged `3287f8a`, whose candidate has five mismatches because the old reader required internal
+verification links. The Feature 3 continuation on `codex/renewal-external-destination-assurance` corrects
+that reader while retaining exact independently read destination checks. Full verification passed.
+Push/merge the continuation and complete the existing serialized production release before Feature 4.
 Features 4-6 remain unstarted: RentCast repair, dark-mode readability, then global clarity and response times.
 
 ## Current implementation baseline

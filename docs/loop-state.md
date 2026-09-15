@@ -16,7 +16,13 @@ actual lease/owner Messages and record destinations and managed Gmail Drafts. Pr
 read back without customer writes; account-selected Gmail Drafts opened the approved managed mailbox.
 Owner header filtering, draft governance and existing duplicate-source refusal remain intact.
 Focused existing tests passed (84); 6,532 unit and 201 backend tests, policies and build passed.
-The existing router check allows only the observed managed Gmail Drafts URL. Not yet pushed, merged or deployed.
+PR #87 merged `5cab629` as `3287f8a`; exact main CI 34923814873 passed first attempt.
+Candidate rmu23j65k-ea7b9f5b8980 built but is at zero traffic: five destination mismatches from the
+old internal-only verification reader; 311 records and all fields matched, Admin passed.
+Feature 3 continuation `codex/renewal-external-destination-assurance` passed 48 focused tests and full
+verification (6,532 units, 201 backend tests, policies/build). Push/merge it and complete production.
+Diagnostic reports `f3-canary-diagnostic.json` and `f3-reconciliation-diagnostic.json` remain outside Git.
+The watcher resumed after the serial read-only diagnostics; production remains Feature 2.
 Finish its existing production release before beginning Feature 4.
 
 ## Verified production
