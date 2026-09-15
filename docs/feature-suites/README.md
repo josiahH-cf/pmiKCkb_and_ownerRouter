@@ -453,6 +453,13 @@ S99's synthetic work-order executor are absent.
 | S110  | `docs/feature-suites/dashboard-assistant-three-intents.md`                 | Deployed: three read-only Dashboard intents with source, role, Space and coverage checks.                                                                                                                                                                          |
 | S111  | `docs/feature-suites/renewal-completion-integrated-proof-and-training.md`  | Integrated backend verification, all seven compiled browser checks and the 42-step guide passed. Human verdict remains NOT RUN; real document inputs remain localized.                                                                                             |
 | S112  | `docs/feature-suites/unattended-authentication.md`                         | Approved CLI/ADC and Admin assurance passed through a complete exact release. Existing watcher restored and reads current; separate 24-hour unchanged-enrollment longevity remains unverified.                                                                     |
+| S114  | `docs/feature-suites/renewal-lease-information-and-process-sidebars.md`    | SPECIFICATION READY; feature 1 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S115  | `docs/feature-suites/renewal-plain-language-section-guidance.md`           | SPECIFICATION READY; feature 2 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S116  | `docs/feature-suites/renewal-source-links-and-sheet-contact-integrity.md`  | SPECIFICATION READY; feature 3 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S117  | `docs/feature-suites/renewal-master-facts-and-confirmed-source-updates.md` | SPECIFICATION READY; feature 4 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S118  | `docs/feature-suites/renewal-market-defaults-and-sourced-comparisons.md`   | SPECIFICATION READY; feature 5 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S119  | `docs/feature-suites/renewal-manual-status-and-desk-filtering.md`          | SPECIFICATION READY; feature 6 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
+| S120  | `docs/feature-suites/renewal-downstream-preparation-and-completion-ux.md`  | SPECIFICATION READY; feature 7 of 7 in renewal-operator-hub-v1; implementation/release not started.                                                                                                                                                                |
 
 A status in this table is authoritative for planning. A suite body is the acceptance contract, not a
 historical progress log.
@@ -476,3 +483,16 @@ the final wait-order correction passes 45 affected checks and build, and all sev
 pass. Provider effects use controlled adapters in backend verification; no client send or live
 provider effect is used as proof. Exact production release acceptance passed with two successful
 observation checkpoints and all 311 source/projected/rendered records matched.
+
+## Renewal operator hub bundle (owner request 2026-09-15)
+
+The seven `feature-handoff: renewal-operator-hub-v1` specifications import the owner's September 15
+renewal notes, transcript, summary, mindmap and application capture as standalone fail-closed
+features. They execute serially in the requested order S114 → S115 → S116 → S117 → S118 → S119 →
+S120; each feature completes its own verification, integration and exact production release before
+the next begins, and none is merged into one combined deployment. The September 14 features and S113
+are the baseline, not work to repeat. Owner-accepted Q1A (rent-based starting band), Q2A (honest
+fallback with required comparison evidence) and Q3A (Owner emails / Tenant emails Sheet fields) are
+stated in full inside the owning specifications. No specification adds a send, autonomous effect,
+new action key, protected-path change or provider activation; existing exact keys, confirmations,
+receipts and readbacks govern every effect.
