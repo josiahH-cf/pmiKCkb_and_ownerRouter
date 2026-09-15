@@ -39,6 +39,7 @@ export type MarketCompFailureReason =
   | "http_error"
   | "parse_error"
   | "too_few_comps"
+  | "insufficient_comparables"
   | "out_of_allowance"
   | "provider_not_live";
 

@@ -4,29 +4,25 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-September 14 Feature 3 (external records and message destinations) is IMPLEMENTED / PUSHED / MERGED / DEPLOYED.
-PR #87 implemented `5cab629`; PR #88 corrected the existing reconciliation reader in `c33002f`.
-Merged/serving SHA is `a5852eaf8b19c1af48295ec8fff77814a91a10c7`. Verified badges open validated RentVine lease records;
-message copy/draft controls link to managed Gmail Drafts and actual RentVine lease/owner records and
-Messages tabs. Provider routes and managed mailbox selection were read back. Owner-name filtering,
-the deployed glossary, saved values and governed unsent draft creation remain intact.
+September 14 Feature 4 (RentCast failure repair) is implemented on
+`codex/renewal-rentcast-repair`; full verification passed. It is not yet pushed, merged or deployed.
+Features 1-3 remain deployed; Features 5-6 have not started.
 
-Full local verification passed 6,532 unit tests, 201 backend tests, policies and production build.
-PR #87 CI 34923446159 passed a failed-job retry after an existing comp-button UI wait; PR #88 CI
-34925973325 and exact final main CI 34926252129 passed first attempt. The corrected candidate passed
-all existing release gates, including two observation checkpoints in 386,528 ms. No tests were added.
-No live customer draft, send or source-record write was performed for this feature.
+The retained reported lookup records HTTP 400. Replaying its exact query returned RentCast's
+insufficient-comparables error. Keeping every subject attribute unchanged, 2- and 5-mile requests
+failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
+customer values remain outside Git. These diagnostic reads made one billable successful request;
+no customer draft/send or system-of-record write ran.
 
-The first Feature 3 candidate `pmi-kc-app-rmu23j65k-ea7b9f5b8980` stayed at zero traffic:
-Admin passed and all 311 records/fields matched, but the old reader required five internal verification
-links. Its failed diagnostic and checkpoint remain outside Git. After the last read-only retry was
-interrupted, unchanged predecessor traffic/version were verified and the corrected commit was queued
-through the same watcher. No failed stage was relabeled as passed. Feature 2's earlier failed
-observation and verified rollback remain preserved separately.
-
-Features 1-3 are complete and deployed. Feature 4 is next from freshly inspected main; Features 4-6
-have not started. Automatic CLI/ADC and enrolled Admin browser authentication passed without manual
-credential entry. Separate 24-hour longevity remains unverified.
+The repair distinguishes that provider refusal, exposes an operator-selected positive radius and
+retains the actual radius through the query/cache/observation/market basis. Each lookup remains one
+operator-triggered request; no automatic radius fallback occurs. Source attributes, property-type
+omission, base-rent provenance and separate recurring charges remain intact. The initial 2-mile
+radius remains; historical lookup display no longer claims a fresh request occurred on page load.
+Provider guidance: https://developers.rentcast.io/reference/property-valuation.
+Existing focused tests passed (65); the actual private failure/success responses passed adapter replay.
+Full verification passed: 6,532 unit tests, 201 backend tests, policies and production build.
+The existing PR/CI/serialized production release remains to complete Feature 4.
 
 ## Serving release
 

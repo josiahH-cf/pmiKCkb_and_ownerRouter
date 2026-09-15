@@ -10,10 +10,25 @@ process glossary and stable value routing; actual external record/message destin
 merged through PRs #87/#88 and completed exact-main CI plus the serialized production release.
 Its original unpromoted candidate and Feature 2's earlier verified rollback retain their actual evidence.
 
-Feature 4 is next: establish the RentCast failure's actual cause from current main and integration
-readback, repair the existing comparison lookup, then build/push/merge/deploy it before Feature 5.
-Preserve contractual base rent, separate recurring charges and source field provenance.
-Features 4-6 have not started. Dark-mode readability follows Feature 4, then global clarity and response times.
+September 14 Feature 4 (RentCast failure repair) is implemented on
+`codex/renewal-rentcast-repair`; full verification passed. It is not yet pushed, merged or deployed.
+Features 1-3 remain deployed; Features 5-6 have not started.
+
+The retained reported lookup records HTTP 400. Replaying its exact query returned RentCast's
+insufficient-comparables error. Keeping every subject attribute unchanged, 2- and 5-mile requests
+failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
+customer values remain outside Git. These diagnostic reads made one billable successful request;
+no customer draft/send or system-of-record write ran.
+
+The repair distinguishes that provider refusal, exposes an operator-selected positive radius and
+retains the actual radius through the query/cache/observation/market basis. Each lookup remains one
+operator-triggered request; no automatic radius fallback occurs. Source attributes, property-type
+omission, base-rent provenance and separate recurring charges remain intact. The initial 2-mile
+radius remains; historical lookup display no longer claims a fresh request occurred on page load.
+Provider guidance: https://developers.rentcast.io/reference/property-valuation.
+Existing focused tests passed (65); the actual private failure/success responses passed adapter replay.
+Full verification passed: 6,532 unit tests, 201 backend tests, policies and production build.
+The existing PR/CI/serialized production release remains to complete Feature 4.
 
 ## Current implementation baseline
 
