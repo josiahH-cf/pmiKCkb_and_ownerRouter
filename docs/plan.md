@@ -1,20 +1,16 @@
 # Current plan
 
-Updated: 2026-09-14 (UTC).
+Updated: 2026-09-15 (UTC).
 
 ## Outcome
 
 The September 14 renewal updates execute as six separate feature-to-production cycles.
-Feature 1 is in progress on `codex/renewal-record-information`: source-backed unit distinctions,
-all tenant/client contact information, prominent status/blockers/next action, and owner-header
-navigation to all that owner's leases. Existing provider and unsent-draft contracts remain.
-
-Implementation `90bbaa0` is pushed and merged through PR #83 as `2950542`.
-Local verification passed 6,528 unit tests (four existing skips), 201 backend tests, policy checks
-and production build. Exact merged-main CI 34900353548 passed all five jobs.
-The existing serialized watcher is paused at `prepare` / `authentication_required` for that SHA.
-After attended ADC enrollment, resume that exact checkpoint through candidate assurance, promotion
-and observation before Feature 2 begins. No Feature 1 deployment stage has completed.
+Feature 1 is complete and serving: source-backed unit distinctions, tenant/client contacts,
+prominent status/blockers/next action, and owner-header all-lease navigation. Implementation
+`90bbaa0` merged through PR #83 as `2950542`; exact main CI 34900353548 and all release stages passed.
+Full verification: 6,528 unit tests (four existing skips), 201 backend tests, policy checks and build.
+Automatic CLI/ADC and Admin browser authentication passed. No provider or message-send boundary changed.
+Feature 2 is next: establish its objective and inspect current main before creating its own branch.
 
 The remaining order is process glossary/guided completion; external record/message destinations;
 RentCast repair; dark-mode readability; global clarity/response times. None has started.
@@ -22,7 +18,7 @@ Each starts from the then-current main on its own branch and finishes production
 
 ## Current implementation baseline
 
-Production serves `f5faf1665121db9cacff913a57e7fdcc80513116` as `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic. Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662), candidate version/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and 300,000 ms observation passed. Canonical and tagged version endpoints and Cloud Run traffic/configuration were read back.
+Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and
@@ -36,14 +32,13 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 
 ## Canonical closure sequence
 
-The serving S113 baseline completed these established stages; Feature 1 must complete its own cycle.
+Feature 1 completed the established release sequence:
 
-1. Implementation, actual backend paths, integrated journey and adversarial review passed.
-2. The exact corrected commit passed all five CI jobs and isolated candidate/config/domain gates.
-3. Admin browser assurance, independent reconciliation and version 4 bound receipts passed.
-4. Exact promotion, 300,000 ms observation, serving traffic/version/config and backend reads passed.
-5. Two descriptive Sheet Registry entries were corrected with backup/CAS/readback; authority stayed
-   at 48 entries and 16 open keys. Current documentation records the verified result.
+1. Bounded implementation and full local verification passed.
+2. PR #83 merged the feature and exact main CI passed all five jobs.
+3. Candidate smoke/configuration/domains, Admin assurance, reconciliation and v4 receipts passed.
+4. Exact promotion and the 300,000 ms production observation passed.
+5. Independent serving/runtime/backend/Registry readbacks passed; current documentation records the result.
 
 S36 is queued behind complete S100. B-S100/B-MNT1 and actual Dotloop resources remain separate.
 

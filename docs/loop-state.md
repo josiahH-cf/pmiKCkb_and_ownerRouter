@@ -1,83 +1,62 @@
 # Loop state
 
-Last updated: 2026-09-14 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## Active September 14 feature
+## Current resume point
 
-Feature 1 of six is implemented and pushed as `90bbaa0` on `codex/renewal-record-information`.
-PR #83 merged it to main as `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
-It surfaces actual unit/contact details and current guidance and adds owner-header all-lease links.
-Full local verification passed 6,528 unit tests (four skips), 201 backend tests, policy checks and build.
-PR CI 34899631985 passed on failed-job retry with unchanged tests; exact main CI 34900353548 passed.
-Local verification logs: `/tmp/pmi-renewal-f1-verify-gFvhmL/verification-final.log`.
+September 14 Feature 1 of six is COMPLETE / PUSHED / MERGED / DEPLOYED.
+Branch `codex/renewal-record-information`, implementation `90bbaa0`, PR #83, merged main `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
+Actual unit/contact details, prominent guidance and owner-header all-lease links are serving.
+Feature 2 is next; Features 2-6 have not started. Start Feature 2 with its own objective and fresh
+inspection of current main. Preserve one full feature-to-production cycle at a time.
 
-Feature 1 is NOT DEPLOYED. The existing WSL watcher is running. Its current checkpoint is:
-`sha=2950542dbcf9611838d6337fb0ea41db744e7ad0`, `ciRunId=34900353548`,
-`phase=prepare`, `blocked=authentication_required`, `lastDeployedSha=f5faf1665121db9cacff913a57e7fdcc80513116`.
-No candidate deployment, promotion or observation completed. Canonical /api/version still serves
-`f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`.
+## Verified production
 
-`npm run auth:ensure` verified the approved WSL CLI refresh and GitHub; ADC identity is unverified.
-Owner recovery: `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
-Resume the existing exact-SHA release checkpoint after enrollment; do not merge or deploy it again
-through another process. No identity, IAM, claim, security policy or provider grant changed.
-
-The Windows development checkout remains clean on the feature branch. Fetch is blocked by an
-invalid pre-existing `refs/codex/turn-diffs/checkpoints/...` object. Those refs were not altered.
-A clean main checkout is `/tmp/pmi-renewal-f1-integration-zbt2es`; the watcher has independent Git.
-Features 2-6 have not started. Begin Feature 2 only after successful Feature 1 production completion.
-
-## Serving S113 baseline
-
-S113 requested F1-F5 scope is COMPLETE / DEPLOYED / ALL_GATES_GREEN.
-Serving SHA: f5faf1665121db9cacff913a57e7fdcc80513116
-Serving revision: pmi-kc-app-rmtwdl4di-4439f17911f4
+Serving SHA: 2950542dbcf9611838d6337fb0ea41db744e7ad0
+Serving revision: pmi-kc-app-rmu1rxk29-9d8d576379d9
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app, 100% traffic.
-Exact CI: 34556917662; candidate/configuration/domains, Admin browser assurance, independent reconciliation,
-v4 receipt-bound promotion, 300,000 ms observation and serving/backend readback passed.
+Candidate origin: https://cand-rmu1rxk29-9d8d576379d9---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+Fingerprint: sha256:ab8796108228a075ec3cdff0dfc836bfd5ae8041c165a9156a9f96e683008979.
+Captured predecessor: pmi-kc-app-rmtwdl4di-4439f17911f4 / f5faf1665121db9cacff913a57e7fdcc80513116.
+Full local verification: 6,528 units/four existing skips, 201 backend tests, policy/build PASS.
+PR CI 34899631985 passed on failed-job retry; exact main CI 34900353548 passed on its first attempt.
+Cloud Build acdc3d48-cc1e-4b7d-80d0-c97c523f3619, smoke, configuration and domain checks passed.
+An earlier aggregate assurance reported unverified; the unchanged retry passed. The failure was
+not relabeled as a pass. Admin passed; Editor not_run under owner policy. Reconciliation matched.
+Receipt-bound promotion and 300,000 ms observation passed; actual observation elapsed 378,690 ms.
+All 311 source/projected/rendered records matched, with zero field mismatches/invalid destinations.
+Independent traffic/version/runtime/serving-API/backend/Registry reads passed; no business writes ran.
+Production + Live, managed runtime account, 11 Spaces, provider secrets, allowance 50, Sheet switch
+and 48 Registry keys/16 open remain. Both message publications remain approved. Backend reads show
+one workspace/cycle, no saved message preparations or draft heads/snapshots, and zero resource links.
 
-## Verified scope
+## Authentication and release continuation
 
-One dashboard, typed corrections and supported source updates, restored operator-triggered RentCast,
-supplied formatted/copyable drafts with governed Gmail recovery, audited manual progress and the
-integrated journey are serving. Blank labeled insurance/form/legal-location inputs are accepted.
-Both supplied v2 publications read back approved; private template evidence remains outside Git.
-Staff completion remains distinct from provider effects. No fake production completion was seeded.
+September 15 `auth:session -- --browser` completed automatically using the approved account's
+existing browser session. It verified and rebound ADC; CLI/ADC readiness is READY. The enrolled
+Admin browser authenticated on canonical and candidate origins. No password/code/passkey/CAPTCHA
+was entered and no account, policy or permission scope changed. The former ADC binding mismatch
+is resolved. Do not repeat enrollment without a fresh failure. The separate longevity proof is unverified.
+The same serialized watcher runs with documented native Node/Cloud SDK PATH. Its checkpoint is
+`/home/josiah/.local/state/pmi-kc-release/checkpoint.json`, phase complete, lastDeployedSha `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
+Host logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status.log and native-errors.log.
+Candidate/promotion v4 receipts and observation report are under `/home/josiah/.local/state/pmi-kc-release`.
+Observation: observation-pmi-kc-app-rmu1rxk29-9d8d576379d9-1789432240908.json.
+Use the existing watcher and lock; do not create competing deployments. Documentation-only closure does not deploy.
 
-All 33 in-scope review findings are closed. Full local checks: 6,528 unit PASS/four existing skips,
-201 backend PASS, policy/build PASS and all seven compiled browser checks PASS, including 42 guide
-steps. Actual routes/Firestore/claims/receipts/readbacks use deterministic external adapters for
-backend proof. Human verdict stays NOT RUN. No client send or live customer effect was used for proof.
-Evidence: docs/evidence/s113-implementation-review-2026-09-10.md.
+## Working checkout
 
-## Release and backend evidence
+Clean main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`.
+The original Windows checkout remains on the Feature 1 branch. Fetch has a broken existing
+`refs/codex/turn-diffs/checkpoints` ref; those unrelated refs were not altered. The watcher has independent Git.
+Local verification log: `/tmp/pmi-renewal-f1-verify-gFvhmL/verification-final.log`.
+Private sources, customer evidence, provider configuration and credentials remain outside Git.
 
-Current checkpoint: /home/josiah/.local/state/pmi-kc-release/checkpoint.json; Feature 1 state above.
-The completed S113 receipts below remain the serving baseline.
-Captured predecessor: pmi-kc-app-rmtkmhj1z-8855e4c6dbfb / d243911cb20ffb01773072c0e27c723648eeea34.
-Fingerprint: sha256:a68c3459ab680b1230662f1becab6c975c5cc86f2ec349d6404ba4b5a0976282.
-Older 6e77d18, 00836a8 and 297af97 checkpoints are archived as superseded, without assurance PASS claims.
-The a3c1d97 checkpoint is also archived; its aggregate candidate assurance passed, but CLI preflight
-refused promotion before dispatch. Its unconsumed receipt and actual outcome remain preserved.
-The 919a2ae candidate passed CI 34549763928, candidate assurance and promotion, then failed final observation at 420,140 ms and verified rollback to d243911. Its consumed candidate receipt, promotion receipt, failed observation and terminal rollback checkpoint remain preserved; the failure was never rewritten as a pass.
-Owner Admin passed both origins; Editor is not_run under explicit owner direction.
-The exact predecessor blocked legacy reconcile exception was recorded; candidate/post-promotion
-passed zero mutation attempts. No identity, IAM, claim, activation or budget changed.
-Only two Sheet descriptive Registry entries were aligned with backup/CAS/readback; 48/16 unchanged.
-Bodyless final logs: temp/s113-final-cloud-readback.log, temp/s113-final-serving-paths.log,
-temp/s113-final-backend-readback.log and temp/s113-final-registry-metadata.log.
+## Preserved boundaries
 
-## Separate remaining inputs
-
-S106/S34 normal packet preparation/approval/S20/S21/own-receipt recovery is deployed. Actual forms,
-catalog/mappings, managed Dotloop connection/selection and exact-key activation remain separately
-gated; no signature API or legal content is invented. Blank resource boxes do not block manual work.
-S100 resident-draft still needs its exact mapped/verified input and proof; S36 remains dependent.
-B-MNT1 and the separate 24-hour auth longevity proof remain unverified. S87-S95/S101 are out of scope.
-
-## Prior S113 closure
-
-S113 closure documentation and meeting brief record the verified serving result. Documentation-only
-closure must not trigger deployment. The existing local watcher was restored after that release. No new automation was created. Final documentation formatting,
-policy checks and all 462 documentation/guide tests pass; all four PDF pages were visually checked.
-Evidence: temp/s113-final-docs-native-verify.log. Documentation-only commits never deploy.
+S113 is deployed. Staff-recorded progress remains distinct from provider receipts and signatures.
+Source writes retain exact preview/confirmation, claims, receipts/readback and correction contracts.
+Client-facing messages remain unsent drafts. Existing S97-S100 proofs are not rerun.
+S106/S34 still requires actual forms/catalog/mappings, managed Dotloop connection/selection and
+exact activation gates. Blank resource inputs remain accepted. No signature API or legal content is invented.
+S100 resident-draft still needs exact mapped/verified input; S36 remains dependent. Other suites are out of scope.

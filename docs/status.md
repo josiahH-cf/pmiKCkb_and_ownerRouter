@@ -1,18 +1,16 @@
 # PMI KC current status
 
-Last updated: 2026-09-14 (UTC).
+Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-September 14 Feature 1 (lease information and record distinction) is implemented, pushed as
-`90bbaa0` on `codex/renewal-record-information`, and merged through
-[PR #83](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/83) as `2950542`.
-Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548)
-passed all five jobs. It is not deployed: the existing watcher records `prepare` /
-`authentication_required` for the merged SHA. No candidate, promotion or observation completed.
-Unit facts and every source-backed tenant/client contact are visible in the
-desk and header; owner-header links select all matching leases. Current guidance is near the top.
-Features 2-6 have not started and wait for successful Feature 1 production completion.
+September 14 Feature 1 (lease information and record distinction) is COMPLETE / PUSHED / MERGED /
+DEPLOYED. Implementation `90bbaa0` merged through [PR #83](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/83)
+as `2950542dbcf9611838d6337fb0ea41db744e7ad0` and now serves at 100% traffic. Actual unit facts, full source-backed tenant/client
+contact rosters, prominent guidance and owner-header all-lease navigation are serving.
+Exact main CI 34900353548 and all existing release stages passed. The initial aggregate assurance
+reported unverified; the unchanged retry passed before promotion. Final observation passed in
+378,690 ms with a 300,000 ms window. Features 2-6 have not started; Feature 2 is next.
 
 Feature 1 local verification: 6,528 unit tests passed (four existing skips), all 201 backend tests,
 policy checks and production build passed. One earlier documentation-heading failure was corrected;
@@ -27,10 +25,10 @@ property `address2` on five. Tenant `name`, `email`, `phone`, `contactID` and `i
 
 ## Serving release
 
-Production serves `f5faf1665121db9cacff913a57e7fdcc80513116` as `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic. Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662), candidate version/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and 300,000 ms observation passed. Canonical and tagged version endpoints and Cloud Run traffic/configuration were read back.
+Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`.
-Configuration fingerprint: `sha256:a68c3459ab680b1230662f1becab6c975c5cc86f2ec349d6404ba4b5a0976282`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmtwdl4di-4439f17911f4`.
+Configuration fingerprint: `sha256:ab8796108228a075ec3cdff0dfc836bfd5ae8041c165a9156a9f96e683008979`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
@@ -52,11 +50,10 @@ Staff-recorded completion reports actual outside work and remains separate from 
 
 ## Resulting backend state
 
-Production readback: resource version 0, 0 configured entries, 0 verified resources; lease_renewal_workspaces=0, lease_renewal_workspace_cycles=0, renewal_resource_locations=0, renewal_message_preparations=0, renewal_message_draft_heads=0, renewal_message_draft_snapshots=0. Both supplied v2 owner/tenant publications read approved with exact immutable hashes. Actual serving GETs read the selected lease workspace, RentVine durable status and both publication states with zero mutation attempts. No production completion was seeded.
+Production readback: resource version 0, 0 configured entries, 0 verified resources; lease_renewal_workspaces=1, lease_renewal_workspace_cycles=1, renewal_resource_locations=0, renewal_message_preparations=0, renewal_message_draft_heads=0, renewal_message_draft_snapshots=0. Both supplied v2 owner/tenant publications remain approved. Actual serving GETs read the selected lease workspace, RentVine durable status and both publication states with zero mutation attempts. No production completion was seeded.
 
-Only the prepared two-key Sheet descriptive metadata correction was applied with backup,
-compare-and-set and exact readback. The Registry still contains 48 entries; all 16 open flags and the updated entries' non-metadata
-fields are unchanged.
+Read-only Registry inspection confirmed the prior S113 metadata remains aligned. The Registry
+still contains 48 entries and 16 open keys. No Registry metadata or authority changed in Feature 1.
 No customer draft/send, paid comp, source write, historical proof or signature effect ran for proof.
 
 ## Downstream and authentication limits
@@ -68,7 +65,8 @@ separate; S36 is queued behind complete S100. S87-S95 and S101 remain outside th
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
-September 14 `auth:ensure` verified the approved WSL CLI token refresh and GitHub login, but ADC
-identity is unverified and requires owner enrollment before its token probe. No account, IAM,
-claim, store location or security policy changed. Separate 24-hour authentication longevity remains unverified.
+September 15 automatic browser OAuth renewal restored the approved WSL ADC identity binding.
+CLI/ADC readiness and enrolled Admin browser authentication on both origins passed. No password,
+code, passkey or CAPTCHA was entered. No account, IAM, claim, store location, permission scope or
+security policy changed. Separate 24-hour authentication longevity remains unverified.
 Earlier checkpoints retain their actual passed, failed or unpromoted outcomes; 919a2ae was promoted then rolled back after failed observation. Documentation-only closure does not deploy.

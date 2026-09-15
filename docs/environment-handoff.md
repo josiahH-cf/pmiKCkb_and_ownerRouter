@@ -1,13 +1,14 @@
 # Environment and release handoff
 
-Updated: 2026-09-11 (UTC). S113 is complete and deployed as `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic.
-Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662) passed all
-five jobs, including 6,528 unit tests (four existing skips) and all 201 backend tests. Candidate
-version/configuration/domain checks, Admin browser assurance, independent source/manual-state
-reconciliation, v4 receipt-bound promotion, 300,000 ms observation and serving/backend readback passed.
+Updated: 2026-09-15 (UTC). September 14 Feature 1 is complete and serving as `2950542dbcf9611838d6337fb0ea41db744e7ad0` /
+`pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main CI 34900353548, full local verification,
+candidate smoke/configuration/domains, Admin assurance, independent reconciliation, receipt-bound
+promotion and final observation passed. The 300,000 ms observation completed in 378,690 ms.
+Independent traffic/version/runtime/serving-API/backend/Registry readbacks passed.
 
-The separate 24-hour authentication longevity proof remains unverified. Exact release evidence is
-in docs/evidence/s113-implementation-review-2026-09-10.md; no identity or claim changed.
+Current receipts and observation evidence are outside Git under `/home/josiah/.local/state/pmi-kc-release`.
+Prior S113 release evidence remains in docs/evidence/s113-implementation-review-2026-09-10.md.
+The separate 24-hour authentication longevity proof remains unverified. No identity or claim changed.
 
 ## Production
 
@@ -17,8 +18,8 @@ in docs/evidence/s113-implementation-review-2026-09-10.md; no identity or claim 
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmtwdl4di-4439f17911f4`             |
-| Serving commit            | `f5faf1665121db9cacff913a57e7fdcc80513116`      |
+| Serving revision          | `pmi-kc-app-rmu1rxk29-9d8d576379d9`             |
+| Serving commit            | `2950542dbcf9611838d6337fb0ea41db744e7ad0`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
@@ -81,14 +82,19 @@ confirmed current-state correction. Row deletion and historical restore remain u
 - A successful attended browser enrollment writes an opaque local marker. After a challenge the
   watcher waits for that marker to change before another browser auth probe; it cannot loop login.
 
+September 15 automatic `auth:session -- --browser` renewal reused the approved account's existing
+browser session and restored its ADC identity binding. CLI/ADC readiness and enrolled Admin browser
+authentication on both origins passed. No password/code/passkey/CAPTCHA was entered; no policy,
+identity or permission scope changed.
+
 ### Local release watcher
 
 `scripts/install-release-watcher.ps1` owns the existing limited interactive-user task
 `PMI KC release watcher`. `-CheckOnly` inspects its logon/catch-up/one-instance contract without
 reinstalling. The hidden launcher is `scripts/run-release-watcher.ps1`; non-secret host logs remain
 under `%LOCALAPPDATA%/PMI-KC/release-watcher`. WSL checkpoints and locks stay outside Git under
-`~/.local/state/pmi-kc-release`. The watcher was stopped only to serialize this S113 release;
-the real driver completed its exact phases before restoring the existing watcher.
+`~/.local/state/pmi-kc-release`. The same watcher runs with the documented native WSL Node/Cloud SDK runtime. Current host logs are
+`native-status.log` and `native-errors.log`; the existing lock and scheduled task remain.
 
 Set MONITORING_OPERATOR_EMAIL in ignored .env.local to the existing verified managed alert
 recipient. It is independent of the approved CLI/ADC login. Missing, non-managed or conflicting
@@ -96,7 +102,7 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The real serialized driver completed exact SHA `f5faf1665121db9cacff913a57e7fdcc80513116`, CI 34556917662, revision `pmi-kc-app-rmtwdl4di-4439f17911f4`.
+The real serialized driver completed exact SHA `2950542dbcf9611838d6337fb0ea41db744e7ad0`, CI 34900353548, revision `pmi-kc-app-rmu1rxk29-9d8d576379d9`.
 Checkpoint phase is complete. Earlier checkpoints retain their actual outcomes, including the 919a2ae failed observation and verified rollback.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release; documentation-only
 commits do not deploy. Fresh candidate receipts, exact promotion and 300,000 ms observation remain
@@ -162,8 +168,8 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-The accepted candidate is now serving: `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`, tag `cand-rmtwdl4di-4439f17911f4`.
-Captured predecessor is `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb`. Fingerprint `sha256:a68c3459ab680b1230662f1becab6c975c5cc86f2ec349d6404ba4b5a0976282`.
+The accepted candidate is now serving: `2950542dbcf9611838d6337fb0ea41db744e7ad0` / `pmi-kc-app-rmu1rxk29-9d8d576379d9`, tag `cand-rmu1rxk29-9d8d576379d9`.
+Captured predecessor is `pmi-kc-app-rmtwdl4di-4439f17911f4`. Fingerprint `sha256:ab8796108228a075ec3cdff0dfc836bfd5ae8041c165a9156a9f96e683008979`.
 Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
 The commands below remain the required contract for future releases.
 
@@ -318,16 +324,8 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` from commit
-`d243911cb20ffb01773072c0e27c723648eeea34`.
-
-```bash
-gcloud run services update-traffic pmi-kc-app \
-  --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmtkmhj1z-8855e4c6dbfb=100 --quiet
-```
-
-Forward restoration to the current serving revision:
+Captured predecessor: `pmi-kc-app-rmtwdl4di-4439f17911f4` from commit
+`f5faf1665121db9cacff913a57e7fdcc80513116`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
@@ -335,14 +333,23 @@ gcloud run services update-traffic pmi-kc-app \
   --to-revisions=pmi-kc-app-rmtwdl4di-4439f17911f4=100 --quiet
 ```
 
+Forward restoration to the current serving revision:
+
+```bash
+gcloud run services update-traffic pmi-kc-app \
+  --project=pmi-kc-kb-prod --region=us-central1 \
+  --to-revisions=pmi-kc-app-rmu1rxk29-9d8d576379d9=100 --quiet
+```
+
 These are exact recovery coordinates, not a request to change current traffic. Every recovery
 requires the existing baseline/receipt checks and actual version/configuration/traffic readback.
 Historical rollback rehearsals remain in Git and their receipts; none was rerun for this release.
+The prior S113 release captured `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34` as its predecessor.
 The earlier d243911 release captured `pmi-kc-app-rmtkgn08q-db89a37c43dc` as its predecessor.
 The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
 `pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, passed exact version and bounded-route smoke, restored the
 then-current `pmi-kc-app-rmtbh280n-61b78ef991cc`, and passed the same smoke. These retained proof
-coordinates preserve router-required provenance; the current S113 recovery coordinates are above.
+coordinates preserve router-required provenance; the current recovery coordinates are above.
 
 ## Configuration invariants
 

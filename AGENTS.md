@@ -19,9 +19,15 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-11
+## Present production truth — 2026-09-15
 
-Production serves `f5faf1665121db9cacff913a57e7fdcc80513116` as `pmi-kc-app-rmtwdl4di-4439f17911f4` at 100% traffic. Exact CI [34556917662](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34556917662), candidate version/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and 300,000 ms observation passed. Canonical and tagged version endpoints and Cloud Run traffic/configuration were read back.
+Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.
+
+September 14 Feature 1 (lease information and record distinction) is complete and deployed through
+PR #83. Actual unit/contact facts, prominent guidance and owner-header all-lease links are serving.
+Features 2-6 have not started; continue Feature 2 from current main after this completed release.
+Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15 without entering
+passwords, codes, passkeys or CAPTCHAs. Existing identity, permission and safety boundaries remain.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
@@ -37,7 +43,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured immediate predecessor/rollback: `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`.
+- Captured immediate predecessor/rollback: `pmi-kc-app-rmtwdl4di-4439f17911f4` / `f5faf1665121db9cacff913a57e7fdcc80513116`.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
