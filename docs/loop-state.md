@@ -4,58 +4,46 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-September 14 Feature 4 (RentCast failure repair) is IMPLEMENTED / PUSHED / MERGED, but its
-production release FAILED OBSERVATION and was ROLLED BACK. Features 1-3 remain deployed;
-Features 5-6 have not started. Remain on Feature 4.
+Feature 4 is IMPLEMENTED / PUSHED / MERGED / DEPLOYED. PR #89 merged `32d3ab5` as `4ece4ba`.
+Serving SHA `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` / `pmi-kc-app-rmu286tg6-b24d5e15315b`
+completed the resumed production release. Features 1-4 are deployed; Features 5-6 have not started.
 
-Implementation `32d3ab5566f4a6e4a46672c298e44491fca1a923` was pushed on
-`codex/renewal-rentcast-repair` and merged through PR #89 as
-`4ece4ba11e5cb35c0f6703fd19d586a423d57697`. Existing focused tests passed (65), and full local
-verification passed 6,532 units, 201 backend tests, policies and production build. PR CI 34929220447
-passed after two failed-job retries: different waits in the existing mounted backend journey failed
-before the unchanged job passed. Exact main CI 34929736602 passed all five jobs on its first attempt.
-
-The reported retained lookup records HTTP 400. An exact-query diagnostic returned the provider's
-insufficient-comparables error. Keeping all subject attributes unchanged, 2- and 5-mile requests
-failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
-customer values remain outside Git. Diagnostic reads made one successful billable request; no
-customer draft/send or system-of-record write ran. The adapter passed replay of both actual responses.
-The repair explains this refusal and exposes an operator-selected radius, retaining that radius
-through the query, cache, observation and saved market basis. Source provenance, contractual base
-rent, separate recurring charges, provider order and existing quota/action controls remain intact.
+The reported retained lookup records HTTP 400. The exact query returned an insufficient-comparables
+error. With subject attributes unchanged, 2- and 5-mile requests failed; 10 miles returned HTTP 200
+with 15 comparables. The repair explains this refusal and allows an operator-selected radius retained
+through query/cache/observation/market basis. Base rent, separate recurring charges, source provenance,
+provider order, quota and action controls remain. Historical results no longer claim a fresh request.
 Provider guidance: https://developers.rentcast.io/reference/property-valuation.
+One successful diagnostic read was billable; raw responses/customer values remain outside Git.
+No customer draft/send or system-of-record write ran.
 
-Candidate `pmi-kc-app-rmu26u6xc-9a156b302dac` passed build, smoke, configuration, domains and eventual
-v4 assurance, then promotion at 05:00:16 UTC. Earlier aggregate assurance failures remain in the
-watcher log; separate Admin and reconciliation diagnostics passed without establishing their cause.
-Production observation failed after 417,350 ms with one successful checkpoint: Dashboard navigation
-timed out at 30,006 ms, with one request failure and missing landmark. All 311 records reconciled;
-monitoring reported zero candidate 5xx and unresolved effects. No auth mismatch or mutation occurred.
-The existing process required rollback and verified Feature 3 restored at 100% traffic. Independent
-canonical/tagged version and runtime readback confirmed that restoration at 05:09:18 UTC.
+Existing focused tests passed (65); full local verification passed 6,532 units, 201 backend tests,
+policies/build. PR CI 34929220447 passed after two failed-job retries at different existing journey
+waits; no code or assertions changed. Main CI 34929736602 and final CI 34931918778 passed.
+The resumed release passed v4 assurance/promotion and two observation checkpoints in 378,909 ms.
+Independent serving/version/runtime readback passed at 05:47:39 UTC. The watcher is active and complete.
 
-The checkpoint is terminal `rolled_back_verified`, not complete. The watcher process was stopped
-between attempts to prevent documentation closure from requeuing the same failed runtime. Its
-scheduled task and release lock file remain intact. Resume Feature 4 from the preserved failure;
-do not start Feature 5 or clear the failed receipt/checkpoint. Automatic approved authentication works.
+The earlier `4ece4ba` / `pmi-kc-app-rmu26u6xc-9a156b302dac` observation failed on a 30,006 ms
+Dashboard navigation timeout and verified rollback. Failed evidence remains outside Git. Aggregate
+assurance failures retain their actual outcomes without an inferred cause. The existing complete
+assurance function passed during a private diagnostic with the watcher paused between attempts;
+no code, deadline, route assertion or release gate was weakened. The watcher then promoted the exact
+receipted revision and completed observation. Feature 5 starts next from freshly inspected main.
 
 ## Verified production
 
-Serving SHA: a5852eaf8b19c1af48295ec8fff77814a91a10c7
-Serving revision: pmi-kc-app-rmu2508wj-67ca3e173ab5
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app, 100% traffic.
-Candidate: https://cand-rmu2508wj-67ca3e173ab5---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:3dd4b046d1a1b00f8233801bf80605978242ef348698bd0b9cdf4268cd53b28a.
-Captured predecessor: pmi-kc-app-rmu21dwpb-3ea232a8339f / e689586ffd1a8b369a86df4c1a1bffa478bd609d.
-Full local verification: 6,532 units, 201 backend tests, policies/build PASS; no tests added.
-PR #87 CI 34923446159 passed a failed-job retry; PR #88 CI 34925973325 and exact main CI 34926252129 passed first attempt.
-Cloud Build 6aacb9db-4c13-4c5f-b539-3f3517620ffc succeeded; smoke/configuration/domains passed.
-Admin passed; Editor not_run under owner policy; reconciliation matched all 311 source/projected/rendered rows.
-Zero missing/unexpected/duplicate records, field mismatches or invalid destinations.
-Promotion verified 2026-09-15T04:03:54.495Z. Observation passed: two checkpoints, 386,528 ms, 300,000 ms window.
-Monitoring reported zero candidate 5xx and unresolved live effects. Checkpoint complete, no rollback.
-Independent canonical/tagged version, traffic and runtime readback passed at 04:11:54 UTC.
-Production + Live, managed runtime account, 11 Spaces, provider bindings, allowance 50 and Sheet switch remain.
+Serving SHA: 2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72
+Serving revision: pmi-kc-app-rmu286tg6-b24d5e15315b, 100% traffic.
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+Candidate: https://cand-rmu286tg6-b24d5e15315b---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+Fingerprint: sha256:092e20a589aeceda9ea0dad5cd5a2727b027eef68b5dd775380eb762793e06a9.
+Predecessor: pmi-kc-app-rmu2508wj-67ca3e173ab5 / a5852eaf8b19c1af48295ec8fff77814a91a10c7.
+Exact CI 34931918778 passed; Cloud Build 852129e0-63c0-427e-983b-c61f9a822670 succeeded.
+Candidate receipt issued 05:40:22.136Z; promotion verified 05:40:47.547Z, September 15.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 378,909 ms / 300,000 ms.
+All 311 source/projected/rendered rows matched; no field or destination mismatches.
+Monitoring ready, zero candidate 5xx/unresolved effects. Checkpoint complete; no rollback.
+Independent serving/version/runtime readback passed 05:47:39 UTC. Reviewed configuration remains intact.
 
 ## Preserved failed attempts
 
@@ -70,14 +58,12 @@ Its missing-report recovery uses exact durable rollback. The earlier pre-dispatc
 
 ## Authentication and watcher
 
-Automatic CLI/ADC and enrolled Admin browser authentication passed; no password/code/passkey/CAPTCHA,
-account, policy, claim or permission change. Separate 24-hour longevity remains unverified.
-The serialized watcher source remains `/tmp/pmi-renewal-f1-integration-zbt2es` with native Node/Cloud SDK.
-Node PID 955680 and its Windows WSL helper have stopped after verified rollback; no release child remains.
-Do not restart it merely to redeploy unchanged Feature 4 code after documentation closure.
-Checkpoint: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; Feature 4 terminal rollback, lastDeployedSha `a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
-Logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f3-resume.log and native-errors-f3-resume.log.
-Earlier logs remain. Keep the existing lock and release mechanism; documentation-only closure does not deploy.
+Automatic approved CLI/ADC and Admin browser authentication work; no identity/IAM/claim changes.
+Separate 24-hour longevity remains unverified. Source: `/tmp/pmi-renewal-f1-integration-zbt2es`.
+Active native Node PID 1038352; Windows WSL helper PID 3848. Do not start a competing watcher.
+State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; complete, lastDeployedSha 2bf21ff.
+Logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f4-resume.log and native-errors-f4-resume.log.
+Earlier logs remain. Keep the existing lock and serialized release mechanism.
 
 ## Working checkout and evidence
 
@@ -108,3 +94,7 @@ Feature 4 private evidence (watcher state directory):
 
 Feature 4 Cloud Build `4393a9ee-a5b4-458f-b170-f44487a12404` succeeded. Its failed-release fingerprint
 is `sha256:72ebf49f248c6c409fab424ab24cd1f9153c0d32b96d64185bfd0b1099c8a3da`.
+
+Successful Feature 4 observation: `observation-pmi-kc-app-rmu286tg6-b24d5e15315b-1789450852413.json`,
+with matching v4 receipts in the watcher state directory. Earlier failed evidence remains unchanged.
+Next: Feature 5 dark-mode readability from current main; Feature 6 waits for its production completion.
