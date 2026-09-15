@@ -21,14 +21,13 @@ the current code and live service. Date-stamped history is not authority.
 
 ## Present production truth — 2026-09-15
 
-Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.
+Production serves `e689586ffd1a8b369a86df4c1a1bffa478bd609d` as `pmi-kc-app-rmu21dwpb-3ea232a8339f` at 100% traffic. Exact main [CI 34919964550](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34919964550) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 376,815 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
-September 14 Feature 1 (lease information and record distinction) is complete and deployed through
-PR #83. Actual unit/contact facts, prominent guidance and owner-header all-lease links are serving.
-Feature 2 is in progress from current main on `codex/renewal-process-glossary`; finish its
-independent verification, merge and production release before Feature 3. Features 3-6 have not started.
-Its first promoted candidate rolled back with verified recovery after missing observation evidence
-and an invalid retry schedule. Preserve that failure and repair the existing recovery path before retrying.
+September 14 Features 1 and 2 are complete and deployed. PR #83 provides actual unit/contact facts,
+prominent guidance and owner-header all-lease links. PRs #84/#85 provide the nested process glossary
+and stable section navigation; PR #86 repairs missing-observation-report rollback handling.
+The earlier Feature 2 candidate rolled back with verified recovery; its failed evidence remains.
+Feature 3 is next from current main. Features 3-6 have not started.
 Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15 without entering
 passwords, codes, passkeys or CAPTCHAs. Existing identity, permission and safety boundaries remain.
 
@@ -46,7 +45,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured immediate predecessor/rollback: `pmi-kc-app-rmtwdl4di-4439f17911f4` / `f5faf1665121db9cacff913a57e7fdcc80513116`.
+- Captured immediate predecessor/rollback: `pmi-kc-app-rmu1rxk29-9d8d576379d9` / `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

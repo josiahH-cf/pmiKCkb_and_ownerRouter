@@ -4,41 +4,36 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-September 14 Feature 1 (lease information and record distinction) is COMPLETE / PUSHED / MERGED /
-DEPLOYED. Implementation `90bbaa0` merged through [PR #83](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/83)
-as `2950542dbcf9611838d6337fb0ea41db744e7ad0` and now serves at 100% traffic. Actual unit facts, full source-backed tenant/client
-contact rosters, prominent guidance and owner-header all-lease navigation are serving.
-Exact main CI 34900353548 and all existing release stages passed. The initial aggregate assurance
-reported unverified; the unchanged retry passed before promotion. Final observation passed in
-378,690 ms with a 300,000 ms window. Feature 2 is in progress on `codex/renewal-process-glossary`; its glossary and guided completion changes are not yet merged or deployed. Features 3-6 have not started.
+September 14 Feature 2 (process glossary and guided completion) is IMPLEMENTED / PUSHED / MERGED / DEPLOYED.
+Branch `codex/renewal-process-glossary`; implementation `6e77fd5`, rendering correction `a38a8cb`,
+and release recovery repair `cc005df` merged through PRs #84, #85 and #86. Final merged/serving SHA
+is `e689586ffd1a8b369a86df4c1a1bffa478bd609d`. The toggleable glossary explains actual steps, optionality, dependencies,
+saved-value destinations and completion branches through independently expandable levels. Hidden entries
+load on first expansion and remain mounted thereafter; existing editors and cycle-scoped saves remain.
+Feature 1's unit/contact visibility and owner-filtered navigation remain deployed.
 
-Feature 1 local verification: 6,528 unit tests passed (four existing skips), all 201 backend tests,
-policy checks and production build passed. One earlier documentation-heading failure was corrected;
-one backend comp-button wait failed on an earlier run and passed with unchanged deadlines on the
-final full run. PR CI 34899631985 first failed the existing asynchronous tenant-draft rent wait;
-its failed-job retry passed unchanged. Exact merged-main CI then passed on its first attempt.
-Complete local logs remain outside Git in `/tmp/pmi-renewal-f1-verify-gFvhmL`.
+Full local verification passed 6,528 unit tests (four existing skips), all 201 backend tests, policy
+checks and build. PR #86 CI 34919514189 passed on a failed-job retry; exact main CI 34919964550 passed
+on its first attempt. Earlier asynchronous UI-wait failures retain their actual outcomes; no tests or
+deadlines were added or relaxed.
 
-The complete live RentVine export read returned 311 leases. Unit `address2` is present on 85;
-property `address2` on five. Tenant `name`, `email`, `phone`, `contactID` and `isActive`, and owner
-`name`, `email`, `contactID` and `isActive` were inspected as field names/counts only.
+The earlier `4e1a4a0` candidate `pmi-kc-app-rmu1zycgi-d28f58f32910` rolled back with verified recovery
+after a missing observation report and an invalid retry schedule. Its failed report and terminal
+checkpoint remain outside Git. The missing-report path now uses the existing durable exact-predecessor
+rollback immediately; the original missing report's cause was not established. The fresh candidate's
+missing reviewed env file was refused before deployment dispatch, reconciled after revision/traffic
+readback, and resumed with the unchanged reviewed file. Fingerprint and assurance retries retain their
+initial unverified outcomes. The fresh observation passed; no failed receipt was rewritten as a pass.
 
-Feature 2 remains incomplete after the watcher verified rollback to Feature 1. PRs #84/#85
-merged as `4e1a4a061cd8b49ef57e910831f6515c57e0089c`; exact CI 34917214663 passed on a failed-job retry.
-Candidate `pmi-kc-app-rmu1zycgi-d28f58f32910` passed build, smoke, configuration, domains and
-Admin assurance and was promoted. The first observation produced no report; its retry recorded
-`checkpoint_schedule_invalid`, one successful checkpoint, 317,523 ms elapsed and rollback required.
-Monitoring reported zero candidate 5xx and zero unresolved live effects. The cause of the missing
-report is not established. The failed observation and terminal rollback checkpoint remain outside Git.
-The existing watcher's missing-report path is being repaired to use its durable exact-predecessor
-rollback immediately, retaining the full observation requirement for a fresh release.
+Feature 3 is next from newly inspected current main. Features 3-6 have not started. CLI/ADC and
+Admin browser authentication passed automatically; unsent-draft and confirmed source-write boundaries remain.
 
 ## Serving release
 
-Production serves `2950542dbcf9611838d6337fb0ea41db744e7ad0` as `pmi-kc-app-rmu1rxk29-9d8d576379d9` at 100% traffic. Exact main [CI 34900353548](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34900353548), candidate smoke/configuration/domain checks, Admin browser assurance, independent reconciliation, receipt-bound promotion and the 300,000 ms observation passed. The observation completed in 378,690 ms; all 311 source/projected/rendered records matched with zero field mismatches or invalid destinations. Canonical/tagged versions, traffic, runtime configuration, source-state reads and unchanged Registry authority were independently read back.
+Production serves `e689586ffd1a8b369a86df4c1a1bffa478bd609d` as `pmi-kc-app-rmu21dwpb-3ea232a8339f` at 100% traffic. Exact main [CI 34919964550](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34919964550) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 376,815 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmtwdl4di-4439f17911f4`.
-Configuration fingerprint: `sha256:ab8796108228a075ec3cdff0dfc836bfd5ae8041c165a9156a9f96e683008979`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu1rxk29-9d8d576379d9`.
+Configuration fingerprint: `sha256:98956b1e88c9a76d02c9a0fa97d33d6c4b255b760449db4e6c1f1d0b3474e831`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
