@@ -10,10 +10,14 @@ prominent status/blockers/next action, and owner-header all-lease navigation. Im
 `90bbaa0` merged through PR #83 as `2950542`; exact main CI 34900353548 and all release stages passed.
 Full verification: 6,528 unit tests (four existing skips), 201 backend tests, policy checks and build.
 Automatic CLI/ADC and Admin browser authentication passed. No provider or message-send boundary changed.
-Feature 2 is next: establish its objective and inspect current main before creating its own branch.
+Feature 2 is in progress from freshly inspected main `91bc576` on `codex/renewal-process-glossary`.
+Its objective is a toggleable, nested process glossary explaining checklist connections, optionality,
+next steps and saved-value destinations. Existing cycle-scoped value persistence and confirmed
+external-write boundaries remain. Finish its existing verification, push, merge and serialized
+production release before Feature 3.
 
 The remaining order is process glossary/guided completion; external record/message destinations;
-RentCast repair; dark-mode readability; global clarity/response times. None has started.
+RentCast repair; dark-mode readability; global clarity/response times. Features 3-6 have not started.
 Each starts from the then-current main on its own branch and finishes production before the next.
 
 ## Current implementation baseline

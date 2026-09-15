@@ -7,8 +7,10 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 September 14 Feature 1 of six is COMPLETE / PUSHED / MERGED / DEPLOYED.
 Branch `codex/renewal-record-information`, implementation `90bbaa0`, PR #83, merged main `2950542dbcf9611838d6337fb0ea41db744e7ad0`.
 Actual unit/contact details, prominent guidance and owner-header all-lease links are serving.
-Feature 2 is next; Features 2-6 have not started. Start Feature 2 with its own objective and fresh
-inspection of current main. Preserve one full feature-to-production cycle at a time.
+Feature 2 is in progress on `codex/renewal-process-glossary` from freshly inspected main `91bc576`.
+The nested glossary explains current steps, optionality, value destinations and completion branches.
+Existing cycle-scoped saves and draft/document routing remain. Finish verification, push, merge and
+the serialized production release before Feature 3. Features 3-6 have not started.
 
 ## Verified production
 
