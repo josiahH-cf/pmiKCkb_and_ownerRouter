@@ -4,7 +4,8 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-Feature 5 (dark-mode readability) is implemented and verified on `codex/renewal-dark-mode-text`. It is not yet pushed, merged or deployed. Features 1-4 remain deployed; Feature 6 waits.
+Feature 5 (dark-mode readability) is implemented, pushed, merged through PR #90 and deployed.
+Features 1-5 are complete. Feature 6 has not started.
 
 The message renderer emits inline black body text and a fixed orange role span for email formatting.
 That HTML was displayed directly against the application's dark surface. The on-screen preview now
@@ -15,14 +16,17 @@ transport retain their existing behavior. No provider effect or customer value c
 Existing message-content, preparation-control and theme-token tests passed (11). Full repository
 verification passed: 6,532 unit tests, 201 backend tests, formatting, lint, types, policy checks and
 production build (`/tmp/pmi-f5-verify-final.log`). The existing release-metadata assertion was aligned
-with the verified Feature 3 predecessor. Push, merge and the serialized production release remain.
+with the verified predecessor. PR CI 34935499548 passed after retrying the unchanged backend job
+following one existing packet-save test timeout; exact-main CI 34935971798 passed on its first attempt.
+The watcher completed candidate assurance, promotion and two production observation checkpoints.
+Independent serving/version/configuration readback passed at 06:44:16 UTC. No live customer effect ran.
 
 ## Serving release
 
-Production serves `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` as `pmi-kc-app-rmu286tg6-b24d5e15315b` at 100% traffic. Exact main [CI 34931918778](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34931918778) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 378,909 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `82a2cf80ab0e17c9a947a54204524f7cd282eb93` as `pmi-kc-app-rmu2a59tx-28c0417b4693` at 100% traffic. Exact main [CI 34935971798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34935971798) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 374,876 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu2508wj-67ca3e173ab5`.
-Configuration fingerprint: `sha256:092e20a589aeceda9ea0dad5cd5a2727b027eef68b5dd775380eb762793e06a9`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu286tg6-b24d5e15315b`.
+Configuration fingerprint: `sha256:0d835c222e2524b745142c79282e4bf779bcff497092b4a6f442ab47ee577cc5`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 

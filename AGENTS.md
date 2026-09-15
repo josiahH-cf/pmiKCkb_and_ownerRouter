@@ -21,14 +21,14 @@ the current code and live service. Date-stamped history is not authority.
 
 ## Present production truth — 2026-09-15
 
-Production serves `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` as `pmi-kc-app-rmu286tg6-b24d5e15315b` at 100% traffic. Exact main [CI 34931918778](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34931918778) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 378,909 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `82a2cf80ab0e17c9a947a54204524f7cd282eb93` as `pmi-kc-app-rmu2a59tx-28c0417b4693` at 100% traffic. Exact main [CI 34935971798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34935971798) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 374,876 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
-September 14 Features 1-4 are complete and deployed. PR #83 provides lease/unit/contact visibility
+September 14 Features 1-5 are complete and deployed. PR #83 provides lease/unit/contact visibility
 and owner filtering; PRs #84/#85/#86 provide the glossary and missing-report rollback repair;
 PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs RentCast refusal handling
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
-remain preserved. Its resumed release passed all existing gates. The watcher is active; Feature 5 is being implemented and Feature 6
-has not started. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
+remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
+The watcher is active; Feature 6 has not started. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
 identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
@@ -45,7 +45,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured immediate predecessor/rollback: `pmi-kc-app-rmu2508wj-67ca3e173ab5` / `a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
+- Captured immediate predecessor/rollback: `pmi-kc-app-rmu286tg6-b24d5e15315b` / `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72`.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

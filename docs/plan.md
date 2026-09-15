@@ -10,7 +10,8 @@ process glossary and stable value routing; actual external record/message destin
 merged through PRs #87/#88 and completed exact-main CI plus the serialized production release.
 Its original unpromoted candidate and Feature 2's earlier verified rollback retain their actual evidence.
 
-Feature 5 (dark-mode readability) is implemented and verified on `codex/renewal-dark-mode-text`. It is not yet pushed, merged or deployed. Features 1-4 remain deployed; Feature 6 waits.
+Feature 5 (dark-mode readability) is implemented, pushed, merged through PR #90 and deployed.
+Features 1-5 are complete. Feature 6 has not started.
 
 The message renderer emits inline black body text and a fixed orange role span for email formatting.
 That HTML was displayed directly against the application's dark surface. The on-screen preview now
@@ -21,11 +22,14 @@ transport retain their existing behavior. No provider effect or customer value c
 Existing message-content, preparation-control and theme-token tests passed (11). Full repository
 verification passed: 6,532 unit tests, 201 backend tests, formatting, lint, types, policy checks and
 production build (`/tmp/pmi-f5-verify-final.log`). The existing release-metadata assertion was aligned
-with the verified Feature 3 predecessor. Push, merge and the serialized production release remain.
+with the verified predecessor. PR CI 34935499548 passed after retrying the unchanged backend job
+following one existing packet-save test timeout; exact-main CI 34935971798 passed on its first attempt.
+The watcher completed candidate assurance, promotion and two production observation checkpoints.
+Independent serving/version/configuration readback passed at 06:44:16 UTC. No live customer effect ran.
 
 ## Current implementation baseline
 
-Production serves `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` as `pmi-kc-app-rmu286tg6-b24d5e15315b` at 100% traffic. Exact main [CI 34931918778](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34931918778) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 378,909 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `82a2cf80ab0e17c9a947a54204524f7cd282eb93` as `pmi-kc-app-rmu2a59tx-28c0417b4693` at 100% traffic. Exact main [CI 34935971798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34935971798) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 374,876 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and
@@ -42,9 +46,9 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 Feature 4 completed the existing release sequence:
 
 1. Existing focused tests and full local verification passed: 6,532 units, 201 backend tests, policies/build.
-2. PR #89 merged the repair; final exact-main CI 34931918778 passed all five jobs.
+2. PR #89 merged the repair; final exact-main CI 34935971798 passed all five jobs.
 3. Corrected candidate smoke/configuration/domains, Admin assurance, reconciliation and v4 receipts passed.
-4. Exact promotion and the 300,000 ms observation passed with two successful checkpoints in 378,909 ms.
+4. Exact promotion and the 300,000 ms observation passed with two successful checkpoints in 374,876 ms.
 5. Independent serving/version/runtime readbacks passed. Earlier failed attempts remain preserved.
 
 S36 is queued behind complete S100. B-S100/B-MNT1 and actual Dotloop resources remain separate.

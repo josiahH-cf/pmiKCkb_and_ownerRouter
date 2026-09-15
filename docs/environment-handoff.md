@@ -1,7 +1,7 @@
 # Environment and release handoff
 
 Updated: 2026-09-15 (UTC). September 14 Features 1-3 are complete and deployed.
-Production serves `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` as `pmi-kc-app-rmu286tg6-b24d5e15315b` at 100% traffic. Exact main [CI 34931918778](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34931918778) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 378,909 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `82a2cf80ab0e17c9a947a54204524f7cd282eb93` as `pmi-kc-app-rmu2a59tx-28c0417b4693` at 100% traffic. Exact main [CI 34935971798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34935971798) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 374,876 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
 Current receipts and observation evidence remain outside Git under `/home/josiah/.local/state/pmi-kc-release`.
 The failed Feature 2 observation/rollback and Feature 3 unpromoted candidate checkpoint remain preserved separately.
@@ -16,8 +16,8 @@ The separate 24-hour authentication longevity proof remains unverified. No ident
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmu286tg6-b24d5e15315b`             |
-| Serving commit            | `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72`      |
+| Serving revision          | `pmi-kc-app-rmu2a59tx-28c0417b4693`             |
+| Serving commit            | `82a2cf80ab0e17c9a947a54204524f7cd282eb93`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
@@ -100,7 +100,7 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The last successful serialized release completed exact SHA `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72`, CI 34931918778, revision `pmi-kc-app-rmu286tg6-b24d5e15315b`.
+The last successful serialized release completed exact SHA `82a2cf80ab0e17c9a947a54204524f7cd282eb93`, CI 34935971798, revision `pmi-kc-app-rmu2a59tx-28c0417b4693`.
 The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
 Its terminalFailure / rolled_back_verified checkpoint is preserved outside Git. The missing-report
@@ -108,7 +108,8 @@ rollback repair is merged. Feature 3 superseded its unpromoted candidate only af
 traffic/version readback; the corrected independent reader and fresh release are complete. The watcher is configured for the native
 checkout with both reviewed ignored env files. Feature 4's first release failed observation and verified rollback restored Feature 3.
 The owner-directed resumed release of `2bf21ff` then passed full assurance, promotion and observation;
-its checkpoint is complete and the same serialized watcher is active.
+Feature 5 then completed through PR #90 with both production observation checkpoints passed.
+The current checkpoint is complete and the same serialized watcher is active.
 Earlier failed reports,
 receipts and terminal checkpoints retain their actual outcomes, including the 919a2ae rollback.
 Only exact-main-SHA green push CI permits an isolated runtime/served-asset release; documentation-only
@@ -175,8 +176,8 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-The accepted candidate is now serving: `2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72` / `pmi-kc-app-rmu286tg6-b24d5e15315b`, tag `cand-rmu286tg6-b24d5e15315b`.
-Captured predecessor is `pmi-kc-app-rmu2508wj-67ca3e173ab5`. Fingerprint `sha256:092e20a589aeceda9ea0dad5cd5a2727b027eef68b5dd775380eb762793e06a9`.
+The accepted candidate is now serving: `82a2cf80ab0e17c9a947a54204524f7cd282eb93` / `pmi-kc-app-rmu2a59tx-28c0417b4693`, tag `cand-rmu2a59tx-28c0417b4693`.
+Captured predecessor is `pmi-kc-app-rmu286tg6-b24d5e15315b`. Fingerprint `sha256:0d835c222e2524b745142c79282e4bf779bcff497092b4a6f442ab47ee577cc5`.
 Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
 The commands below remain the required contract for future releases.
 
@@ -331,13 +332,13 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmu2508wj-67ca3e173ab5` from commit
-`a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
+Captured predecessor: `pmi-kc-app-rmu286tg6-b24d5e15315b` from commit
+`2bf21ffe3821c1d2d32e3bb31cee9ccabb218e72`.
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu2508wj-67ca3e173ab5=100 --quiet
+  --to-revisions=pmi-kc-app-rmu286tg6-b24d5e15315b=100 --quiet
 ```
 
 Forward restoration to the current serving revision:
@@ -345,7 +346,7 @@ Forward restoration to the current serving revision:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu286tg6-b24d5e15315b=100 --quiet
+  --to-revisions=pmi-kc-app-rmu2a59tx-28c0417b4693=100 --quiet
 ```
 
 These are exact recovery coordinates, not a request to change current traffic. Every recovery
