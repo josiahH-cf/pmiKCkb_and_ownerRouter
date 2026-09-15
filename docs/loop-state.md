@@ -4,83 +4,70 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Features 1 and 2 are IMPLEMENTED / PUSHED / MERGED / DEPLOYED. Feature 3 is in implementation; Features 4-6 have not started.
-Feature 1: PR #83, implementation `90bbaa0`; actual unit/contact details and owner-filtered navigation remain serving.
-Feature 2: branch `codex/renewal-process-glossary`, PRs #84/#85/#86; implementations `6e77fd5`,
-`a38a8cb` and `cc005df`, merged/serving SHA `e689586ffd1a8b369a86df4c1a1bffa478bd609d`.
-Nested glossary and guidance preserve editors, cycle-scoped saves and draft/document value routing.
-The release continuation repaired missing-observation-report recovery through existing verified rollback.
-Feature 3: branch `codex/renewal-external-destinations`, based on freshly inspected main `b0cba8a`.
-Objective: verified badges open validated RentVine lease links; message copy/draft controls expose the
-actual lease/owner Messages and record destinations and managed Gmail Drafts. Provider UI routes were
-read back without customer writes; account-selected Gmail Drafts opened the approved managed mailbox.
-Owner header filtering, draft governance and existing duplicate-source refusal remain intact.
-Focused existing tests passed (84); 6,532 unit and 201 backend tests, policies and build passed.
-PR #87 merged `5cab629` as `3287f8a`; exact main CI 34923814873 passed first attempt.
-Candidate rmu23j65k-ea7b9f5b8980 built but is at zero traffic: five destination mismatches from the
-old internal-only verification reader; 311 records and all fields matched, Admin passed.
-Feature 3 continuation `codex/renewal-external-destination-assurance` passed 48 focused tests and full
-verification (6,532 units, 201 backend tests, policies/build). Push/merge it and complete production.
-Diagnostic reports `f3-canary-diagnostic.json` and `f3-reconciliation-diagnostic.json` remain outside Git.
-The watcher resumed after the serial read-only diagnostics; production remains Feature 2.
-Finish its existing production release before beginning Feature 4.
+Features 1-3 are IMPLEMENTED / PUSHED / MERGED / DEPLOYED. Features 4-6 have not started.
+Feature 1: PR #83, actual unit/contact details, prominent guidance and owner-filtered navigation.
+Feature 2: PRs #84/#85/#86, nested glossary, stable saved-value routing and missing-report rollback repair.
+Feature 3: PR #87 (`5cab629`) and #88 (`c33002f`), serving SHA `a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
+Verified badges open validated RentVine lease records; copy/draft controls link to managed Gmail Drafts
+and actual RentVine lease/owner record/Messages destinations. Owner-name filtering remains internal.
+Next: establish Feature 4's standalone objective and freshly inspect current main, then create its branch.
+Trace and repair the actual RentCast failure while preserving base rent/recurring-charge distinction and
+source field provenance. Complete its push/merge/production release before Feature 5.
 
 ## Verified production
 
-Serving SHA: e689586ffd1a8b369a86df4c1a1bffa478bd609d
-Serving revision: pmi-kc-app-rmu21dwpb-3ea232a8339f
+Serving SHA: a5852eaf8b19c1af48295ec8fff77814a91a10c7
+Serving revision: pmi-kc-app-rmu2508wj-67ca3e173ab5
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app, 100% traffic.
-Candidate: https://cand-rmu21dwpb-3ea232a8339f---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:98956b1e88c9a76d02c9a0fa97d33d6c4b255b760449db4e6c1f1d0b3474e831.
-Captured predecessor: pmi-kc-app-rmu1rxk29-9d8d576379d9 / 2950542dbcf9611838d6337fb0ea41db744e7ad0.
-Full local verification: 6,528 units/four skips, 201 backend tests, policy/build PASS.
-PR #86 CI 34919514189 passed on a failed-job retry; exact main CI 34919964550 passed on its first attempt.
-Cloud Build bbfd7f86-7fef-46c2-9289-3796e7a6b522, smoke, configuration and domains passed.
-Fingerprint and aggregate assurance passed on unchanged retries; their earlier unverified outcomes remain.
+Candidate: https://cand-rmu2508wj-67ca3e173ab5---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+Fingerprint: sha256:3dd4b046d1a1b00f8233801bf80605978242ef348698bd0b9cdf4268cd53b28a.
+Captured predecessor: pmi-kc-app-rmu21dwpb-3ea232a8339f / e689586ffd1a8b369a86df4c1a1bffa478bd609d.
+Full local verification: 6,532 units, 201 backend tests, policies/build PASS; no tests added.
+PR #87 CI 34923446159 passed a failed-job retry; PR #88 CI 34925973325 and exact main CI 34926252129 passed first attempt.
+Cloud Build 6aacb9db-4c13-4c5f-b539-3f3517620ffc succeeded; smoke/configuration/domains passed.
 Admin passed; Editor not_run under owner policy; reconciliation matched all 311 source/projected/rendered rows.
 Zero missing/unexpected/duplicate records, field mismatches or invalid destinations.
-Promotion verified 2026-09-15T02:32:27.094Z. Observation passed: two checkpoints, 376,815 ms, 300,000 ms window.
-Monitoring reported zero candidate 5xx and unresolved live effects. Checkpoint is complete with no rollback.
-Independent canonical/tagged version, traffic and runtime readbacks passed. Production + Live, managed
-runtime account, 11 Spaces, provider secret bindings, allowance 50 and enabled Sheet switch remain.
+Promotion verified 2026-09-15T04:03:54.495Z. Observation passed: two checkpoints, 386,528 ms, 300,000 ms window.
+Monitoring reported zero candidate 5xx and unresolved live effects. Checkpoint complete, no rollback.
+Independent canonical/tagged version, traffic and runtime readback passed at 04:11:54 UTC.
+Production + Live, managed runtime account, 11 Spaces, provider bindings, allowance 50 and Sheet switch remain.
 
-## Preserved failed attempt and recovery
+## Preserved failed attempts
 
-The earlier `4e1a4a0` / `pmi-kc-app-rmu1zycgi-d28f58f32910` candidate rolled back with verified recovery.
-First observation had no report; retry failed `checkpoint_schedule_invalid` after 317,523 ms and one
-checkpoint. The missing report's cause was not established. Failed report, receipts and terminal
-checkpoint remain outside Git; no failure was rewritten as a pass.
-The fresh attempt's missing reviewed env file was refused before any deployment dispatch. The unchanged
-original `.env.production.local` was copied after exact revision absence and baseline traffic readback.
-Its refused preflight intent was preserved and the same candidate resumed at first deployment dispatch.
-No tests or deadlines were added or relaxed. No customer messages or source-record writes were made.
+First Feature 3 candidate: 3287f8a / pmi-kc-app-rmu23j65k-ea7b9f5b8980, never promoted.
+Admin passed; 311 records/fields matched; five invalid destinations reflected the old internal-only
+verification reader. Existing reconciliation now validates external badges against independent source URLs.
+After the last read-only retry was interrupted, candidate zero traffic and unchanged predecessor
+version/100% traffic were verified. Its checkpoint/reason were preserved before queuing the corrected
+commit through the same watcher. No failed phase was relabeled as passed.
+Feature 2's earlier 4e1a4a0 / rmu1zycgi-d28f58f32910 failed observation and verified rollback remain preserved.
+Its missing-report recovery uses exact durable rollback. The earlier pre-dispatch env refusal remains recorded.
 
 ## Authentication and watcher
 
-CLI/ADC and enrolled Admin browser authentication passed automatically. No password/code/passkey/CAPTCHA
-was entered, and no account, policy, claim or permission scope changed. The former ADC binding mismatch
-is resolved; do not repeat enrollment without a fresh failure. Separate 24-hour longevity remains unverified.
-The same serialized watcher runs from `/tmp/pmi-renewal-f1-integration-zbt2es` with native Node/Cloud SDK PATH.
-Checkpoint: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; complete, lastDeployedSha `e689586ffd1a8b369a86df4c1a1bffa478bd609d`.
-Host logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f2-resume.log and native-errors-f2-resume.log.
-Earlier logs remain. Use the existing watcher and lock; do not create competing deployments.
-Documentation-only closure does not deploy.
+Automatic CLI/ADC and enrolled Admin browser authentication passed; no password/code/passkey/CAPTCHA,
+account, policy, claim or permission change. Separate 24-hour longevity remains unverified.
+The same serialized watcher runs from `/tmp/pmi-renewal-f1-integration-zbt2es` with native Node/Cloud SDK.
+Node PID 955680; Windows WSL helper PID 27776. Earlier watcher stopped for safe failed-candidate supersession.
+Checkpoint: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; complete, lastDeployedSha `a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
+Logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f3-resume.log and native-errors-f3-resume.log.
+Earlier logs remain. Keep the existing lock and release mechanism; documentation-only closure does not deploy.
 
 ## Working checkout and evidence
 
-Working checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`. Both reviewed ignored env files are present.
-Original Windows checkout remains on Feature 1; its broken existing turn-diff ref was not altered.
+Clean main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`; both reviewed ignored env files are present.
+Original Windows checkout remains on Feature 1; its unrelated broken turn-diff ref was not altered.
 Use native Node 22.23.2 and the existing Java 21 runtime for verification.
-Final local verification: `/tmp/pmi-f2-release-verify.log`.
-Observation: `observation-pmi-kc-app-rmu21dwpb-3ea232a8339f-1789439554276.json` under the watcher state directory.
-Failed observation: `observation-pmi-kc-app-rmu1zycgi-d28f58f32910-1789436833060.json`.
-Preserved checkpoints: `checkpoint-pmi-kc-app-rmu1zycgi-d28f58f32910-rolled-back.json` and
-`checkpoint-pmi-kc-app-rmu21dwpb-3ea232a8339f-preflight-refused.json`. Credentials/customer evidence stay outside Git.
+Final local verification: `/tmp/pmi-f3-assurance-verify.log`.
+Observation: `observation-pmi-kc-app-rmu2508wj-67ca3e173ab5-1789445039261.json` under the watcher state directory.
+Failed-candidate diagnostics: `f3-canary-diagnostic.json` and `f3-reconciliation-diagnostic.json`.
+Archived checkpoint: `checkpoint-3287f8a0874f939abfa2df7260b523b97545e14b-superseded-by-a5852eaf8b19c1af48295ec8fff77814a91a10c7.json` plus `.reason.json`.
+Feature 2 failure/rollback and preflight-refusal evidence remain. Credentials/customer evidence stay outside Git.
 
 ## Preserved boundaries
 
-Staff-recorded progress remains distinct from provider receipts and signatures. Source writes retain
-exact preview/confirmation, claims, receipts/readback and correction contracts. Messages remain unsent
-drafts. Existing S97-S100 proofs are not rerun. S106/S34 still requires actual forms/catalog/mappings,
+Staff-recorded progress remains separate from provider receipts/signatures. Source writes retain exact
+preview/confirmation, claims, receipts/readback and correction. Messages remain unsent drafts.
+Completed S97-S100 proofs are not rerun. S106/S34 still requires actual forms/catalog/mappings,
 managed Dotloop connection/selection and exact activation gates. Blank resource inputs remain accepted.
 S100 resident-draft still needs exact mapped/verified input; S36 remains dependent. Other suites are out of scope.

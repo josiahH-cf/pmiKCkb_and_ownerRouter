@@ -5,25 +5,19 @@ Updated: 2026-09-15 (UTC).
 ## Outcome
 
 The September 14 renewal updates execute as six separate feature-to-production cycles.
-Features 1 and 2 are complete and deployed. Feature 1 surfaces lease/unit/contact identity and
-owner-filtered navigation. Feature 2 supplies the nested glossary, stepwise guidance and saved-value
-destinations, retaining existing editors and persistence. Its deployment continuation repaired the
-existing missing-observation-report rollback path. PRs #84/#85/#86 merged as `e689586`; exact main
-CI 34919964550 and the complete serialized release passed. No failed attempt was relabeled as passed.
+Features 1-3 are complete and deployed: lease/unit/contact identity and owner filtering; nested
+process glossary and stable value routing; actual external record/message destinations. Feature 3
+merged through PRs #87/#88 and completed exact-main CI plus the serialized production release.
+Its original unpromoted candidate and Feature 2's earlier verified rollback retain their actual evidence.
 
-Feature 3 is in implementation on `codex/renewal-external-destinations`, based on freshly inspected
-main `b0cba8a`: validated RentVine verification links, lease/owner record and Messages links, and
-managed Gmail Drafts beside message copy/draft actions. Provider UI routes and managed mailbox
-selection were read back. Existing focused tests passed (84); 6,532 unit tests, 201 backend tests, policies and build passed.
-PR #87 merged `3287f8a`, whose candidate has five mismatches because the old reader required internal
-verification links. The Feature 3 continuation on `codex/renewal-external-destination-assurance` corrects
-that reader while retaining exact independently read destination checks. Full verification passed.
-Push/merge the continuation and complete the existing serialized production release before Feature 4.
-Features 4-6 remain unstarted: RentCast repair, dark-mode readability, then global clarity and response times.
+Feature 4 is next: establish the RentCast failure's actual cause from current main and integration
+readback, repair the existing comparison lookup, then build/push/merge/deploy it before Feature 5.
+Preserve contractual base rent, separate recurring charges and source field provenance.
+Features 4-6 have not started. Dark-mode readability follows Feature 4, then global clarity and response times.
 
 ## Current implementation baseline
 
-Production serves `e689586ffd1a8b369a86df4c1a1bffa478bd609d` as `pmi-kc-app-rmu21dwpb-3ea232a8339f` at 100% traffic. Exact main [CI 34919964550](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34919964550) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 376,815 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `a5852eaf8b19c1af48295ec8fff77814a91a10c7` as `pmi-kc-app-rmu2508wj-67ca3e173ab5` at 100% traffic. Exact main [CI 34926252129](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34926252129) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,528 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and
@@ -37,13 +31,13 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 
 ## Canonical closure sequence
 
-Feature 2 completed the existing release sequence:
+Feature 3 completed the existing release sequence:
 
-1. Bounded implementation and full local verification passed: 6,528 units/four skips, 201 backend tests, policy/build.
-2. PRs #84/#85/#86 merged the feature and recovery continuation; exact final main CI passed all five jobs.
-3. Fresh candidate smoke/configuration/domains, Admin assurance, reconciliation and v4 receipts passed.
-4. Exact promotion and the 300,000 ms production observation passed with two successful checkpoints in 376,815 ms.
-5. Independent serving/version/runtime readbacks passed. Earlier failed observations and verified rollback remain preserved.
+1. Existing focused tests and full local verification passed: 6,532 units, 201 backend tests, policies/build.
+2. PRs #87/#88 merged the feature and reconciliation correction; exact main CI 34926252129 passed all five jobs.
+3. Corrected candidate smoke/configuration/domains, Admin assurance, reconciliation and v4 receipts passed.
+4. Exact promotion and the 300,000 ms observation passed with two successful checkpoints in 386,528 ms.
+5. Independent serving/version/runtime readbacks passed. Earlier failed attempts remain preserved.
 
 S36 is queued behind complete S100. B-S100/B-MNT1 and actual Dotloop resources remain separate.
 

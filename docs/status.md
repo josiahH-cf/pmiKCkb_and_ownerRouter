@@ -4,53 +4,33 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-September 14 Feature 3 (external records and message destinations) is implemented locally on
-`codex/renewal-external-destinations`, based on freshly inspected main `b0cba8a`. Verification badges
-use the existing validated RentVine lease URL; unresolved verification retains its comparison link.
-Copy and draft actions link to account-selected managed Gmail Drafts and the actual RentVine lease
-and owner record/Messages routes read back in the provider UI on 2026-09-15. Owner header filtering
-remains internal. No customer message, draft or source-record write was executed during inspection.
-Existing focused tests passed (84), followed by 6,532 unit and 201 backend tests, policies and build.
-The router check permits only the observed managed Gmail Drafts URL in its destination builder; other
-Gmail web shortcuts remain prohibited. PR #87 merged implementation `5cab629` as `3287f8a`; exact main CI 34923814873 passed first attempt.
-Its zero-traffic candidate built successfully, but reconciliation found five destination mismatches
-because the existing reader required internal verification links. All 311 records matched, with zero
-field mismatches; Admin browser assurance passed. Feature 3 continues on
-`codex/renewal-external-destination-assurance`: the corrected reader validates external badges against
-independently read source URLs with their existing host/lease/new-tab restrictions. Its 48 focused
-existing tests and full verification (6,532 units, 201 backend tests, policies/build) passed.
-The continuation is ready to push and merge; production remains on Feature 2.
-Features 4-6 have not started and must wait for this feature's successful production observation.
+September 14 Feature 3 (external records and message destinations) is IMPLEMENTED / PUSHED / MERGED / DEPLOYED.
+PR #87 implemented `5cab629`; PR #88 corrected the existing reconciliation reader in `c33002f`.
+Merged/serving SHA is `a5852eaf8b19c1af48295ec8fff77814a91a10c7`. Verified badges open validated RentVine lease records;
+message copy/draft controls link to managed Gmail Drafts and actual RentVine lease/owner records and
+Messages tabs. Provider routes and managed mailbox selection were read back. Owner-name filtering,
+the deployed glossary, saved values and governed unsent draft creation remain intact.
 
-## Deployed baseline
+Full local verification passed 6,532 unit tests, 201 backend tests, policies and production build.
+PR #87 CI 34923446159 passed a failed-job retry after an existing comp-button UI wait; PR #88 CI
+34925973325 and exact final main CI 34926252129 passed first attempt. The corrected candidate passed
+all existing release gates, including two observation checkpoints in 386,528 ms. No tests were added.
+No live customer draft, send or source-record write was performed for this feature.
 
-September 14 Feature 2 (process glossary and guided completion) is IMPLEMENTED / PUSHED / MERGED / DEPLOYED.
-Branch `codex/renewal-process-glossary`; implementation `6e77fd5`, rendering correction `a38a8cb`,
-and release recovery repair `cc005df` merged through PRs #84, #85 and #86. Final merged/serving SHA
-is `e689586ffd1a8b369a86df4c1a1bffa478bd609d`. The toggleable glossary explains actual steps, optionality, dependencies,
-saved-value destinations and completion branches through independently expandable levels. Hidden entries
-load on first expansion and remain mounted thereafter; existing editors and cycle-scoped saves remain.
-Feature 1's unit/contact visibility and owner-filtered navigation remain deployed.
+The first Feature 3 candidate `pmi-kc-app-rmu23j65k-ea7b9f5b8980` stayed at zero traffic:
+Admin passed and all 311 records/fields matched, but the old reader required five internal verification
+links. Its failed diagnostic and checkpoint remain outside Git. After the last read-only retry was
+interrupted, unchanged predecessor traffic/version were verified and the corrected commit was queued
+through the same watcher. No failed stage was relabeled as passed. Feature 2's earlier failed
+observation and verified rollback remain preserved separately.
 
-Full local verification passed 6,528 unit tests (four existing skips), all 201 backend tests, policy
-checks and build. PR #86 CI 34919514189 passed on a failed-job retry; exact main CI 34919964550 passed
-on its first attempt. Earlier asynchronous UI-wait failures retain their actual outcomes; no tests or
-deadlines were added or relaxed.
-
-The earlier `4e1a4a0` candidate `pmi-kc-app-rmu1zycgi-d28f58f32910` rolled back with verified recovery
-after a missing observation report and an invalid retry schedule. Its failed report and terminal
-checkpoint remain outside Git. The missing-report path now uses the existing durable exact-predecessor
-rollback immediately; the original missing report's cause was not established. The fresh candidate's
-missing reviewed env file was refused before deployment dispatch, reconciled after revision/traffic
-readback, and resumed with the unchanged reviewed file. Fingerprint and assurance retries retain their
-initial unverified outcomes. The fresh observation passed; no failed receipt was rewritten as a pass.
-
-Feature 3 is in implementation from freshly inspected main; Features 4-6 have not started. CLI/ADC and
-Admin browser authentication passed automatically; unsent-draft and confirmed source-write boundaries remain.
+Features 1-3 are complete and deployed. Feature 4 is next from freshly inspected main; Features 4-6
+have not started. Automatic CLI/ADC and enrolled Admin browser authentication passed without manual
+credential entry. Separate 24-hour longevity remains unverified.
 
 ## Serving release
 
-Production serves `e689586ffd1a8b369a86df4c1a1bffa478bd609d` as `pmi-kc-app-rmu21dwpb-3ea232a8339f` at 100% traffic. Exact main [CI 34919964550](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34919964550) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 376,815 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `a5852eaf8b19c1af48295ec8fff77814a91a10c7` as `pmi-kc-app-rmu2508wj-67ca3e173ab5` at 100% traffic. Exact main [CI 34926252129](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34926252129) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,528 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu1rxk29-9d8d576379d9`.
 Configuration fingerprint: `sha256:98956b1e88c9a76d02c9a0fa97d33d6c4b255b760449db4e6c1f1d0b3474e831`. Production + Live, managed runtime identity,
