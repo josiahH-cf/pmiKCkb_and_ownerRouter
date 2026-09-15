@@ -27,7 +27,7 @@ September 14 Features 1-3 are complete and deployed. PR #83 provides actual unit
 prominent guidance and owner-header all-lease links. PRs #84/#85 provide the nested process glossary;
 PR #86 repairs missing-observation-report rollback handling. PRs #87/#88 provide actual external
 record/message destinations and corresponding independent reconciliation. Failed candidate/observation
-records remain preserved without success claims. Feature 4 is next from current main; Features 4-6
+records remain preserved without success claims. Feature 4 is being implemented from current main; Features 5-6
 have not started. Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15
 without passwords, codes, passkeys or CAPTCHAs. Existing identity and safety boundaries remain.
 

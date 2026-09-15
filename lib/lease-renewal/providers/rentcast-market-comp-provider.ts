@@ -260,6 +260,22 @@ export class RentCastMarketCompProvider implements MarketCompProvider {
       );
     }
     if (response.status < 200 || response.status >= 300) {
+      // RentCast also reports insufficient coverage as HTTP 400, without any comps.
+      // Match its observed error contract; never expose an arbitrary provider body.
+      if (response.status === 400) {
+        try {
+          const error = (await response.json()) as Record<string, unknown> | null;
+          if (
+            error?.error === "resource/bad-request" &&
+            error.message ===
+              "Unable to calculate AVM due to insufficient comparables matching request parameters"
+          ) {
+            return { ...failClosed("insufficient_comparables"), httpStatus: 400 };
+          }
+        } catch {
+          // An unreadable error body remains an HTTP failure, not a successful payload.
+        }
+      }
       return { ...failClosed("http_error"), httpStatus: response.status };
     }
     // From here the call is BILLED (one 2xx response with a body is one billable request), even

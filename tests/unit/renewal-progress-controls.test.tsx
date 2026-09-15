@@ -332,7 +332,7 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
           ),
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Fresh provider lookup/)).toBeInTheDocument();
+    expect(screen.getByText(/Provider lookup result/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "RentCast source" })).toHaveAttribute(
       "href",
       "https://www.rentcast.io",

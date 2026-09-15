@@ -7,7 +7,10 @@ import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-input";
 import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 import type { RenewalWorkspaceAction } from "@/lib/lease-renewal/workspace-state";
-import type { MarketCompQueryBasis } from "@/lib/lease-renewal/market-comp-query-basis";
+import {
+  RENTCAST_QUERY_POLICY,
+  type MarketCompQueryBasis,
+} from "@/lib/lease-renewal/market-comp-query-basis";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
 
 // LIVE workspace controls persist app-owned inputs through the versioned renewal-progress boundary
@@ -30,7 +33,12 @@ interface RecordedDecision {
     compSource?: string;
     compRetrievedAt?: string;
     /** S60: the persisted provider basis (only the fields this surface reads). */
-    provider?: { source: string; pointEstimate: number; retrievedAt: string };
+    provider?: {
+      source: string;
+      pointEstimate: number;
+      retrievedAt: string;
+      radiusMiles?: number;
+    };
   };
 }
 
@@ -68,6 +76,7 @@ export interface CompLookup {
   confidence: "Likely" | "Needs Verification";
   /** S59: the legible refusal cause; each renders as a distinct message (AC-S59-8). */
   reason?: string;
+  httpStatus?: number;
   /** S59: the operator-visible remaining-calls figure on the RentCast path. */
   quota?: { used: number; allowance: number; remaining: number; warn: boolean };
   cached?: boolean;
@@ -98,6 +107,9 @@ const COMP_REFUSAL_COPY: Record<string, string> = {
     "The comp service answered with an error. Try again, or enter your own comp numbers.",
   parse_error:
     "The comp service sent a response the app could not read. Enter your own comp numbers.",
+  insufficient_comparables:
+    "RentCast could not calculate an estimate because too few comparable listings match this search. Increase the maximum radius and look up again, or enter your own comp numbers.",
+  invalid_radius: "Enter a maximum search radius greater than zero, in miles.",
   too_few_comps:
     "Fewer than three comparable listings came back, which is too thin to stand on. Enter your own comp numbers.",
   out_of_allowance:
@@ -229,6 +241,19 @@ export function OwnerDecisionForm({
     preparation?.analysisReference ?? "",
   );
   const lookupTouched = useRef(false);
+  const radiusTouched = useRef(false);
+  const [maxRadiusMiles, setMaxRadiusMiles] = useState(
+    String(
+      preparation?.initialLookup?.queryBasis?.policy.maxRadiusMiles ??
+        currentMarket?.provider?.radiusMiles ??
+        RENTCAST_QUERY_POLICY.maxRadiusMiles,
+    ),
+  );
+  useEffect(() => {
+    const retainedRadius = preparation?.initialLookup?.queryBasis?.policy.maxRadiusMiles;
+    if (!radiusTouched.current && retainedRadius !== undefined)
+      setMaxRadiusMiles(String(retainedRadius));
+  }, [preparation?.initialLookup]);
   const [decision, setDecision] = useState<OwnerDecision>(
     current?.decision ?? "increase",
   );
@@ -299,6 +324,7 @@ export function OwnerDecisionForm({
     rangeHigh: useId(),
     pmiNumber: useId(),
     screenshot: useId(),
+    radius: useId(),
   };
 
   // Reference-only market-comp lookup: runs the configured provider (the manual adapter echoes the
@@ -315,6 +341,15 @@ export function OwnerDecisionForm({
         source: "RentCast",
         confidence: "Needs Verification",
         reason: "missing_address",
+      });
+      return;
+    }
+    const radius = Number(maxRadiusMiles);
+    if (!Number.isFinite(radius) || radius <= 0) {
+      setCompLookup({
+        source: "RentCast",
+        confidence: "Needs Verification",
+        reason: "invalid_radius",
       });
       return;
     }
@@ -341,6 +376,9 @@ export function OwnerDecisionForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           leaseId,
+          ...(radius !== RENTCAST_QUERY_POLICY.maxRadiusMiles
+            ? { maxRadiusMiles: radius }
+            : {}),
           ...(preparation ? { capture: { cycleId: preparation.cycleId } } : {}),
           ...(Object.keys(manualBasis).length > 0 ? { manualBasis } : {}),
         }),
@@ -1219,6 +1257,24 @@ export function OwnerDecisionForm({
         </div>
       ) : null}
       {screenshotStatus ? <p className="muted">{screenshotStatus}</p> : null}
+      <Field htmlFor={id.radius} label="Maximum comp search radius (miles)">
+        <input
+          id={id.radius}
+          type="number"
+          step="any"
+          value={maxRadiusMiles}
+          disabled={lookupPending}
+          onChange={(event) => {
+            radiusTouched.current = true;
+            setMaxRadiusMiles(event.target.value);
+          }}
+        />
+      </Field>
+      <p className="muted">
+        Start with nearby listings. If RentCast cannot find enough matches, increase the
+        radius and run another lookup. Each lookup uses the displayed radius and the
+        lease’s source attributes; changing it does not change the offered rent.
+      </p>
       <div className="ui-row">
         <Button
           disabled={lookupPending}
@@ -1250,6 +1306,9 @@ export function OwnerDecisionForm({
               : (COMP_REFUSAL_COPY[compLookup.reason ?? ""] ??
                 `No comparable range is available yet (${compLookup.source}). Needs verification.`)}
           </p>
+          {compLookup.httpStatus !== undefined ? (
+            <p className="muted">RentCast response: HTTP {compLookup.httpStatus}.</p>
+          ) : null}
           {compLookup.quota ? (
             <p className="muted">
               {compLookup.quota.remaining} of {compLookup.quota.allowance} comp lookups
@@ -1293,7 +1352,7 @@ export function OwnerDecisionForm({
                 ))}
               </ul>
               <p className="muted">
-                {compLookup.cached ? "Cache hit" : "Fresh provider lookup"}
+                {compLookup.cached ? "Cache hit" : "Provider lookup result"}
                 {compLookup.retrievedAt ? (
                   <> · retrieved {compLookup.retrievedAt}</>
                 ) : null}

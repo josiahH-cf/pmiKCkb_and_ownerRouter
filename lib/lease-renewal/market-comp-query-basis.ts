@@ -45,7 +45,9 @@ export type MarketCompQueryAttribute =
 export interface MarketCompQueryBasis {
   leaseId: string;
   addressLabel: string;
-  policy: typeof RENTCAST_QUERY_POLICY;
+  policy: Omit<typeof RENTCAST_QUERY_POLICY, "maxRadiusMiles"> & {
+    maxRadiusMiles: number;
+  };
   query: {
     bedrooms?: number;
     bathrooms?: number;

@@ -57,9 +57,11 @@ const MarketCompsRequestSchema = z
     // S59: "comps" (the default) is the AVM comp basis; "trend" is the month-keyed /markets history.
     // Each is a SEPARATE billable RentCast request and is metered separately (AC-S59-18).
     operation: z.enum(["comps", "trend"]).default("comps"),
-    // The browser nominates only a lease identity. Address, unit attributes, policy, and base rent
-    // are re-resolved from the current RentVine export on the server.
+    // The browser nominates a lease identity and search radius. Address, unit attributes and
+    // base rent are re-resolved from the current RentVine export on the server.
     leaseId: z.string().trim().min(1).max(120),
+    // One operator-selected radius per request; source attributes remain server-resolved.
+    maxRadiusMiles: z.number().finite().positive().optional(),
     // The operator's OWN entered comp numbers, for the manual pass-through only (RentCast ignores them).
     manualBasis: z
       .object({
@@ -115,7 +117,14 @@ async function marketCompsResponse(request: Request) {
 
     const body = await parseJsonBody(request, MarketCompsRequestSchema);
 
-    const queryBasis = await resolveCurrentMarketCompQueryBasis(body.leaseId);
+    const sourceBasis = await resolveCurrentMarketCompQueryBasis(body.leaseId);
+    const queryBasis: MarketCompQueryBasis = {
+      ...sourceBasis,
+      policy: {
+        ...sourceBasis.policy,
+        maxRadiusMiles: body.maxRadiusMiles ?? sourceBasis.policy.maxRadiusMiles,
+      },
+    };
 
     // A trend needs the server-resolved RentVine postal code. No browser-supplied fallback and no
     // placeholder can spend a provider call.

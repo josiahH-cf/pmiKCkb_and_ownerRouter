@@ -4,15 +4,25 @@ Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Features 1-3 are IMPLEMENTED / PUSHED / MERGED / DEPLOYED. Features 4-6 have not started.
-Feature 1: PR #83, actual unit/contact details, prominent guidance and owner-filtered navigation.
-Feature 2: PRs #84/#85/#86, nested glossary, stable saved-value routing and missing-report rollback repair.
-Feature 3: PR #87 (`5cab629`) and #88 (`c33002f`), serving SHA `a5852eaf8b19c1af48295ec8fff77814a91a10c7`.
-Verified badges open validated RentVine lease records; copy/draft controls link to managed Gmail Drafts
-and actual RentVine lease/owner record/Messages destinations. Owner-name filtering remains internal.
-Next: establish Feature 4's standalone objective and freshly inspect current main, then create its branch.
-Trace and repair the actual RentCast failure while preserving base rent/recurring-charge distinction and
-source field provenance. Complete its push/merge/production release before Feature 5.
+September 14 Feature 4 (RentCast failure repair) is implemented on
+`codex/renewal-rentcast-repair`; full verification passed. It is not yet pushed, merged or deployed.
+Features 1-3 remain deployed; Features 5-6 have not started.
+
+The retained reported lookup records HTTP 400. Replaying its exact query returned RentCast's
+insufficient-comparables error. Keeping every subject attribute unchanged, 2- and 5-mile requests
+failed; a 10-mile request returned HTTP 200 with 15 comparables and an estimate. Raw responses and
+customer values remain outside Git. These diagnostic reads made one billable successful request;
+no customer draft/send or system-of-record write ran.
+
+The repair distinguishes that provider refusal, exposes an operator-selected positive radius and
+retains the actual radius through the query/cache/observation/market basis. Each lookup remains one
+operator-triggered request; no automatic radius fallback occurs. Source attributes, property-type
+omission, base-rent provenance and separate recurring charges remain intact. The initial 2-mile
+radius remains; historical lookup display no longer claims a fresh request occurred on page load.
+Provider guidance: https://developers.rentcast.io/reference/property-valuation.
+Existing focused tests passed (65); the actual private failure/success responses passed adapter replay.
+Full verification passed: 6,532 unit tests, 201 backend tests, policies and production build.
+The existing PR/CI/serialized production release remains to complete Feature 4.
 
 ## Verified production
 
