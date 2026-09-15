@@ -1917,56 +1917,314 @@ textarea:disabled {
   padding: 0;
 }
 
-/* The glossary collapses independently; editors stay mounted during navigation. */
-.renewal-guided-workspace {
+/* S114: a sticky workspace toolbar (compact identity, two panel toggles, section links) plus two
+   independent slide-out panels. Panel state is page-local; opening or closing never persists,
+   records progress or discards the operator's edits. Editors stay mounted during navigation. */
+.renewal-workspace-shell {
   display: grid;
   gap: var(--space-4);
-  align-items: start;
 }
 
 .renewal-guided-content {
   min-width: 0;
 }
 
-.renewal-process-sidebar {
-  border: 1px solid var(--ui-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  color: var(--ui-text);
-  background: var(--ui-surface);
-}
-
-.renewal-glossary-entry {
-  border-left: 1px solid var(--ui-border);
-  margin-block: var(--space-2);
-  padding-left: var(--space-2);
-}
-
-.renewal-process-sidebar summary {
-  cursor: pointer;
-  min-height: 44px;
+.renewal-workspace-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-2);
   padding-block: var(--space-2);
-  font-weight: 600;
+  background: var(--ui-canvas);
+  border-bottom: 1px solid var(--ui-border);
 }
 
-.renewal-process-sidebar summary:focus-visible {
+.renewal-workspace-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.renewal-workspace-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  margin: 0;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.renewal-workspace-identity-lease {
+  color: var(--ui-text-muted);
+  font-weight: 500;
+}
+
+.renewal-workspace-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-workspace-toggle[aria-expanded="true"] {
+  background: var(--action-secondary-hover);
+  box-shadow: inset 0 -3px 0 var(--action-primary);
+}
+
+.renewal-section-nav .renewal-workspace-link {
+  margin-bottom: 0;
+}
+
+.renewal-slide-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 800;
+  width: min(28rem, 100vw);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-left: 1px solid var(--ui-border);
+  box-shadow: var(--elevation-overlay);
+}
+
+.renewal-slide-panel[hidden] {
+  display: none;
+}
+
+.renewal-slide-panel[data-side="end"] {
+  right: 0;
+  animation: renewal-slide-in-end 200ms ease-out;
+}
+
+.renewal-slide-panel[data-side="start"] {
+  left: 0;
+  border-left: 0;
+  border-right: 1px solid var(--ui-border);
+  animation: renewal-slide-in-start 200ms ease-out;
+}
+
+@keyframes renewal-slide-in-end {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes renewal-slide-in-start {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .renewal-slide-panel {
+    animation: none;
+  }
+}
+
+.renewal-slide-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.renewal-slide-panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.renewal-slide-panel-title:focus-visible {
   outline: 2px solid var(--ui-border-interactive);
   outline-offset: 2px;
 }
 
-.renewal-process-sidebar p {
+.renewal-slide-panel-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--action-secondary-border);
+  border-radius: 8px;
+  background: var(--action-secondary-fill);
+  color: var(--action-secondary-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.renewal-slide-panel-close:hover,
+.renewal-slide-panel-close:focus-visible {
+  background: var(--action-secondary-hover);
+}
+
+.renewal-slide-panel-close:focus-visible {
+  outline: 2px solid var(--ui-border-interactive);
+  outline-offset: 2px;
+}
+
+/* Leave room for the fixed bottom-right issue trigger so the last controls stay reachable. */
+.renewal-slide-panel-body {
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-3) 96px;
+  overflow-wrap: anywhere;
+}
+
+.renewal-slide-panel-body h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 1rem;
+}
+
+.renewal-info-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.renewal-info-list > div {
+  display: grid;
+  gap: 2px;
+}
+
+.renewal-info-list dt {
+  color: var(--ui-text-muted);
+  font-size: var(--font-size-min);
+  font-weight: 600;
+}
+
+.renewal-info-list dd {
+  margin: 0;
+}
+
+.renewal-info-parties li {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--ui-border);
+}
+
+.renewal-info-party-contact {
+  display: grid;
+  gap: 2px;
+}
+
+.renewal-copy-field {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* One click selects the whole value; the value itself is never a link. */
+.renewal-copy-value {
+  -webkit-user-select: all;
+  user-select: all;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--ui-canvas);
+}
+
+.renewal-copy-button {
+  min-height: 36px;
+  min-width: 44px;
+  padding: 4px 10px;
+  border: 1px solid var(--action-secondary-border);
+  border-radius: 6px;
+  background: var(--action-secondary-fill);
+  color: var(--action-secondary-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.renewal-copy-button:hover,
+.renewal-copy-button:focus-visible {
+  background: var(--action-secondary-hover);
+}
+
+.renewal-copy-button:focus-visible {
+  outline: 2px solid var(--ui-border-interactive);
+  outline-offset: 2px;
+}
+
+.renewal-copy-status {
+  display: block;
+  width: 100%;
+  color: var(--ui-text);
+  font-size: var(--font-size-min);
+}
+
+.renewal-copy-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-copy-audience .renewal-workspace-link {
+  margin-bottom: 0;
+}
+
+.renewal-guide-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.renewal-guide-list .renewal-guide-list {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--ui-border);
+}
+
+.renewal-guide-link {
+  margin-bottom: 0;
+}
+
+.renewal-guide-title {
+  font-weight: 600;
+}
+
+.renewal-glossary-entry {
+  border-left: 1px solid var(--ui-border);
+  margin-block: var(--space-1);
+  padding-left: var(--space-2);
+}
+
+.renewal-glossary-entry summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.renewal-glossary-entry summary:focus-visible {
+  outline: 2px solid var(--ui-border-interactive);
+  outline-offset: 2px;
+}
+
+.renewal-glossary-entry p {
+  margin: 0 0 var(--space-2);
   font-size: 0.9rem;
 }
 
-@media (min-width: 1200px) {
-  .renewal-guided-workspace:has(.renewal-process-glossary[open]) {
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  }
-  .renewal-process-sidebar:has(.renewal-process-glossary[open]) {
-    position: sticky;
-    top: var(--space-4);
-    max-height: calc(100dvh - 2 * var(--space-4));
-    overflow-y: auto;
+@media (max-width: 720px) {
+  .renewal-slide-panel {
+    width: 100vw;
   }
 }
 

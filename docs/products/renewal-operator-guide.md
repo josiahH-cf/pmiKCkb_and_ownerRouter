@@ -8,10 +8,21 @@ Use the [staff walkthrough](renewal-client-walkthrough-2026-09-09.md) and
 ## One lease, one dashboard
 
 Open **Renewals**, choose a lease, and check its property, tenant and dates. The five section links
-are **Lease details**, **Comps**, **Owner**, **Tenant**, and **Documents and completion**. All work is
-on the same dashboard. **Do this next** focuses the current control; inspection and navigation do
-not advance work. Old phase URLs still reach their corresponding section. **← Back to renewals**
-returns to the same filtered desk.
+are **Lease details**, **Market rent comparison**, **Owner approval**, **Tenant offer and response**,
+and **Documents and completion**. All work is on the same dashboard. **Do this next** focuses the
+current control; inspection and navigation do not advance work. Old phase URLs still reach their
+corresponding section. **← Back to renewals** returns to the same filtered desk.
+
+The compact lease identity, the section links and two panel buttons stay at the top of the page while
+you scroll. **Lease information** opens a side panel with the full property, unit, dates, term, base
+rent and reference amounts, owners, tenants, known contacts, status and validated source records.
+Each value is separately selectable with a **Copy** control beside it, and **Copy all owner emails**
+or **Copy all tenant emails** copies every source-backed address for that one audience; a party with
+no email on file is named, never dropped. **Show leases for this owner** or **tenant** opens the
+renewal table filtered to that party. **Process guide** opens a separate panel that lists every
+section and its real controls; selecting an entry jumps to that control without recording progress.
+Open, close or navigate either panel freely: nothing is saved, sent or verified by the panels, and
+your unsaved edits stay on the page.
 
 Current rent means contractual base rent. Separate recurring charges, the total lease payment and
 unit listed rent retain their own labels. Unknown values stay unknown. Open the exact RentVine and
@@ -129,9 +140,9 @@ availability separately. An absent conditional control does not prove provider r
 | 5    | /lease-renewal             | Refresh source facts                          | button   | -                                                 | conditional  | Refresh sources with returned freshness.                                     |
 | 6    | workspace:verify-renewal   | ← Back to renewals                            | link     | -                                                 | required     | Retain the same filtered desk.                                               |
 | 7    | workspace:verify-renewal   | Lease details                                 | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
-| 8    | workspace:verify-renewal   | Comps                                         | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
-| 9    | workspace:verify-renewal   | Owner                                         | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
-| 10   | workspace:verify-renewal   | Tenant                                        | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
+| 8    | workspace:verify-renewal   | Market rent comparison                        | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
+| 9    | workspace:verify-renewal   | Owner approval                                | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
+| 10   | workspace:verify-renewal   | Tenant offer and response                     | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
 | 11   | workspace:verify-renewal   | Documents and completion                      | link     | navigation:Renewal dashboard sections             | required     | Inspect this section without advancing work.                                 |
 | 12   | workspace:verify-renewal   | Open this lease in RentVine                   | link     | -                                                 | conditional  | The exact source lease.                                                      |
 | 13   | workspace:verify-renewal   | Open the operating renewal Sheet              | link     | -                                                 | conditional  | The configured source Sheet.                                                 |
@@ -164,6 +175,9 @@ availability separately. An absent conditional control does not prove provider r
 | 41   | workspace:document-packet  | Approved city addendum location               | label    | region:Renewal resource links                     | required     | Persistent labeled blank or reviewed location.                               |
 | 42   | workspace:document-packet  | Approved HOA artifact location                | label    | region:Renewal resource links                     | required     | Persistent labeled blank or reviewed location.                               |
 | 43   | workspace:document-packet  | Approved owner acknowledgment location        | label    | region:Renewal resource links                     | required     | Persistent labeled blank or reviewed location.                               |
+| 44   | workspace:verify-renewal   | Lease information                             | button   | -                                                 | required     | Toggle the lease information side panel from anywhere on the page.           |
+| 45   | workspace:verify-renewal   | Process guide                                 | button   | -                                                 | required     | Toggle the separate process guide side panel.                                |
+| 46   | workspace:verify-renewal   | Copy all tenant emails                        | button   | complementary:Lease information                   | conditional  | Copy every source-backed tenant address once the panel is open.              |
 
 Conditional proof owners include the S113 dashboard, correction, manual, message and document
 control tests plus their Firestore route/store integration tests. The semantic guard rejects a

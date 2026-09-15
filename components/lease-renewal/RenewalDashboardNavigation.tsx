@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import {
   RENEWAL_DASHBOARD_SECTIONS,
@@ -237,25 +237,73 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
   },
 ];
 
-function GlossaryEntry({ item }: { item: GlossaryItem }) {
+function GuideEntry({ item, level }: { item: GlossaryItem; level: number }) {
   return (
-    <details className="renewal-glossary-entry">
-      <summary>{item.title}</summary>
-      <p>{item.explanation}</p>
+    <li className="renewal-guide-entry" data-level={level}>
       {item.target ? (
         <Link
           prefetch={false}
           scroll={false}
-          className="text-link renewal-workspace-link"
+          className="text-link renewal-workspace-link renewal-guide-link"
           href={`#${item.target}`}
         >
-          Open this step
+          {item.title}
         </Link>
+      ) : (
+        <span className="renewal-guide-title">{item.title}</span>
+      )}
+      <details className="renewal-glossary-entry">
+        <summary>What this step needs</summary>
+        <p>{item.explanation}</p>
+      </details>
+      {item.children?.length ? (
+        <ol className="renewal-guide-list">
+          {item.children.map((child) => (
+            <GuideEntry key={child.title} item={child} level={level + 1} />
+          ))}
+        </ol>
       ) : null}
-      {item.children?.map((child) => (
-        <GlossaryEntry key={child.title} item={child} />
+    </li>
+  );
+}
+
+/**
+ * S114: the process guide is the clickable table of contents for every current dashboard section
+ * and its real subsections and controls. Selecting an entry opens the enclosing disclosure and
+ * focuses the actual target through the existing fragment handler; it never records progress.
+ */
+export function RenewalProcessGuide() {
+  return (
+    <nav aria-label="Process guide contents" className="renewal-process-guide">
+      <p className="muted">
+        Jump to any section or control below. Expand an entry to read what that step needs
+        and where its saved values go. Navigating never advances or records work.
+      </p>
+      <ol className="renewal-guide-list">
+        {PROCESS_GLOSSARY.map((item) => (
+          <GuideEntry key={item.title} item={item} level={1} />
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+/** The five-section dashboard navigation. Exactly one instance is mounted per workspace. */
+export function RenewalSectionNavigation() {
+  return (
+    <nav aria-label="Renewal dashboard sections" className="ui-row renewal-section-nav">
+      {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
+        <Link
+          prefetch={false}
+          scroll={false}
+          className="text-link renewal-workspace-link"
+          key={section.id}
+          href={`#renewal-section-${section.id}`}
+        >
+          {section.label}
+        </Link>
       ))}
-    </details>
+    </nav>
   );
 }
 
@@ -267,7 +315,6 @@ export function RenewalDashboardNavigation({
   selectedStepId?: string;
   children?: ReactNode;
 }) {
-  const [glossaryOpened, setGlossaryOpened] = useState(false);
   useEffect(() => {
     const focusTarget = () => {
       const id =
@@ -298,46 +345,7 @@ export function RenewalDashboardNavigation({
     };
   }, [selectedStepId]);
 
-  return (
-    <div className="renewal-guided-workspace">
-      <aside className="renewal-process-sidebar" aria-label="Renewal process help">
-        <details
-          className="renewal-process-glossary"
-          onToggle={(event) => {
-            if (event.currentTarget.open) setGlossaryOpened(true);
-          }}
-        >
-          <summary>Process glossary</summary>
-          <p>
-            Start with Lease details and the reviewed cycle. Follow the next action above,
-            then use this guide to see what each step needs and where saved values go.
-            Expand any item independently.
-          </p>
-          {glossaryOpened
-            ? PROCESS_GLOSSARY.map((item) => (
-                <GlossaryEntry key={item.title} item={item} />
-              ))
-            : null}
-        </details>
-      </aside>
-      <div className="ui-stack renewal-guided-content">
-        <nav aria-label="Renewal dashboard sections" className="ui-row">
-          {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
-            <Link
-              prefetch={false}
-              scroll={false}
-              className="text-link renewal-workspace-link"
-              key={section.id}
-              href={`#renewal-section-${section.id}`}
-            >
-              {section.label}
-            </Link>
-          ))}
-        </nav>
-        {children}
-      </div>
-    </div>
-  );
+  return <div className="ui-stack renewal-guided-content">{children}</div>;
 }
 
 /** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
