@@ -4,9 +4,8 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
-Feature 6 (global clarity and response times) is implemented on
-`codex/renewal-clarity-response-times`; verification passed. It is not yet pushed,
-merged or deployed. Features 1-5 remain deployed.
+All six September 14 feature sets are implemented, pushed, merged and deployed in their
+requested order. Feature 6 completed through PR #91; its production release is complete.
 
 The shared navigation now describes each destination's purpose. The Dashboard and renewal table
 explain where to start; lease sections name the work they contain and explain their inputs and saved
@@ -25,14 +24,18 @@ destination, visibility and safety checks. Full verification passed: 6,532 unit 
 tests, formatting, lint, types, policy checks and production build. Existing selectors were corrected
 for the renamed sections; no test or deadline was added or weakened. Unit results are retained in
 `/tmp/pmi-f6-verify-final.log`, backend results in `/tmp/pmi-f6-backend-rerun.log`, and remaining policy
-and build results in `/tmp/pmi-f6-policy-build.log`. Push, merge and serialized production release remain.
+and build results in `/tmp/pmi-f6-policy-build.log`. PR CI 34940379104 passed on its first attempt.
+Exact-main CI 34940745236 passed on its third attempt after two existing backend journey waits failed
+at different points; their failures remain recorded. Candidate assurance passed, promotion was verified
+at 07:33:32 UTC, and both production observation checkpoints passed. Independent serving/version/
+configuration readback passed at 07:40:24 UTC. No client message was sent or unconfirmed live record written.
 
 ## Serving release
 
-Production serves `82a2cf80ab0e17c9a947a54204524f7cd282eb93` as `pmi-kc-app-rmu2a59tx-28c0417b4693` at 100% traffic. Exact main [CI 34935971798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34935971798) passed on its first attempt. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 374,876 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `0fe69bbe7f182e8a34ed97ebd10f7b573d088630` as `pmi-kc-app-rmu2chtvy-4d3cfabf46dd` at 100% traffic. Exact main [CI 34940745236](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34940745236) passed after two unchanged backend-job retries. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,118 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu286tg6-b24d5e15315b`.
-Configuration fingerprint: `sha256:0d835c222e2524b745142c79282e4bf779bcff497092b4a6f442ab47ee577cc5`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu2a59tx-28c0417b4693`.
+Configuration fingerprint: `sha256:cebd1c65380ee5a8ca5e3445a07fec1ee7c4e5766b1df555b28910c195e6fae5`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
