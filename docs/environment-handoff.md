@@ -173,7 +173,7 @@ image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized c
 provider-generated per-build provenance metadata separately.
 
 The accepted candidate is now serving: `a5852eaf8b19c1af48295ec8fff77814a91a10c7` / `pmi-kc-app-rmu2508wj-67ca3e173ab5`, tag `cand-rmu2508wj-67ca3e173ab5`.
-Captured predecessor is `pmi-kc-app-rmu21dwpb-3ea232a8339f`. Fingerprint `sha256:98956b1e88c9a76d02c9a0fa97d33d6c4b255b760449db4e6c1f1d0b3474e831`.
+Captured predecessor is `pmi-kc-app-rmu21dwpb-3ea232a8339f`. Fingerprint `sha256:3dd4b046d1a1b00f8233801bf80605978242ef348698bd0b9cdf4268cd53b28a`.
 Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
 The commands below remain the required contract for future releases.
 
