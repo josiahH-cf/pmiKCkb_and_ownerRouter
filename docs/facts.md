@@ -15,7 +15,14 @@ and owner record/Messages routes read back in the provider UI on 2026-09-15. Own
 remains internal. No customer message, draft or source-record write was executed during inspection.
 Existing focused tests passed (84), followed by 6,532 unit and 201 backend tests, policies and build.
 The router check permits only the observed managed Gmail Drafts URL in its destination builder; other
-Gmail web shortcuts remain prohibited. Push, merge and deployment remain.
+Gmail web shortcuts remain prohibited. PR #87 merged implementation `5cab629` as `3287f8a`; exact main CI 34923814873 passed first attempt.
+Its zero-traffic candidate built successfully, but reconciliation found five destination mismatches
+because the existing reader required internal verification links. All 311 records matched, with zero
+field mismatches; Admin browser assurance passed. Feature 3 continues on
+`codex/renewal-external-destination-assurance`: the corrected reader validates external badges against
+independently read source URLs with their existing host/lease/new-tab restrictions. Its 48 focused
+existing tests and full verification (6,532 units, 201 backend tests, policies/build) passed.
+The continuation is ready to push and merge; production remains on Feature 2.
 Features 4-6 have not started and must wait for this feature's successful production observation.
 
 ## Deployed baseline

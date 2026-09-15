@@ -1367,6 +1367,7 @@ const RENEWAL_CELL_PLAN: AssuranceDomPlan = {
   li: { ":scope > .renewal-party-name": {} },
   'a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
   'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]': {},
+  'a.renewal-status-link:not([href*="/lease-renewal/live/desk/lease/"])': {},
   "ul.renewal-blocker-list > li[data-blocker-id]": { ":scope > a": {} },
   ':scope > a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
   'a[href^="/admin/access?"]': {},
@@ -1512,6 +1513,22 @@ export async function readRowsFromPage(
         "ul.renewal-blocker-list > li[data-blocker-id]",
       );
       const blockerCount = await blockerLocators.count();
+      const verificationSources = verificationCell.locator(
+        'a.renewal-status-link:not([href*="/lease-renewal/live/desk/lease/"])',
+      );
+      const rentVerificationSourceLinks: Array<{
+        href: string | null;
+        target: string | null;
+        rel: string | null;
+      }> = [];
+      for (let index = 0; index < (await verificationSources.count()); index += 1) {
+        const link = verificationSources.nth(index);
+        rentVerificationSourceLinks.push({
+          href: await link.getAttribute("href"),
+          target: await link.getAttribute("target"),
+          rel: await link.getAttribute("rel"),
+        });
+      }
       const workspace: IndependentWorkspaceDestinationObservation = {
         workspaceAvailable,
         primaryHrefs: await hrefs(primaryWorkspace),
@@ -1523,6 +1540,7 @@ export async function readRowsFromPage(
             'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]',
           ),
         ),
+        rentVerificationSourceLinks,
       };
       const blockers: Array<IndependentActionDestinationObservation["blockers"][number]> =
         [];
@@ -1866,6 +1884,8 @@ function compareProjectionRows(
         leaseId: expectedRow.leaseId,
         origin,
         observed: observedRow.workspace,
+        expectedRentVerification: expectedRow.rentExpectation.rentVerification,
+        expectedRentvineSourceUrl: expectedRow.rentvineSourceUrl,
       });
       counts.invalidDestinations += expectedRow.workspaceExpected
         ? countIndependentActionDestinationMismatches({

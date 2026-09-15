@@ -109,6 +109,11 @@ export interface IndependentWorkspaceDestinationObservation {
   readonly primaryHrefs: readonly (string | null)[];
   readonly baseRentPhaseHrefs: readonly (string | null)[];
   readonly rentVerificationPhaseHrefs: readonly (string | null)[];
+  readonly rentVerificationSourceLinks?: readonly {
+    href: string | null;
+    target: string | null;
+    rel: string | null;
+  }[];
 }
 
 export interface IndependentBlockerDestinationObservation {
@@ -565,19 +570,59 @@ export function countIndependentWorkspaceDestinationMismatches(input: {
   readonly origin: string;
   readonly observed: IndependentWorkspaceDestinationObservation;
   readonly expectedDeskView?: string;
+  readonly expectedRentVerification?: string;
+  readonly expectedRentvineSourceUrl?: string | null;
 }): number {
   const expectedDeskView = input.expectedDeskView ?? PRODUCTION_RECONCILIATION_DESK_VIEW;
   const expectedFlag = input.workspaceExpected ? "true" : "false";
   let mismatches = input.observed.workspaceAvailable === expectedFlag ? 0 : 1;
   const expectedCount = input.workspaceExpected ? 1 : 0;
-  for (const hrefs of [
-    input.observed.primaryHrefs,
-    input.observed.baseRentPhaseHrefs,
-    input.observed.rentVerificationPhaseHrefs,
-  ]) {
+  for (const hrefs of [input.observed.primaryHrefs, input.observed.baseRentPhaseHrefs]) {
     if (hrefs.length !== expectedCount) mismatches += 1;
   }
-  if (!input.workspaceExpected) return mismatches;
+  const sourceLinks = input.observed.rentVerificationSourceLinks ?? [];
+  const phaseLinks = input.observed.rentVerificationPhaseHrefs;
+  // The predecessor uses the internal comparison. The requested verified badge uses the exact
+  // independently read source URL. Count and validate both; an extra or unrelated link still fails.
+  if (sourceLinks.length > 0) {
+    if (
+      sourceLinks.length !== 1 ||
+      phaseLinks.length !== 0 ||
+      input.expectedRentVerification !== "verified"
+    )
+      mismatches += 1;
+    for (const link of sourceLinks) {
+      let expectedHost = "";
+      try {
+        expectedHost = new URL(input.expectedRentvineSourceUrl ?? "").hostname;
+      } catch {
+        /* missing independent source */
+      }
+      if (
+        !validRenderedRentvineSourceDestination({
+          ...link,
+          expectedHref: input.expectedRentvineSourceUrl ?? null,
+          expectedHost,
+          leaseId: input.leaseId,
+        }) ||
+        link.href === null
+      )
+        mismatches += 1;
+    }
+  } else if (
+    !(
+      input.expectedRentVerification === "verified" &&
+      !input.expectedRentvineSourceUrl &&
+      phaseLinks.length === 0
+    ) &&
+    phaseLinks.length !== expectedCount
+  ) {
+    mismatches += 1;
+  }
+  if (!input.workspaceExpected) {
+    if (sourceLinks.length > 0) mismatches += 1;
+    return mismatches;
+  }
   if (
     input.observed.primaryHrefs.length === 1 &&
     !validPrimaryWorkspaceDestination(
