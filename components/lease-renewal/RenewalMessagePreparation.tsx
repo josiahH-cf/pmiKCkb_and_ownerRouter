@@ -1,5 +1,10 @@
 "use client";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  EXTERNAL_LINK_REL,
+  EXTERNAL_LINK_TARGET,
+  type ExternalDeskDestination,
+} from "@/lib/lease-renewal/desk-destinations";
 import { Button, Card, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
 import {
@@ -19,6 +24,16 @@ import {
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 
 interface Preparation {
+  destinations?: {
+    gmailDrafts: ExternalDeskDestination | null;
+    lease: ExternalDeskDestination | null;
+    messages: ExternalDeskDestination | null;
+    owners: Array<{
+      name: string;
+      record: ExternalDeskDestination;
+      messages: ExternalDeskDestination;
+    }>;
+  };
   previousDraftAttempts?: Array<{
     executionId: string;
     cycleId: string;
@@ -866,7 +881,59 @@ function MessagePreparationEditor({
                 <Button onClick={() => copy("subject")}>Copy subject</Button>
                 <Button onClick={() => copy("formatted")}>Copy formatted body</Button>
                 <Button onClick={() => copy("plain")}>Copy plain text</Button>
+                {current.destinations?.gmailDrafts ? (
+                  <a
+                    href={current.destinations.gmailDrafts.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                    title={current.destinations.gmailDrafts.label}
+                  >
+                    Open Gmail Drafts
+                  </a>
+                ) : null}
+                {current.destinations?.messages ? (
+                  <a
+                    href={current.destinations.messages.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                    title={current.destinations.messages.label}
+                  >
+                    Open lease messages in RentVine
+                  </a>
+                ) : null}
+                {current.destinations?.lease ? (
+                  <a
+                    href={current.destinations.lease.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                    title={current.destinations.lease.label}
+                  >
+                    Open lease record in RentVine
+                  </a>
+                ) : null}
               </div>
+              {current.destinations?.owners.map((owner) => (
+                <p key={owner.record.href}>
+                  {owner.name}:{" "}
+                  <a
+                    href={owner.messages.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                    title={owner.messages.label}
+                  >
+                    Open owner messages in RentVine
+                  </a>
+                  {" · "}
+                  <a
+                    href={owner.record.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                    title={owner.record.label}
+                  >
+                    Open owner record in RentVine
+                  </a>
+                </p>
+              ))}
               <div
                 aria-label={`${channel} formatted body`}
                 dangerouslySetInnerHTML={{ __html: content.htmlBody }}
@@ -962,7 +1029,18 @@ function MessagePreparationEditor({
           ) : null}
           {outcome && "draftId" in outcome && outcome.draftId ? (
             <p className="muted">
-              Open Drafts in your managed Gmail mailbox to review and send this message.
+              {current.destinations?.gmailDrafts ? (
+                <a
+                  href={current.destinations.gmailDrafts.href}
+                  target={EXTERNAL_LINK_TARGET}
+                  rel={EXTERNAL_LINK_REL}
+                >
+                  Review the created message in Gmail Drafts
+                </a>
+              ) : (
+                "Open Drafts in your managed Gmail mailbox to review this message."
+              )}{" "}
+              Mailbox: {current.senderEmail}. A person sends from Gmail.
             </p>
           ) : null}
         </>

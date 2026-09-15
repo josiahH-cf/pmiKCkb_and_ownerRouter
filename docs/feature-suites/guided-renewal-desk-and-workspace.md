@@ -425,16 +425,19 @@ exists, render a non-interactive status plus a specific internal fallback.
   not masquerade as the resolution that clears verification.
 - A verified Sheet source links at minimum to the configured operating Sheet; exact tab/row may be
   used only from current Sheet metadata.
-- RentVine opens externally only from a current source-provided hyperlink whose expected tenant host
-  and parsed lease id match this row; otherwise use the in-app comparison.
+- RentVine uses a validated source hyperlink or the provider UI route verified on 2026-09-15,
+  with the configured tenant host and exact current lease/contact ID. The verified badge opens the
+  lease record; unresolved verification still opens the internal comparison. Owner-name filtering
+  remains separate from external owner record and Messages links.
 - RentCast uses only its provider-returned source URL.
-- Gmail links to workflow-bounded in-app communication context; do not synthesize a Gmail web URL.
+- Renewal copy/draft actions link to Gmail Drafts with the current managed sender selected by
+  email, as verified in the provider UI on 2026-09-15. RentVine Messages links use the observed
+  lease or owner Messages tab. These links contain no message body and create or send nothing.
 - Dotloop/document status links externally only after an official exact mapping exists; otherwise use
   packet truth or Connections readiness.
 
 External links use `target="_blank"` and `rel="noopener noreferrer"`, communicate the destination,
-and never contain credentials, message bodies, customer values beyond the provider's validated
-source URL, or unvalidated caller input. Clicking never changes status.
+and never contain credentials, message bodies, customer values beyond the validated provider record identifier or managed mailbox selector, or unvalidated caller input. Clicking never changes status.
 
 ### Content, visual, and accessibility contract
 

@@ -27,7 +27,8 @@ September 14 Features 1 and 2 are complete and deployed. PR #83 provides actual 
 prominent guidance and owner-header all-lease links. PRs #84/#85 provide the nested process glossary
 and stable section navigation; PR #86 repairs missing-observation-report rollback handling.
 The earlier Feature 2 candidate rolled back with verified recovery; its failed evidence remains.
-Feature 3 is next from current main. Features 3-6 have not started.
+Feature 3 is in implementation from freshly inspected main on `codex/renewal-external-destinations`.
+Features 4-6 have not started; Feature 3 must finish production release before they begin.
 Automatic CLI/ADC and enrolled Admin browser authentication passed on September 15 without entering
 passwords, codes, passkeys or CAPTCHAs. Existing identity, permission and safety boundaries remain.
 

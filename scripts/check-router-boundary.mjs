@@ -242,8 +242,17 @@ function walk(dir) {
     }
 
     const text = readFileSync(fullPath, "utf8");
+    // The requested external renewal handoff permits only this account-selected Drafts URL.
+    // Keep every other Gmail web URL subject to the existing runtime prohibition.
+    const navigationText =
+      fullPath === join(root, "lib", "lease-renewal", "desk-destinations.ts")
+        ? text.replace(
+            "https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#drafts",
+            "",
+          )
+        : text;
     for (const pattern of forbiddenRuntimePatterns) {
-      if (pattern.test(text)) {
+      if (pattern.test(navigationText)) {
         throw new Error(`Forbidden Router runtime pattern in ${fullPath}: ${pattern}`);
       }
     }

@@ -4,6 +4,19 @@ Last updated: 2026-09-15 (UTC).
 
 ## Current feature
 
+September 14 Feature 3 (external records and message destinations) is implemented locally on
+`codex/renewal-external-destinations`, based on freshly inspected main `b0cba8a`. Verification badges
+use the existing validated RentVine lease URL; unresolved verification retains its comparison link.
+Copy and draft actions link to account-selected managed Gmail Drafts and the actual RentVine lease
+and owner record/Messages routes read back in the provider UI on 2026-09-15. Owner header filtering
+remains internal. No customer message, draft or source-record write was executed during inspection.
+Existing focused tests passed (84), followed by 6,532 unit and 201 backend tests, policies and build.
+The router check permits only the observed managed Gmail Drafts URL in its destination builder; other
+Gmail web shortcuts remain prohibited. Push, merge and deployment remain.
+Features 4-6 have not started and must wait for this feature's successful production observation.
+
+## Deployed baseline
+
 September 14 Feature 2 (process glossary and guided completion) is IMPLEMENTED / PUSHED / MERGED / DEPLOYED.
 Branch `codex/renewal-process-glossary`; implementation `6e77fd5`, rendering correction `a38a8cb`,
 and release recovery repair `cc005df` merged through PRs #84, #85 and #86. Final merged/serving SHA
@@ -25,7 +38,7 @@ missing reviewed env file was refused before deployment dispatch, reconciled aft
 readback, and resumed with the unchanged reviewed file. Fingerprint and assurance retries retain their
 initial unverified outcomes. The fresh observation passed; no failed receipt was rewritten as a pass.
 
-Feature 3 is next from newly inspected current main. Features 3-6 have not started. CLI/ADC and
+Feature 3 is in implementation from freshly inspected main; Features 4-6 have not started. CLI/ADC and
 Admin browser authentication passed automatically; unsent-draft and confirmed source-write boundaries remain.
 
 ## Serving release
