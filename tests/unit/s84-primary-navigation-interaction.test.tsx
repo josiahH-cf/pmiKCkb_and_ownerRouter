@@ -54,7 +54,7 @@ const groups: readonly ResolvedPrimaryNavigationGroup[] = [
       {
         id: "lease-renewal",
         label: "Lease Renewal",
-        description: "Review upcoming renewals and complete the next required action.",
+        description: "Find a lease, check its details, and follow the renewal steps.",
         href: "/lease-renewal",
         activePaths: ["/lease-renewal"],
         icon: "calendar-renew",
@@ -109,7 +109,7 @@ describe("S84 desktop disclosure navigation", () => {
     const lease = screen.getByRole("link", { name: "Lease Renewal" });
     expect(lease).toHaveAttribute("aria-current", "page");
     expect(lease).toHaveAccessibleDescription(
-      "Review upcoming renewals and complete the next required action.",
+      "Find a lease, check its details, and follow the renewal steps.",
     );
     expect(lease).toHaveAttribute("href", "/lease-renewal");
     expect(screen.getByRole("button", { name: /Operations/ })).toHaveAttribute(

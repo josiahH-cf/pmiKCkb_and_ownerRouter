@@ -27,20 +27,28 @@ import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 export async function gatherNeedsDecisionInbox(
   user: AuthenticatedUser,
 ): Promise<NeedsDecisionInbox> {
+  // These independent, authorized reads can complete together. Each feed retains its own
+  // failure handling so an unavailable source cannot hide the other source's decisions.
+  const [queueResult, viewsResult] = await Promise.allSettled([
+    listApprovalQueue(user),
+    loadRenewalRunViews(user),
+  ]);
   let queueItems: ApprovalQueueItemRecord[] = [];
   try {
-    const items = await listApprovalQueue(user);
-    queueItems = items.filter((item) => canViewApprovalQueueItem(user, item));
+    if (queueResult.status === "fulfilled")
+      queueItems = queueResult.value.filter((item) =>
+        canViewApprovalQueueItem(user, item),
+      );
   } catch {
     queueItems = [];
   }
-
   let renewalBoard;
   let writebackQueue;
   try {
-    const views = await loadRenewalRunViews(user);
-    renewalBoard = buildRenewalReviewBoard(views);
-    writebackQueue = buildWritebackApprovalQueue(views);
+    if (viewsResult.status === "fulfilled") {
+      renewalBoard = buildRenewalReviewBoard(viewsResult.value);
+      writebackQueue = buildWritebackApprovalQueue(viewsResult.value);
+    }
   } catch {
     renewalBoard = undefined;
     writebackQueue = undefined;

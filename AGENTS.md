@@ -28,7 +28,7 @@ and owner filtering; PRs #84/#85/#86 provide the glossary and missing-report rol
 PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs RentCast refusal handling
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
 remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
-The watcher is active; Feature 6 has not started. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
+The watcher is active; Feature 6 clarity and response-time changes passed local verification and await integration/release. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
 identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/

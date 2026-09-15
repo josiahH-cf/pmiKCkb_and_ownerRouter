@@ -890,10 +890,10 @@ export function RenewalDeskTable({
                     value={state.overallStatus}
                   />
                   <SelectFilter
-                    label="Workflow phase"
+                    label="Renewal step"
                     name="step"
                     options={[
-                      { value: "", label: "All phases" },
+                      { value: "", label: "All renewal steps" },
                       ...RENEWAL_DESK_V2_STEPS.map((value) => ({
                         value,
                         label: STEP_FILTER_LABELS[value],
@@ -903,10 +903,10 @@ export function RenewalDeskTable({
                     value={state.step}
                   />
                   <SelectFilter
-                    label="Due state"
+                    label="Action timing"
                     name="due"
                     options={[
-                      { value: "all", label: "All due states" },
+                      { value: "all", label: "All action timings" },
                       { value: "due", label: "Due now" },
                       { value: "not_due", label: "Not due" },
                       {

@@ -56,10 +56,39 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  * system-of-record write; every other action stays on its own gated surface, reached via a deep link.
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
-  const consoleProjection = await loadConsoleProjection(user, resolveConsoleDataMode());
   const canUseProcessContext = can(user.role, "edit");
   const canApprove = can(user.role, "approve");
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
+  const now = new Date();
+  const end = new Date(now);
+  end.setUTCDate(end.getUTCDate() + 120);
+  // Start independent reads together. Scope checks and each reader's failure/freshness rules
+  // remain in place; only coverage waits for the process definitions it actually depends on.
+  const [consoleProjection, definitions, decision, anticipatedOutcome] =
+    await Promise.all([
+      loadConsoleProjection(user, resolveConsoleDataMode()),
+      listProcessDefinitions(user).catch(() => []),
+      canSeeRenewals
+        ? gatherDecisionAttention(user)
+        : Promise.resolve({
+            attention: { count: 0, signals: [] },
+            inbox: {
+              rows: [],
+              counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+            },
+          }),
+      canSeeRenewals
+        ? loadLiveRenewalDesk(
+            [
+              {
+                startIso: now.toISOString().slice(0, 10),
+                endIso: end.toISOString().slice(0, 10),
+              },
+            ],
+            now.toISOString(),
+          )
+        : Promise.resolve(null),
+    ]);
   const visibleSpaces = launchSpaces.filter(
     (space) =>
       space.showInDirectory !== false &&
@@ -71,13 +100,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       space.processDefinitionId ? [space.processDefinitionId] : [],
     ),
   );
-  // One definitions read serves the process picker, the coverage card, and the process strip.
-  let definitions: Awaited<ReturnType<typeof listProcessDefinitions>> = [];
-  try {
-    definitions = await listProcessDefinitions(user);
-  } catch {
-    definitions = [];
-  }
+  // The same definitions serve the process picker, coverage card and process strip.
   const scopedDefinitions =
     user.scopes === undefined
       ? definitions
@@ -101,15 +124,6 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   // Value-free app-state, gathered once and rendered server-side into the always-visible deck (no
   // click-to-reveal, no client refetch). Approvals come from the SAME merged needs-decision gather
   // every other surface answers from; every read is read-only and non-fatal.
-  const decision = canSeeRenewals
-    ? await gatherDecisionAttention(user)
-    : {
-        attention: { count: 0, signals: [] },
-        inbox: {
-          rows: [],
-          counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
-        },
-      };
   const inbox = decision.inbox;
   const connections = resolveConnectionsState();
   const visibleConnectorIds = new Set(
@@ -162,7 +176,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     },
     {
       key: "coverage",
-      title: "Space coverage",
+      title: "Process setup",
       lane: "coverage",
       count: coverageItems.length,
       rows: coverageItems.map((item) => ({
@@ -191,27 +205,13 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
 
   // Project anticipated work from the real read-only renewal desk. Unavailable sources produce no
   // rows; invented sample leases are never imported or substituted.
-  let anticipatedGroups: AnticipatedWorkGroup[] = [];
-  if (canSeeRenewals) {
-    const now = new Date();
-    const end = new Date(now);
-    end.setUTCDate(end.getUTCDate() + 120);
-    const outcome = await loadLiveRenewalDesk(
-      [
-        {
-          startIso: now.toISOString().slice(0, 10),
-          endIso: end.toISOString().slice(0, 10),
-        },
-      ],
-      now.toISOString(),
-    );
-    if (outcome.status === "ok") {
-      anticipatedGroups = buildAnticipatedWork({
-        referenceDateIso: now.toISOString().slice(0, 10),
-        deskView: outcome.view,
-      }).groups;
-    }
-  }
+  const anticipatedGroups: AnticipatedWorkGroup[] =
+    anticipatedOutcome?.status === "ok"
+      ? buildAnticipatedWork({
+          referenceDateIso: now.toISOString().slice(0, 10),
+          deskView: anticipatedOutcome.view,
+        }).groups
+      : [];
 
   return (
     <section className="content console">
@@ -220,7 +220,8 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
           FTU-1/FTU-6: a single plain-language purpose line orients a first-time user without
           bringing back the old multi-line intro. */}
       <p className="muted console-purpose">
-        Ask about a property, lease, or process, then hand the work to the right place.
+        Ask about a property, lease, or process. Open a task below to review its details
+        and next action.
       </p>
       <AskForm canUseProcessContext={canUseProcessContext} processes={processes} />
       {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}

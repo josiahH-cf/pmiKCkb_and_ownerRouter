@@ -331,6 +331,7 @@ export function RenewalWorkspace({
                 key={section.id}
               >
                 <h2>{section.label}</h2>
+                <p className="muted">{section.description}</p>
                 {section.id === "comps" ? (
                   <RenewalCompPreparation
                     address={summary.addressLabel}
@@ -842,7 +843,7 @@ function PhaseContent({
       return (
         <>
           {workspace.followUp ? (
-            <Card title="Waiting and follow-up truth">
+            <Card title="Waiting and follow-up">
               <RenewalFollowUpStatus projection={workspace.followUp} />
               {!can(role, "edit") ? (
                 <p className="muted">
@@ -953,7 +954,7 @@ function PhaseContent({
       );
     case "document-packet":
       return (
-        <Card title="Build docs readiness">
+        <Card title="Document preparation">
           {packetStateAvailable ? (
             <>
               <PacketTruthPanel
@@ -996,7 +997,7 @@ function PhaseContent({
       return (
         <>
           {!consolidated && workspace.followUp ? (
-            <Card title="Waiting and follow-up truth">
+            <Card title="Waiting and follow-up">
               <RenewalFollowUpStatus projection={workspace.followUp} />
               {!can(role, "edit") ? (
                 <p className="muted">
@@ -1039,7 +1040,7 @@ function PhaseContent({
       );
     case "compliance-close":
       return (
-        <Card title="Compliance close">
+        <Card title="Completion checks">
           {workspace.live?.complete ? (
             <p className="muted">
               The legacy workspace completion marker is recorded. It is not authenticated

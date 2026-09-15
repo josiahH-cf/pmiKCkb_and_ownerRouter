@@ -226,6 +226,7 @@ async function runProductionCanaryWithin(
           options.role,
           options.origin,
           response,
+          options.expectedCommit,
         );
         passed = assertion.passed;
         if (!assertion.passed) recordSignal({ kind: assertion.diagnostic });
@@ -536,6 +537,7 @@ async function assertRouteOutcome(
   role: AssuranceRole,
   origin: string,
   response: Response | null,
+  expectedCommit: string,
 ): Promise<RouteAssertion> {
   if (definition.expectedOutcome === "denied") {
     // The guard answers a forbidden route with a redirect to `/sign-in?error=forbidden`, and the
@@ -555,7 +557,7 @@ async function assertRouteOutcome(
     return { passed: false, diagnostic: "auth_mismatch" };
   }
   if (definition.dynamicFrom === "renewal_desk") {
-    return (await hasRenewalWorkspaceLandmarks(page))
+    return (await hasRenewalWorkspaceLandmarks(page, expectedCommit))
       ? { passed: true }
       : { passed: false, diagnostic: "landmark_missing" };
   }
@@ -570,7 +572,25 @@ async function assertRouteOutcome(
 }
 
 /** The candidate's complete S113 dashboard and the captured predecessor's six phases have distinct exact contracts. */
-export async function hasRenewalWorkspaceLandmarks(page: Page): Promise<boolean> {
+export async function hasRenewalWorkspaceLandmarks(
+  page: Page,
+  expectedCommit?: string,
+): Promise<boolean> {
+  // The captured Feature 5 predecessor uses the prior labels. Require those exact labels only
+  // for its verified commit; the candidate and future revisions require the current manifest.
+  const sections =
+    expectedCommit === "82a2cf80ab0e17c9a947a54204524f7cd282eb93"
+      ? RENEWAL_DASHBOARD_SECTIONS.map((section) => ({
+          ...section,
+          label:
+            (
+              { comps: "Comps", owner: "Owner", tenant: "Tenant" } as Record<
+                string,
+                string
+              >
+            )[section.id] ?? section.label,
+        }))
+      : RENEWAL_DASHBOARD_SECTIONS;
   const dashboard = page.getByRole("navigation", {
     name: "Renewal dashboard sections",
     exact: true,
@@ -583,7 +603,7 @@ export async function hasRenewalWorkspaceLandmarks(page: Page): Promise<boolean>
       (await dashboard.getByRole("link").count()) !== RENEWAL_DASHBOARD_SECTIONS.length
     )
       return false;
-    for (const section of RENEWAL_DASHBOARD_SECTIONS) {
+    for (const section of sections) {
       const link = dashboard.getByRole("link", { name: section.label, exact: true });
       const region = page.getByRole("region", { name: section.label, exact: true });
       if (

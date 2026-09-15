@@ -134,7 +134,7 @@ export function RenewalDesk({
             />
             {liveReviewHref ? (
               <Link className="text-link" href={liveReviewHref}>
-                View live review →
+                Review source differences →
               </Link>
             ) : null}
           </>
@@ -146,6 +146,11 @@ export function RenewalDesk({
         }
         title="Renewals"
       />
+
+      <p className="muted">
+        Open a lease to check its details and follow the next action. Use the filters to
+        find an owner, tenant, unit or renewal date.
+      </p>
 
       <DataCurrencyBanner currency={view.dataCurrency} />
 

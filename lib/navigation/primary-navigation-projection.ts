@@ -1,4 +1,4 @@
-import { listAdminAccessRequests } from "@/lib/access/request-service";
+import { readAdminAccessRequestCount } from "@/lib/access/request-service";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -21,11 +21,7 @@ export async function readPrimaryNavigationProjection(
     return { pendingAccessRequestCount: null };
   }
   try {
-    const result = await listAdminAccessRequests(user, {
-      state: "pending",
-      limit: 1,
-    });
-    return { pendingAccessRequestCount: result.pending_count };
+    return { pendingAccessRequestCount: await readAdminAccessRequestCount(user) };
   } catch {
     return { pendingAccessRequestCount: null };
   }

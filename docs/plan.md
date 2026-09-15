@@ -4,28 +4,28 @@ Updated: 2026-09-15 (UTC).
 
 ## Outcome
 
-The September 14 renewal updates execute as six separate feature-to-production cycles.
-Features 1-3 are complete and deployed: lease/unit/contact identity and owner filtering; nested
-process glossary and stable value routing; actual external record/message destinations. Feature 3
-merged through PRs #87/#88 and completed exact-main CI plus the serialized production release.
-Its original unpromoted candidate and Feature 2's earlier verified rollback retain their actual evidence.
+Feature 6 (global clarity and response times) is implemented on
+`codex/renewal-clarity-response-times`; verification passed. It is not yet pushed,
+merged or deployed. Features 1-5 remain deployed.
 
-Feature 5 (dark-mode readability) is implemented, pushed, merged through PR #90 and deployed.
-Features 1-5 are complete. Feature 6 has not started.
+The shared navigation now describes each destination's purpose. The Dashboard and renewal table
+explain where to start; lease sections name the work they contain and explain their inputs and saved
+destinations. Market estimates, charge frequency, source notes and staff activity fields use plain
+wording. Existing field identifiers, source provenance, value routing and draft/write boundaries remain.
 
-The message renderer emits inline black body text and a fixed orange role span for email formatting.
-That HTML was displayed directly against the application's dark surface. The on-screen preview now
-uses the existing semantic body/link text colors, overriding only those inline presentation colors.
-The generated HTML, clipboard bytes, plain-text field, subject/actions and governed unsent Gmail
-transport retain their existing behavior. No provider effect or customer value changed.
+The global Admin navigation previously loaded request rows and the managed-user directory just to
+show a pending count. It now calls the existing count query after the same current-Admin check.
+Independent Dashboard and shared decision-summary reads run together, retaining scope filtering,
+source freshness and independent failure handling. No cache lifetime, policy or runtime setting changed.
+These are observed code-path improvements; no numerical response-time claim is made.
 
-Existing message-content, preparation-control and theme-token tests passed (11). Full repository
-verification passed: 6,532 unit tests, 201 backend tests, formatting, lint, types, policy checks and
-production build (`/tmp/pmi-f5-verify-final.log`). The existing release-metadata assertion was aligned
-with the verified predecessor. PR CI 34935499548 passed after retrying the unchanged backend job
-following one existing packet-save test timeout; exact-main CI 34935971798 passed on its first attempt.
-The watcher completed candidate assurance, promotion and two production observation checkpoints.
-Independent serving/version/configuration readback passed at 06:44:16 UTC. No live customer effect ran.
+Existing label assertions are aligned with the new copy. The release reader requires the captured
+Feature 5 commit's old section labels and the candidate's new labels, preserving all section,
+destination, visibility and safety checks. Full verification passed: 6,532 unit tests, 201 backend
+tests, formatting, lint, types, policy checks and production build. Existing selectors were corrected
+for the renamed sections; no test or deadline was added or weakened. Unit results are retained in
+`/tmp/pmi-f6-verify-final.log`, backend results in `/tmp/pmi-f6-backend-rerun.log`, and remaining policy
+and build results in `/tmp/pmi-f6-policy-build.log`. Push, merge and serialized production release remain.
 
 ## Current implementation baseline
 
