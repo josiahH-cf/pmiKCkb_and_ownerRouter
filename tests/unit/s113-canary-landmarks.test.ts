@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Page } from "playwright-core";
 import {
+  assertSettledRoute,
   hasRenewalWorkspaceLandmarks,
   isCancelledRoutePrefetch,
   resolveWorkspacePath,
@@ -123,5 +124,39 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
   it("preserves the complete six-phase predecessor baseline and refuses a partial rail", async () => {
     expect(await hasRenewalWorkspaceLandmarks(pageFixture({ legacy: 6 }))).toBe(true);
     expect(await hasRenewalWorkspaceLandmarks(pageFixture({ legacy: 5 }))).toBe(false);
+  });
+});
+
+// A route's landmark is asserted only once the page has settled. Panels that load asynchronously
+// (the work board, for example) show a loading state with its own heading first, so an assertion
+// taken 750 ms after navigation raced the board's request and reported a missing landmark on a
+// healthy page (S115 candidate assurance, 2026-09-16). The settle wait must come first.
+describe("settled-route landmark assertion", () => {
+  it("does not assert a landmark on a page that never settles and reports it as missing", async () => {
+    let asserted = 0;
+    const result = await assertSettledRoute(
+      async () => false,
+      async () => {
+        asserted += 1;
+        return { passed: true };
+      },
+    );
+    expect(result).toEqual({ passed: false, diagnostic: "landmark_missing" });
+    expect(asserted).toBe(0);
+  });
+  it("asserts the landmark after the page settles and returns that assertion unchanged", async () => {
+    const order: string[] = [];
+    const result = await assertSettledRoute(
+      async () => {
+        order.push("settle");
+        return true;
+      },
+      async () => {
+        order.push("assert");
+        return { passed: false, diagnostic: "auth_mismatch" };
+      },
+    );
+    expect(order).toEqual(["settle", "assert"]);
+    expect(result).toEqual({ passed: false, diagnostic: "auth_mismatch" });
   });
 });

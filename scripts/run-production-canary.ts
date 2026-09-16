@@ -220,26 +220,26 @@ async function runProductionCanaryWithin(
           timeout: remainingForRoute,
         });
         await page.waitForTimeout(750);
-        const assertion = await assertRouteOutcome(
-          page,
-          definition,
-          options.role,
-          options.origin,
-          response,
-          options.expectedCommit,
+        // Landmarks are asserted only on a settled page: an asynchronously loaded panel may still
+        // show its loading state, which can carry its own heading, right after navigation.
+        const assertion = await assertSettledRoute(
+          () =>
+            waitForSettledRoute(
+              page,
+              remainingAssuranceTime(deadlineAtMs, LOADED_STATE_TIMEOUT_MS),
+            ),
+          () =>
+            assertRouteOutcome(
+              page,
+              definition,
+              options.role,
+              options.origin,
+              response,
+              options.expectedCommit,
+            ),
         );
         passed = assertion.passed;
         if (!assertion.passed) recordSignal({ kind: assertion.diagnostic });
-        if (
-          passed &&
-          !(await waitForSettledRoute(
-            page,
-            remainingAssuranceTime(deadlineAtMs, LOADED_STATE_TIMEOUT_MS),
-          ))
-        ) {
-          recordSignal({ kind: "landmark_missing" });
-          passed = false;
-        }
         await classifyRenderedBoundary(page, recordSignal);
         if (definition.key === "renewal_desk" && passed) {
           workspacePath = await resolveWorkspacePath(
@@ -569,6 +569,15 @@ async function assertRouteOutcome(
     .count()) === 1
     ? { passed: true }
     : { passed: false, diagnostic: "landmark_missing" };
+}
+
+/** A route that never settles has no verifiable landmark; a settled route gets the exact assertion. */
+export async function assertSettledRoute(
+  settle: () => Promise<boolean>,
+  assert: () => Promise<RouteAssertion>,
+): Promise<RouteAssertion> {
+  if (!(await settle())) return { passed: false, diagnostic: "landmark_missing" };
+  return assert();
 }
 
 /** The candidate's complete S113 dashboard and the captured predecessor's six phases have distinct exact contracts. */
