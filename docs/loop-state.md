@@ -1,80 +1,82 @@
 # Loop state
 
-Last updated: 2026-09-15 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
 Renewal operator hub bundle (S114-S120) in progress. S114 is implemented at `24b0be59` (spec import
-`986e82eb`) and integrated on main; its release has not started. S115-S120 have not started.
+`986e82eb`) and integrated on main as `b29185a3`. Its first release attempt rolled back; this record
+commit resumes it on the native watcher runtime. S115-S120 have not started.
 Two independent slide-out panels (Lease information; Process guide with the section navigation)
 replace the expanded header summary and inline glossary. Values are separately selectable with copy
 controls, one-audience "Copy all" controls, owner and tenant desk click-back links over opaque party
 tokens and source-record links. The operator guide table gained the two toggles and the tenant copy
 control; steps 8-10 use the serving section labels.
-Full gate on 24b0be59 in `/tmp/pmi-renewal-f1-integration-zbt2es`: format, lint, types, 6,575 unit
-tests (711 files), 201 backend tests, policy checks and build passed (`/tmp/pmi-s114-verify.log`).
-Core E2E passed, 8 files and 4 skips (`/tmp/pmi-s114-e2e.log`). Fail-first: eight S114 tests failed
-before the implementation and pass after it.
-Not run: compiled renewal-desk and renewal-guide browser checks; the local rehearsal refuses to start
-while WSL ADC is blocked (`/tmp/pmi-s114-dev.log`). Run them before promotion once ADC is enrolled.
-Next: exact-main CI for the integrated head, then the serialized release of that exact SHA, then S115.
+Gates on the exact commit: format, lint, types, 6,575 unit tests (711 files), 201 backend tests,
+policy checks and build passed; core E2E passed (8 files, 4 skips); eight S114 tests fail-first.
+2026-09-16 compiled checks on `b29185a3` in the native checkout both passed: renewal desk (exit 0,
+first attempt) and renewal guide (45 steps). Log: `~/pmi-kc-work/logs/s114-smokes.log`. The desk
+check needs a local-only rehearsal `RENEWAL_DESK_PARTY_FILTER_KEY`; nothing was relaxed.
+Next: exact-main CI for this record head, the serialized native-watcher release of that exact SHA
+(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation, readbacks),
+then the closure record, then S115.
 
 ## Verified production
 
 Serving SHA: 0fe69bbe7f182e8a34ed97ebd10f7b573d088630
-Serving revision: pmi-kc-app-rmu2chtvy-4d3cfabf46dd, 100% traffic.
+Serving revision: pmi-kc-app-rmu2chtvy-4d3cfabf46dd, 100% traffic (restored by the S114 rollback).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Candidate: https://cand-rmu2chtvy-4d3cfabf46dd---pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Fingerprint: sha256:cebd1c65380ee5a8ca5e3445a07fec1ee7c4e5766b1df555b28910c195e6fae5.
 Predecessor: pmi-kc-app-rmu2a59tx-28c0417b4693 / 82a2cf80ab0e17c9a947a54204524f7cd282eb93.
 Exact CI 34940745236 passed; Cloud Build 0f7f0e13-b994-48a3-9400-6da69d4f312a succeeded.
 Candidate receipt issued 07:33:14.500Z; promotion verified 07:33:32.336Z, September 15.
 Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 372,118 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; no field or destination mismatches.
-Monitoring ready, zero candidate 5xx/unresolved effects. Checkpoint complete; no rollback.
-Independent serving/version/runtime readback passed 07:40:24 UTC. Reviewed configuration remains intact.
+Independent serving/version/runtime readback passed 07:40:24 UTC September 15 and again after the
+2026-09-16 rollback (`/api/version` commit 0fe69bbe, revision rmu2chtvy).
 
 ## Preserved failed attempts
 
-First Feature 3 candidate: 3287f8a / pmi-kc-app-rmu23j65k-ea7b9f5b8980, never promoted.
-Admin passed; 311 records/fields matched; five invalid destinations reflected the old internal-only
-verification reader. Existing reconciliation now validates external badges against independent source URLs.
-After the last read-only retry was interrupted, candidate zero traffic and unchanged predecessor
-version/100% traffic were verified. Its checkpoint/reason were preserved before queuing the corrected
-commit through the same watcher. No failed phase was relabeled as passed.
-Feature 2's earlier 4e1a4a0 / rmu1zycgi-d28f58f32910 failed observation and verified rollback remain preserved.
-Its missing-report recovery uses exact durable rollback. The earlier pre-dispatch env refusal remains recorded.
-
-Feature 4 first release 4ece4ba / rmu26u6xc-9a156b302dac failed observation and verified rollback.
-Its failed receipts and terminal checkpoint remain; the resumed 2bf21ff release completed successfully.
+S114 attempt 1: `b29185a3` / pmi-kc-app-rmu30993m-11abc72f1702 (CI 35005955673). Smoke,
+fingerprint sha256:c9b60fa76d15321b333e503586aafdbb3c5975d770325ac09fe7d5f3569d1c89, domains,
+v4 candidate receipt 08:37:35Z and promotion (verified 08:44:51Z) passed. The post-promotion
+observer emitted its deadline report at 08:50:27Z (420,122 ms, 0 checkpoints, every route unread,
+sources unavailable); rollback to rmu2chtvy verified (`rolled_back_verified`, terminal checkpoint).
+Cloud Run logs show no page request on the canonical origin between the promotion readback and the
+deadline: the observer stalled locally. Cause measured: the task-launched watcher used the Windows
+Cloud SDK through interop (26-44 s per gcloud read; snap 1-2 s). The candidate revision remains at
+0% traffic. Evidence: `observation-pmi-kc-app-rmu30993m-11abc72f1702-1789548454830.json`,
+`candidate-…rmu30993m….json`, `promotion-…rmu30993m….json` in the watcher state directory.
+First Feature 3 candidate: 3287f8a / pmi-kc-app-rmu23j65k-ea7b9f5b8980, never promoted; its
+checkpoint/reason were preserved before the corrected commit released. Feature 2's 4e1a4a0 /
+rmu1zycgi-d28f58f32910 and Feature 4's 4ece4ba / rmu26u6xc-9a156b302dac failed observation and
+verified rollback; their receipts and terminal checkpoints remain. No failed phase was relabeled.
 
 ## Authentication and watcher
 
-WSL gcloud CLI refresh is READY for josiah@pmikcmetro.com. WSL ADC is BLOCKED: the ADC file digest no
-longer matches the local enrollment binding (file rewritten 2026-09-15 18:00:35 UTC; cause not
-inferred), so `auth:ensure` stops before any token probe. One `auth:session -- --browser` attempt
-printed Google's link and timed out unopened: WSL has no browser launcher and the runner enters no
-credentials. Owner recovery in the WSL repository:
-`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` (or `auth:session -- --browser`).
-The enrolled owner Admin browser profile remains READY on the canonical origin.
-The release watcher is not running: the flock is free, no watcher process exists, and the scheduled
-task "PMI KC release watcher" is Ready but its last run ended blocked `ci_not_successful` for e903b68.
-After `auth:ensure` reports READY, resume the same lock with `npm run release:watch:once` (native
-Node) or restart that task. Do not start a competing watcher.
-State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json`; complete, lastDeployedSha 0fe69bb.
-Logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-f4-resume.log and native-errors-f4-resume.log.
+Owner re-enrollment 2026-09-16T01:11Z; ADC digest matches the binding. 2026-09-16 08:19Z
+`auth:ensure` in WSL: gcloud ok, adc ok, env ok, gh ok (READY, token refresh verified). The enrolled
+owner Admin profile authenticated on the exact candidate origin and the canonical origin during the
+S114 candidate assurance and predecessor baseline. The isolated built-in browser pane has no app
+session (Google asks for an email; owner step, not required by the release contract).
+Watcher: the task-launched process was stopped while idle at `rolled_back_verified`; the native
+runtime now holds the same lock (`export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH`,
+`node scripts/release-watcher.mjs --watch`, PID recorded in the session log). Host logs:
+%LOCALAPPDATA%/PMI-KC/release-watcher/native-status-s114-resume.log and native-errors-s114-resume.log.
+The launcher `scripts/run-release-watcher.ps1` now prepends that runtime for logon starts.
+State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json` (terminal for b29185a3 until the
+new head appears; the next checkpoint carries the failed candidate host as supersededCandidateHost).
+Do not start a competing watcher; a persistent `authentication_required` gets `auth:ensure`.
 
 ## Working checkout and evidence
 
-Main checkout: `/tmp/pmi-renewal-f1-integration-zbt2es`; both reviewed ignored env files are present.
-Original Windows checkout remains on Feature 1; its unrelated broken turn-diff ref was not altered.
-Use native Node 22.23.2 and the existing Java 21 runtime for verification.
-Feature 6 verification uses the three logs above; focused checks are retained in `/tmp/pmi-f6-focused-final.log`,
-`/tmp/pmi-f6-desk-focused.log` and `/tmp/pmi-f6-follow-up-focused.log`.
-Observation: `observation-pmi-kc-app-rmu2chtvy-4d3cfabf46dd-1789457618406.json` under the watcher state directory.
-Failed-candidate diagnostics: `f3-canary-diagnostic.json` and `f3-reconciliation-diagnostic.json`.
-Archived checkpoint: `checkpoint-3287f8a0874f939abfa2df7260b523b97545e14b-superseded-by-a5852eaf8b19c1af48295ec8fff77814a91a10c7.json` plus `.reason.json`.
-Feature 2 failure/rollback and preflight-refusal evidence remain. Credentials/customer evidence stay outside Git.
+Native checkout: `~/pmi-kc-work/main` (Node 22.23.2, both reviewed ignored env files, `npm ci`);
+logs under `~/pmi-kc-work/logs/`. The Windows checkout is the watcher SOURCE and the docs editing
+tree; local commit `33f7630f` (owner-directed `scripts/auth/**` enrollment fix) is parked on branch
+`pending-auth-enroll-fix` and rides the S115 integration.
+Smoke artifacts: `~/pmi-kc-work/main/temp/renewal-desk-browser-s82`, `…/renewal-guide-controls-s111`.
+Failed-candidate diagnostics from September 14-15 (`f3-*`, `f4-*`) and the archived checkpoints
+remain in the watcher state directory. Credentials/customer evidence stay outside Git.
 
 ## Preserved boundaries
 
@@ -94,7 +96,5 @@ Feature 4 private evidence (watcher state directory):
 
 Feature 4 Cloud Build `4393a9ee-a5b4-458f-b170-f44487a12404` succeeded. Its failed-release fingerprint
 is `sha256:72ebf49f248c6c409fab424ab24cd1f9153c0d32b96d64185bfd0b1099c8a3da`.
-
 Successful Feature 4 observation: `observation-pmi-kc-app-rmu286tg6-b24d5e15315b-1789450852413.json`,
 with matching v4 receipts in the watcher state directory. Earlier failed evidence remains unchanged.
-All six requested standalone feature cycles are complete. No requested implementation or release remains.

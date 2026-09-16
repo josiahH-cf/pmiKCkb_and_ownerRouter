@@ -3,7 +3,7 @@
 
 # S114 — Independent lease-information and process sidebars
 
-> Status: IMPLEMENTED at `24b0be59`; verify.sh and core E2E passed on that exact commit. Compiled browser checks and the production release are paused on WSL ADC enrollment (owner step). Human verdict: NOT RUN — no human observer.
+> Status: IMPLEMENTED at `24b0be59`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head `b29185a3`. The first production release attempt passed candidate assurance and promotion, then rolled back with verification after the post-promotion observer stalled on the Windows-SDK gcloud runtime; the release is resumed on the native watcher runtime. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-lease-information-and-process-sidebars.md`.  

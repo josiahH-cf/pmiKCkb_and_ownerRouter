@@ -1,13 +1,16 @@
 # PMI KC current status
 
-Last updated: 2026-09-15 (UTC).
+Last updated: 2026-09-16 (UTC).
 
 ## Current feature
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
 S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
-spec import/registration commit `986e82eb` and is integrated on main. Its production release has not
-started; S115-S120 have not started.
+spec import/registration commit `986e82eb` and is integrated on main. Its first production release
+attempt (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) passed candidate assurance
+and promotion, then failed the post-promotion observation before any page was read and was rolled
+back to the predecessor with verification. The release resumes through the same serialized watcher on
+the native runtime from this record commit; S115-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -20,12 +23,15 @@ and grants no send, approval or provider authority. The operator guide step tabl
 toggles and the tenant audience copy control, and steps 8-10 now use the serving section labels.
 
 Verification on the exact commit in the native checkout: format, lint, types, 6,575 unit tests
-(711 files), 201 backend tests, every policy check and the production build passed
-(`/tmp/pmi-s114-verify.log`); core E2E passed with 8 files and 4 intentional skips
-(`/tmp/pmi-s114-e2e.log`). The eight S114 tests failed before the implementation and pass after it.
-The compiled renewal-desk and renewal-guide browser checks have not run: the local rehearsal refuses
-to start while WSL ADC is blocked (`/tmp/pmi-s114-dev.log`). They run before promotion once ADC is
-enrolled. No client message was sent and no live record was written. Human verdict: NOT RUN.
+(711 files), 201 backend tests, every policy check and the production build passed; core E2E passed
+with 8 files and 4 intentional skips. The eight S114 tests failed before the implementation and pass
+after it. On 2026-09-16 both compiled browser checks passed on `b29185a3` against the native
+Demo + Live-read-only rehearsal: the renewal desk check (full cohort, keyboard sort and filters,
+opaque party shortcuts, workspace sections, term parity, return and Back, narrow and zoom budgets)
+and the renewal guide check (all 45 steps located, conditional steps reported separately). The desk
+check needs a local-only rehearsal party-filter key because the header filters render only when
+that key resolves; no check was relaxed. No client message was sent and no live record was written.
+Human verdict: NOT RUN.
 
 ## Serving release
 
@@ -69,14 +75,18 @@ separate; S36 is queued behind complete S100. S87-S95 and S101 remain outside th
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
-The September 15 automatic browser OAuth renewal restored the approved WSL ADC identity binding
-and the Feature 6 release used it. At 18:00:35 UTC the ADC file was rewritten again (cause not
-inferred); its digest no longer matches the binding, so WSL ADC is blocked before any token probe
-while the WSL CLI refresh remains READY. One browser-callback enrollment attempt printed Google's
-link and timed out unopened. Owner recovery: `npm run auth:enroll:wsl -- --attended
---account=josiah@pmikcmetro.com` in the WSL repository. The enrolled Admin browser profile remains
-READY on the canonical origin. The release watcher is not running; resume it with the same lock only
-after `auth:ensure` reports READY. No password, code, passkey or CAPTCHA was entered. No account,
-IAM, claim, store location, permission scope or security policy changed. Separate 24-hour
-authentication longevity remains unverified.
-Earlier checkpoints retain their actual passed, failed or unpromoted outcomes; 919a2ae was promoted then rolled back after failed observation. Documentation-only closure does not deploy.
+The owner re-enrolled WSL CLI/ADC at 2026-09-16T01:11Z and the ADC digest matches the binding
+again. On 2026-09-16 `auth:ensure` in WSL reported READY for gcloud, ADC, env and gh, and the
+enrolled Admin browser profile authenticated on the exact candidate and canonical origins during
+S114 candidate assurance. The isolated built-in browser pane holds no application session and
+Google asks for an email there; that is an owner step the release contract does not need. No
+password, code, passkey or CAPTCHA was entered. No account, IAM, claim, store location, permission
+scope or security policy changed. Separate 24-hour authentication longevity remains unverified.
+
+The S114 attempt's post-promotion observer stalled for its whole 420,000 ms window before reading
+any page: the scheduled-task launch inherited the Windows Cloud SDK through WSL interop, where each
+gcloud read takes 26-44 s against 1-2 s for the native snap. The watcher rolled back to the
+predecessor and verified it; the idle blocked watcher was then replaced on the same lock by the
+native runtime and the launcher now prepends that runtime. Failed receipts, the report and the
+terminal checkpoint are preserved outside Git. Earlier checkpoints retain their actual passed,
+failed or unpromoted outcomes. Documentation-only closure does not deploy.

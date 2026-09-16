@@ -1,13 +1,16 @@
 # Current plan
 
-Updated: 2026-09-15 (UTC).
+Updated: 2026-09-16 (UTC).
 
 ## Outcome
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
 S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
-spec import/registration commit `986e82eb` and is integrated on main. Its production release has not
-started; S115-S120 have not started.
+spec import/registration commit `986e82eb` and is integrated on main. Its first production release
+attempt (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) passed candidate assurance
+and promotion, then failed the post-promotion observation before any page was read and was rolled
+back to the predecessor with verification. The release resumes through the same serialized watcher on
+the native runtime from this record commit; S115-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -20,17 +23,23 @@ and grants no send, approval or provider authority. The operator guide step tabl
 toggles and the tenant audience copy control, and steps 8-10 now use the serving section labels.
 
 Verification on the exact commit in the native checkout: format, lint, types, 6,575 unit tests
-(711 files), 201 backend tests, every policy check and the production build passed
-(`/tmp/pmi-s114-verify.log`); core E2E passed with 8 files and 4 intentional skips
-(`/tmp/pmi-s114-e2e.log`). The eight S114 tests failed before the implementation and pass after it.
-The compiled renewal-desk and renewal-guide browser checks have not run: the local rehearsal refuses
-to start while WSL ADC is blocked (`/tmp/pmi-s114-dev.log`). They run before promotion once ADC is
-enrolled. No client message was sent and no live record was written. Human verdict: NOT RUN.
+(711 files), 201 backend tests, every policy check and the production build passed; core E2E passed
+with 8 files and 4 intentional skips. The eight S114 tests failed before the implementation and pass
+after it. On 2026-09-16 both compiled browser checks (renewal desk; renewal guide, 45 steps) passed
+on `b29185a3` against the native rehearsal with a local-only party-filter key. No client message was
+sent and no live record was written. Human verdict: NOT RUN.
 
-Remaining order: S115 plain-language section guidance, S116 source links and Sheet contact integrity,
-S117 master facts and confirmed source updates, S118 market defaults and sourced comparisons, S119
-manual status and desk filtering, S120 downstream preparation and completion UX. Each feature completes
-its own verification, exact-main CI and serialized release before the next begins.
+The failed attempt's cause is the watcher runtime, not the code: the scheduled-task launch used the
+Windows Cloud SDK through WSL interop (26-44 s per gcloud read), so the observer never reached its
+first page inside the 420,000 ms window. The watcher now runs natively (snap gcloud, Node 22.23.2)
+on the same lock and the launcher prepends that runtime for future logon starts.
+
+Remaining order: complete the resumed S114 release (exact-main CI for this head, candidate,
+assurance, promotion, observation, readbacks), then S115 plain-language section guidance, S116 source
+links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
+defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
+and completion UX. Each feature completes its own verification, exact-main CI and serialized release
+before the next begins.
 
 ## Current implementation baseline
 
