@@ -12,7 +12,9 @@ attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPL
 attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
 is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as head `33ef3039` /
 `pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column synchronization remains a named setup
-dependency until the Sheet manager adds the two headers. S117-S120 have not started.
+dependency until the Sheet manager adds the two headers. Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is
+implemented and integrated on main at `bc559602`; its serialized release is next. S118-S120 have not
+started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -106,6 +108,43 @@ S116 released as head `33ef3039` / `pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first at
 complete 18:21:47Z, all 2026-09-16). The exact head passed CI; canonical and tagged versions, traffic,
 revision configuration, receipts, the observation report and the authorized domains were read back.
 Live email-column synchronization is not verified: the two headers do not yet exist on the tab.
+
+S117 makes Rent and charges the one working area for rent and charge facts. The card shows the
+contractual base rent, the lease total and the unit-listed reference with their sources, every
+recurring charge with its account-derived classification and schedule, the two intents (correct a
+current fact; prepare future approved rent) and a per-destination status list for the app, the Sheet
+and RentVine (saved, prepared, applied with receipt, read back, declined, needs reconciliation,
+unavailable with its retained reason, or charge applied with the lease base rent still differing).
+The fact editor, the future-rent control and both provider review panels sit inside that area and
+Data check follows. One typed intent module builds the exact request bodies: a current correction
+never carries the future-rent intent and a future preparation never produces a Sheet body or a
+current-base correction. A known RentVine value is prefilled with its source shown; the source or
+reason stays a manual required input. Both review panels show a dense exact preview at the decision
+point (lease, source system, field or charge label, current and proposed values in business words,
+effective timing, what the confirmation changes); receipt hashes stay on the receipt line. After a
+succeeded current-base charge update the refreshed contractual base rent is compared with the applied
+amount; a difference is a fresh mismatch under the effect and in the status list, never a completed
+rent change, and the charge amount or lease total is never substituted for it. A future-rent effect
+can be confirmed only while the owner's approved terms are current and the tenant's acceptance of that
+exact terms revision is recorded: the route refuses before claiming the attempt, the live service
+re-check agrees and the panel names the wait. This is a deployed behavior change required by the
+specification's entry conditions. No key, route, role, executor, column or protected path changed.
+
+Verification on the exact integrated head `bc559602` in the native checkout: format, lint, types, 6651
+unit tests (722 files), 205 backend tests (35 files), every policy check and the production
+build passed; core E2E passed with 8 files and 4 intentional skips; the compiled renewal desk check
+passed on attempt 1 and the renewal guide check located all 60 steps including the seven new rows.
+Every S117 test was red before its implementation (typed intents 5, outcomes 3, working area 3,
+previews 5, backend route 4) and green after it; intentional contract changes: the RentVine review
+preview reads in business words (two pinned lines), the S113 future-rent journey records the tenant's
+acceptance before the Admin confirmation, and the page loads attempt records beside the attempt
+summary. The full gate failed twice at the pre-existing S113 sheet-route journey race (the same
+assertion that failed CI on the S116 closure): while a lookup is pending the button is named
+Looking up… and the journey waited the default one second after the stubbed provider failure while
+the route recorded the attempt in the emulator. The measured fix gives those two waits the same
+ten-second budget the journey already uses for its other emulator-backed steps; the assertion is
+unchanged and no product code changed for it. No client message was sent and no live record was
+written. Human verdict: NOT RUN.
 
 ## Serving release
 

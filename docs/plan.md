@@ -12,7 +12,9 @@ attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPL
 attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
 is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as head `33ef3039` /
 `pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column synchronization remains a named setup
-dependency until the Sheet manager adds the two headers. S117-S120 have not started.
+dependency until the Sheet manager adds the two headers. Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is
+implemented and integrated on main at `bc559602`; its serialized release is next. S118-S120 have not
+started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -38,7 +40,8 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-Remaining order: S117 master facts and confirmed source updates, S118 market
+Remaining order: release S117 master facts and confirmed source updates (exact-main CI for this head,
+the serialized release, readbacks, closure), then S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
 and completion UX. Each feature completes its own verification, exact-main CI and serialized release
 before the next begins.

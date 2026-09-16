@@ -5,15 +5,17 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
-`b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
-rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED: implemented at `7a19d338`, released 2026-09-16 as
-head `33ef3039` / pmi-kc-app-rmu4eoy5u-c8c2682e9102 (first attempt, one assurance_unverified retry). Actual missing-row cause measured read-only
-(counts only): 146 rows link RentVine as rich text attached to the cell (0 formulas, 1 bare URL); 34
-lease ids on more than one row; 200 current leases unlinked. Named setup dependency (not a blocker):
-the Sheet manager adds the exact headers "Owner emails" and "Tenant emails" to the "Lease Renewal"
-tab; the app then reads them back and offers per-lease previews. Next: S117 master facts and confirmed
-source updates (re-ground on the released code first), then S118-S120, each with its own gate,
-exact-main CI, serialized release, readbacks and closure record.
+`b7fd04d1` / rmu46blcc). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` / rmu4awn6p). S116
+COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u; email-column sync waits for the two Sheet
+headers). S117 master lease facts, rent and charges with confirmed source updates is implemented and
+integrated on main at `bc559602`: one Rent and charges working area, typed current/future intents, dense
+exact previews, per-destination status with the base-rent mismatch, and the tenant-acceptance condition
+on future-rent confirmation (deployed behavior change). Gates on the integrated head: format, lint, types,
+6651 unit tests (722 files), 205 backend (35 files), policy, build; core E2E 8 files /
+4 skips; desk check (attempt 1) and guide check (60 steps) passed; 20 S117 tests fail-first.
+Logs: `~/pmi-kc-work/logs/s117-*.log`. Next: exact-main CI for this head, the serialized release
+(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks,
+closure record; then S118. Auth expiry expected about 22:45Z: start the release well inside it.
 
 ## Verified production
 
@@ -86,7 +88,7 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s116-source-integrity` (Node 22.23.2, both reviewed
+Native checkout: `~/pmi-kc-work/main` on branch `s117-master-facts` (Node 22.23.2, both reviewed
 ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,

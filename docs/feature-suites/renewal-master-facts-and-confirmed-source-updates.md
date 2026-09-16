@@ -3,7 +3,7 @@
 
 # S117 — Master lease facts, rent and charges with confirmed source updates
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `bc559602`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head. The serialized production release is in progress. Deployed behavior change: a future-rent RentVine effect is confirmable only after the tenant's acceptance of the exact approved terms is recorded. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-master-facts-and-confirmed-source-updates.md`.  
