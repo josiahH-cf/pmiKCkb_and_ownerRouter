@@ -161,7 +161,7 @@ describe("buildTestSetReport", () => {
     expect(report).toContain("Sample size");
     expect(report).toContain("not_evaluated:");
     expect(report).toContain("exact lease-id/Sheet-row binding");
-    expect(report).toContain("2-mile maximum and 15-request policy");
+    expect(report).toContain("5-mile maximum and 15-request policy");
     expect(report).toContain("Daily owner: Fixture operational owner.");
     expect(report).toContain("Abort trigger: Fixture abort trigger.");
   });

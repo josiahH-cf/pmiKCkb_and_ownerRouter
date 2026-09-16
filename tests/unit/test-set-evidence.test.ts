@@ -13,6 +13,7 @@ import {
 } from "@/lib/firestore/test-set-evidence";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  S63_RENTCAST_RADIUS_MILES,
   deriveBaselineDiscrepancies,
   evaluateTestSetVerdict,
   verdictInputFromRecords,
@@ -73,7 +74,8 @@ function numberPayload() {
     sourceFactsMatchOrRaised: true,
     contractualBaseRentVerified: true,
     recurringChargesSeparated: true,
-    rentCastRadiusMiles: 2,
+    // S118: the approved default radius follows the product policy (five miles).
+    rentCastRadiusMiles: S63_RENTCAST_RADIUS_MILES,
     rentCastRequestedCount: 15,
     providerOrderPreserved: true,
     hiddenSelectionApplied: false,

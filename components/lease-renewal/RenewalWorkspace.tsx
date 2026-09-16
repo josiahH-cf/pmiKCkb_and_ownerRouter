@@ -22,6 +22,7 @@ import { RenewalLeaseInformation } from "@/components/lease-renewal/RenewalLease
 import { RentAndCharges } from "@/components/lease-renewal/RentAndCharges";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
+import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
 import { RenewalWorkspaceSidebars } from "@/components/lease-renewal/RenewalWorkspaceSidebars";
 
 import { RenewalAttemptSummaryCard } from "@/components/lease-renewal/RenewalAttemptSummaryCard";
@@ -132,6 +133,7 @@ export function RenewalWorkspace({
   resolutionDestinations = [],
   chargeInventory = null,
   rentChargeStatus = null,
+  marketSubject = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -174,6 +176,8 @@ export function RenewalWorkspace({
   chargeInventory?: RenewalChargeInventory | null;
   /** S117: each destination's own update state for this lease's rent and charge intents. */
   rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
+  /** S118: the server-resolved comparison subject for the starting range and report links. */
+  marketSubject?: MarketSubjectProjection | null;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -309,6 +313,7 @@ export function RenewalWorkspace({
                       address={summary.addressLabel}
                       currentRent={workspace.currentRent}
                       compScreenshotExecutable={compScreenshotExecutable}
+                      marketSubject={marketSubject}
                     />
                   ) : null}
                   {section.id === "owner" ||

@@ -5,8 +5,12 @@ import {
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 
+/**
+ * S118 (R118.2): a new untouched lookup searches five miles. The operator's explicit radius
+ * still replaces it per request and per cache identity; retained observations keep their own.
+ */
 export const RENTCAST_QUERY_POLICY = {
-  maxRadiusMiles: 2,
+  maxRadiusMiles: 5,
   requestedCompCount: 15,
   lookupSubjectAttributes: true,
   providerVersion: "rentcast-avm-long-term-v1",

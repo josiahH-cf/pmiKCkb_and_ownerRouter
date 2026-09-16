@@ -165,6 +165,10 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
       rangeLow: money.optional(),
       rangeHigh: money.optional(),
       pmiNumber: money.optional(),
+      // S118: the browser declares only a downgrade-capable origin; the server compares the
+      // saved range against the fresh starting rule again before the owner message uses it.
+      rangeBasis: z.enum(["starting_rule", "provider", "reviewed"]).optional(),
+      recommendationBasis: z.enum(["provider", "reviewed"]).optional(),
       observationId: z.string().uuid().nullable().optional(),
       trendObservationId: z.string().uuid().optional(),
       analysisReference: z.string().trim().max(1000).optional(),
@@ -431,6 +435,13 @@ export function manualActionSheetIntent(
     field = "renewal_completed";
     outcome = "not_started";
   }
+  if (action.kind === "preparation") {
+    // S118 (R118.3): the saved PMI recommendation is the one figure the Sheet market value
+    // takes; the low/high range stays app evidence. Preparing is not writing.
+    return action.pmiNumber !== undefined
+      ? { field: "market_value", value: action.pmiNumber, source: action.source }
+      : null;
+  }
   if (!field || !outcome) return null;
   const shape = sheetFieldShape(field);
   // A boolean column cannot represent N/A; leave that fact in the app rather than claim Yes.
@@ -542,6 +553,11 @@ export function planRenewalWorkspaceAction(
       delete market[key];
       if (action[key] !== undefined) market[key] = action[key];
     }
+    delete market.rangeBasis;
+    if (action.rangeBasis) market.rangeBasis = action.rangeBasis;
+    delete market.recommendationBasis;
+    if (action.recommendationBasis)
+      market.recommendationBasis = action.recommendationBasis;
     // The store resolves provider observations and screenshots. Browser numbers never become provider facts.
     next.preparation = {
       market,
@@ -563,6 +579,15 @@ export function planRenewalWorkspaceAction(
       : manualActionSheetIntent(action);
   if (action.kind === "activity" && !intent && SHEET_ACTIVITY[action.activity])
     delete next.sourceUpdates[SHEET_ACTIVITY[action.activity]!];
+  // S118: a preparation saved without a recommendation withdraws an unconfirmed market value;
+  // a value already read back from the Sheet stays on record.
+  if (
+    action.kind === "preparation" &&
+    !intent &&
+    next.sourceUpdates.market_value &&
+    next.sourceUpdates.market_value.state !== "verified"
+  )
+    delete next.sourceUpdates.market_value;
   if (intent)
     next.sourceUpdates[intent.field] = {
       eventId: meta.eventId,

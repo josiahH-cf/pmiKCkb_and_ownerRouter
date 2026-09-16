@@ -50,6 +50,10 @@ import {
   leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import {
+  projectMarketSubject,
+  type MarketSubjectProjection,
+} from "@/lib/lease-renewal/market-subject";
 import { canonicalJson } from "@/lib/execution/preview-hash";
 import {
   getLiveLeaseSnapshot,
@@ -186,6 +190,9 @@ export default async function LiveRenewalLeaseWorkspacePage({
   );
   let authoritativeCurrentRent: number | null = null;
   let authoritativePortfolioId: string | null = null;
+  // S118: the comparison subject (address, unit attributes, contractual base rent) resolved once
+  // from the same live view the lookup would use; an unresolved subject keeps its exact cause.
+  let marketSubject: MarketSubjectProjection = projectMarketSubject(null, leaseId);
   let leaseSnapshotAttempt: AttemptedLiveLeaseSnapshotResult | undefined;
   if (liveConfig.ok) {
     try {
@@ -203,6 +210,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       const view = findLeaseViewById(views, leaseId);
       authoritativeCurrentRent = view ? (leaseCurrentRent(view) ?? null) : null;
       authoritativePortfolioId = view ? (leasePortfolioId(view) ?? null) : null;
+      marketSubject = projectMarketSubject(view, leaseId);
     } catch {
       authoritativeCurrentRent = null;
       leaseSnapshotAttempt = { status: "unavailable" };
@@ -373,6 +381,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
             auxiliaryFailures={auxiliaryFailures}
             chargeInventory={chargeInventory}
             rentChargeStatus={rentChargeStatus}
+            marketSubject={marketSubject}
             manualState={manualRead.status === "available" ? manualRead.value : undefined}
             manualReadUnavailable={manualRead.status !== "available"}
             manualCycleBasis={

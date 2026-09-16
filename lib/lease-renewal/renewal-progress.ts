@@ -116,6 +116,13 @@ export interface RenewalMarketBasis {
   rangeHigh?: number;
   /** The specific number from the PMI/franchise rental-analysis tool. */
   pmiNumber?: number;
+  /**
+   * S118: where the saved low/high came from. `starting_rule` is the rent-based starting band
+   * (never market evidence), `provider` the untouched RentCast range, `reviewed` a staff edit.
+   */
+  rangeBasis?: "starting_rule" | "provider" | "reviewed";
+  /** S118: `provider` while the recommendation is still RentCast's point estimate; else `reviewed`. */
+  recommendationBasis?: "provider" | "reviewed";
   /** The stored Drive ref (drive:<id>) for the uploaded comps screenshot (S28a). */
   compScreenshotRef?: string;
   /** Display-only attribution metadata for the lookup the operator ran. NEVER labels typed numbers. */

@@ -34,7 +34,7 @@ function passingInput(): TestSetVerdictInput {
       sourceFactsMatchOrRaised: true,
       contractualBaseRentVerified: true,
       recurringChargesSeparated: true,
-      rentCastRadiusMiles: 2,
+      rentCastRadiusMiles: S63_RENTCAST_RADIUS_MILES,
       rentCastRequestedCount: 15,
       providerOrderPreserved: true,
       hiddenSelectionApplied: false,
@@ -74,7 +74,8 @@ function fixtureBaseline(): TestSetBaseline {
 
 describe("S63 dual operational verdict", () => {
   it("passes process, numbers/evidence, and read-only safety independently", () => {
-    expect(S63_RENTCAST_RADIUS_MILES).toBe(2);
+    // S118 moved the accepted default from two miles to five.
+    expect(S63_RENTCAST_RADIUS_MILES).toBe(5);
     expect(S63_RENTCAST_REQUESTED_COUNT).toBe(15);
     const verdict = evaluateTestSetVerdict(passingInput());
     expect(verdict.criteria).toMatchObject({

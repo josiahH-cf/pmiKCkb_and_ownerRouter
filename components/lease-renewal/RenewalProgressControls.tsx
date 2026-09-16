@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
@@ -12,6 +12,17 @@ import {
   type MarketCompQueryBasis,
 } from "@/lib/lease-renewal/market-comp-query-basis";
 import { computeUnderMarketSignal } from "@/lib/lease-renewal/under-market";
+import {
+  STARTING_RANGE_LABEL,
+  computeStartingRange,
+  startingRangeInputValue,
+  type StartingRange,
+} from "@/lib/lease-renewal/market-starting-range";
+import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
+import {
+  buildRentcastMarketReportLink,
+  buildRentcastPropertyReportLink,
+} from "@/lib/lease-renewal/rentcast-report-links";
 
 // LIVE workspace controls persist app-owned inputs through the versioned renewal-progress boundary
 // and refresh the server-rendered evidence projection.
@@ -167,6 +178,42 @@ const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
   { value: "custom", label: "Custom" },
 ];
 
+/** S118: where each comparison figure currently comes from; the save carries the honest basis. */
+type FigureKey = "rangeLow" | "rangeHigh" | "pmiNumber";
+type FigureOrigin = "none" | "saved" | "starting_rule" | "provider" | "edited";
+const FIGURE_ORIGIN_HINTS: Record<Exclude<FigureOrigin, "none">, string> = {
+  saved: "Saved with this preparation.",
+  starting_rule: "Starting value from current rent; edit it or run a lookup.",
+  provider: "Filled from the RentCast result; edit it if your review differs.",
+  edited: "Edited by you.",
+};
+const COMPARISON_SCOPE_NOTE =
+  "Comparison work is not required for unrelated actions. The comparison-based owner message needs a sourced low and high and actual reviewed comps or a reviewed attachment; the starting range alone does not satisfy that.";
+
+/** An edit anywhere is a review; an untouched starting value keeps the pair a starting range. */
+function rangeBasisFor(
+  low: FigureOrigin,
+  high: FigureOrigin,
+  saved: RenewalMarketBasis["rangeBasis"],
+): NonNullable<RenewalMarketBasis["rangeBasis"]> {
+  if (low === "edited" || high === "edited") return "reviewed";
+  if (low === "starting_rule" || high === "starting_rule") return "starting_rule";
+  if (low === "provider" && high === "provider") return "provider";
+  return saved ?? "reviewed";
+}
+function recommendationBasisFor(
+  origin: FigureOrigin,
+  saved: RenewalMarketBasis["recommendationBasis"],
+): RenewalMarketBasis["recommendationBasis"] {
+  if (origin === "edited") return "reviewed";
+  if (origin === "provider") return "provider";
+  if (origin === "saved") return saved ?? "reviewed";
+  return undefined;
+}
+function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 1000) / 10}%`;
+}
+
 /** Format a whole/decimal dollar amount with thousands separators (client-side reference display). */
 function formatMoney(amount: number): string {
   const fixed = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
@@ -214,6 +261,7 @@ export function OwnerDecisionForm({
   currentRent,
   compScreenshotExecutable = false,
   preparation,
+  marketSubject = null,
 }: Readonly<{
   leaseId: string;
   current: RecordedDecision | null;
@@ -223,6 +271,8 @@ export function OwnerDecisionForm({
   currentRent?: number;
   /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
   compScreenshotExecutable?: boolean;
+  /** S118: the server-resolved comparison subject; used in preparation mode only. */
+  marketSubject?: MarketSubjectProjection | null;
   preparation?: {
     cycleId: string;
     market?: RenewalMarketBasis;
@@ -241,19 +291,20 @@ export function OwnerDecisionForm({
     preparation?.analysisReference ?? "",
   );
   const lookupTouched = useRef(false);
-  const radiusTouched = useRef(false);
+  // S118 (R118.2): a new lookup starts from the accepted five-mile default. A retained
+  // observation keeps and shows its own radius; it never rewrites the input for a new search.
   const [maxRadiusMiles, setMaxRadiusMiles] = useState(
-    String(
-      preparation?.initialLookup?.queryBasis?.policy.maxRadiusMiles ??
-        currentMarket?.provider?.radiusMiles ??
-        RENTCAST_QUERY_POLICY.maxRadiusMiles,
-    ),
+    String(RENTCAST_QUERY_POLICY.maxRadiusMiles),
   );
-  useEffect(() => {
-    const retainedRadius = preparation?.initialLookup?.queryBasis?.policy.maxRadiusMiles;
-    if (!radiusTouched.current && retainedRadius !== undefined)
-      setMaxRadiusMiles(String(retainedRadius));
-  }, [preparation?.initialLookup]);
+  const preparing = Boolean(preparation);
+  // S118: the starting range and the report links come from the server-resolved subject.
+  const startingRange: StartingRange | null =
+    preparing && marketSubject
+      ? marketSubject.status === "resolved"
+        ? computeStartingRange(marketSubject.basis.baseRent)
+        : { status: "unavailable", reason: marketSubject.message }
+      : null;
+  const subjectBasis = marketSubject?.status === "resolved" ? marketSubject.basis : null;
   const [decision, setDecision] = useState<OwnerDecision>(
     current?.decision ?? "increase",
   );
@@ -267,14 +318,75 @@ export function OwnerDecisionForm({
   const [insurance, setInsurance] = useState(
     current?.charges?.insurance !== undefined ? String(current.charges.insurance) : "",
   );
-  const [rangeLow, setRangeLow] = useState(
-    currentMarket?.rangeLow !== undefined ? String(currentMarket.rangeLow) : "",
-  );
-  const [rangeHigh, setRangeHigh] = useState(
-    currentMarket?.rangeHigh !== undefined ? String(currentMarket.rangeHigh) : "",
-  );
-  const [pmiNumber, setPmiNumber] = useState(
-    currentMarket?.pmiNumber !== undefined ? String(currentMarket.pmiNumber) : "",
+  // S118 (R118.1, R118.3): each figure starts as a saved value, else the starting range for
+  // the low/high, else empty. Its origin travels with it so a save records the honest basis.
+  const [initialFigures] = useState(() => {
+    const band = startingRange?.status === "available" ? startingRange : null;
+    const figure = (
+      key: FigureKey,
+      starting: number | undefined,
+    ): { value: string; origin: FigureOrigin } => {
+      const saved = currentMarket?.[key];
+      if (saved !== undefined) return { value: String(saved), origin: "saved" };
+      if (preparing && starting !== undefined)
+        return { value: startingRangeInputValue(starting), origin: "starting_rule" };
+      return { value: "", origin: "none" };
+    };
+    return {
+      rangeLow: figure("rangeLow", band?.low),
+      rangeHigh: figure("rangeHigh", band?.high),
+      pmiNumber: figure("pmiNumber", undefined),
+    };
+  });
+  const [rangeLow, setRangeLow] = useState(initialFigures.rangeLow.value);
+  const [rangeHigh, setRangeHigh] = useState(initialFigures.rangeHigh.value);
+  const [pmiNumber, setPmiNumber] = useState(initialFigures.pmiNumber.value);
+  const initialOrigins: Record<FigureKey, FigureOrigin> = {
+    rangeLow: initialFigures.rangeLow.origin,
+    rangeHigh: initialFigures.rangeHigh.origin,
+    pmiNumber: initialFigures.pmiNumber.origin,
+  };
+  const originRef = useRef(initialOrigins);
+  const [origins, setOrigins] = useState(initialOrigins);
+  const setOrigin = useCallback((key: FigureKey, origin: FigureOrigin) => {
+    if (originRef.current[key] === origin) return;
+    originRef.current = { ...originRef.current, [key]: origin };
+    setOrigins(originRef.current);
+  }, []);
+  function editFigure(key: FigureKey, value: string) {
+    if (key === "rangeLow") setRangeLow(value);
+    else if (key === "rangeHigh") setRangeHigh(value);
+    else setPmiNumber(value);
+    setOrigin(key, "edited");
+  }
+  // R118.3: a usable result fills only figures nobody saved or edited, including a result that
+  // lands after an edit made while the request was in flight. The evidence is shown either way.
+  const applyProviderDefaults = useCallback(
+    (lookup: CompLookup | null | undefined) => {
+      if (
+        !preparing ||
+        !lookup ||
+        lookup.confidence !== "Likely" ||
+        lookup.source !== "RentCast"
+      )
+        return;
+      const values: Record<FigureKey, number | undefined> = {
+        rangeLow: lookup.rangeLow,
+        rangeHigh: lookup.rangeHigh,
+        pmiNumber: lookup.pointEstimate,
+      };
+      for (const key of ["rangeLow", "rangeHigh", "pmiNumber"] as const) {
+        const value = values[key];
+        const origin = originRef.current[key];
+        if (value === undefined || origin === "saved" || origin === "edited") continue;
+        const next = startingRangeInputValue(value);
+        if (key === "rangeLow") setRangeLow(next);
+        else if (key === "rangeHigh") setRangeHigh(next);
+        else setPmiNumber(next);
+        setOrigin(key, "provider");
+      }
+    },
+    [preparing, setOrigin],
   );
   const [compScreenshotRef, setCompScreenshotRef] = useState(
     currentMarket?.compScreenshotRef ?? "",
@@ -294,9 +406,11 @@ export function OwnerDecisionForm({
     preparation?.initialLookup ?? null,
   );
   useEffect(() => {
-    if (!lookupTouched.current && preparation?.initialLookup)
+    if (!lookupTouched.current && preparation?.initialLookup) {
       setCompLookup(preparation.initialLookup);
-  }, [preparation?.initialLookup]);
+      applyProviderDefaults(preparation.initialLookup);
+    }
+  }, [preparation?.initialLookup, applyProviderDefaults]);
   const [trendLookup, setTrendLookup] = useState<TrendLookup | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   // S60: the INTERNAL under-market signal. Computed only from a PROVIDER basis (a fresh live
@@ -368,9 +482,14 @@ export function OwnerDecisionForm({
         });
         return;
       }
-      if (low.value !== undefined) manualBasis.rangeLow = low.value;
-      if (high.value !== undefined) manualBasis.rangeHigh = high.value;
-      if (pmi.value !== undefined) manualBasis.pmiNumber = pmi.value;
+      // S118: only the operator's own figures are a manual basis. A starting-range or
+      // provider-filled value is never echoed back as a manual comp result.
+      const own = (key: FigureKey) =>
+        originRef.current[key] === "edited" || originRef.current[key] === "saved";
+      if (low.value !== undefined && own("rangeLow")) manualBasis.rangeLow = low.value;
+      if (high.value !== undefined && own("rangeHigh"))
+        manualBasis.rangeHigh = high.value;
+      if (pmi.value !== undefined && own("pmiNumber")) manualBasis.pmiNumber = pmi.value;
       const response = await fetch("/api/lease-renewal/market-comps", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -396,6 +515,7 @@ export function OwnerDecisionForm({
               reason: payload.error_type ?? "http_error",
             },
       );
+      if (response.ok) applyProviderDefaults(payload);
       // S60: one deliberate follow-on trend call (separately billed and metered) when the lease's
       // zip is known and the comps lookup itself came back live. The decided presentation renders
       // it inline in the owner draft with a source link.
@@ -860,6 +980,25 @@ export function OwnerDecisionForm({
     rangeHighParsed.ok &&
     pmiNumberParsed.ok &&
     Boolean(preparationSource.trim());
+  // S118 (R118.5): the report links open RentCast's own report for the resolved subject with
+  // the radius a new lookup would use. They stay available when a lookup fails.
+  const radiusForLinks = Number(maxRadiusMiles);
+  const propertyReport = buildRentcastPropertyReportLink({
+    addressLabel: subjectBasis?.addressLabel ?? null,
+    query: subjectBasis?.query,
+    radiusMiles:
+      Number.isFinite(radiusForLinks) && radiusForLinks > 0 ? radiusForLinks : null,
+  });
+  const marketReport = buildRentcastMarketReportLink(subjectBasis?.trendPostalCode);
+  const lookupReport = compLookup?.queryBasis
+    ? buildRentcastPropertyReportLink({
+        addressLabel: compLookup.queryBasis.addressLabel,
+        query: compLookup.queryBasis.query,
+        radiusMiles: compLookup.queryBasis.policy.maxRadiusMiles,
+      })
+    : null;
+  const originHint = (key: FigureKey) =>
+    preparing && origins[key] !== "none" ? FIGURE_ORIGIN_HINTS[origins[key]] : undefined;
   async function submit() {
     if (preparation) {
       if (
@@ -872,10 +1011,28 @@ export function OwnerDecisionForm({
       setPending(true);
       setError("");
       setSaved(false);
+      // S118: the basis is derived from where each figure actually came from.
+      const rangeBasis =
+        rangeLowParsed.value !== undefined && rangeHighParsed.value !== undefined
+          ? rangeBasisFor(
+              originRef.current.rangeLow,
+              originRef.current.rangeHigh,
+              preparation.market?.rangeBasis,
+            )
+          : undefined;
+      const recommendationBasis =
+        pmiNumberParsed.value !== undefined
+          ? recommendationBasisFor(
+              originRef.current.pmiNumber,
+              preparation.market?.recommendationBasis,
+            )
+          : undefined;
       try {
         await preparation.onSave({
           kind: "preparation",
           source: preparationSource,
+          ...(rangeBasis ? { rangeBasis } : {}),
+          ...(recommendationBasis ? { recommendationBasis } : {}),
           ...(rangeLowParsed.value !== undefined
             ? { rangeLow: rangeLowParsed.value }
             : {}),
@@ -1108,32 +1265,74 @@ export function OwnerDecisionForm({
           </Field>
         </>
       ) : null}
+      {preparing && startingRange ? (
+        <div className="ui-stack-tight">
+          {startingRange.status === "available" ? (
+            <p className="muted">
+              {STARTING_RANGE_LABEL}: {formatMoney(startingRange.low)} to{" "}
+              {formatMoney(startingRange.high)} ({formatPercent(startingRange.percent)} of{" "}
+              {formatMoney(startingRange.currentRent)} from {startingRange.sourcePath}). A
+              lookup fills only figures you have not edited; your own reviewed figures
+              stay.
+            </p>
+          ) : (
+            <p className="muted" role="status">
+              No starting range: {startingRange.reason}
+            </p>
+          )}
+          <p className="muted">{COMPARISON_SCOPE_NOTE}</p>
+        </div>
+      ) : null}
       <div className="ui-row">
-        <Field htmlFor={id.rangeLow} label="Market rent: low estimate (optional)">
+        <Field
+          htmlFor={id.rangeLow}
+          hint={originHint("rangeLow")}
+          label={
+            preparing
+              ? "Market rent: low estimate"
+              : "Market rent: low estimate (optional)"
+          }
+        >
           <input
             id={id.rangeLow}
             inputMode="decimal"
-            onChange={(event) => setRangeLow(event.target.value)}
+            onChange={(event) => editFigure("rangeLow", event.target.value)}
             placeholder="$1,400"
             type="text"
             value={rangeLow}
           />
         </Field>
-        <Field htmlFor={id.rangeHigh} label="Market rent: high estimate (optional)">
+        <Field
+          htmlFor={id.rangeHigh}
+          hint={originHint("rangeHigh")}
+          label={
+            preparing
+              ? "Market rent: high estimate"
+              : "Market rent: high estimate (optional)"
+          }
+        >
           <input
             id={id.rangeHigh}
             inputMode="decimal"
-            onChange={(event) => setRangeHigh(event.target.value)}
+            onChange={(event) => editFigure("rangeHigh", event.target.value)}
             placeholder="$1,600"
             type="text"
             value={rangeHigh}
           />
         </Field>
-        <Field htmlFor={id.pmiNumber} label="PMI recommended monthly rent (optional)">
+        <Field
+          htmlFor={id.pmiNumber}
+          hint={originHint("pmiNumber")}
+          label={
+            preparing
+              ? "PMI recommended monthly rent"
+              : "PMI recommended monthly rent (optional)"
+          }
+        >
           <input
             id={id.pmiNumber}
             inputMode="decimal"
-            onChange={(event) => setPmiNumber(event.target.value)}
+            onChange={(event) => editFigure("pmiNumber", event.target.value)}
             placeholder="$1,525"
             type="text"
             value={pmiNumber}
@@ -1253,19 +1452,59 @@ export function OwnerDecisionForm({
         </div>
       ) : null}
       {screenshotStatus ? <p className="muted">{screenshotStatus}</p> : null}
-      <Field htmlFor={id.radius} label="Maximum comp search radius (miles)">
+      <Field
+        htmlFor={id.radius}
+        hint={`A new lookup searches ${RENTCAST_QUERY_POLICY.maxRadiusMiles} miles unless you change this. The radius applies to the actual request and its cache identity.`}
+        label="Maximum comp search radius (miles)"
+      >
         <input
           id={id.radius}
           type="number"
           step="any"
           value={maxRadiusMiles}
           disabled={lookupPending}
-          onChange={(event) => {
-            radiusTouched.current = true;
-            setMaxRadiusMiles(event.target.value);
-          }}
+          onChange={(event) => setMaxRadiusMiles(event.target.value)}
         />
       </Field>
+      {preparing && marketSubject ? (
+        <div className="ui-stack-tight">
+          {propertyReport.status === "available" ? (
+            <>
+              <p className="muted">
+                <a href={propertyReport.url} rel="noreferrer" target="_blank">
+                  Open the RentCast property report
+                </a>
+                {marketReport.status === "available" ? (
+                  <>
+                    {" · "}
+                    <a href={marketReport.url} rel="noreferrer" target="_blank">
+                      Open the RentCast market report for {marketReport.zip}
+                    </a>
+                  </>
+                ) : null}
+              </p>
+              <p className="muted">
+                {propertyReport.note}
+                {marketReport.status === "unavailable" ? ` ${marketReport.reason}` : ""}
+              </p>
+              <p className="muted">
+                Sent to the report:{" "}
+                {propertyReport.sent
+                  .map((entry) => `${entry.label} ${entry.value}`)
+                  .join(" · ")}
+                . {propertyReport.omitted.map((entry) => entry.reason).join(" ")}
+              </p>
+            </>
+          ) : (
+            <p className="muted" role="status">
+              No property report link:{" "}
+              {marketSubject.status === "unresolved"
+                ? marketSubject.message
+                : propertyReport.reason}
+            </p>
+          )}
+        </div>
+      ) : null}
       <div className="ui-row">
         <Button
           disabled={lookupPending}
@@ -1315,6 +1554,14 @@ export function OwnerDecisionForm({
                 · RentCast subject-attribute lookup{" "}
                 {compLookup.queryBasis.policy.lookupSubjectAttributes ? "on" : "off"}.
               </p>
+              {preparing &&
+              String(compLookup.queryBasis.policy.maxRadiusMiles) !== maxRadiusMiles ? (
+                <p className="muted">
+                  This retained lookup used {compLookup.queryBasis.policy.maxRadiusMiles}{" "}
+                  miles; a new lookup uses the radius above ({maxRadiusMiles || "none"}{" "}
+                  miles).
+                </p>
+              ) : null}
               <p className="muted">Address sent: {compLookup.queryBasis.addressLabel}</p>
               <ul className="ui-rows">
                 <li>
@@ -1349,11 +1596,13 @@ export function OwnerDecisionForm({
                 ) : null}
                 .
               </p>
-              {compLookup.sourceUrl ? (
+              {lookupReport?.status === "available" ? (
                 <p className="muted">
-                  <a href={compLookup.sourceUrl} rel="noreferrer" target="_blank">
-                    RentCast source
-                  </a>
+                  <a href={lookupReport.url} rel="noreferrer" target="_blank">
+                    Open this lookup&apos;s RentCast property report
+                  </a>{" "}
+                  (RentCast&apos;s own report for the query above, not a copy of this
+                  result).
                 </p>
               ) : null}
               {compLookup.subjectProperty ? (

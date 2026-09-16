@@ -193,7 +193,8 @@ describe("S59 measured export to RentCast query basis", () => {
     expect(url).toContain("bedrooms=3");
     expect(url).toContain("bathrooms=2.5");
     expect(url).toContain("squareFootage=1400");
-    expect(url).toContain("maxRadius=2");
+    // S118: the accepted five-mile default replaced the original two miles.
+    expect(url).toContain("maxRadius=5");
     expect(url).toContain("compCount=15");
     expect(url).toContain("lookupSubjectAttributes=true");
     expect(url).not.toContain("propertyType=");

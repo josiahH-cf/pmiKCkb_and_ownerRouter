@@ -31,7 +31,13 @@ import {
   buildLiveRentVineConfig,
 } from "@/lib/lease-renewal/live-config";
 import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
-import { leaseEndDateIso, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  leaseEndDateIso,
+  leasePortfolioId,
+  leaseViewId,
+} from "@/lib/integrations/rentvine/lease-mapper";
+import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
+import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
 import {
@@ -163,9 +169,33 @@ export async function currentRenewalMessage(
   }
   const market = workspace?.preparation?.market;
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
-  const rangeSource = market?.provider
-    ? ownerMarket.rangeSource
-    : workspace?.preparation?.source;
+  // S118 (R118.3): a recommendation that is still the returned point estimate needs the existing
+  // Admin approval of that exact number; the approval record is read only when one could apply.
+  let approvedSuggestionValue: number | null = null;
+  if (channel === "owner" && market?.recommendationBasis === "provider") {
+    try {
+      approvedSuggestionValue =
+        (
+          await getApprovedRentSuggestion(
+            actor,
+            leaseId,
+            currentBaseRent?.value ?? null,
+            leasePortfolioId(lease) ?? null,
+            db,
+          )
+        )?.value ?? null;
+    } catch {
+      notices.push(
+        "The Admin approval record for the comp-derived number could not be read. The provider-derived recommendation stays out of this message until it is read back.",
+      );
+    }
+  }
+  const marketEvidence = projectMessageMarketEvidence({
+    preparation: workspace?.preparation ?? null,
+    currentBaseRent: currentBaseRent?.value ?? null,
+    approvedSuggestionValue,
+  });
+  notices.push(...marketEvidence.notices);
   const link = (id: string) => {
     const entry = resources?.entries[id];
     const url = usableRenewalResourceUrl(entry);
@@ -189,16 +219,8 @@ export async function currentRenewalMessage(
       workspace.ownerResponse.terms
         ? { ...workspace.ownerResponse.terms, source: workspace.ownerResponse.source }
         : null,
-    range:
-      ownerMarket.rangeLow !== undefined &&
-      ownerMarket.rangeHigh !== undefined &&
-      rangeSource
-        ? { low: ownerMarket.rangeLow, high: ownerMarket.rangeHigh, source: rangeSource }
-        : null,
-    suggestedRent:
-      market?.pmiNumber !== undefined && workspace?.preparation?.source
-        ? { value: market.pmiNumber, source: workspace.preparation.source }
-        : null,
+    range: marketEvidence.range,
+    suggestedRent: marketEvidence.suggestedRent,
     // The provider's measured attributes are retained; no street address is invented when absent.
     comps: (provider?.comps ?? []).map((comp, index) => ({
       address: `Comparable ${index + 1}${comp.bedrooms !== undefined ? `, ${comp.bedrooms} bedrooms` : ""}${comp.distanceMiles !== undefined ? `, ${comp.distanceMiles} miles away` : ""}`,
@@ -260,6 +282,13 @@ export async function currentRenewalMessage(
       : null,
   };
   const content = composeRenewalMessage(facts, inputs.edits);
+  if (marketEvidence.rangeRequirement) {
+    // R118.4: the starting range alone satisfies neither evidence requirement; say which one.
+    const entry = content.missing.find((item) => item.field === "range");
+    if (entry) entry.message = marketEvidence.rangeRequirement;
+    else
+      content.missing.push({ field: "range", message: marketEvidence.rangeRequirement });
+  }
   if (inputs.compScreenshotReceiptId && !attachment)
     content.missing.push({
       field: "attachment",

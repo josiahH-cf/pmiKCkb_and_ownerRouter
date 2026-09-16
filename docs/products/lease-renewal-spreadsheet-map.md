@@ -14,7 +14,8 @@ The renewal area carries, at minimum:
 - lease/tenant label for human review;
 - renewal date;
 - current rent;
-- market value;
+- market value (S118: the reviewed PMI recommended monthly rent saved in comparison preparation,
+  written only through the exact-confirmed field update; the low/high range stays app evidence);
 - completion/renewal response state;
 - owner pricing/contact progress;
 - form, document, signature, insurance, pet, charge, inspection, filter, and utility follow-ups.

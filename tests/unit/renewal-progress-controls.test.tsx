@@ -333,9 +333,13 @@ describe("OwnerDecisionForm reference-only comp lookup (AC-S28-2)", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/Provider lookup result/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "RentCast source" })).toHaveAttribute(
+    // S118 (R118.5): the evidence link opens RentCast's own property report for this exact
+    // query, never the homepage.
+    expect(
+      screen.getByRole("link", { name: "Open this lookup's RentCast property report" }),
+    ).toHaveAttribute(
       "href",
-      "https://www.rentcast.io",
+      "https://rentcast.io/s/p?address=104%20NE%20Lindsay%20Ave%2C%20Kansas%20City%2C%20MO%2064118&bedrooms=3&bathrooms=2.5&area=1400&radius=2",
     );
 
     const lookupCall = fetchMock.mock.calls.find(([url]) =>

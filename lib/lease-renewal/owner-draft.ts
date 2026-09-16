@@ -162,7 +162,10 @@ export function ownerDraftMarketFromBasis(
   market: RenewalMarketBasis,
 ): OwnerDraftMarketInput {
   const out: OwnerDraftMarketInput = {};
-  if (market.pmiNumber !== undefined) out.specificNumber = market.pmiNumber;
+  // S118: a recommendation still equal to the returned point estimate is provider-derived; it
+  // reaches a draft only through the Admin-approved suggestion path, never as the PMI number.
+  if (market.pmiNumber !== undefined && market.recommendationBasis !== "provider")
+    out.specificNumber = market.pmiNumber;
 
   const provider = market.provider;
   if (provider) {

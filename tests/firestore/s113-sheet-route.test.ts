@@ -839,6 +839,70 @@ describe("S113 comp route through actual adapter and retained preparation", () =
   });
 });
 
+describe("S118 saved comparison preparation prepares the Sheet market value for separate confirmation", () => {
+  it("AC-S118-3: an Editor's saved PMI recommendation becomes the exact prepared Market value; withdrawing it removes the unconfirmed update and nothing is written", async () => {
+    testState.role = "Editor";
+    let state = await startManual();
+    state = (
+      await recordManual(state, {
+        kind: "preparation",
+        source: "Reviewed RentCast result and two listings",
+        rangeLow: 1450,
+        rangeHigh: 1650,
+        pmiNumber: 1550,
+        rangeBasis: "provider",
+        recommendationBasis: "provider",
+      })
+    ).state;
+    expect(state.preparation?.market).toMatchObject({
+      pmiNumber: 1550,
+      rangeBasis: "provider",
+      recommendationBasis: "provider",
+    });
+    expect(Object.keys(state.sourceUpdates)).toEqual(["market_value"]);
+    expect(state.sourceUpdates.market_value).toMatchObject({
+      state: "prepared",
+      intent: {
+        field: "market_value",
+        value: 1550,
+        source: "Reviewed RentCast result and two listings",
+      },
+    });
+    expect(mutations).toBe(0);
+    const proposal = (await getSheetWritebackProposal(
+      actor,
+      spreadsheetId,
+      "Lease Renewal",
+      scope,
+      db,
+    ))!;
+    expect(proposal.effects).toHaveLength(1);
+    expect(proposal.effects[0].effect).toMatchObject({
+      kind: "field_update",
+      staffIntent: { field: "market_value", value: 1550 },
+    });
+    // The low/high range never becomes a Sheet column; only the recommendation is proposed.
+    expect(JSON.stringify(proposal.effects)).not.toMatch(/1450|1650/);
+    // Withdrawing the recommendation removes the unconfirmed Sheet update; the range stays.
+    state = (
+      await recordManual(state, {
+        kind: "preparation",
+        source: "Second review without a recommendation",
+        rangeLow: 1450,
+        rangeHigh: 1650,
+        rangeBasis: "reviewed",
+      })
+    ).state;
+    expect(state.sourceUpdates.market_value).toBeUndefined();
+    expect(state.preparation?.market).toEqual({
+      rangeLow: 1450,
+      rangeHigh: 1650,
+      rangeBasis: "reviewed",
+    });
+    expect(mutations).toBe(0);
+    expect(marketValue).toBe("1000");
+  });
+});
 function usePetField() {
   const original = testState.context!,
     sheetHeader = [

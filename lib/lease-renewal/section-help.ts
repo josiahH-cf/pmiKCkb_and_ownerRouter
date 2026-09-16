@@ -76,16 +76,17 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "section-comps": {
     label: "Market rent comparison",
     purpose:
-      "Optional preparation for the owner conversation: compare similar rentals or enter your own sourced analysis and save it with this renewal cycle.",
+      "Preparation for the owner conversation. It starts from the labeled starting range around the current contractual base rent and a five-mile search; the actual comparison comes from one deliberate RentCast lookup or your own sourced figures, saved with this renewal cycle. It is not required for unrelated work, but the comparison-based owner message needs a sourced low and high and actual reviewed comps or a reviewed attachment.",
     steps: [
       "Select the reviewed cycle in Lease details so the comparison is retained.",
-      "Run a deliberate lookup or type your own low and high figures with their source.",
-      "Save the preparation; the owner message reuses it.",
+      "Check the starting range and the five-mile radius, then run one deliberate lookup or type your own low and high figures with their source.",
+      "Review the result, its query and the report links; edit any figure your review changes.",
+      "Save the preparation. The owner message reuses it, and the reviewed PMI recommendation becomes the prepared Sheet Market value for Admin confirmation.",
     ],
     saves:
-      "Saved comparison figures, their source and any retained lookup result are stored with this lease and cycle for the owner message.",
+      "Saved comparison figures with their origin, their source and any retained lookup result are stored with this lease and cycle for the owner message. A saved PMI recommendation prepares the exact Sheet Market value update; an Admin confirms it separately.",
     notDone:
-      "A comparison never sets the approved rent, changes a source or sends anything. Opening the section spends no paid lookup.",
+      "A comparison never sets the approved rent, changes a source or sends anything. The starting range is not market evidence, and a recommendation that is still the RentCast point estimate enters no message without the existing Admin approval. Opening the section, typing or saving spends no paid lookup.",
     next: {
       label: "Prepare the owner message in Owner approval.",
       targetId: "renewal-section-owner",
@@ -283,16 +284,16 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "market-evidence": {
     label: "Market evidence",
     purpose:
-      "Holds the comparison for this cycle: an explicit RentCast lookup for this unit or your own low and high figures with their source.",
+      "Holds the comparison for this cycle: the low and high start from the current contractual base rent (20% through $750, easing to 15% at $2,500) and are labeled as a starting range, not market evidence. One deliberate RentCast lookup for this unit, five miles unless you change it, fills only the figures you have not edited; your own sourced figures always win.",
     steps: [
-      "Choose the radius and run one deliberate lookup, or type sourced figures.",
-      "Review the result and its source; keep or adjust the numbers.",
-      "Save the preparation so the owner message can use it.",
+      "Check the starting range and the radius, then run one deliberate lookup or type sourced figures.",
+      "Review the result, its query basis and the RentCast report links; edit any figure your review changes.",
+      "Save the preparation so the owner message can use it and the Sheet Market value can be prepared.",
     ],
     saves:
-      "Saved figures, their source and the retained lookup result stay with this cycle. A provider-derived suggestion still needs Admin approval before it enters a draft.",
+      "Saved figures with their origin, their source and the retained lookup result stay with this cycle. The saved PMI recommendation prepares the exact Sheet Market value for Admin confirmation. A recommendation that is still the RentCast point estimate enters a message only through the existing Admin approval.",
     notDone:
-      "A lookup or a saved figure never sets the renewal rent, and nothing is sent. Opening the section spends no paid lookup.",
+      "A lookup or a saved figure never sets the renewal rent, and nothing is sent. The report links open RentCast's own report and are not a receipt of the saved result. Opening the section, typing or saving spends no paid lookup.",
   },
   "owner-decision": {
     label: "Owner decision",

@@ -48,8 +48,9 @@ provider artifacts fail closed.
 - Six ordered renewal steps with detailed substeps, roles, completion evidence, branches, and
   downstream reopening.
 - Contractual base rent as the renewal comparison/decision value; recurring charges stay separate.
-- RentCast maximum two-mile radius and 15 requested comparables with provider order, no hidden
-  freshness/selection filter, and reference-only output.
+- RentCast five-mile default radius (operator-adjustable per lookup) and 15 requested comparables
+  with provider order, no hidden freshness/selection filter, and reference-only output; a rent-based
+  starting range labeled as not market evidence, and RentCast property/market report links (S118).
 - Renewals-space Editor ordinary work, optional constrained AI phrasing, exact screenshot attachment,
   and narrow task-oriented Admin/Connections navigation under the deployed S72/S59/S80/S74/S79/S81
   baseline.

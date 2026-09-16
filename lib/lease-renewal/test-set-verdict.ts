@@ -3,12 +3,14 @@
 // family can never mask a missing or failed family.
 
 import type { TestSetBaseline } from "@/lib/firestore/test-set-baseline";
+import { RENTCAST_QUERY_POLICY } from "@/lib/lease-renewal/market-comp-query-basis";
 import {
   RENEWAL_PROCESS_DEFINITION,
   RENEWAL_PROCESS_VERSION,
 } from "@/lib/lease-renewal/renewal-process";
 
-export const S63_RENTCAST_RADIUS_MILES = 2;
+// S118: the approved default radius is the product policy (five miles since S118).
+export const S63_RENTCAST_RADIUS_MILES = RENTCAST_QUERY_POLICY.maxRadiusMiles;
 export const S63_RENTCAST_REQUESTED_COUNT = 15;
 
 export type CriterionStatus = "pass" | "fail" | "not_evaluated";
@@ -197,7 +199,7 @@ function numberEvidenceOutcome(
   return {
     status: "pass",
     reason:
-      "Contractual base rent and recurring charges remain separate; the two-mile/15-request reference query preserves provider order and attribution; the human decision remains separate from provider evidence.",
+      "Contractual base rent and recurring charges remain separate; the five-mile/15-request reference query preserves provider order and attribution; the human decision remains separate from provider evidence.",
   };
 }
 

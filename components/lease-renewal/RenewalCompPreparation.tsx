@@ -5,14 +5,18 @@ import { Card } from "@/components/ui";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
 import type { RenewalMarketObservation } from "@/lib/lease-renewal/market-observation";
+import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
 export function RenewalCompPreparation({
   address,
   currentRent,
   compScreenshotExecutable,
+  marketSubject = null,
 }: {
   address: string;
   currentRent?: number;
   compScreenshotExecutable: boolean;
+  /** S118: the server-resolved subject behind the starting range and the report links. */
+  marketSubject?: MarketSubjectProjection | null;
 }) {
   const context = useRenewalManualWorkspace();
   const [observations, setObservations] = useState<RenewalMarketObservation[]>([]),
@@ -72,6 +76,7 @@ export function RenewalCompPreparation({
         currentRent={currentRent}
         address={address}
         compScreenshotExecutable={compScreenshotExecutable}
+        marketSubject={marketSubject}
         preparation={{
           cycleId: state.cycleId,
           market: state.preparation?.market,

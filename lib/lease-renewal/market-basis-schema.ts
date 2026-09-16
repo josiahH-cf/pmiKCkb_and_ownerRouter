@@ -6,6 +6,9 @@ export const RenewalMarketBasisSchema = z
     rangeLow: chargeMoney.optional(),
     rangeHigh: chargeMoney.optional(),
     pmiNumber: chargeMoney.optional(),
+    // S118: the honest origin of the saved figures; an invented basis is refused.
+    rangeBasis: z.enum(["starting_rule", "provider", "reviewed"]).optional(),
+    recommendationBasis: z.enum(["provider", "reviewed"]).optional(),
     compSource: z.string().trim().min(1).max(100).optional(),
     compRetrievedAt: z.string().trim().min(1).max(40).optional(),
     // S60: the provider-retrieved basis, persisted verbatim beside (never over) the typed
