@@ -171,6 +171,16 @@ export function resolveWatcherSourceEnvironment(source = SOURCE, env = process.e
   );
 }
 
+function isCredentialRefreshFailure(error) {
+  const status = error?.response?.status ?? error?.status ?? error?.code;
+  return (
+    status === 401 ||
+    /invalid_grant|invalid_rapt|reauth|refresh(ing)? (your )?(current )?(auth )?tokens?/i.test(
+      String(error?.message ?? ""),
+    )
+  );
+}
+
 export function createDriver({
   source = SOURCE,
   stateRoot,
@@ -182,6 +192,10 @@ export function createDriver({
   ensureAuth = ensureAuthenticated,
   fetchImpl = fetch,
   browserExecutable = resolveBrowserExecutable,
+  createCloudClient = () =>
+    new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    }).getClient(),
 }) {
   const monitoring = resolveMonitoringConfig(
     operatorEmail ? [`--operator-email=${operatorEmail}`] : [],
@@ -206,17 +220,27 @@ export function createDriver({
       "--format=json",
     ]);
   const identityConfig = async (method = "GET", data) => {
-    cloudClient ??= await new GoogleAuth({
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-    }).getClient();
-    return (
-      await cloudClient.request({
-        method,
-        url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config${method === "PATCH" ? "?updateMask=authorizedDomains" : ""}`,
-        ...(data ? { data } : {}),
-        timeout: 30_000,
-      })
-    ).data;
+    const request = async () => {
+      cloudClient ??= await createCloudClient();
+      return (
+        await cloudClient.request({
+          method,
+          url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config${method === "PATCH" ? "?updateMask=authorizedDomains" : ""}`,
+          ...(data ? { data } : {}),
+          timeout: 30_000,
+        })
+      ).data;
+    };
+    try {
+      return await request();
+    } catch (error) {
+      // The client is memoized for the process lifetime. An owner re-enrollment during a release
+      // replaces the refresh token behind it, so a credential failure drops the client and retries
+      // once with freshly loaded application default credentials; any other failure surfaces as is.
+      if (!isCredentialRefreshFailure(error)) throw error;
+      cloudClient = undefined;
+      return request();
+    }
   };
   const checkout = (cp) => join(stateRoot, "checkouts", cp.sha);
   const runScript = (cp, script, args = [], timeoutMs = 30 * 60_000) => {

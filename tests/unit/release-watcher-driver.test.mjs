@@ -24,6 +24,7 @@ function harness({
   initialTraffic,
   reportOverride = {},
   authExitCode = 0,
+  createCloudClient,
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "pmi-watcher-driver-"));
   roots.push(root);
@@ -95,6 +96,7 @@ function harness({
       ok: true,
       json: async () => ({ commit: sha, revision: serving, service }),
     }),
+    ...(createCloudClient ? { createCloudClient } : {}),
   });
   return { root, cp, driver, runCommand, checkpointPath, ensureAuth };
 }
@@ -362,5 +364,61 @@ describe("release watcher command-path recovery", () => {
     expect(
       h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
     ).toBe(false);
+  });
+});
+
+// An owner re-enrollment while the watcher is mid-release replaces the refresh token behind the
+// process-lifetime Identity Platform client. The domains phase must recover with a fresh client
+// instead of failing every pass until the process is restarted (seen 2026-09-16, S114 attempt 3).
+describe("release watcher identity client lifecycle", () => {
+  const superseded = "cand-stale---pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+  const nextHost = "cand-isolated---pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+  const domainsCheckpoint = (cp) => ({
+    ...cp,
+    phase: "domains",
+    supersededCandidateHost: superseded,
+    candidateOrigin: `https://${nextHost}`,
+  });
+  it("recreates the cloud client once after a credential refresh failure and completes the domain swap", async () => {
+    const staleClient = {
+      request: vi.fn(async () => {
+        const error = new Error("invalid_grant: reauth related error (invalid_rapt)");
+        error.response = { status: 401 };
+        throw error;
+      }),
+    };
+    let authorizedDomains = ["localhost", superseded];
+    const freshClient = {
+      request: vi.fn(async ({ method, data }) => {
+        if (method === "PATCH") authorizedDomains = data.authorizedDomains;
+        return { data: { authorizedDomains: [...authorizedDomains] } };
+      }),
+    };
+    const createCloudClient = vi
+      .fn()
+      .mockResolvedValueOnce(staleClient)
+      .mockResolvedValueOnce(freshClient);
+    const h = harness({ initialTraffic: predecessor, createCloudClient });
+    const result = await h.driver.domains(domainsCheckpoint(h.cp));
+    expect(result.verified).toBe(true);
+    expect(createCloudClient).toHaveBeenCalledTimes(2);
+    expect(staleClient.request).toHaveBeenCalledTimes(1);
+    expect(authorizedDomains).toEqual(["localhost", nextHost]);
+  });
+  it("does not replace the client for a failure that is not a credential refresh", async () => {
+    const client = {
+      request: vi.fn(async () => {
+        const error = new Error("identity platform unavailable");
+        error.response = { status: 503 };
+        throw error;
+      }),
+    };
+    const createCloudClient = vi.fn(async () => client);
+    const h = harness({ initialTraffic: predecessor, createCloudClient });
+    await expect(h.driver.domains(domainsCheckpoint(h.cp))).rejects.toThrow(
+      "identity platform unavailable",
+    );
+    expect(createCloudClient).toHaveBeenCalledTimes(1);
+    expect(client.request).toHaveBeenCalledTimes(1);
   });
 });
