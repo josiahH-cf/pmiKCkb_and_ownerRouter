@@ -23,8 +23,13 @@ import {
   RenewalNoticeDraftOutcomeSchema,
   type RenewalNoticeDraftOutcome,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
+import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
 
 interface Preparation {
+  /** S116: the complete same-audience recipient set, or the refusal a person resolves at the source. */
+  recipients?:
+    | { status: "ready"; to: string; cc: string[] }
+    | { status: "blocked"; reasons: string[] };
   destinations?: {
     gmailDrafts: ExternalDeskDestination | null;
     lease: ExternalDeskDestination | null;
@@ -292,9 +297,25 @@ function MessagePreparationEditor({
       setPending(false);
     }
   }
-  async function copy(kind: "subject" | "plain" | "formatted") {
+  async function copy(kind: "subject" | "plain" | "formatted" | "recipients") {
     if (!content) return;
     try {
+      if (kind === "recipients") {
+        // S116: the complete To/Cc set, in the same order the draft carries it. Nothing is sent.
+        if (current?.recipients?.status !== "ready") return;
+        await navigator.clipboard.writeText(
+          formatRecipientsForCopy({
+            to: current.recipients.to,
+            cc: current.recipients.cc,
+          }),
+        );
+        setNotice(
+          `Recipients copied (${1 + current.recipients.cc.length} ${channel} ${
+            current.recipients.cc.length === 0 ? "address" : "addresses"
+          }). Nothing was sent.`,
+        );
+        return;
+      }
       if (kind === "formatted") {
         await navigator.clipboard.write([
           new ClipboardItem({
@@ -875,10 +896,32 @@ function MessagePreparationEditor({
               <Field htmlFor={`${base}-subject`} label="Subject">
                 <input id={`${base}-subject`} readOnly value={content.subject} />
               </Field>
+              {current?.recipients ? (
+                current.recipients.status === "ready" ? (
+                  <p className="renewal-message-recipients">
+                    <strong>To:</strong> {current.recipients.to}
+                    {current.recipients.cc.length > 0 ? (
+                      <>
+                        {" "}
+                        <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <ul className="renewal-message-recipients" role="status">
+                    {current.recipients.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
               <div className="ui-actions">
                 <Button onClick={() => copy("subject")}>Copy subject</Button>
                 <Button onClick={() => copy("formatted")}>Copy formatted body</Button>
                 <Button onClick={() => copy("plain")}>Copy plain text</Button>
+                {current?.recipients?.status === "ready" ? (
+                  <Button onClick={() => copy("recipients")}>Copy recipients</Button>
+                ) : null}
                 {current.destinations?.gmailDrafts ? (
                   <a
                     href={current.destinations.gmailDrafts.href}
@@ -1028,10 +1071,10 @@ function MessagePreparationEditor({
                   target={EXTERNAL_LINK_TARGET}
                   rel={EXTERNAL_LINK_REL}
                 >
-                  Review the created message in Gmail Drafts
+                  Open the Drafts folder to find this draft
                 </a>
               ) : (
-                "Open Drafts in your managed Gmail mailbox to review this message."
+                "Open the Drafts folder in your managed Gmail mailbox to find this draft."
               )}{" "}
               Mailbox: {current.senderEmail}. A person sends from Gmail.
             </p>

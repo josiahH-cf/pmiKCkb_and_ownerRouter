@@ -144,6 +144,19 @@ export const RENEWAL_TAB_SCHEMAS: Record<string, readonly ColumnSchemaField[]> =
       headerPhrases: ["did we get proof that utilities are set up if need be"],
       expectedShape: "text",
     },
+    // S116 (accepted Q3A): two explicit audience email fields holding the complete current
+    // source-backed address set. Only these exact headers resolve; a generic or unrelated column is
+    // never repurposed and the app never creates a column.
+    {
+      key: "owner_emails",
+      headerPhrases: ["owner emails", "owner email addresses"],
+      expectedShape: "email",
+    },
+    {
+      key: "tenant_emails",
+      headerPhrases: ["tenant emails", "tenant email addresses"],
+      expectedShape: "email",
+    },
   ],
   "Move-In Checklist": [
     { key: "move_in_date", headerPhrases: ["move in date"], expectedShape: "date" },

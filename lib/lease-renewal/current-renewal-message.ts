@@ -41,6 +41,26 @@ import {
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations";
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
+import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
+
+/**
+ * S116 (R116.4): the complete same-audience recipient set the message will carry, from the same
+ * source-bound resolution the draft uses. A refusal names the party or collision so a person
+ * corrects the source; no address is invented and no party is omitted.
+ */
+export type CurrentMessageRecipients =
+  | { status: "ready"; to: string; cc: string[] }
+  | { status: "blocked"; reasons: string[] };
+
+export function projectCurrentMessageRecipients(
+  lease: Parameters<typeof resolveSeparatedRenewalDraftRecipient>[0]["lease"],
+  channel: "owner" | "tenant",
+): CurrentMessageRecipients {
+  const result = resolveSeparatedRenewalDraftRecipient({ lease, channel });
+  return result.status === "ready"
+    ? { status: "ready", to: result.resolution.to, cc: [...(result.resolution.cc ?? [])] }
+    : { status: "blocked", reasons: result.reasons };
+}
 
 /** Read-only assembly. Missing Gmail or publication readiness never prevents body preparation. */
 export async function currentRenewalMessage(
@@ -260,6 +280,7 @@ export async function currentRenewalMessage(
     previousDraftAttempts,
     draftJournalAvailable,
     senderEmail: actor.email,
+    recipients: projectCurrentMessageRecipients(lease, channel),
     destinations: {
       gmailDrafts: buildManagedGmailDraftsDestination(actor.email),
       lease: buildRentvineRecordDestination({

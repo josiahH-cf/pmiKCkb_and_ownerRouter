@@ -408,7 +408,11 @@ describe("loadLiveRenewalDesk", () => {
     if (result.status !== "ok") throw new Error(result.status);
 
     const duplicate = result.view.items.find((summary) => summary.id === "4821");
-    expect(duplicate?.sourceDestinations?.rentvine).toBeUndefined();
+    // S116 (R116.1): the RentVine record destination comes from the validated lease id on the
+    // configured host and no longer depends on whether a Sheet row carries a usable link.
+    expect(duplicate?.sourceDestinations?.rentvine?.href).toBe(
+      "https://pmikcmetro.rentvine.com/leases/4821",
+    );
     expect(duplicate?.guidance.rentVerification.state).toBe("needs_verification");
   });
 

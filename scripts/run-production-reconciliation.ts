@@ -409,10 +409,13 @@ async function readIndependentSheetProjection(
   expectedRentvineHost: string,
   identitySource: IndependentSheetIdentitySource,
 ): Promise<IndependentSheetProjection> {
-  const [evaluated, formulas, notes] = await Promise.all([
+  // S116: the links attached to cell text are read independently (fields-limited, no values) so
+  // the reconciliation sees the same rows the application joins by exact lease id.
+  const [evaluated, formulas, notes, richLinks] = await Promise.all([
     reader.batchGet(spreadsheetId, [RENEWAL_SHEET_TITLE]),
     reader.batchGetFormulas(spreadsheetId, [RENEWAL_SHEET_TITLE]),
     reader.batchGetNotes(spreadsheetId, [RENEWAL_SHEET_TITLE]),
+    reader.batchGetRichLinks(spreadsheetId, [RENEWAL_SHEET_TITLE]),
   ]);
   assertRenewalSheetResponseIdentity(evaluated, spreadsheetId);
   assertRenewalSheetResponseIdentity(formulas, spreadsheetId);
@@ -422,12 +425,19 @@ async function readIndependentSheetProjection(
   ) {
     throw new Error("renewal_sheet_notes_identity_mismatch");
   }
+  if (
+    Object.keys(richLinks).length !== 1 ||
+    !Object.prototype.hasOwnProperty.call(richLinks, RENEWAL_SHEET_TITLE)
+  ) {
+    throw new Error("renewal_sheet_links_identity_mismatch");
+  }
   return projectIndependentSheetLinks(
     evaluated,
     formulas,
     notes,
     expectedRentvineHost,
     identitySource,
+    richLinks,
   );
 }
 
@@ -699,6 +709,7 @@ async function readDirectProjection(
         rentvineRead.value.rows,
         sheetRead.ok ? sheetRead.value.leaseUrls : new Map(),
         leaseDetails,
+        expectedRentvineHost,
       )
     : [];
   let decision: SourceReadState = decisionRead.ok ? "complete" : "unavailable";
@@ -1614,7 +1625,8 @@ export async function readRowsFromPage(
       }
       const sourceLink = cells.nth(3).locator("a.renewal-source-link");
       const sourceCount = await sourceLink.count();
-      const expectedSourceHref = expected?.rentvineSourceUrl ?? null;
+      // S116: the desk renders the lease record destination for every lease with an id.
+      const expectedSourceHref = expected?.rentvineRecordUrl ?? null;
       const sourceHref = sourceCount === 1 ? await sourceLink.getAttribute("href") : null;
       if (sourceCount !== (expectedSourceHref ? 1 : 0)) {
         rowInvalidDestinations += 1;
@@ -1643,6 +1655,7 @@ export async function readRowsFromPage(
           endDate,
           baseRent,
           rentvineSourceUrl: sourceHref,
+          rentvineRecordUrl: sourceHref,
           disposition,
           retentionState,
           processState,
@@ -1885,7 +1898,7 @@ function compareProjectionRows(
         origin,
         observed: observedRow.workspace,
         expectedRentVerification: expectedRow.rentExpectation.rentVerification,
-        expectedRentvineSourceUrl: expectedRow.rentvineSourceUrl,
+        expectedRentvineSourceUrl: expectedRow.rentvineRecordUrl ?? null,
       });
       counts.invalidDestinations += expectedRow.workspaceExpected
         ? countIndependentActionDestinationMismatches({

@@ -295,6 +295,12 @@ export function RenewalLeaseInformation({
                 RentVine lease record: not available from the current source read.
               </span>
             )}
+            {/* S116 (R116.1): no native RentVine scoped or filter destination is documented or
+                observed, so the scoped action is named as unavailable rather than guessed. */}
+            <div className="muted">
+              RentVine lease list filtered to this owner or property: unavailable (no
+              verified RentVine filter destination).
+            </div>
           </li>
           <li>
             {sheetDestination ? (

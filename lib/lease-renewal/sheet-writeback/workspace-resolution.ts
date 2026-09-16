@@ -41,26 +41,22 @@ import {
   type SheetWritebackProposal,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import { OPERATING_SHEET_TAB } from "@/lib/lease-renewal/sheet-writeback/live";
+import {
+  appendIntentRefusal,
+  associateOperatingSheetRow,
+  type OperatingSheetRowAssociation,
+} from "@/lib/lease-renewal/sheet-writeback/row-association";
+import {
+  audienceRosterFromLease,
+  effectForAudienceEmailIntent,
+  type AudienceRosters,
+} from "@/lib/lease-renewal/sheet-writeback/audience-emails";
+import { SheetWorkspaceResolutionError } from "@/lib/lease-renewal/sheet-writeback/resolution-error";
 import { sheetResponsesToTablesWithJoinIds } from "@/lib/lease-renewal/sheet-links";
 import { writebackApprovalMatchesResolution } from "@/lib/lease-renewal/writeback-approval";
 import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 
-export class SheetWorkspaceResolutionError extends Error {
-  constructor(
-    public readonly code:
-      | "source_unavailable"
-      | "lease_identity_mismatch"
-      | "row_join_ambiguous"
-      | "row_state_mismatch"
-      | "resolution_missing"
-      | "resolution_stale"
-      | "approval_stale"
-      | "proposal_stale",
-  ) {
-    super(`Operating-Sheet workspace resolution refused (${code}).`);
-    this.name = "SheetWorkspaceResolutionError";
-  }
-}
+export { SheetWorkspaceResolutionError } from "@/lib/lease-renewal/sheet-writeback/resolution-error";
 
 export interface FreshOperatingSheetLeaseContext {
   leaseId: string;
@@ -71,6 +67,16 @@ export interface FreshOperatingSheetLeaseContext {
   columns: Map<string, number>;
   tenantColumnIndex: number;
   tabId?: number | null;
+  /**
+   * S116: the one fresh lease/row association. `row` is present exactly for an exact row; an
+   * ambiguous association keeps `row` null and refuses both append and update.
+   */
+  association: OperatingSheetRowAssociation;
+  /**
+   * S116 (R116.3): the complete source-backed address set per audience from the fresh lease
+   * roster, or the refusal a person resolves at the source. Absent when the roster was not read.
+   */
+  rosters?: AudienceRosters;
   row: null | {
     rowNumber: number;
     rowKey: string | null;
@@ -157,6 +163,17 @@ function propertyIdOf(lease: RawLease): string | null {
   return null;
 }
 
+/** The lease's unit id from the measured export view (`unit.unitID`), or null. */
+function unitIdOf(lease: RawLease): string | null {
+  const unit =
+    lease.unit && typeof lease.unit === "object" && !Array.isArray(lease.unit)
+      ? (lease.unit as Record<string, unknown>)
+      : null;
+  const value = unit?.unitID;
+  const normalized = value === undefined || value === null ? "" : String(value).trim();
+  return /^[1-9]\d*$/.test(normalized) ? normalized : null;
+}
+
 function filteredForPipeline(
   tables: readonly (readonly (readonly string[])[])[],
   joins: readonly (readonly (string | null)[])[],
@@ -210,12 +227,21 @@ export async function resolveFreshOperatingSheetLeaseContext(
     throw new SheetWorkspaceResolutionError("source_unavailable");
   }
   try {
-    const [evaluated, formulas, notesByTab, lease] = await Promise.all([
+    const [evaluated, formulas, notesByTab, richLinksByTab, lease] = await Promise.all([
       config.sheetsReader.batchGet(config.spreadsheetId, [OPERATING_SHEET_TAB]),
       config.sheetsReader.batchGetFormulas(config.spreadsheetId, [OPERATING_SHEET_TAB]),
+      // S116: a missing note layer no longer fails the read; it makes the association
+      // `metadata_incomplete`, which refuses append and update without hiding the workspace.
       config.sheetsReader.batchGetNotes
         ? config.sheetsReader.batchGetNotes(config.spreadsheetId, [OPERATING_SHEET_TAB])
-        : Promise.reject(new Error("Sheet note read unavailable")),
+        : Promise.resolve(null),
+      // S116: links attached to cell text are part of the exact-link join; a reader without that
+      // layer keeps the formula-only behavior.
+      config.sheetsReader.batchGetRichLinks
+        ? config.sheetsReader.batchGetRichLinks(config.spreadsheetId, [
+            OPERATING_SHEET_TAB,
+          ])
+        : Promise.resolve(undefined),
       config.rentvineClient.getLease(leaseId),
     ]);
     if (leaseViewId(lease) !== leaseId) {
@@ -228,10 +254,18 @@ export async function resolveFreshOperatingSheetLeaseContext(
       (await config.sheetsReader
         .getTabId?.(config.spreadsheetId, OPERATING_SHEET_TAB)
         .catch(() => null)) ?? null;
-    const joined = sheetResponsesToTablesWithJoinIds(evaluated, formulas);
+    const joined = sheetResponsesToTablesWithJoinIds(
+      evaluated,
+      formulas,
+      richLinksByTab ? [richLinksByTab[OPERATING_SHEET_TAB]] : undefined,
+    );
     const rawTable = joined.tables[0] ?? [];
     const rawJoins = joined.tableJoinIds[0] ?? [];
-    const rawNotes = notesByTab[OPERATING_SHEET_TAB] ?? [];
+    const rawNotes = notesByTab?.[OPERATING_SHEET_TAB] ?? [];
+    const layers = {
+      notes: notesByTab !== null,
+      cellLinks: richLinksByTab !== undefined,
+    };
     const { filteredTables, filteredJoins } = filteredForPipeline(
       joined.tables,
       joined.tableJoinIds,
@@ -271,18 +305,25 @@ export async function resolveFreshOperatingSheetLeaseContext(
       throw new SheetWorkspaceResolutionError("source_unavailable");
     }
 
-    const matchingRows = exactOperatingSheetRowIndexes({
-      rowCount: rawTable.length,
-      joins: rawJoins,
-      notes: rawNotes,
+    // S116: one association governs everything below. Only an exact row (lease link or the app's
+    // own note) yields a row; every other state keeps `row` null and is reported as it is.
+    const association = associateOperatingSheetRow({
+      rawTable,
+      rawJoins,
+      rawNotes,
+      headerRowIndex: headerResolution.headerRowIndex,
       tenantColumnIndex,
       leaseId,
       propertyId,
+      unitId: unitIdOf(lease),
+      tenantName: candidates[0].joinValue,
+      layers,
     });
-    if (matchingRows.length > 1) {
-      throw new SheetWorkspaceResolutionError("row_join_ambiguous");
-    }
-    if (matchingRows.length === 0) {
+    const rosters: AudienceRosters = {
+      owner: audienceRosterFromLease(lease, "owner"),
+      tenant: audienceRosterFromLease(lease, "tenant"),
+    };
+    if (association.kind !== "exact_link" && association.kind !== "app_note") {
       return {
         leaseId,
         propertyId,
@@ -292,14 +333,13 @@ export async function resolveFreshOperatingSheetLeaseContext(
         columns,
         tenantColumnIndex,
         tabId,
+        association,
+        rosters,
         row: null,
       };
     }
 
-    const rawRowIndex = matchingRows[0];
-    if (rawRowIndex <= headerResolution.headerRowIndex) {
-      throw new SheetWorkspaceResolutionError("row_state_mismatch");
-    }
+    const rawRowIndex = association.rowNumber - 1;
     const row = rawTable[rawRowIndex] ?? [];
     const note = rawNotes[rawRowIndex]?.[tenantColumnIndex] ?? "";
     const parsedNote = note ? parseRowNote(note) : null;
@@ -354,6 +394,8 @@ export async function resolveFreshOperatingSheetLeaseContext(
       columns,
       tenantColumnIndex,
       tabId,
+      association,
+      rosters,
       row: {
         ...(cellEvidence ? { cellEvidence } : {}),
         rowNumber: rawRowIndex + 1,
@@ -470,8 +512,10 @@ export function assertProposalMatchesFreshLeaseContext(
   }
   const effect = proposal.effects[0].effect;
   if (effect.kind === "row_append") {
+    // S116: a saved append stays valid only while the fresh read still confirms absence.
     if (
       context.row !== null ||
+      appendIntentRefusal(context.association) !== null ||
       effect.mode !== "normal" ||
       effect.leaseId !== context.leaseId ||
       effect.propertyId !== context.propertyId ||
@@ -504,6 +548,19 @@ export function assertProposalMatchesFreshLeaseContext(
     ) {
       throw new SheetWorkspaceResolutionError("proposal_stale");
     }
+    return;
+  }
+  if (effect.audienceIntent) {
+    // S116: the saved audience-email update stays valid only while the fresh roster, header and
+    // cell still produce the identical effect; roster or collaborator drift invalidates it.
+    let expected: SheetFieldUpdateEffectInput;
+    try {
+      expected = effectForAudienceEmailIntent(context, effect.audienceIntent.audience);
+    } catch {
+      throw new SheetWorkspaceResolutionError("proposal_stale");
+    }
+    if (canonicalJson(effect) !== canonicalJson(expected))
+      throw new SheetWorkspaceResolutionError("proposal_stale");
     return;
   }
   if (effect.staffIntent) {

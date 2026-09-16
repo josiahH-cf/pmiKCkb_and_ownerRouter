@@ -50,7 +50,7 @@ function renderWorkspace(
       }
       operatingSheetPanel={
         <OperatingSheetPanel
-          hasSheetRow
+          association={{ kind: "exact_link", rowNumber: 2 }}
           initialProposal={null}
           role="Editor"
           workspaceContext="ctx"

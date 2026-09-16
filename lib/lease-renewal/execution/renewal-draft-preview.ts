@@ -111,6 +111,14 @@ export type RenewalDraftPreview =
  * resolved authoritatively from the lease (never invented); the notice is composed and authority-checked
  * by the governed artifact renderer; and only when both succeed is a real assembled action returned.
  */
+/** "tenants[1]" → "Tenant 2"; "portfolio.owners[0]" → "Owner 1". Roster paths only, never a value. */
+export function describeRecipientParty(path: string): string {
+  const match = path.match(/(tenants|owners)\[(\d+)\]$/);
+  if (!match) return `Party ${path}`;
+  const noun = match[1] === "tenants" ? "Tenant" : "Owner";
+  return `${noun} ${Number(match[2]) + 1}`;
+}
+
 export function resolveSeparatedRenewalDraftRecipient(input: {
   lease: RawLease;
   channel: RenewalRecipientChannel;
@@ -126,6 +134,18 @@ export function resolveSeparatedRenewalDraftRecipient(input: {
       status: "blocked" as const,
       channel: input.channel,
       reasons: resolution.missing.map((item) => `Recipient ${item} needs verification.`),
+    };
+  }
+  // S116 (R116.4): an incomplete same-audience roster refuses the final addressed message and
+  // routes to source correction; it is never "fixed" by omitting the party without an email.
+  if (resolution.incomplete.length > 0) {
+    return {
+      status: "blocked" as const,
+      channel: input.channel,
+      reasons: resolution.incomplete.map(
+        (path) =>
+          `${describeRecipientParty(path)} has no email on file; correct the lease contact in RentVine before this message is addressed.`,
+      ),
     };
   }
 

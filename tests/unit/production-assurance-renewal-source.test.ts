@@ -87,6 +87,8 @@ describe("independent production renewal source projection", () => {
       endDate: "2026-10-31",
       baseRent: "$1,225",
       rentvineSourceUrl: SOURCE_URL,
+      // S116: the record destination is built only from a configured host; none was given here.
+      rentvineRecordUrl: null,
       monthToMonth: { signal: false, startDateIso: null },
     });
     expect(rows[1].baseRent).toBe("Needs Verification");
@@ -164,39 +166,43 @@ describe("independent production renewal source projection", () => {
       ),
     ).toThrow(/different row counts/);
 
-    expect(() =>
-      projectIndependentSheetLinks(
-        {
-          valueRanges: [
-            {
-              range: "Lease Renewal",
-              values: [
-                ["Current Rent", "Lease"],
-                ["$1,250", "One"],
-                ["$1,250", "Two"],
+    // S116: two rows for one lease are an ambiguous association, not a source failure. The
+    // application refuses the join for that lease (no Sheet fact, no source URL, no append) and
+    // the independent projection reports the same, so reconciliation compares like with like.
+    const duplicated = projectIndependentSheetLinks(
+      {
+        valueRanges: [
+          {
+            range: "Lease Renewal",
+            values: [
+              ["Current Rent", "Lease"],
+              ["$1,250", "One"],
+              ["$1,250", "Two"],
+            ],
+          },
+        ],
+      },
+      {
+        valueRanges: [
+          {
+            range: "Lease Renewal",
+            values: [
+              ["Current Rent", "Lease"],
+              ["$1,250", `=HYPERLINK("${SOURCE_URL}","One")`],
+              [
+                "$1,250",
+                '=HYPERLINK("https://pmikcmetro.rentvine.com/lease/115?view=other","Two")',
               ],
-            },
-          ],
-        },
-        {
-          valueRanges: [
-            {
-              range: "Lease Renewal",
-              values: [
-                ["Current Rent", "Lease"],
-                ["$1,250", `=HYPERLINK("${SOURCE_URL}","One")`],
-                [
-                  "$1,250",
-                  '=HYPERLINK("https://pmikcmetro.rentvine.com/lease/115?view=other","Two")',
-                ],
-              ],
-            },
-          ],
-        },
-        {},
-        RENTVINE_HOST,
-      ),
-    ).toThrow(/duplicate rows/);
+            ],
+          },
+        ],
+      },
+      {},
+      RENTVINE_HOST,
+    );
+    expect([...duplicated.leaseUrls]).toEqual([]);
+    expect([...duplicated.byLeaseId]).toEqual([]);
+    expect(duplicated.ambiguousLeaseIds).toEqual(["115"]);
   });
 
   it("fails closed on missing headers, unlinked data, and multi-destination rows", () => {

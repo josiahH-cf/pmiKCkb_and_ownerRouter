@@ -183,6 +183,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
   // S51: operator-run read-only source oracle, independent from the desk projection.
   "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
+  // S116: counts-only, read-only operator inspection of Sheet link representations against the
+  // RentVine lease set; it prints no value and creates no effect.
+  "scripts/smoke-sheet-read.ts:inspectLinkRepresentations:buildLiveRenewalConfig",
 ].sort();
 
 const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([
@@ -191,6 +194,7 @@ const OPERATOR_DIAGNOSTIC_LIVE_CONFIG_CALLS = new Set([
   "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
   "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
   "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
+  "scripts/smoke-sheet-read.ts:inspectLinkRepresentations:buildLiveRenewalConfig",
 ]);
 
 const PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS = new Set(
@@ -1146,6 +1150,7 @@ describe("runtime suspension provider-construction boundary", () => {
       "scripts/diagnose-current-rent-truth.ts:diagnoseCurrentRentTruth:buildLiveRenewalConfig",
       "scripts/discover-rentvine-lease-detail.ts:main:buildLiveRenewalConfig",
       "scripts/run-production-reconciliation.ts:createIndependentSourceClients:buildLiveRentVineConfig",
+      "scripts/smoke-sheet-read.ts:inspectLinkRepresentations:buildLiveRenewalConfig",
     ]);
     expect(PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS.size).toBeGreaterThan(0);
   }, 20_000);

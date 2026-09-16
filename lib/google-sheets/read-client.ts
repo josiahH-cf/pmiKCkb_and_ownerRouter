@@ -41,6 +41,59 @@ export interface SheetsValuesReader {
     spreadsheetId: string,
     tabTitles: string[],
   ): Promise<Record<string, (string | null)[][]>>;
+  /**
+   * Optional read-only per-cell LINK read (spreadsheets.get gridData, fields-limited to the cell
+   * hyperlink and the link of each rich-text run). A row whose RentVine link is attached to the
+   * cell text rather than written as a `=HYPERLINK()` formula is invisible to the FORMULA read;
+   * this layer makes that row joinable (S116). Values are never requested.
+   */
+  batchGetRichLinks?(
+    spreadsheetId: string,
+    tabTitles: string[],
+  ): Promise<Record<string, (readonly string[])[][]>>;
+}
+
+/** The fields-limited gridData shape the rich-link read requests; nothing else is asked for. */
+export interface SheetsGridLinkResponse {
+  sheets?: {
+    properties?: { title?: string };
+    data?: {
+      rowData?: {
+        values?: {
+          hyperlink?: string;
+          textFormatRuns?: { format?: { link?: { uri?: string } } }[];
+        }[];
+      }[];
+    }[];
+  }[];
+}
+
+/**
+ * Pure: per tab, per row, per cell, the distinct link URIs attached to the cell (its hyperlink
+ * first, then each rich-text run's link in text order). An empty array means the cell carries no
+ * link; the display value is never part of this layer.
+ */
+export function cellLinksFromGridData(
+  body: SheetsGridLinkResponse,
+): Record<string, string[][][]> {
+  const out: Record<string, string[][][]> = {};
+  for (const sheet of body.sheets ?? []) {
+    const title = sheet.properties?.title;
+    if (!title) continue;
+    out[title] = (sheet.data?.[0]?.rowData ?? []).map((row) =>
+      (row.values ?? []).map((cell) => {
+        const links: string[] = [];
+        const push = (uri: unknown): void => {
+          const trimmed = typeof uri === "string" ? uri.trim() : "";
+          if (trimmed && !links.includes(trimmed)) links.push(trimmed);
+        };
+        push(cell.hyperlink);
+        for (const run of cell.textFormatRuns ?? []) push(run.format?.link?.uri);
+        return links;
+      }),
+    );
+  }
+  return out;
 }
 
 /**
@@ -281,6 +334,28 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
       );
     }
     return out;
+  }
+
+  /** Read-only cell and rich-text-run links per tab (fields-limited spreadsheets.get). */
+  async batchGetRichLinks(
+    spreadsheetId: string,
+    tabTitles: string[],
+  ): Promise<Record<string, (readonly string[])[][]>> {
+    const auth = await this.authToken();
+    const rangesQuery = tabTitles
+      .map((title) => `ranges=${encodeURIComponent(`'${title.replaceAll("'", "''")}'`)}`)
+      .join("&");
+    const fields = encodeURIComponent(
+      "sheets(properties(title),data(rowData(values(hyperlink,textFormatRuns(format(link(uri)))))))",
+    );
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?${rangesQuery}&fields=${fields}`,
+      { headers: { Authorization: auth }, signal: this.requestSignal() },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets link read failed (HTTP ${response.status}).`);
+    }
+    return cellLinksFromGridData((await response.json()) as SheetsGridLinkResponse);
   }
 }
 

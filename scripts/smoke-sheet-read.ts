@@ -19,10 +19,27 @@ import {
   readRenewalSheetGrids,
 } from "../lib/google-sheets/read-client";
 import { createGoogleSheetsHealthCheckTransport } from "../lib/google-sheets/health-probe";
+import { valuesToGridWithLinks } from "../lib/google-sheets/sheet-to-grids";
 import {
   getHealthCheckContract,
   runHealthCheck,
 } from "../lib/integrations/health-checks";
+import {
+  leaseViewId,
+  leaseViewsFromExport,
+} from "../lib/integrations/rentvine/lease-mapper";
+import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "../lib/lease-renewal/headers";
+import { buildLiveRenewalConfig } from "../lib/lease-renewal/live-config";
+import { parseRentvineRef, rentvineRefId } from "../lib/lease-renewal/rentvine-link";
+import {
+  classifyRowLinkRepresentation,
+  mergeLinkLayers,
+  type RowLinkRepresentation,
+} from "../lib/lease-renewal/sheet-links";
+import {
+  PROOF_NOTE_PREFIX,
+  parseRowNote,
+} from "../lib/lease-renewal/sheet-writeback/proposal-contract";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 // Skip credential-bearing tabs (4 PadSplit WiFi, 7 Platform Logins) by title so the smoke never
@@ -91,6 +108,155 @@ function adcRemediation(): string {
   ].join("\n");
 }
 
+// --- S116 read-only link inspection ---------------------------------------------------------------
+// `--inspect-links --live` traces how every data row of the operating tab carries its RentVine
+// reference across the three representations the app can read (a `=HYPERLINK()` formula, a bare
+// URL as cell text, a link attached to the cell text) and cross-checks the rows against the live
+// RentVine lease set. Output is COUNTS-ONLY: no cell value, name, id or row number is printed or
+// written, so the artifact can be quoted in records without carrying customer data.
+
+interface LinkInspection {
+  tab: string;
+  headerRowIndex: number | null;
+  dataRows: number;
+  blankRows: number;
+  proofRows: number;
+  rowsWithAppNote: number;
+  representation: Record<RowLinkRepresentation, number>;
+  richTextOnlyRowsWithLeaseRef: number;
+  rowsWithUnitRefOnly: number;
+  rowsWithMultipleDistinctRefs: number;
+  /** Rows carrying a RentVine reference in more than one cell (even to the same lease): the exact
+   * join refuses such a row as an ambiguous destination, so a nonzero count needs attention. */
+  rowsWithMultipleLinkedCells: number;
+  cellsWithConflictingRefs: number;
+  duplicateLeaseRefs: number;
+  rentvine: {
+    exportComplete: boolean;
+    exportLeases: number;
+    linkedRowsMatchingExportLease: number;
+    richTextOnlyRowsMatchingExportLease: number;
+    exportLeasesWithoutAnyLinkedRow: number;
+  } | null;
+}
+
+async function inspectLinkRepresentations(
+  reader: GoogleSheetsApiReader,
+  spreadsheetId: string,
+  tab: string,
+  env: Record<string, string | undefined>,
+): Promise<LinkInspection> {
+  const [evaluated, formulas, notesByTab, richByTab] = await Promise.all([
+    reader.batchGet(spreadsheetId, [tab]),
+    reader.batchGetFormulas(spreadsheetId, [tab]),
+    reader.batchGetNotes(spreadsheetId, [tab]),
+    reader.batchGetRichLinks(spreadsheetId, [tab]),
+  ]);
+  const grid = valuesToGridWithLinks(evaluated.valueRanges?.[0]?.values).grid;
+  const formulaLayer = valuesToGridWithLinks(formulas.valueRanges?.[0]?.values);
+  const notes = notesByTab[tab] ?? [];
+  const rich = richByTab[tab] ?? [];
+  const header = resolveHeaders(grid, RENEWAL_TAB_SCHEMAS.Renewals);
+  const tenantColumn = header.resolvedFields.tenant_name;
+
+  const inspection: LinkInspection = {
+    tab,
+    headerRowIndex: header.headerRowIndex,
+    dataRows: 0,
+    blankRows: 0,
+    proofRows: 0,
+    rowsWithAppNote: 0,
+    representation: { formula: 0, bare_url: 0, rich_text: 0, none: 0 },
+    richTextOnlyRowsWithLeaseRef: 0,
+    rowsWithUnitRefOnly: 0,
+    rowsWithMultipleDistinctRefs: 0,
+    rowsWithMultipleLinkedCells: 0,
+    cellsWithConflictingRefs: 0,
+    duplicateLeaseRefs: 0,
+    rentvine: null,
+  };
+  const leaseRefRows = new Map<string, number>();
+  const richOnlyLeaseIds = new Set<string>();
+  const start = (header.headerRowIndex ?? -1) + 1;
+  for (let rowIndex = start; rowIndex < grid.length; rowIndex += 1) {
+    const cells = grid[rowIndex] ?? [];
+    if (cells.every((cell) => cell.trim() === "")) {
+      inspection.blankRows += 1;
+      continue;
+    }
+    const rowNotes = notes[rowIndex] ?? [];
+    if (rowNotes.some((note) => note?.startsWith(PROOF_NOTE_PREFIX))) {
+      inspection.proofRows += 1;
+      continue;
+    }
+    inspection.dataRows += 1;
+    const note = tenantColumn === undefined ? "" : (rowNotes[tenantColumn] ?? "");
+    if (note && parseRowNote(note)) inspection.rowsWithAppNote += 1;
+
+    const formulaLinks = formulaLayer.links[rowIndex] ?? cells.map(() => null);
+    const cellLinks = rich[rowIndex] ?? cells.map(() => []);
+    const representation = classifyRowLinkRepresentation({
+      cells,
+      formulas: (formulaLayer.grid[rowIndex] ?? []).map(String),
+      formulaLinks,
+      cellLinks,
+    });
+    inspection.representation[representation] += 1;
+
+    let merged: (string | null)[] = [];
+    try {
+      merged = mergeLinkLayers([formulaLinks], [cellLinks])[0];
+    } catch {
+      inspection.cellsWithConflictingRefs += 1;
+      continue;
+    }
+    const refs = new Set<string>();
+    let linkedCells = 0;
+    merged.forEach((link, columnIndex) => {
+      const id = rentvineRefId(parseRentvineRef(link ?? cells[columnIndex] ?? ""));
+      if (id) {
+        refs.add(id);
+        linkedCells += 1;
+      }
+    });
+    if (refs.size > 1) inspection.rowsWithMultipleDistinctRefs += 1;
+    if (linkedCells > 1) inspection.rowsWithMultipleLinkedCells += 1;
+    const leaseIds = [...refs].filter((id) => id.startsWith("lease:"));
+    if (refs.size > 0 && leaseIds.length === 0) inspection.rowsWithUnitRefOnly += 1;
+    if (leaseIds.length === 1) {
+      const leaseId = leaseIds[0].slice("lease:".length);
+      leaseRefRows.set(leaseId, (leaseRefRows.get(leaseId) ?? 0) + 1);
+      if (representation === "rich_text") {
+        inspection.richTextOnlyRowsWithLeaseRef += 1;
+        richOnlyLeaseIds.add(leaseId);
+      }
+    }
+  }
+  inspection.duplicateLeaseRefs = [...leaseRefRows.values()].filter((n) => n > 1).length;
+
+  const config = buildLiveRenewalConfig(env);
+  if (config.ok) {
+    const exportRead = await config.rentvineClient.listAllLeasesExport();
+    const exportIds = new Set(
+      leaseViewsFromExport(exportRead.rows)
+        .map((lease) => leaseViewId(lease))
+        .filter((id): id is string => Boolean(id)),
+    );
+    const linked = [...leaseRefRows.keys()].filter((id) => exportIds.has(id));
+    inspection.rentvine = {
+      exportComplete: exportRead.complete,
+      exportLeases: exportIds.size,
+      linkedRowsMatchingExportLease: linked.length,
+      richTextOnlyRowsMatchingExportLease: linked.filter((id) => richOnlyLeaseIds.has(id))
+        .length,
+      exportLeasesWithoutAnyLinkedRow: [...exportIds].filter(
+        (id) => !leaseRefRows.has(id),
+      ).length,
+    };
+  }
+  return inspection;
+}
+
 async function main(): Promise<void> {
   const localEnv = loadEnvLocal();
   const readEnv = (name: string): string | undefined =>
@@ -149,6 +315,26 @@ async function main(): Promise<void> {
       console.log(adcRemediation());
     }
     process.exitCode = 1;
+    return;
+  }
+
+  if (hasArg("--inspect-links")) {
+    const tab = readArg("--tab") ?? "Lease Renewal";
+    const inspection = await inspectLinkRepresentations(reader, spreadsheetId, tab, {
+      ...localEnv,
+      ...process.env,
+    });
+    mkdirSync(artifactDir, { recursive: true });
+    writeFileSync(
+      join(artifactDir, "link-inspection.json"),
+      JSON.stringify(inspection, null, 2),
+      "utf8",
+    );
+    console.log(`Link inspection (LIVE, counts only) for tab "${tab}":`);
+    console.log(JSON.stringify(inspection, null, 2));
+    console.log(
+      `Counts-only inspection written to ${join(artifactDir, "link-inspection.json")} (gitignored).`,
+    );
     return;
   }
 

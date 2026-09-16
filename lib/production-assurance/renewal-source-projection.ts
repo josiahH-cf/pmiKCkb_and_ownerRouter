@@ -59,6 +59,11 @@ export interface IndependentRenewalSourceRow {
   readonly endDate: string;
   readonly baseRent: string;
   readonly rentvineSourceUrl: string | null;
+  /**
+   * S116: the lease record destination the application must render, built independently from the
+   * export lease id and the configured RentVine host. Absent only on hand-built fixtures.
+   */
+  readonly rentvineRecordUrl?: string | null;
   /** Absent only on hand-built fixtures; the projection always sets it. */
   readonly monthToMonth?: IndependentMonthToMonthSignal;
 }
@@ -66,6 +71,8 @@ export interface IndependentRenewalSourceRow {
 export interface IndependentSheetProjection {
   readonly leaseUrls: ReadonlyMap<string, string>;
   readonly byLeaseId: ReadonlyMap<string, IndependentSheetLeaseFact>;
+  /** S116: leases referenced by more than one Sheet row; the application joins none of them. */
+  readonly ambiguousLeaseIds: readonly string[];
   /** A process-memory-only digest used to detect source drift. It must never be serialized. */
   readonly sourceDigest: string;
 }
@@ -147,10 +154,22 @@ export type IndependentLeaseDetailMap = ReadonlyMap<
  * the tenant's contractual base rent is the lease DETAIL `baseRentAmount`; the export's `unit.rent`
  * is a unit attribute and a lease-level lookalike cannot replace a missing base rent.
  */
+/** The exact lease record URL on the configured tenant host, or null for an unusable host or id. */
+function independentRentvineRecordUrl(
+  expectedRentvineHost: string | null | undefined,
+  leaseId: string,
+): string | null {
+  const host = expectedRentvineHost?.trim().toLowerCase() ?? "";
+  if (!/^[a-z0-9-]+\.rentvine\.com$/.test(host) || !/^[1-9]\d*$/.test(leaseId))
+    return null;
+  return `https://${host}/leases/${leaseId}`;
+}
+
 export function projectIndependentRentVineRows(
   exportRows: readonly Record<string, unknown>[],
   sheetLeaseUrls: ReadonlyMap<string, string>,
   leaseDetails: IndependentLeaseDetailMap = new Map(),
+  expectedRentvineHost: string | null = null,
 ): IndependentRenewalSourceRow[] {
   return exportRows.map((exportRow) => {
     const lease = asRecord(exportRow.lease) ?? exportRow;
@@ -168,6 +187,7 @@ export function projectIndependentRentVineRows(
       endDate: endDate ?? NEEDS_VERIFICATION,
       baseRent: rent === null ? NEEDS_VERIFICATION : CURRENCY.format(rent),
       rentvineSourceUrl: sheetLeaseUrls.get(leaseId) ?? null,
+      rentvineRecordUrl: independentRentvineRecordUrl(expectedRentvineHost, leaseId),
       monthToMonth: independentMonthToMonthSignal(exportRow, leaseDetails),
     };
   });
@@ -184,11 +204,14 @@ export function projectIndependentSheetLinks(
   notesByTab: NotesByTab,
   expectedRentvineHost: string,
   identitySource?: IndependentSheetIdentitySource,
+  /** S116: per tab, per row, per cell, the links attached to the cell text (read independently). */
+  richLinksByTab?: Record<string, (readonly string[])[][]>,
 ): IndependentSheetProjection {
   const evaluatedRange = exactRenewalRange(evaluated, "evaluated");
   const formulaRange = exactRenewalRange(formulas, "FORMULA");
   const evaluatedValues = evaluatedRange.values ?? [];
   const formulaValues = formulaRange.values ?? [];
+  const richRows = richLinksByTab?.[RENEWAL_SHEET_TITLE] ?? [];
   if (evaluatedValues.length !== formulaValues.length) {
     throw new Error(
       "The evaluated and FORMULA Sheet reads returned different row counts.",
@@ -230,6 +253,7 @@ export function projectIndependentSheetLinks(
 
   const leaseUrls = new Map<string, string>();
   const byLeaseId = new Map<string, IndependentSheetLeaseFact>();
+  const ambiguousLeaseIds = new Set<string>();
   for (
     let rowIndex = headerRowIndex + 1;
     rowIndex < formulaValues.length;
@@ -253,6 +277,7 @@ export function projectIndependentSheetLinks(
       evaluatedRow,
       formulaRow,
       expectedRentvineHost,
+      richRows[rowIndex],
     );
     // The existing read pipeline refuses rows wider than their declared header. They cannot
     // supply an aligned identity or amount, but remain in the raw-source drift digest below.
@@ -274,8 +299,15 @@ export function projectIndependentSheetLinks(
       );
     }
     const reference = references[0];
+    // S116: two rows for one lease are an ambiguous association. The application joins neither
+    // row for that lease (no Sheet fact, no source URL, no append), so the independent projection
+    // reports the same instead of aborting the whole reconciliation.
+    if (ambiguousLeaseIds.has(reference.leaseId)) continue;
     if (byLeaseId.has(reference.leaseId)) {
-      throw new Error("The Sheet contains duplicate rows for one RentVine lease.");
+      ambiguousLeaseIds.add(reference.leaseId);
+      byLeaseId.delete(reference.leaseId);
+      leaseUrls.delete(reference.leaseId);
+      continue;
     }
     const fact = {
       sourceUrl: reference.url,
@@ -290,7 +322,11 @@ export function projectIndependentSheetLinks(
     // that existing read contract: exact ids take precedence; one-to-many and many-to-one matches
     // remain unresolved. An association supplies a rent comparison, never a source URL or write
     // authority. Every unmatched row remains in the full source digest below.
-    const available = identities.filter((candidate) => !byLeaseId.has(candidate.leaseId));
+    // A lease with exact (even ambiguous) link evidence never falls back to a name association.
+    const available = identities.filter(
+      (candidate) =>
+        !byLeaseId.has(candidate.leaseId) && !ambiguousLeaseIds.has(candidate.leaseId),
+    );
     const matches = unlinked.map((row) =>
       available.filter((candidate) => independentNameCandidate(row.name, candidate.name)),
     );
@@ -312,6 +348,9 @@ export function projectIndependentSheetLinks(
   return {
     leaseUrls,
     byLeaseId,
+    ambiguousLeaseIds: [...ambiguousLeaseIds].sort((left, right) =>
+      left.localeCompare(right),
+    ),
     sourceDigest: digestInMemory({
       evaluated: evaluatedValues,
       formulas: formulaValues,
@@ -1081,9 +1120,10 @@ function leaseReferencesForRow(
   evaluatedRow: readonly unknown[],
   formulaRow: readonly unknown[],
   expectedRentvineHost: string,
+  richRow: readonly (readonly string[])[] = [],
 ): { leaseId: string; url: string }[] {
   const references: { leaseId: string; url: string }[] = [];
-  const width = Math.max(evaluatedRow.length, formulaRow.length);
+  const width = Math.max(evaluatedRow.length, formulaRow.length, richRow.length);
   for (let columnIndex = 0; columnIndex < width; columnIndex += 1) {
     const formula = formulaRow[columnIndex];
     const match =
@@ -1097,6 +1137,20 @@ function leaseReferencesForRow(
       // The evaluated representation of a formula is display text, never an independent source
       // destination. Treat the formula/evaluated pair as one cell coordinate.
       continue;
+    }
+    // S116: a link attached to the cell text is the row's reference when no formula owns the
+    // cell. Distinct leases inside one cell are distinct references and fail the row closed.
+    const attached = richRow[columnIndex] ?? [];
+    if (attached.length > 0) {
+      const seen = new Set<string>();
+      for (const uri of attached) {
+        const normalized = normalizeRentvineLeaseUrl(uri, expectedRentvineHost);
+        if (normalized && !seen.has(normalized.leaseId)) {
+          seen.add(normalized.leaseId);
+          references.push(normalized);
+        }
+      }
+      if (seen.size > 0) continue;
     }
     const cell = evaluatedRow[columnIndex];
     if (typeof cell !== "string" || !/^https?:\/\//i.test(cell.trim())) continue;

@@ -12,7 +12,11 @@ import {
   type SheetsBatchGetResponse,
 } from "@/lib/google-sheets/sheet-to-grids";
 import { PROOF_NOTE_PREFIX } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
-import { rentvineReferencesForGrid } from "@/lib/lease-renewal/rentvine-link";
+import {
+  parseRentvineRef,
+  rentvineReferencesForGrid,
+  rentvineRefId,
+} from "@/lib/lease-renewal/rentvine-link";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
 import type {
   ReadRenewalSheetOptions,
@@ -25,6 +29,53 @@ export interface TablesWithJoinIds {
   tableJoinIds: (string | null)[][];
   /** Parallel source-provided RentVine URL per row. It is validated again before rendering. */
   tableRentvineSourceUrls: (string | null)[][];
+}
+
+/** Per tab, per row, per cell: the links attached to the cell text (S116 rich-text layer). */
+export type CellLinkLayer = readonly (readonly (readonly string[])[])[];
+
+/**
+ * One link per cell from the two link layers. A `=HYPERLINK()` formula owns its cell. Otherwise the
+ * links attached to the cell text apply: a single RentVine destination is used, the same lease
+ * reached twice is one destination, and two different RentVine destinations in one cell fail the
+ * whole read closed rather than silently choosing one.
+ */
+export function mergeLinkLayers(
+  formulaLinks: readonly (readonly (string | null)[])[],
+  cellLinks: CellLinkLayer | undefined,
+): (string | null)[][] {
+  return formulaLinks.map((row, rowIndex) =>
+    row.map((formulaLink, columnIndex) => {
+      if (formulaLink) return formulaLink;
+      const attached = cellLinks?.[rowIndex]?.[columnIndex] ?? [];
+      if (attached.length === 0) return null;
+      const referenced = attached.filter((uri) => rentvineRefId(parseRentvineRef(uri)));
+      const distinct = new Set(
+        referenced.map((uri) => rentvineRefId(parseRentvineRef(uri))),
+      );
+      if (distinct.size > 1) {
+        throw new Error("A Sheet cell carries conflicting link destinations.");
+      }
+      return referenced[0] ?? attached[0];
+    }),
+  );
+}
+
+export type RowLinkRepresentation = "formula" | "bare_url" | "rich_text" | "none";
+
+/** How one row carries its RentVine reference; counts-only inspection evidence, never a value. */
+export function classifyRowLinkRepresentation(row: {
+  readonly cells: readonly string[];
+  readonly formulas: readonly string[];
+  readonly formulaLinks: readonly (string | null)[];
+  readonly cellLinks: readonly (readonly string[])[];
+}): RowLinkRepresentation {
+  const refers = (value: string | null | undefined): boolean =>
+    Boolean(value && rentvineRefId(parseRentvineRef(value)));
+  if (row.formulaLinks.some((link) => refers(link))) return "formula";
+  if (row.cells.some((cell) => refers(cell.trim()))) return "bare_url";
+  if (row.cellLinks.some((links) => links.some((uri) => refers(uri)))) return "rich_text";
+  return "none";
 }
 
 /** Pure: a FORMULA `values:batchGet` response → display grids + per-row RentVine join ids. */
@@ -53,6 +104,7 @@ export function formulaResponseToTablesWithJoinIds(
 export function sheetResponsesToTablesWithJoinIds(
   evaluatedResponse: SheetsBatchGetResponse,
   formulaResponse: SheetsBatchGetResponse,
+  cellLinksByRange?: readonly (CellLinkLayer | undefined)[],
 ): TablesWithJoinIds {
   const tables = batchGetToTables(evaluatedResponse);
   const formulaRanges = formulaResponse.valueRanges ?? [];
@@ -64,7 +116,10 @@ export function sheetResponsesToTablesWithJoinIds(
   const tableJoinIds: (string | null)[][] = [];
   const tableRentvineSourceUrls: (string | null)[][] = [];
   tables.forEach((table, tableIndex) => {
-    const { links } = valuesToGridWithLinks(formulaRanges[tableIndex]?.values);
+    const { links: formulaLinks } = valuesToGridWithLinks(
+      formulaRanges[tableIndex]?.values,
+    );
+    const links = mergeLinkLayers(formulaLinks, cellLinksByRange?.[tableIndex]);
     const references = rentvineReferencesForGrid(table, links);
     tableJoinIds.push(references.map((reference) => reference?.joinId ?? null));
     tableRentvineSourceUrls.push(
@@ -94,11 +149,21 @@ export async function readRenewalSheetGridsWithLinks(
     );
   }
   const titles = options.tabTitles ?? (await reader.listTabTitles(options.spreadsheetId));
-  const [evaluatedResponse, formulaResponse] = await Promise.all([
+  // S116: a reader that can expose links attached to cell text supplies that third layer so a row
+  // whose RentVine link is not a formula still joins by its exact lease id. Values are never read
+  // by that layer; a reader without it changes nothing.
+  const [evaluatedResponse, formulaResponse, richLinksByTab] = await Promise.all([
     reader.batchGet(options.spreadsheetId, titles),
     reader.batchGetFormulas(options.spreadsheetId, titles),
+    reader.batchGetRichLinks
+      ? reader.batchGetRichLinks(options.spreadsheetId, titles)
+      : Promise.resolve(undefined),
   ]);
-  const result = sheetResponsesToTablesWithJoinIds(evaluatedResponse, formulaResponse);
+  const result = sheetResponsesToTablesWithJoinIds(
+    evaluatedResponse,
+    formulaResponse,
+    richLinksByTab ? titles.map((title) => richLinksByTab[title]) : undefined,
+  );
   // S98: rows machine-marked with the exact proof-note prefix are excluded from every downstream
   // projection. The live reader supplies the note layer; a reader without it changes nothing.
   if (reader.batchGetNotes) {

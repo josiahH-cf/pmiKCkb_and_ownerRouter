@@ -22,6 +22,18 @@ export const SHEET_FIELD_LABELS = {
   utility_proof: "Utility proof",
 } as const;
 
+/**
+ * S116 (accepted Q3A): the two audience email fields. They are deliberately NOT part of
+ * `SHEET_FIELD_LABELS`, so no free-typed editor, manual intent or browser payload can reach them;
+ * each is prepared only from the current lease roster through the audience-email path.
+ */
+export const SHEET_AUDIENCE_EMAIL_FIELDS = {
+  owner_emails: { label: "Owner emails", channel: "owner" },
+  tenant_emails: { label: "Tenant emails", channel: "tenant" },
+} as const;
+
+export type SheetAudienceEmailField = keyof typeof SHEET_AUDIENCE_EMAIL_FIELDS;
+
 export type SheetEditableField = keyof typeof SHEET_FIELD_LABELS;
 const fields = Object.keys(SHEET_FIELD_LABELS) as [
   SheetEditableField,

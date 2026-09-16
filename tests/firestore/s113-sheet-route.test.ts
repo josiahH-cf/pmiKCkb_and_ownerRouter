@@ -164,6 +164,7 @@ beforeEach(async () => {
       ["current_rent", 2],
     ]),
     tenantColumnIndex: 0,
+    association: { kind: "exact_link", rowNumber: 2 },
     row: {
       rowNumber: 2,
       rowKey: null,
@@ -2123,7 +2124,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               }),
               operatingSheetPanel: h(OperatingSheetPanel, {
                 role: journeyRole,
-                hasSheetRow: true,
+                association: { kind: "exact_link", rowNumber: 2 },
                 workspaceContext: token,
                 initialProposal: sheetStatus.proposal,
                 initialEffects: sheetStatus.effects,

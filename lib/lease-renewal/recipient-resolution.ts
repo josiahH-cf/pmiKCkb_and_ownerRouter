@@ -58,6 +58,21 @@ export interface RenewalRecipientResolution {
   verified: boolean;
   /** Non-empty when no authoritative email was found. The caller MUST NOT invent a recipient. */
   missing: string[];
+  /**
+   * S116: same-audience parties of record (roster elements such as `tenants[1]`) that carry no
+   * authoritative email. They are named, never dropped; a final addressed message is refused while
+   * this list is non-empty so a person corrects the source contact instead of omitting the party.
+   */
+  incomplete: string[];
+}
+
+/** One deterministic, human-copyable rendering of a complete recipient set: To first, then Cc. */
+export function formatRecipientsForCopy(input: {
+  to: string;
+  cc?: readonly string[];
+}): string {
+  const cc = (input.cc ?? []).filter(Boolean);
+  return cc.length > 0 ? `To: ${input.to}\nCc: ${cc.join(", ")}` : `To: ${input.to}`;
 }
 
 /**
@@ -77,9 +92,12 @@ export function resolveRenewalRecipient(input: {
     // F-LEASE-6 default (interim, pending Dan's confirmation of tenant primacy): address ALL tenants on the
     // lease. The FIRST authoritative tenant email is the primary `to`; every OTHER distinct tenant email is
     // an authoritative Cc. All come from the lease's own tenant objects — never invented.
-    const hits = collectEmails(tenantContainers(lease, fieldMap), leaseLabel);
+    const { hits, incomplete } = collectEmails(
+      tenantContainers(lease, fieldMap),
+      leaseLabel,
+    );
     if (hits.length === 0) {
-      return { channel, verified: false, missing: ["tenant email"] };
+      return { channel, verified: false, missing: ["tenant email"], incomplete };
     }
     const [primary, ...rest] = hits;
     return {
@@ -94,15 +112,19 @@ export function resolveRenewalRecipient(input: {
         : {}),
       verified: true,
       missing: [],
+      incomplete,
     };
   }
 
   // S61: the owner channel addresses ALL owners of record, mirroring the tenant behavior (owner
   // direction Q6). First authoritative owner in the portfolio's own order → `to`; every other
   // distinct owner address → `cc`, each individually attributable via its source ref.
-  const hits = collectEmails(ownerContainers(lease, fieldMap), leaseLabel);
+  const { hits, incomplete } = collectEmails(
+    ownerContainers(lease, fieldMap),
+    leaseLabel,
+  );
   if (hits.length === 0) {
-    return { channel, verified: false, missing: ["owner email"] };
+    return { channel, verified: false, missing: ["owner email"], incomplete };
   }
   const [primary, ...rest] = hits;
   return {
@@ -117,6 +139,7 @@ export function resolveRenewalRecipient(input: {
       : {}),
     verified: true,
     missing: [],
+    incomplete,
   };
 }
 
@@ -126,6 +149,11 @@ interface EmailSearch {
   /** Dotted path prefix for the source ref, e.g. "tenants[0]" or "" for the lease top level. */
   prefix: string;
   keys: string[];
+  /**
+   * True for a roster element that is one party of record (`tenants[i]`, `owners[i]`). Such a
+   * party without an email is reported as incomplete; lease-level fallbacks never are.
+   */
+  party?: boolean;
 }
 
 function tenantContainers(
@@ -143,6 +171,7 @@ function tenantContainers(
         obj,
         prefix: `tenants[${index}]`,
         keys: fieldMap.scopedEmailKeys,
+        party: true,
       });
     }
   });
@@ -162,14 +191,20 @@ function ownerContainers(
   const owner = asObject(lease.owner);
   if (owner)
     searches.push({ obj: owner, prefix: "owner", keys: fieldMap.scopedEmailKeys });
-  const firstOwner = firstElementObject(lease.owners);
-  if (firstOwner) {
-    searches.push({
-      obj: firstOwner,
-      prefix: "owners[0]",
-      keys: fieldMap.scopedEmailKeys,
-    });
-  }
+  // S116: every element of lease.owners[] is a party of record, not only the first, so no owner is
+  // silently dropped from the Cc set. Each keeps its own index in the source ref.
+  const leaseOwners = Array.isArray(lease.owners) ? lease.owners : [];
+  leaseOwners.forEach((element, index) => {
+    const obj = asObject(element);
+    if (obj) {
+      searches.push({
+        obj,
+        prefix: `owners[${index}]`,
+        keys: fieldMap.scopedEmailKeys,
+        party: true,
+      });
+    }
+  });
   const property = asObject(lease.property);
   const propertyOwner = property && asObject(property.owner);
   if (propertyOwner) {
@@ -206,6 +241,7 @@ function ownerContainers(
             obj,
             prefix: `${containerKey}.owners[${index}]`,
             keys: fieldMap.scopedEmailKeys,
+            party: true,
           });
         }
       });
@@ -238,13 +274,16 @@ function findEmail(
 function collectEmails(
   searches: EmailSearch[],
   leaseLabel: string,
-): { email: string; sourceRef: string }[] {
+): { hits: { email: string; sourceRef: string }[]; incomplete: string[] } {
   const seen = new Set<string>();
   const hits: { email: string; sourceRef: string }[] = [];
+  const incomplete: string[] = [];
   for (const search of searches) {
+    let found = false;
     for (const key of search.keys) {
       const email = normalizeEmail(search.obj[key]);
       if (email) {
+        found = true;
         if (!seen.has(email)) {
           seen.add(email);
           const path = search.prefix ? `${search.prefix}.${key}` : key;
@@ -253,8 +292,10 @@ function collectEmails(
         break;
       }
     }
+    // S116: a party of record without an authoritative email is named, never omitted.
+    if (!found && search.party) incomplete.push(search.prefix);
   }
-  return hits;
+  return { hits, incomplete };
 }
 
 function leaseLabelFor(lease: RawLease): string {
@@ -277,8 +318,4 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function firstElementObject(value: unknown): Record<string, unknown> | null {
-  return Array.isArray(value) ? asObject(value[0]) : null;
 }

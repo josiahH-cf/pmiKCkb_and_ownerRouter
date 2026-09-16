@@ -180,6 +180,9 @@ function freshContext(
     header: [...state.header],
     columns: currentColumns(),
     tenantColumnIndex: 2,
+    association: row
+      ? { kind: "exact_link", rowNumber: row.rowNumber }
+      : { kind: "absent_confirmed" },
     row,
   };
 }
@@ -795,6 +798,55 @@ describe("S98 operating-sheet route", () => {
     });
     expect(response.status).toBe(400);
     expect(mocks.resolveContext).not.toHaveBeenCalled();
+    expect(mocks.writerMutations).toEqual([]);
+  });
+});
+
+// S116 adversarial boundary: the audience email intent is prepared only from the server roster;
+// a caller cannot supply, omit or misplace the audience, and a tab without the confirmed column
+// refuses before any writer exists.
+describe("S116 audience email intent boundary", () => {
+  it("refuses a missing, misplaced or unknown audience without touching the provider", async () => {
+    mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
+    const missing = await post({
+      operation: "propose",
+      intent: "update_audience_emails",
+      expectedPriorPreviewHash: null,
+    });
+    expect(missing.status).toBeGreaterThanOrEqual(400);
+    expect(JSON.stringify(await missing.json())).toMatch(/confirmation_invalid/);
+
+    const misplaced = await post({
+      operation: "propose",
+      intent: "append_missing_row",
+      audience: "owner",
+      expectedPriorPreviewHash: null,
+    });
+    expect(misplaced.status).toBeGreaterThanOrEqual(400);
+    expect(JSON.stringify(await misplaced.json())).toMatch(/confirmation_invalid/);
+
+    const unknown = await post({
+      operation: "propose",
+      intent: "update_audience_emails",
+      audience: "staff",
+      expectedPriorPreviewHash: null,
+    });
+    expect(unknown.status).toBeGreaterThanOrEqual(400);
+    expect(mocks.writerMutations).toEqual([]);
+  });
+
+  it("refuses the audience update with the missing-column code when the tab has no confirmed header", async () => {
+    mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
+    const response = await post({
+      operation: "propose",
+      intent: "update_audience_emails",
+      audience: "owner",
+      expectedPriorPreviewHash: null,
+    });
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { error_type?: string }).error_type).toBe(
+      "email_column_missing",
+    );
     expect(mocks.writerMutations).toEqual([]);
   });
 });

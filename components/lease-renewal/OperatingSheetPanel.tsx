@@ -6,17 +6,23 @@ import { useEffect, useRef, useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import {
+  SHEET_AUDIENCE_EMAIL_FIELDS,
   SHEET_FIELD_LABELS,
   sheetFieldShape,
   parseSheetFieldIntent,
   type SheetEditableField,
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import type { AudienceEmailRosterView } from "@/lib/lease-renewal/sheet-writeback/audience-emails";
 import { Button, Field } from "@/components/ui";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   SheetWritebackClientEffect,
   SheetWritebackClientProposal,
 } from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import {
+  describeOperatingSheetAmbiguity,
+  type OperatingSheetRowAssociation,
+} from "@/lib/lease-renewal/sheet-writeback/row-association";
 import type { SheetWritebackEffectStatusView } from "@/lib/lease-renewal/sheet-writeback/status";
 
 export type SheetWritebackEffectStatus = SheetWritebackEffectStatusView;
@@ -92,9 +98,14 @@ function describeLines(effect: SheetWritebackClientEffect): string[] {
     }
     lines.push("Every other column stays blank; the system note carries the row key.");
   } else {
-    lines.push(
-      `Row ${String(effect.effect.rowNumber)} · field ${String(effect.effect.field)}`,
-    );
+    const fieldKey = String(effect.effect.field);
+    const fieldLabel =
+      (SHEET_AUDIENCE_EMAIL_FIELDS as Record<string, { label: string } | undefined>)[
+        fieldKey
+      ]?.label ??
+      (SHEET_FIELD_LABELS as Record<string, string | undefined>)[fieldKey] ??
+      fieldKey;
+    lines.push(`Row ${String(effect.effect.rowNumber)} · ${fieldLabel}`);
     lines.push(
       `Current value: ${String(effect.effect.expectedValue ?? "") || "(blank)"} → proposed: ${String(effect.effect.afterValue ?? "")}`,
     );
@@ -115,21 +126,30 @@ function stateLabel(state: string): string {
 
 export function OperatingSheetPanel({
   role,
-  hasSheetRow,
+  association,
+  audienceEmails = null,
   workspaceContext,
   initialProposal,
   initialEffects = null,
   initialFieldValues = {},
 }: Readonly<{
   role: Role;
-  /** BEH-S98-1: append is offered only when no exact row exists; update only on an exact row. */
-  hasSheetRow: boolean;
+  /**
+   * BEH-S98-1 / BEH-S116-2: update is offered only on an exact row, append only after a confirmed
+   * absence, and an ambiguous association explains itself and offers neither.
+   */
+  association: OperatingSheetRowAssociation;
+  /** S116 (Q3A): per-audience email field views computed server-side from the fresh roster. */
+  audienceEmails?: Readonly<Record<"owner" | "tenant", AudienceEmailRosterView>> | null;
   workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
   initialFieldValues?: Record<string, string>;
 }>) {
   const router = useRouter();
+  const hasSheetRow =
+    association.kind === "exact_link" || association.kind === "app_note";
+  const ambiguous = association.kind === "ambiguous" ? association : null;
   const [proposal, setProposal] = useState(initialProposal);
   const [field, setField] = useState<SheetEditableField>(
     (Object.keys(initialFieldValues).find((key) => key in SHEET_FIELD_LABELS) as
@@ -234,6 +254,21 @@ export function OperatingSheetPanel({
     setProposal(payload.proposal as SheetWritebackClientProposal);
     setEffects(null);
     setNotice("Proposal saved from the fresh Sheet header. Review the exact row below.");
+  }
+
+  async function proposeAudience(audience: "owner" | "tenant") {
+    // S116 (Q3A): the value comes from the current RentVine roster on the server; nothing typed.
+    const payload = await postSheet(workspaceContext, {
+      operation: "propose",
+      intent: "update_audience_emails",
+      audience,
+      expectedPriorPreviewHash: proposal?.preview_hash ?? null,
+    });
+    setProposal(payload.proposal as SheetWritebackClientProposal);
+    setEffects(null);
+    setNotice(
+      "Audience email proposal saved from the current RentVine roster. Review the exact replacement below; an Admin confirms the Sheet update.",
+    );
   }
 
   async function proposeField() {
@@ -492,16 +527,71 @@ export function OperatingSheetPanel({
             Operating Sheet updates
           </RenewalSectionHeading>
           <p className="muted">
-            {editor && hasSheetRow
-              ? "No Sheet update is waiting for review. To prepare one, enter the reviewed value and its source under Correct an operating Sheet field below and preview the change; the proposal is saved here for an Admin to confirm."
-              : editor
-                ? "No Sheet update is waiting for review. To prepare one, use Add Sheet row below; the row is built from RentVine identity and saved here for an Admin to confirm."
-                : "No Sheet update is waiting for review. An Editor prepares one; an Admin confirms it here."}
+            {ambiguous
+              ? "No Sheet update can be prepared for this lease until its Sheet row is confirmed."
+              : editor && hasSheetRow
+                ? "No Sheet update is waiting for review. To prepare one, enter the reviewed value and its source under Correct an operating Sheet field below and preview the change; the proposal is saved here for an Admin to confirm."
+                : editor
+                  ? "No Sheet update is waiting for review. To prepare one, use Add Sheet row below; the row is built from RentVine identity and saved here for an Admin to confirm."
+                  : "No Sheet update is waiting for review. An Editor prepares one; an Admin confirms it here."}
           </p>
         </div>
       )}
 
-      {editor ? (
+      {ambiguous ? (
+        // BEH-S116-2: an ambiguous association is explained in plain English with the correction
+        // a person makes in the Sheet; the app offers neither an append nor an update.
+        <p role="status">{describeOperatingSheetAmbiguity(ambiguous)}</p>
+      ) : null}
+
+      {editor && hasSheetRow && audienceEmails ? (
+        // S116 (Q3A): each audience email field shows the Sheet's current value beside the complete
+        // current roster and offers one exact preview; a missing column names the setup and a
+        // blocked roster names the party or collision. Reads never synchronize the Sheet.
+        <section aria-label="Audience email fields" className="ui-stack-tight">
+          {(["owner", "tenant"] as const).map((audience) => {
+            const view = audienceEmails[audience];
+            return (
+              <div className="ui-stack-tight" key={audience}>
+                <strong>{view.label}</strong>
+                {view.state === "column_missing" ? (
+                  <p className="muted">
+                    {view.label} column: not found on tab &quot;Lease Renewal&quot;.{" "}
+                    {view.setup}
+                  </p>
+                ) : view.state === "roster_blocked" ? (
+                  <ul role="status">
+                    {view.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <>
+                    <p>Current Sheet value: {view.current || "Blank"}</p>
+                    <p>Complete current roster: {view.proposed}</p>
+                    {view.state === "current" ? (
+                      <p className="muted">
+                        The Sheet already holds the complete current roster for this
+                        audience.
+                      </p>
+                    ) : (
+                      <Button
+                        disabled={pending || !workspaceContext || proposalLifecycleLocked}
+                        onClick={() => void run(() => proposeAudience(audience))}
+                        type="button"
+                      >
+                        Preview {view.label} update
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+
+      {editor && !ambiguous ? (
         <details>
           <summary>
             {hasSheetRow ? "Correct an operating Sheet field" : "Add Sheet row"}

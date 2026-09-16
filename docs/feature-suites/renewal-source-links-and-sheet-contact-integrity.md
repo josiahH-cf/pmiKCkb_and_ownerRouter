@@ -3,7 +3,7 @@
 
 # S116 — Exact source links, reliable Sheet matching and complete contact emails
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED on branch `s116-source-integrity` (gates in progress); the serialized production release has not been performed. Actual cause of the reported missing-row defect, measured read-only on 2026-09-16 (counts only): the operating tab carries its RentVine links as rich text attached to the cell (146 rows; 0 formulas; 1 bare URL), which the formula-only read could not see. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-source-links-and-sheet-contact-integrity.md`.  

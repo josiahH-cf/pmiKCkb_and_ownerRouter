@@ -37,6 +37,7 @@ function context(overrides: Partial<FreshOperatingSheetLeaseContext> = {}) {
     header: HEADER,
     columns: COLUMNS,
     tenantColumnIndex: 0,
+    association: { kind: "exact_link", rowNumber: 41 },
     row: {
       rowNumber: 41,
       rowKey: null,

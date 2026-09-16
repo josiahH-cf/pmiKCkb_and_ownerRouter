@@ -92,8 +92,10 @@ base rent. Display conflicting candidates for explicit resolution; blank/unavail
 Each source label is a meaningful link when its destination is verified. Resolve the configured
 operating spreadsheet, actual tab id, current matched row, and field column on the server. Open the
 relevant Sheet tab/row rather than the workbook landing page. Validate RentVine URLs against the
-configured host and exact lease; do not construct guessed provider UI paths. A source without a
-verified external destination opens the useful in-app comparison and says what is unavailable.
+configured host and exact lease; do not construct guessed provider UI paths. Since S116 the RentVine
+lease destination is the current lease record on the configured host (independent of any Sheet link);
+a source without a verified external destination stays a plain badge that says what is unavailable and
+never loops back to the same page.
 Status badges such as one-source/needs-input open the corresponding explanation or editor only
 when there is an actual action; never style inert text as a link. No customer values enter URLs.
 
@@ -124,7 +126,8 @@ this same editor and the existing review handoff. A disposition alone never clai
 
 Sheet field updates cover the existing Renewals schema's renewal date, current rent, market value,
 renewal-letter/response/completion tracking, form, document, signature, insurance, pet, charge,
-inspection, filter, and utility follow-ups. Read the current schema and resolve headers rather than
+inspection, filter, and utility follow-ups, plus (S116, accepted Q3A) the Owner emails and Tenant
+emails fields prepared only from the RentVine roster. Read the current schema and resolve headers rather than
 fixing column letters. Do not make tenant/lease identity, links, formulas, formatting, murky columns,
 or arbitrary spreadsheet fields editable. Preserve date and checkbox types. Historical numeric
 wording in a header is a mapping hint, not a fee policy or a customer amount to apply.

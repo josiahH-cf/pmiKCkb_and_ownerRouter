@@ -20,6 +20,7 @@ describe("resolveRenewalRecipient", () => {
       recipientSourceRef: "rentvine:lease:4821:tenants[0].email",
       verified: true,
       missing: [],
+      incomplete: [],
     });
   });
 
@@ -239,6 +240,8 @@ describe("resolveRenewalRecipient", () => {
       channel: "tenant",
       verified: false,
       missing: ["tenant email"],
+      // S116: the party of record without an email is named, never silently dropped.
+      incomplete: ["tenants[0]"],
     });
     expect(result.to).toBeUndefined();
     expect(result.recipientSourceRef).toBeUndefined();

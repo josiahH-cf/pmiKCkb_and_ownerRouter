@@ -18,8 +18,13 @@ The renewal area carries, at minimum:
 - completion/renewal response state;
 - owner pricing/contact progress;
 - form, document, signature, insurance, pet, charge, inspection, filter, and utility follow-ups.
+- Owner emails and Tenant emails (S116, accepted Q3A): the complete current source-backed address
+  set per audience, written only through the exact-confirmed field update from the RentVine roster;
+  the two headers are added by the Sheet manager, never by the app.
 
-Headers and visual layout are not stable identifiers. Blank rows, merged cells, section dividers,
+Rows link to RentVine as a `=HYPERLINK()` formula, a bare URL or a link attached to the cell text;
+the connector reads all three layers, and the live tab carries most links as attached text (measured
+2026-09-16). Headers and visual layout are not stable identifiers. Blank rows, merged cells, section dividers,
 checkboxes, and free-text status values require normalization.
 
 ## Security exclusions

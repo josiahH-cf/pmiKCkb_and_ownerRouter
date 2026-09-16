@@ -58,6 +58,7 @@ import {
   type LiveDeskStatus,
 } from "@/lib/lease-renewal/live-desk";
 import { resolveFreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
+import { audienceEmailRoster } from "@/lib/lease-renewal/sheet-writeback/audience-emails";
 import { buildOperatingSheetCellDestination } from "@/lib/lease-renewal/desk-destinations";
 import { validateDeskView } from "@/lib/lease-renewal/desk-view-continuation";
 import {
@@ -398,8 +399,19 @@ export default async function LiveRenewalLeaseWorkspacePage({
               sheetFieldsRead.status === "available" ? (
                 <OperatingSheetPanel
                   key={sheetProposal?.previewHash ?? "no-sheet-preview"}
-                  hasSheetRow={
-                    sheetFields?.row !== null && sheetFields?.row !== undefined
+                  association={
+                    sheetFields?.association ?? {
+                      kind: "ambiguous",
+                      reason: "metadata_incomplete",
+                    }
+                  }
+                  audienceEmails={
+                    sheetFields?.row
+                      ? {
+                          owner: audienceEmailRoster(sheetFields, "owner"),
+                          tenant: audienceEmailRoster(sheetFields, "tenant"),
+                        }
+                      : null
                   }
                   initialFieldValues={sheetFields?.row?.fieldValues}
                   initialProposal={

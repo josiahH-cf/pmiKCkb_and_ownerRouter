@@ -123,7 +123,7 @@ import { parseCurrencyInput } from "@/lib/currency-input";
 import { toRentAmount } from "@/lib/lease-renewal/rent";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
-import { buildRentvineDestination } from "@/lib/lease-renewal/desk-destinations";
+import { buildRentvineRecordDestination } from "@/lib/lease-renewal/desk-destinations";
 import {
   projectEffectiveDataCheck,
   type EffectiveDataCheckProjection,
@@ -482,23 +482,6 @@ function buildLeaseDataCheck(
       )
     : [];
   return [buildRentDeskItem(view, outcomes), buildEndDateDeskItem(view, outcomes)];
-}
-
-function rentvineSourceUrlForLease(
-  leaseId: string,
-  tableJoinIds: readonly (readonly (string | null)[])[],
-  tableSourceUrls: readonly (readonly (string | null)[])[],
-): string | null {
-  const expected = `lease:${leaseId}`;
-  const matches: (string | null)[] = [];
-  for (let tableIndex = 0; tableIndex < tableJoinIds.length; tableIndex += 1) {
-    (tableJoinIds[tableIndex] ?? []).forEach((joinId, rowIndex) => {
-      if (joinId === expected) {
-        matches.push(tableSourceUrls[tableIndex]?.[rowIndex] ?? null);
-      }
-    });
-  }
-  return matches.length === 1 ? matches[0] : null;
 }
 
 function inRenewalWindow(endDateIso: string, windows: readonly DateWindow[]): boolean {
@@ -997,7 +980,13 @@ export function buildLiveProcessEvidence(input: {
     lease: input.view,
     channel: "tenant",
   });
-  if (ownerRecipients.verified && tenantRecipients.verified) {
+  // S116: a party of record without an email keeps the roster incomplete; the message is not
+  // addressed by omitting that person.
+  const ownersComplete =
+    ownerRecipients.verified && ownerRecipients.incomplete.length === 0;
+  const tenantsComplete =
+    tenantRecipients.verified && tenantRecipients.incomplete.length === 0;
+  if (ownersComplete && tenantsComplete) {
     set(
       "renewal-recipients",
       "rentvine_snapshot",
@@ -1007,12 +996,15 @@ export function buildLiveProcessEvidence(input: {
   } else {
     clear("renewal-recipients");
     blockers["renewal-recipients"] = {
-      reason: "One or more authoritative owner/tenant recipients are unresolved.",
+      reason:
+        ownerRecipients.verified && tenantRecipients.verified
+          ? "One or more owners or tenants of record have no email on file."
+          : "One or more authoritative owner/tenant recipients are unresolved.",
       nextAction:
         "Resolve every owner and tenant of record without guessing contact data.",
     };
   }
-  if (tenantRecipients.verified) {
+  if (tenantsComplete) {
     set(
       "tenant-recipients",
       "rentvine_snapshot",
@@ -1022,7 +1014,9 @@ export function buildLiveProcessEvidence(input: {
   } else {
     clear("tenant-recipients");
     blockers["tenant-recipients"] = {
-      reason: "One or more authoritative tenant recipients are unresolved.",
+      reason: tenantRecipients.verified
+        ? "One or more tenants of record have no email on file."
+        : "One or more authoritative tenant recipients are unresolved.",
       nextAction: "Resolve every tenant of record before preparing an offer.",
     };
   }
@@ -1154,7 +1148,7 @@ export async function loadLiveRenewalDesk(
       leaseSnapshotResult ??
       (await getLiveLeaseSnapshot(config.rentvineClient, Date.parse(readTimestamp)));
     const { views, complete } = snapshot;
-    const { tables, tableJoinIds, tableRentvineSourceUrls } =
+    const { tables, tableJoinIds } =
       preparedSheetRead ??
       (await readRenewalSheetGridsWithLinks({
         reader: config.sheetsReader,
@@ -1220,18 +1214,14 @@ export async function loadLiveRenewalDesk(
         classification.leaseId ? manualByLease?.get(classification.leaseId) : null,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
-      // Source navigation is independent from workflow eligibility. If the operating Sheet carries
-      // one exact validated RentVine lease link, surface it for every loaded row—including review,
-      // out-of-window, and definitively skipped rows—without creating a renewal workspace.
+      // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
+      // row carries a usable link: the destination is the current lease record on the configured
+      // RentVine host, surfaced for every loaded row without creating a renewal workspace.
       const rentvineDestination = leaseId
-        ? buildRentvineDestination({
-            sourceUrl: rentvineSourceUrlForLease(
-              leaseId,
-              tableJoinIds,
-              tableRentvineSourceUrls,
-            ),
+        ? buildRentvineRecordDestination({
             expectedHost: config.rentvineHost,
-            leaseId,
+            recordId: leaseId,
+            recordType: "lease",
           })
         : null;
       // Every non-skipped row can open the same inspection workspace, so every such row consumes
@@ -1456,12 +1446,11 @@ export async function loadLiveRenewalLeaseWorkspace(
     // review date stay visible and correctable; a definitive skip signal still has no workspace.
     if (classification.disposition === "skip") return { status: "not_found" };
 
-    const { tables, tableJoinIds, tableRentvineSourceUrls } =
-      await readRenewalSheetGridsWithLinks({
-        reader: config.sheetsReader,
-        spreadsheetId: config.spreadsheetId,
-        tabTitles: LIVE_DESK_TABS,
-      });
+    const { tables, tableJoinIds } = await readRenewalSheetGridsWithLinks({
+      reader: config.sheetsReader,
+      spreadsheetId: config.spreadsheetId,
+      tabTitles: LIVE_DESK_TABS,
+    });
     const portfolioOutcomes = reconcileLeaseFields(
       views,
       tables,
@@ -1494,14 +1483,12 @@ export async function loadLiveRenewalLeaseWorkspace(
     const workflowAvailable =
       classification.disposition === "actionable" ||
       summary.retention.state === "tracked_incomplete";
-    const rentvineDestination = buildRentvineDestination({
-      sourceUrl: rentvineSourceUrlForLease(
-        leaseId,
-        tableJoinIds,
-        tableRentvineSourceUrls,
-      ),
+    // S116: the lease record destination comes from the validated lease id on the configured
+    // host; a Sheet link is agreement evidence, never the source of this navigation.
+    const rentvineDestination = buildRentvineRecordDestination({
       expectedHost: config.rentvineHost,
-      leaseId,
+      recordId: leaseId,
+      recordType: "lease",
     });
     if (rentvineDestination) {
       summary = {

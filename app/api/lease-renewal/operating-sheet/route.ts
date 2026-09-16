@@ -72,8 +72,11 @@ const BodySchema = z.discriminatedUnion("operation", [
         "append_missing_row",
         "update_approved_current_rent",
         "update_field",
+        "update_audience_emails",
       ]),
       fieldIntent: SheetFieldIntentSchema.optional(),
+      /** S116: which audience's email field to prepare from the current lease roster. */
+      audience: z.enum(["owner", "tenant"]).optional(),
       expectedCurrentRent: z.number().finite().positive().optional(),
       expectedPriorPreviewHash: HashSchema.nullable(),
     })
@@ -253,12 +256,16 @@ async function handleRequest(request: Request, statusOnly: boolean) {
       assertRenewalRoleAuthority("propose_source_write", user.role);
       if ((body.intent === "update_field") !== (body.fieldIntent !== undefined))
         serviceError("confirmation_invalid");
+      if ((body.intent === "update_audience_emails") !== (body.audience !== undefined))
+        serviceError("confirmation_invalid");
       const proposal = await assembleSheetProposal(
         user,
         spreadsheetId,
         leaseId,
         body.intent,
         body.fieldIntent,
+        undefined,
+        body.audience,
       );
       if (
         body.expectedCurrentRent !== undefined &&

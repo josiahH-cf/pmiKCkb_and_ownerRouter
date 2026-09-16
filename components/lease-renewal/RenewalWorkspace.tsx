@@ -626,30 +626,69 @@ function PhaseContent({
                       </StatusPill>
                     </div>
                     <div className="ui-row">
-                      {item.candidates.map((candidate, index) => (
-                        <span key={`${candidate.source}-${index}`}>
-                          <strong>{candidate.value}</strong>{" "}
-                          <a
-                            className="text-link"
-                            aria-label={`${candidate.sourceSystem} source for ${item.fieldLabel}`}
-                            href={
-                              (/sheet/i.test(candidate.sourceSystem)
-                                ? (sheetFieldDestinations[item.fieldKey] ??
-                                  sheetDestination?.href)
-                                : /rentvine/i.test(candidate.sourceSystem)
-                                  ? summary.sourceDestinations?.rentvine?.href
-                                  : undefined) ??
-                              resolutionDestination?.href ??
-                              `#renewal-field-${item.fieldKey}`
-                            }
-                          >
-                            <SourceTag
-                              confidence={candidate.confidence}
-                              source={candidate.sourceSystem}
-                            />
-                          </a>
-                        </span>
-                      ))}
+                      {item.candidates.map((candidate, index) => {
+                        // S116 (R116.1): an external source badge opens its actual record, tab,
+                        // row or cell. Without a known destination it stays a plain badge and
+                        // says which link is unavailable; it never loops back to this page.
+                        const externalSource =
+                          /sheet/i.test(candidate.sourceSystem) ||
+                          /rentvine/i.test(candidate.sourceSystem);
+                        const externalHref = /sheet/i.test(candidate.sourceSystem)
+                          ? (sheetFieldDestinations[item.fieldKey] ??
+                            sheetDestination?.href)
+                          : /rentvine/i.test(candidate.sourceSystem)
+                            ? summary.sourceDestinations?.rentvine?.href
+                            : undefined;
+                        const badgeLabel = `${candidate.sourceSystem} source for ${item.fieldLabel}`;
+                        return (
+                          <span key={`${candidate.source}-${index}`}>
+                            <strong>{candidate.value}</strong>{" "}
+                            {externalHref ? (
+                              <a
+                                className="text-link"
+                                aria-label={badgeLabel}
+                                href={externalHref}
+                                rel={EXTERNAL_LINK_REL}
+                                target={EXTERNAL_LINK_TARGET}
+                              >
+                                <SourceTag
+                                  confidence={candidate.confidence}
+                                  source={candidate.sourceSystem}
+                                />
+                              </a>
+                            ) : externalSource ? (
+                              <>
+                                <span
+                                  aria-label={badgeLabel}
+                                  title="Source link unavailable"
+                                >
+                                  <SourceTag
+                                    confidence={candidate.confidence}
+                                    source={candidate.sourceSystem}
+                                  />
+                                </span>{" "}
+                                <span className="muted">
+                                  {candidate.sourceSystem} link unavailable
+                                </span>
+                              </>
+                            ) : (
+                              <a
+                                className="text-link"
+                                aria-label={badgeLabel}
+                                href={
+                                  resolutionDestination?.href ??
+                                  `#renewal-field-${item.fieldKey}`
+                                }
+                              >
+                                <SourceTag
+                                  confidence={candidate.confidence}
+                                  source={candidate.sourceSystem}
+                                />
+                              </a>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                     {resolutionDestination ? (
                       <Link

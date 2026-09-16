@@ -68,7 +68,7 @@ describe("S98 proposal contract", () => {
     expect(RETIRED_BROAD_SHEET_WRITEBACK_KEY).toBe(
       "google_sheets.renewal_checklist.writeback",
     );
-    expect(SHEET_SUPPORTED_FIELDS).toHaveLength(19);
+    expect(SHEET_SUPPORTED_FIELDS).toHaveLength(21);
     expect(SHEET_SUPPORTED_FIELDS).toContain("tenant_name");
     expect(SHEET_SUPPORTED_FIELDS).toContain("renewal_date");
     expect(SHEET_SUPPORTED_FIELDS).toContain("current_rent");

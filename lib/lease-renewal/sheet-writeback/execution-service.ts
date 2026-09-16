@@ -986,7 +986,7 @@ export class SheetWritebackService {
     if (column === undefined) throw new SheetWritebackServiceError("header_drift");
     const letter = columnLetter(column);
     const range = `'${proposal.tabTitle}'!${letter}${effect.rowNumber}`;
-    if (effect.staffIntent && !writer.getCellEvidence)
+    if ((effect.staffIntent || effect.audienceIntent) && !writer.getCellEvidence)
       throw new SheetWritebackServiceError("provider_read_failed");
     const representation = await writer.getCellEvidence?.(proposal.spreadsheetId, range);
     if (

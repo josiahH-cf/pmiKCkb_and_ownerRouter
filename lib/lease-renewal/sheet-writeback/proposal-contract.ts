@@ -6,8 +6,10 @@
 
 import type { SheetCellEvidence } from "@/lib/google-sheets/cell-evidence";
 import {
+  SHEET_AUDIENCE_EMAIL_FIELDS,
   parseSheetFieldIntent,
   sheetIntentValue,
+  type SheetAudienceEmailField,
   type SheetFieldIntent,
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
@@ -133,7 +135,29 @@ export interface SheetFieldUpdateEffectInput {
   readonly authorization?: SheetFieldUpdateAuthorization;
   /** Non-reconciliation business intent; physical targets are always server-resolved. */
   readonly staffIntent?: SheetFieldIntent;
+  /**
+   * S116: an audience email update prepared from the current lease roster, never from typed
+   * input. The value is the complete formatted address set the roster produced.
+   */
+  readonly audienceIntent?: SheetAudienceEmailIntent;
   readonly cellEvidence?: SheetCellEvidence;
+}
+
+export interface SheetAudienceEmailIntent {
+  readonly audience: "owner" | "tenant";
+  readonly field: SheetAudienceEmailField;
+  /** The complete, deduplicated, lowercased address list in roster order, comma separated. */
+  readonly value: string;
+}
+
+const EMAIL_ADDRESS_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+
+/** True when every comma-separated entry is one valid lowercased address and none repeats. */
+export function validAudienceEmailList(value: string): boolean {
+  const parts = value.split(", ");
+  if (parts.length === 0 || parts.some((part) => !EMAIL_ADDRESS_RE.test(part)))
+    return false;
+  return new Set(parts).size === parts.length && parts.join(", ") === value;
 }
 
 export interface SheetFieldUpdateAuthorization {
@@ -345,6 +369,34 @@ function validateScope(input: SheetWritebackProposalInput): void {
         fail(
           "authorization_invalid",
           "Current rent requires its existing reconciliation approval.",
+        );
+      }
+      continue;
+    }
+    if (effect.audienceIntent) {
+      // S116: the audience email value is the complete current roster read from RentVine, bound
+      // to this lease, this audience, this field and this source read; nothing typed reaches it.
+      const intent = effect.audienceIntent;
+      const semantic = (
+        SHEET_AUDIENCE_EMAIL_FIELDS as Record<
+          string,
+          { label: string; channel: "owner" | "tenant" } | undefined
+        >
+      )[intent.field];
+      if (
+        !semantic ||
+        semantic.channel !== intent.audience ||
+        intent.field !== effect.field ||
+        effect.staffIntent ||
+        effect.authorization ||
+        intent.value !== effect.afterValue ||
+        !validAudienceEmailList(intent.value) ||
+        effect.source !==
+          `rentvine:lease:${input.scope.leaseId}:${intent.audience} roster read ${input.sourceReadAtIso}`
+      ) {
+        fail(
+          "authorization_invalid",
+          "An audience email update requires the complete current roster read from RentVine.",
         );
       }
       continue;

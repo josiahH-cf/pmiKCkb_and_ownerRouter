@@ -61,13 +61,23 @@ describe("S113 F1 consolidated dashboard", () => {
     ).toBeInTheDocument();
   });
 
-  it("connects each displayed source to its verified destination or local comparison", () => {
+  it("connects each displayed source to its verified destination or says which link is unavailable", () => {
+    // S116 (R116.1): an external source badge opens its actual destination when one is known;
+    // otherwise it stays a plain badge beside a note naming the unavailable link. It is never a
+    // link back to the same page.
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     render(<RenewalWorkspace workspace={workspace} selectedStepId="owner-decision" />);
     const details = screen.getByRole("region", { name: "Lease details" });
-    expect(
-      within(details).getAllByRole("link", { name: /source|comparison/i }).length,
-    ).toBeGreaterThan(0);
+    const badges = within(details).getAllByLabelText(/source for/i);
+    expect(badges.length).toBeGreaterThan(0);
+    for (const badge of badges) {
+      if (badge.tagName === "A") {
+        expect(badge).toHaveAttribute("target", "_blank");
+        expect(badge.getAttribute("href") ?? "").not.toMatch(/^#renewal-field/);
+      } else {
+        expect(badge.parentElement).toHaveTextContent(/link unavailable/);
+      }
+    }
   });
 
   it("gives next actions a mounted keyboard-focusable target", () => {

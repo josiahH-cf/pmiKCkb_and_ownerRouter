@@ -85,7 +85,7 @@ describe("S98 operating-sheet panel", () => {
   it("offers only the append form when the lease has no Sheet row", () => {
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialProposal={null}
         role="Editor"
         workspaceContext={WORKSPACE_CONTEXT}
@@ -99,7 +99,7 @@ describe("S98 operating-sheet panel", () => {
   it("offers only the field-update form when the lease has an exact Sheet row", () => {
     render(
       <OperatingSheetPanel
-        hasSheetRow
+        association={{ kind: "exact_link", rowNumber: 2 }}
         initialProposal={null}
         role="Editor"
         workspaceContext={WORKSPACE_CONTEXT}
@@ -129,7 +129,7 @@ describe("S98 operating-sheet panel", () => {
     );
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialProposal={null}
         role="Editor"
         workspaceContext={WORKSPACE_CONTEXT}
@@ -165,7 +165,7 @@ describe("S98 operating-sheet panel", () => {
     );
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
         role="Admin"
@@ -194,7 +194,7 @@ describe("S98 operating-sheet panel", () => {
     const proposal = appendProposal();
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialEffects={statusFor(proposal, "ambiguous")}
         initialProposal={proposal}
         role="Admin"
@@ -211,7 +211,7 @@ describe("S98 operating-sheet panel", () => {
     const proposal = appendProposal();
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialEffects={statusFor(proposal, "succeeded")}
         initialProposal={proposal}
         role="Admin"
@@ -237,7 +237,7 @@ describe("S98 operating-sheet panel", () => {
     );
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialProposal={proposal}
         role="Editor"
         workspaceContext={WORKSPACE_CONTEXT}
@@ -268,7 +268,7 @@ describe("S98 operating-sheet panel", () => {
     const proposal = appendProposal();
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
         role="Admin"
@@ -287,7 +287,7 @@ describe("S98 operating-sheet panel", () => {
     for (const role of ["Editor", "Approver"] as const) {
       const { unmount } = render(
         <OperatingSheetPanel
-          hasSheetRow={false}
+          association={{ kind: "absent_confirmed" }}
           initialEffects={statusFor(proposal, "not_started")}
           initialProposal={proposal}
           role={role}
@@ -309,7 +309,7 @@ describe("S98 operating-sheet panel", () => {
     });
     render(
       <OperatingSheetPanel
-        hasSheetRow={false}
+        association={{ kind: "absent_confirmed" }}
         initialEffects={statusFor(proposal, "not_started")}
         initialProposal={proposal}
         role="Admin"

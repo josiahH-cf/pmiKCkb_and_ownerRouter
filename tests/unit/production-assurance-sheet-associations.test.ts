@@ -149,9 +149,19 @@ describe("independent operating Sheet associations", () => {
         '=HYPERLINK("https://pmikcmetro.rentvine.com/leases/1","Open")',
       ],
     ]);
-    expect(() =>
-      projectIndependentSheetLinks(values, duplicate, {}, host, source(["Person One"])),
-    ).toThrow(/duplicate rows/);
+    // S116: two rows for one lease are an ambiguous association. The lease gets no Sheet fact
+    // and no source URL, and its exact (though ambiguous) link evidence keeps a name match from
+    // quietly filling the gap, exactly as the application's join behaves.
+    const ambiguous = projectIndependentSheetLinks(
+      values,
+      duplicate,
+      {},
+      host,
+      source(["Person One"]),
+    );
+    expect(ambiguous.ambiguousLeaseIds).toEqual(["1"]);
+    expect(ambiguous.byLeaseId.has("1")).toBe(false);
+    expect([...ambiguous.leaseUrls]).toEqual([]);
   });
 
   it("refuses incomplete or duplicate identity reads and missing tenant headers", () => {
