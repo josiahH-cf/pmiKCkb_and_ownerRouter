@@ -5,17 +5,11 @@ Last updated: 2026-09-16 (UTC).
 ## Current feature
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
-spec import/registration commit `986e82eb` and is integrated on main. Two production release attempts
-have not completed. Attempt 1 (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) rolled
-back with verification after its observer stalled on the interop gcloud runtime. Attempt 2 (head
-`b5aeba0e`, candidate `pmi-kc-app-rmu3wxi74-644c5bfde591`) passed candidate assurance and promotion on
-the native runtime and its observer rendered every route and matched every reconciled record, then the
-owner's 01:11Z enrollment expired at about 10:01Z and the observer's own Cloud Run and Monitoring reads
-failed, so its report required a rollback. The watcher holds that rollback and is paused on
-`authentication_required`; the canonical origin temporarily serves the attempt 2 candidate. The owner
-step is `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` in WSL; the watcher
-then executes and verifies the rollback and releases this record head. S115-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED: implemented at
+`24b0be59` on top of the spec import `986e82eb`, integrated on main and released on 2026-09-16 as head
+`b7fd04d1` (candidate `pmi-kc-app-rmu46blcc-af55ec317652`) through the serialized watcher after two earlier
+attempts rolled back with verification (attempt 1: the observer ran on the interop gcloud runtime;
+attempt 2: the owner's enrollment expired during observation). Feature 2 of 7, S115 plain-language section help, is implemented on local branch `s115-section-help` with its full gate, core E2E and both compiled browser checks green and is the next integration; S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -40,10 +34,10 @@ Human verdict: NOT RUN.
 
 ## Serving release
 
-Production serves `0fe69bbe7f182e8a34ed97ebd10f7b573d088630` as `pmi-kc-app-rmu2chtvy-4d3cfabf46dd` at 100% traffic. Exact main [CI 34940745236](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34940745236) passed after two unchanged backend-job retries. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,118 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` as `pmi-kc-app-rmu46blcc-af55ec317652` at 100% traffic. Exact main [CI 35085676625](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35085676625) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (after one unverified retry), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,902 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu2a59tx-28c0417b4693`.
-Configuration fingerprint: `sha256:cebd1c65380ee5a8ca5e3445a07fec1ee7c4e5766b1df555b28910c195e6fae5`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu2chtvy-4d3cfabf46dd`.
+Configuration fingerprint: `sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
@@ -80,29 +74,23 @@ separate; S36 is queued behind complete S100. S87-S95 and S101 remain outside th
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
-The owner re-enrolled WSL CLI/ADC at 2026-09-16T01:11Z and the ADC digest matched the binding.
-At 08:19Z `auth:ensure` in WSL reported READY for gcloud, ADC, env and gh, and the enrolled Admin
-browser profile authenticated on the exact candidate and canonical origins during both S114
-candidate assurances. That enrollment expired at about 10:01Z: Google now requires
-reauthentication for every gcloud and ADC token refresh, and `auth:ensure` at 10:05Z reported
-gcloud and ADC blocked with env and gh still ok. Observed authentication longevity is under nine
-hours, not 24. The recovery is the owner-only attended step
-`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` in WSL. The isolated
-built-in browser pane holds no application session and Google asks for an email there; that is an
-owner step the release contract does not need. No password, code, passkey or CAPTCHA was entered.
-No account, IAM, claim, store location, permission scope or security policy changed.
+The owner enrolled WSL CLI/ADC at 2026-09-16T01:11Z; that session expired at about 10:01Z with Google
+requiring reauthentication for every gcloud and ADC refresh, so observed authentication longevity is
+under nine hours, not 24. The owner re-enrolled at 13:59:18Z and `auth:ensure` at 14:01Z reported READY
+for gcloud, ADC, env and gh with token refresh verified. The enrolled Admin browser profile
+authenticated on the candidate and canonical origins during every S114 assurance and predecessor
+baseline. The isolated built-in browser pane holds no application session and Google asks for an
+email there; that is an owner step the release contract does not need. No password, code, passkey or
+CAPTCHA was entered. No account, IAM, claim, store location, permission scope or security policy changed.
 
-The S114 attempt's post-promotion observer stalled for its whole 420,000 ms window before reading
-any page: the scheduled-task launch inherited the Windows Cloud SDK through WSL interop, where each
-gcloud read takes 26-44 s against 1-2 s for the native snap. The watcher rolled back to the
-predecessor and verified it; the idle blocked watcher was then replaced on the same lock by the
-native runtime and the launcher now prepends that runtime. Attempt 2 on that runtime (`b5aeba0e`,
-candidate `pmi-kc-app-rmu3wxi74-644c5bfde591`) passed smoke, fingerprint, domains, candidate
-assurance and promotion (verified 09:59:07Z); its observer rendered all thirteen Admin routes and
-matched all 311 reconciled records, then reported a required rollback at 10:01:35Z because its
-own Cloud Run and Monitoring reads failed when the enrollment expired. The watcher saved the
-rollback to the predecessor and is paused on `authentication_required`; the canonical origin
-temporarily serves the candidate at 100% until the owner re-enrolls and the rollback is executed
-and verified. Both attempts' receipts, reports and checkpoints are preserved outside Git. Earlier
-checkpoints retain their actual passed, failed or unpromoted outcomes. Documentation-only closure
-does not deploy.
+S114 released on its third attempt. Attempt 1's observer stalled on the interop gcloud runtime (26-44 s
+per read) and rolled back; the watcher now runs natively and the launcher prepends that runtime.
+Attempt 2 promoted, then the owner's enrollment expired during observation, the observer's own cloud
+reads failed and the report required a rollback, which the watcher executed at 14:01Z and verified at
+14:05:12Z once the owner re-enrolled. Attempt 3 (`b7fd04d1`, candidate `pmi-kc-app-rmu46blcc-af55ec317652`)
+passed smoke, fingerprint, domains, candidate assurance (one unverified retry), promotion (verified
+14:52:41Z) and the observation (two checkpoints, 386,902 ms) and completed at 14:59:21Z. Its domains
+phase needed a same-lock relaunch of the watcher because the long-lived process kept a memoized
+Identity Platform client with the expired refresh token; the fix rides the S115 integration. Every
+attempt's receipts, reports and checkpoints are preserved outside Git; earlier checkpoints retain their
+actual outcomes. Documentation-only closure does not deploy.

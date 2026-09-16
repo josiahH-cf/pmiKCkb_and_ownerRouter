@@ -3,7 +3,7 @@
 
 # S114 — Independent lease-information and process sidebars
 
-> Status: IMPLEMENTED at `24b0be59`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head `b29185a3`. Release attempt 1 rolled back with verification (observer stalled on the Windows-SDK gcloud runtime); attempt 2 (`b5aeba0e`) promoted and its observer rendered every route, then the owner's enrollment expired and the report required a rollback that the watcher holds, paused on `authentication_required` until the owner re-enrolls in WSL. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `24b0be59`; released on 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` after two verified rollbacks (attempt 1: observer ran on the interop gcloud runtime; attempt 2: owner enrollment expired during observation). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-lease-information-and-process-sidebars.md`.  

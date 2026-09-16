@@ -5,17 +5,11 @@ Updated: 2026-09-16 (UTC).
 ## Outcome
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
-spec import/registration commit `986e82eb` and is integrated on main. Two production release attempts
-have not completed. Attempt 1 (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) rolled
-back with verification after its observer stalled on the interop gcloud runtime. Attempt 2 (head
-`b5aeba0e`, candidate `pmi-kc-app-rmu3wxi74-644c5bfde591`) passed candidate assurance and promotion on
-the native runtime and its observer rendered every route and matched every reconciled record, then the
-owner's 01:11Z enrollment expired at about 10:01Z and the observer's own Cloud Run and Monitoring reads
-failed, so its report required a rollback. The watcher holds that rollback and is paused on
-`authentication_required`; the canonical origin temporarily serves the attempt 2 candidate. The owner
-step is `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` in WSL; the watcher
-then executes and verifies the rollback and releases this record head. S115-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED: implemented at
+`24b0be59` on top of the spec import `986e82eb`, integrated on main and released on 2026-09-16 as head
+`b7fd04d1` (candidate `pmi-kc-app-rmu46blcc-af55ec317652`) through the serialized watcher after two earlier
+attempts rolled back with verification (attempt 1: the observer ran on the interop gcloud runtime;
+attempt 2: the owner's enrollment expired during observation). Feature 2 of 7, S115 plain-language section help, is implemented on local branch `s115-section-help` with its full gate, core E2E and both compiled browser checks green and is the next integration; S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -34,18 +28,15 @@ after it. On 2026-09-16 both compiled browser checks (renewal desk; renewal guid
 on `b29185a3` against the native rehearsal with a local-only party-filter key. No client message was
 sent and no live record was written. Human verdict: NOT RUN.
 
-Neither failed attempt is caused by the code. Attempt 1: the scheduled-task launch used the Windows
-Cloud SDK through WSL interop (26-44 s per gcloud read), so the observer never reached its first
-page inside the 420,000 ms window; the watcher now runs natively (snap gcloud, Node 22.23.2) on the
-same lock and the launcher prepends that runtime. Attempt 2: the owner's enrollment expired about
-8.8 hours after 01:11Z, during the observation, so the observer's own cloud reads failed and its
-report required a rollback although every route rendered and every record matched. A release must
-start well inside a fresh enrollment; the observer's handling of its own credential expiry is a
-surfaced follow-up, not a change made here.
+Attempts 1 and 2 were not caused by the code (interop gcloud runtime; enrollment expiry during
+observation). Attempt 3 completed on the native runtime after a same-lock relaunch: the long-lived
+watcher process had memoized an Identity Platform client holding the expired refresh token, so the
+domains phase failed each pass after the re-enrollment; the fix (client recreated after a credential
+failure) rides the S115 integration. Observed authentication longevity is under nine hours; a release
+must start well inside a fresh enrollment.
 
-Remaining order: the owner re-enrolls in WSL; the watcher executes and verifies the attempt 2
-rollback, then releases this record head (exact-main CI, candidate, assurance, promotion,
-observation, readbacks); then S115 plain-language section guidance, S116 source
+Remaining order: integrate S115 plain-language section guidance (record, push, exact-main CI,
+serialized release, readbacks, closure), then S116 source
 links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
 and completion UX. Each feature completes its own verification, exact-main CI and serialized release
@@ -53,7 +44,7 @@ before the next begins.
 
 ## Current implementation baseline
 
-Production serves `0fe69bbe7f182e8a34ed97ebd10f7b573d088630` as `pmi-kc-app-rmu2chtvy-4d3cfabf46dd` at 100% traffic. Exact main [CI 34940745236](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34940745236) passed after two unchanged backend-job retries. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,118 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
+Production serves `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` as `pmi-kc-app-rmu46blcc-af55ec317652` at 100% traffic. Exact main [CI 35085676625](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35085676625) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (after one unverified retry), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,902 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and
