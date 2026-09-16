@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { SourceUpdatePreview } from "@/components/lease-renewal/SourceUpdatePreview";
+import {
+  sheetPreviewFacts,
+  type SourceUpdateIdentity,
+} from "@/lib/lease-renewal/source-update-preview";
 import {
   SHEET_AUDIENCE_EMAIL_FIELDS,
   SHEET_FIELD_LABELS,
@@ -128,6 +133,7 @@ export function OperatingSheetPanel({
   role,
   association,
   audienceEmails = null,
+  identity = null,
   workspaceContext,
   initialProposal,
   initialEffects = null,
@@ -141,6 +147,8 @@ export function OperatingSheetPanel({
   association: OperatingSheetRowAssociation;
   /** S116 (Q3A): per-audience email field views computed server-side from the fresh roster. */
   audienceEmails?: Readonly<Record<"owner" | "tenant", AudienceEmailRosterView>> | null;
+  /** S117: the lease named in every preview; null keeps the lease id only. */
+  identity?: SourceUpdateIdentity | null;
   workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
@@ -404,11 +412,17 @@ export function OperatingSheetPanel({
                     <h3>{KIND_LABELS[effect.kind]}</h3>
                     <p className="muted">{stateLabel(state)}</p>
                   </div>
-                  <ul>
-                    {describeLines(effect).map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
+                  {effect.kind === "field_update" ? (
+                    <SourceUpdatePreview
+                      facts={sheetPreviewFacts(effect, { proposal, identity })}
+                    />
+                  ) : (
+                    <ul>
+                      {describeLines(effect).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
                   <p className="muted">
                     {status?.reversal_executable
                       ? REVERSAL_LABELS[effect.reversal_kind]

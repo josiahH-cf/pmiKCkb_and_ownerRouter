@@ -32,9 +32,12 @@ Provider writes and receipts remain separate from this manual record. A person s
    not base rent. **Do this next** focuses the relevant control without completing anything.
    The small **i** beside any heading (for example **About Lease details**) opens plain-language
    help; it changes nothing.
-2. If a fact is wrong, use **Correct a lease fact**. Choose a value/source and the supported
-   destination. The approving role reviews it. Admin confirms each exact Sheet or RentVine effect
-   independently and reads the result. Recover an uncertain existing attempt before trying again.
+2. If a fact is wrong, start in **Rent and charges**: choose **Correct a current fact** or
+   **Prepare future approved rent**. In **Correct a lease fact** accept the prefilled value or enter
+   the reviewed one, record its source and the supported destination. The approving role reviews
+   it. Admin reads the exact preview and confirms each Sheet or RentVine effect independently;
+   **Update status by destination** shows what applied, what is still prepared and any base-rent
+   mismatch. Recover an uncertain existing attempt before trying again.
 3. Use **Comps** and **Owner message preparation** before requesting owner approval. Review the
    comp evidence and message, then copy it or preview an eligible unsent Gmail draft. Send it
    yourself in the appropriate channel and record that actual activity.

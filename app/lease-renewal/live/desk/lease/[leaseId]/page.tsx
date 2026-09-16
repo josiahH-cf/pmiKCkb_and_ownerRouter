@@ -25,7 +25,10 @@ import {
   OPERATING_SHEET_TAB,
   liveOperatingSheetId,
 } from "@/lib/lease-renewal/sheet-writeback/live";
-import { projectWorkspaceAttemptSummary } from "@/lib/lease-renewal/execution/workspace-continuation";
+import { loadWorkspaceAttemptState } from "@/lib/lease-renewal/execution/workspace-continuation";
+import { projectRentChargeOutcomes } from "@/lib/lease-renewal/rent-charge-outcomes";
+import { projectCurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
+import { futureRentExecutionReady } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -288,7 +291,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
           )
         : Promise.resolve(null),
       readRenewalAuxiliary("attempt_summary", () =>
-        projectWorkspaceAttemptSummary({
+        loadWorkspaceAttemptState({
           leaseId,
           rentvineProposal: writebackProposal,
           sheetProposal,
@@ -300,7 +303,35 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const sheetEffects = sheetEffectsRead
     ? renewalAuxiliaryValue(sheetEffectsRead, null)
     : null;
-  const attemptSummary = renewalAuxiliaryValue(attemptSummaryRead, null);
+  const attemptState = renewalAuxiliaryValue(attemptSummaryRead, null);
+  const attemptSummary = attemptState?.summary ?? null;
+  const attempts = attemptState?.attempts ?? [];
+  const manualState = renewalAuxiliaryValue(manualRead, null);
+  const chargeInventory = renewalAuxiliaryValue(chargeInventoryRead, null);
+  // S117 (R117.4): the refreshed base rent is compared with a succeeded current-base charge
+  // update; the charge amount and lease total are never substituted for it.
+  const currentBaseReadback = projectCurrentBaseReadback({
+    proposal: writebackProposal,
+    attempts,
+    currentRent: outcome.status === "ok" ? outcome.workspace.summary.currentRent : null,
+  });
+  const rentChargeStatus = projectRentChargeOutcomes({
+    manualState,
+    rentvineProposal: writebackProposal,
+    attempts,
+    sheetProposal,
+    sheetEffects,
+    currentBaseReadback,
+    nowMs: readTimestampMs,
+  });
+  const futureReady =
+    writebackProposal?.businessIntent === "future_rent" && writebackProposal.renewalTerms
+      ? futureRentExecutionReady(manualState, writebackProposal.renewalTerms)
+      : null;
+  const sourceUpdateIdentity =
+    outcome.status === "ok"
+      ? { addressLabel: outcome.workspace.summary.addressLabel, leaseId }
+      : null;
   const sheetFieldsRead =
     outcome.status === "ok"
       ? preparedSheetFieldsRead
@@ -340,6 +371,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
           <RenewalWorkspace
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
+            chargeInventory={chargeInventory}
+            rentChargeStatus={rentChargeStatus}
             manualState={manualRead.status === "available" ? manualRead.value : undefined}
             manualReadUnavailable={manualRead.status !== "available"}
             manualCycleBasis={
@@ -361,7 +394,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 dataCheck={outcome.workspace.dataCheck}
                 sheetValues={sheetFields?.row?.fieldValues ?? null}
                 workspaceContext={sheetWorkspaceContext}
-                inventory={renewalAuxiliaryValue(chargeInventoryRead, null)}
+                inventory={chargeInventory}
                 sheetPreviewHash={sheetProposal?.previewHash ?? null}
                 rentvinePreviewHash={writebackProposal?.previewHash ?? null}
                 reviewHref={(() => {
@@ -413,6 +446,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                         }
                       : null
                   }
+                  identity={sourceUpdateIdentity}
                   initialFieldValues={sheetFields?.row?.fieldValues}
                   initialProposal={
                     sheetProposal ? clientSheetWritebackProposal(sheetProposal) : null
@@ -441,7 +475,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel
                   key={writebackProposal?.previewHash ?? "no-rentvine-preview"}
-                  initialInventory={renewalAuxiliaryValue(chargeInventoryRead, null)}
+                  currentBaseReadback={currentBaseReadback}
+                  futureRentExecutionReady={futureReady}
+                  identity={sourceUpdateIdentity}
+                  initialInventory={chargeInventory}
                   initialProposal={
                     writebackProposal
                       ? clientRenewalWritebackProposal(writebackProposal)

@@ -2231,10 +2231,16 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ),
         );
         await waitFor(() => expect(compRequests).toBe(2));
-        await waitFor(() =>
-          expect(
-            comps.getByRole("button", { name: "Look up market comps (reference only)" }),
-          ).toBeEnabled(),
+        // The button is named "Looking up…" until the route records the attempt in the emulator;
+        // give it the same budget as the other emulator-backed waits in this journey.
+        await waitFor(
+          () =>
+            expect(
+              comps.getByRole("button", {
+                name: "Look up market comps (reference only)",
+              }),
+            ).toBeEnabled(),
+          { timeout: 10_000 },
         );
         change(
           comps.getByLabelText("Source of the comparison and review notes"),
@@ -2262,10 +2268,14 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           screen.getByRole("button", { name: "Look up market comps (reference only)" }),
         );
         await waitFor(() => expect(compRequests).toBe(3));
-        await waitFor(() =>
-          expect(
-            screen.getByRole("button", { name: "Look up market comps (reference only)" }),
-          ).toBeEnabled(),
+        await waitFor(
+          () =>
+            expect(
+              screen.getByRole("button", {
+                name: "Look up market comps (reference only)",
+              }),
+            ).toBeEnabled(),
+          { timeout: 10_000 },
         );
         expect(
           (await getRenewalWorkspace(actor, "701", db))?.preparation?.market.provider

@@ -139,7 +139,9 @@ environment documentation.
 
 - **BEH-S97-1** — The lease workspace shows `Review RentVine updates` only when a typed proposal has at
   least one change. Preview shows exact source, target, before/after values, independent effects,
-  reversal availability, and any missing input; preview performs zero writes.
+  reversal availability, and any missing input; preview performs zero writes. Since S117 the
+  preview also names the lease, the account or charge label, the schedule timing and what the
+  confirmation changes, in business words rather than field keys.
 - **BEH-S97-2** — Confirming one exact effect once issues at most one allowlisted POST, requires exact
   provider readback, records a bodyless receipt, invalidates the affected live lease cache, and projects
   `source-write-receipt` without marking unrelated renewal steps complete.

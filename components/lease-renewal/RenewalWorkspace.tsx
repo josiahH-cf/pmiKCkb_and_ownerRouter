@@ -19,6 +19,9 @@ import type {
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { RenewalLeaseInformation } from "@/components/lease-renewal/RenewalLeaseInformation";
+import { RentAndCharges } from "@/components/lease-renewal/RentAndCharges";
+import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
+import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { RenewalWorkspaceSidebars } from "@/components/lease-renewal/RenewalWorkspaceSidebars";
 
 import { RenewalAttemptSummaryCard } from "@/components/lease-renewal/RenewalAttemptSummaryCard";
@@ -127,6 +130,8 @@ export function RenewalWorkspace({
   manualCycleBasis = null,
   auxiliaryFailures = [],
   resolutionDestinations = [],
+  chargeInventory = null,
+  rentChargeStatus = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -165,6 +170,10 @@ export function RenewalWorkspace({
     fieldKey: string;
     href: string;
   }[];
+  /** S117: the verified recurring-charge inventory shown inside Rent and charges. */
+  chargeInventory?: RenewalChargeInventory | null;
+  /** S117: each destination's own update state for this lease's rent and charge intents. */
+  rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -233,14 +242,17 @@ export function RenewalWorkspace({
             </Card>
             <section aria-label="Source facts" className="ui-stack">
               <PhaseContent
+                chargeInventory={chargeInventory}
                 compScreenshotExecutable={false}
+                correctionPanel={null}
                 dataExpired={dataExpired}
-                discrepancyPanel={null}
+                discrepancyHistoryPanel={null}
                 followUpControlsAvailable={false}
                 packetSnapshot={null}
                 packetStateAvailable={false}
                 progressStateAvailable={false}
                 rentSuggestionAvailable={false}
+                rentChargeStatus={null}
                 rentvineUpdatesPanel={null}
                 resolutionDestinations={[]}
                 role={role}
@@ -319,19 +331,18 @@ export function RenewalWorkspace({
                       key={stepId}
                     >
                       <PhaseContent
+                        chargeInventory={chargeInventory}
                         consolidated={manualState !== undefined || manualReadUnavailable}
                         compScreenshotExecutable={compScreenshotExecutable}
+                        correctionPanel={correctionPanel}
                         dataExpired={dataExpired}
-                        discrepancyPanel={
-                          <>
-                            {correctionPanel}
-                            <details>
-                              <summary>
-                                Discrepancy decision history and advanced disposition
-                              </summary>
-                              {discrepancyPanel}
-                            </details>
-                          </>
+                        discrepancyHistoryPanel={
+                          <details>
+                            <summary>
+                              Discrepancy decision history and advanced disposition
+                            </summary>
+                            {discrepancyPanel}
+                          </details>
                         }
                         followUpControlsAvailable={
                           !unavailableKeys.has("communications") &&
@@ -340,6 +351,7 @@ export function RenewalWorkspace({
                         packetSnapshot={packetSnapshot}
                         packetStateAvailable={!unavailableKeys.has("packet")}
                         progressStateAvailable={progressStateAvailable}
+                        rentChargeStatus={rentChargeStatus}
                         rentSuggestionAvailable={!unavailableKeys.has("rent_suggestion")}
                         rentvineUpdatesPanel={rentvineUpdatesPanel}
                         resolutionDestinations={resolutionDestinations}
@@ -498,7 +510,10 @@ function PhaseContent({
   dataExpired,
   compScreenshotExecutable,
   packetSnapshot,
-  discrepancyPanel,
+  correctionPanel,
+  discrepancyHistoryPanel,
+  chargeInventory,
+  rentChargeStatus,
   sheetDestination,
   sheetFieldDestinations = {},
   progressStateAvailable,
@@ -517,7 +532,12 @@ function PhaseContent({
   dataExpired: boolean;
   compScreenshotExecutable: boolean;
   packetSnapshot: RenewalPacketSnapshot | null;
-  discrepancyPanel: ReactNode;
+  /** S117: the page-supplied fact editor, rendered inside the Rent and charges working area. */
+  correctionPanel: ReactNode;
+  /** The collapsed discrepancy decision history, rendered after Data check. */
+  discrepancyHistoryPanel: ReactNode;
+  chargeInventory: RenewalChargeInventory | null;
+  rentChargeStatus: readonly RentChargeOutcomeRow[] | null;
   sheetDestination: ExternalDeskDestination | null;
   sheetFieldDestinations?: Record<string, string>;
   progressStateAvailable: boolean;
@@ -578,34 +598,29 @@ function PhaseContent({
             ) : null}
             {termReviewPanel}
           </Card>
-          <Card title={renewalCardTitle("rent-and-charges", "Rent and charges")}>
-            <dl className="ui-stack-tight">
-              <div>
-                <dt>Current contractual base rent</dt>
-                <dd>
-                  {summary.currentRent == null
-                    ? "Needs verification"
-                    : formatCurrencyReference(summary.currentRent)}
-                </dd>
+          {/* S117 (R117.1): one working area. The facts card, the fact editor, the future-rent
+              control and both provider review panels sit together; Data check follows. */}
+          <div
+            aria-label="Rent and charges working area"
+            className="ui-stack"
+            id="renewal-rent-and-charges"
+            role="region"
+            tabIndex={-1}
+          >
+            <RentAndCharges
+              chargeInventory={chargeInventory}
+              controlsAvailable={workspace.workflowAvailable}
+              rentChargeStatus={rentChargeStatus}
+              summary={summary}
+            />
+            {correctionPanel ? (
+              <div id="renewal-correct-a-fact" tabIndex={-1}>
+                {correctionPanel}
               </div>
-              <div>
-                <dt>Lease total (RentVine)</dt>
-                <dd>
-                  {summary.leaseTotalRent == null
-                    ? "Unavailable"
-                    : formatCurrencyReference(summary.leaseTotalRent)}
-                </dd>
-              </div>
-              <div>
-                <dt>Unit listed rent (reference)</dt>
-                <dd>
-                  {summary.unitListedRent == null
-                    ? "Unavailable"
-                    : formatCurrencyReference(summary.unitListedRent)}
-                </dd>
-              </div>
-            </dl>
-          </Card>
+            ) : null}
+            {rentvineUpdatesPanel}
+            {sheetProposalPanel}
+          </div>
           <Card title={renewalCardTitle("data-check", "Data check")}>
             <ul className="ui-rows">
               {dataCheck.map((item) => {
@@ -735,9 +750,7 @@ function PhaseContent({
               </p>
             ) : null}
           </Card>
-          {discrepancyPanel}
-          {rentvineUpdatesPanel}
-          {sheetProposalPanel}
+          {discrepancyHistoryPanel}
         </>
       );
     case "owner-decision":

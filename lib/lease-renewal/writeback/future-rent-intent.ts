@@ -40,6 +40,22 @@ export function futureRentWorkspaceMatches(
     state.ownerResponse.terms?.endDate === binding.terms.endDate
   );
 }
+/**
+ * S117 (R117.2, AC-S117-3): a future-rent effect may be confirmed only while the owner's approved
+ * terms are still current AND the tenant's acceptance of that same terms revision is recorded.
+ * Preparation still needs the owner terms only; nothing here checks a box on anyone's behalf.
+ */
+export function futureRentExecutionReady(
+  raw: unknown,
+  binding: FutureRentBinding,
+): boolean {
+  if (!futureRentWorkspaceMatches(raw, binding)) return false;
+  const state = raw as RenewalWorkspaceState;
+  return (
+    state.tenantResponse?.outcome === "accepted" &&
+    state.tenantResponse.termsRevision === state.termsRevision
+  );
+}
 /** One reviewed schedule operation at a time. No assumed provider end-date inclusivity. */
 export function assertFutureRentSchedule(
   binding: FutureRentBinding,

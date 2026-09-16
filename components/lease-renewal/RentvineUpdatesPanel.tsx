@@ -9,7 +9,13 @@ import {
 } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { SourceUpdatePreview } from "@/components/lease-renewal/SourceUpdatePreview";
 import { Button, Field } from "@/components/ui";
+import {
+  rentvinePreviewFacts,
+  type SourceUpdateIdentity,
+} from "@/lib/lease-renewal/source-update-preview";
+import type { CurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   RentvineWritebackClientEffect,
@@ -81,36 +87,6 @@ async function requestWriteback(init: RequestInit, query = "") {
   return payload;
 }
 
-function describeChangeLines(effect: RentvineWritebackClientEffect): string[] {
-  const lines: string[] = [];
-  if (effect.kind === "renewal_dates_update") {
-    const before = effect.effect.before as Record<string, string | null>;
-    const after = effect.effect.after as Record<string, string | null | undefined>;
-    for (const key of ["endDate", "increaseEligibilityDate"] as const) {
-      if (key in after) {
-        lines.push(
-          `${key}: ${before[key] ?? "open-ended"} → ${after[key] ?? "open-ended"}`,
-        );
-      }
-    }
-    lines.push(`startDate stays ${before.startDate} (copied unchanged).`);
-  } else if (effect.kind === "recurring_charge_update") {
-    const before = effect.effect.before as Record<string, string | null>;
-    const changes = effect.effect.changes as Record<string, string | null>;
-    lines.push(`Charge ${String(effect.effect.chargeId)}`);
-    for (const [key, value] of Object.entries(changes)) {
-      lines.push(`${key}: ${before[key] ?? "open-ended"} → ${value ?? "open-ended"}`);
-    }
-  } else {
-    const create = effect.effect.create as Record<string, string | undefined>;
-    for (const [key, value] of Object.entries(create)) {
-      if (value !== undefined) lines.push(`${key}: ${value}`);
-    }
-    lines.push("endDate omitted means the charge is open-ended.");
-  }
-  return lines;
-}
-
 function stateLabel(state: string): string {
   if (state === "unknown") return "Checking durable status";
   if (state === "not_started") return "Ready to confirm";
@@ -141,6 +117,9 @@ export function RentvineUpdatesPanel({
   initialEffects = null,
   initialHistory = null,
   initialInventory = null,
+  identity = null,
+  futureRentExecutionReady = null,
+  currentBaseReadback = null,
 }: Readonly<{
   leaseId: string;
   role: Role;
@@ -148,6 +127,16 @@ export function RentvineUpdatesPanel({
   initialEffects?: RentvineWritebackEffectStatus[] | null;
   initialHistory?: ArchivedRenewalWritebackGeneration[] | null;
   initialInventory?: RenewalChargeInventory | null;
+  /** S117: the lease named in every preview; null keeps the lease id only. */
+  identity?: SourceUpdateIdentity | null;
+  /**
+   * S117: server-derived readiness of a future-rent proposal (owner terms current and tenant
+   * acceptance recorded). False hides the confirmation; null means the page did not derive it and
+   * the server remains the only gate.
+   */
+  futureRentExecutionReady?: boolean | null;
+  /** S117: the refreshed base-rent comparison after a succeeded current-base charge update. */
+  currentBaseReadback?: CurrentBaseReadback | null;
 }>) {
   const router = useRouter();
   const [inventory, setInventory] = useState(initialInventory);
@@ -191,6 +180,10 @@ export function RentvineUpdatesPanel({
   const expired = proposal
     ? mountedAtMs > Date.parse(proposal.confirmation_expires_at)
     : false;
+  // S117: a future-rent effect needs the owner's current terms AND the tenant's recorded
+  // acceptance. The page derives that; the server re-checks it on every confirmation.
+  const futureBlocked =
+    proposal?.business_intent === "future_rent" && futureRentExecutionReady === false;
   const proposalLifecycleLocked =
     proposal !== null &&
     (effects === null ||
@@ -498,11 +491,13 @@ export function RentvineUpdatesPanel({
                     <h3>{KIND_LABELS[effect.kind]}</h3>
                     <p className="muted">{stateLabel(state)}</p>
                   </div>
-                  <ul>
-                    {describeChangeLines(effect).map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
+                  <SourceUpdatePreview
+                    facts={rentvinePreviewFacts(effect, {
+                      proposal,
+                      inventory,
+                      identity,
+                    })}
+                  />
                   <p className="muted">
                     {effect.reversal_kind === "none"
                       ? `Reversal review: ${effect.reversal_reason ?? "this effect has no supported exact inverse."}`
@@ -525,9 +520,37 @@ export function RentvineUpdatesPanel({
                         : ""}
                     </p>
                   ) : null}
+                  {state === "succeeded" &&
+                  proposal.business_intent === "current_base" &&
+                  currentBaseReadback?.state === "charge_applied_base_rent_differs" ? (
+                    <p className="form-error" role="status">
+                      Charge applied at {currentBaseReadback.chargeAmount}, but the
+                      lease&apos;s contractual base rent still reads{" "}
+                      {currentBaseReadback.baseRent.toFixed(2)}. The base rent and this
+                      charge do not agree; review the lease in RentVine and refresh this
+                      lease before relying on the rent shown.
+                    </p>
+                  ) : null}
+                  {state === "succeeded" &&
+                  proposal.business_intent === "current_base" &&
+                  currentBaseReadback?.state ===
+                    "charge_applied_base_rent_unavailable" ? (
+                    <p className="muted" role="status">
+                      Charge applied at {currentBaseReadback.chargeAmount}; the refreshed
+                      lease base rent could not be read, so agreement is unproven. Refresh
+                      this lease.
+                    </p>
+                  ) : null}
+                  {state === "not_started" && !expired && futureBlocked ? (
+                    <p className="muted" role="status">
+                      Waiting for the recorded tenant acceptance of these exact terms. The
+                      Admin confirmation stays unavailable until that response is
+                      recorded.
+                    </p>
+                  ) : null}
                   {executor ? (
                     <div className="ui-actions">
-                      {state === "not_started" && !expired ? (
+                      {state === "not_started" && !expired && !futureBlocked ? (
                         armedEffect === effect.effect_hash ? (
                           <>
                             <Button

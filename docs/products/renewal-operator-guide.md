@@ -32,21 +32,34 @@ Sheet destinations, review source freshness, and refresh when requested.
 
 ## Correct facts and update sources
 
-In **Correct a lease fact**, select the fact, choose an observed value or enter the reviewed value,
-record its source/reason, and choose the supported destination. No row number or provider code is
-needed. An Editor can save a current-rent proposal for review; the approving role reloads that
-proposal in the same editor. A recorded decision does not change a source.
+**Rent and charges** is the one working area for rent and charge facts. It shows the current
+contractual base rent, the lease total and the unit-listed reference with their sources, every
+recurring charge with its account classification and schedule, and two intents: **Correct a
+current fact** for a value that is wrong today and **Prepare future approved rent** for the
+owner-approved terms already recorded. **Update status by destination** lists, for the app, the
+Sheet and RentVine, what is saved, prepared, applied with a receipt, read back or still needs
+attention. A saved value is never described as a source update.
 
-Admin reviews the exact before/after for each source, cancels or confirms that one effect, and
-reads its returned receipt and observed state. Sheet updates support existing rows and separately
+In **Correct a lease fact**, select the fact, accept the prefilled RentVine value or enter the
+reviewed value, record its source/reason, and choose the supported destination. No row number or
+provider code is needed. An Editor can save a current-rent proposal for review; the approving role
+reloads that proposal in the same editor. A recorded decision does not change a source.
+
+Admin reviews the exact preview for each source (lease, source system, field or charge, current
+and proposed values, effective timing and what the confirmation changes), cancels or confirms that
+one effect, and reads its returned receipt and observed state. Sheet updates support existing rows and separately
 confirmed current-state corrections. Missing-row append remains available; row deletion and
 historical restore are unavailable. When both destinations are chosen, each has its own outcome.
 One succeeded and one pending must remain visibly separate.
 
 Current RentVine base-rent correction changes only the identified current rent billing amount.
-Future renewal rent and dates use the separate controls bound to the current owner-approved terms.
-Unsupported fees or ambiguous billing mappings explain the exact limitation. They do not authorize
-a generic provider edit.
+After it applies, the refreshed contractual base rent is compared with that charge; a remaining
+difference is shown as a mismatch in Update status by destination and under the effect, never as
+a completed rent change. Future renewal rent and dates use the separate controls bound to the
+current owner-approved terms, and the Admin confirmation of a future-rent effect waits for the
+tenant's recorded acceptance of those exact terms. Unsupported fees or ambiguous billing mappings
+explain the exact limitation and point to the RentVine lease record. They do not authorize a
+generic provider edit.
 
 An interrupted or uncertain attempt must be recovered through its existing reconciliation control.
 Do not submit another write to discover whether the first succeeded. Changed sources require a
@@ -188,6 +201,13 @@ availability separately. An absent conditional control does not prove provider r
 | 52   | workspace:owner-decision   | Copy recipients                               | button   | region:Owner message preparation                  | conditional  | Copy the complete To/Cc set the draft carries; a missing party refuses instead.         |
 | 53   | workspace:verify-renewal   | Preview Owner emails update                   | button   | article:Review Sheet updates                      | conditional  | Prepare the complete owner address set from RentVine into the Owner emails column.      |
 | 54   | workspace:verify-renewal   | Preview Tenant emails update                  | button   | article:Review Sheet updates                      | conditional  | Prepare the complete tenant address set from RentVine into the Tenant emails column.    |
+| 55   | workspace:verify-renewal   | Rent and charges working area                 | region   | region:Lease details                              | required     | The one working area: values, charges, intents and destination status.                  |
+| 56   | workspace:verify-renewal   | Correct a current fact                        | link     | region:Rent and charges working area              | required     | Jumps to Correct a lease fact for a value that is wrong today.                          |
+| 57   | workspace:verify-renewal   | Prepare future approved rent                  | link     | region:Rent and charges working area              | required     | Jumps to the future-rent control bound to the recorded owner terms.                     |
+| 58   | workspace:verify-renewal   | Update status by destination                  | region   | region:Rent and charges working area              | required     | Per-destination saved, prepared, applied, read-back or mismatch state.                  |
+| 59   | workspace:verify-renewal   | Prepare this future-rent preview              | button   | region:Rent and charges working area              | conditional  | Only after owner terms, a reviewed schedule and the explicit review box.                |
+| 60   | workspace:verify-renewal   | Review and confirm…                           | button   | article:Review RentVine updates                   | conditional  | Dense exact preview, then the arming step for one RentVine effect.                      |
+| 61   | workspace:verify-renewal   | Confirm this exact effect once                | button   | article:Review RentVine updates                   | conditional  | One Admin-confirmed RentVine effect after the arming step.                              |
 
 Conditional proof owners include the S113 dashboard, correction, manual, message and document
 control tests plus their Firestore route/store integration tests. The semantic guard rejects a

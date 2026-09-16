@@ -84,6 +84,7 @@ vi.mock("@/lib/firestore/external-action-executions", () => ({
 }));
 vi.mock("@/lib/lease-renewal/execution/workspace-continuation", () => ({
   projectWorkspaceAttemptSummary: async () => null,
+  loadWorkspaceAttemptState: async () => null,
 }));
 
 import Page from "@/app/lease-renewal/live/desk/lease/[leaseId]/page";

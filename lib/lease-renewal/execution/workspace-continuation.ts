@@ -11,6 +11,7 @@
 import type { ExternalExecutionStore } from "@/lib/external-execution/types";
 import {
   projectRenewalAttemptSummary,
+  type RenewalAttemptRecord,
   type RenewalAttemptSummary,
 } from "@/lib/lease-renewal/execution/attempt-continuation";
 import { loadRenewalAttemptRecords } from "@/lib/lease-renewal/execution/attempt-loader";
@@ -32,4 +33,27 @@ export async function projectWorkspaceAttemptSummary(input: {
     sheetProposal: input.sheetProposal ?? null,
   });
   return projectRenewalAttemptSummary({ leaseId: input.leaseId, attempts, nowMs });
+}
+
+/**
+ * S117: the same single read, returning the attempt records beside the summary so the page can
+ * project per-destination outcomes without a second store read. Still read-only.
+ */
+export async function loadWorkspaceAttemptState(input: {
+  readonly leaseId: string;
+  readonly store: ExternalExecutionStore;
+  readonly rentvineProposal?: RenewalWritebackProposal | null;
+  readonly sheetProposal?: SheetWritebackProposal | null;
+  readonly nowMs?: number;
+}): Promise<{ summary: RenewalAttemptSummary; attempts: RenewalAttemptRecord[] }> {
+  const nowMs = input.nowMs ?? Date.now();
+  const attempts = await loadRenewalAttemptRecords({
+    store: input.store,
+    rentvineProposal: input.rentvineProposal ?? null,
+    sheetProposal: input.sheetProposal ?? null,
+  });
+  return {
+    summary: projectRenewalAttemptSummary({ leaseId: input.leaseId, attempts, nowMs }),
+    attempts,
+  };
 }

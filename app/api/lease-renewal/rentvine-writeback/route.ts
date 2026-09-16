@@ -2,7 +2,9 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
   assertFutureRentSchedule,
+  futureRentExecutionReady,
   futureRentInventoryHash,
+  futureRentWorkspaceMatches,
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { NextResponse } from "next/server";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
@@ -662,6 +664,35 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     if (body.operation === "execute") {
       if (body.previewHash !== proposal.previewHash) {
         throw new RenewalWritebackServiceError("confirmation_invalid");
+      }
+      // S117 (R117.2, AC-S117-3): a future-rent effect needs the owner's terms to still be current
+      // AND the tenant's recorded acceptance of that exact terms revision. Both are checked before
+      // the one-attempt claim; nothing here checks a box on anyone's behalf.
+      if (proposal.businessIntent === "future_rent") {
+        const workspaceState = await getRenewalWorkspace(user, proposal.leaseId);
+        if (
+          !proposal.renewalTerms ||
+          !futureRentWorkspaceMatches(workspaceState, proposal.renewalTerms)
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "The owner-approved terms changed. Prepare a fresh future-rent preview from the current terms.",
+              error_type: "renewal_terms_changed",
+            },
+            { status: 409 },
+          );
+        }
+        if (!futureRentExecutionReady(workspaceState, proposal.renewalTerms)) {
+          return NextResponse.json(
+            {
+              error:
+                "Record the tenant's acceptance of these exact terms before this RentVine effect can be confirmed.",
+              error_type: "tenant_acceptance_required",
+            },
+            { status: 409 },
+          );
+        }
       }
       // S105: a confirmed RentVine effect carries the owner's approved terms into the system of
       // record. While the recorded owner response is not an approval, execution is refused before

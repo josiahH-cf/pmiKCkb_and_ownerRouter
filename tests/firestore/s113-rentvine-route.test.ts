@@ -228,6 +228,26 @@ describe("S113 actual future-rent route and persisted business intent", () => {
     };
     expect((await post(confirm)).status).toBe(403);
     expect(writes).toBe(0);
+    // S117 (AC-S117-3): the tenant's acceptance of these exact terms is recorded before the
+    // Admin confirmation; without it the route refuses before claiming the attempt.
+    local.role = "Admin";
+    expect((await (await post(confirm)).json()).error_type).toBe(
+      "tenant_acceptance_required",
+    );
+    expect(writes).toBe(0);
+    local.role = "Editor";
+    const accepted = (await getRenewalWorkspace(actor, "81", db))!;
+    await saveRenewalWorkspace(
+      actor,
+      {
+        leaseId: "81",
+        cycleId: accepted.cycleId,
+        expectedRevision: accepted.revision,
+        operationId: randomUUID(),
+        action: { kind: "tenant_response", outcome: "accepted", source: "Tenant email" },
+      },
+      db,
+    );
     local.role = "Admin";
     const response = await post(confirm),
       result = await response.json();

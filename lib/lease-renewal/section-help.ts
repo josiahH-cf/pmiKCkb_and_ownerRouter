@@ -176,11 +176,21 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "rent-and-charges": {
     label: "Rent and charges",
     purpose:
-      "Explains the rent figures. Current contractual base rent comes from the lease. Lease total (RentVine) adds the separate recurring charges. Unit listed rent is a reference figure, not a lease term.",
+      "The one working area for rent and charge facts. Current contractual base rent comes from the lease. Lease total (RentVine) adds the separate recurring charges. Unit listed rent is a reference figure, not a lease term. Each recurring charge is listed with its account classification and schedule.",
+    steps: [
+      "Choose the intent: Correct a current fact for a value that is wrong today, or Prepare future approved rent for the owner-approved terms already recorded.",
+      "Enter or accept the prefilled value once and record its source or reason.",
+      "Prepare the destination previews, then an Admin confirms each exact effect under Review RentVine updates or Review Sheet updates.",
+      "Read Update status by destination: it shows what is saved in the app, what is prepared, what applied with a receipt and what still needs attention.",
+    ],
     saves:
-      "This card is read-only. Correct a fact that is wrong today in Correct a lease fact. Record a future owner-approved rent in Owner response and exact terms; that is a different fact with a different destination.",
+      "A correction or approved term is saved in the app first. Each Sheet or RentVine update is a separate prepared proposal that only an Admin confirmation applies; the app reads the result back afterwards.",
     notDone:
-      "Needs verification or Unavailable means the app could not confirm the figure from a source; nothing here changes a source.",
+      "A saved value is not a source update. A future offer does not change today's rent or the Sheet current rent. A confirmed charge change does not prove the lease base rent changed; a remaining difference is shown as a mismatch, never hidden.",
+    next: {
+      label: "Start with Correct a current fact or Prepare future approved rent.",
+      targetId: "renewal-correct-a-fact",
+    },
   },
   "correct-a-fact": {
     label: "Correct a lease fact",
@@ -208,6 +218,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     steps: [
       "Record the owner's exact approved rent and dates in Owner response and exact terms.",
       "Review the reviewed billing schedule shown here and save the future schedule preview.",
+      "Record the tenant's acceptance of those exact terms under Tenant offer and response.",
       "An Admin confirms the exact RentVine effect under Review RentVine updates.",
     ],
     saves:
@@ -258,7 +269,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     saves:
       "Only the confirmed effect changes RentVine. Proposals, replacements and receipts stay in the app.",
     notDone:
-      "A saved proposal writes nothing. RentVine exposes no general base-rent setter; a charge change is checked against the refreshed lease rent separately.",
+      "A saved proposal writes nothing. RentVine exposes no general base-rent setter; a charge change is checked against the refreshed lease rent separately, and a remaining difference is shown as a mismatch, not as a completed rent change.",
   },
   "source-updates": {
     label: "Source updates",

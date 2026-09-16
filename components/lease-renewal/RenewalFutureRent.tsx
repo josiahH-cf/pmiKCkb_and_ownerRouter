@@ -4,14 +4,11 @@ import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
+import { planRentChargeRequests } from "@/lib/lease-renewal/rent-charge-intent";
 import {
   chargeDateIso,
   type RenewalChargeInventory,
 } from "@/lib/lease-renewal/writeback/charge-inventory-model";
-function usDate(iso: string) {
-  const [year, month, day] = iso.split("-");
-  return `${month}/${day}/${year}`;
-}
 export function RenewalFutureRent({
   initialInventory,
   initialPreviewHash,
@@ -38,7 +35,10 @@ export function RenewalFutureRent({
         : null,
     charge = inventory?.charges.find(
       (entry) => entry.id === selected && entry.classification === "rent",
-    );
+    ),
+    tenantAccepted =
+      state?.tenantResponse?.outcome === "accepted" &&
+      state.tenantResponse.termsRevision === state.termsRevision;
   async function post(body: Record<string, unknown>) {
     const response = await fetch("/api/lease-renewal/rentvine-writeback", {
       method: "POST",
@@ -73,44 +73,35 @@ export function RenewalFutureRent({
   }
   async function prepare() {
     if (!state || !terms || !charge || !review.trim() || !reviewed) return;
-    const effect =
-      operation === "end_current"
-        ? {
-            kind: "recurring_charge_update",
-            chargeId: charge.id,
-            changes: { endDate: usDate(end) },
-          }
-        : operation === "update_future"
-          ? {
-              kind: "recurring_charge_update",
-              chargeId: charge.id,
-              changes: { amount: terms.rent.toFixed(2) },
-            }
-          : {
-              kind: "recurring_charge_create",
-              create: {
-                accountID: charge.accountId,
-                amount: terms.rent.toFixed(2),
-                description: charge.projection.description,
-                dayDue: charge.projection.dayDue,
-                frequency: charge.projection.frequency,
-                startDate: usDate(terms.effectiveDate),
-                endDate: usDate(terms.endDate),
-              },
-            };
-    const result = await post({
-      operation: "propose",
-      leaseId: state.leaseId,
-      businessIntent: "future_rent",
-      expectedPriorPreviewHash: previewHash,
-      evidenceRef: review,
-      renewalContext: {
+    // S117 (ARCH-S117-1): one typed *future* intent; the mapper cannot emit a Sheet body or a
+    // current-base correction.
+    const [plan] = planRentChargeRequests(
+      {
+        scope: "future",
+        operation:
+          operation === "end_current"
+            ? "end_current"
+            : operation === "update_future"
+              ? "update_future"
+              : "create_future",
+        chargeId: charge.id,
+        terms,
+        scheduleReview: review,
         cycleId: state.cycleId,
         termsRevision: state.termsRevision,
-        scheduleReview: review,
+        ...(operation === "end_current" && end ? { currentChargeEndDate: end } : {}),
       },
-      effects: [effect],
-    });
+      {
+        leaseId: state.leaseId,
+        workspaceContext: null,
+        sheetRowAvailable: false,
+        priorHashes: { sheet: null, rentvine: previewHash },
+        inventory,
+      },
+    );
+    if (!plan || "refusal" in plan)
+      throw new Error(plan?.refusal ?? "The schedule could not be prepared.");
+    const result = await post(plan.body);
     if (!result.proposal?.preview_hash)
       throw new Error(
         "No current schedule preview was saved. Check the connection and reload.",
@@ -142,6 +133,12 @@ export function RenewalFutureRent({
               Approved monthly base rent: {terms.rent.toFixed(2)} · effective{" "}
               {terms.effectiveDate} · term end {terms.endDate}. Current Sheet rent is
               unchanged.
+            </p>
+            <p className="muted">
+              Tenant response:{" "}
+              {tenantAccepted
+                ? "accepted for these exact terms."
+                : "acceptance of these exact terms is not recorded yet. A saved schedule preview waits for it before the Admin confirmation."}
             </p>
             <Button
               variant="secondary"
