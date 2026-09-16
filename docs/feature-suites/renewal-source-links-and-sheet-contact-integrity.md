@@ -3,7 +3,7 @@
 
 # S116 — Exact source links, reliable Sheet matching and complete contact emails
 
-> Status: IMPLEMENTED on branch `s116-source-integrity` (gates in progress); the serialized production release has not been performed. Actual cause of the reported missing-row defect, measured read-only on 2026-09-16 (counts only): the operating tab carries its RentVine links as rich text attached to the cell (146 rows; 0 formulas; 1 bare URL), which the formula-only read could not see. Human verdict: NOT RUN — no human observer.
+> Status: IMPLEMENTED at `7a19d338`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head. The serialized production release is in progress. Actual cause of the reported missing-row defect, measured read-only on 2026-09-16 (counts only): the operating tab carries its RentVine links as rich text attached to the cell (146 rows; 0 formulas; 1 bare URL), which the formula-only read could not see. Live email-column synchronization is a named setup dependency until the Sheet manager adds "Owner emails" and "Tenant emails" to the "Lease Renewal" tab. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-source-links-and-sheet-contact-integrity.md`.  

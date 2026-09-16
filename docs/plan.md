@@ -7,12 +7,11 @@ Updated: 2026-09-16 (UTC).
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
 S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
 `24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
-attempt). Feature 2 of 7, S115 plain-language section help and lower-noise workspaces, is COMPLETE and
-DEPLOYED: implemented at `dffc4f71`, integrated on main with the owner-directed WSL enrollment fix
-(`41fe8f4b`), the S113 journey budget (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`),
-and released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second attempt
-(attempt 1 rolled back with verification after the production canary raced the work board's loading
-heading; the canary now settles a route before asserting its landmark). S116-S120 have not started.
+attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPLOYED (implemented at
+`dffc4f71`, released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second
+attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
+is implemented and integrated on main at `7a19d338`; its serialized release is next. S117-S120 have not
+started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -38,8 +37,8 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-Remaining order: S116 source
-links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
+Remaining order: release S116 source links and Sheet contact integrity (exact-main CI for this head,
+the serialized release, readbacks, closure), then S117 master facts and confirmed source updates, S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
 and completion UX. Each feature completes its own verification, exact-main CI and serialized release
 before the next begins.

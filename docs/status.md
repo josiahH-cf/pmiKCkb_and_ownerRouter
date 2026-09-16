@@ -7,12 +7,11 @@ Last updated: 2026-09-16 (UTC).
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
 S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
 `24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
-attempt). Feature 2 of 7, S115 plain-language section help and lower-noise workspaces, is COMPLETE and
-DEPLOYED: implemented at `dffc4f71`, integrated on main with the owner-directed WSL enrollment fix
-(`41fe8f4b`), the S113 journey budget (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`),
-and released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second attempt
-(attempt 1 rolled back with verification after the production canary raced the work board's loading
-heading; the canary now settles a route before asserting its landmark). S116-S120 have not started.
+attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPLOYED (implemented at
+`dffc4f71`, released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second
+attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
+is implemented and integrated on main at `7a19d338`; its serialized release is next. S117-S120 have not
+started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -66,6 +65,40 @@ board still showed its loading panel, which carries its own heading. The canary 
 route to settle before asserting its landmark (`f3406f3d`, fail-first tests, pinned by the head).
 The exact head passed CI on its first run; canonical and tagged versions, traffic, revision
 configuration, receipts, the observation report and the authorized domains were read back.
+
+S116 makes the renewal hub open the exact source record and stops an existing Sheet row from
+being treated as absent. The actual cause of the reported missing-row defect was measured read-only
+on 2026-09-16 with a counts-only inspection (no cell value, name or id): the operating tab carries
+146 of its RentVine links as rich text attached to the cell, 1 as a bare URL and none as a formula, so
+the formula-only read saw no link and offered an append; 110 of those rows reference current
+leases, 34 lease ids are referenced by more than one row and 200 current leases have no linked row.
+The Sheets reader now reads the attached-link layer (fields-limited, never values) and the exact
+join merges the three layers; one fresh server-owned association (exact link, app note, confirmed
+absence, or ambiguous with its reason: multiple rows, conflicting identity, unit-only link, a
+plausible unlinked row carrying the tenant's name, or an incomplete read) governs the Sheet panel,
+the append preview and the saved proposal; an ambiguous state is explained in plain English with the
+row numbers to look at and offers neither append nor update. The RentVine record destination comes
+from the validated lease id on the configured host and no longer depends on a Sheet link; a source
+badge without a known destination is a plain badge, never a same-page loop; the scoped RentVine view
+is named unavailable beside the record link; the created-draft link is labeled as the Drafts folder.
+Every owner on lease.owners[] is addressed, a same-audience party without an email is named as
+incomplete and refuses the final addressed draft, and the preparation shows and copies the complete
+To/Cc set. Owner emails and Tenant emails (accepted Q3A) resolve as exact headers, are kept out of the
+free-typed editor, and are prepared only from the RentVine roster through the existing
+exact-confirmed field update with a missing-column setup state that names the two headers and the
+tab; the app creates no column. The independent release reconciliation reads the same link layer,
+reports duplicate rows as ambiguous like the app, and expects the record destination for every lease.
+
+Verification on the exact integrated head `7a19d338` in the native checkout: format, lint, types, 6,635
+unit tests (718 files), 201 backend tests, every policy check and the production build passed; core
+E2E passed with 8 files and 4 intentional skips; the compiled renewal desk check passed on attempt
+2 and the renewal guide check located all 53 steps including the three new rows. Every S116 test
+was red before its implementation (6 link-layer, 11 association, 8 panel, 6 recipients, 8 audience
+email, 6 destinations) and green after it; intentional contract changes: the desk exposes the lease
+record destination without a Sheet link, the recipient resolution carries an `incomplete` list, the
+supported Sheet field count is 21, the panel takes an association instead of a row flag, and the
+independent projection reports duplicate rows as ambiguous instead of aborting. No client message was
+sent, no live record was written and no column was created. Human verdict: NOT RUN.
 
 ## Serving release
 

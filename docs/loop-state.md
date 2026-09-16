@@ -4,18 +4,17 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Renewal operator hub bundle (S114-S120) in progress. S114 is COMPLETE / DEPLOYED (implemented at
-`24b0be59`, released 2026-09-16 as head `b7fd04d1` / pmi-kc-app-rmu46blcc-af55ec317652, third attempt).
-S115 plain-language section help is COMPLETE / DEPLOYED: implemented at `dffc4f71`, integrated with the
-owner-directed auth enrollment fix `41fe8f4b`, the S113 journey budget `dea16616` and the watcher
-client-lifecycle fix `14b486a0`, released 2026-09-16 as head `3ca35870` / pmi-kc-app-rmu4awn6p-67bd97a8824e
-(second attempt; the canary settle fix `f3406f3d` and its pin rode the release). Gates on the
-integrated code: format, lint, types, 6,586 unit tests (712 files), 201 backend, policy, build; core
-E2E 8 files / 4 skips; desk and guide (50 steps) compiled checks; nine S115 tests (8 of 9 fail-first);
-preservation 88 files / 969 tests. Next: S116 source links and Sheet contact integrity (design saved
-in the session scratchpad; re-ground on the released code first; its read-only live Sheet-row
-inspection needs ADC and writes nothing), then S117-S120, each with its own gate, exact-main CI,
-serialized release, readbacks and closure record.
+Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
+`b7fd04d1` / rmu46blcc). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` / rmu4awn6p). S116 exact
+source links, reliable Sheet matching and complete contact emails is implemented and integrated on main
+at `7a19d338`. Actual cause found read-only (counts only): 146 rows link RentVine as rich text attached to
+the cell (0 formulas, 1 bare URL), invisible to the formula-only read; 34 lease ids on more than one row;
+200 current leases unlinked. Gates on the integrated head: format, lint, types, 6,635 unit tests
+(718 files), 201 backend, policy, build; core E2E 8 files / 4 skips; desk check (attempt 2) and guide check (53 steps) passed; 45 S116 tests fail-first. Logs: `~/pmi-kc-work/logs/s116-*.log`.
+Named setup dependency (not a blocker): the Sheet manager adds the exact headers "Owner emails" and
+"Tenant emails" to the "Lease Renewal" tab; the app then reads them back and offers per-lease previews.
+Next: exact-main CI for this head, the serialized release (candidate, smoke, fingerprint, domains,
+assurance, promotion, 300,000 ms observation), readbacks, closure record; then S117.
 
 ## Verified production
 
@@ -88,7 +87,8 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` (Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
+Native checkout: `~/pmi-kc-work/main` on branch `s116-source-integrity` (Node 22.23.2, both reviewed
+ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,
 renewal-smokes.log). The Windows checkout is the watcher SOURCE and the docs editing tree
