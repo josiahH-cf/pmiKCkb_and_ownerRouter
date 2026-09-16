@@ -3,7 +3,8 @@
 
 # S118 — Five-mile market comparisons with reviewed defaults and source links
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `0223bdb1` (integrated on main); serialized release not yet performed. verify.sh, core E2E
+> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-market-defaults-and-sourced-comparisons.md`.  

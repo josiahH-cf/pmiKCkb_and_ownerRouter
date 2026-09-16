@@ -11,9 +11,17 @@ attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEP
 `bc559602`, released 2026-09-16 as head `a483c47d` / pmi-kc-app-rmu4ir3hc-7ee452a02151 (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation): one Rent and
 charges working area, typed current/future intents, dense exact previews, per-destination status with
 the base-rent mismatch, and the tenant-acceptance condition on future-rent confirmation (deployed
-behavior change). Next: S118 market defaults and sourced comparisons (re-ground on the released code
-first), then S119 and S120, each with its own gate, exact-main CI, serialized release, readbacks and
-closure record. Authentication: check the enrollment horizon before each release.
+behavior change). S118 five-mile market comparisons with reviewed defaults and source links is
+implemented and integrated on main at `0223bdb1`: labeled starting range from current rent, five-mile
+default with explicit override, origin-aware provider defaults that never overwrite an edit, honest
+save basis, the reviewed PMI recommendation as the prepared Sheet Market value, starting-range and
+provider-recommendation gates in the owner message, and RentCast property/market report links.
+Gates on the integrated head: format, lint, types, 6669 unit tests (727 files), 206 backend
+(35 files), policy, build; core E2E 8 files / 4 skips; desk check (attempt 2) and guide
+check (62 steps) passed. Logs: `~/pmi-kc-work/logs/s118-*.log`. Next: exact-main CI for this head,
+the serialized release (candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms
+observation), readbacks, closure record; then S119. The WSL enrollment of 13:59Z expires about
+22:45Z; the watcher pauses at authentication_required until the owner re-enrolls.
 
 ## Verified production
 
@@ -86,7 +94,7 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s117-master-facts`, squashed into main as `bc559602`
+Native checkout: `~/pmi-kc-work/main` on branch `s118-market-defaults`, squashed into main as `0223bdb1`
 (Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,

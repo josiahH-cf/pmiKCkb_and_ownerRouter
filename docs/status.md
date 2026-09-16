@@ -15,7 +15,9 @@ is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as h
 synchronization remains a named setup dependency until the Sheet manager adds the two headers.
 Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is COMPLETE
 and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151`
-(first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). S118-S120 have not started.
+(first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). Feature 5 of 7, S118 five-mile market
+comparisons with reviewed defaults and source links, is implemented and integrated on main at `0223bdb1`;
+its serialized release is next. S119-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -164,6 +166,34 @@ traffic. The watcher retried its smoke once, the predecessor baseline twice and 
 Admin browser twice before the receipt was issued; the candidate instance stayed stable from 20:49Z
 and the promoted revision served every observation checkpoint. Whether to keep a minimum instance or
 always-allocated CPU is an open owner cost decision; no service setting changed.
+
+S118 makes comparison preparation start from the lease's actual facts. The low and high fields
+prefill from the contractual base rent under the accepted rule (20% through $750, tapering to 15%
+at $2,500, clamped, half-up cents) and are labeled Starting range from current rent, not market
+evidence; a missing or unresolved base rent is named instead of estimated. A new lookup searches
+five miles (the request and its cache identity), the operator's explicit radius still replaces it,
+and a retained observation keeps and shows its own radius. A usable RentCast result fills only
+figures nobody saved or edited, including a result that lands after an in-flight edit, and
+initializes the PMI recommendation from the returned point estimate; each figure carries its
+origin (starting rule, provider, edited, saved) and the save records that basis. The saved PMI
+recommendation prepares the exact Sheet Market value update for separate Admin confirmation; the
+range never becomes a Sheet column. The owner message treats a saved starting range as no
+comparable-rent evidence (by marker, and again by comparing the saved pair with the fresh base
+rent) and lets a recommendation that is still the returned point estimate in only through the
+existing Admin approval of that exact number. RentCast's documented property and market report
+links open from the resolved subject with correctly encoded known parameters; unsupported values
+and the unmapped property type are named, never clamped, and the links stay available when a
+lookup fails. Provider results are never filtered by the band; no paid call was made for proof.
+Gates on the integrated head `0223bdb1`: format, lint, types, 6669 unit tests (727 files),
+206 backend (35 files), policy, build; core E2E 8 files / 4 skips;
+desk check (attempt 2) and guide check (62 steps) passed; the S118 unit, component and
+backend cases were written fail-first. No client message was sent, no live record was written and
+no RentCast request was made. Gate notes: the first full-gate run failed core E2E when the harness
+demo-auth route answered 404 immediately after the production build (it passed unchanged on the
+rerun), and the desk check timed out twice at its 20 s lease-page navigation budget with page
+renders of 18 to 22 s, dominated by live RentVine and Sheet reads (the S117 passing run measured
+18.8 s); the rerun passed on its second attempt at 14.9 to 18.0 s. The lease page's live-read
+latency is recorded as an open condition, not an S118 change. Human verdict: NOT RUN.
 
 ## Serving release
 
