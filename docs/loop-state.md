@@ -7,38 +7,33 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
 `b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
 rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u, first
-attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEPLOYED: implemented at
-`bc559602`, released 2026-09-16 as head `a483c47d` / pmi-kc-app-rmu4ir3hc-7ee452a02151 (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation): one Rent and
-charges working area, typed current/future intents, dense exact previews, per-destination status with
-the base-rent mismatch, and the tenant-acceptance condition on future-rent confirmation (deployed
-behavior change). S118 five-mile market comparisons with reviewed defaults and source links is
-implemented and integrated on main at `0223bdb1`: labeled starting range from current rent, five-mile
-default with explicit override, origin-aware provider defaults that never overwrite an edit, honest
-save basis, the reviewed PMI recommendation as the prepared Sheet Market value, starting-range and
-provider-recommendation gates in the owner message, and RentCast property/market report links.
-Gates on the integrated head: format, lint, types, 6669 unit tests (727 files), 206 backend
-(35 files), policy, build; core E2E 8 files / 4 skips; desk check (attempt 2) and guide
-check (62 steps) passed. Logs: `~/pmi-kc-work/logs/s118-*.log`. Next: exact-main CI for this head,
-the serialized release (candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms
-observation), readbacks, closure record; then S119. The WSL enrollment of 13:59Z expires about
-22:45Z; the watcher pauses at authentication_required until the owner re-enrolls.
+attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEPLOYED (`bc559602`, head
+`a483c47d` / rmu4ir3hc, first attempt with cold-start retries). S118 COMPLETE / DEPLOYED: implemented at
+`0223bdb1`, released 2026-09-16 as head `af46ac72` / pmi-kc-app-rmu4ontao-f5c2a692d78e (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds): labeled
+starting range from current rent, five-mile default with explicit override, origin-aware provider
+defaults that never overwrite an edit, honest save basis, the reviewed PMI recommendation as the
+prepared Sheet Market value, starting-range and provider-recommendation gates in the owner message,
+and RentCast property/market report links (deployed behavior change). Next: S119 manual status and
+desk filtering (re-ground on the released code first), then S120, each with its own gate, exact-main
+CI, serialized release, readbacks and closure record. Authentication: check the enrollment horizon
+before each release.
 
 ## Verified production
 
-Serving SHA: a483c47d78e45de3d530a548352ee5478ca8300a
-Serving revision: pmi-kc-app-rmu4ir3hc-7ee452a02151, 100% traffic (tag cand-rmu4ir3hc-7ee452a02151).
+Serving SHA: af46ac7213c23da36c0219cfbfbfd45184c4ae68
+Serving revision: pmi-kc-app-rmu4ontao-f5c2a692d78e, 100% traffic (tag cand-rmu4ontao-f5c2a692d78e).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90.
-Predecessor: pmi-kc-app-rmu4eoy5u-c8c2682e9102 / 33ef303959766f67bbf62878fe2ce283785c7eac (fingerprint sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa).
-Exact CI 35142917506 passed; Cloud Build c2b4e92d-f2f4-4db8-a6c6-ee4deb2bd4e3 succeeded (19:54:56Z-19:58:17Z).
-Candidate receipt issued 21:15:16Z; promotion started 21:15:36Z, verified 21:15:43Z;
-complete 21:22:01Z, all September 16.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 382,868 ms / 300,000 ms.
+Fingerprint: sha256:b8f586d34baf88b9de383ea1d410b7a638987d4254d380eff4830df298219365.
+Predecessor: pmi-kc-app-rmu4ir3hc-7ee452a02151 / a483c47d78e45de3d530a548352ee5478ca8300a (fingerprint sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90).
+Exact CI 35158394618 passed; Cloud Build 144e60e5-2729-423a-85f3-3f89f4fbf62f succeeded (22:40:14Z-22:43:42Z).
+Candidate receipt issued 22:52:04Z; promotion started 22:52:17Z, verified 22:52:24Z;
+complete 22:58:43Z, all September 16.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 384,778 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
 Independent readback after completion: canonical and tagged /api/version, 100% traffic on the revision,
-revision env (APP_COMMIT_SHA a483c47d, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only the new candidate host; no registry, gate or rules file changed since 33ef3039.
+revision env (APP_COMMIT_SHA af46ac72, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only the new candidate host; no registry, gate or rules file changed since a483c47d.
 
 ## Preserved failed attempts
 

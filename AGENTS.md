@@ -21,7 +21,7 @@ the current code and live service. Date-stamped history is not authority.
 
 ## Present production truth — 2026-09-16
 
-Production serves `a483c47d78e45de3d530a548352ee5478ca8300a` as `pmi-kc-app-rmu4ir3hc-7ee452a02151` at 100% traffic. Exact main [CI 35142917506](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35142917506) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 382,868 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `af46ac7213c23da36c0219cfbfbfd45184c4ae68` as `pmi-kc-app-rmu4ontao-f5c2a692d78e` at 100% traffic. Exact main [CI 35158394618](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35158394618) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 384,778 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 September 14 Features 1-6 are complete and deployed. PR #83 provides lease/unit/contact visibility
 and owner filtering; PRs #84/#85/#86 provide the glossary and missing-report rollback repair;
@@ -46,7 +46,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured immediate predecessor/rollback: `pmi-kc-app-rmu4eoy5u-c8c2682e9102` / `33ef303959766f67bbf62878fe2ce283785c7eac`.
+- Captured immediate predecessor/rollback: `pmi-kc-app-rmu4ir3hc-7ee452a02151` / `a483c47d78e45de3d530a548352ee5478ca8300a`.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

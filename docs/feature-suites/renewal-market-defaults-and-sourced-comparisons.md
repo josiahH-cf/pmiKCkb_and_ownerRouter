@@ -3,8 +3,7 @@
 
 # S118 — Five-mile market comparisons with reviewed defaults and source links
 
-> Status: IMPLEMENTED at `0223bdb1` (integrated on main); serialized release not yet performed. verify.sh, core E2E
-> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `0223bdb1`; released on 2026-09-16 as head `af46ac72` / `pmi-kc-app-rmu4ontao-f5c2a692d78e` (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Deployed behavior changes: new lookups search five miles, the low/high fields prefill with the labeled starting range, a usable result fills only unedited figures, and the saved PMI recommendation prepares the Sheet Market value for Admin confirmation. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-market-defaults-and-sourced-comparisons.md`.  
