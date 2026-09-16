@@ -5,8 +5,12 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 Renewal operator hub bundle (S114-S120) in progress. S114 is implemented at `24b0be59` (spec import
-`986e82eb`) and integrated on main as `b29185a3`. Its first release attempt rolled back; this record
-commit resumes it on the native watcher runtime. S115-S120 have not started.
+`986e82eb`) and integrated on main. Attempt 1 (`b29185a3`) rolled back (interop runtime). Attempt 2
+(`b5aeba0e` / pmi-kc-app-rmu3wxi74-644c5bfde591) promoted, then the owner's enrollment expired during
+observation and the report required a rollback; the watcher holds it, paused on
+`authentication_required`. Owner step: `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`
+in WSL. The watcher then executes and verifies the rollback and releases this record head.
+S115 is being implemented on a local branch meanwhile and is not pushed before S114 completes.
 Two independent slide-out panels (Lease information; Process guide with the section navigation)
 replace the expanded header summary and inline glossary. Values are separately selectable with copy
 controls, one-audience "Copy all" controls, owner and tenant desk click-back links over opaque party
@@ -17,9 +21,9 @@ policy checks and build passed; core E2E passed (8 files, 4 skips); eight S114 t
 2026-09-16 compiled checks on `b29185a3` in the native checkout both passed: renewal desk (exit 0,
 first attempt) and renewal guide (45 steps). Log: `~/pmi-kc-work/logs/s114-smokes.log`. The desk
 check needs a local-only rehearsal `RENEWAL_DESK_PARTY_FILTER_KEY`; nothing was relaxed.
-Next: exact-main CI for this record head, the serialized native-watcher release of that exact SHA
-(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation, readbacks),
-then the closure record, then S115.
+Next: owner re-enrollment, the verified attempt 2 rollback, exact-main CI for this record head, its
+serialized release (candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms
+observation, readbacks), the closure record, then the S115 integration.
 
 ## Verified production
 
@@ -33,7 +37,9 @@ Candidate receipt issued 07:33:14.500Z; promotion verified 07:33:32.336Z, Septem
 Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 372,118 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; no field or destination mismatches.
 Independent serving/version/runtime readback passed 07:40:24 UTC September 15 and again after the
-2026-09-16 rollback (`/api/version` commit 0fe69bbe, revision rmu2chtvy).
+2026-09-16 attempt 1 rollback (`/api/version` commit 0fe69bbe, revision rmu2chtvy).
+Temporary state: the canonical origin serves attempt 2's candidate (commit b5aeba0e, revision
+pmi-kc-app-rmu3wxi74-644c5bfde591) at 100% pending its verified rollback to rmu2chtvy.
 
 ## Preserved failed attempts
 
@@ -47,6 +53,15 @@ deadline: the observer stalled locally. Cause measured: the task-launched watche
 Cloud SDK through interop (26-44 s per gcloud read; snap 1-2 s). The candidate revision remains at
 0% traffic. Evidence: `observation-pmi-kc-app-rmu30993m-11abc72f1702-1789548454830.json`,
 `candidate-…rmu30993m….json`, `promotion-…rmu30993m….json` in the watcher state directory.
+S114 attempt 2: `b5aeba0e` / pmi-kc-app-rmu3wxi74-644c5bfde591 (CI 35080191970). Smoke, fingerprint
+sha256:55709690aa3959af01987ddd3faddb8fc795109975c66353240df700731ac77a, domains, v4 candidate
+receipt 09:58:45Z (one `assurance_unverified` retry) and promotion (verified 09:59:07Z) passed. The
+observer rendered all 13 Admin routes and matched 311/311 records, then reported `rollback_required`
+at 10:01:35Z (156,605 ms, 0 checkpoints; traffic_mismatch, configuration_unverified,
+monitoring_unavailable) because its own cloud reads failed as the enrollment expired. Rollback to
+rmu2chtvy is saved in the checkpoint and not yet executed. Evidence:
+`observation-pmi-kc-app-rmu3wxi74-644c5bfde591-1789552752587.json`, `candidate-…rmu3wxi74….json`,
+`promotion-…rmu3wxi74….json`.
 First Feature 3 candidate: 3287f8a / pmi-kc-app-rmu23j65k-ea7b9f5b8980, never promoted; its
 checkpoint/reason were preserved before the corrected commit released. Feature 2's 4e1a4a0 /
 rmu1zycgi-d28f58f32910 and Feature 4's 4ece4ba / rmu26u6xc-9a156b302dac failed observation and
@@ -54,19 +69,17 @@ verified rollback; their receipts and terminal checkpoints remain. No failed pha
 
 ## Authentication and watcher
 
-Owner re-enrollment 2026-09-16T01:11Z; ADC digest matches the binding. 2026-09-16 08:19Z
-`auth:ensure` in WSL: gcloud ok, adc ok, env ok, gh ok (READY, token refresh verified). The enrolled
-owner Admin profile authenticated on the exact candidate origin and the canonical origin during the
-S114 candidate assurance and predecessor baseline. The isolated built-in browser pane has no app
-session (Google asks for an email; owner step, not required by the release contract).
-Watcher: the task-launched process was stopped while idle at `rolled_back_verified`; the native
-runtime now holds the same lock (`export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH`,
-`node scripts/release-watcher.mjs --watch`, PID recorded in the session log). Host logs:
+Owner re-enrollment 2026-09-16T01:11Z expired at about 10:01Z (Google reauthentication wall for
+gcloud and ADC refresh; observed longevity under nine hours). 08:19Z `auth:ensure`: all READY; 10:05Z:
+gcloud blocked, adc blocked (`Refresh failed (reauth)`), env ok, gh ok. The enrolled owner Admin
+profile authenticated on both candidate origins and the canonical origin during assurance. The
+built-in browser pane has no app session (Google asks for an email; not required by the contract).
+Watcher: native runtime holds the lock (PID 85348; `export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH`,
+`node scripts/release-watcher.mjs --watch`). Host logs:
 %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-s114-resume.log and native-errors-s114-resume.log.
-The launcher `scripts/run-release-watcher.ps1` now prepends that runtime for logon starts.
-State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json` (terminal for b29185a3 until the
-new head appears; the next checkpoint carries the failed candidate host as supersededCandidateHost).
-Do not start a competing watcher; a persistent `authentication_required` gets `auth:ensure`.
+State: `/home/josiah/.local/state/pmi-kc-release/checkpoint.json` (b5aeba0e, phase observe, rollback
+saved, blocked authentication_required). After re-enrollment it executes and verifies the rollback
+(terminal `rolled_back_verified`), then seeds the next head. Do not start a competing watcher.
 
 ## Working checkout and evidence
 

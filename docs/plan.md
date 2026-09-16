@@ -6,11 +6,16 @@ Updated: 2026-09-16 (UTC).
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
 S114 independent lease-information and process sidebars, is implemented at `24b0be59` on top of the
-spec import/registration commit `986e82eb` and is integrated on main. Its first production release
-attempt (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) passed candidate assurance
-and promotion, then failed the post-promotion observation before any page was read and was rolled
-back to the predecessor with verification. The release resumes through the same serialized watcher on
-the native runtime from this record commit; S115-S120 have not started.
+spec import/registration commit `986e82eb` and is integrated on main. Two production release attempts
+have not completed. Attempt 1 (head `b29185a3`, candidate `pmi-kc-app-rmu30993m-11abc72f1702`) rolled
+back with verification after its observer stalled on the interop gcloud runtime. Attempt 2 (head
+`b5aeba0e`, candidate `pmi-kc-app-rmu3wxi74-644c5bfde591`) passed candidate assurance and promotion on
+the native runtime and its observer rendered every route and matched every reconciled record, then the
+owner's 01:11Z enrollment expired at about 10:01Z and the observer's own Cloud Run and Monitoring reads
+failed, so its report required a rollback. The watcher holds that rollback and is paused on
+`authentication_required`; the canonical origin temporarily serves the attempt 2 candidate. The owner
+step is `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` in WSL; the watcher
+then executes and verifies the rollback and releases this record head. S115-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -29,13 +34,18 @@ after it. On 2026-09-16 both compiled browser checks (renewal desk; renewal guid
 on `b29185a3` against the native rehearsal with a local-only party-filter key. No client message was
 sent and no live record was written. Human verdict: NOT RUN.
 
-The failed attempt's cause is the watcher runtime, not the code: the scheduled-task launch used the
-Windows Cloud SDK through WSL interop (26-44 s per gcloud read), so the observer never reached its
-first page inside the 420,000 ms window. The watcher now runs natively (snap gcloud, Node 22.23.2)
-on the same lock and the launcher prepends that runtime for future logon starts.
+Neither failed attempt is caused by the code. Attempt 1: the scheduled-task launch used the Windows
+Cloud SDK through WSL interop (26-44 s per gcloud read), so the observer never reached its first
+page inside the 420,000 ms window; the watcher now runs natively (snap gcloud, Node 22.23.2) on the
+same lock and the launcher prepends that runtime. Attempt 2: the owner's enrollment expired about
+8.8 hours after 01:11Z, during the observation, so the observer's own cloud reads failed and its
+report required a rollback although every route rendered and every record matched. A release must
+start well inside a fresh enrollment; the observer's handling of its own credential expiry is a
+surfaced follow-up, not a change made here.
 
-Remaining order: complete the resumed S114 release (exact-main CI for this head, candidate,
-assurance, promotion, observation, readbacks), then S115 plain-language section guidance, S116 source
+Remaining order: the owner re-enrolls in WSL; the watcher executes and verifies the attempt 2
+rollback, then releases this record head (exact-main CI, candidate, assurance, promotion,
+observation, readbacks); then S115 plain-language section guidance, S116 source
 links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
 and completion UX. Each feature completes its own verification, exact-main CI and serialized release

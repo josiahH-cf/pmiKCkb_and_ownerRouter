@@ -1,12 +1,12 @@
 # Environment and release handoff
 
-Updated: 2026-09-16 (UTC). September 14 Features 1-6 are complete and deployed; S114 release resumed.
+Updated: 2026-09-16 (UTC). September 14 Features 1-6 are complete and deployed; the S114 release is paused on owner re-enrollment.
 Production serves `0fe69bbe7f182e8a34ed97ebd10f7b573d088630` as `pmi-kc-app-rmu2chtvy-4d3cfabf46dd` at 100% traffic. Exact main [CI 34940745236](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/34940745236) passed after two unchanged backend-job retries. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,118 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic and the reviewed runtime configuration were independently read back.
 
 Current receipts and observation evidence remain outside Git under `/home/josiah/.local/state/pmi-kc-release`.
 The failed Feature 2 observation/rollback and Feature 3 unpromoted candidate checkpoint remain preserved separately.
 S113 baseline release evidence remains in docs/evidence/s113-implementation-review-2026-09-10.md.
-The separate 24-hour authentication longevity proof remains unverified. No identity or claim changed.
+Authentication longevity is observed at under nine hours: the 2026-09-16T01:11Z enrollment expired at about 10:01Z, so a release must start well inside a fresh enrollment. No identity or claim changed.
 
 ## Production
 
@@ -95,7 +95,13 @@ under `%LOCALAPPDATA%/PMI-KC/release-watcher`. WSL checkpoints and locks stay ou
 `/snap/google-cloud-cli/current/bin` and Node 22.23.2 ahead of the inherited Windows-mounted Cloud
 SDK path. Through the interop path each gcloud read takes 26-44 s (1-2 s natively), which stalled
 the S114 post-promotion observer for its whole 420,000 ms window on 2026-09-16 and forced a verified
-rollback; the launcher now prepends that runtime. The task launch writes `status.log`/`errors.log`;
+rollback; the launcher now prepends that runtime. On that runtime the S114 attempt 2 observer
+(`b5aeba0e`, `pmi-kc-app-rmu3wxi74-644c5bfde591`) rendered every route, then lost Google
+authentication when the enrollment expired and required a rollback; the watcher holds it, paused on
+`authentication_required`, so the canonical origin temporarily serves that candidate at 100% until
+the owner re-enrolls (`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` in
+WSL) and the rollback is executed and verified. The table above records the last verified release.
+The task launch writes `status.log`/`errors.log`;
 native launches write `native-status-<tag>.log`/`native-errors-<tag>.log` (current:
 `native-status-s114-resume.log`). A manual native launch on the same lock is
 `export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH; nohup setsid node scripts/release-watcher.mjs --watch … &`
