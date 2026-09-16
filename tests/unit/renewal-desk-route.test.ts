@@ -134,9 +134,12 @@ describe("S78 canonical renewal route", () => {
     expect(canary).toContain("workspaceSelectorsForPhase");
     expect(canary).toMatch(/page\.locator\(selector\)\.first\(\)/);
     expect(canary).toContain('[aria-busy="true"]');
+    // The settle wait precedes the exact landmark assertion so an asynchronously loaded panel's
+    // loading state (which may carry its own heading) is never what gets asserted.
     expect(canary).toMatch(
-      /if \(\s*passed &&\s*!\(await waitForSettledRoute\(\s*page,\s*remainingAssuranceTime\(deadlineAtMs, LOADED_STATE_TIMEOUT_MS\),\s*\)\)\s*\) \{[\s\S]*?passed = false;/,
+      /const assertion = await assertSettledRoute\(\s*\(\) =>\s*waitForSettledRoute\(\s*page,\s*remainingAssuranceTime\(deadlineAtMs, LOADED_STATE_TIMEOUT_MS\),\s*\),\s*\(\) =>\s*assertRouteOutcome\(/,
     );
+    expect(canary).not.toMatch(/if \(\s*passed &&\s*!\(await waitForSettledRoute/);
     expect(canary).toMatch(
       /async function waitForSettledRoute[\s\S]*?catch \{\s*return false;\s*\}/,
     );
