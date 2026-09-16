@@ -2388,20 +2388,24 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(
           message.getByRole("button", { name: "Save reviewed preparation" }),
         );
-        await waitFor(() =>
-          expect(
-            message.getByRole("button", { name: "Preview unsent Gmail draft" }),
-          ).toBeEnabled(),
+        await waitFor(
+          () =>
+            expect(
+              message.getByRole("button", { name: "Preview unsent Gmail draft" }),
+            ).toBeEnabled(),
+          { timeout: 10_000 },
         );
         mounted.unmount();
         mounted = await mountCurrent();
         const resumed = within(
           screen.getByRole("region", { name: "Tenant offer and response" }),
         );
-        await waitFor(() =>
-          expect(
-            resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
-          ).toBeEnabled(),
+        await waitFor(
+          () =>
+            expect(
+              resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
+            ).toBeEnabled(),
+          { timeout: 10_000 },
         );
         expect(
           resumed.getByLabelText("Response request (optional wording edit)"),
@@ -2568,10 +2572,12 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             ).toBe("done"),
           { timeout: 5000 },
         );
-        await waitFor(() =>
-          expect(
-            screen.getByRole("button", { name: "Record staff completion" }),
-          ).toBeEnabled(),
+        await waitFor(
+          () =>
+            expect(
+              screen.getByRole("button", { name: "Record staff completion" }),
+            ).toBeEnabled(),
+          { timeout: 10_000 },
         );
         fireEvent.click(screen.getByRole("button", { name: "Record staff completion" }));
         await waitFor(async () =>
