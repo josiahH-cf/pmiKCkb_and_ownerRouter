@@ -2315,11 +2315,14 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         const tenant = within(
           screen.getByRole("region", { name: "Tenant offer and response" }),
         );
-        await waitFor(() =>
-          expect(
-            (tenant.getByLabelText("tenant plain text body") as HTMLTextAreaElement)
-              .value,
-          ).toContain("$1,100.00"),
+        // The tenant preparation reloads after the owner response is recorded; wait for it.
+        await waitFor(
+          () =>
+            expect(
+              (tenant.getByLabelText("tenant plain text body") as HTMLTextAreaElement)
+                .value,
+            ).toContain("$1,100.00"),
+          { timeout: 10_000 },
         );
         expect(
           tenant.getByRole("button", { name: "Preview unsent Gmail draft" }),
