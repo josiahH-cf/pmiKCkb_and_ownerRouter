@@ -5,11 +5,12 @@ Last updated: 2026-09-16 (UTC).
 ## Current feature
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED: implemented at
-`24b0be59` on top of the spec import `986e82eb`, integrated on main and released on 2026-09-16 as head
-`b7fd04d1` (candidate `pmi-kc-app-rmu46blcc-af55ec317652`) through the serialized watcher after two earlier
-attempts rolled back with verification (attempt 1: the observer ran on the interop gcloud runtime;
-attempt 2: the owner's enrollment expired during observation). Feature 2 of 7, S115 plain-language section help, is implemented on local branch `s115-section-help` with its full gate, core E2E and both compiled browser checks green and is the next integration; S116-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (head `b7fd04d1`,
+revision `pmi-kc-app-rmu46blcc-af55ec317652`, released 2026-09-16 on its third attempt). Feature 2 of 7,
+S115 plain-language section help and lower-noise workspaces, is implemented at `dffc4f71` and integrated on
+main as head `14b486a0` together with the owner-directed WSL enrollment fix (`41fe8f4b`), a deterministic
+budget for the S113 backend journey (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`); its
+serialized release is next. S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -31,6 +32,28 @@ and the renewal guide check (all 45 steps located, conditional steps reported se
 check needs a local-only rehearsal party-filter key because the header filters render only when
 that key resolves; no check was relaxed. No client message was sent and no live record was written.
 Human verdict: NOT RUN.
+
+S115 adds a small contrasting "i" control beside every renewal section heading and work-area card.
+Named "About <heading>", it opens the shared InfoTip (hover after 600 ms on a fine pointer, focus,
+click and touch; Escape closes and returns focus) over plain-language help from a pure content model
+of 33 entries: what the area is for, the real steps where a sequence exists, what saving records and
+where it goes, what does not happen and the next real control. The "Start here" descriptions and the
+redundant procedural paragraphs moved into that help; blockers, paused and expired states, refusals,
+the draft banner and every confirmation consequence stay visible. Receipted effects show their state
+label instead of an action key; the no-proposal Sheet and RentVine panels name the actual input,
+action, role and destination. Genuinely manual required fields carry the required cue beside their
+label; section navigation never lands on a help trigger; opening help issues no request. The operator
+guide gained rows 47-51 for the About controls and the walkthrough names them.
+
+Verification on the exact integrated head `14b486a0` in the native checkout: format, lint, types, 6,586
+unit tests (712 files), 201 backend tests, every policy check and the production build passed; core
+E2E passed with 8 files and 4 intentional skips; the compiled renewal desk check passed on its second
+attempt after the documented cold-compile timeout and the renewal guide check located all 50 steps
+including the five About rows. Eight of the nine S115 tests failed before the implementation and all
+nine pass after it; the 88-file preservation set (969 tests) passed unchanged apart from the S113
+backend journey now asserting the visible state label. Two watcher driver tests were red before the
+client-lifecycle fix and are green after it. No client message was sent and no live record was
+written. Human verdict: NOT RUN.
 
 ## Serving release
 

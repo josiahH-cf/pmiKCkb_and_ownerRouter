@@ -4,15 +4,17 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Renewal operator hub bundle (S114-S120) in progress. S114 is COMPLETE / DEPLOYED: implemented at
-`24b0be59` (spec import `986e82eb`), released 2026-09-16 as head `b7fd04d1` / pmi-kc-app-rmu46blcc-af55ec317652
-(attempt 3) after attempts 1 and 2 rolled back with verification. Feature 2 of 7, S115 plain-language section help, is implemented on local branch `s115-section-help` with its full gate, core E2E and both compiled browser checks green and is the next integration; S116-S120 have not started.
-S115 branch `s115-section-help`: `97beecdc` (feature), `4f99ee91` (owner-directed auth enrollment fix,
-cherry-picked from `33f7630f`), `2747c511` (journey budget), `a9540266` (watcher client fix). Nine
-S115 tests (8 of 9 fail-first); preservation 88 files / 969 tests; backend 201; core E2E 8 files / 4
-skips; full gate green; compiled desk and guide checks per `~/pmi-kc-work/logs/s115-smokes.log`.
-Next: S115 record on the branch, push to main, exact-main CI, serialized release, readbacks, closure;
-then S116 (design saved in the session scratchpad; its read-only live Sheet-row inspection needs ADC).
+Renewal operator hub bundle (S114-S120) in progress. S114 is COMPLETE / DEPLOYED (head `b7fd04d1` /
+pmi-kc-app-rmu46blcc-af55ec317652, released 2026-09-16, third attempt). S115 plain-language section
+help is implemented at `dffc4f71` and integrated on main as head `14b486a0` with the owner-directed auth
+enrollment fix `41fe8f4b` (from parked `33f7630f`), the S113 journey budget `dea16616` and the watcher
+client-lifecycle fix `14b486a0`. Gates on the integrated head: format, lint, types, 6,586 unit tests (712
+files), 201 backend tests, policy checks, build; core E2E 8 files / 4 skips; desk check (attempt 2
+after the documented cold-compile timeout) and guide check (50 steps) passed; nine S115 tests (8 of 9
+fail-first); preservation 88 files / 969 tests. Logs: `~/pmi-kc-work/logs/s115-*.log`,
+`renewal-smokes.log`. Next: exact-main CI for this head, the serialized release (candidate, smoke,
+fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks, closure record, then
+S116 (design saved in the session scratchpad; its read-only live Sheet-row inspection needs ADC).
 
 ## Verified production
 
@@ -77,8 +79,8 @@ b7fd04d1). Do not start a competing watcher; `authentication_required` needs the
 Native checkout: `~/pmi-kc-work/main` on branch `s115-section-help` (Node 22.23.2, both reviewed
 ignored env files, `npm ci`); logs under `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log,
 s115-smokes.log, s115-fail-first.log). The Windows checkout is the watcher SOURCE and the docs editing
-tree; branch `s115-section-help` carries S115 and the parked auth fix (`pending-auth-enroll-fix` keeps
-the original `33f7630f`). Smoke artifacts: `~/pmi-kc-work/main/temp/renewal-desk-browser-s82`,
+tree; branch `s115-section-help` is integrated into main (`pending-auth-enroll-fix` keeps the original
+`33f7630f`). Smoke artifacts: `~/pmi-kc-work/main/temp/renewal-desk-browser-s82`,
 `…/renewal-guide-controls-s111`. Failed-candidate diagnostics (`f3-*`, `f4-*`) and archived checkpoints
 remain in the watcher state directory. Credentials/customer evidence stay outside Git.
 

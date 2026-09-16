@@ -5,11 +5,12 @@ Updated: 2026-09-16 (UTC).
 ## Outcome
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED: implemented at
-`24b0be59` on top of the spec import `986e82eb`, integrated on main and released on 2026-09-16 as head
-`b7fd04d1` (candidate `pmi-kc-app-rmu46blcc-af55ec317652`) through the serialized watcher after two earlier
-attempts rolled back with verification (attempt 1: the observer ran on the interop gcloud runtime;
-attempt 2: the owner's enrollment expired during observation). Feature 2 of 7, S115 plain-language section help, is implemented on local branch `s115-section-help` with its full gate, core E2E and both compiled browser checks green and is the next integration; S116-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (head `b7fd04d1`,
+revision `pmi-kc-app-rmu46blcc-af55ec317652`, released 2026-09-16 on its third attempt). Feature 2 of 7,
+S115 plain-language section help and lower-noise workspaces, is implemented at `dffc4f71` and integrated on
+main as head `14b486a0` together with the owner-directed WSL enrollment fix (`41fe8f4b`), a deterministic
+budget for the S113 backend journey (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`); its
+serialized release is next. S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -35,7 +36,7 @@ domains phase failed each pass after the re-enrollment; the fix (client recreate
 failure) rides the S115 integration. Observed authentication longevity is under nine hours; a release
 must start well inside a fresh enrollment.
 
-Remaining order: integrate S115 plain-language section guidance (record, push, exact-main CI,
+Remaining order: release S115 plain-language section guidance (exact-main CI for this head, the
 serialized release, readbacks, closure), then S116 source
 links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation

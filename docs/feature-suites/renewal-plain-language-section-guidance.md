@@ -3,7 +3,7 @@
 
 # S115 — Plain-language section help and lower-noise renewal workspaces
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `dffc4f71`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head `14b486a0`. The serialized production release is in progress. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-plain-language-section-guidance.md`.  
