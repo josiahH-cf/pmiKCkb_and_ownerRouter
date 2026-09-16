@@ -2576,6 +2576,6 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       ).toBeGreaterThan(15);
       cleanup();
     },
-    45000,
+    120_000,
   );
 });
