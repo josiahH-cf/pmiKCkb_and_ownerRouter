@@ -5,12 +5,14 @@ Last updated: 2026-09-16 (UTC).
 ## Current feature
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (head `b7fd04d1`,
-revision `pmi-kc-app-rmu46blcc-af55ec317652`, released 2026-09-16 on its third attempt). Feature 2 of 7,
-S115 plain-language section help and lower-noise workspaces, is implemented at `dffc4f71` and integrated on
-main as head `14b486a0` together with the owner-directed WSL enrollment fix (`41fe8f4b`), a deterministic
-budget for the S113 backend journey (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`); its
-serialized release is next. S116-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
+`24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
+attempt). Feature 2 of 7, S115 plain-language section help and lower-noise workspaces, is COMPLETE and
+DEPLOYED: implemented at `dffc4f71`, integrated on main with the owner-directed WSL enrollment fix
+(`41fe8f4b`), the S113 journey budget (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`),
+and released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second attempt
+(attempt 1 rolled back with verification after the production canary raced the work board's loading
+heading; the canary now settles a route before asserting its landmark). S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -45,7 +47,7 @@ action, role and destination. Genuinely manual required fields carry the require
 label; section navigation never lands on a help trigger; opening help issues no request. The operator
 guide gained rows 47-51 for the About controls and the walkthrough names them.
 
-Verification on the exact integrated head `14b486a0` in the native checkout: format, lint, types, 6,586
+Verification on the integrated head `14b486a0` in the native checkout: format, lint, types, 6,586
 unit tests (712 files), 201 backend tests, every policy check and the production build passed; core
 E2E passed with 8 files and 4 intentional skips; the compiled renewal desk check passed on its second
 attempt after the documented cold-compile timeout and the renewal guide check located all 50 steps
@@ -55,12 +57,22 @@ backend journey now asserting the visible state label. Two watcher driver tests 
 client-lifecycle fix and are green after it. No client message was sent and no live record was
 written. Human verdict: NOT RUN.
 
+S115 released on its second attempt as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` (candidate
+assurance on the first pass, promotion verified 16:32:54Z, observation with two checkpoints in
+381,795 ms, complete 16:39:08Z, all 2026-09-16). Attempt 1 (`9d6258bb`, candidate
+`pmi-kc-app-rmu49gnyi-9cf475eedd55`) promoted and then rolled back with verification at 16:13:37Z:
+the production canary asserted the work board's exact heading 750 ms after navigation while the
+board still showed its loading panel, which carries its own heading. The canary now waits for the
+route to settle before asserting its landmark (`f3406f3d`, fail-first tests, pinned by the head).
+The exact head passed CI on its first run; canonical and tagged versions, traffic, revision
+configuration, receipts, the observation report and the authorized domains were read back.
+
 ## Serving release
 
-Production serves `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` as `pmi-kc-app-rmu46blcc-af55ec317652` at 100% traffic. Exact main [CI 35085676625](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35085676625) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (after one unverified retry), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,902 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `3ca35870b8adf561fb27d935cfba5a52c53cd43b` as `pmi-kc-app-rmu4awn6p-67bd97a8824e` at 100% traffic. Exact main [CI 35119806402](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35119806402) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (first pass), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 381,795 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu2chtvy-4d3cfabf46dd`.
-Configuration fingerprint: `sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu46blcc-af55ec317652`.
+Configuration fingerprint: `sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
@@ -100,20 +112,21 @@ The owner-approved v4 receipt records only the exact blocked predecessor My Work
 The owner enrolled WSL CLI/ADC at 2026-09-16T01:11Z; that session expired at about 10:01Z with Google
 requiring reauthentication for every gcloud and ADC refresh, so observed authentication longevity is
 under nine hours, not 24. The owner re-enrolled at 13:59:18Z and `auth:ensure` at 14:01Z reported READY
-for gcloud, ADC, env and gh with token refresh verified. The enrolled Admin browser profile
-authenticated on the candidate and canonical origins during every S114 assurance and predecessor
-baseline. The isolated built-in browser pane holds no application session and Google asks for an
+for gcloud, ADC, env and gh with token refresh verified; the watcher's own preflight and cloud reads
+succeeded throughout the S115 release. The enrolled Admin browser profile authenticated on the
+candidate and canonical origins during every S114 and S115 assurance and predecessor baseline; one
+momentary canonical session gap at about 16:23Z was closed at 16:27:11Z by the existing
+`auth:enroll-canary` reusing the session with no human input. The isolated built-in browser pane holds
+no application session and Google asks for an
 email there; that is an owner step the release contract does not need. No password, code, passkey or
 CAPTCHA was entered. No account, IAM, claim, store location, permission scope or security policy changed.
 
-S114 released on its third attempt. Attempt 1's observer stalled on the interop gcloud runtime (26-44 s
-per read) and rolled back; the watcher now runs natively and the launcher prepends that runtime.
-Attempt 2 promoted, then the owner's enrollment expired during observation, the observer's own cloud
-reads failed and the report required a rollback, which the watcher executed at 14:01Z and verified at
-14:05:12Z once the owner re-enrolled. Attempt 3 (`b7fd04d1`, candidate `pmi-kc-app-rmu46blcc-af55ec317652`)
-passed smoke, fingerprint, domains, candidate assurance (one unverified retry), promotion (verified
-14:52:41Z) and the observation (two checkpoints, 386,902 ms) and completed at 14:59:21Z. Its domains
-phase needed a same-lock relaunch of the watcher because the long-lived process kept a memoized
-Identity Platform client with the expired refresh token; the fix rides the S115 integration. Every
-attempt's receipts, reports and checkpoints are preserved outside Git; earlier checkpoints retain their
-actual outcomes. Documentation-only closure does not deploy.
+S114 released on its third attempt (attempt 1: interop gcloud runtime stalled the observer; attempt 2:
+the owner's enrollment expired during observation; both rolled back with verification). S115 released
+on its second attempt (`3ca35870`, candidate `pmi-kc-app-rmu4awn6p-67bd97a8824e`): attempt 1 rolled back with
+verification at 16:13:37Z after the canary raced the work board's loading heading; attempt 2 passed
+smoke, fingerprint, domains, candidate assurance on its first pass, promotion (verified 16:32:54Z)
+and the observation (two checkpoints, 381,795 ms) and completed at 16:39:08Z. The watcher ran
+natively on the same lock throughout and now carries the client-lifecycle fix. Every attempt's
+receipts, reports and checkpoints are preserved outside Git; earlier checkpoints retain their actual
+outcomes. Documentation-only closure does not deploy.

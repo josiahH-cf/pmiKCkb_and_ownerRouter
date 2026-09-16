@@ -1,7 +1,7 @@
 # Environment and release handoff
 
-Updated: 2026-09-16 (UTC). September 14 Features 1-6 and S114 are complete and deployed; S115 is the next serialized release.
-Production serves `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` as `pmi-kc-app-rmu46blcc-af55ec317652` at 100% traffic. Exact main [CI 35085676625](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35085676625) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (after one unverified retry), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,902 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Updated: 2026-09-16 (UTC). September 14 Features 1-6, S114 and S115 are complete and deployed; S116 is the next serialized release.
+Production serves `3ca35870b8adf561fb27d935cfba5a52c53cd43b` as `pmi-kc-app-rmu4awn6p-67bd97a8824e` at 100% traffic. Exact main [CI 35119806402](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35119806402) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (first pass), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 381,795 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 Current receipts and observation evidence remain outside Git under `/home/josiah/.local/state/pmi-kc-release`.
 The failed Feature 2 observation/rollback and Feature 3 unpromoted candidate checkpoint remain preserved separately.
@@ -16,8 +16,8 @@ Authentication longevity is observed at under nine hours: the 2026-09-16T01:11Z 
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmu46blcc-af55ec317652`             |
-| Serving commit            | `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586`      |
+| Serving revision          | `pmi-kc-app-rmu4awn6p-67bd97a8824e`             |
+| Serving commit            | `3ca35870b8adf561fb27d935cfba5a52c53cd43b`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
@@ -99,12 +99,15 @@ rollback; the launcher now prepends that runtime. On that runtime S114 attempt 2
 the required rollback was held on `authentication_required` until the 13:59:18Z re-enrollment, executed
 and verified at 14:05:12Z. Attempt 3 then completed, after a same-lock relaunch of the watcher at 14:41Z:
 the long-lived process had memoized an Identity Platform client with the expired refresh token, so the
-`domains` phase failed each pass while subprocess phases passed. Until the client-lifecycle fix ships, a
-re-enrollment during a release needs that relaunch: stop the idle native process between passes,
-confirm `flock --nonblock` on `release.lock`, start it again with the command below.
+`domains` phase failed each pass while subprocess phases passed. The client-lifecycle fix (`14b486a0`,
+client recreated after a credential failure) shipped with S115; a watcher process started before it
+still needs that relaunch after a re-enrollment: stop the idle native process between passes, confirm
+`flock --nonblock` on `release.lock`, start it again with the command below. S115 attempt 1 rolled back
+with verification because the production canary asserted the work board's exact heading before the
+board settled; since `f3406f3d` the canary settles a route before asserting its landmark.
 The task launch writes `status.log`/`errors.log`;
 native launches write `native-status-<tag>.log`/`native-errors-<tag>.log` (current:
-`native-status-s114-attempt3.log`). A manual native launch on the same lock is
+`native-status-s115.log`). A manual native launch on the same lock is
 `export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH; nohup setsid node scripts/release-watcher.mjs --watch … &`
 after the idle task-launched process is stopped and `flock --nonblock` on `release.lock` succeeds.
 
@@ -114,7 +117,7 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The last successful serialized release completed exact SHA `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586`, CI 35085676625, revision `pmi-kc-app-rmu46blcc-af55ec317652` (S114, third attempt, 2026-09-16).
+The last successful serialized release completed exact SHA `3ca35870b8adf561fb27d935cfba5a52c53cd43b`, CI 35119806402, revision `pmi-kc-app-rmu4awn6p-67bd97a8824e` (S115, second attempt, 2026-09-16).
 The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
 Its terminalFailure / rolled_back_verified checkpoint is preserved outside Git. The missing-report
@@ -191,8 +194,8 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-The accepted candidate is now serving: `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` / `pmi-kc-app-rmu46blcc-af55ec317652`, tag `cand-rmu46blcc-af55ec317652`.
-Captured predecessor is `pmi-kc-app-rmu2chtvy-4d3cfabf46dd`. Fingerprint `sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18`.
+The accepted candidate is now serving: `3ca35870b8adf561fb27d935cfba5a52c53cd43b` / `pmi-kc-app-rmu4awn6p-67bd97a8824e`, tag `cand-rmu4awn6p-67bd97a8824e`.
+Captured predecessor is `pmi-kc-app-rmu46blcc-af55ec317652`. Fingerprint `sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840`.
 Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
 The commands below remain the required contract for future releases.
 
@@ -347,14 +350,14 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmu2chtvy-4d3cfabf46dd` from commit
-`0fe69bbe7f182e8a34ed97ebd10f7b573d088630` (its own captured predecessor was
-`pmi-kc-app-rmu2a59tx-28c0417b4693` / `82a2cf80ab0e17c9a947a54204524f7cd282eb93`).
+Captured predecessor: `pmi-kc-app-rmu46blcc-af55ec317652` from commit
+`b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` (its own captured predecessor was
+`pmi-kc-app-rmu2chtvy-4d3cfabf46dd` / `0fe69bbe7f182e8a34ed97ebd10f7b573d088630`).
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu2chtvy-4d3cfabf46dd=100 --quiet
+  --to-revisions=pmi-kc-app-rmu46blcc-af55ec317652=100 --quiet
 ```
 
 Forward restoration to the current serving revision:
@@ -362,7 +365,7 @@ Forward restoration to the current serving revision:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu46blcc-af55ec317652=100 --quiet
+  --to-revisions=pmi-kc-app-rmu4awn6p-67bd97a8824e=100 --quiet
 ```
 
 These are exact recovery coordinates, not a request to change current traffic. Every recovery

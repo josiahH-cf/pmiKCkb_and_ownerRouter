@@ -3,7 +3,7 @@
 
 # S115 — Plain-language section help and lower-noise renewal workspaces
 
-> Status: IMPLEMENTED at `dffc4f71`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head `14b486a0`. The serialized production release is in progress. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `dffc4f71`; released on 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second attempt (attempt 1 rolled back with verification after the production canary raced the work board's loading heading, fixed in `f3406f3d`). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-plain-language-section-guidance.md`.  

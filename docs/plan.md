@@ -5,12 +5,14 @@ Updated: 2026-09-16 (UTC).
 ## Outcome
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (head `b7fd04d1`,
-revision `pmi-kc-app-rmu46blcc-af55ec317652`, released 2026-09-16 on its third attempt). Feature 2 of 7,
-S115 plain-language section help and lower-noise workspaces, is implemented at `dffc4f71` and integrated on
-main as head `14b486a0` together with the owner-directed WSL enrollment fix (`41fe8f4b`), a deterministic
-budget for the S113 backend journey (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`); its
-serialized release is next. S116-S120 have not started.
+S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
+`24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
+attempt). Feature 2 of 7, S115 plain-language section help and lower-noise workspaces, is COMPLETE and
+DEPLOYED: implemented at `dffc4f71`, integrated on main with the owner-directed WSL enrollment fix
+(`41fe8f4b`), the S113 journey budget (`dea16616`) and the watcher client-lifecycle fix (`14b486a0`),
+and released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second attempt
+(attempt 1 rolled back with verification after the production canary raced the work board's loading
+heading; the canary now settles a route before asserting its landmark). S116-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -29,15 +31,14 @@ after it. On 2026-09-16 both compiled browser checks (renewal desk; renewal guid
 on `b29185a3` against the native rehearsal with a local-only party-filter key. No client message was
 sent and no live record was written. Human verdict: NOT RUN.
 
-Attempts 1 and 2 were not caused by the code (interop gcloud runtime; enrollment expiry during
-observation). Attempt 3 completed on the native runtime after a same-lock relaunch: the long-lived
-watcher process had memoized an Identity Platform client holding the expired refresh token, so the
-domains phase failed each pass after the re-enrollment; the fix (client recreated after a credential
-failure) rides the S115 integration. Observed authentication longevity is under nine hours; a release
-must start well inside a fresh enrollment.
+S114 attempts 1 and 2 were not caused by the code (interop gcloud runtime; enrollment expiry during
+observation). S115 attempt 1 was not caused by the feature code either: the production canary asserted
+the work board's exact heading before the board settled, and the canary now settles a route before
+asserting its landmark. The watcher recreates its Identity Platform client after a credential failure.
+Observed authentication longevity is under nine hours; a release must start well inside a fresh
+enrollment.
 
-Remaining order: release S115 plain-language section guidance (exact-main CI for this head, the
-serialized release, readbacks, closure), then S116 source
+Remaining order: S116 source
 links and Sheet contact integrity, S117 master facts and confirmed source updates, S118 market
 defaults and sourced comparisons, S119 manual status and desk filtering, S120 downstream preparation
 and completion UX. Each feature completes its own verification, exact-main CI and serialized release
@@ -45,7 +46,7 @@ before the next begins.
 
 ## Current implementation baseline
 
-Production serves `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586` as `pmi-kc-app-rmu46blcc-af55ec317652` at 100% traffic. Exact main [CI 35085676625](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35085676625) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (after one unverified retry), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 386,902 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `3ca35870b8adf561fb27d935cfba5a52c53cd43b` as `pmi-kc-app-rmu4awn6p-67bd97a8824e` at 100% traffic. Exact main [CI 35119806402](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35119806402) passed on its first run. Candidate build, smoke, configuration, domains, Admin assurance (first pass), reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 381,795 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and

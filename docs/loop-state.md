@@ -4,37 +4,46 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Renewal operator hub bundle (S114-S120) in progress. S114 is COMPLETE / DEPLOYED (head `b7fd04d1` /
-pmi-kc-app-rmu46blcc-af55ec317652, released 2026-09-16, third attempt). S115 plain-language section
-help is implemented at `dffc4f71` and integrated on main as head `14b486a0` with the owner-directed auth
-enrollment fix `41fe8f4b` (from parked `33f7630f`), the S113 journey budget `dea16616` and the watcher
-client-lifecycle fix `14b486a0`. Gates on the integrated head: format, lint, types, 6,586 unit tests (712
-files), 201 backend tests, policy checks, build; core E2E 8 files / 4 skips; desk check (attempt 2
-after the documented cold-compile timeout) and guide check (50 steps) passed; nine S115 tests (8 of 9
-fail-first); preservation 88 files / 969 tests. Logs: `~/pmi-kc-work/logs/s115-*.log`,
-`renewal-smokes.log`. Next: exact-main CI for this head, the serialized release (candidate, smoke,
-fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks, closure record, then
-S116 (design saved in the session scratchpad; its read-only live Sheet-row inspection needs ADC).
+Renewal operator hub bundle (S114-S120) in progress. S114 is COMPLETE / DEPLOYED (implemented at
+`24b0be59`, released 2026-09-16 as head `b7fd04d1` / pmi-kc-app-rmu46blcc-af55ec317652, third attempt).
+S115 plain-language section help is COMPLETE / DEPLOYED: implemented at `dffc4f71`, integrated with the
+owner-directed auth enrollment fix `41fe8f4b`, the S113 journey budget `dea16616` and the watcher
+client-lifecycle fix `14b486a0`, released 2026-09-16 as head `3ca35870` / pmi-kc-app-rmu4awn6p-67bd97a8824e
+(second attempt; the canary settle fix `f3406f3d` and its pin rode the release). Gates on the
+integrated code: format, lint, types, 6,586 unit tests (712 files), 201 backend, policy, build; core
+E2E 8 files / 4 skips; desk and guide (50 steps) compiled checks; nine S115 tests (8 of 9 fail-first);
+preservation 88 files / 969 tests. Next: S116 source links and Sheet contact integrity (design saved
+in the session scratchpad; re-ground on the released code first; its read-only live Sheet-row
+inspection needs ADC and writes nothing), then S117-S120, each with its own gate, exact-main CI,
+serialized release, readbacks and closure record.
 
 ## Verified production
 
-Serving SHA: b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586
-Serving revision: pmi-kc-app-rmu46blcc-af55ec317652, 100% traffic (tag cand-rmu46blcc-af55ec317652).
+Serving SHA: 3ca35870b8adf561fb27d935cfba5a52c53cd43b
+Serving revision: pmi-kc-app-rmu4awn6p-67bd97a8824e, 100% traffic (tag cand-rmu4awn6p-67bd97a8824e).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18.
-Predecessor: pmi-kc-app-rmu2chtvy-4d3cfabf46dd / 0fe69bbe7f182e8a34ed97ebd10f7b573d088630 (fingerprint sha256:cebd1c65380ee5a8ca5e3445a07fec1ee7c4e5766b1df555b28910c195e6fae5).
-Exact CI 35085676625 passed on its first run; Cloud Build c0803145-b747-4318-bbfc-dcf9082da3f8 succeeded (14:06:50Z-14:10:12Z).
-Candidate receipt issued 14:52:22.384Z (one assurance_unverified retry); promotion started
-14:52:35.203Z, verified 14:52:41.672Z; complete 14:59:21Z, all September 16.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 386,902 ms / 300,000 ms.
+Fingerprint: sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840.
+Predecessor: pmi-kc-app-rmu46blcc-af55ec317652 / b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586 (fingerprint sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18).
+Exact CI 35119806402 passed on its first run; Cloud Build aee5ceed-6f40-477f-9d90-4a460c9b59a2 succeeded (16:15:27Z-16:20:14Z).
+Candidate receipt issued 16:32:28.091Z (first pass); promotion started 16:32:43.553Z, verified
+16:32:54.795Z; complete 16:39:08Z, all September 16.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 381,795 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
-Independent readback 15:00Z: canonical and tagged /api/version, 100% traffic on rmu46blcc, revision
-env (APP_COMMIT_SHA b7fd04d1, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only cand-rmu46blcc; no registry, gate or rules file changed since 0fe69bbe.
+Independent readback 16:39Z: canonical and tagged /api/version, 100% traffic on rmu4awn6p, revision
+env (APP_COMMIT_SHA 3ca35870, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only cand-rmu4awn6p; no registry, gate or rules file changed since b7fd04d1.
 
 ## Preserved failed attempts
 
+S115 attempt 1: `9d6258bb` / pmi-kc-app-rmu49gnyi-9cf475eedd55 (CI 35115674480). Smoke, fingerprint,
+domains, v4 candidate receipt 16:10:14Z (after three `assurance_unverified` passes) and promotion
+(verified 16:10:38Z) passed. The observer reported `rollback_required` at 16:12:19Z (109,420 ms, 0
+checkpoints; admin_canary_failed, browser_diagnostic: route my_work landmark_missing at 1,488 ms; 12/13
+rendered; 311/311 matched; monitoring ready); rollback to rmu46blcc verified 16:13:37Z. Cause: the canary
+asserted the exact heading before the work board settled and the loading panel carries its own
+heading; fixed in `f3406f3d`. Evidence: `observation-pmi-kc-app-rmu49gnyi-9cf475eedd55-1789575048099.json`,
+`candidate-…rmu49gnyi….json`, `promotion-…rmu49gnyi….json` and the archived terminal checkpoint.
 S114 attempt 1: `b29185a3` / pmi-kc-app-rmu30993m-11abc72f1702 (CI 35005955673). Smoke,
 fingerprint sha256:c9b60fa76d15321b333e503586aafdbb3c5975d770325ac09fe7d5f3569d1c89, domains,
 v4 candidate receipt 08:37:35Z and promotion (verified 08:44:51Z) passed. The post-promotion
@@ -62,27 +71,31 @@ verified rollback; their receipts and terminal checkpoints remain. No failed pha
 ## Authentication and watcher
 
 Owner enrollment 2026-09-16T01:11Z expired at about 10:01Z (Google reauthentication for gcloud and
-ADC refresh; observed longevity under nine hours). Re-enrolled 13:59:18Z; 14:01Z `auth:ensure`: gcloud
-ok, adc ok, env ok, gh ok (READY, token refresh verified). The enrolled owner Admin profile
-authenticated on the candidate and canonical origins during every S114 assurance and predecessor
-baseline (last 14:50:18Z). Built-in browser pane: no app session (owner step; not required).
-Watcher: native runtime holds the lock (PID 334650 since 14:41:32Z; `export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH`,
-`node scripts/release-watcher.mjs --watch` from the Windows checkout). The previous process kept a
-memoized Identity Platform client with the expired refresh token, so `domains` failed each pass after
-re-enrollment until the same-lock relaunch; fix `a9540266` on the S115 branch. Host logs:
-%LOCALAPPDATA%/PMI-KC/release-watcher/native-status-s114-attempt3.log and native-errors-s114-attempt3.log
-(earlier attempts: `…-s114-resume.log`). State: checkpoint.json complete for b7fd04d1 (lastDeployedSha
-b7fd04d1). Do not start a competing watcher; `authentication_required` needs the owner's WSL re-enrollment.
+ADC refresh; observed longevity under nine hours). Re-enrolled 13:59:18Z; 14:01Z `auth:ensure` READY
+(gcloud, adc, env, gh; token refresh verified); the watcher's preflight and cloud reads succeeded through
+16:39Z. The enrolled owner Admin profile authenticated on the candidate and canonical origins during
+every S114 and S115 assurance and predecessor baseline (last 16:32:28Z); a momentary canonical session
+gap at about 16:23Z (`managed_browser_enrollment_required`) was closed at 16:27:11Z by
+`auth:enroll-canary` reusing the existing session (no human input). Built-in browser pane: no app
+session (owner step; not required).
+Watcher: native runtime holds the lock (PID 387335 since 15:51:26Z; `export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH`,
+`node scripts/release-watcher.mjs --watch` from the Windows checkout) running the client-lifecycle
+fix. Host logs: %LOCALAPPDATA%/PMI-KC/release-watcher/native-status-s115.log and
+native-errors-s115.log (earlier: `…-s114-attempt3.log`, `…-s114-resume.log`). State: checkpoint.json
+complete for 3ca35870 (lastDeployedSha 3ca35870). Do not start a competing watcher;
+`authentication_required` needs the owner's WSL re-enrollment; the next release should start well
+inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s115-section-help` (Node 22.23.2, both reviewed
-ignored env files, `npm ci`); logs under `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log,
-s115-smokes.log, s115-fail-first.log). The Windows checkout is the watcher SOURCE and the docs editing
-tree; branch `s115-section-help` is integrated into main (`pending-auth-enroll-fix` keeps the original
-`33f7630f`). Smoke artifacts: `~/pmi-kc-work/main/temp/renewal-desk-browser-s82`,
-`…/renewal-guide-controls-s111`. Failed-candidate diagnostics (`f3-*`, `f4-*`) and archived checkpoints
-remain in the watcher state directory. Credentials/customer evidence stay outside Git.
+Native checkout: `~/pmi-kc-work/main` (Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
+from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
+`~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,
+renewal-smokes.log). The Windows checkout is the watcher SOURCE and the docs editing tree
+(`pending-auth-enroll-fix` keeps the original `33f7630f`). Smoke artifacts:
+`~/pmi-kc-work/main/temp/renewal-desk-browser-s82`, `…/renewal-guide-controls-s111`. Failed-candidate
+diagnostics (`f3-*`, `f4-*`) and archived checkpoints remain in the watcher state directory.
+Credentials/customer evidence stay outside Git.
 
 ## Preserved boundaries
 
