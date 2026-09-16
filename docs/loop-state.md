@@ -5,33 +5,32 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
-`b7fd04d1` / rmu46blcc). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` / rmu4awn6p). S116 exact
-source links, reliable Sheet matching and complete contact emails is implemented and integrated on main
-at `7a19d338`. Actual cause found read-only (counts only): 146 rows link RentVine as rich text attached to
-the cell (0 formulas, 1 bare URL), invisible to the formula-only read; 34 lease ids on more than one row;
-200 current leases unlinked. Gates on the integrated head: format, lint, types, 6,635 unit tests
-(718 files), 201 backend, policy, build; core E2E 8 files / 4 skips; desk check (attempt 2) and guide check (53 steps) passed; 45 S116 tests fail-first. Logs: `~/pmi-kc-work/logs/s116-*.log`.
-Named setup dependency (not a blocker): the Sheet manager adds the exact headers "Owner emails" and
-"Tenant emails" to the "Lease Renewal" tab; the app then reads them back and offers per-lease previews.
-Next: exact-main CI for this head, the serialized release (candidate, smoke, fingerprint, domains,
-assurance, promotion, 300,000 ms observation), readbacks, closure record; then S117.
+`b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
+rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED: implemented at `7a19d338`, released 2026-09-16 as
+head `33ef3039` / pmi-kc-app-rmu4eoy5u-c8c2682e9102 (first attempt, one assurance_unverified retry). Actual missing-row cause measured read-only
+(counts only): 146 rows link RentVine as rich text attached to the cell (0 formulas, 1 bare URL); 34
+lease ids on more than one row; 200 current leases unlinked. Named setup dependency (not a blocker):
+the Sheet manager adds the exact headers "Owner emails" and "Tenant emails" to the "Lease Renewal"
+tab; the app then reads them back and offers per-lease previews. Next: S117 master facts and confirmed
+source updates (re-ground on the released code first), then S118-S120, each with its own gate,
+exact-main CI, serialized release, readbacks and closure record.
 
 ## Verified production
 
-Serving SHA: 3ca35870b8adf561fb27d935cfba5a52c53cd43b
-Serving revision: pmi-kc-app-rmu4awn6p-67bd97a8824e, 100% traffic (tag cand-rmu4awn6p-67bd97a8824e).
+Serving SHA: 33ef303959766f67bbf62878fe2ce283785c7eac
+Serving revision: pmi-kc-app-rmu4eoy5u-c8c2682e9102, 100% traffic (tag cand-rmu4eoy5u-c8c2682e9102).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840.
-Predecessor: pmi-kc-app-rmu46blcc-af55ec317652 / b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586 (fingerprint sha256:31553694b276fafdc84d021711ed576a21dfe938d16a1729330214461a61ac18).
-Exact CI 35119806402 passed on its first run; Cloud Build aee5ceed-6f40-477f-9d90-4a460c9b59a2 succeeded (16:15:27Z-16:20:14Z).
-Candidate receipt issued 16:32:28.091Z (first pass); promotion started 16:32:43.553Z, verified
-16:32:54.795Z; complete 16:39:08Z, all September 16.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 381,795 ms / 300,000 ms.
+Fingerprint: sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa.
+Predecessor: pmi-kc-app-rmu4awn6p-67bd97a8824e / 3ca35870b8adf561fb27d935cfba5a52c53cd43b (fingerprint sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840).
+Exact CI 35131326258 passed; Cloud Build ea68a496-39d2-439f-b95a-81d88bb21cb2 succeeded (18:01:15Z-18:05:50Z).
+Candidate receipt issued 18:14:48Z; promotion started 18:15:01Z, verified 18:15:08Z;
+complete 18:21:47Z, all September 16.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 383,960 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
-Independent readback 16:39Z: canonical and tagged /api/version, 100% traffic on rmu4awn6p, revision
-env (APP_COMMIT_SHA 3ca35870, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only cand-rmu4awn6p; no registry, gate or rules file changed since b7fd04d1.
+Independent readback after completion: canonical and tagged /api/version, 100% traffic on the revision,
+revision env (APP_COMMIT_SHA 33ef3039, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only the new candidate host; no registry, gate or rules file changed since 3ca35870.
 
 ## Preserved failed attempts
 
