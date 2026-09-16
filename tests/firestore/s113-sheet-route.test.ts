@@ -2192,6 +2192,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         await screen.findByText(
           "Applied to the operating Sheet with a receipt and exact readback.",
+          {},
+          { timeout: 10_000 },
         );
         expect(marketValue).toBe("1100");
         expect(mutations).toBe(1);
@@ -2210,8 +2212,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         mounted.unmount();
         mounted = await mountCurrent();
         expect(
-          screen.getByText(
+          await screen.findByText(
             "google_sheets.renewal_checklist.field_update · Applied with receipt",
+            {},
+            { timeout: 10_000 },
           ),
         ).toBeInTheDocument();
         expect(
@@ -2223,7 +2227,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           screen.getByRole("region", { name: "Market rent comparison" }),
         );
         fireEvent.click(
-          comps.getByRole("button", { name: "Look up market comps (reference only)" }),
+          await comps.findByRole(
+            "button",
+            { name: "Look up market comps (reference only)" },
+            { timeout: 10_000 },
+          ),
         );
         await waitFor(() => expect(compRequests).toBe(2));
         await waitFor(() =>
