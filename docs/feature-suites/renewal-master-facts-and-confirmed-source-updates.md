@@ -3,7 +3,7 @@
 
 # S117 — Master lease facts, rent and charges with confirmed source updates
 
-> Status: IMPLEMENTED at `bc559602`; verify.sh, core E2E and both compiled renewal browser checks passed on the integrated head. The serialized production release is in progress. Deployed behavior change: a future-rent RentVine effect is confirmable only after the tenant's acceptance of the exact approved terms is recorded. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `bc559602`; released on 2026-09-16 as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151` (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Deployed behavior change: a future-rent RentVine effect is confirmable only after the tenant's acceptance of the exact approved terms is recorded. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-master-facts-and-confirmed-source-updates.md`.  

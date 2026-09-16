@@ -11,10 +11,11 @@ attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPL
 `dffc4f71`, released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second
 attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
 is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as head `33ef3039` /
-`pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column synchronization remains a named setup
-dependency until the Sheet manager adds the two headers. Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is
-implemented and integrated on main at `bc559602`; its serialized release is next. S118-S120 have not
-started.
+`pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column
+synchronization remains a named setup dependency until the Sheet manager adds the two headers.
+Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is COMPLETE
+and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151`
+(first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). S118-S120 have not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -146,12 +147,30 @@ ten-second budget the journey already uses for its other emulator-backed steps; 
 unchanged and no product code changed for it. No client message was sent and no live record was
 written. Human verdict: NOT RUN.
 
+S117 released as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151` (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation; candidate assurance receipt
+21:15:16Z, promotion verified 21:15:43Z, observation with two checkpoints in 382,868 ms,
+complete 21:22:01Z, all 2026-09-16). The exact head passed CI; canonical and tagged versions, traffic,
+revision configuration, receipts, the observation report and the authorized domains were read back.
+The tenant-acceptance condition on future-rent confirmation is now the deployed behavior.
+
+The released head `a483c47d` is the integration commit that gave the S113 sheet-route journey waits
+their emulator budget after the firestore lane timed out on the record commit `8b1b3d38`
+(CI 35142296165, the same load-dependent race measured in the local gate); no product code changed
+for it and the S117 feature commit is `bc559602`. Platform condition observed during this release,
+recorded and not relabeled: from about 19:59Z cold instances of both the serving and the candidate
+revision took 15 to 100 seconds for a first response, the serving instances were replaced repeatedly
+with 504, 429 and 500 no-available-instance responses, with no memory-limit events and no user
+traffic. The watcher retried its smoke once, the predecessor baseline twice and re-enrolled the
+Admin browser twice before the receipt was issued; the candidate instance stayed stable from 20:49Z
+and the promoted revision served every observation checkpoint. Whether to keep a minimum instance or
+always-allocated CPU is an open owner cost decision; no service setting changed.
+
 ## Serving release
 
-Production serves `33ef303959766f67bbf62878fe2ce283785c7eac` as `pmi-kc-app-rmu4eoy5u-c8c2682e9102` at 100% traffic. Exact main [CI 35131326258](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35131326258) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 383,960 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `a483c47d78e45de3d530a548352ee5478ca8300a` as `pmi-kc-app-rmu4ir3hc-7ee452a02151` at 100% traffic. Exact main [CI 35142917506](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35142917506) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 382,868 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu4awn6p-67bd97a8824e`.
-Configuration fingerprint: `sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu4eoy5u-c8c2682e9102`.
+Configuration fingerprint: `sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
@@ -200,8 +219,8 @@ no application session and Google asks for an
 email there; that is an owner step the release contract does not need. No password, code, passkey or
 CAPTCHA was entered. No account, IAM, claim, store location, permission scope or security policy changed.
 
-S116 released as head `33ef3039` (candidate `pmi-kc-app-rmu4eoy5u-c8c2682e9102`, first attempt, one assurance_unverified retry) through the same serialized
+S117 released as head `a483c47d` (candidate `pmi-kc-app-rmu4ir3hc-7ee452a02151`, first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation) through the same serialized
 watcher: smoke, fingerprint, domains, candidate assurance, promotion and the 300,000 ms observation
-passed and the release completed at 18:21:47Z. S115 released on its second attempt and S114 on its
-third; every earlier attempt rolled back with verification and keeps its receipts, reports and
-checkpoints outside Git. Documentation-only closure does not deploy.
+passed and the release completed at 21:22:01Z. S116 released on its first attempt, S115 on its
+second and S114 on its third; every earlier attempt rolled back with verification and keeps its
+receipts, reports and checkpoints outside Git. Documentation-only closure does not deploy.

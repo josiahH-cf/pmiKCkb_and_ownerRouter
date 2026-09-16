@@ -5,34 +5,32 @@ Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
-`b7fd04d1` / rmu46blcc). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` / rmu4awn6p). S116
-COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u; email-column sync waits for the two Sheet
-headers). S117 master lease facts, rent and charges with confirmed source updates is implemented and
-integrated on main at `bc559602`: one Rent and charges working area, typed current/future intents, dense
-exact previews, per-destination status with the base-rent mismatch, and the tenant-acceptance condition
-on future-rent confirmation (deployed behavior change). Gates on the integrated head: format, lint, types,
-6651 unit tests (722 files), 205 backend (35 files), policy, build; core E2E 8 files /
-4 skips; desk check (attempt 1) and guide check (60 steps) passed; 20 S117 tests fail-first.
-Logs: `~/pmi-kc-work/logs/s117-*.log`. Next: exact-main CI for this head, the serialized release
-(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks,
-closure record; then S118. Auth expiry expected about 22:45Z: start the release well inside it.
+`b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
+rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u, first
+attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEPLOYED: implemented at
+`bc559602`, released 2026-09-16 as head `a483c47d` / pmi-kc-app-rmu4ir3hc-7ee452a02151 (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation): one Rent and
+charges working area, typed current/future intents, dense exact previews, per-destination status with
+the base-rent mismatch, and the tenant-acceptance condition on future-rent confirmation (deployed
+behavior change). Next: S118 market defaults and sourced comparisons (re-ground on the released code
+first), then S119 and S120, each with its own gate, exact-main CI, serialized release, readbacks and
+closure record. Authentication: check the enrollment horizon before each release.
 
 ## Verified production
 
-Serving SHA: 33ef303959766f67bbf62878fe2ce283785c7eac
-Serving revision: pmi-kc-app-rmu4eoy5u-c8c2682e9102, 100% traffic (tag cand-rmu4eoy5u-c8c2682e9102).
+Serving SHA: a483c47d78e45de3d530a548352ee5478ca8300a
+Serving revision: pmi-kc-app-rmu4ir3hc-7ee452a02151, 100% traffic (tag cand-rmu4ir3hc-7ee452a02151).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa.
-Predecessor: pmi-kc-app-rmu4awn6p-67bd97a8824e / 3ca35870b8adf561fb27d935cfba5a52c53cd43b (fingerprint sha256:15843526497d71aa154071ba31d3e1792303ca18f5604c1602cb855f7c5d2840).
-Exact CI 35131326258 passed; Cloud Build ea68a496-39d2-439f-b95a-81d88bb21cb2 succeeded (18:01:15Z-18:05:50Z).
-Candidate receipt issued 18:14:48Z; promotion started 18:15:01Z, verified 18:15:08Z;
-complete 18:21:47Z, all September 16.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 383,960 ms / 300,000 ms.
+Fingerprint: sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90.
+Predecessor: pmi-kc-app-rmu4eoy5u-c8c2682e9102 / 33ef303959766f67bbf62878fe2ce283785c7eac (fingerprint sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa).
+Exact CI 35142917506 passed; Cloud Build c2b4e92d-f2f4-4db8-a6c6-ee4deb2bd4e3 succeeded (19:54:56Z-19:58:17Z).
+Candidate receipt issued 21:15:16Z; promotion started 21:15:36Z, verified 21:15:43Z;
+complete 21:22:01Z, all September 16.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 382,868 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
 Independent readback after completion: canonical and tagged /api/version, 100% traffic on the revision,
-revision env (APP_COMMIT_SHA 33ef3039, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only the new candidate host; no registry, gate or rules file changed since 3ca35870.
+revision env (APP_COMMIT_SHA a483c47d, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only the new candidate host; no registry, gate or rules file changed since 33ef3039.
 
 ## Preserved failed attempts
 
@@ -88,8 +86,8 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s117-master-facts` (Node 22.23.2, both reviewed
-ignored env files, `npm ci`), synced
+Native checkout: `~/pmi-kc-work/main` on branch `s117-master-facts`, squashed into main as `bc559602`
+(Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,
 renewal-smokes.log). The Windows checkout is the watcher SOURCE and the docs editing tree

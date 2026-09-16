@@ -1,7 +1,7 @@
 # Environment and release handoff
 
-Updated: 2026-09-16 (UTC). September 14 Features 1-6, S114, S115 and S116 are complete and deployed; S117 is the next serialized release.
-Production serves `33ef303959766f67bbf62878fe2ce283785c7eac` as `pmi-kc-app-rmu4eoy5u-c8c2682e9102` at 100% traffic. Exact main [CI 35131326258](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35131326258) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 383,960 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Updated: 2026-09-16 (UTC). September 14 Features 1-6, S114, S115, S116 and S117 are complete and deployed; S118 is the next serialized release.
+Production serves `a483c47d78e45de3d530a548352ee5478ca8300a` as `pmi-kc-app-rmu4ir3hc-7ee452a02151` at 100% traffic. Exact main [CI 35142917506](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35142917506) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 382,868 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 Current receipts and observation evidence remain outside Git under `/home/josiah/.local/state/pmi-kc-release`.
 The failed Feature 2 observation/rollback and Feature 3 unpromoted candidate checkpoint remain preserved separately.
@@ -16,8 +16,8 @@ Authentication longevity is observed at under nine hours: the 2026-09-16T01:11Z 
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmu4eoy5u-c8c2682e9102`             |
-| Serving commit            | `33ef303959766f67bbf62878fe2ce283785c7eac`      |
+| Serving revision          | `pmi-kc-app-rmu4ir3hc-7ee452a02151`             |
+| Serving commit            | `a483c47d78e45de3d530a548352ee5478ca8300a`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
@@ -117,7 +117,7 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The last successful serialized release completed exact SHA `33ef303959766f67bbf62878fe2ce283785c7eac`, CI 35131326258, revision `pmi-kc-app-rmu4eoy5u-c8c2682e9102` (S116, first attempt, one assurance_unverified retry, 2026-09-16).
+The last successful serialized release completed exact SHA `a483c47d78e45de3d530a548352ee5478ca8300a`, CI 35142917506, revision `pmi-kc-app-rmu4ir3hc-7ee452a02151` (S117, first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation, 2026-09-16).
 The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
 Its terminalFailure / rolled_back_verified checkpoint is preserved outside Git. The missing-report
@@ -194,8 +194,8 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
 provider-generated per-build provenance metadata separately.
 
-The accepted candidate is now serving: `33ef303959766f67bbf62878fe2ce283785c7eac` / `pmi-kc-app-rmu4eoy5u-c8c2682e9102`, tag `cand-rmu4eoy5u-c8c2682e9102`.
-Captured predecessor is `pmi-kc-app-rmu4awn6p-67bd97a8824e`. Fingerprint `sha256:e6069b7017bb1b96dc1b2df20085211ebd472a1177065382569d4fbe167e3aaa`.
+The accepted candidate is now serving: `a483c47d78e45de3d530a548352ee5478ca8300a` / `pmi-kc-app-rmu4ir3hc-7ee452a02151`, tag `cand-rmu4ir3hc-7ee452a02151`.
+Captured predecessor is `pmi-kc-app-rmu4eoy5u-c8c2682e9102`. Fingerprint `sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90`.
 Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
 The commands below remain the required contract for future releases.
 
@@ -350,14 +350,14 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmu4awn6p-67bd97a8824e` from commit
-`3ca35870b8adf561fb27d935cfba5a52c53cd43b` (its own captured predecessor was
-`pmi-kc-app-rmu46blcc-af55ec317652` / `b7fd04d1e74c0bf4d52401eaca8e7324b1ddf586`).
+Captured predecessor: `pmi-kc-app-rmu4eoy5u-c8c2682e9102` from commit
+`33ef303959766f67bbf62878fe2ce283785c7eac` (its own captured predecessor was
+`pmi-kc-app-rmu4awn6p-67bd97a8824e` / `3ca35870b8adf561fb27d935cfba5a52c53cd43b`).
 
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu4awn6p-67bd97a8824e=100 --quiet
+  --to-revisions=pmi-kc-app-rmu4eoy5u-c8c2682e9102=100 --quiet
 ```
 
 Forward restoration to the current serving revision:
@@ -365,7 +365,7 @@ Forward restoration to the current serving revision:
 ```bash
 gcloud run services update-traffic pmi-kc-app \
   --project=pmi-kc-kb-prod --region=us-central1 \
-  --to-revisions=pmi-kc-app-rmu4eoy5u-c8c2682e9102=100 --quiet
+  --to-revisions=pmi-kc-app-rmu4ir3hc-7ee452a02151=100 --quiet
 ```
 
 These are exact recovery coordinates, not a request to change current traffic. Every recovery
