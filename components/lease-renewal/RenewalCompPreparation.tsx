@@ -1,4 +1,5 @@
 "use client";
+import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
@@ -48,10 +49,10 @@ export function RenewalCompPreparation({
   if (!context) return null;
   if (!context.state)
     return (
-      <Card title="Market evidence">
+      <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
         <p>
-          Select the reviewed cycle above to retain comps before owner outreach. Opening
-          this section makes no paid lookup.
+          Select the reviewed cycle above before saving comps. Opening this section makes
+          no paid lookup.
         </p>
       </Card>
     );
@@ -62,11 +63,7 @@ export function RenewalCompPreparation({
         (value) => value.id === state.preparation?.observationId,
       ) ?? currentObservations.find((value) => value.market.provider);
   return (
-    <Card title="Market evidence">
-      <p>
-        Look up comps deliberately, review their source, and save preparation before
-        requesting owner approval. A lookup does not set the renewal rent.
-      </p>
+    <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
       {error ? <p role="alert">{error}</p> : null}
       <OwnerDecisionForm
         key={state.cycleId}

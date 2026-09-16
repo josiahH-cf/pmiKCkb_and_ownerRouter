@@ -354,7 +354,7 @@ export function focusRenewalDashboardControl(id: string) {
   const root = document.getElementById(id);
   if (!root) return;
   const candidates = root.querySelectorAll<HTMLElement>(
-    "[data-renewal-next-control], [aria-invalid='true'], input, select, textarea, button, summary, a[href]",
+    "[data-renewal-next-control], [aria-invalid='true'], input, select, textarea, button:not(.info-tip-trigger), summary, a[href]",
   );
   const target =
     [...candidates].find(

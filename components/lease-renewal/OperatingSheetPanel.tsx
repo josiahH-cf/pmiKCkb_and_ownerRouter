@@ -1,5 +1,6 @@
 "use client";
 
+import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -344,11 +345,11 @@ export function OperatingSheetPanel({
       {proposal ? (
         <div className="ui-stack">
           <div>
-            <h2 id="operating-sheet-title">Review Sheet updates</h2>
+            <RenewalSectionHeading id="sheet-updates" headingId="operating-sheet-title">
+              Review Sheet updates
+            </RenewalSectionHeading>
             <p className="muted">
-              Exact target: the operating renewal tab, read {proposal.source_read_at}.
-              Each effect is previewed, confirmed, and receipted independently; preview
-              performs zero writes.
+              Target: the operating renewal tab, read {proposal.source_read_at}.
             </p>
           </div>
           {expired ? (
@@ -366,9 +367,7 @@ export function OperatingSheetPanel({
                 <li className="ui-stack" key={effect.effect_hash}>
                   <div>
                     <h3>{KIND_LABELS[effect.kind]}</h3>
-                    <p className="muted">
-                      {effect.action_key} · {stateLabel(state)}
-                    </p>
+                    <p className="muted">{stateLabel(state)}</p>
                   </div>
                   <ul>
                     {describeLines(effect).map((line) => (
@@ -489,10 +488,15 @@ export function OperatingSheetPanel({
         </div>
       ) : (
         <div>
-          <h2 id="operating-sheet-title">Operating Sheet updates</h2>
+          <RenewalSectionHeading id="sheet-updates" headingId="operating-sheet-title">
+            Operating Sheet updates
+          </RenewalSectionHeading>
           <p className="muted">
-            No Sheet update proposal is saved. An Editor can assemble one from the fresh
-            Sheet header and exact approved values.
+            {editor && hasSheetRow
+              ? "No Sheet update is waiting for review. To prepare one, enter the reviewed value and its source under Correct an operating Sheet field below and preview the change; the proposal is saved here for an Admin to confirm."
+              : editor
+                ? "No Sheet update is waiting for review. To prepare one, use Add Sheet row below; the row is built from RentVine identity and saved here for an Admin to confirm."
+                : "No Sheet update is waiting for review. An Editor prepares one; an Admin confirms it here."}
           </p>
         </div>
       )}
@@ -587,11 +591,6 @@ export function OperatingSheetPanel({
                     </Field>
                   </>
                 )}
-                <p className="muted">
-                  Review before applying. Direct Sheet edits by other people can conflict;
-                  an uncertain update needs reconciliation. A correction is a new
-                  confirmed update.
-                </p>
               </>
             ) : (
               <p className="muted">

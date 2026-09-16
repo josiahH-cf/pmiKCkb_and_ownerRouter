@@ -1978,6 +1978,40 @@ textarea:disabled {
   margin-bottom: 0;
 }
 
+/* S115: a heading with its plain-language help control beside it. */
+.renewal-heading-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-heading-row > h2,
+.renewal-heading-row > h3 {
+  margin: 0;
+}
+
+/* The section help trigger is the small contrasting `i`: inverted against the surface, and it
+   inverts back while hovered, focused or open. Target size stays the shared minimum. */
+.renewal-section-help .info-tip-trigger {
+  background: var(--ui-text);
+  border-color: var(--ui-text);
+  color: var(--ui-surface);
+}
+
+.renewal-section-help .info-tip-trigger:hover,
+.renewal-section-help .info-tip-trigger:focus-visible,
+.renewal-section-help .info-tip-trigger[aria-expanded="true"] {
+  background: var(--ui-surface);
+  border-color: var(--ui-text);
+  color: var(--ui-text);
+}
+
+.renewal-section-help-steps {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
 .renewal-slide-panel {
   position: fixed;
   top: 0;

@@ -1,4 +1,5 @@
 "use client";
+import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   EXTERNAL_LINK_REL,
@@ -404,13 +405,13 @@ function MessagePreparationEditor({
   );
   return (
     <Card
-      title={`${channel === "owner" ? "Owner" : "Tenant"} message preparation`}
+      title={renewalCardTitle(
+        channel === "owner" ? "message-preparation-owner" : "message-preparation-tenant",
+        `${channel === "owner" ? "Owner" : "Tenant"} message preparation`,
+      )}
       ariaLabel={`${channel === "owner" ? "Owner" : "Tenant"} message preparation`}
     >
-      <p className="muted">
-        Review the message inputs, save your edits, then copy the message or prepare an
-        unsent Gmail draft. A person sends it; saving here does not record delivery.
-      </p>
+      <p className="muted">A person sends it; saving here does not record delivery.</p>
       {!cycleId ? <p>Select the current renewal cycle above to retain edits.</p> : null}
       {notice ? <p role="status">{notice}</p> : null}
       {current?.notices.map((value) => (
@@ -789,10 +790,6 @@ function MessagePreparationEditor({
             </details>
             {channel === "owner" ? (
               <div className="ui-stack">
-                <p>
-                  Attachments are separate files. Copying the body does not copy
-                  attachment bytes.
-                </p>
                 {current.availableCompScreenshot ? (
                   <>
                     <label>
@@ -940,12 +937,6 @@ function MessagePreparationEditor({
                 className="renewal-message-preview"
                 dangerouslySetInnerHTML={{ __html: content.htmlBody }}
               />
-              {channel === "tenant" ? (
-                <p>
-                  This current plain-text preparation is also available for manual portal
-                  or text work. Nothing is sent by copying.
-                </p>
-              ) : null}
               <details>
                 <summary>Selectable plain text</summary>
                 <textarea

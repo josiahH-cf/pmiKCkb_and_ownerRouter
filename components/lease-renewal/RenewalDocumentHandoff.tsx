@@ -1,4 +1,5 @@
 "use client";
+import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
@@ -120,17 +121,13 @@ function DocumentHandoffEditor({
   const link = current?.snapshot?.execution?.loopLink ?? null;
   return (
     <Card
-      title="Document preparation and signature handoff"
+      title={renewalCardTitle(
+        "document-handoff",
+        "Document preparation and signature handoff",
+      )}
       ariaLabel="Document preparation and signature handoff"
     >
-      <p>
-        Prepare the current approved packet, review exact participants and forms, then
-        confirm each supported provider action. Uploaded files are the exact approved
-        publications; mapped fields shown here do not edit those file bytes. Review and
-        complete applicable form fields in Dotloop before a person sends for signature.
-        Returned signed artifacts and staff-recorded completion remain separate from
-        provider document-presence receipts.
-      </p>
+      <p>Review and complete form fields in Dotloop; a person sends for signature.</p>
       <Button
         variant="secondary"
         disabled={pending}
@@ -265,7 +262,7 @@ function DocumentHandoffEditor({
               dashboard.
             </p>
           ) : null}
-          <Field label="Admin approval reason" htmlFor="packet-approval-reason">
+          <Field label="Admin approval reason" htmlFor="packet-approval-reason" required>
             <input
               id="packet-approval-reason"
               value={reason}

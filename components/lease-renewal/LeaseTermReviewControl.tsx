@@ -1,5 +1,6 @@
 "use client";
 
+import { Field } from "@/components/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -89,23 +90,23 @@ export function LeaseTermReviewControl({
           ? `Recorded term: ${LEASE_TERM_LABELS[recordedTerm]}. Record it again to correct it.`
           : "No term has been recorded for this lease yet."}
       </p>
-      <label className="field-label" htmlFor={`lease-term-${leaseId}`}>
-        Lease term
-      </label>
-      <select
-        className="ui-input"
-        id={`lease-term-${leaseId}`}
-        onChange={(event) => setSelected(event.target.value as RecordableLeaseTerm)}
-        value={selected}
-      >
-        <option value="fixed_term">{LEASE_TERM_LABELS.fixed_term}</option>
-        <option value="month_to_month">{LEASE_TERM_LABELS.month_to_month}</option>
-      </select>
+      <Field htmlFor={`lease-term-${leaseId}`} label="Lease term">
+        <select
+          className="ui-input"
+          id={`lease-term-${leaseId}`}
+          onChange={(event) => setSelected(event.target.value as RecordableLeaseTerm)}
+          value={selected}
+        >
+          <option value="fixed_term">{LEASE_TERM_LABELS.fixed_term}</option>
+          <option value="month_to_month">{LEASE_TERM_LABELS.month_to_month}</option>
+        </select>
+      </Field>
       {anchorRequired ? (
-        <>
-          <label className="field-label" htmlFor={`lease-term-anchor-${leaseId}`}>
-            Month-to-month since (the annual review is 12 months later)
-          </label>
+        <Field
+          htmlFor={`lease-term-anchor-${leaseId}`}
+          label="Month-to-month since (the annual review is 12 months later)"
+          required
+        >
           <input
             className="ui-input"
             id={`lease-term-anchor-${leaseId}`}
@@ -113,18 +114,17 @@ export function LeaseTermReviewControl({
             type="date"
             value={anchor}
           />
-        </>
+        </Field>
       ) : null}
-      <label className="field-label" htmlFor={`lease-term-reason-${leaseId}`}>
-        Reason
-      </label>
-      <input
-        className="ui-input"
-        id={`lease-term-reason-${leaseId}`}
-        maxLength={2000}
-        onChange={(event) => setReason(event.target.value)}
-        value={reason}
-      />
+      <Field htmlFor={`lease-term-reason-${leaseId}`} label="Reason" required>
+        <input
+          className="ui-input"
+          id={`lease-term-reason-${leaseId}`}
+          maxLength={2000}
+          onChange={(event) => setReason(event.target.value)}
+          value={reason}
+        />
+      </Field>
       <button
         className="secondary-button"
         disabled={!ready || pending}

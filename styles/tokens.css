@@ -488,6 +488,22 @@
   line-height: 1.35;
 }
 
+/* S115: the asterisk sits beside the label, never inside it, so exact label text stays exact. */
+.field-label-line {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* S115: a form-level error/refusal line uses the same attention treatment as a field error. */
+.form-error {
+  border-left: 4px solid var(--state-error-border);
+  color: var(--field-required-text);
+  font-weight: 650;
+  margin: 0;
+  padding-left: var(--space-2);
+}
+
 .auth-actions {
   display: grid;
   gap: 12px;

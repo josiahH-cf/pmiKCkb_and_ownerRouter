@@ -1,3 +1,7 @@
+import {
+  RenewalSectionHeading,
+  renewalCardTitle,
+} from "@/components/lease-renewal/RenewalSectionHeading";
 import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMessagePreparation";
 import {
   RenewalManualProvider,
@@ -285,8 +289,9 @@ export function RenewalWorkspace({
                   tabIndex={-1}
                   key={section.id}
                 >
-                  <h2>{section.label}</h2>
-                  <p className="muted">{section.description}</p>
+                  <RenewalSectionHeading id={`section-${section.id}`}>
+                    {section.label}
+                  </RenewalSectionHeading>
                   {section.id === "comps" ? (
                     <RenewalCompPreparation
                       address={summary.addressLabel}
@@ -532,7 +537,7 @@ function PhaseContent({
     case "verify-renewal":
       return (
         <>
-          <Card title="Lease term">
+          <Card title={renewalCardTitle("lease-term", "Lease term")}>
             <ul className="ui-rows">
               <li className="ui-spread">
                 <strong>Term</strong>
@@ -573,7 +578,7 @@ function PhaseContent({
             ) : null}
             {termReviewPanel}
           </Card>
-          <Card title="Rent and charges">
+          <Card title={renewalCardTitle("rent-and-charges", "Rent and charges")}>
             <dl className="ui-stack-tight">
               <div>
                 <dt>Current contractual base rent</dt>
@@ -601,7 +606,7 @@ function PhaseContent({
               </div>
             </dl>
           </Card>
-          <Card title="Data check">
+          <Card title={renewalCardTitle("data-check", "Data check")}>
             <ul className="ui-rows">
               {dataCheck.map((item) => {
                 const resolutionDestination = resolutionDestinations.find(
@@ -662,7 +667,6 @@ function PhaseContent({
             {typeof workspace.unitListedRent === "number" ? (
               <p className="muted">
                 Unit rent (RentVine): {formatCurrencyReference(workspace.unitListedRent)}.
-                Reference only; the current base rent above comes from the lease.
               </p>
             ) : null}
             {sheetDestination ? (
@@ -701,10 +705,6 @@ function PhaseContent({
       if (consolidated)
         return (
           <Disclosure summary="Prior owner decision and provider evidence">
-            <p className="muted">
-              Historical decision and draft evidence are retained here. Record the current
-              cycle&apos;s owner response and exact terms in the controls above.
-            </p>
             <ul className="ui-rows">
               {ownerDraft.facts.map((fact) => (
                 <li key={fact.key}>
@@ -721,16 +721,12 @@ function PhaseContent({
           </Disclosure>
         );
       return (
-        <Card title="Owner decision">
+        <Card title={renewalCardTitle("owner-decision", "Owner decision")}>
           {workspace.live &&
           workspace.live.ownerResponseRecordable &&
           !dataExpired &&
           progressStateAvailable ? (
             <div className="ui-stack">
-              <p className="muted">
-                Record what the owner actually answered. Asking for changes reopens the
-                owner copy and every preview built from it.
-              </p>
               <RenewalOwnerOutcomeControl
                 current={workspace.live.ownerOutcome}
                 leaseId={workspace.live.leaseId}
@@ -739,9 +735,6 @@ function PhaseContent({
           ) : null}
           {workspace.live && !dataExpired && progressStateAvailable ? (
             <div className="ui-stack">
-              <p className="muted">
-                Record the owner’s rent decision to unlock the tenant offer.
-              </p>
               <OwnerDecisionForm
                 address={summary.addressLabel}
                 compScreenshotExecutable={compScreenshotExecutable}
@@ -799,7 +792,7 @@ function PhaseContent({
       return (
         <>
           {workspace.followUp ? (
-            <Card title="Waiting and follow-up">
+            <Card title={renewalCardTitle("waiting-follow-up", "Waiting and follow-up")}>
               <RenewalFollowUpStatus projection={workspace.followUp} />
               {!can(role, "edit") ? (
                 <p className="muted">
@@ -818,7 +811,13 @@ function PhaseContent({
               />
             </Card>
           ) : null}
-          <Card title={consolidated ? "Earlier tenant offer evidence" : "Tenant offer"}>
+          <Card
+            title={
+              consolidated
+                ? "Earlier tenant offer evidence"
+                : renewalCardTitle("tenant-offer", "Tenant offer")
+            }
+          >
             <Disclosure
               summary={
                 consolidated
@@ -827,12 +826,6 @@ function PhaseContent({
               }
               defaultOpen={!consolidated}
             >
-              {consolidated ? (
-                <p>
-                  Use the current tenant message preparation for this cycle. These
-                  retained drafts describe earlier workflow evidence.
-                </p>
-              ) : null}
               {tenantDraft ? (
                 <div className="ui-stack">
                   <p className="muted">{DRAFT_BANNER} · not sent</p>
@@ -860,10 +853,7 @@ function PhaseContent({
                   />
                 </div>
               ) : (
-                <EmptyState
-                  description="Compose the tenant offer from this lease's live RentVine record in the renewal-notice draft below."
-                  title="Compose the tenant offer below"
-                />
+                <EmptyState title="Compose the tenant offer below" />
               )}
             </Disclosure>
             {!consolidated &&
@@ -880,7 +870,9 @@ function PhaseContent({
           {/* Resolves the real RentVine lease by id and drafts an UNSENT Gmail draft through the
               gated route; a human presses Send in Gmail. */}
           {!consolidated ? (
-            <Card title="Renewal-notice draft">
+            <Card
+              title={renewalCardTitle("renewal-notice-draft", "Renewal-notice draft")}
+            >
               {dataExpired ? (
                 <p className="muted">
                   Composing is paused while the lease data is past the freshness limit.
@@ -910,7 +902,7 @@ function PhaseContent({
       );
     case "document-packet":
       return (
-        <Card title="Document preparation">
+        <Card title={renewalCardTitle("document-preparation", "Document preparation")}>
           {packetStateAvailable ? (
             <>
               <PacketTruthPanel
@@ -931,8 +923,8 @@ function PhaseContent({
           )}
           <p className="muted">
             {readiness.allClear
-              ? "Existing build-out checks clear. Packet truth above still governs document readiness."
-              : `${openItems} existing check item${openItems === 1 ? "" : "s"} to resolve; packet truth above still governs document readiness.`}
+              ? "Existing build-out checks clear."
+              : `${openItems} existing check item${openItems === 1 ? "" : "s"} to resolve.`}
           </p>
           <ul className="ui-rows">
             {readiness.checks.map((check) => (
@@ -953,7 +945,7 @@ function PhaseContent({
       return (
         <>
           {!consolidated && workspace.followUp ? (
-            <Card title="Waiting and follow-up">
+            <Card title={renewalCardTitle("waiting-follow-up", "Waiting and follow-up")}>
               <RenewalFollowUpStatus projection={workspace.followUp} />
               {!can(role, "edit") ? (
                 <p className="muted">
@@ -973,7 +965,7 @@ function PhaseContent({
             </Card>
           ) : null}
           {workspace.notice ? (
-            <Card title="Notice timing">
+            <Card title={renewalCardTitle("notice-timing", "Notice timing")}>
               <p className="muted">{workspace.notice.statusLabel}</p>
               <ul className="ui-rows">
                 {workspace.notice.lines.map((line) => (
@@ -996,18 +988,12 @@ function PhaseContent({
       );
     case "compliance-close":
       return (
-        <Card title="Completion checks">
-          {workspace.live?.complete ? (
-            <p className="muted">
-              The legacy workspace completion marker is recorded. It is not authenticated
-              document execution proof and cannot unlock an owner acknowledgment.
-            </p>
-          ) : (
-            <p className="muted">
-              Document completion can be established only by authenticated S34 provider
-              readback for the exact packet hash, not by an app-local checkbox.
-            </p>
-          )}
+        <Card title={renewalCardTitle("completion-checks", "Completion checks")}>
+          <p className="muted">
+            {workspace.live?.complete
+              ? "Staff completion recorded. Provider-verified document completion: not established."
+              : "Provider-verified document completion: not established."}
+          </p>
         </Card>
       );
   }

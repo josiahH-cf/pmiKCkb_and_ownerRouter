@@ -1,4 +1,5 @@
 "use client";
+import { RenewalSectionHelp } from "@/components/lease-renewal/RenewalSectionHelp";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
@@ -124,7 +125,10 @@ export function RenewalFutureRent({
   if (!context) return null;
   return (
     <details>
-      <summary>Prepare future approved rent in RentVine</summary>
+      <summary>
+        Prepare future approved rent in RentVine{" "}
+        <RenewalSectionHelp id="future-rent" inSummary />
+      </summary>
       <div className="ui-stack">
         {!terms ? (
           <p>
@@ -167,7 +171,11 @@ export function RenewalFutureRent({
                 </option>
               </select>
             </Field>
-            <Field htmlFor={`${id}-charge`} label="Reviewed rent billing schedule">
+            <Field
+              htmlFor={`${id}-charge`}
+              label="Reviewed rent billing schedule"
+              required
+            >
               <select
                 id={`${id}-charge`}
                 value={selected}
@@ -204,7 +212,11 @@ export function RenewalFutureRent({
             </Field>
             {operation === "end_current" ? (
               <>
-                <Field htmlFor={`${id}-end`} label="Reviewed current-charge end date">
+                <Field
+                  htmlFor={`${id}-end`}
+                  label="Reviewed current-charge end date"
+                  required
+                >
                   <input
                     id={`${id}-end`}
                     type="date"
@@ -252,7 +264,7 @@ export function RenewalFutureRent({
                   </li>
                 ))}
             </ul>
-            <Field htmlFor={`${id}-review`} label="Schedule review source">
+            <Field htmlFor={`${id}-review`} label="Schedule review source" required>
               <input
                 id={`${id}-review`}
                 maxLength={240}

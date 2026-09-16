@@ -1,5 +1,6 @@
 "use client";
 
+import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { useState } from "react";
 import { Button, Field } from "@/components/ui";
@@ -58,11 +59,9 @@ export function RenewalResourceLocations({
       className="panel ui-stack"
       aria-label="Renewal resource links"
     >
-      <h3>Renewal resource links</h3>
-      <p className="muted">
-        Blank links are pending team input. A legal-form location identifies where to find
-        content; the approved artifact and packet mapping remain separate.
-      </p>
+      <RenewalSectionHeading id="resource-links" as="h3">
+        Renewal resource links
+      </RenewalSectionHeading>
       {settings === null ? (
         <p role="alert">
           Saved links could not be read. Reload before editing; their values are unknown.

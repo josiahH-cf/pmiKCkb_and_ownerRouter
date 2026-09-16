@@ -1,5 +1,9 @@
 "use client";
 import {
+  RenewalSectionHeading,
+  renewalCardTitle,
+} from "@/components/lease-renewal/RenewalSectionHeading";
+import {
   createContext,
   useContext,
   useId,
@@ -189,7 +193,7 @@ function ActiveManualProvider({
         prepareSource,
       }}
     >
-      <Card title="Recorded renewal work">
+      <Card title={renewalCardTitle("renewal-cycle", "Recorded renewal work")}>
         <p>
           {readUnavailable
             ? "Current staff records could not be read. Reload before recording work"
@@ -271,7 +275,7 @@ function CycleControl({
       <p>
         {current
           ? "Starting another cycle preserves this cycle as history. Its approvals and completion will not carry over."
-          : "Start by checking the date and source below. Confirm this renewal cycle to save message inputs, comparisons and completed work against this lease."}
+          : "Confirm the reviewed cycle below to record work against this lease."}
       </p>
       <Field
         htmlFor={`${id}-date`}
@@ -280,6 +284,7 @@ function CycleControl({
             ? "Verified lease end for this cycle"
             : "Reviewed periodic-review date"
         }
+        required={basis?.kind !== "lease_end"}
       >
         <input
           data-renewal-next-control
@@ -290,7 +295,11 @@ function CycleControl({
           onChange={(event) => setDate(event.target.value)}
         />
       </Field>
-      <Field htmlFor={`${id}-source`} label="Cycle date source">
+      <Field
+        htmlFor={`${id}-source`}
+        label="Cycle date source"
+        required={basis?.kind !== "lease_end"}
+      >
         <input
           id={`${id}-source`}
           value={source}
@@ -341,11 +350,7 @@ export function RenewalManualSection({
     return <p>Manual recording is available after selecting the reviewed cycle above.</p>;
   const summary = manualRenewalSummary(state);
   return (
-    <Card title="Work recorded by staff">
-      <p>
-        Record work completed in another channel or tool. These records do not send
-        messages or verify provider effects.
-      </p>
+    <Card title={renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")}>
       {section === "owner" ? (
         <ResponseForm key={`owner-${state.cycleId}`} audience="owner" />
       ) : null}
@@ -367,7 +372,9 @@ export function RenewalManualSection({
       {section === "documents" ? (
         <>
           <div id="renewal-manual-complete" tabIndex={-1} className="ui-stack">
-            <h3>{summary.label}</h3>
+            <RenewalSectionHeading id="staff-completion" as="h3">
+              {summary.label}
+            </RenewalSectionHeading>
             <p>
               {summary.complete
                 ? "This cycle is completed by staff attestation. This does not establish verified completion in RentVine, Gmail or Dotloop."
@@ -395,7 +402,9 @@ export function RenewalManualSection({
                 : "Record staff completion"}
             </Button>
           </div>
-          <h3>Source updates</h3>
+          <RenewalSectionHeading id="source-updates" as="h3">
+            Source updates
+          </RenewalSectionHeading>
           {Object.values(state.sourceUpdates).length ? (
             <ul>
               {Object.values(state.sourceUpdates).map((update) => (
@@ -473,6 +482,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
           htmlFor={`${id}-source`}
           label="Source or channel"
           hint="Identify the actual email, call, document or system record that supports this entry."
+          required
         >
           <input
             id={`${id}-source`}
@@ -487,6 +497,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
               ? "Source-based reason this is not applicable"
               : "Comment (optional)"
           }
+          required={outcome === "not_applicable"}
         >
           <input
             id={`${id}-reason`}
@@ -499,6 +510,7 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
             <Field
               htmlFor={`${id}-policy`}
               label="Approved policy or document supporting Not applicable"
+              required
             >
               <input
                 id={`${id}-policy`}
@@ -627,9 +639,12 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
   }
   return (
     <div id={`renewal-manual-${audience}_response`} tabIndex={-1} className="ui-stack">
-      <h3>
+      <RenewalSectionHeading
+        id={audience === "owner" ? "owner-response" : "tenant-response"}
+        as="h3"
+      >
         {audience === "owner" ? "Owner response and exact terms" : "Tenant response"}
-      </h3>
+      </RenewalSectionHeading>
       <Field
         htmlFor={`${id}-outcome`}
         label={`${audience === "owner" ? "Owner" : "Tenant"} response`}
@@ -649,7 +664,11 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       </Field>
       {approved ? (
         <>
-          <Field htmlFor={`${id}-rent`} label="Exact owner-approved monthly base rent">
+          <Field
+            htmlFor={`${id}-rent`}
+            label="Exact owner-approved monthly base rent"
+            required
+          >
             <input
               id={`${id}-rent`}
               inputMode="decimal"
@@ -657,7 +676,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
               onChange={(event) => setRent(event.target.value)}
             />
           </Field>
-          <Field htmlFor={`${id}-effective`} label="Approved effective date">
+          <Field htmlFor={`${id}-effective`} label="Approved effective date" required>
             <input
               id={`${id}-effective`}
               type="date"
@@ -665,7 +684,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
               onChange={(event) => setEffective(event.target.value)}
             />
           </Field>
-          <Field htmlFor={`${id}-end`} label="Approved term end date">
+          <Field htmlFor={`${id}-end`} label="Approved term end date" required>
             <input
               id={`${id}-end`}
               type="date"
@@ -675,7 +694,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           </Field>
         </>
       ) : null}
-      <Field htmlFor={`${id}-source`} label="Response source or channel">
+      <Field htmlFor={`${id}-source`} label="Response source or channel" required>
         <input
           id={`${id}-source`}
           value={source}

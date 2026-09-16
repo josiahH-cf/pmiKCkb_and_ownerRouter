@@ -1,5 +1,6 @@
 "use client";
 
+import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useRef, useState } from "react";
 
 import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
@@ -94,7 +95,13 @@ export function PacketTruthPanel({
     >
       <div className="ui-spread">
         <div className="ui-stack-tight">
-          <h3 id="packet-truth-heading">Document packet truth</h3>
+          <RenewalSectionHeading
+            id="packet-truth"
+            as="h3"
+            headingId="packet-truth-heading"
+          >
+            Document packet truth
+          </RenewalSectionHeading>
           <p className="muted">
             State: <strong>{state}</strong>
             {snapshot ? ` · snapshot ${snapshot.snapshotVersion}` : ""}
@@ -131,10 +138,6 @@ export function PacketTruthPanel({
       {!snapshot ? (
         <div className="ui-stack-tight">
           <p>No packet has been evaluated.</p>
-          <p className="muted">
-            Evaluation is local packet preparation only. It does not contact Dotloop or
-            create a document.
-          </p>
         </div>
       ) : (
         <PacketSnapshotDetails snapshot={snapshot} />
@@ -142,10 +145,6 @@ export function PacketTruthPanel({
 
       <div className="ui-stack-tight">
         <strong>Current approved-artifact dependencies</strong>
-        <p className="muted">
-          Required families are evaluated against current approved publications and their
-          applicability mappings. Pending locations do not provide legal content.
-        </p>
         <ul className="ui-rows">
           {REQUIRED_LEASE_ARTIFACTS.map((artifact) => (
             <li key={artifact.kind}>

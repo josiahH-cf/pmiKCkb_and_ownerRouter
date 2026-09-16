@@ -2212,11 +2212,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         mounted.unmount();
         mounted = await mountCurrent();
         expect(
-          await screen.findByText(
-            "google_sheets.renewal_checklist.field_update · Applied with receipt",
-            {},
-            { timeout: 10_000 },
-          ),
+          await screen.findByText("Applied with receipt", {}, { timeout: 10_000 }),
         ).toBeInTheDocument();
         expect(
           screen.queryByRole("button", { name: "Confirm this exact effect once" }),

@@ -1108,11 +1108,6 @@ export function OwnerDecisionForm({
           </Field>
         </>
       ) : null}
-      <p className="muted">
-        Market comparison (optional). Your saved numbers and their source appear in the
-        owner message. A separate provider-derived suggestion still needs Admin approval
-        before it enters a draft.
-      </p>
       <div className="ui-row">
         <Field htmlFor={id.rangeLow} label="Market rent: low estimate (optional)">
           <input
@@ -1271,11 +1266,6 @@ export function OwnerDecisionForm({
           }}
         />
       </Field>
-      <p className="muted">
-        Start with nearby listings. If RentCast cannot find enough matches, increase the
-        radius and run another lookup. Each lookup uses the displayed radius and the
-        lease’s source attributes; changing it does not change the offered rent.
-      </p>
       <div className="ui-row">
         <Button
           disabled={lookupPending}
@@ -1435,6 +1425,7 @@ export function OwnerDecisionForm({
             htmlFor={`${id.rangeLow}-source`}
             label="Source of the comparison and review notes"
             hint="Required to save comparison preparation. Identify the actual listings, report, or review supporting your numbers."
+            required
           >
             <input
               id={`${id.rangeLow}-source`}

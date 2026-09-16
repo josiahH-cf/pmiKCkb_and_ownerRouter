@@ -1,5 +1,6 @@
 "use client";
 
+import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { currentRentReviewFromDisposition } from "@/lib/lease-renewal/correction-review";
 import type { RenewalDiscrepancyDisposition } from "@/lib/firestore/renewal-discrepancy-dispositions";
@@ -271,16 +272,14 @@ export function RenewalCorrections({
     router.refresh();
   }
   return (
-    <Card title="Correct a lease fact" ariaLabel="Correct a lease fact">
-      <p>
-        Enter one reviewed value and choose its supported destinations. Each destination
-        has its own preview, confirmation and receipt.
-      </p>
+    <Card
+      title={renewalCardTitle("correct-a-fact", "Correct a lease fact")}
+      ariaLabel="Correct a lease fact"
+    >
       <p>
         <a href="#renewal-manual-owner_response">
           Record future owner-approved renewal terms
         </a>
-        . Future rent does not replace the Sheet’s current rent or today’s billing.
       </p>
       <Field htmlFor={`${id}-field`} label="Fact to correct">
         <select
@@ -331,6 +330,7 @@ export function RenewalCorrections({
       <Field
         htmlFor={`${id}-value`}
         label={`Reviewed ${SHEET_FIELD_LABELS[field].toLowerCase()}`}
+        required
       >
         {shape === "yes_no" || shape === "boolean" ? (
           <select
@@ -352,7 +352,7 @@ export function RenewalCorrections({
           />
         )}
       </Field>
-      <Field htmlFor={`${id}-source`} label="Value source / reason">
+      <Field htmlFor={`${id}-source`} label="Value source / reason" required>
         <input
           id={`${id}-source`}
           maxLength={240}
@@ -380,7 +380,7 @@ export function RenewalCorrections({
       </Field>
       {selectedRentvine && field === "current_rent" ? (
         <>
-          <Field htmlFor={`${id}-charge`} label="Current rent billing item">
+          <Field htmlFor={`${id}-charge`} label="Current rent billing item" required>
             <select
               id={`${id}-charge`}
               value={chargeId}

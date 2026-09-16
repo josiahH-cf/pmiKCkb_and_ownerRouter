@@ -1,5 +1,6 @@
 "use client";
 
+import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -467,11 +468,15 @@ export function RentvineUpdatesPanel({
       {proposal ? (
         <div className="ui-stack">
           <div>
-            <h2 id="rentvine-updates-title">Review RentVine updates</h2>
+            <RenewalSectionHeading
+              id="rentvine-updates"
+              headingId="rentvine-updates-title"
+            >
+              Review RentVine updates
+            </RenewalSectionHeading>
             <p className="muted">
               Exact source: RentVine account {proposal.account}, lease {proposal.lease_id}
-              , read {proposal.source_read_at}. Each effect is previewed, confirmed, and
-              receipted independently; preview performs zero writes.
+              , read {proposal.source_read_at}.
             </p>
           </div>
           {expired ? (
@@ -491,9 +496,7 @@ export function RentvineUpdatesPanel({
                 <li className="ui-stack" key={effect.effect_hash}>
                   <div>
                     <h3>{KIND_LABELS[effect.kind]}</h3>
-                    <p className="muted">
-                      {effect.action_key} · {stateLabel(state)}
-                    </p>
+                    <p className="muted">{stateLabel(state)}</p>
                   </div>
                   <ul>
                     {describeChangeLines(effect).map((line) => (
@@ -633,10 +636,13 @@ export function RentvineUpdatesPanel({
         </div>
       ) : (
         <div>
-          <h2 id="rentvine-updates-title">RentVine updates</h2>
+          <RenewalSectionHeading id="rentvine-updates" headingId="rentvine-updates-title">
+            RentVine updates
+          </RenewalSectionHeading>
           <p className="muted">
-            No update proposal is saved for this lease. An Editor can assemble one from
-            fresh RentVine state and exact approved terms.
+            No RentVine update is waiting for review. An Editor prepares one below with
+            the exact approved changes and their source; an Admin confirms each effect
+            here.
           </p>
         </div>
       )}

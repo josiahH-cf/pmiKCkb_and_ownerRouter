@@ -30,6 +30,8 @@ Provider writes and receipts remain separate from this manual record. A person s
 1. Open **Renewals**, filter the list, and choose the exact lease. Check property, tenant, dates and
    base rent. Use **Lease details** to compare sources; separate charges and unit listed rent are
    not base rent. **Do this next** focuses the relevant control without completing anything.
+   The small **i** beside any heading (for example **About Lease details**) opens plain-language
+   help; it changes nothing.
 2. If a fact is wrong, use **Correct a lease fact**. Choose a value/source and the supported
    destination. The approving role reviews it. Admin confirms each exact Sheet or RentVine effect
    independently and reads the result. Recover an uncertain existing attempt before trying again.

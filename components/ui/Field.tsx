@@ -88,14 +88,16 @@ export function Field({
 
   return (
     <div className={classes}>
-      <label className="field-label" htmlFor={htmlFor}>
-        {label}
+      <span className="field-label-line">
+        <label className="field-label" htmlFor={htmlFor}>
+          {label}
+        </label>
         {required ? (
           <span aria-hidden="true" className="field-required">
             *
           </span>
         ) : null}
-      </label>
+      </span>
       {hint ? (
         <span className="field-hint" id={hintId}>
           {hint}
