@@ -21,7 +21,8 @@ comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: i
 Feature 6 of 7, S119 audited manual work
 status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
 `2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
-S120 has not started.
+Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
+is implemented and integrated on main at `e056077c`; its serialized release is next.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -241,6 +242,32 @@ revision configuration, receipts, the observation report and the authorized doma
 Deployed behavior changes: the Lease information panel gains Work status (recorded by staff), Save status
 and Status history; the compact lease context and each desk row show the saved staff status; the desk's
 Filter status disclosure gains the Work status filter including Not recorded.
+
+S120 reorders and connects the owner-to-completion work. Each audience's message preparation is
+mounted before the staff-recorded outreach or delivery record and the later response, and the
+earlier-cycle Gmail attempts sit in a secondary disclosure. Known facts fill their fields with a
+visible origin: contacts, the current rent decision, the reviewed comparison and the shared resource
+links from their existing sources, a managed sender's saved signature retained once per sender and
+reused across leases and cycles (filled, never reviewed or bound, until that sender saves), and a
+tenant charge filled deliberately from a named current RentVine recurring charge with its source.
+One readiness result computed from the same content, review and sender basis lists every genuine
+missing input with a link to the control, section or Connections entry that resolves it, replacing
+the generic count and the shared-links destination; Copy formatted body and Copy plain text stay
+focusable but unavailable while that list is not empty, open the list instead of copying, and the
+selectable plain text appears only for a ready body, while the subject stays copyable and Gmail,
+publication or recipient readiness never blocks local copy. The response-request field names the
+exact paragraph it replaces and shows the current paragraph; copy, preview and Gmail use one body.
+The ten shared resource entries are maintained once on Connections (Documents and storage) and from
+the Admin task index over the existing versioned store; each lease shows their current state
+(pending, needs review, checked, unknown when unreadable) with a link to the exact entry, and the
+packet dependencies link to their locations. The document handoff shows the property, parties, lease
+end, recorded approved terms and pending source updates with their origin and links; nothing fills a
+PDF or Dotloop field, and no send, approval, signature, completion or provider effect is created.
+Gates on the integrated head `e056077c`: format, lint, types, 6707 unit tests (735 files), 213 backend (37 files), policy,
+build; core E2E 8 files / 4 skips; desk check (attempt 1) and guide check (71 steps, attempt 1) passed;
+the S120 unit, component, layout, resource, document-fact and backend cases were written fail-first, and
+the S113 preservation cases moved to the final-copy gate deliberately. No client message was sent, no
+live record was written and no provider request was made. Human verdict: NOT RUN.
 
 ## Serving release
 

@@ -21,7 +21,8 @@ comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: i
 Feature 6 of 7, S119 audited manual work
 status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
 `2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
-S120 has not started.
+Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
+is implemented and integrated on main at `e056077c`; its serialized release is next.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -47,7 +48,8 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-Remaining order: S120 downstream preparation and completion UX. Each feature completes its own verification, exact-main CI and serialized release
+S120 downstream preparation and completion UX is implemented and integrated at `e056077c`; its serialized
+release is the last in this bundle. Each feature completes its own verification, exact-main CI and serialized release
 before the next begins.
 
 ## Current implementation baseline

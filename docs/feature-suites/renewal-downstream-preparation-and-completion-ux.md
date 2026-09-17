@@ -3,7 +3,8 @@
 
 # S120 — Source-filled communications, shared resources and downstream completion UX
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `e056077c` (integrated on main); serialized release not yet performed. verify.sh, core E2E
+> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-downstream-preparation-and-completion-ux.md`.  

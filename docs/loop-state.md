@@ -14,10 +14,19 @@ implemented at `2c810eb1`, released 2026-09-17 as head `be023196` / pmi-kc-app-r
 staff work status with recorder, time, history and cycle relation in its own versioned app-owned store
 and route; one projection for the lease information panel, the compact context and the desk row; the
 desk's Work status filter (including Not recorded) in the canonical query and continuation; an
-unavailable read never reads as Not recorded (deployed behavior change). Next: S120 downstream
-preparation and completion UX (re-ground on the released code first), with its own gate, exact-main CI,
-serialized release, readbacks and closure record. Authentication: check the enrollment horizon before
-the release.
+unavailable read never reads as Not recorded (deployed behavior change). S120 source-filled
+communications, shared resources and downstream completion UX is implemented and integrated on main at
+`e056077c`: preparation before the recorded outreach and response for both audiences; one readiness
+result routing each missing input to its control and gating the final-body copy; a retained
+same-sender signature and deliberate charge fill from current RentVine charges with origin cues; the
+shared resource entries on Connections and the Admin task index with a per-lease state summary; known
+facts in the document handoff. Gates on the integrated head: format, lint, types, 6707 unit tests (735 files), 213 backend (37 files), policy, build;
+core E2E 8 files / 4 skips; desk check (attempt 1) and guide check (71 steps, attempt
+
+1. passed. Logs: `~/pmi-kc-work/logs/s120-*.log`. Next: exact-main CI for this head, the serialized
+   release (candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks
+   and the closure record; the bundle then ends. Authentication: check the enrollment horizon before the
+   release.
 
 ## Verified production
 
@@ -90,7 +99,7 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s119-manual-status`, squashed into main as `2c810eb1`
+Native checkout: `~/pmi-kc-work/main` on branch `s120-downstream-ux`, squashed into main as `e056077c`
 (Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,
