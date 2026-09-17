@@ -22,7 +22,8 @@ Feature 6 of 7, S119 audited manual work
 status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
 `2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
 Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
-is implemented and integrated on main at `e056077c`; its serialized release is next.
+is COMPLETE and DEPLOYED: implemented at `e056077c` and released 2026-09-17 as head `79493458` /
+`pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries). The renewal operator hub bundle (S114-S120) is complete.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -269,12 +270,23 @@ the S120 unit, component, layout, resource, document-fact and backend cases were
 the S113 preservation cases moved to the final-copy gate deliberately. No client message was sent, no
 live record was written and no provider request was made. Human verdict: NOT RUN.
 
+S120 released as head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries; candidate assurance receipt
+02:27:49Z, promotion verified 02:28:06Z, observation with two checkpoints in 372,944 ms,
+complete 02:34:15Z, all 2026-09-17). The exact head passed CI; canonical and tagged versions, traffic,
+revision configuration, receipts, the observation report and the authorized domains were read back.
+Deployed behavior changes: owner and tenant message preparation precede the staff-recorded outreach and
+response; the missing-input list links each item to its control or Connections entry and gates Copy
+formatted body and Copy plain text; a retained same-sender signature and a RentVine charge fill with origin
+cues; the shared resource entries live on Connections and the Admin task index with a per-lease state
+summary; the document handoff shows the current facts with their origin. The renewal operator hub bundle
+(S114-S120) is complete.
+
 ## Serving release
 
-Production serves `be023196ef63cd4e48db8230fc8deccaedae95c8` as `pmi-kc-app-rmu4s6qo5-5d81e4f12265` at 100% traffic. Exact main [CI 35165689726](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35165689726) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 377,809 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Exact main [CI 35173497243](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35173497243) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,944 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
-Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu4ontao-f5c2a692d78e`.
-Configuration fingerprint: `sha256:93e2cbc0c2b9a5bd6f0273b91169a0cf3b2df980557874d9f46ed0000a81daaa`. Production + Live, managed runtime identity,
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Captured predecessor: `pmi-kc-app-rmu4s6qo5-5d81e4f12265`.
+Configuration fingerprint: `sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568`. Production + Live, managed runtime identity,
 eleven Spaces, enabled Sheet switch, false Demo flags, RentVine/RentCast bindings and allowance 50
 were preserved and read back. Monitoring passed with its unchanged managed recipient.
 
@@ -323,8 +335,9 @@ no application session and Google asks for an
 email there; that is an owner step the release contract does not need. No password, code, passkey or
 CAPTCHA was entered. No account, IAM, claim, store location, permission scope or security policy changed.
 
-S119 released as head `be023196` (candidate `pmi-kc-app-rmu4s6qo5-5d81e4f12265`, first attempt; no retries) through the same serialized
+S120 released as head `79493458` (candidate `pmi-kc-app-rmu4wevd9-d89996133320`, first attempt; no retries) through the same serialized
 watcher: smoke, fingerprint, domains, candidate assurance, promotion and the 300,000 ms observation
-passed and the release completed at 00:36:19Z on 2026-09-17. S118, S117 and S116 released on their first
-attempts, S115 on its second and S114 on its third; every earlier attempt rolled back with verification
-and keeps its receipts, reports and checkpoints outside Git. Documentation-only closure does not deploy.
+passed and the release completed at 02:34:15Z on 2026-09-17. S119, S118, S117 and S116 released on their
+first attempts, S115 on its second and S114 on its third; every earlier attempt rolled back with
+verification and keeps its receipts, reports and checkpoints outside Git. Documentation-only closure
+does not deploy.

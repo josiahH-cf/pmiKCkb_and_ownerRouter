@@ -4,46 +4,37 @@ Last updated: 2026-09-17 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`24b0be59`, head
-`b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
-rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u, first
-attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEPLOYED (`bc559602`, head
-`a483c47d` / rmu4ir3hc, first attempt with cold-start retries). S118 COMPLETE / DEPLOYED (`0223bdb1`, head
-`af46ac72` / rmu4ontao, first attempt with one slow-render assurance pass). S119 COMPLETE / DEPLOYED:
-implemented at `2c810eb1`, released 2026-09-17 as head `be023196` / pmi-kc-app-rmu4s6qo5-5d81e4f12265 (first attempt; no retries): a bounded
-staff work status with recorder, time, history and cycle relation in its own versioned app-owned store
-and route; one projection for the lease information panel, the compact context and the desk row; the
-desk's Work status filter (including Not recorded) in the canonical query and continuation; an
-unavailable read never reads as Not recorded (deployed behavior change). S120 source-filled
-communications, shared resources and downstream completion UX is implemented and integrated on main at
-`e056077c`: preparation before the recorded outreach and response for both audiences; one readiness
-result routing each missing input to its control and gating the final-body copy; a retained
-same-sender signature and deliberate charge fill from current RentVine charges with origin cues; the
-shared resource entries on Connections and the Admin task index with a per-lease state summary; known
-facts in the document handoff. Gates on the integrated head: format, lint, types, 6707 unit tests (735 files), 213 backend (37 files), policy, build;
-core E2E 8 files / 4 skips; desk check (attempt 1) and guide check (71 steps, attempt
-
-1. passed. Logs: `~/pmi-kc-work/logs/s120-*.log`. Next: exact-main CI for this head, the serialized
-   release (candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks
-   and the closure record; the bundle then ends. Authentication: check the enrollment horizon before the
-   release.
+Renewal operator hub bundle (S114-S120) COMPLETE. S114 (`24b0be59`, head `b7fd04d1` / rmu46blcc, third
+attempt), S115 (`dffc4f71`, head `3ca35870` / rmu4awn6p, second attempt), S116 (`7a19d338`, head `33ef3039`
+/ rmu4eoy5u, first attempt; email-column sync waits for the two Sheet headers), S117 (`bc559602`, head
+`a483c47d` / rmu4ir3hc, first attempt with cold-start retries), S118 (`0223bdb1`, head `af46ac72` /
+rmu4ontao, first attempt with one slow-render assurance pass), S119 (`2c810eb1`, head `be023196` /
+rmu4s6qo5, first attempt; no retries) and S120 (implemented at `e056077c`, released 2026-09-17 as head `79493458` /
+pmi-kc-app-rmu4wevd9-d89996133320, first attempt; no retries) are all COMPLETE / DEPLOYED. S120 deployed: preparation
+before the recorded outreach and response for both audiences; one readiness result routing each missing
+input to its control and gating the final-body copy; a retained same-sender signature and a deliberate
+RentVine charge fill with origin cues; the shared resource entries on Connections and the Admin task index
+with a per-lease state summary; known facts in the document handoff. Next: no feature is queued from this
+request; deferred live effects stay separate (S116 email-column sync until the owner adds the two Sheet
+headers; Dotloop packet actions and blank shared resources until their inputs and activation exist).
+Authentication: the WSL enrollment expires under nine hours; re-enroll before any new release.
 
 ## Verified production
 
-Serving SHA: be023196ef63cd4e48db8230fc8deccaedae95c8
-Serving revision: pmi-kc-app-rmu4s6qo5-5d81e4f12265, 100% traffic (tag cand-rmu4s6qo5-5d81e4f12265).
+Serving SHA: 79493458f641b9710d8c43467e872aa9acf7948e
+Serving revision: pmi-kc-app-rmu4wevd9-d89996133320, 100% traffic (tag cand-rmu4wevd9-d89996133320).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:93e2cbc0c2b9a5bd6f0273b91169a0cf3b2df980557874d9f46ed0000a81daaa.
-Predecessor: pmi-kc-app-rmu4ontao-f5c2a692d78e / af46ac7213c23da36c0219cfbfbfd45184c4ae68 (fingerprint sha256:b8f586d34baf88b9de383ea1d410b7a638987d4254d380eff4830df298219365).
-Exact CI 35165689726 passed; Cloud Build d3cfebeb-cfae-4bcf-9730-5837d60e35ac succeeded (00:19:29Z-00:24:49Z).
-Candidate receipt issued 00:29:48Z; promotion started 00:30:00Z, verified 00:30:06Z;
-complete 00:36:19Z, all September 17.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 377,809 ms / 300,000 ms.
+Fingerprint: sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568.
+Predecessor: pmi-kc-app-rmu4s6qo5-5d81e4f12265 / be023196ef63cd4e48db8230fc8deccaedae95c8 (fingerprint sha256:93e2cbc0c2b9a5bd6f0273b91169a0cf3b2df980557874d9f46ed0000a81daaa).
+Exact CI 35173497243 passed; Cloud Build b66de152-035b-47c9-8087-f001fe15d26a succeeded (02:18:07Z-02:22:50Z).
+Candidate receipt issued 02:27:49Z; promotion started 02:28:00Z, verified 02:28:06Z;
+complete 02:34:15Z, all September 17.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 372,944 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
 Independent readback after completion: canonical and tagged /api/version, 100% traffic on the revision,
-revision env (APP_COMMIT_SHA be023196, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only the new candidate host; no registry, gate or rules file changed since af46ac72.
+revision env (APP_COMMIT_SHA 79493458, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only the new candidate host; no registry, gate or rules file changed since be023196.
 
 ## Preserved failed attempts
 

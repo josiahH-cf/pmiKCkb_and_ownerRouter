@@ -3,8 +3,7 @@
 
 # S120 — Source-filled communications, shared resources and downstream completion UX
 
-> Status: IMPLEMENTED at `e056077c` (integrated on main); serialized release not yet performed. verify.sh, core E2E
-> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `e056077c`; released on 2026-09-17 as head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Deployed behavior changes: message preparation before the recorded outreach and response for both audiences; the missing-input list with per-item links gating Copy formatted body and Copy plain text; retained same-sender signature and RentVine charge fill with origin cues; shared resource entries on Connections and the Admin task index with a per-lease state summary; current facts with origin in the document handoff. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-downstream-preparation-and-completion-ux.md`.  

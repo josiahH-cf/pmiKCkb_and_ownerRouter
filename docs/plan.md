@@ -22,7 +22,8 @@ Feature 6 of 7, S119 audited manual work
 status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
 `2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
 Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
-is implemented and integrated on main at `e056077c`; its serialized release is next.
+is COMPLETE and DEPLOYED: implemented at `e056077c` and released 2026-09-17 as head `79493458` /
+`pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries). The renewal operator hub bundle (S114-S120) is complete.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -48,13 +49,12 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-S120 downstream preparation and completion UX is implemented and integrated at `e056077c`; its serialized
-release is the last in this bundle. Each feature completes its own verification, exact-main CI and serialized release
+Every feature of the bundle is complete and deployed; no feature remains in this order. Each feature completes its own verification, exact-main CI and serialized release
 before the next begins.
 
 ## Current implementation baseline
 
-Production serves `be023196ef63cd4e48db8230fc8deccaedae95c8` as `pmi-kc-app-rmu4s6qo5-5d81e4f12265` at 100% traffic. Exact main [CI 35165689726](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35165689726) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 377,809 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
+Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Exact main [CI 35173497243](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35173497243) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,944 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore.
 S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance and
