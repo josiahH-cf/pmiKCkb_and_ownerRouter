@@ -3,8 +3,7 @@
 
 # S119 — Audited manual work status and matching renewal-table filters
 
-> Status: IMPLEMENTED at `2c810eb1` (integrated on main); serialized release not yet performed. verify.sh, core E2E
-> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
+> Status: COMPLETE / DEPLOYED. Implemented at `2c810eb1`; released on 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries). verify.sh, core E2E, both compiled renewal browser checks, candidate assurance, receipt-bound promotion, the 300,000 ms observation and the independent readbacks passed. Deployed behavior changes: Work status (recorded by staff), Save status and Status history in the Lease information panel; the saved staff status in the compact lease context and each desk row; the Work status desk filter including Not recorded. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-manual-status-and-desk-filtering.md`.  

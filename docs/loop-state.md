@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-09-16 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-17 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
@@ -8,41 +8,33 @@ Renewal operator hub bundle (S114-S120) in progress. S114 COMPLETE / DEPLOYED (`
 `b7fd04d1` / rmu46blcc, third attempt). S115 COMPLETE / DEPLOYED (`dffc4f71`, head `3ca35870` /
 rmu4awn6p, second attempt). S116 COMPLETE / DEPLOYED (`7a19d338`, head `33ef3039` / rmu4eoy5u, first
 attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEPLOYED (`bc559602`, head
-`a483c47d` / rmu4ir3hc, first attempt with cold-start retries). S118 COMPLETE / DEPLOYED: implemented at
-`0223bdb1`, released 2026-09-16 as head `af46ac72` / pmi-kc-app-rmu4ontao-f5c2a692d78e (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds): labeled
-starting range from current rent, five-mile default with explicit override, origin-aware provider
-defaults that never overwrite an edit, honest save basis, the reviewed PMI recommendation as the
-prepared Sheet Market value, starting-range and provider-recommendation gates in the owner message,
-and RentCast property/market report links (deployed behavior change). S119 audited manual work
-status and matching desk filters is implemented and integrated on main at `2c810eb1`: a bounded
-staff-status annotation with recorder, time, history and cycle relation in its own versioned
-app-owned store and route; one projection for the lease information panel, the compact context
-and the desk row; a workStatus desk filter (including Not recorded) in the canonical query and
-continuation; an unavailable read never reads as Not recorded. Gates on the integrated head:
-format, lint, types, 6686 unit tests (730 files), 211 backend (36 files), policy, build;
-core E2E 8 files / 4 skips; desk check (attempt 1 of the rerun, after two 20 s
-lease-page timeouts in the first gate) and guide check (66 steps) passed.
-Logs: `~/pmi-kc-work/logs/s119-*.log`. Next: exact-main CI for this head, the serialized release
-(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks,
-closure record; then S120. Authentication: the 13:59Z WSL enrollment was still READY at 23:06Z; the
-watcher pauses at authentication_required if it expires mid-release.
+`a483c47d` / rmu4ir3hc, first attempt with cold-start retries). S118 COMPLETE / DEPLOYED (`0223bdb1`, head
+`af46ac72` / rmu4ontao, first attempt with one slow-render assurance pass). S119 COMPLETE / DEPLOYED:
+implemented at `2c810eb1`, released 2026-09-17 as head `be023196` / pmi-kc-app-rmu4s6qo5-5d81e4f12265 (first attempt; no retries): a bounded
+staff work status with recorder, time, history and cycle relation in its own versioned app-owned store
+and route; one projection for the lease information panel, the compact context and the desk row; the
+desk's Work status filter (including Not recorded) in the canonical query and continuation; an
+unavailable read never reads as Not recorded (deployed behavior change). Next: S120 downstream
+preparation and completion UX (re-ground on the released code first), with its own gate, exact-main CI,
+serialized release, readbacks and closure record. Authentication: check the enrollment horizon before
+the release.
 
 ## Verified production
 
-Serving SHA: af46ac7213c23da36c0219cfbfbfd45184c4ae68
-Serving revision: pmi-kc-app-rmu4ontao-f5c2a692d78e, 100% traffic (tag cand-rmu4ontao-f5c2a692d78e).
+Serving SHA: be023196ef63cd4e48db8230fc8deccaedae95c8
+Serving revision: pmi-kc-app-rmu4s6qo5-5d81e4f12265, 100% traffic (tag cand-rmu4s6qo5-5d81e4f12265).
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Fingerprint: sha256:b8f586d34baf88b9de383ea1d410b7a638987d4254d380eff4830df298219365.
-Predecessor: pmi-kc-app-rmu4ir3hc-7ee452a02151 / a483c47d78e45de3d530a548352ee5478ca8300a (fingerprint sha256:70397349290c8119b8c3798cc8536a8b08871440db8daab912e73d28fd53ed90).
-Exact CI 35158394618 passed; Cloud Build 144e60e5-2729-423a-85f3-3f89f4fbf62f succeeded (22:40:14Z-22:43:42Z).
-Candidate receipt issued 22:52:04Z; promotion started 22:52:17Z, verified 22:52:24Z;
-complete 22:58:43Z, all September 16.
-Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 384,778 ms / 300,000 ms.
+Fingerprint: sha256:93e2cbc0c2b9a5bd6f0273b91169a0cf3b2df980557874d9f46ed0000a81daaa.
+Predecessor: pmi-kc-app-rmu4ontao-f5c2a692d78e / af46ac7213c23da36c0219cfbfbfd45184c4ae68 (fingerprint sha256:b8f586d34baf88b9de383ea1d410b7a638987d4254d380eff4830df298219365).
+Exact CI 35165689726 passed; Cloud Build d3cfebeb-cfae-4bcf-9730-5837d60e35ac succeeded (00:19:29Z-00:24:49Z).
+Candidate receipt issued 00:29:48Z; promotion started 00:30:00Z, verified 00:30:06Z;
+complete 00:36:19Z, all September 17.
+Admin passed; Editor not_run under owner policy. Observation: two checkpoints, 377,809 ms / 300,000 ms.
 All 311 source/projected/rendered rows matched; zero missing, unexpected, duplicate, field or
 destination mismatches; source drift stable; 13 Admin routes rendered; monitoring ready, zero 5xx.
 Independent readback after completion: canonical and tagged /api/version, 100% traffic on the revision,
-revision env (APP_COMMIT_SHA af46ac72, production/live, Sheet write-back true, demo false, secrets by name),
-authorized domains hold only the new candidate host; no registry, gate or rules file changed since a483c47d.
+revision env (APP_COMMIT_SHA be023196, production/live, Sheet write-back true, demo false, secrets by name),
+authorized domains hold only the new candidate host; no registry, gate or rules file changed since af46ac72.
 
 ## Preserved failed attempts
 
