@@ -18,7 +18,9 @@ and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47
 (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). Feature 5 of 7, S118 five-mile market
 comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: implemented at
 `0223bdb1` and released 2026-09-16 as head `af46ac72` / `pmi-kc-app-rmu4ontao-f5c2a692d78e` (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds).
-S119-S120 have not started.
+Feature 6 of 7, S119 audited manual work
+status and matching desk filters, is implemented and integrated on main at `2c810eb1`;
+its serialized release is next. S120 has not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -44,8 +46,8 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-Remaining order: S119 manual status and desk filtering, S120 downstream
-preparation and completion UX. Each feature completes its own verification, exact-main CI and serialized release
+S119 manual status and desk filtering is implemented and integrated at `2c810eb1`; its serialized
+release is next. Remaining order: S120 downstream preparation and completion UX. Each feature completes its own verification, exact-main CI and serialized release
 before the next begins.
 
 ## Current implementation baseline

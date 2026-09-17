@@ -18,7 +18,9 @@ and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47
 (first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). Feature 5 of 7, S118 five-mile market
 comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: implemented at
 `0223bdb1` and released 2026-09-16 as head `af46ac72` / `pmi-kc-app-rmu4ontao-f5c2a692d78e` (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds).
-S119-S120 have not started.
+Feature 6 of 7, S119 audited manual work
+status and matching desk filters, is implemented and integrated on main at `2c810eb1`;
+its serialized release is next. S120 has not started.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -203,6 +205,33 @@ revision configuration, receipts, the observation report and the authorized doma
 Deployed behavior changes: new lookups search five miles, the low/high fields prefill with the labeled
 starting range, a usable result fills only unedited figures, and the saved PMI recommendation prepares
 the Sheet Market value for Admin confirmation.
+
+S119 adds the staff work status: a bounded app-owned lease annotation (Verifying lease and rent,
+Preparing market comparison, Preparing owner outreach, Waiting on owner response, Preparing tenant
+offer, Waiting on tenant response, Preparing lease documents / Dotloop, Waiting on signatures,
+Completing follow-up, Non-renewal handoff, Complete: staff status) saved only by Save status in the
+Lease information panel. The saved record carries the exact lease, the selected status, the
+server-derived recorder (stable uid plus the readable identity captured at save time), the time and
+the renewal cycle current at the save; a Status history disclosure lists prior and new values with
+recorder and time. An unset status reads Not recorded; a read that did not complete reads as
+unavailable and disables saving; a value saved during an earlier cycle is labeled as such rather
+than claimed for the new cycle. The status is projected once for the panel, the compact lease
+context and the desk row, and the desk gained a Work status filter (including Not recorded) in the
+canonical query, chips and continuation, so a table, lease, Save status and Back journey restores
+the exact view even when the lease leaves the result set. The store is versioned with
+expected-revision conflicts, duplicate-operation protection and append-only activity; a stale save
+reads the current value back and a lost response is resolved by readback, never by a second write.
+Saving a status changes no derived status, blocker, obligation, approval, response, completion,
+cycle, source or provider state and no automatic classification was added. Gates on the integrated
+head `2c810eb1`: format, lint, types, 6686 unit tests (730 files), 211 backend (36 files), policy,
+build; core E2E 8 files / 4 skips; desk check (attempt 1) and guide check (66 steps) passed;
+the S119 unit, component, route and backend cases were written fail-first. Gate notes: the first
+gate's desk check timed out twice at its 20 s lease-page budget (20.3 s including 4 s of dev
+compile, then a streamed shell whose full render did not finish in time); a signed-in probe rendered
+the same pages correctly in 16.5 to 21.5 s, the rehearsal driver now warms the lease route with a
+signed-in request, and the rerun passed both checks on their first attempts at 13.9 to 19.0 s. The
+lease page's live-read latency remains the open F-LEASE-PAGE-LATENCY condition. No client message was
+sent, no live record was written and no provider request was made. Human verdict: NOT RUN.
 
 ## Serving release
 

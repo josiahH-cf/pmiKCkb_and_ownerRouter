@@ -13,10 +13,19 @@ attempt; email-column sync waits for the two Sheet headers). S117 COMPLETE / DEP
 starting range from current rent, five-mile default with explicit override, origin-aware provider
 defaults that never overwrite an edit, honest save basis, the reviewed PMI recommendation as the
 prepared Sheet Market value, starting-range and provider-recommendation gates in the owner message,
-and RentCast property/market report links (deployed behavior change). Next: S119 manual status and
-desk filtering (re-ground on the released code first), then S120, each with its own gate, exact-main
-CI, serialized release, readbacks and closure record. Authentication: check the enrollment horizon
-before each release.
+and RentCast property/market report links (deployed behavior change). S119 audited manual work
+status and matching desk filters is implemented and integrated on main at `2c810eb1`: a bounded
+staff-status annotation with recorder, time, history and cycle relation in its own versioned
+app-owned store and route; one projection for the lease information panel, the compact context
+and the desk row; a workStatus desk filter (including Not recorded) in the canonical query and
+continuation; an unavailable read never reads as Not recorded. Gates on the integrated head:
+format, lint, types, 6686 unit tests (730 files), 211 backend (36 files), policy, build;
+core E2E 8 files / 4 skips; desk check (attempt 1 of the rerun, after two 20 s
+lease-page timeouts in the first gate) and guide check (66 steps) passed.
+Logs: `~/pmi-kc-work/logs/s119-*.log`. Next: exact-main CI for this head, the serialized release
+(candidate, smoke, fingerprint, domains, assurance, promotion, 300,000 ms observation), readbacks,
+closure record; then S120. Authentication: the 13:59Z WSL enrollment was still READY at 23:06Z; the
+watcher pauses at authentication_required if it expires mid-release.
 
 ## Verified production
 
@@ -89,7 +98,7 @@ inside the enrollment (expiry expected about 22:45Z).
 
 ## Working checkout and evidence
 
-Native checkout: `~/pmi-kc-work/main` on branch `s118-market-defaults`, squashed into main as `0223bdb1`
+Native checkout: `~/pmi-kc-work/main` on branch `s119-manual-status`, squashed into main as `2c810eb1`
 (Node 22.23.2, both reviewed ignored env files, `npm ci`), synced
 from the Windows checkout by `git fetch /mnt/c/... <branch>` + `checkout -B`; logs under
 `~/pmi-kc-work/logs/` (s115-verify-3.log, s115-e2e-core.log, s115-smokes.log, s115-fail-first.log,

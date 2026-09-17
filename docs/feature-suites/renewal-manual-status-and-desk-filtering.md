@@ -3,7 +3,8 @@
 
 # S119 — Audited manual work status and matching renewal-table filters
 
-> Status: SPECIFICATION READY; implementation and release have not been performed for this feature.
+> Status: IMPLEMENTED at `2c810eb1` (integrated on main); serialized release not yet performed. verify.sh, core E2E
+> and both compiled renewal browser checks passed on the integrated head. Human verdict: NOT RUN — no human observer.
 
 **Repository:** `josiahH-cf/pmiKCkb_and_ownerRouter` (`pmi-kc-kb`).  
 **Canonical file:** `docs/feature-suites/renewal-manual-status-and-desk-filtering.md`.  
