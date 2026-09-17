@@ -2311,6 +2311,15 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           "Reviewed retained fixture RentCast results",
         );
         fireEvent.click(comps.getByRole("button", { name: "Save comp preparation" }));
+        // The record route saves the preparation and then prepares its Sheet update as a second
+        // write. Wait for the provider's own read-back (issued after the route responds) before
+        // re-reading the cycle, so the remounted workspace never starts from the revision between
+        // those two writes.
+        await screen.findByText(
+          /Staff record saved and read back/,
+          {},
+          { timeout: 10_000 },
+        );
         await waitFor(async () =>
           expect(
             (await getRenewalWorkspace(actor, "701", db))?.preparation?.market.provider
@@ -2374,15 +2383,21 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(
           root.getByRole("button", { name: `Record ${audience} response` }),
         );
-        await waitFor(async () =>
-          expect((await getRenewalWorkspace(actor, "701", db))!.revision).toBeGreaterThan(
-            before,
-          ),
+        // The record round-trips the emulator and then reloads both message preparations and
+        // the document handoff; give these waits the journey's emulator budget like the others.
+        await waitFor(
+          async () =>
+            expect(
+              (await getRenewalWorkspace(actor, "701", db))!.revision,
+            ).toBeGreaterThan(before),
+          { timeout: 10_000 },
         );
-        await waitFor(() =>
-          expect(
-            root.getByRole("button", { name: `Record ${audience} response` }),
-          ).not.toBeDisabled(),
+        await waitFor(
+          () =>
+            expect(
+              root.getByRole("button", { name: `Record ${audience} response` }),
+            ).not.toBeDisabled(),
+          { timeout: 10_000 },
         );
       }
       await respond("owner", "approved_terms");
@@ -2391,20 +2406,26 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           screen.getByRole("region", { name: "Tenant offer and response" }),
         );
         // The tenant preparation reloads after the owner response is recorded; wait for it.
+        // S120: the unfinished preparation shows its formatted preview; the selectable plain
+        // text and the body copy open only once every input is reviewed and saved.
         await waitFor(
           () =>
-            expect(
-              (tenant.getByLabelText("tenant plain text body") as HTMLTextAreaElement)
-                .value,
-            ).toContain("$1,100.00"),
+            expect(tenant.getByLabelText("tenant formatted body")).toHaveTextContent(
+              "$1,100.00",
+            ),
           { timeout: 10_000 },
         );
         expect(
           tenant.getByRole("button", { name: "Preview unsent Gmail draft" }),
         ).toBeDisabled();
-        expect(
-          (tenant.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
-        ).not.toContain("https://example");
+        expect(tenant.getByLabelText("tenant formatted body").textContent).not.toContain(
+          "https://example",
+        );
+        expect(tenant.queryByLabelText("tenant plain text body")).toBeNull();
+        expect(tenant.getByRole("button", { name: "Copy plain text" })).toHaveAttribute(
+          "aria-disabled",
+          "true",
+        );
         // Pending team links do not block inspection/copy; save a verified fixture destination through its control.
         const form = screen.getByLabelText("Renewal information form").closest("form")!;
         change(
@@ -2425,7 +2446,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         const message = within(
           screen.getByRole("region", { name: "Tenant offer and response" }),
         );
-        await message.findByLabelText("Current lease origin");
+        // The remounted preparation loads through the emulator-backed route; same budget as
+        // the journey's other reloads.
+        await message.findByLabelText("Current lease origin", {}, { timeout: 10_000 });
         change(message.getByLabelText("Current lease origin"), "pmi");
         change(
           message.getByLabelText("Lease-origin source"),

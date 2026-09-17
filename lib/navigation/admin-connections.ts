@@ -202,6 +202,15 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
         requiredCapability: "manageAdmin",
         surface: "admin",
       },
+      {
+        id: "admin-renewal-resource-links",
+        label: "Renewal resource links",
+        description:
+          "Maintain the shared flyer, form and approved legal-form locations that renewal messages and packets use.",
+        href: "/connections#renewal-resource-locations",
+        requiredCapability: "read",
+        surface: "connections",
+      },
     ],
   },
   {

@@ -19,6 +19,9 @@ import {
   workspaceMessageBasisFingerprint,
 } from "@/lib/firestore/renewal-message-preparations";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
+import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
+import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
+import { chargeDateIso } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import {
   getSuppliedRenewalPublication,
   suppliedRenewalPublication,
@@ -68,6 +71,27 @@ export function projectCurrentMessageRecipients(
     : { status: "blocked", reasons: result.reasons };
 }
 
+/**
+ * S120 (R120.2): where the current signature came from. A retained value fills the inputs for the
+ * same managed sender only; it is neither a review nor a sender binding until that actor saves.
+ */
+export type MessageSignatureOrigin =
+  | { kind: "none" }
+  | { kind: "saved" }
+  | { kind: "retained_sender"; recordedAt: string };
+
+/** S120 (R120.2): a current non-rent recurring charge a person may deliberately fill a charge from. */
+export interface MessageChargeInventoryLine {
+  id: string;
+  label: string;
+  amount: number;
+  /** Months between charges; 1 is monthly. */
+  frequency: number;
+  startDate: string | null;
+  current: boolean | null;
+  sourceRef: string;
+}
+
 /** Read-only assembly. Missing Gmail or publication readiness never prevents body preparation. */
 export async function currentRenewalMessage(
   actor: AuthenticatedUser,
@@ -82,17 +106,20 @@ export async function currentRenewalMessage(
       409,
     );
   const nowMs = Date.now();
-  const [views, workspace, resources, publication] = await Promise.all([
-    requireCurrentLeaseViews(config.rentvineClient, nowMs),
-    getRenewalWorkspace(actor, leaseId, db),
-    getRenewalResourceLocations(actor, db).catch(() => null),
-    getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
-      ...suppliedRenewalPublication(channel),
-      status: "unavailable" as const,
-      reason:
-        "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
-    })),
-  ]);
+  const [views, workspace, resources, publication, retainedSignature] = await Promise.all(
+    [
+      requireCurrentLeaseViews(config.rentvineClient, nowMs),
+      getRenewalWorkspace(actor, leaseId, db),
+      getRenewalResourceLocations(actor, db).catch(() => null),
+      getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
+        ...suppliedRenewalPublication(channel),
+        status: "unavailable" as const,
+        reason:
+          "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
+      })),
+      getRetainedSenderSignature(actor, db).catch(() => null),
+    ],
+  );
   const matching = views.filter((view) => leaseViewId(view) === leaseId);
   if (matching.length !== 1)
     throw new EditableLayerError("The live lease is missing or ambiguous.", 409);
@@ -102,7 +129,18 @@ export async function currentRenewalMessage(
   const saved = workspace
     ? await getMessagePreparation(actor, leaseId, workspace.cycleId, channel, db)
     : null;
-  const inputs = saved?.inputs ?? emptyMessagePreparationInputs();
+  const savedInputs = saved?.inputs ?? emptyMessagePreparationInputs();
+  // S120 (R120.2): the same sender's retained signature fills an empty signature once; a saved
+  // signature (this actor's or another's) is shown as saved and is never silently replaced.
+  const signatureOrigin: MessageSignatureOrigin = savedInputs.signature
+    ? { kind: "saved" }
+    : retainedSignature
+      ? { kind: "retained_sender", recordedAt: retainedSignature.updatedAt }
+      : { kind: "none" };
+  const inputs =
+    signatureOrigin.kind === "retained_sender"
+      ? { ...savedInputs, signature: retainedSignature!.signature }
+      : savedInputs;
   const notices: string[] = [];
   let draftJournalAvailable = true;
   const [draftAttempt, previousDraftAttempts] = workspace
@@ -139,6 +177,33 @@ export async function currentRenewalMessage(
     );
   let currentBaseRent: RenewalMessageFacts["currentBaseRent"] = null;
   const renewalConfig = buildLiveRenewalConfig();
+  // S120 (R120.2): the current non-rent recurring charges, offered as a deliberate fill source for
+  // the tenant charge fields. A failed read is a notice, never an empty inventory.
+  let chargeInventory: MessageChargeInventoryLine[] | null = null;
+  if (channel === "tenant" && renewalConfig.ok) {
+    try {
+      const inventory = await loadRenewalChargeInventory(
+        renewalConfig.rentvineClient,
+        leaseId,
+      );
+      chargeInventory = inventory.charges
+        .filter((charge) => charge.classification !== "rent")
+        .map((charge) => ({
+          id: charge.id,
+          label: charge.accountLabel ?? charge.projection.description,
+          amount: Number(charge.projection.amount),
+          frequency: Number(charge.projection.frequency) || 1,
+          startDate: chargeDateIso(charge.projection.startDate),
+          current: charge.current,
+          sourceRef: `rentvine:lease:${leaseId}:recurring-charge:${charge.id}`,
+        }))
+        .filter((line) => Number.isFinite(line.amount) && line.amount >= 0);
+    } catch {
+      notices.push(
+        "The current RentVine recurring charges could not be read. Charge fields stay manual until they are read back.",
+      );
+    }
+  }
   if (channel === "owner" && renewalConfig.ok) {
     try {
       const resolutions = await listResolutionsForRun(actor, "live-review", db);
@@ -203,9 +268,11 @@ export async function currentRenewalMessage(
   };
   const provider = market?.provider;
   const signature =
-    saved?.signatureEmail && inputs.signature
-      ? { ...inputs.signature, email: saved.signatureEmail }
-      : null;
+    saved?.signatureEmail && savedInputs.signature
+      ? { ...savedInputs.signature, email: saved.signatureEmail }
+      : signatureOrigin.kind === "retained_sender" && inputs.signature
+        ? { ...inputs.signature, email: actor.email }
+        : null;
   const facts: RenewalMessageFacts = {
     channel,
     names: (channel === "owner" ? identity.owners : identity.tenants).map(
@@ -309,6 +376,9 @@ export async function currentRenewalMessage(
     previousDraftAttempts,
     draftJournalAvailable,
     senderEmail: actor.email,
+    signatureOrigin,
+    retainedSignature: retainedSignature?.signature ?? null,
+    chargeInventory,
     recipients: projectCurrentMessageRecipients(lease, channel),
     destinations: {
       gmailDrafts: buildManagedGmailDraftsDestination(actor.email),

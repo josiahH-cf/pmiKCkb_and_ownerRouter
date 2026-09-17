@@ -7,7 +7,7 @@ import {
 } from "@/lib/firestore/renewal-work-status";
 import { createHash } from "node:crypto";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
-import { RenewalResourceLocations } from "@/components/lease-renewal/RenewalResourceLocations";
+import { RenewalResourceLinksSummary } from "@/components/lease-renewal/RenewalResourceLinksSummary";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 
 import Link from "next/link";
@@ -508,9 +508,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
               )
             }
             resourceLocationsPanel={
-              <RenewalResourceLocations
-                role={user.role}
-                initialSettings={renewalAuxiliaryValue(resourceLocationsRead, null)}
+              <RenewalResourceLinksSummary
+                canManage={hasRenewalRoleAuthority(
+                  "manage_renewal_configuration",
+                  user.role,
+                )}
+                settings={renewalAuxiliaryValue(resourceLocationsRead, null)}
               />
             }
             rentvineUpdatesPanel={

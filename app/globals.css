@@ -3602,6 +3602,31 @@ textarea:disabled {
   }
 }
 
+/* S120: the message preparation groups its review, copy and draft work; a guarded final-body
+   export stays focusable and describable while it is unavailable. */
+.renewal-message-group {
+  border-top: 1px solid var(--ui-border);
+  padding-top: var(--space-2);
+}
+
+.renewal-message-group-title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.renewal-message-destinations {
+  line-height: 1.7;
+}
+
+.action-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-button[aria-disabled="true"]:focus-visible {
+  opacity: 0.85;
+}
+
 /* Email HTML keeps its approved inline colors for clipboard/Gmail. Only the in-app
    preview follows theme roles; renderMessageParagraphs emits one wrapper and role spans. */
 .renewal-message-preview > div {

@@ -56,12 +56,18 @@ export function RenewalResourceLocations({
   return (
     <section
       id="renewal-resource-locations"
-      className="panel ui-stack"
+      className="panel ui-stack task-anchor"
       aria-label="Renewal resource links"
+      tabIndex={-1}
     >
       <RenewalSectionHeading id="resource-links" as="h3">
         Renewal resource links
       </RenewalSectionHeading>
+      <p className="muted">
+        Shared by every lease. Each lease workspace shows the current state of these
+        entries and links back here; only entries checked by staff reach a tenant message
+        or packet.
+      </p>
       {settings === null ? (
         <p role="alert">
           Saved links could not be read. Reload before editing; their values are unknown.
@@ -79,7 +85,9 @@ export function RenewalResourceLocations({
         return (
           <form
             key={field.id}
-            className="ui-stack-tight"
+            id={`renewal-resource-entry-${field.id}`}
+            className="ui-stack-tight task-anchor"
+            tabIndex={-1}
             onSubmit={(event) => {
               event.preventDefault();
               void save(field.id);

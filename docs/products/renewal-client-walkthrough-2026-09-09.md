@@ -38,9 +38,12 @@ Provider writes and receipts remain separate from this manual record. A person s
    it. Admin reads the exact preview and confirms each Sheet or RentVine effect independently;
    **Update status by destination** shows what applied, what is still prepared and any base-rent
    mismatch. Recover an uncertain existing attempt before trying again.
-3. Use **Comps** and **Owner message preparation** before requesting owner approval. Review the
-   comp evidence and message, then copy it or preview an eligible unsent Gmail draft. Send it
-   yourself in the appropriate channel and record that actual activity.
+3. Use **Comps** and **Owner message preparation** before requesting owner approval. The
+   preparation sits above the staff-recorded work in that order: contacts, the current rent
+   decision, the reviewed comparison and your retained signature are already filled, and every
+   remaining gap links to its own control. Once the list is empty and the message is reviewed,
+   copy it beside the owner's RentVine messages link or preview an eligible unsent Gmail draft.
+   Send it yourself in the appropriate channel, then record the outreach and the response.
 4. Record **Owner response** with the exact approved rent and dates. Prepare the current-cycle
    tenant message; verify separate charges, applicability, links and signature. Record the actual
    tenant response. A counteroffer returns to owner review; a decline takes the non-renewal handoff.
@@ -53,9 +56,11 @@ Provider writes and receipts remain separate from this manual record. A person s
 
 ## When inputs are missing
 
-The labeled insurance flyer, renewal information form and legal-form location boxes may remain
-blank pending team input. Admin can save verified, applicable links later. Blank or unverified
-values never become customer links or legal content. Only the exact dependent output waits.
+The shared insurance flyer, Resident Benefits Package flyer, renewal information form and the seven
+legal-form locations are maintained once by an Admin in **Connections** (also reachable from the
+Admin task index). Each lease shows their current state and links to the exact entry; a blank entry
+remains pending team input. Blank or unverified values never become customer links or legal
+content. Only the exact dependent output waits, and its missing-input list names that entry.
 
 The document handoff names missing approved forms/mappings, Dotloop connection/selection and exact
 activation gates. S106 and S34 own that continuation. Current Dotloop keys remain closed. With real

@@ -401,9 +401,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "Builds the owner email from the lease facts, the saved comparison and your signature. Review the inputs, save your edits, then copy the message or create an unsent Gmail draft.",
     steps: [
-      "Check the listed inputs; resolve each item under inputs remain for final use.",
+      "Follow each item under inputs remain for final use to its own control; contacts, the reviewed comparison and your retained signature are already filled when they are known.",
       "Edit the optional response request wording if needed and save the reviewed preparation.",
-      "Copy the subject and body, or preview and confirm an unsent Gmail draft, then send it yourself.",
+      "Once the list is empty and the preparation is reviewed, copy the subject and body beside the owner's RentVine messages link, or preview and confirm an unsent Gmail draft, then send it yourself.",
     ],
     saves:
       "Your edits and review are stored with this cycle. A confirmed Gmail draft is created unsent in the signed-in managed mailbox.",
@@ -415,9 +415,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "Builds the tenant offer from the approved terms, applicable charges, insurance wording and resource links. Review the inputs, save your edits, then copy the message or create an unsent Gmail draft.",
     steps: [
-      "Review lease origin and applicable charges; resolve each item under inputs remain for final use.",
+      "Review lease origin and applicable charges; fill a charge from a current RentVine charge when it matches, and follow each remaining item under inputs remain for final use to its own control.",
       "Edit the optional response request wording if needed and save the reviewed preparation.",
-      "Copy the formatted or plain text, or preview and confirm an unsent Gmail draft, then send it yourself in the chosen channel.",
+      "Once the list is empty and the preparation is reviewed, copy the formatted or plain text beside the lease messages link, or preview and confirm an unsent Gmail draft, then send it yourself in the chosen channel.",
     ],
     saves:
       "Your edits and review are stored with this cycle. A confirmed Gmail draft is created unsent in the signed-in managed mailbox.",
@@ -468,7 +468,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "document-handoff": {
     label: "Document preparation and signature handoff",
     purpose:
-      "Prepares the approved packet for Dotloop and lets an Admin confirm each supported provider action; signatures are collected outside the app.",
+      "Prepares the approved packet for Dotloop and lets an Admin confirm each supported provider action; signatures are collected outside the app. The current property, parties, approved terms and pending source updates are shown from their recorded sources.",
     steps: [
       "Reload readiness and resolve the listed blockers.",
       "Preview the exact packet action, enter the Admin approval reason and confirm it once.",
@@ -477,14 +477,14 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     saves:
       "Confirmed provider actions and their receipts are stored with this lease. Uploaded files are the exact approved publications; mapped fields shown here do not edit those files.",
     notDone:
-      "Returned signed artifacts and staff-recorded completion are separate from provider document-presence receipts. No signature happens in the app.",
+      "Returned signed artifacts and staff-recorded completion are separate from provider document-presence receipts. No signature happens in the app, and a populated fact fills no PDF or Dotloop field.",
   },
   "resource-links": {
     label: "Renewal resource links",
     purpose:
-      "Holds the shared informational and legal-form locations the tenant message and packet use: flyers, the information form and the approved form locations.",
+      "Holds the shared informational and legal-form locations the tenant message and packet use: flyers, the information form and the approved form locations. An Admin maintains them once in Connections; each lease shows their current state.",
     saves:
-      "An Admin saves each checked HTTPS location once; the lease reads the current shared value.",
+      "An Admin saves each checked HTTPS location once in Connections, with its version; every lease reads the current shared value.",
     notDone:
       "A blank box is pending team input, not an error. A saved location is not approved legal content, a mapping or a signature.",
   },

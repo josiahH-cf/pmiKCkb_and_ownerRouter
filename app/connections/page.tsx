@@ -14,6 +14,8 @@ import {
   LIVE_VERIFIABLE_CONNECTOR_IDS,
 } from "@/lib/connections/verification";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
+import { RenewalResourceLocations } from "@/components/lease-renewal/RenewalResourceLocations";
+import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 
 // The Connection Center. Status combines configuration PRESENCE (never values) with the cached
 // read-only live checks (S13 D1), so a working connector finally shows "Connected". Every role can
@@ -25,6 +27,9 @@ export default async function ConnectionsPage() {
   const connections = await loadConnectorConnections(canManage);
   const dotloopReadiness = await readDotloopRuntimeReadiness();
   const view = buildConnectionView(readConnectorPresence(), verifiedIds, connections);
+  // S120 (R120.3): the shared renewal resource entries live here with the other shared setup.
+  // A failed read renders as unknown, never as an empty settings record.
+  const resourceSettings = await getRenewalResourceLocations(user).catch(() => null);
 
   return (
     <AppShell user={user}>
@@ -34,6 +39,12 @@ export default async function ConnectionsPage() {
           canManage={canManage}
           verifiableIds={LIVE_VERIFIABLE_CONNECTOR_IDS}
           view={view}
+          resourcePanel={
+            <RenewalResourceLocations
+              role={user.role}
+              initialSettings={resourceSettings}
+            />
+          }
         />
       </section>
     </AppShell>

@@ -338,6 +338,10 @@ function CycleControl({
     form
   );
 }
+const ACTIVITIES_BEFORE_RESPONSE: readonly ManualActivity[] = [
+  "owner_outreach",
+  "tenant_offer",
+];
 export function RenewalManualSection({
   section,
 }: {
@@ -349,26 +353,34 @@ export function RenewalManualSection({
   if (!state)
     return <p>Manual recording is available after selecting the reviewed cycle above.</p>;
   const summary = manualRenewalSummary(state);
+  const activities = Object.entries(MANUAL_ACTIVITIES)
+    .filter(
+      ([key, value]) =>
+        value.section === section &&
+        (key !== "non_renewal_handoff" || summary.nonRenewal),
+    )
+    .map(([key]) => key as ManualActivity);
+  // S120 (R120.1): the outreach or delivery record comes before the response it precedes in
+  // time; the remaining activities keep their order after the response.
+  const beforeResponse = activities.filter((key) =>
+    ACTIVITIES_BEFORE_RESPONSE.includes(key),
+  );
+  const afterResponse = activities.filter(
+    (key) => !ACTIVITIES_BEFORE_RESPONSE.includes(key),
+  );
+  const activityForm = (key: ManualActivity) => (
+    <ActivityForm key={`${state.cycleId}-${key}`} activity={key} />
+  );
   return (
     <Card title={renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")}>
+      {beforeResponse.map(activityForm)}
       {section === "owner" ? (
         <ResponseForm key={`owner-${state.cycleId}`} audience="owner" />
       ) : null}
       {section === "tenant" ? (
         <ResponseForm key={`tenant-${state.cycleId}`} audience="tenant" />
       ) : null}
-      {Object.entries(MANUAL_ACTIVITIES)
-        .filter(
-          ([key, value]) =>
-            value.section === section &&
-            (key !== "non_renewal_handoff" || summary.nonRenewal),
-        )
-        .map(([key]) => (
-          <ActivityForm
-            key={`${state.cycleId}-${key}`}
-            activity={key as ManualActivity}
-          />
-        ))}
+      {afterResponse.map(activityForm)}
       {section === "documents" ? (
         <>
           <div id="renewal-manual-complete" tabIndex={-1} className="ui-stack">

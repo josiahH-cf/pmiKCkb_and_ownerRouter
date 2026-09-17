@@ -346,16 +346,18 @@ export function RenewalWorkspace({
                       marketSubject={marketSubject}
                     />
                   ) : null}
-                  {section.id === "owner" ||
-                  section.id === "tenant" ||
-                  section.id === "documents" ? (
-                    <RenewalManualSection section={section.id} />
-                  ) : null}
+                  {/* S120 (R120.1): prepare the message first; record outreach and the later
+                      response after actual contact. The order is chronology, not a gate. */}
                   {section.id === "owner" || section.id === "tenant" ? (
                     <RenewalMessagePreparation
                       channel={section.id}
                       canEdit={can(role, "edit")}
                     />
+                  ) : null}
+                  {section.id === "owner" ||
+                  section.id === "tenant" ||
+                  section.id === "documents" ? (
+                    <RenewalManualSection section={section.id} />
                   ) : null}
                   {section.id === "documents" ? resourceLocationsPanel : null}
                   {section.steps.map((stepId) => (
@@ -1000,6 +1002,12 @@ function PhaseContent({
               <RenewalDocumentHandoff
                 canApprove={can(role, "manageAdmin")}
                 canRecordReadback={can(role, "approve")}
+                facts={{
+                  address: summary.addressLabel || null,
+                  owners: summary.ownerNameLabels,
+                  tenants: summary.tenantNameLabels,
+                  leaseEndDate: term.endDateIso ?? null,
+                }}
               />
             </>
           ) : (

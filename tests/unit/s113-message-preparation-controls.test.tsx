@@ -64,9 +64,45 @@ function preparation() {
     draftAttempt: null,
   };
 }
+function readyPreparation() {
+  const base = preparation();
+  const signature = {
+    name: "Emulator Staff",
+    role: null,
+    phone: null,
+    hours: null,
+    website: null,
+    source: "reviewed:staff",
+  };
+  const inputs = {
+    ...base.inputs,
+    signature,
+    leaseOrigin: { kind: "pmi" as const, source: "reviewed:lease" },
+    charges: base.inputs.charges.map((charge) => ({
+      ...charge,
+      applicable: false,
+      source: "reviewed:charges",
+    })),
+  };
+  return {
+    ...base,
+    inputs,
+    needsReview: false,
+    signatureMatchesActor: true,
+    saved: { revision: 1, inputs, signatureEmail: base.senderEmail },
+    facts: {
+      ...base.facts,
+      charges: inputs.charges,
+      leaseOrigin: inputs.leaseOrigin,
+      informationForm: { url: "https://example.invalid/form", source: "reviewed:form" },
+    },
+  };
+}
 describe("S113 mounted message preparation", () => {
-  it("prepares and offers all copy modes without Gmail, with selectable fallback after clipboard denial", async () => {
-    const fetch = vi.fn(async () => Response.json(preparation()));
+  it("offers all copy modes without Gmail once the body is ready, with selectable fallback after clipboard denial", async () => {
+    // S120 (R120.4): the final-body exports open only for a reviewed, complete body; Gmail
+    // publication stays a separate gate and never blocks local copy.
+    const fetch = vi.fn(async () => Response.json(readyPreparation()));
     vi.stubGlobal("fetch", fetch);
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -82,7 +118,12 @@ describe("S113 mounted message preparation", () => {
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     await screen.findByRole("button", { name: "Copy subject" });
     expect(screen.getByRole("button", { name: "Copy formatted body" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Copy formatted body" }),
+    ).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByRole("button", { name: "Copy plain text" })).not.toHaveAttribute(
+      "aria-disabled",
+    );
     expect(
       screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
     ).toBeDisabled();
@@ -198,9 +239,12 @@ describe("S113 mounted message preparation", () => {
     fireEvent.change(prose, {
       target: { value: "Please share your preferred next step." },
     });
-    expect(
-      (screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
-    ).toEqual(expect.stringContaining("Please share your preferred next step."));
+    // S120: an unfinished preparation shows its formatted preview; the selectable plain-text
+    // export opens only once the body is ready.
+    expect(screen.getByLabelText("tenant formatted body")).toHaveTextContent(
+      "Please share your preferred next step.",
+    );
+    expect(screen.queryByLabelText("tenant plain text body")).toBeNull();
     current = {
       ...first,
       sourceFingerprint: "b".repeat(64),
@@ -209,9 +253,9 @@ describe("S113 mounted message preparation", () => {
     manual.revision++;
     mounted.rerender(<RenewalMessagePreparation channel="tenant" canEdit />);
     await waitFor(() =>
-      expect(
-        (screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
-      ).toEqual(expect.stringContaining("$1,200.00")),
+      expect(screen.getByLabelText("tenant formatted body")).toHaveTextContent(
+        "$1,200.00",
+      ),
     );
     expect(prose).toHaveValue("Please share your preferred next step.");
     expect(screen.getByRole("checkbox")).not.toBeChecked();

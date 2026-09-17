@@ -41,6 +41,33 @@ export const SUPPLIED_RENEWAL_COPY = Object.freeze({
   signoff: "Kindest Regards,",
 });
 
+/**
+ * S120 (R120.5): the optional response-request wording replaces exactly one paragraph of the
+ * approved copy. These sentences name that paragraph for the field's help; blank keeps the default.
+ */
+export const RESPONSE_REQUEST_PLACEMENT = Object.freeze({
+  owner:
+    "the request paragraph that follows the market-range sentence and precedes the comparable evidence",
+  tenant:
+    "the response paragraph after the terms, charges and insurance wording and before the request to complete the renewal information form",
+} as const);
+
+/** The paragraph the current wording edit produces, or the approved default when it is blank. */
+export function responseRequestParagraph(
+  channel: "owner" | "tenant",
+  edits: { responseRequest: string },
+): { text: string; isDefault: boolean } {
+  const custom = edits.responseRequest.trim();
+  if (custom) return { text: custom, isDefault: false };
+  return {
+    text:
+      channel === "owner"
+        ? SUPPLIED_RENEWAL_COPY.owner.request
+        : SUPPLIED_RENEWAL_COPY.tenant.response,
+    isDefault: true,
+  };
+}
+
 /** Replace only the named reviewed fields; unresolved authoring tokens never reach copy. */
 function fillSuppliedCopy(template: string, values: Record<string, string>): string {
   return template.replace(/\{\{([a-z_]+)\}\}/g, (_match, key: string) => {

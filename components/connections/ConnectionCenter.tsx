@@ -9,6 +9,8 @@ import {
   type DotloopReadiness,
 } from "@/lib/connections/dotloop-readiness";
 
+import type { ReactNode } from "react";
+
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Metric, ModeChip, PageHeader } from "@/components/ui";
 import { ConnectorCard } from "@/components/connections/ConnectorCard";
@@ -20,11 +22,14 @@ export function ConnectionCenter({
   canManage,
   verifiableIds = [],
   dotloopReadiness,
+  resourcePanel = null,
 }: Readonly<{
   view: ConnectionCenterView;
   dotloopReadiness?: DotloopReadiness;
   canManage: boolean;
   verifiableIds?: readonly string[];
+  /** S120: the page-supplied shared renewal resource entries, mounted after the documents group. */
+  resourcePanel?: ReactNode;
 }>) {
   const groups = groupConnectionItems(view.items);
 
@@ -78,30 +83,32 @@ export function ConnectionCenter({
       </div>
 
       {groups.map((group) => (
-        <section
-          aria-labelledby={`${group.anchorId}-title`}
-          className="connection-task-section task-anchor"
-          id={group.anchorId}
-          key={group.id}
-          tabIndex={-1}
-        >
-          <div>
-            <h2 className="section-subtitle" id={`${group.anchorId}-title`}>
-              {group.label}
-            </h2>
-            <p className="muted">{group.description}</p>
-          </div>
-          <div className="grid two">
-            {group.items.map((item) => (
-              <ConnectorCard
-                canManage={canManage}
-                item={item}
-                key={item.def.id}
-                verifiable={verifiableIds.includes(item.def.id)}
-              />
-            ))}
-          </div>
-        </section>
+        <div className="ui-stack" key={group.id}>
+          <section
+            aria-labelledby={`${group.anchorId}-title`}
+            className="connection-task-section task-anchor"
+            id={group.anchorId}
+            tabIndex={-1}
+          >
+            <div>
+              <h2 className="section-subtitle" id={`${group.anchorId}-title`}>
+                {group.label}
+              </h2>
+              <p className="muted">{group.description}</p>
+            </div>
+            <div className="grid two">
+              {group.items.map((item) => (
+                <ConnectorCard
+                  canManage={canManage}
+                  item={item}
+                  key={item.def.id}
+                  verifiable={verifiableIds.includes(item.def.id)}
+                />
+              ))}
+            </div>
+          </section>
+          {group.id === "documents-storage" ? resourcePanel : null}
+        </div>
       ))}
     </div>
   );

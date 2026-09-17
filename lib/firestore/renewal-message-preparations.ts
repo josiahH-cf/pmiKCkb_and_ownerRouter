@@ -10,6 +10,7 @@ import {
 } from "@/lib/environment/descriptor";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { retainSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
@@ -150,6 +151,8 @@ export async function saveMessagePreparation(
       updatedByUid: actor.uid,
     });
     transaction.set(ref, record);
+    // S120: the sender's own signature is retained for reuse on their next lease or cycle.
+    retainSenderSignature(transaction, db, actor, record);
     transaction.create(audit, {
       request_hash: requestHash,
       leaseId: input.leaseId,

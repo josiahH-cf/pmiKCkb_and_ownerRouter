@@ -4,6 +4,7 @@ import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSection
 import { useEffect, useRef, useState } from "react";
 
 import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import { resourceEntryHref } from "@/lib/lease-renewal/message-readiness";
 import type {
   PacketVisibleState,
   RenewalPacketSnapshot,
@@ -156,6 +157,10 @@ export function PacketTruthPanel({
                 : (snapshot?.manifest?.excludedArtifacts.find(
                     (item) => item.kind === artifact.kind,
                   )?.ruleResult ?? "pending evaluation and applicable approved mapping")}
+              {" · "}
+              <a className="text-link" href={resourceEntryHref(artifact.kind)}>
+                Manage location
+              </a>
             </li>
           ))}
         </ul>

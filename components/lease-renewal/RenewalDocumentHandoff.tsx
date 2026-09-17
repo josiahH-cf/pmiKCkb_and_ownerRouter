@@ -4,7 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import { DotloopPacketLinkPanel } from "./DotloopPacketLinkPanel";
+
+/** S120 (R120.7): the current source-backed facts the owning page already resolved. */
+export interface DocumentHandoffFacts {
+  address: string | null;
+  owners: string[];
+  tenants: string[];
+  leaseEndDate: string | null;
+}
 interface Handoff {
   snapshot: RenewalPacketSnapshot | null;
   signers?: string[];
@@ -33,9 +42,11 @@ interface Preview {
 export function RenewalDocumentHandoff({
   canApprove = false,
   canRecordReadback = false,
+  facts = null,
 }: {
   canApprove?: boolean;
   canRecordReadback?: boolean;
+  facts?: DocumentHandoffFacts | null;
 }) {
   const ctx = useRenewalManualWorkspace();
   return ctx ? (
@@ -44,17 +55,98 @@ export function RenewalDocumentHandoff({
       leaseId={ctx.leaseId}
       canApprove={canApprove}
       canRecordReadback={canRecordReadback}
+      facts={facts}
+      state={ctx.state}
     />
   ) : null;
+}
+const money = (value: number) =>
+  value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+/**
+ * S120 (R120.7): the facts the packet work already has, each with its origin and the control that
+ * records it. Display only: nothing here fills a file, a provider field or a signature.
+ */
+function PacketFacts({
+  facts,
+  state,
+}: {
+  facts: DocumentHandoffFacts | null;
+  state: RenewalWorkspaceState | null;
+}) {
+  const terms =
+    state?.ownerResponse?.outcome === "approved_terms"
+      ? (state.ownerResponse.terms ?? null)
+      : null;
+  const pendingUpdates = Object.values(state?.sourceUpdates ?? {}).filter(
+    (update) => update.state !== "verified",
+  ).length;
+  const leaseDetails = (
+    <a className="text-link" href="#renewal-section-lease-details">
+      Lease details
+    </a>
+  );
+  const sourceFact = (label: string, value: string | null) => (
+    <li>
+      <strong>{label}</strong>: {value ?? "Needs verification"} · {leaseDetails}
+    </li>
+  );
+  return (
+    <section aria-label="Current facts for this packet" className="ui-stack-tight">
+      <h3>Current facts for this packet</h3>
+      <ul className="ui-rows">
+        {sourceFact("Property", facts?.address ?? null)}
+        {sourceFact("Owners", facts?.owners.length ? facts.owners.join(", ") : null)}
+        {sourceFact("Tenants", facts?.tenants.length ? facts.tenants.join(", ") : null)}
+        {sourceFact("Current lease end", facts?.leaseEndDate ?? null)}
+        <li>
+          <strong>Approved terms</strong>:{" "}
+          {terms ? (
+            <>
+              {money(terms.rent)} per month, effective {terms.effectiveDate} through{" "}
+              {terms.endDate} (recorded owner response) ·{" "}
+              <a className="text-link" href="#renewal-manual-owner_response">
+                Open the owner response
+              </a>
+            </>
+          ) : (
+            <>
+              Not recorded ·{" "}
+              <a className="text-link" href="#renewal-manual-owner_response">
+                Record the owner response
+              </a>
+            </>
+          )}
+        </li>
+        <li>
+          <strong>Source updates</strong>:{" "}
+          {pendingUpdates
+            ? `${pendingUpdates} pending source update${pendingUpdates === 1 ? "" : "s"}`
+            : "No pending source update"}{" "}
+          ·{" "}
+          <a className="text-link" href="#renewal-step-verify-renewal">
+            Review Sheet updates
+          </a>
+        </li>
+      </ul>
+      <p className="muted">
+        Shown for preparation from their recorded sources. The app does not fill a PDF or
+        a Dotloop field from this list, and a populated fact is not a provider receipt.
+      </p>
+    </section>
+  );
 }
 function DocumentHandoffEditor({
   leaseId,
   canApprove,
   canRecordReadback,
+  facts,
+  state,
 }: {
   leaseId: string;
   canApprove: boolean;
   canRecordReadback: boolean;
+  facts: DocumentHandoffFacts | null;
+  state: RenewalWorkspaceState | null;
 }) {
   const [current, setCurrent] = useState<Handoff | null>(null),
     [preview, setPreview] = useState<Preview | null>(null),
@@ -128,6 +220,7 @@ function DocumentHandoffEditor({
       ariaLabel="Document preparation and signature handoff"
     >
       <p>Review and complete form fields in Dotloop; a person sends for signature.</p>
+      <PacketFacts facts={facts} state={state} />
       <Button
         variant="secondary"
         disabled={pending}
