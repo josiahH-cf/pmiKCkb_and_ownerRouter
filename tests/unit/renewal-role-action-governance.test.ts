@@ -97,6 +97,8 @@ const API_EXPECTATIONS = [
   ],
   ["app/api/lease-renewal/workspace/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/workspace/route.ts", "POST", "save_renewal_progress"],
+  ["app/api/lease-renewal/work-status/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/work-status/route.ts", "POST", "save_work_status"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {

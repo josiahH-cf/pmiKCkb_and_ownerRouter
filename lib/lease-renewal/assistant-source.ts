@@ -1,5 +1,6 @@
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
+import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
@@ -88,6 +89,7 @@ export async function runRenewalAssistantSource(
     resolutionsRead,
     termReviewsRead,
     packetRead,
+    workStatusRead,
   ] = await Promise.all([
     readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
     readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
@@ -117,6 +119,9 @@ export async function runRenewalAssistantSource(
         }),
       );
     }),
+    // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
+    // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.
+    readRenewalAuxiliary("work_status", () => listRenewalWorkStatuses(user)),
   ]);
 
   const progressByLease = renewalAuxiliaryValue(progressRead, new Map());
@@ -142,6 +147,7 @@ export async function runRenewalAssistantSource(
     resolutionsRead,
     termReviewsRead,
     packetRead,
+    workStatusRead,
   ]);
 
   const leaseSnapshotResult = await leaseRead;
@@ -167,6 +173,11 @@ export async function runRenewalAssistantSource(
           leaseSnapshotResult,
           renewalAuxiliaryValue(termReviewsRead, new Map()),
           renewalAuxiliaryValue(manualRead, new Map()),
+          {
+            available: workStatusRead.status === "available",
+            byLease: renewalAuxiliaryValue(workStatusRead, new Map()),
+            cyclesAvailable: manualRead.status === "available",
+          },
           preparedSheetRead,
         );
 

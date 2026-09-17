@@ -15,6 +15,13 @@ import {
   type RenewalDeskDueFilter,
   type RenewalDeskWaitingFilter,
 } from "@/lib/lease-renewal/desk-query";
+import {
+  RENEWAL_WORK_STATUS_FILTERS,
+  matchesWorkStatusFilter,
+  workStatusFilterLabel,
+  type RenewalWorkStatusFilter,
+  type RenewalWorkStatusQueryKey,
+} from "@/lib/lease-renewal/work-status";
 export const RENEWAL_DESK_QUERY_V2_VERSION = "2";
 
 /** Opaque `renewal-party-filter-key/v1` URL token shape (the derivation lives server-side). */
@@ -126,6 +133,11 @@ export interface RenewalDeskQueryV2State {
   rentVerification: "all" | RenewalRentVerificationState;
   /** S103: filter the table by the one shared lease-term projection. */
   term: "all" | LeaseTerm;
+  /**
+   * S119: filter by the saved staff work status, including Not recorded. Optional in every
+   * bookmark; it never overwrites or infers the derived overall-status filter.
+   */
+  workStatus: RenewalWorkStatusFilter;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
@@ -150,6 +162,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   blocked: "all",
   rentVerification: "all",
   term: "all",
+  workStatus: "all",
 };
 
 /** Fixed canonical key order; serialization emits nondefault values in exactly this order. */
@@ -173,6 +186,7 @@ const V2_KEY_ORDER = [
   "blocked",
   "rentVerification",
   "term",
+  "workStatus",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -354,6 +368,11 @@ export function parseRenewalDeskQueryV2(
       "all",
     ),
     term: oneOf(firstValue(input, "term"), ["all", ...LEASE_TERMS] as const, "all"),
+    workStatus: oneOf(
+      firstValue(input, "workStatus"),
+      RENEWAL_WORK_STATUS_FILTERS,
+      "all",
+    ),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -422,6 +441,8 @@ export interface RenewalDeskV2Item {
     readonly sourceConflictCount: number | null;
     readonly leaseTerm: LeaseTerm;
     readonly nextReviewIso: string | null;
+    /** S119: the saved staff status key; absent or unavailable never matches a filter value. */
+    readonly workStatus?: RenewalWorkStatusQueryKey;
   };
   readonly identity: {
     readonly address: { readonly label: string } | null;
@@ -589,6 +610,11 @@ function matchesQuery(
     return false;
   }
   if (query.term !== "all" && item.queryKeys.leaseTerm !== query.term) return false;
+  if (
+    !matchesWorkStatusFilter(query.workStatus, item.queryKeys.workStatus ?? "unavailable")
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -742,6 +768,7 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     blocked: (value) => (value === "blocked" ? "Blocked" : "Not blocked"),
     rentVerification: (value) => `Rent verification: ${value.replaceAll("_", " ")}`,
     term: (value) => `Lease term: ${value.replaceAll("_", " ")}`,
+    workStatus: (value) => workStatusFilterLabel(value as RenewalWorkStatusFilter),
   };
 
 /** Sort and direction are view state, not filters; a range renders as one removable chip. */

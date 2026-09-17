@@ -30,6 +30,9 @@ vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
 vi.mock("@/lib/firestore/renewal-workspace", () => ({
   listRenewalWorkspaces: async () => new Map(),
 }));
+vi.mock("@/lib/firestore/renewal-work-status", () => ({
+  listRenewalWorkStatuses: async () => new Map(),
+}));
 vi.mock("@/lib/firestore/lease-renewal-notice-rules", () => ({
   readNoticeRuleSnapshot: async () => ({ state: "current" }),
 }));

@@ -49,6 +49,14 @@ import {
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
 import { LEASE_TERM_LABELS, type LeaseTerm } from "@/lib/lease-renewal/lease-term";
+import {
+  NOT_RECORDED_WORK_STATUS_LABEL,
+  RENEWAL_WORK_STATUSES,
+  RENEWAL_WORK_STATUS_CONTROL_LABEL,
+  RENEWAL_WORK_STATUS_LABELS,
+  workStatusDisplayLabel,
+  workStatusQueryKey,
+} from "@/lib/lease-renewal/work-status";
 
 export interface DeskPartyShortcuts {
   readonly available: boolean;
@@ -890,6 +898,20 @@ export function RenewalDeskTable({
                     value={state.overallStatus}
                   />
                   <SelectFilter
+                    label={RENEWAL_WORK_STATUS_CONTROL_LABEL}
+                    name="workStatus"
+                    options={[
+                      { value: "all", label: "All staff statuses" },
+                      { value: "not_recorded", label: NOT_RECORDED_WORK_STATUS_LABEL },
+                      ...RENEWAL_WORK_STATUSES.map((value) => ({
+                        value,
+                        label: RENEWAL_WORK_STATUS_LABELS[value],
+                      })),
+                    ]}
+                    state={state}
+                    value={state.workStatus}
+                  />
+                  <SelectFilter
                     label="Renewal step"
                     name="step"
                     options={[
@@ -1091,6 +1113,7 @@ function DeskRow({
       data-retention-state={row.retention.state}
       data-status={status}
       data-waiting-party={row.followUp?.waiting.party ?? "none"}
+      data-work-status={workStatusQueryKey(row.workStatus)}
       data-workspace-available={workspaceAvailable ? "true" : "false"}
     >
       <th className="renewal-td-lease" scope="row">
@@ -1230,6 +1253,16 @@ function DeskRow({
         {row.manualProgress?.step.label || row.stageLabel ? (
           <span className="renewal-td-secondary">
             {row.manualProgress?.step.label ?? row.stageLabel}
+          </span>
+        ) : null}
+        {/* S119: the saved staff status beside, never inside, the derived status. */}
+        {row.workStatus ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="work-status"
+            data-work-status={workStatusQueryKey(row.workStatus)}
+          >
+            Staff status: {workStatusDisplayLabel(row.workStatus)}
           </span>
         ) : null}
       </td>

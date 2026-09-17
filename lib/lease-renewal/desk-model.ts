@@ -35,6 +35,10 @@ import {
 } from "@/lib/lease-renewal/renewal-process";
 import type { TenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 import type { ExternalDeskDestination } from "@/lib/lease-renewal/desk-destinations";
+import type {
+  RenewalWorkStatusProjection,
+  RenewalWorkStatusQueryKey,
+} from "@/lib/lease-renewal/work-status";
 
 /** S72: the six renewal steps, derived from the one immutable renewal-v1 definition. */
 export const RENEWAL_STEPS = RENEWAL_STEPPER_STEPS;
@@ -141,10 +145,17 @@ export interface RenewalDeskQueryKeys {
   leaseTerm: LeaseTerm;
   /** S103: the month-to-month annual review date, or null when the term or anchor is unresolved. */
   nextReviewIso: string | null;
+  /** S119: the saved staff status key from the one projection; unavailable when it was not read. */
+  workStatus?: RenewalWorkStatusQueryKey;
 }
 
 export interface DeskLeaseSummaryBase {
   manualProgress?: ReturnType<typeof manualRenewalSummary>;
+  /**
+   * S119: the staff work status annotation, projected once for the desk row, the compact lease
+   * context and the lease information panel. Absent when the caller did not attempt the read.
+   */
+  workStatus?: RenewalWorkStatusProjection;
   id: string;
   addressLabel: string;
   propertyNameLabel: string | null;

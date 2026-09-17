@@ -1963,6 +1963,12 @@ textarea:disabled {
   font-weight: 500;
 }
 
+/* S119: the saved staff status beside the compact identity; the panel holds the control. */
+.renewal-workspace-identity-status {
+  color: var(--ui-text-muted);
+  font-weight: 500;
+}
+
 .renewal-workspace-toggles {
   display: flex;
   flex-wrap: wrap;

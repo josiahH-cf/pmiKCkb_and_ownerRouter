@@ -24,6 +24,12 @@ import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outco
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import type { MarketSubjectProjection } from "@/lib/lease-renewal/market-subject";
 import { RenewalWorkspaceSidebars } from "@/components/lease-renewal/RenewalWorkspaceSidebars";
+import { hasRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
+import {
+  projectRenewalWorkStatus,
+  workStatusDisplayLabel,
+  type RenewalWorkStatusPanelInput,
+} from "@/lib/lease-renewal/work-status";
 
 import { RenewalAttemptSummaryCard } from "@/components/lease-renewal/RenewalAttemptSummaryCard";
 import type { RenewalAttemptSummary } from "@/lib/lease-renewal/execution/attempt-continuation";
@@ -134,6 +140,7 @@ export function RenewalWorkspace({
   chargeInventory = null,
   rentChargeStatus = null,
   marketSubject = null,
+  workStatus = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -178,6 +185,8 @@ export function RenewalWorkspace({
   rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
   /** S118: the server-resolved comparison subject for the starting range and report links. */
   marketSubject?: MarketSubjectProjection | null;
+  /** S119: the staff work status read for the information panel and compact context. */
+  workStatus?: RenewalWorkStatusPanelInput | null;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -186,8 +195,24 @@ export function RenewalWorkspace({
   // S114: the consolidated header facts live in the toggleable information panel; the compact
   // identity, Back link, freshness and actionable attention stay in the main workspace.
   const leaseInformation = (
-    <RenewalLeaseInformation sheetDestination={sheetDestination} workspace={workspace} />
+    <RenewalLeaseInformation
+      canEditWorkStatus={hasRenewalRoleAuthority("save_work_status", role)}
+      sheetDestination={sheetDestination}
+      workStatus={workStatus}
+      workspace={workspace}
+    />
   );
+  // S119: the compact context shows the same saved staff status the panel and desk project.
+  const compactWorkStatus = workStatus
+    ? workStatusDisplayLabel(
+        projectRenewalWorkStatus(
+          workStatus.available
+            ? { available: true, record: workStatus.record }
+            : { available: false },
+          workStatus.currentCycleId,
+        ),
+      )
+    : null;
   const compactIdentity = (
     <>
       <span className="renewal-workspace-identity-address">{summary.addressLabel}</span>
@@ -195,6 +220,11 @@ export function RenewalWorkspace({
         Lease {summary.id}
         {summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}
       </span>
+      {compactWorkStatus ? (
+        <span className="renewal-workspace-identity-status">
+          Staff status: {compactWorkStatus}
+        </span>
+      ) : null}
     </>
   );
 

@@ -6,6 +6,7 @@ import type {
   RenewalDeskWaitingKey,
 } from "@/lib/lease-renewal/desk-model";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import { workStatusQueryKey } from "@/lib/lease-renewal/work-status";
 
 export const RENEWAL_DESK_SORTS = [
   "due",
@@ -226,6 +227,7 @@ export function withRenewalDeskQueryKeys(
     sourceConflictCount: summary.workflowStepId === null ? null : summary.openConflicts,
     leaseTerm: summary.leaseTerm.term,
     nextReviewIso: summary.leaseTerm.nextReviewIso,
+    workStatus: workStatusQueryKey(summary.workStatus),
   };
   return { ...summary, queryKeys };
 }

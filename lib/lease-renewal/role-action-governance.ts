@@ -302,6 +302,17 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction:
       "Read the retained evidence or ask an Approver or Admin to refresh the provider record.",
   },
+  save_work_status: {
+    label: "Save the staff work status annotation for one lease",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save the staff work status.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   send_renewal_message: {
     label: "Send a renewal message from the application",
     roleCapability: "read",
@@ -590,6 +601,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     capability: "execute_document_packet",
     enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
   },
+  {
+    control: "Save the staff work status",
+    source: "components/lease-renewal/RenewalWorkStatusControl.tsx",
+    capability: "save_work_status",
+    enforcementSources: ["app/api/lease-renewal/work-status/route.ts"],
+  },
 ] as const satisfies readonly RenewalControlInventoryEntry[];
 
 /** Ordered, source-addressable inventory used to make page/API drift mechanically visible. */
@@ -871,5 +888,17 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/workspace/route.ts",
     method: "POST",
     capability: "save_renewal_progress",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/work-status/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/work-status/route.ts",
+    method: "POST",
+    capability: "save_work_status",
   },
 ] as const satisfies readonly RenewalRouteInventoryEntry[];

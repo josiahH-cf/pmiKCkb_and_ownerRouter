@@ -1,6 +1,10 @@
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
 import { RenewalCorrections } from "@/components/lease-renewal/RenewalCorrections";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import {
+  getRenewalWorkStatus,
+  listRenewalWorkStatusActivity,
+} from "@/lib/firestore/renewal-work-status";
 import { createHash } from "node:crypto";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { RenewalResourceLocations } from "@/components/lease-renewal/RenewalResourceLocations";
@@ -179,6 +183,15 @@ export default async function LiveRenewalLeaseWorkspacePage({
           }),
         )
       : Promise.resolve(unavailableRenewalAuxiliary("sheet_proposal")),
+    // S119: the saved staff work status and its history. An unavailable read renders as
+    // unavailable, never as Not recorded, and disables saving until it is re-read.
+    readRenewalAuxiliary("work_status", async () => {
+      const [record, history] = await Promise.all([
+        getRenewalWorkStatus(user, leaseId),
+        listRenewalWorkStatusActivity(user, leaseId),
+      ]);
+      return { record, history };
+    }),
   ]);
   // The current source attempt and post-write freshness floor remain authoritative for
   // rent-suggestion verification and the workspace projection, including a typed failed attempt.
@@ -231,6 +244,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     chargeInventoryRead,
     resourceLocationsRead,
     sheetProposalRead,
+    workStatusRead,
   ] = await supportingReads;
   const progress = renewalAuxiliaryValue(progressRead, null);
   const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
@@ -282,6 +296,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
     leaseSnapshotAttempt,
     termReview,
     renewalAuxiliaryValue(manualRead, null),
+    {
+      available: workStatusRead.status === "available",
+      record: workStatusRead.status === "available" ? workStatusRead.value.record : null,
+      cyclesAvailable: manualRead.status === "available",
+    },
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
@@ -368,6 +387,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     sheetProposalRead,
     sheetFieldsRead,
     attemptSummaryRead,
+    workStatusRead,
     ...(sheetEffectsRead ? [sheetEffectsRead] : []),
   ]);
 
@@ -384,6 +404,19 @@ export default async function LiveRenewalLeaseWorkspacePage({
             marketSubject={marketSubject}
             manualState={manualRead.status === "available" ? manualRead.value : undefined}
             manualReadUnavailable={manualRead.status !== "available"}
+            workStatus={{
+              available: workStatusRead.status === "available",
+              record:
+                workStatusRead.status === "available"
+                  ? workStatusRead.value.record
+                  : null,
+              history:
+                workStatusRead.status === "available" ? workStatusRead.value.history : [],
+              currentCycleId:
+                manualRead.status === "available"
+                  ? (manualRead.value?.cycleId ?? null)
+                  : undefined,
+            }}
             manualCycleBasis={
               outcome.workspace.summary.endDateIso
                 ? {

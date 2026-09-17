@@ -3,6 +3,11 @@ import {
   manualRenewalSummary,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
+import {
+  projectRenewalWorkStatus,
+  type RenewalWorkStatusProjection,
+  type RenewalWorkStatusRecord,
+} from "@/lib/lease-renewal/work-status";
 // Server-only loaders for the owner-gated LIVE Renewal Desk (read-only / draft-only).
 //
 // This module projects the neutral `RenewalDeskView` / `RenewalLeaseWorkspace` shapes from a REAL
@@ -575,6 +580,8 @@ function toLiveSummary(
   progress?: RenewalProgress | null,
   progressStateAvailable = true,
   manual?: RenewalWorkspaceState | null,
+  /** S119: the staff work status projection; absent when the caller did not attempt the read. */
+  workStatus?: RenewalWorkStatusProjection,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
@@ -606,6 +613,7 @@ function toLiveSummary(
     ...(manual && classification.disposition !== "skip"
       ? { manualProgress: manualRenewalSummary(manual) }
       : {}),
+    ...(workStatus ? { workStatus } : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
     propertyNameLabel: identity.property?.label ?? null,
     tenantNameLabel: tenantLabels[0] ?? "Needs Verification",
@@ -1117,6 +1125,35 @@ function effectiveProgressAfterEvidence(
  * conflict count is genuine. `config` is injectable for tests. Returns a typed degrade status instead of
  * throwing, and never surfaces the underlying error message (PII / config safety).
  */
+/** S119: the bulk staff-status read the desk projects into every row. */
+export interface RenewalDeskWorkStatusRead {
+  readonly available: boolean;
+  readonly byLease: ReadonlyMap<string, RenewalWorkStatusRecord>;
+  /** False when the manual cycle read failed, so every cycle relation stays unverified. */
+  readonly cyclesAvailable: boolean;
+}
+
+/** S119: one lease's staff-status read for the workspace projection. */
+export interface RenewalWorkspaceWorkStatusRead {
+  readonly available: boolean;
+  readonly record: RenewalWorkStatusRecord | null;
+  readonly cyclesAvailable: boolean;
+}
+
+function projectDeskWorkStatus(
+  read: RenewalDeskWorkStatusRead | undefined,
+  leaseId: string | null,
+  manual: RenewalWorkspaceState | null,
+): RenewalWorkStatusProjection | undefined {
+  if (!read || !leaseId) return undefined;
+  return projectRenewalWorkStatus(
+    read.available
+      ? { available: true, record: read.byLease.get(leaseId) ?? null }
+      : { available: false },
+    read.cyclesAvailable ? (manual?.cycleId ?? null) : undefined,
+  );
+}
+
 export async function loadLiveRenewalDesk(
   windows: DateWindow[],
   readTimestamp: string,
@@ -1139,6 +1176,8 @@ export async function loadLiveRenewalDesk(
   /** S103: current app-owned term reviews by lease id; a drifted record is ignored as stale. */
   termReviews: ReadonlyMap<string, LeaseTermReviewFact> | undefined = undefined,
   manualByLease?: ReadonlyMap<string, RenewalWorkspaceState>,
+  /** S119: the bulk staff-status read; absent means the caller did not attempt it. */
+  workStatusRead?: RenewalDeskWorkStatusRead,
   /** Fresh read already started by this same desk render; never a cross-render Sheet cache. */
   preparedSheetRead?: RenewalSheetReadWithLinks,
 ): Promise<LiveRenewalDeskResult> {
@@ -1204,6 +1243,14 @@ export async function loadLiveRenewalDesk(
       const progress = classification.leaseId
         ? (progressByLease?.get(classification.leaseId) ?? null)
         : null;
+      const manual = classification.leaseId
+        ? (manualByLease?.get(classification.leaseId) ?? null)
+        : null;
+      const workStatus = projectDeskWorkStatus(
+        workStatusRead,
+        classification.leaseId,
+        manual,
+      );
       const initialSummary = toLiveSummary(
         view,
         classification,
@@ -1211,7 +1258,8 @@ export async function loadLiveRenewalDesk(
         undefined,
         progress,
         progressStateAvailable,
-        classification.leaseId ? manualByLease?.get(classification.leaseId) : null,
+        manual,
+        workStatus,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
@@ -1247,7 +1295,8 @@ export async function loadLiveRenewalDesk(
             dataCheck,
             progress,
             progressStateAvailable,
-            classification.leaseId ? manualByLease?.get(classification.leaseId) : null,
+            manual,
+            workStatus,
           )
         : initialSummary;
       if (
@@ -1409,6 +1458,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   /** S103: this lease's current app-owned term review, when one was read. */
   termReview: LeaseTermReviewFact | null = null,
   manual: RenewalWorkspaceState | null = null,
+  /** S119: this lease's staff-status read; absent means the caller did not attempt it. */
+  workStatusRead?: RenewalWorkspaceWorkStatusRead,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1479,6 +1530,14 @@ export async function loadLiveRenewalLeaseWorkspace(
       progress,
       true,
       manual,
+      workStatusRead
+        ? projectRenewalWorkStatus(
+            workStatusRead.available
+              ? { available: true, record: workStatusRead.record }
+              : { available: false },
+            workStatusRead.cyclesAvailable ? (manual?.cycleId ?? null) : undefined,
+          )
+        : undefined,
     );
     const workflowAvailable =
       classification.disposition === "actionable" ||

@@ -21,7 +21,15 @@ rent and reference amounts, owners, tenants, known contacts, status and validate
 Each value is separately selectable with a **Copy** control beside it, and **Copy all owner emails**
 or **Copy all tenant emails** copies every source-backed address for that one audience; a party with
 no email on file is named, never dropped. **Show leases for this owner** or **tenant** opens the
-renewal table filtered to that party. **Process guide** opens a separate panel that lists every
+renewal table filtered to that party. The same panel holds **Work status (recorded by staff)**:
+choose where the work stands (for example Verifying lease and rent, Waiting on owner response or
+Waiting on tenant response) and select **Save status**; the panel then shows who saved it and when,
+and **Status history** lists earlier values with their recorder. An unset status reads Not recorded,
+and a status saved during an earlier renewal cycle is labeled as such. The renewal table's
+**Filter status** disclosure filters by that same saved status, including Not recorded, alongside
+the owner, tenant, date and scope filters, and the filter comes back with you from a lease. The
+staff status is a note for resuming work: it never records owner approval, a sent message, a
+signature, completion or a source update. **Process guide** opens a separate panel that lists every
 section and its real controls; selecting an entry jumps to that control without recording progress.
 Open, close or navigate either panel freely: nothing is saved, sent or verified by the panels, and
 your unsaved edits stay on the page.
@@ -217,6 +225,10 @@ availability separately. An absent conditional control does not prove provider r
 | 61   | workspace:verify-renewal   | Confirm this exact effect once                | button   | article:Review RentVine updates                   | conditional  | One Admin-confirmed RentVine effect after the arming step.                                                                      |
 | 62   | workspace:verify-renewal   | Open the RentCast property report             | link     | region:Market rent comparison                     | conditional  | RentCast's own report for the resolved address, known unit attributes and the radius above; a missing address is named instead. |
 | 63   | workspace:verify-renewal   | Open this lookup's RentCast property report   | link     | region:Market rent comparison                     | conditional  | The retained lookup's exact query on RentCast's site, not a copy of the saved result.                                           |
+| 64   | workspace:verify-renewal   | Work status (recorded by staff)               | label    | complementary:Lease information                   | conditional  | Choose where the work stands; the choice is not saved until Save status.                                                        |
+| 65   | workspace:verify-renewal   | Save status                                   | button   | complementary:Lease information                   | conditional  | Saves the app-owned staff status with your identity and time; nothing else changes.                                             |
+| 66   | workspace:verify-renewal   | Status history                                | summary  | complementary:Lease information                   | conditional  | Earlier statuses with prior and new values, recorder and time.                                                                  |
+| 67   | /lease-renewal             | Work status (recorded by staff)               | label    | -                                                 | conditional  | Filter the table by the saved staff status, including Not recorded, inside Filter status.                                       |
 
 Conditional proof owners include the S113 dashboard, correction, manual, message and document
 control tests plus their Firestore route/store integration tests. The semantic guard rejects a

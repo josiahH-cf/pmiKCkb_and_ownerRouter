@@ -12,6 +12,8 @@ import {
   RenewalCopyAudience,
   RenewalCopyValue,
 } from "@/components/lease-renewal/RenewalCopyValue";
+import { RenewalWorkStatusControl } from "@/components/lease-renewal/RenewalWorkStatusControl";
+import type { RenewalWorkStatusPanelInput } from "@/lib/lease-renewal/work-status";
 import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
@@ -139,9 +141,14 @@ function PartyGroup({
 export function RenewalLeaseInformation({
   sheetDestination = null,
   workspace,
+  workStatus = null,
+  canEditWorkStatus = false,
 }: Readonly<{
   sheetDestination?: ExternalDeskDestination | null;
   workspace: RenewalLeaseWorkspace;
+  /** S119: the staff work status read; null when the page did not attempt it. */
+  workStatus?: RenewalWorkStatusPanelInput | null;
+  canEditWorkStatus?: boolean;
 }>) {
   const { summary } = workspace;
   const identity = summary.identity;
@@ -220,6 +227,22 @@ export function RenewalLeaseInformation({
           </Row>
         </dl>
       </section>
+
+      {/* S119: the staff work status is a separate app-owned note beside the derived status. */}
+      {workStatus ? (
+        <section aria-label="Staff work status" className="ui-stack-tight">
+          <h3>Staff work status</h3>
+          <RenewalWorkStatusControl
+            canEdit={canEditWorkStatus}
+            leaseId={summary.id}
+            read={workStatus}
+          />
+          <p className="muted">
+            This status is a staff note for finding and resuming work. It does not record
+            owner approval, a sent message, a signature, completion or a source update.
+          </p>
+        </section>
+      ) : null}
 
       <section aria-label="Rent and references" className="ui-stack-tight">
         <h3>Rent and references</h3>
