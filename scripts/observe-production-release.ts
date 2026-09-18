@@ -11,6 +11,7 @@ import {
   PRODUCTION_ASSURANCE_SCHEMA_VERSION,
   addDiagnostic,
   assuranceAbortSignal,
+  assertRevisionPausesSheetWriteback,
   closedObservationInterval,
   corroborateMonitoringCounts,
   createAssuranceDeadline,
@@ -1000,9 +1001,20 @@ async function readRuntimeSnapshot(
       deadlineAtMs,
       abortSignal,
     );
-    configurationVerified =
+    // S128 (F08): the served revision must both match the reviewed fingerprint AND read back with
+    // operating-Sheet writes paused. A revision that would still dispatch writes fails configuration
+    // verification, so candidate, promoted, and rollback observations all require the flag false.
+    const fingerprintMatches =
       fingerprintRevisionRuntimeConfiguration(revision) ===
       observation.expectedConfigurationFingerprint;
+    let writebackPaused = false;
+    try {
+      assertRevisionPausesSheetWriteback(revision);
+      writebackPaused = true;
+    } catch {
+      writebackPaused = false;
+    }
+    configurationVerified = fingerprintMatches && writebackPaused;
   } catch {
     // Version, service-origin, traffic, or revision-configuration failure is an immediate
     // configuration failure. Monitoring sampling never resets a successful result below.
@@ -1129,6 +1141,9 @@ export async function captureRevisionConfigurationFingerprint(
       deadlineAtMs,
       deadline.signal,
     );
+    // S128 (F08): refuse to fingerprint a candidate that would still dispatch operating-Sheet writes,
+    // so the pause is bound into the exact configuration promoted and observed downstream.
+    assertRevisionPausesSheetWriteback(revision);
     return fingerprintRevisionRuntimeConfiguration(revision);
   } finally {
     deadline.dispose();

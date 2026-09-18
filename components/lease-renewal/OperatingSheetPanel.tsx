@@ -138,6 +138,7 @@ export function OperatingSheetPanel({
   initialProposal,
   initialEffects = null,
   initialFieldValues = {},
+  writebackPaused = false,
 }: Readonly<{
   role: Role;
   /**
@@ -153,12 +154,19 @@ export function OperatingSheetPanel({
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
   initialFieldValues?: Record<string, string>;
+  /**
+   * S128 (F08): operating-Sheet writes are paused by owner policy. Proposals and app records still
+   * save, reads and read-only reconciliation continue, but no execute or reversal write can dispatch.
+   */
+  writebackPaused?: boolean;
 }>) {
   const router = useRouter();
   const hasSheetRow =
     association.kind === "exact_link" || association.kind === "app_note";
   const ambiguous = association.kind === "ambiguous" ? association : null;
   const [proposal, setProposal] = useState(initialProposal);
+  // S128 (F08): server-owned pause state; the initial prop drives first paint, status reads refresh it.
+  const [paused, setPaused] = useState(writebackPaused);
   const [field, setField] = useState<SheetEditableField>(
     (Object.keys(initialFieldValues).find((key) => key in SHEET_FIELD_LABELS) as
       | SheetEditableField
@@ -211,6 +219,8 @@ export function OperatingSheetPanel({
         if (cancelled) return;
         setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
         setEffects((payload.effects as SheetWritebackEffectStatus[] | undefined) ?? null);
+        if (typeof payload.writeback_paused === "boolean")
+          setPaused(payload.writeback_paused);
         statusLoadedPreviewRef.current = proposalPreviewHash;
       })
       .catch((statusError) => {
@@ -251,6 +261,8 @@ export function OperatingSheetPanel({
     const payload = await readSheetStatus(workspaceContext);
     setProposal((payload.proposal as SheetWritebackClientProposal | null) ?? null);
     setEffects((payload.effects as SheetWritebackEffectStatus[] | undefined) ?? null);
+    if (typeof payload.writeback_paused === "boolean")
+      setPaused(payload.writeback_paused);
   }
 
   async function proposeAppend() {
@@ -385,6 +397,16 @@ export function OperatingSheetPanel({
 
   return (
     <article aria-labelledby="operating-sheet-title" className="panel ui-stack">
+      {paused ? (
+        // S128 (F08): the proactive owner-policy pause. Proposals and app records still save; reads
+        // and read-only reconciliation continue; no execute or reversal write can dispatch.
+        <p className="muted" role="status">
+          Operating-Sheet writes are paused by policy. Proposals and app records still
+          save here, and reads and comparisons continue, but an Admin cannot write to the
+          operating Sheet until the pause is lifted. Anything you save is recorded in the
+          app only.
+        </p>
+      ) : null}
       {proposal ? (
         <div className="ui-stack">
           <div>
@@ -448,6 +470,7 @@ export function OperatingSheetPanel({
                     <div className="ui-actions">
                       {state === "not_started" &&
                       !expired &&
+                      !paused &&
                       status?.effect_executable !== false ? (
                         armedEffect === effect.effect_hash ? (
                           <>
@@ -481,6 +504,14 @@ export function OperatingSheetPanel({
                           stable-row mutation protocol is connected.
                         </p>
                       ) : null}
+                      {state === "not_started" &&
+                      paused &&
+                      status?.effect_executable !== false ? (
+                        <p className="muted" role="status">
+                          Confirming this Sheet write is paused by policy. The reviewed
+                          value stays saved in the app for a later authorized resume.
+                        </p>
+                      ) : null}
                       {state === "ambiguous" || state === "running" ? (
                         <Button
                           disabled={pending}
@@ -492,7 +523,7 @@ export function OperatingSheetPanel({
                           Reconcile from Sheet state
                         </Button>
                       ) : null}
-                      {state === "succeeded" && status?.reversal_executable ? (
+                      {state === "succeeded" && status?.reversal_executable && !paused ? (
                         reversalPreview ? (
                           <Button
                             disabled={pending}

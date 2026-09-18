@@ -25,6 +25,10 @@ function harness({
   reportOverride = {},
   authExitCode = 0,
   createCloudClient,
+  // S128 (F08): the captured predecessor's operating-Sheet write flag as read back from its revision.
+  // Default "false" so existing rollback tests take the ordinary traffic-shift path unchanged.
+  predecessorWritebackFlag = "false",
+  redeployedWritebackFlag = "false",
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "pmi-watcher-driver-"));
   roots.push(root);
@@ -45,6 +49,7 @@ function harness({
     tag: "cand-isolated",
     suffix: "candidate-isolated",
   };
+  let redeployedRevision = `${service}-rollback-redeploy`;
   const runCommand = vi.fn(async (bin, args) => {
     if (bin === "gcloud" && args.includes("describe") && args.includes("services"))
       return {
@@ -53,6 +58,34 @@ function harness({
           status: { traffic: [{ revisionName: serving, percent: 100 }] },
         }),
       };
+    // S128 (F08): revision runtime readback for the rollback write-flag guard.
+    if (bin === "gcloud" && args.includes("describe") && args.includes("revisions")) {
+      const name = args[args.indexOf("describe") + 1];
+      const flag =
+        name === predecessor ? predecessorWritebackFlag : redeployedWritebackFlag;
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          metadata: { name },
+          spec: {
+            containers: [
+              {
+                image: `us-docker.pkg.dev/pmi-kc-kb-prod/app/img@sha256:${"c".repeat(64)}`,
+                env: [
+                  { name: "APP_COMMIT_SHA", value: sha },
+                  { name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", value: flag },
+                ],
+              },
+            ],
+          },
+        }),
+      };
+    }
+    // S128 (F08): the paused-rollback redeploy reuses the predecessor image with the flag pinned off.
+    if (bin === "gcloud" && args.includes("deploy")) {
+      serving = redeployedRevision;
+      return { status: 0, stdout: "" };
+    }
     if (bin === "gcloud" && args.includes("update-traffic")) {
       serving = predecessor;
       return { status: rollbackReplyLost ? 1 : 0, stdout: "" };
@@ -361,6 +394,48 @@ describe("release watcher command-path recovery", () => {
       verified: false,
       reason: "rollback_traffic_changed",
     });
+    expect(
+      h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
+    ).toBe(false);
+  });
+
+  // S128 (F08): a rollback must never shift traffic onto a writeback-enabled revision. When the
+  // captured predecessor still has the flag true, redeploy its image with the flag pinned false and
+  // serve that instead of the write-enabled revision.
+  it("redeploys the predecessor flag-false instead of restoring a writeback-enabled revision", async () => {
+    const h = harness({ rollback: true, predecessorWritebackFlag: "true" });
+    expect(await h.driver.observe(h.cp)).toMatchObject({
+      reason: "rolled_back_verified",
+    });
+    const deploy = h.runCommand.mock.calls.find(
+      ([bin, args]) => bin === "gcloud" && args.includes("deploy"),
+    );
+    expect(deploy).toBeDefined();
+    expect(deploy[1]).toContain(
+      "--update-env-vars=LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false",
+    );
+    // The write-enabled predecessor is never restored by a bare traffic shift.
+    expect(
+      h.runCommand.mock.calls.some(
+        ([, args]) =>
+          args.includes("update-traffic") &&
+          args.some((x) => x === `--to-revisions=${predecessor}=100`),
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed when a paused rollback target cannot be established (never re-enables writes)", async () => {
+    const h = harness({
+      rollback: true,
+      predecessorWritebackFlag: "true",
+      redeployedWritebackFlag: "true",
+    });
+    const result = await h.driver.observe(h.cp);
+    expect(result).toMatchObject({
+      verified: false,
+      reason: "rollback_writeback_pause_unverified",
+    });
+    expect(result.patch?.terminalFailure).not.toBe(true);
     expect(
       h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
     ).toBe(false);

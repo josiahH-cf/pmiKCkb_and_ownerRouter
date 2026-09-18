@@ -26,6 +26,9 @@ const mocks = vi.hoisted(() => ({
   deps: null as SheetWritebackDependencies | { status: "not_configured" } | null,
   proposals: new Map<string, SheetWritebackProposal>(),
   gateOpen: false,
+  // S128 (F08): the operating-Sheet write switch, independent of the per-key committed-seed gate.
+  // Default true so pre-S128 execute/gate tests are unchanged; S128 cases set it false to pause.
+  writeFlagEnabled: true,
   writerMutations: [] as string[],
   resolveContext: vi.fn<(leaseId: string) => Promise<FreshOperatingSheetLeaseContext>>(),
   resolveAuthorization: vi.fn<() => Promise<AuthorizedCurrentRentUpdate>>(),
@@ -344,7 +347,7 @@ function fakeDeps(): SheetWritebackDependencies {
         return effect();
       },
     }),
-    writeFlagEnabled: () => mocks.gateOpen,
+    writeFlagEnabled: () => mocks.writeFlagEnabled,
     claimAuthorizedFieldUpdate: (input) =>
       store.claim(input.executionId, input.previewHash),
     claimLeaseScopedAppend: async (input) => {
@@ -406,6 +409,7 @@ describe("S98 operating-sheet route", () => {
     mocks.deps = fakeDeps();
     mocks.proposals.clear();
     mocks.gateOpen = false;
+    mocks.writeFlagEnabled = true;
     mocks.writerMutations = [];
     state.header = [...HEADER];
     state.rows = [];
@@ -799,6 +803,147 @@ describe("S98 operating-sheet route", () => {
     expect(response.status).toBe(400);
     expect(mocks.resolveContext).not.toHaveBeenCalled();
     expect(mocks.writerMutations).toEqual([]);
+  });
+
+  // S128 (F08): operating-Sheet mutations are paused by owner policy while the write switch is off.
+  // Every mutating operation refuses with the exact paused reason before any writer construction, even
+  // with an open per-key gate; status surfaces the pause proactively; propose and read-only reconcile
+  // stay reachable so app-owned work continues and honest recovery is preserved. Nested so the parent
+  // beforeEach resets user, deps, the write flag and env for each case.
+  describe("S128 operating-sheet write pause", () => {
+    async function proposeAppend() {
+      await post({
+        operation: "propose",
+        evidenceRef: "workspace:115",
+        effects: [
+          { kind: "row_append", leaseId: "115", tenantName: "Fresh Real Tenant" },
+        ],
+      });
+      return mocks.proposals.get("115")!;
+    }
+
+    it("refuses an append execute with the paused reason and no writer, even with the key open", async () => {
+      const proposal = await proposeAppend();
+      // The per-key gate is open; the pause must still preempt every mutating dispatch.
+      mocks.gateOpen = true;
+      mocks.writeFlagEnabled = false;
+      const execute = await post({
+        operation: "execute",
+        previewHash: proposal.previewHash,
+        effectHash: proposal.effects[0].effectHash,
+        confirm: true,
+      });
+      expect(execute.status).toBe(409);
+      expect(((await execute.json()) as { error_type: string }).error_type).toBe(
+        "writeback_paused",
+      );
+      expect(mocks.writerMutations).toEqual([]);
+      expect(state.rows).toEqual([]);
+    });
+
+    it("refuses a field-update execute with the paused reason and no cell mutation", async () => {
+      state.rows = [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }];
+      mocks.resolveContext.mockResolvedValue(
+        freshContext("115", {
+          rowNumber: 2,
+          rowKey: null,
+          anchorTenantName: "Existing Tenant",
+          currentRentValue: "999",
+          currentRentSourceTriggerKey:
+            "lease_renewal:reconcile:live-review:key:current_rent",
+          currentRentCandidateFingerprint: CANDIDATE_FINGERPRINT,
+        }),
+      );
+      await post({
+        operation: "propose",
+        intent: "update_approved_current_rent",
+        expectedPriorPreviewHash: null,
+      });
+      const proposal = mocks.proposals.get("115")!;
+      mocks.gateOpen = true;
+      mocks.writeFlagEnabled = false;
+      const execute = await post({
+        operation: "execute",
+        previewHash: proposal.previewHash,
+        effectHash: proposal.effects[0].effectHash,
+        confirm: true,
+      });
+      expect(execute.status).toBe(409);
+      expect(((await execute.json()) as { error_type: string }).error_type).toBe(
+        "writeback_paused",
+      );
+      expect(mocks.writerMutations).toEqual([]);
+      expect(state.rows[0].values[4]).toBe("999");
+    });
+
+    it("refuses a reverse_execute with the paused reason", async () => {
+      const proposal = await proposeAppend();
+      mocks.gateOpen = true;
+      mocks.writeFlagEnabled = false;
+      const reverse = await post({
+        operation: "reverse_execute",
+        effectHash: proposal.effects[0].effectHash,
+        reversal: {
+          reversalExecutionId: "rev-1",
+          forwardExecutionId: "fwd-1",
+          previewHash: "a".repeat(64),
+          expiresAtIso: new Date(Date.now() + 60_000).toISOString(),
+          kind: "delete_appended_row",
+          currentRowNumber: 2,
+        },
+        confirm: true,
+      });
+      expect(reverse.status).toBe(409);
+      expect(((await reverse.json()) as { error_type: string }).error_type).toBe(
+        "writeback_paused",
+      );
+      expect(mocks.writerMutations).toEqual([]);
+    });
+
+    it("still lets an Editor save a proposal while paused so the reviewed value is preserved", async () => {
+      mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
+      mocks.writeFlagEnabled = false;
+      const response = await post({
+        operation: "propose",
+        evidenceRef: "workspace:115",
+        effects: [
+          { kind: "row_append", leaseId: "115", tenantName: "Fresh Real Tenant" },
+        ],
+      });
+      expect(response.status).toBe(200);
+      expect(mocks.proposals.has("115")).toBe(true);
+      expect(mocks.writerMutations).toEqual([]);
+    });
+
+    it("surfaces writeback_paused in status when paused and false when enabled", async () => {
+      mocks.writeFlagEnabled = false;
+      const paused = (await (await post({ operation: "status" })).json()) as {
+        writeback_paused: boolean;
+      };
+      expect(paused.writeback_paused).toBe(true);
+      mocks.writeFlagEnabled = true;
+      const enabled = (await (await post({ operation: "status" })).json()) as {
+        writeback_paused: boolean;
+      };
+      expect(enabled.writeback_paused).toBe(false);
+      expect(mocks.writerMutations).toEqual([]);
+    });
+
+    it("keeps read-only reconcile reachable while paused (not preempted by the pause guard)", async () => {
+      const proposal = await proposeAppend();
+      mocks.writeFlagEnabled = false;
+      const reconcile = await post({
+        operation: "reconcile",
+        effectHash: proposal.effects[0].effectHash,
+      });
+      // Reconcile reaches the service instead of the pause guard: with no durable execution it reports
+      // execution_missing, never writeback_paused, and constructs no mutation.
+      expect(reconcile.status).toBe(409);
+      expect(((await reconcile.json()) as { error_type: string }).error_type).toBe(
+        "execution_missing",
+      );
+      expect(mocks.writerMutations).toEqual([]);
+    });
   });
 });
 

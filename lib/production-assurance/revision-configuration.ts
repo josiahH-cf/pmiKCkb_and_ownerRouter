@@ -201,6 +201,47 @@ export function extractRevisionBoundRenewalSheetConfig(
   return Object.freeze({ spreadsheetId, impersonateServiceAccount, dwdSubject });
 }
 
+const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+
+/**
+ * S128 (F08): read the operating-Sheet write flag from an exact verified revision. Returns the flag's
+ * exact string value across containers, or null when the variable is absent (which the runtime treats
+ * as off). A value present in more than one container with disagreeing values is a configuration fault.
+ */
+export function readRevisionWritebackFlag(revision: unknown): string | null {
+  if (!isRecord(revision) || !Array.isArray(revision.containers)) {
+    throw new Error("revision_writeback_flag_unreadable");
+  }
+  const values = new Set<string>();
+  for (const rawContainer of revision.containers) {
+    if (!isRecord(rawContainer)) throw new Error("revision_writeback_flag_unreadable");
+    const environment = rawContainer.env ?? [];
+    if (!Array.isArray(environment))
+      throw new Error("revision_writeback_flag_unreadable");
+    for (const rawEntry of environment) {
+      if (!isRecord(rawEntry)) throw new Error("revision_writeback_flag_unreadable");
+      if (rawEntry.name !== SHEET_WRITEBACK_FLAG) continue;
+      if (typeof rawEntry.value !== "string" || rawEntry.valueSource !== undefined) {
+        throw new Error("revision_writeback_flag_unreadable");
+      }
+      values.add(rawEntry.value.trim());
+    }
+  }
+  if (values.size > 1) throw new Error("revision_writeback_flag_ambiguous");
+  return values.size === 1 ? [...values][0] : null;
+}
+
+/**
+ * S128 (F08): assert the exact revision would NOT dispatch operating-Sheet writes. The runtime treats
+ * anything but the exact "true" as off, so absent/other is paused. Throws when the revision still
+ * enables writes; returns the observed flag value (or null) for the assurance evidence ledger.
+ */
+export function assertRevisionPausesSheetWriteback(revision: unknown): string | null {
+  const flag = readRevisionWritebackFlag(revision);
+  if (flag === "true") throw new Error("revision_writeback_not_paused");
+  return flag;
+}
+
 /** Fetch, fingerprint, and reduce one revision to only its process-memory Sheet coordinates. */
 export async function readVerifiedRevisionBoundRenewalSheetConfig(
   client: CloudRunRevisionReadClient,

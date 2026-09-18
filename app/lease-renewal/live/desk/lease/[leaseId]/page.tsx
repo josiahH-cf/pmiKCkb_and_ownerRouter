@@ -23,6 +23,7 @@ import {
 } from "@/components/lease-renewal/OperatingSheetPanel";
 import { RenewalAuxiliaryNotice } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import { clientSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/client-projection";
+import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import { getSheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
 import { mintSheetWorkspaceContext } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 import {
@@ -496,6 +497,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   initialEffects={sheetEffects}
                   role={user.role}
                   workspaceContext={sheetWorkspaceContext}
+                  writebackPaused={isOperatingSheetWritebackPaused()}
                 />
               ) : (
                 <RenewalAuxiliaryNotice

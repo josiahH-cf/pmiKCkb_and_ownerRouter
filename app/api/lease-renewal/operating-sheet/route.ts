@@ -310,11 +310,16 @@ async function handleRequest(request: Request, statusOnly: boolean) {
           archived_reason: entry.archivedReason,
         })),
       );
+      // S128 (F08): the proactive server-owned pause read so the panel shows "recorded in the app
+      // only" and hides execute controls before any attempt. It uses the same write switch as the
+      // mutation gate and never blocks status, propose, or reads.
+      const writebackPaused = !deps.writeFlagEnabled();
       if (!proposal) {
         return NextResponse.json({
           status: "ok",
           proposal: null,
           archived,
+          writeback_paused: writebackPaused,
           capabilities: {
             row_append: true,
             field_update: true,
@@ -328,6 +333,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
         effects: await loadSheetWritebackEffectStatuses(proposal, deps.store),
         archived,
         expired: Date.now() > Date.parse(proposal.confirmationExpiresAtIso),
+        writeback_paused: writebackPaused,
         capabilities: {
           row_append: true,
           field_update: true,
@@ -373,6 +379,21 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     if (body.operation === "reverse_preview") {
       // Do not mint a confirmation for an operation the live provider cannot safely execute.
       serviceError("provider_capability_unavailable");
+    }
+
+    // S128 (F08): operating-Sheet mutations are paused by explicit owner policy. Every mutating
+    // operation (execute, reverse_execute) refuses here with the exact paused reason before the
+    // per-key gate or any writer construction. The pause reads the same server-owned write switch the
+    // service gate uses. Status, propose, discard, and read-only reconcile above stay available; the
+    // service still fails closed on flag_disabled as defense in depth.
+    if (!deps.writeFlagEnabled()) {
+      return NextResponse.json(
+        {
+          error: "Operating-Sheet writes are paused by policy; no Sheet change was made.",
+          error_type: "writeback_paused",
+        },
+        { status: 409 },
+      );
     }
 
     // Mutating operations: the exact per-key gate refuses before any writer construction.

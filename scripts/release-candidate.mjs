@@ -252,6 +252,67 @@ export function buildRollbackPlan({ project, region, service, priorRevision } = 
   return buildPromotionPlan({ project, region, service, revision: priorRevision });
 }
 
+// S128 (F08): the operating-Sheet write switch. Must match lib/lease-renewal/sheet-writeback-policy.ts;
+// the deploy path (deploy-demo-cloud-run.mjs) forwards this exact name into every revision's env.
+export const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+
+/**
+ * S128 (F08): read the operating-Sheet write flag from a `gcloud run revisions describe --format=json`
+ * revision object. Returns the exact string value, or null when the variable is absent. The runtime
+ * treats anything but the exact "true" as off, so absent/null is a paused revision.
+ */
+export function parseRevisionWritebackFlag(revision) {
+  const env = revision?.spec?.containers?.[0]?.env;
+  if (!Array.isArray(env)) return null;
+  const entry = env.find((item) => item?.name === SHEET_WRITEBACK_FLAG);
+  return typeof entry?.value === "string" ? entry.value : null;
+}
+
+/**
+ * S128 (F08): true when a revision would NOT dispatch operating-Sheet writes, i.e. its flag is not
+ * exactly "true". This is the rollback-safety predicate: a rollback target must satisfy it, and the
+ * candidate/promoted revision must satisfy it, or the pause was not preserved.
+ */
+export function revisionPausesSheetWriteback(revision) {
+  return parseRevisionWritebackFlag(revision)?.trim() !== "true";
+}
+
+/**
+ * S128 (F08) rollback safety: never shift traffic onto a writeback-enabled revision. When the captured
+ * predecessor still has the flag true, redeploy its exact image with the flag forced false and route
+ * 100% traffic to the new revision. `gcloud run deploy` starts from the current serving template (the
+ * paused candidate) and applies only the image swap and the flag pin, so the result is the
+ * predecessor's code served with writes paused. No Cloud Build runs; the predecessor image is reused.
+ */
+export function buildPausedRollbackRedeployPlan({
+  project,
+  region,
+  service,
+  image,
+  revisionSuffix,
+} = {}) {
+  const missing = ["project", "region", "service", "image", "revisionSuffix"].filter(
+    (key) => !{ project, region, service, image, revisionSuffix }[key],
+  );
+  if (missing.length > 0) {
+    throw new Error(`A paused rollback redeploy requires ${missing.join(", ")}.`);
+  }
+  return {
+    args: [
+      "run",
+      "deploy",
+      service,
+      `--project=${project}`,
+      `--region=${region}`,
+      `--image=${image}`,
+      `--revision-suffix=${revisionSuffix}`,
+      `--update-env-vars=${SHEET_WRITEBACK_FLAG}=false`,
+      // Default traffic routing sends 100% to the new revision, restoring service after rollback.
+      "--quiet",
+    ],
+  };
+}
+
 /** Read-only query for the revision currently serving traffic, captured BEFORE any promotion. */
 export function buildPriorRevisionQueryPlan({ project, region, service } = {}) {
   return {

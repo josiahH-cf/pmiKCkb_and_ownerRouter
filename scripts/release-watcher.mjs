@@ -20,6 +20,10 @@ import {
   readPromotionReceipt,
 } from "./production-assurance-receipts.mjs";
 import { createDeployRevisionSuffix } from "./deploy-demo-cloud-run.mjs";
+import {
+  buildPausedRollbackRedeployPlan,
+  revisionPausesSheetWriteback,
+} from "./release-candidate.mjs";
 import { terminateReleaseProcessTree } from "./release.mjs";
 
 const SOURCE = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -641,12 +645,75 @@ export function createDriver({
         patch: { lastDeployedSha: cp.sha },
       };
     },
+    // S128 (F08): describe one revision's runtime config for the write-flag readback.
+    async describeRevision(revision) {
+      return cloud([
+        "run",
+        "revisions",
+        "describe",
+        revision,
+        `--project=${PROJECT}`,
+        `--region=${REGION}`,
+        "--format=json",
+      ]);
+    },
+    // S128 (F08): true only when the exact revision would NOT dispatch operating-Sheet writes.
+    async revisionPausesWriteback(revision) {
+      try {
+        return revisionPausesSheetWriteback(await this.describeRevision(revision));
+      } catch {
+        return false;
+      }
+    },
+    /**
+     * S128 (F08) rollback safety: resolve a flag-false rollback target so a rollback never re-enables
+     * operating-Sheet writes. The captured predecessor is used directly when it already pauses writes;
+     * otherwise its exact image is redeployed with the flag pinned false and the new serving revision
+     * becomes the target. Any uncertainty throws so the caller fails closed (never an unsafe shift).
+     */
+    async resolvePausedRollbackTarget(cp) {
+      const predecessor = await this.describeRevision(cp.predecessor);
+      if (revisionPausesSheetWriteback(predecessor))
+        return { revision: cp.predecessor, baseline: cp.baselineTraffic };
+      const image = predecessor?.spec?.containers?.[0]?.image;
+      if (typeof image !== "string" || image.trim() === "")
+        throw new Error("predecessor_image_unavailable");
+      const suffix = createDeployRevisionSuffix();
+      const plan = buildPausedRollbackRedeployPlan({
+        project: PROJECT,
+        region: REGION,
+        service: SERVICE,
+        image,
+        revisionSuffix: suffix,
+      });
+      const deployed = await runCommand("gcloud", plan.args);
+      if (deployed.status !== 0) throw new Error("paused_rollback_redeploy_failed");
+      // Read the new serving revision from traffic instead of predicting its exact name.
+      const serving = traffic(await serviceRead());
+      if (serving.length !== 1 || serving[0].percent !== 100)
+        throw new Error("paused_rollback_redeploy_traffic_unresolved");
+      if (!revisionPausesSheetWriteback(await this.describeRevision(serving[0].revision)))
+        throw new Error("paused_rollback_redeploy_not_paused");
+      return {
+        revision: serving[0].revision,
+        baseline: [{ revision: serving[0].revision, percent: 100 }],
+      };
+    },
     async recoverRollback(cp) {
       if (cp.rollback?.revision !== cp.predecessor)
         throw new Error("rollback_binding_invalid");
       const patch = { rollback: cp.rollback };
+      // S128 (F08): never roll back onto a writeback-enabled revision. Resolve a flag-false target
+      // (the predecessor itself, or its image redeployed with the flag pinned false). Fail closed on
+      // any uncertainty so a rollback can only ever preserve the pause, never re-enable writes.
+      let target;
+      try {
+        target = await this.resolvePausedRollbackTarget(cp);
+      } catch {
+        return { verified: false, reason: "rollback_writeback_pause_unverified", patch };
+      }
       const current = traffic(await serviceRead());
-      if (!sameTraffic(current, cp.baselineTraffic)) {
+      if (!sameTraffic(current, target.baseline)) {
         if (!sameTraffic(current, [{ revision: cp.revision, percent: 100 }]))
           return { verified: false, reason: "rollback_traffic_changed", patch };
         // The rollback target was durably recorded before dispatch. A lost command response is
@@ -658,12 +725,15 @@ export function createDriver({
           SERVICE,
           `--project=${PROJECT}`,
           `--region=${REGION}`,
-          `--to-revisions=${cp.predecessor}=100`,
+          `--to-revisions=${target.revision}=100`,
           "--quiet",
         ]);
-        if (!sameTraffic(traffic(await serviceRead()), cp.baselineTraffic))
+        if (!sameTraffic(traffic(await serviceRead()), target.baseline))
           return { verified: false, reason: "rollback_traffic_unverified", patch };
       }
+      // S128 (F08): the now-serving rollback target must read back with writeback paused.
+      if (!(await this.revisionPausesWriteback(target.revision)))
+        return { verified: false, reason: "rollback_writeback_pause_unverified", patch };
       const recovered = await runScript(cp, "observe-production-release.ts", [
         "--verify-rollback-recovery",
         "--live",
