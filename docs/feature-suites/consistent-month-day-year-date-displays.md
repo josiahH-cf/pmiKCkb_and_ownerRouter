@@ -93,16 +93,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `docs/products/renewal-operator-guide.md` and its current handout generator — keep displayed date instructions consistent.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T06 | Transcript 00:44:11–00:45:11; parsed lines 1558–1586 | Requested month, day, year presentation across the application. |
-| U06 | User approval on 2026-09-18 | Feature 6 approved separately. |
-| R06 | `lib/lease-renewal/desk-query-v2.ts`; `lib/lease-renewal/work-status.ts`; `lib/lease-renewal/business-calendar.ts` | Canonical ISO query dates and a current Central-time audit formatter are distinct data types. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T06             | Transcript 00:44:11–00:45:11; parsed lines 1558–1586                                                                                | Requested month, day, year presentation across the application.                                                                                                   |
+| U06             | User approval on 2026-09-18                                                                                                         | Feature 6 approved separately.                                                                                                                                    |
+| R06             | `lib/lease-renewal/desk-query-v2.ts`; `lib/lease-renewal/work-status.ts`; `lib/lease-renewal/business-calendar.ts`                  | Canonical ISO query dates and a current Central-time audit formatter are distinct data types.                                                                     |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -126,7 +125,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S126-6** — R-F06-06: Inventory the whole app without rewriting source content. The observable result must satisfy AC-S126-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Consistent month/day/year date presentation
@@ -139,15 +137,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F06-01 | shared display utility / display inventory | ARCH-S126-1, ARCH-S126-2 | BEH-S126-1 | AC-S126-1: Adopt one visible convention |
-| R-F06-02 | business-calendar / shared display utility | ARCH-S126-1, ARCH-S126-2 | BEH-S126-2 | AC-S126-2: Keep date-only values date-only |
-| R-F06-03 | query / API serializers | ARCH-S126-1, ARCH-S126-2 | BEH-S126-3 | AC-S126-3: Preserve storage, filters, and providers |
-| R-F06-04 | existing date controls | ARCH-S126-1, ARCH-S126-2 | BEH-S126-4 | AC-S126-4: Handle date input honestly |
-| R-F06-05 | shared display utility / data checks | ARCH-S126-1, ARCH-S126-2 | BEH-S126-5 | AC-S126-5: Distinguish unknown and invalid dates |
-| R-F06-06 | application presentation owners / handout generator | ARCH-S126-1, ARCH-S126-2 | BEH-S126-6 | AC-S126-6: Inventory the whole app without rewriting source content |
-
+| Requirement | Owning boundary                                     | Architecture             | Behavior   | Acceptance / test scenario                                          |
+| ----------- | --------------------------------------------------- | ------------------------ | ---------- | ------------------------------------------------------------------- |
+| R-F06-01    | shared display utility / display inventory          | ARCH-S126-1, ARCH-S126-2 | BEH-S126-1 | AC-S126-1: Adopt one visible convention                             |
+| R-F06-02    | business-calendar / shared display utility          | ARCH-S126-1, ARCH-S126-2 | BEH-S126-2 | AC-S126-2: Keep date-only values date-only                          |
+| R-F06-03    | query / API serializers                             | ARCH-S126-1, ARCH-S126-2 | BEH-S126-3 | AC-S126-3: Preserve storage, filters, and providers                 |
+| R-F06-04    | existing date controls                              | ARCH-S126-1, ARCH-S126-2 | BEH-S126-4 | AC-S126-4: Handle date input honestly                               |
+| R-F06-05    | shared display utility / data checks                | ARCH-S126-1, ARCH-S126-2 | BEH-S126-5 | AC-S126-5: Distinguish unknown and invalid dates                    |
+| R-F06-06    | application presentation owners / handout generator | ARCH-S126-1, ARCH-S126-2 | BEH-S126-6 | AC-S126-6: Inventory the whole app without rewriting source content |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -190,7 +187,6 @@ Independent of provider activation and meetings. F04 reuses canonical dates; F09
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Actual blank-template formatting requirements remain F10 inputs; they do not block application presentation.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `components/lease-renewal/RenewalDeskTable.tsx` and existing message-preparation controls — consumers, not independent truth resolvers.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T03 | Transcript 00:36:04–00:37:30; parsed lines 1358–1384 | Request to recognize initiated move-out before contacting an owner and use the non-renewal handoff. |
-| U03 | User approval on 2026-09-18 | Approve Feature 3; separate cross-lease color/sort/filter feature F14 implements the additional request. |
-| R03 | `lib/lease-renewal/work-status.ts`; `lib/move-out/process-template.ts`; `lib/integrations/rentvine/lease-mapper.ts` | Existing manual handoff and date aliases are reuse points, not a verified notice mapping. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T03             | Transcript 00:36:04–00:37:30; parsed lines 1358–1384                                                                                | Request to recognize initiated move-out before contacting an owner and use the non-renewal handoff.                                                               |
+| U03             | User approval on 2026-09-18                                                                                                         | Approve Feature 3; separate cross-lease color/sort/filter feature F14 implements the additional request.                                                          |
+| R03             | `lib/lease-renewal/work-status.ts`; `lib/move-out/process-template.ts`; `lib/integrations/rentvine/lease-mapper.ts`                 | Existing manual handoff and date aliases are reuse points, not a verified notice mapping.                                                                         |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S124-6** — R-F03-06: Handle withdrawal and conflicting history. The observable result must satisfy AC-S124-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Move-out detection and non-renewal outreach filtering
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F03-01 | RentVine client / lease mapper | ARCH-S124-1, ARCH-S124-2 | BEH-S124-1 | AC-S124-1: Establish the exact read contract first |
-| R-F03-02 | shared disposition projection | ARCH-S124-1, ARCH-S124-2 | BEH-S124-2 | AC-S124-2: Use a typed, attributed disposition |
-| R-F03-03 | message-readiness / draft service / guidance | ARCH-S124-1, ARCH-S124-2 | BEH-S124-3 | AC-S124-3: Suppress inappropriate ordinary outreach locally |
-| R-F03-04 | desk-model / desk-query-v2 / F14 | ARCH-S124-1, ARCH-S124-2 | BEH-S124-4 | AC-S124-4: Expose filterable evidence without losing records |
-| R-F03-05 | workspace-state / move-out handoff | ARCH-S124-1, ARCH-S124-2 | BEH-S124-5 | AC-S124-5: Keep non-renewal and completion separate |
-| R-F03-06 | source projection / cycle evidence | ARCH-S124-1, ARCH-S124-2 | BEH-S124-6 | AC-S124-6: Handle withdrawal and conflicting history |
-
+| Requirement | Owning boundary                              | Architecture             | Behavior   | Acceptance / test scenario                                   |
+| ----------- | -------------------------------------------- | ------------------------ | ---------- | ------------------------------------------------------------ |
+| R-F03-01    | RentVine client / lease mapper               | ARCH-S124-1, ARCH-S124-2 | BEH-S124-1 | AC-S124-1: Establish the exact read contract first           |
+| R-F03-02    | shared disposition projection                | ARCH-S124-1, ARCH-S124-2 | BEH-S124-2 | AC-S124-2: Use a typed, attributed disposition               |
+| R-F03-03    | message-readiness / draft service / guidance | ARCH-S124-1, ARCH-S124-2 | BEH-S124-3 | AC-S124-3: Suppress inappropriate ordinary outreach locally  |
+| R-F03-04    | desk-model / desk-query-v2 / F14             | ARCH-S124-1, ARCH-S124-2 | BEH-S124-4 | AC-S124-4: Expose filterable evidence without losing records |
+| R-F03-05    | workspace-state / move-out handoff           | ARCH-S124-1, ARCH-S124-2 | BEH-S124-5 | AC-S124-5: Keep non-renewal and completion separate          |
+| R-F03-06    | source projection / cycle evidence           | ARCH-S124-1, ARCH-S124-2 | BEH-S124-6 | AC-S124-6: Handle withdrawal and conflicting history         |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -188,7 +185,6 @@ Produces disposition for F04/F14 and routing context for F07/F09. Reuses F02 cur
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Exact documented provider mapping and an authorized current-source example. Do not create a customer notice just to generate evidence.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

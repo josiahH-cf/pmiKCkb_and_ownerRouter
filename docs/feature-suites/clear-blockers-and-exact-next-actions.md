@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `docs/products/renewal-operator-guide.md` and `scripts/smoke-renewal-guide-controls-browser.mjs` — guide-to-control mapping; verify the current script filename before changing it.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T07 | Transcript 00:38:40 and 00:45:11–00:46:12; parsed lines 1414–1416 and 1634–1644 | Requests for clearer blocked/completed/advisory meaning and clearer progression. |
-| U07 | User approval on 2026-09-18 | Feature 7 retained; new color/status-category ownership is separated into F14. |
-| R07 | S113 dashboard contract; `docs/loop-state.md`; `lib/lease-renewal/desk-guidance.ts` | Reuse existing section controls and shared readiness rather than duplicate workflow logic. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T07             | Transcript 00:38:40 and 00:45:11–00:46:12; parsed lines 1414–1416 and 1634–1644                                                     | Requests for clearer blocked/completed/advisory meaning and clearer progression.                                                                                  |
+| U07             | User approval on 2026-09-18                                                                                                         | Feature 7 retained; new color/status-category ownership is separated into F14.                                                                                    |
+| R07             | S113 dashboard contract; `docs/loop-state.md`; `lib/lease-renewal/desk-guidance.ts`                                                 | Reuse existing section controls and shared readiness rather than duplicate workflow logic.                                                                        |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S127-6** — R-F07-06: Use accessible status meaning without color dependence. The observable result must satisfy AC-S127-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Clear blockers and exact next-action guidance
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F07-01 | shared readiness / guidance | ARCH-S127-1, ARCH-S127-2 | BEH-S127-1 | AC-S127-1: Classify the kind and scope of each issue |
-| R-F07-02 | desk-guidance / F03 disposition | ARCH-S127-1, ARCH-S127-2 | BEH-S127-2 | AC-S127-2: Choose a deterministic primary next action |
-| R-F07-03 | workspace / section control registry | ARCH-S127-1, ARCH-S127-2 | BEH-S127-3 | AC-S127-3: Navigate to the actual resolution point |
-| R-F07-04 | existing role guards / guidance consumers | ARCH-S127-1, ARCH-S127-2 | BEH-S127-4 | AC-S127-4: Expose permissions without granting them |
-| R-F07-05 | preparation services / workspace state | ARCH-S127-1, ARCH-S127-2 | BEH-S127-5 | AC-S127-5: Preserve input and explain state changes |
-| R-F07-06 | shared interaction components / F14 | ARCH-S127-1, ARCH-S127-2 | BEH-S127-6 | AC-S127-6: Use accessible status meaning without color dependence |
-
+| Requirement | Owning boundary                           | Architecture             | Behavior   | Acceptance / test scenario                                        |
+| ----------- | ----------------------------------------- | ------------------------ | ---------- | ----------------------------------------------------------------- |
+| R-F07-01    | shared readiness / guidance               | ARCH-S127-1, ARCH-S127-2 | BEH-S127-1 | AC-S127-1: Classify the kind and scope of each issue              |
+| R-F07-02    | desk-guidance / F03 disposition           | ARCH-S127-1, ARCH-S127-2 | BEH-S127-2 | AC-S127-2: Choose a deterministic primary next action             |
+| R-F07-03    | workspace / section control registry      | ARCH-S127-1, ARCH-S127-2 | BEH-S127-3 | AC-S127-3: Navigate to the actual resolution point                |
+| R-F07-04    | existing role guards / guidance consumers | ARCH-S127-1, ARCH-S127-2 | BEH-S127-4 | AC-S127-4: Expose permissions without granting them               |
+| R-F07-05    | preparation services / workspace state    | ARCH-S127-1, ARCH-S127-2 | BEH-S127-5 | AC-S127-5: Preserve input and explain state changes               |
+| R-F07-06    | shared interaction components / F14       | ARCH-S127-1, ARCH-S127-2 | BEH-S127-6 | AC-S127-6: Use accessible status meaning without color dependence |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -188,7 +185,6 @@ Consumes F03 disposition, F08 pause state, and F09/F10/F11 readiness reasons. Th
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Human usability feedback at the next meeting is pending; it is distinct from automated navigation and permission checks.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

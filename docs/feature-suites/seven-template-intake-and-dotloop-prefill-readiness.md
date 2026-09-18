@@ -99,16 +99,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - Existing S21 trusted-content publication and Drive artifact paths — inspect concrete upload/approval owners; do not create a parallel document store.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T10 | Transcript 00:46:12–00:47:24; parsed lines 1644–1658 | Seven blank forms with field and signer mappings requested to reduce repeated paperwork entry. |
-| U10 | User clarification on 2026-09-18 | Scaffold all possible outcomes now; validation follows at meetings or when templates arrive. |
-| R10 | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`; `dotloop-esign-activation.md`; `docs/open-blockers.md` | Existing exact content/packet/provider boundaries; field preview is not filled bytes; seven artifact families have required approved mappings. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T10             | Transcript 00:46:12–00:47:24; parsed lines 1644–1658                                                                                | Seven blank forms with field and signer mappings requested to reduce repeated paperwork entry.                                                                    |
+| U10             | User clarification on 2026-09-18                                                                                                    | Scaffold all possible outcomes now; validation follows at meetings or when templates arrive.                                                                      |
+| R10             | `docs/feature-suites/lease-document-packet-truth-and-prefill.md`; `dotloop-esign-activation.md`; `docs/open-blockers.md`            | Existing exact content/packet/provider boundaries; field preview is not filled bytes; seven artifact families have required approved mappings.                    |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -136,7 +135,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S130-8** — R-F10-08: Make receipt-time and meeting validation resumable. The observable result must satisfy AC-S130-8; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Seven-template intake and Dotloop prefill readiness
@@ -149,17 +147,16 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F10-01 | S66 catalog / trusted-source intake | ARCH-S130-1, ARCH-S130-2 | BEH-S130-1 | AC-S130-1: Prepare a seven-family intake manifest |
-| R-F10-02 | existing intake / proposed bounded format adapter | ARCH-S130-1, ARCH-S130-2 | BEH-S130-2 | AC-S130-2: Validate real uploads without inventing a parser result |
-| R-F10-03 | S66 field/participant mapping | ARCH-S130-1, ARCH-S130-2 | BEH-S130-3 | AC-S130-3: Map exact fields and signer roles |
-| R-F10-04 | proposed filling boundary / S34 handoff | ARCH-S130-1, ARCH-S130-2 | BEH-S130-4 | AC-S130-4: Distinguish preview from actual filled output |
-| R-F10-05 | S66 snapshot / S21 publication / S34 byte resolver | ARCH-S130-1, ARCH-S130-2 | BEH-S130-5 | AC-S130-5: Bind derived artifacts to the approved originals |
-| R-F10-06 | S66 applicability / S106 readiness | ARCH-S130-1, ARCH-S130-2 | BEH-S130-6 | AC-S130-6: Prepare conditional packet and provider readiness |
-| R-F10-07 | S34 executor / evidence projection | ARCH-S130-1, ARCH-S130-2 | BEH-S130-7 | AC-S130-7: Preserve one-attempt packet execution and human signing |
-| R-F10-08 | F12 checklist / S66-S34 integrated tests | ARCH-S130-1, ARCH-S130-2 | BEH-S130-8 | AC-S130-8: Make receipt-time and meeting validation resumable |
-
+| Requirement | Owning boundary                                    | Architecture             | Behavior   | Acceptance / test scenario                                         |
+| ----------- | -------------------------------------------------- | ------------------------ | ---------- | ------------------------------------------------------------------ |
+| R-F10-01    | S66 catalog / trusted-source intake                | ARCH-S130-1, ARCH-S130-2 | BEH-S130-1 | AC-S130-1: Prepare a seven-family intake manifest                  |
+| R-F10-02    | existing intake / proposed bounded format adapter  | ARCH-S130-1, ARCH-S130-2 | BEH-S130-2 | AC-S130-2: Validate real uploads without inventing a parser result |
+| R-F10-03    | S66 field/participant mapping                      | ARCH-S130-1, ARCH-S130-2 | BEH-S130-3 | AC-S130-3: Map exact fields and signer roles                       |
+| R-F10-04    | proposed filling boundary / S34 handoff            | ARCH-S130-1, ARCH-S130-2 | BEH-S130-4 | AC-S130-4: Distinguish preview from actual filled output           |
+| R-F10-05    | S66 snapshot / S21 publication / S34 byte resolver | ARCH-S130-1, ARCH-S130-2 | BEH-S130-5 | AC-S130-5: Bind derived artifacts to the approved originals        |
+| R-F10-06    | S66 applicability / S106 readiness                 | ARCH-S130-1, ARCH-S130-2 | BEH-S130-6 | AC-S130-6: Prepare conditional packet and provider readiness       |
+| R-F10-07    | S34 executor / evidence projection                 | ARCH-S130-1, ARCH-S130-2 | BEH-S130-7 | AC-S130-7: Preserve one-attempt packet execution and human signing |
+| R-F10-08    | F12 checklist / S66-S34 integrated tests           | ARCH-S130-1, ARCH-S130-2 | BEH-S130-8 | AC-S130-8: Make receipt-time and meeting validation resumable      |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -206,7 +203,6 @@ S66/S21/S106/S34 own their existing responsibilities. F06 formats app displays; 
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Approved real files and mappings; actual supported filling route for those files; managed connection and selected resources; separately authorized exact keys; future human/live validation.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

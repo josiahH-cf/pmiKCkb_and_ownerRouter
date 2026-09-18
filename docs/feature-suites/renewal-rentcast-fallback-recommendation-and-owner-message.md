@@ -52,12 +52,12 @@ Offer the operator three or four recommendation choices grounded in existing ren
 
 Grounded choices, each gated on real data that the repository already retains or computes:
 
-| Choice | Existing logic / recorded value | Availability gate | Basis shown |
-| --- | --- | --- | --- |
-| Owner-policy percentage | `computeOwnerPolicySuggestion` in `lib/lease-renewal/rent-suggestion.ts` | An owner-policy percentage rule exists for the lease's portfolio (`leasePortfolioId`) and a usable current rent is available | "Owner policy: +N% of current rent" with the rule note |
-| Keep current rent | The authoritative current base rent already resolved for this lease (`loadLiveOwnerCurrentRentDecision` / current-rent reconciliation) | A fresh, agreed current base rent is available | "No increase; current contractual rent" |
-| Starting-range endpoint (low / midpoint / high) | `computeStartingRange` (`market-starting-range.ts`) | A positive contractual base rent yields an available band | `STARTING_RANGE_LABEL` verbatim: from current rent, not market evidence |
-| Previous reviewed recommendation | The prior cycle's saved reviewed recommendation or the prior recorded owner-approved offered rent, where retained (`getPreviousMessageDrafts`, prior `RenewalOwnerDecision.offeredRent`, prior message preparation) | A prior value for this lease actually exists in the store | "Previous cycle recommendation/offer" with its recorded date |
+| Choice                                          | Existing logic / recorded value                                                                                                                                                                                     | Availability gate                                                                                                            | Basis shown                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Owner-policy percentage                         | `computeOwnerPolicySuggestion` in `lib/lease-renewal/rent-suggestion.ts`                                                                                                                                            | An owner-policy percentage rule exists for the lease's portfolio (`leasePortfolioId`) and a usable current rent is available | "Owner policy: +N% of current rent" with the rule note                  |
+| Keep current rent                               | The authoritative current base rent already resolved for this lease (`loadLiveOwnerCurrentRentDecision` / current-rent reconciliation)                                                                              | A fresh, agreed current base rent is available                                                                               | "No increase; current contractual rent"                                 |
+| Starting-range endpoint (low / midpoint / high) | `computeStartingRange` (`market-starting-range.ts`)                                                                                                                                                                 | A positive contractual base rent yields an available band                                                                    | `STARTING_RANGE_LABEL` verbatim: from current rent, not market evidence |
+| Previous reviewed recommendation                | The prior cycle's saved reviewed recommendation or the prior recorded owner-approved offered rent, where retained (`getPreviousMessageDrafts`, prior `RenewalOwnerDecision.offeredRent`, prior message preparation) | A prior value for this lease actually exists in the store                                                                    | "Previous cycle recommendation/offer" with its recorded date            |
 
 Rules: do not invent historical records, owner policies, percentages, new pricing formulas, or additional market evidence to populate a choice. Where a choice's inputs are unavailable, show the limitation and omit the amount; custom entry remains the way to supply a value existing information cannot support. Keep the four value families accurately distinguished — current-rent estimate, historical/previous value, owner-policy calculation, and a staff-reviewed manual recommendation — and never label any of them as fresh RentCast comparable evidence. Reuse the existing pure calculation functions; add no new formula.
 
@@ -99,12 +99,12 @@ Owning components: `components/lease-renewal/RenewalProgressControls.tsx` (`Owne
 
 **Authority and evidence map.**
 
-| Source | Classification | Application here |
-| --- | --- | --- |
-| `AGENTS.md`, `docs/README.md`, current committed code and readbacks, `docs/facts.md` | Governing repository boundaries and implementation truth | Re-establish current truth before implementation. RentCast integration, comp-approval, owner-decision, send and provider boundaries are preserved. |
-| The user's request describing the RentCast outcome and desired fallback | Requested product intent and user-provided context | Incorporated below. The reported lookup is user-provided context, not an independently verified live event; no live lookup is run to plan this. |
-| The later-supplied PMI methodology PDF and its separate supply process | External dependency (owner/team) | Names the exact reference/attachment behavior; absence disables only that reference, never the recommendation or message preparation. |
-| `docs/feature-suites/TEMPLATE.md`, `docs/feature-suites/README.md`, `docs/environment-handoff.md`, `docs/autonomous-agent-runner.md` | Existing specification, registration and release contracts | Use the existing loop and native format. No new release process or review program is introduced. |
+| Source                                                                                                                               | Classification                                             | Application here                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`, `docs/README.md`, current committed code and readbacks, `docs/facts.md`                                                 | Governing repository boundaries and implementation truth   | Re-establish current truth before implementation. RentCast integration, comp-approval, owner-decision, send and provider boundaries are preserved. |
+| The user's request describing the RentCast outcome and desired fallback                                                              | Requested product intent and user-provided context         | Incorporated below. The reported lookup is user-provided context, not an independently verified live event; no live lookup is run to plan this.    |
+| The later-supplied PMI methodology PDF and its separate supply process                                                               | External dependency (owner/team)                           | Names the exact reference/attachment behavior; absence disables only that reference, never the recommendation or message preparation.              |
+| `docs/feature-suites/TEMPLATE.md`, `docs/feature-suites/README.md`, `docs/environment-handoff.md`, `docs/autonomous-agent-runner.md` | Existing specification, registration and release contracts | Use the existing loop and native format. No new release process or review program is introduced.                                                   |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -131,13 +131,13 @@ The implementation runner records the model verdict with actual evidence. Record
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Architecture | Behavior / human litmus | Evidence / falsification |
-| --- | --- | --- | --- |
-| R121.1 actionable, truthful unusable-result state | ARCH-S121-1 | BEH-S121-1; litmus | Outcome class per reason, no number, manual entry and radius preserved, no "no comps exist" claim; AC-S121-1. |
-| R121.2 grounded alternatives plus custom entry | ARCH-S121-2 | BEH-S121-2 | Each choice's source function/value, availability gates, unavailable-shows-limitation, deliberate selection; AC-S121-2. |
-| R121.3 carry-through with preserved boundaries | ARCH-S121-2 | BEH-S121-3 | Reviewed `pmiNumber`+marker reaches displays/message; owner-approval, contractual rent, provider writes still gated; AC-S121-3. |
-| R121.4 truthful fallback owner email | ARCH-S121-3 | BEH-S121-4 | Fallback branch waives comparable requirements, drops unsupported claims, keeps normal path and preview/copy/draft parity; AC-S121-4. |
-| R121.5 methodology PDF hook | ARCH-S121-4 | BEH-S121-5 | Shared-resource/attachment reuse, blank/unverified never a link, no fabricated attachment, usable before the PDF exists; AC-S121-5. |
+| Requirement                                       | Architecture | Behavior / human litmus | Evidence / falsification                                                                                                              |
+| ------------------------------------------------- | ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| R121.1 actionable, truthful unusable-result state | ARCH-S121-1  | BEH-S121-1; litmus      | Outcome class per reason, no number, manual entry and radius preserved, no "no comps exist" claim; AC-S121-1.                         |
+| R121.2 grounded alternatives plus custom entry    | ARCH-S121-2  | BEH-S121-2              | Each choice's source function/value, availability gates, unavailable-shows-limitation, deliberate selection; AC-S121-2.               |
+| R121.3 carry-through with preserved boundaries    | ARCH-S121-2  | BEH-S121-3              | Reviewed `pmiNumber`+marker reaches displays/message; owner-approval, contractual rent, provider writes still gated; AC-S121-3.       |
+| R121.4 truthful fallback owner email              | ARCH-S121-3  | BEH-S121-4              | Fallback branch waives comparable requirements, drops unsupported claims, keeps normal path and preview/copy/draft parity; AC-S121-4. |
+| R121.5 methodology PDF hook                       | ARCH-S121-4  | BEH-S121-5              | Shared-resource/attachment reuse, blank/unverified never a link, no fabricated attachment, usable before the PDF exists; AC-S121-5.   |
 
 **Preservation set.**
 
@@ -193,5 +193,5 @@ Register this file once in the existing `docs/feature-suites/README.md` suite ta
 Import registration row for the existing suite table (add once; do not replace its other rows):
 
 ```markdown
-| S121  | `docs/feature-suites/renewal-rentcast-fallback-recommendation-and-owner-message.md` | SPECIFICATION READY; RentCast unusable-result fallback recommendation and truthful owner message; implementation/release not started. |
+| S121 | `docs/feature-suites/renewal-rentcast-fallback-recommendation-and-owner-message.md` | SPECIFICATION READY; RentCast unusable-result fallback recommendation and truthful owner message; implementation/release not started. |
 ```

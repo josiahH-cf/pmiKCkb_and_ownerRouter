@@ -95,16 +95,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `lib/lease-renewal/owner-draft.ts`, `tenant-draft.ts`, and `lib/lease-documents/` — consumers of approved applicable content only.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T11 | Transcript 00:57:36; parsed lines 1956–1974 | A Rhino-related lease proposed for later wording validation; no actual policy details supplied. |
-| U11 | User clarification on 2026-09-18 | Validate all logic now; specifics are unavailable and support must wait for material upload/readiness. |
-| R11 | `lib/lease-renewal/workspace-state.ts`; `lib/lease-renewal/sheet-writeback/field-intent.ts`; S66 | Existing conditional follow-up and approved-content boundaries; no product-specific wording authority. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T11             | Transcript 00:57:36; parsed lines 1956–1974                                                                                         | A Rhino-related lease proposed for later wording validation; no actual policy details supplied.                                                                   |
+| U11             | User clarification on 2026-09-18                                                                                                    | Validate all logic now; specifics are unavailable and support must wait for material upload/readiness.                                                            |
+| R11             | `lib/lease-renewal/workspace-state.ts`; `lib/lease-renewal/sheet-writeback/field-intent.ts`; S66                                    | Existing conditional follow-up and approved-content boundaries; no product-specific wording authority.                                                            |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -130,7 +129,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S131-7** — R-F11-07: Validate every logic branch now, real content later. The observable result must satisfy AC-S131-7; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Rhino-policy conditional logic, ready for approved material upload
@@ -143,16 +141,15 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F11-01 | workspace state / conditional policy projection | ARCH-S131-1, ARCH-S131-2 | BEH-S131-1 | AC-S131-1: Model applicability without assuming coverage |
-| R-F11-02 | trusted-source intake / proposed policy config schema | ARCH-S131-1, ARCH-S131-2 | BEH-S131-2 | AC-S131-2: Prepare approved material intake and bounded rules |
-| R-F11-03 | publication / policy version state | ARCH-S131-1, ARCH-S131-2 | BEH-S131-3 | AC-S131-3: Keep uploading, approving, and using separate |
-| R-F11-04 | message/packet readiness | ARCH-S131-1, ARCH-S131-2 | BEH-S131-4 | AC-S131-4: Make absent support honest and local |
-| R-F11-05 | composition / S66 mapping | ARCH-S131-1, ARCH-S131-2 | BEH-S131-5 | AC-S131-5: Apply exact approved content without invented semantics |
-| R-F11-06 | workspace-state / manual progress | ARCH-S131-1, ARCH-S131-2 | BEH-S131-6 | AC-S131-6: Track manual follow-up independently from provider truth |
-| R-F11-07 | unit/backend/consumer contract tests | ARCH-S131-1, ARCH-S131-2 | BEH-S131-7 | AC-S131-7: Validate every logic branch now, real content later |
-
+| Requirement | Owning boundary                                       | Architecture             | Behavior   | Acceptance / test scenario                                          |
+| ----------- | ----------------------------------------------------- | ------------------------ | ---------- | ------------------------------------------------------------------- |
+| R-F11-01    | workspace state / conditional policy projection       | ARCH-S131-1, ARCH-S131-2 | BEH-S131-1 | AC-S131-1: Model applicability without assuming coverage            |
+| R-F11-02    | trusted-source intake / proposed policy config schema | ARCH-S131-1, ARCH-S131-2 | BEH-S131-2 | AC-S131-2: Prepare approved material intake and bounded rules       |
+| R-F11-03    | publication / policy version state                    | ARCH-S131-1, ARCH-S131-2 | BEH-S131-3 | AC-S131-3: Keep uploading, approving, and using separate            |
+| R-F11-04    | message/packet readiness                              | ARCH-S131-1, ARCH-S131-2 | BEH-S131-4 | AC-S131-4: Make absent support honest and local                     |
+| R-F11-05    | composition / S66 mapping                             | ARCH-S131-1, ARCH-S131-2 | BEH-S131-5 | AC-S131-5: Apply exact approved content without invented semantics  |
+| R-F11-06    | workspace-state / manual progress                     | ARCH-S131-1, ARCH-S131-2 | BEH-S131-6 | AC-S131-6: Track manual follow-up independently from provider truth |
+| R-F11-07    | unit/backend/consumer contract tests                  | ARCH-S131-1, ARCH-S131-2 | BEH-S131-7 | AC-S131-7: Validate every logic branch now, real content later      |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -197,7 +194,6 @@ F10 receives document/material mappings; F09 consumes applicable approved conten
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Approved real policy materials and business rules, exact lease applicability evidence, and later staff review of wording. Receipt alone is not activation.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

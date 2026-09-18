@@ -95,16 +95,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `docs/environment-handoff.md`, `AGENTS.md`, `docs/facts.md`, and active writeback contracts — update current truth only after actual verification.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T08 | Transcript 00:18:14–00:20:42; parsed lines 830–876 | Decision to defer writes for several months while continuing reads and verification. |
-| U08 | User approval on 2026-09-18 | Approval of Feature 8 supersedes the earlier enabled-write requirement for operating-Sheet execution only. |
-| R08 | `lib/lease-renewal/sheet-writeback-policy.ts`; `lib/lease-renewal/sheet-writeback/live.ts`; `AGENTS.md` | Existing exact flag, lazy writer, and prior enabled-write direction. Capability remains; dispatch policy changes. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T08             | Transcript 00:18:14–00:20:42; parsed lines 830–876                                                                                  | Decision to defer writes for several months while continuing reads and verification.                                                                              |
+| U08             | User approval on 2026-09-18                                                                                                         | Approval of Feature 8 supersedes the earlier enabled-write requirement for operating-Sheet execution only.                                                        |
+| R08             | `lib/lease-renewal/sheet-writeback-policy.ts`; `lib/lease-renewal/sheet-writeback/live.ts`; `AGENTS.md`                             | Existing exact flag, lazy writer, and prior enabled-write direction. Capability remains; dispatch policy changes.                                                 |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -130,7 +129,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S128-7** — R-F08-07: Keep the pause through releases and rollback. The observable result must satisfy AC-S128-7; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Pause operating-Sheet writes while preserving reads and app-owned work
@@ -143,16 +141,15 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F08-01 | policy / live wiring / executor | ARCH-S128-1, ARCH-S128-2 | BEH-S128-1 | AC-S128-1: Enforce one explicit operating-Sheet pause |
-| R-F08-02 | all reachable Sheet effect callers | ARCH-S128-1, ARCH-S128-2 | BEH-S128-2 | AC-S128-2: Cover bypasses and the dispatch boundary |
-| R-F08-03 | Sheet readers / live-desk | ARCH-S128-1, ARCH-S128-2 | BEH-S128-3 | AC-S128-3: Keep reads and source truth intact |
-| R-F08-04 | prepare / app-state services / client-projection | ARCH-S128-1, ARCH-S128-2 | BEH-S128-4 | AC-S128-4: Save app work without creating an execution backlog |
-| R-F08-05 | proposal store / recovery / desk projection | ARCH-S128-1, ARCH-S128-2 | BEH-S128-5 | AC-S128-5: Preserve existing proposals and honest partial outcomes |
-| R-F08-06 | runtime policy / execution validation | ARCH-S128-1, ARCH-S128-2 | BEH-S128-6 | AC-S128-6: Resume only by a fresh explicit owner decision |
-| R-F08-07 | release/config owners | ARCH-S128-1, ARCH-S128-2 | BEH-S128-7 | AC-S128-7: Keep the pause through releases and rollback |
-
+| Requirement | Owning boundary                                  | Architecture             | Behavior   | Acceptance / test scenario                                         |
+| ----------- | ------------------------------------------------ | ------------------------ | ---------- | ------------------------------------------------------------------ |
+| R-F08-01    | policy / live wiring / executor                  | ARCH-S128-1, ARCH-S128-2 | BEH-S128-1 | AC-S128-1: Enforce one explicit operating-Sheet pause              |
+| R-F08-02    | all reachable Sheet effect callers               | ARCH-S128-1, ARCH-S128-2 | BEH-S128-2 | AC-S128-2: Cover bypasses and the dispatch boundary                |
+| R-F08-03    | Sheet readers / live-desk                        | ARCH-S128-1, ARCH-S128-2 | BEH-S128-3 | AC-S128-3: Keep reads and source truth intact                      |
+| R-F08-04    | prepare / app-state services / client-projection | ARCH-S128-1, ARCH-S128-2 | BEH-S128-4 | AC-S128-4: Save app work without creating an execution backlog     |
+| R-F08-05    | proposal store / recovery / desk projection      | ARCH-S128-1, ARCH-S128-2 | BEH-S128-5 | AC-S128-5: Preserve existing proposals and honest partial outcomes |
+| R-F08-06    | runtime policy / execution validation            | ARCH-S128-1, ARCH-S128-2 | BEH-S128-6 | AC-S128-6: Resume only by a fresh explicit owner decision          |
+| R-F08-07    | release/config owners                            | ARCH-S128-1, ARCH-S128-2 | BEH-S128-7 | AC-S128-7: Keep the pause through releases and rollback            |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -197,7 +194,6 @@ Apply this policy slice before meeting-readiness verification and before any tes
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Actual runtime change is not performed by writing this spec. Resumption requires a new explicit owner decision, with no scheduled date invented.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `scripts/smoke-renewal-desk-browser.mjs` — existing desk navigation/source-parity preservation.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T01 | Transcript 00:31:37–00:36:04; parsed lines 1216–1356 | Missing-record report, recognition of advanced dates, and explicit all-leases versus active/upcoming views. |
-| U01 | User approval on 2026-09-18 | Feature 1 approved as a standalone specification. |
-| R01 | `lib/lease-renewal/desk-query-v2.ts`; `lib/lease-renewal/live-desk.ts`; `components/lease-renewal/RenewalDeskTable.tsx` | Existing query contract, retention projection, and All loaded leases control; code evidence, not a new live completeness assertion. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T01             | Transcript 00:31:37–00:36:04; parsed lines 1216–1356                                                                                | Missing-record report, recognition of advanced dates, and explicit all-leases versus active/upcoming views.                                                       |
+| U01             | User approval on 2026-09-18                                                                                                         | Feature 1 approved as a standalone specification.                                                                                                                 |
+| R01             | `lib/lease-renewal/desk-query-v2.ts`; `lib/lease-renewal/live-desk.ts`; `components/lease-renewal/RenewalDeskTable.tsx`             | Existing query contract, retention projection, and All loaded leases control; code evidence, not a new live completeness assertion.                               |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S122-6** — R-F01-06: No false deletion or silent archival. The observable result must satisfy AC-S122-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### All-lease visibility and explicit worklist views
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F01-01 | live-desk / desk-model | ARCH-S122-1, ARCH-S122-2 | BEH-S122-1 | AC-S122-1: One complete accessible lease inventory |
-| R-F01-02 | desk-query-v2 / F14 category projection | ARCH-S122-1, ARCH-S122-2 | BEH-S122-2 | AC-S122-2: Explicit views and predictable defaults |
-| R-F01-03 | desk-query-v2 / desk table | ARCH-S122-1, ARCH-S122-2 | BEH-S122-3 | AC-S122-3: Filters and counts explain exclusions |
-| R-F01-04 | desk/workspace route owners | ARCH-S122-1, ARCH-S122-2 | BEH-S122-4 | AC-S122-4: Inspection independent of workflow eligibility |
-| R-F01-05 | desk-query-v2 / workspace return links | ARCH-S122-1, ARCH-S122-2 | BEH-S122-5 | AC-S122-5: Navigation and chronological behavior |
-| R-F01-06 | live-desk / live-lease-cache | ARCH-S122-1, ARCH-S122-2 | BEH-S122-6 | AC-S122-6: No false deletion or silent archival |
-
+| Requirement | Owning boundary                         | Architecture             | Behavior   | Acceptance / test scenario                                |
+| ----------- | --------------------------------------- | ------------------------ | ---------- | --------------------------------------------------------- |
+| R-F01-01    | live-desk / desk-model                  | ARCH-S122-1, ARCH-S122-2 | BEH-S122-1 | AC-S122-1: One complete accessible lease inventory        |
+| R-F01-02    | desk-query-v2 / F14 category projection | ARCH-S122-1, ARCH-S122-2 | BEH-S122-2 | AC-S122-2: Explicit views and predictable defaults        |
+| R-F01-03    | desk-query-v2 / desk table              | ARCH-S122-1, ARCH-S122-2 | BEH-S122-3 | AC-S122-3: Filters and counts explain exclusions          |
+| R-F01-04    | desk/workspace route owners             | ARCH-S122-1, ARCH-S122-2 | BEH-S122-4 | AC-S122-4: Inspection independent of workflow eligibility |
+| R-F01-05    | desk-query-v2 / workspace return links  | ARCH-S122-1, ARCH-S122-2 | BEH-S122-5 | AC-S122-5: Navigation and chronological behavior          |
+| R-F01-06    | live-desk / live-lease-cache            | ARCH-S122-1, ARCH-S122-2 | BEH-S122-6 | AC-S122-6: No false deletion or silent archival           |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -188,7 +185,6 @@ Consumes F02 retained-work semantics and F14 cycle categories when present; test
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Provider historical coverage beyond the current export, if needed. No requirement to change that provider behavior is implied.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

@@ -101,16 +101,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - Existing production-assurance desk/workspace projections and browser checks — independent category/count parity.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| U14 | User clarification on 2026-09-18 | Explicit green completed, orange upcoming, yellow initiated non-renewal dots with sortable/filterable categories. |
-| T14 | Transcript 00:38:40; parsed lines 1414–1416 | Earlier blocked/completed/advisory color discussion. |
-| R14 | `lib/lease-renewal/work-status.ts`; `lib/lease-renewal/desk-query-v2.ts`; `components/lease-renewal/RenewalDeskTable.tsx` | Existing manual annotation and derived-status/filter contracts; do not collapse them into one truth field. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U14             | User clarification on 2026-09-18                                                                                                    | Explicit green completed, orange upcoming, yellow initiated non-renewal dots with sortable/filterable categories.                                                 |
+| T14             | Transcript 00:38:40; parsed lines 1414–1416                                                                                         | Earlier blocked/completed/advisory color discussion.                                                                                                              |
+| R14             | `lib/lease-renewal/work-status.ts`; `lib/lease-renewal/desk-query-v2.ts`; `components/lease-renewal/RenewalDeskTable.tsx`           | Existing manual annotation and derived-status/filter contracts; do not collapse them into one truth field.                                                        |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -138,7 +137,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S134-8** — R-F14-08: Refresh categories atomically and preserve history. The observable result must satisfy AC-S134-8; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Color-coded lease status with matching sorting and filters
@@ -151,17 +149,16 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F14-01 | shared lifecycle projection | ARCH-S134-1, ARCH-S134-2 | BEH-S134-1 | AC-S134-1: Project one lifecycle category from real current evidence |
-| R-F14-02 | F02 cycle state / F03 disposition / category resolver | ARCH-S134-1, ARCH-S134-2 | BEH-S134-2 | AC-S134-2: Define cycle-aware precedence and attribution |
-| R-F14-03 | table status component / semantic theme | ARCH-S134-1, ARCH-S134-2 | BEH-S134-3 | AC-S134-3: Apply the requested colors with explicit meaning |
-| R-F14-04 | F07 guidance / existing readiness / work-status | ARCH-S134-1, ARCH-S134-2 | BEH-S134-4 | AC-S134-4: Keep readiness and staff annotations separate |
-| R-F14-05 | desk-query-v2 / category labels | ARCH-S134-1, ARCH-S134-2 | BEH-S134-5 | AC-S134-5: Sort by category, not CSS or independent guesses |
-| R-F14-06 | desk-query-v2 / F01 views | ARCH-S134-1, ARCH-S134-2 | BEH-S134-6 | AC-S134-6: Filter and count the exact displayed categories |
-| R-F14-07 | table / shared interaction components | ARCH-S134-1, ARCH-S134-2 | BEH-S134-7 | AC-S134-7: Preserve accessible and effect-free interaction |
-| R-F14-08 | shared projection / freshness / assurance | ARCH-S134-1, ARCH-S134-2 | BEH-S134-8 | AC-S134-8: Refresh categories atomically and preserve history |
-
+| Requirement | Owning boundary                                       | Architecture             | Behavior   | Acceptance / test scenario                                           |
+| ----------- | ----------------------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------------- |
+| R-F14-01    | shared lifecycle projection                           | ARCH-S134-1, ARCH-S134-2 | BEH-S134-1 | AC-S134-1: Project one lifecycle category from real current evidence |
+| R-F14-02    | F02 cycle state / F03 disposition / category resolver | ARCH-S134-1, ARCH-S134-2 | BEH-S134-2 | AC-S134-2: Define cycle-aware precedence and attribution             |
+| R-F14-03    | table status component / semantic theme               | ARCH-S134-1, ARCH-S134-2 | BEH-S134-3 | AC-S134-3: Apply the requested colors with explicit meaning          |
+| R-F14-04    | F07 guidance / existing readiness / work-status       | ARCH-S134-1, ARCH-S134-2 | BEH-S134-4 | AC-S134-4: Keep readiness and staff annotations separate             |
+| R-F14-05    | desk-query-v2 / category labels                       | ARCH-S134-1, ARCH-S134-2 | BEH-S134-5 | AC-S134-5: Sort by category, not CSS or independent guesses          |
+| R-F14-06    | desk-query-v2 / F01 views                             | ARCH-S134-1, ARCH-S134-2 | BEH-S134-6 | AC-S134-6: Filter and count the exact displayed categories           |
+| R-F14-07    | table / shared interaction components                 | ARCH-S134-1, ARCH-S134-2 | BEH-S134-7 | AC-S134-7: Preserve accessible and effect-free interaction           |
+| R-F14-08    | shared projection / freshness / assurance             | ARCH-S134-1, ARCH-S134-2 | BEH-S134-8 | AC-S134-8: Refresh categories atomically and preserve history        |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -208,7 +205,6 @@ F02 supplies current applicable cycle truth; F03 supplies confirmed/manual/unkno
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** F03 automatic provider-disposition mapping remains conditional until verified; manual/app evidence and explicit unknown cases must still render/filter correctly.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

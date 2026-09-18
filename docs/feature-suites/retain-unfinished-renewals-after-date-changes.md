@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `lib/production-assurance/manual-renewal-projection.ts` — independent manual-progress parity.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T02 | Transcript 00:34:09–00:35:22; parsed lines 1286–1344 | Tenant yes, updated provider dates, and missing signatures/completion must remain distinct. |
-| U02 | User approval on 2026-09-18 | Feature 2 approved independently. |
-| R02 | `lib/lease-renewal/live-desk.ts`; `lib/lease-renewal/workspace-state.ts`; `lib/lease-renewal/work-status.ts` | Existing retained work, manual cycles, and explicit separation of status from evidence. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T02             | Transcript 00:34:09–00:35:22; parsed lines 1286–1344                                                                                | Tenant yes, updated provider dates, and missing signatures/completion must remain distinct.                                                                       |
+| U02             | User approval on 2026-09-18                                                                                                         | Feature 2 approved independently.                                                                                                                                 |
+| R02             | `lib/lease-renewal/live-desk.ts`; `lib/lease-renewal/workspace-state.ts`; `lib/lease-renewal/work-status.ts`                        | Existing retained work, manual cycles, and explicit separation of status from evidence.                                                                           |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S123-6** — R-F02-06: Concurrent and interrupted work cannot vanish. The observable result must satisfy AC-S123-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Retain unfinished renewals when source dates advance
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F02-01 | live-desk / manual cycle projection | ARCH-S123-1, ARCH-S123-2 | BEH-S123-1 | AC-S123-1: Retain by unresolved cycle, not latest end date |
-| R-F02-02 | workspace-state / renewal-progress | ARCH-S123-1, ARCH-S123-2 | BEH-S123-2 | AC-S123-2: Separate acceptance, dates, signatures, and closure |
-| R-F02-03 | existing manual controls / cycle store | ARCH-S123-1, ARCH-S123-2 | BEH-S123-3 | AC-S123-3: Resume external work deliberately |
-| R-F02-04 | progress / preparation snapshot owners | ARCH-S123-1, ARCH-S123-2 | BEH-S123-4 | AC-S123-4: Show source changes without rewriting history |
-| R-F02-05 | workspace-state / work-status | ARCH-S123-1, ARCH-S123-2 | BEH-S123-5 | AC-S123-5: Cycle identity and reopening are explicit |
-| R-F02-06 | manual state service / live-desk | ARCH-S123-1, ARCH-S123-2 | BEH-S123-6 | AC-S123-6: Concurrent and interrupted work cannot vanish |
-
+| Requirement | Owning boundary                        | Architecture             | Behavior   | Acceptance / test scenario                                     |
+| ----------- | -------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------- |
+| R-F02-01    | live-desk / manual cycle projection    | ARCH-S123-1, ARCH-S123-2 | BEH-S123-1 | AC-S123-1: Retain by unresolved cycle, not latest end date     |
+| R-F02-02    | workspace-state / renewal-progress     | ARCH-S123-1, ARCH-S123-2 | BEH-S123-2 | AC-S123-2: Separate acceptance, dates, signatures, and closure |
+| R-F02-03    | existing manual controls / cycle store | ARCH-S123-1, ARCH-S123-2 | BEH-S123-3 | AC-S123-3: Resume external work deliberately                   |
+| R-F02-04    | progress / preparation snapshot owners | ARCH-S123-1, ARCH-S123-2 | BEH-S123-4 | AC-S123-4: Show source changes without rewriting history       |
+| R-F02-05    | workspace-state / work-status          | ARCH-S123-1, ARCH-S123-2 | BEH-S123-5 | AC-S123-5: Cycle identity and reopening are explicit           |
+| R-F02-06    | manual state service / live-desk       | ARCH-S123-1, ARCH-S123-2 | BEH-S123-6 | AC-S123-6: Concurrent and interrupted work cannot vanish       |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -188,7 +185,6 @@ F01 exposes inspection of all available leases; F14 consumes the true current-cy
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Actual customer case confirmation can occur later. Missing historical external work is not reconstructable without staff evidence and is not fabricated.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

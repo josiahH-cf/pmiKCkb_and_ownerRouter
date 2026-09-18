@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - New bounded move-out timing evaluator and focused tests — proposed additions under the existing renewal domain, not verified existing symbols.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T04 | Transcript 00:37:30; parsed lines 1386–1404 | Thirty-day check requested; staff subsequently investigate financial consequences themselves. |
-| U04 | User approval on 2026-09-18 | Feature 4 approved, without adding a target-date or penalty rule. |
-| R04 | `lib/lease-renewal/business-calendar.ts`; `lib/lease-renewal/notice-rules.ts`; `lib/lease-renewal/live-desk.ts` | Reuse date semantics and projections; existing notice rules are not proof of this requested policy. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T04             | Transcript 00:37:30; parsed lines 1386–1404                                                                                         | Thirty-day check requested; staff subsequently investigate financial consequences themselves.                                                                     |
+| U04             | User approval on 2026-09-18                                                                                                         | Feature 4 approved, without adding a target-date or penalty rule.                                                                                                 |
+| R04             | `lib/lease-renewal/business-calendar.ts`; `lib/lease-renewal/notice-rules.ts`; `lib/lease-renewal/live-desk.ts`                     | Reuse date semantics and projections; existing notice rules are not proof of this requested policy.                                                               |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S125-6** — R-F04-06: Support consistent filtering and unavailable states. The observable result must satisfy AC-S125-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Thirty-day notice timing review with an explicit date basis
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F04-01 | timing evaluator / source projection | ARCH-S125-1, ARCH-S125-2 | BEH-S125-1 | AC-S125-1: Name both dates and their meaning |
-| R-F04-02 | business-calendar / timing evaluator | ARCH-S125-1, ARCH-S125-2 | BEH-S125-2 | AC-S125-2: Make counting explicit and testable |
-| R-F04-03 | timing projection / UI | ARCH-S125-1, ARCH-S125-2 | BEH-S125-3 | AC-S125-3: Use truthful result states |
-| R-F04-04 | projection / existing audited review storage | ARCH-S125-1, ARCH-S125-2 | BEH-S125-4 | AC-S125-4: Keep results tied to the evidence version |
-| R-F04-05 | guidance / timing UI | ARCH-S125-1, ARCH-S125-2 | BEH-S125-5 | AC-S125-5: Provide a review path, not an automated sanction |
-| R-F04-06 | desk query / F06 date display | ARCH-S125-1, ARCH-S125-2 | BEH-S125-6 | AC-S125-6: Support consistent filtering and unavailable states |
-
+| Requirement | Owning boundary                              | Architecture             | Behavior   | Acceptance / test scenario                                     |
+| ----------- | -------------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------- |
+| R-F04-01    | timing evaluator / source projection         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-1 | AC-S125-1: Name both dates and their meaning                   |
+| R-F04-02    | business-calendar / timing evaluator         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-2 | AC-S125-2: Make counting explicit and testable                 |
+| R-F04-03    | timing projection / UI                       | ARCH-S125-1, ARCH-S125-2 | BEH-S125-3 | AC-S125-3: Use truthful result states                          |
+| R-F04-04    | projection / existing audited review storage | ARCH-S125-1, ARCH-S125-2 | BEH-S125-4 | AC-S125-4: Keep results tied to the evidence version           |
+| R-F04-05    | guidance / timing UI                         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-5 | AC-S125-5: Provide a review path, not an automated sanction    |
+| R-F04-06    | desk query / F06 date display                | ARCH-S125-1, ARCH-S125-2 | BEH-S125-6 | AC-S125-6: Support consistent filtering and unavailable states |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -188,7 +185,6 @@ F03 supplies notice evidence or unknown. F06 owns date presentation; F07 owns re
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Confirmed target-date meaning and day-count convention, plus the source-field mapping from F03 for automatic reads.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

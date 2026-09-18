@@ -99,16 +99,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - `docs/loop-state.md` and `docs/open-blockers.md` — exact pending inputs; do not repeat stale closed blockers.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T12 | Transcript 00:54:14–00:55:15 and 00:57:36–00:58:51; parsed lines 1844–1876 and 1956–2000 | Side-by-side current/app workflow, recording for process documentation, one/two leases, policy case, next-cycle preparation, and templates. |
-| U12 | User clarification on 2026-09-18 | Prepare everything possible, with validation reserved for the next meetings. |
-| R12 | `docs/products/renewal-operator-guide.md`; `docs/autonomous-agent-runner.md`; current release/guide checks | Use existing controls and verification loop; no new testing environment or meeting automation assumed. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T12             | Transcript 00:54:14–00:55:15 and 00:57:36–00:58:51; parsed lines 1844–1876 and 1956–2000                                            | Side-by-side current/app workflow, recording for process documentation, one/two leases, policy case, next-cycle preparation, and templates.                       |
+| U12             | User clarification on 2026-09-18                                                                                                    | Prepare everything possible, with validation reserved for the next meetings.                                                                                      |
+| R12             | `docs/products/renewal-operator-guide.md`; `docs/autonomous-agent-runner.md`; current release/guide checks                          | Use existing controls and verification loop; no new testing environment or meeting automation assumed.                                                            |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -136,7 +135,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S132-8** — R-F12-08: Make the session resumable and unscheduled by the app. The observable result must satisfy AC-S132-8; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### End-to-end walkthrough preparation and meeting evidence
@@ -149,17 +147,16 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F12-01 | meeting runbook / private evidence references | ARCH-S132-1, ARCH-S132-2 | BEH-S132-1 | AC-S132-1: Prepare a small, explicit case matrix |
-| R-F12-02 | existing read-only verification / readiness owners | ARCH-S132-1, ARCH-S132-2 | BEH-S132-2 | AC-S132-2: Provide a preflight with exact dependencies |
-| R-F12-03 | operator guide / F09-F10 workflows | ARCH-S132-1, ARCH-S132-2 | BEH-S132-3 | AC-S132-3: Write the side-by-side walkthrough script |
-| R-F12-04 | existing backend/integrated test runners | ARCH-S132-1, ARCH-S132-2 | BEH-S132-4 | AC-S132-4: Exercise engineering journeys before human validation |
-| R-F12-05 | runbook / existing environment and effect guards | ARCH-S132-1, ARCH-S132-2 | BEH-S132-5 | AC-S132-5: Provide safe meeting branches |
-| R-F12-06 | meeting evidence template | ARCH-S132-1, ARCH-S132-2 | BEH-S132-6 | AC-S132-6: Capture observations and defects, not invented verdicts |
-| R-F12-07 | operator guide / knowledge publication | ARCH-S132-1, ARCH-S132-2 | BEH-S132-7 | AC-S132-7: Update process documentation only after observation |
-| R-F12-08 | meeting artifacts only | ARCH-S132-1, ARCH-S132-2 | BEH-S132-8 | AC-S132-8: Make the session resumable and unscheduled by the app |
-
+| Requirement | Owning boundary                                    | Architecture             | Behavior   | Acceptance / test scenario                                         |
+| ----------- | -------------------------------------------------- | ------------------------ | ---------- | ------------------------------------------------------------------ |
+| R-F12-01    | meeting runbook / private evidence references      | ARCH-S132-1, ARCH-S132-2 | BEH-S132-1 | AC-S132-1: Prepare a small, explicit case matrix                   |
+| R-F12-02    | existing read-only verification / readiness owners | ARCH-S132-1, ARCH-S132-2 | BEH-S132-2 | AC-S132-2: Provide a preflight with exact dependencies             |
+| R-F12-03    | operator guide / F09-F10 workflows                 | ARCH-S132-1, ARCH-S132-2 | BEH-S132-3 | AC-S132-3: Write the side-by-side walkthrough script               |
+| R-F12-04    | existing backend/integrated test runners           | ARCH-S132-1, ARCH-S132-2 | BEH-S132-4 | AC-S132-4: Exercise engineering journeys before human validation   |
+| R-F12-05    | runbook / existing environment and effect guards   | ARCH-S132-1, ARCH-S132-2 | BEH-S132-5 | AC-S132-5: Provide safe meeting branches                           |
+| R-F12-06    | meeting evidence template                          | ARCH-S132-1, ARCH-S132-2 | BEH-S132-6 | AC-S132-6: Capture observations and defects, not invented verdicts |
+| R-F12-07    | operator guide / knowledge publication             | ARCH-S132-1, ARCH-S132-2 | BEH-S132-7 | AC-S132-7: Update process documentation only after observation     |
+| R-F12-08    | meeting artifacts only                             | ARCH-S132-1, ARCH-S132-2 | BEH-S132-8 | AC-S132-8: Make the session resumable and unscheduled by the app   |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -206,7 +203,6 @@ Integrates F01-F04/F06-F11/F14 while treating unavailable inputs as explicit bra
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Actual human walkthrough, selected-customer validation, consented recording, and resulting confirmed process documentation. These do not block the complete technical preparation slice.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 

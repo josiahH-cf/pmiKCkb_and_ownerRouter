@@ -91,16 +91,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - A bounded decision record in the existing documentation/evidence structure — proposed artifact; no new provider module authorized.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T13 | Transcript 00:29:37–00:31:37; parsed lines 1146–1196 | Purchased external agent, implementation underway, possible future access, ticket/escalation opportunity. |
-| U13 | User approval on 2026-09-18 | Feature 13 approved as the previously identified exploratory assessment, not expanded to a production integration. |
-| R13 | `docs/facts.md`; `docs/integration-architecture.md`; current S99/S100/S108/S109 contracts | Existing exact work-order, manual sync, draft, triage, and preapproval boundaries must remain intact. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T13             | Transcript 00:29:37–00:31:37; parsed lines 1146–1196                                                                                | Purchased external agent, implementation underway, possible future access, ticket/escalation opportunity.                                                         |
+| U13             | User approval on 2026-09-18                                                                                                         | Feature 13 approved as the previously identified exploratory assessment, not expanded to a production integration.                                                |
+| R13             | `docs/facts.md`; `docs/integration-architecture.md`; current S99/S100/S108/S109 contracts                                           | Existing exact work-order, manual sync, draft, triage, and preapproval boundaries must remain intact.                                                             |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -124,7 +123,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S133-6** — R-F13-06: Deliver a bounded decision, not an implementation. The observable result must satisfy AC-S133-6; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### External maintenance-agent handoff assessment
@@ -137,15 +135,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F13-01 | assessment evidence record | ARCH-S133-1, ARCH-S133-2 | BEH-S133-1 | AC-S133-1: Verify identity and permitted access before choosing technology |
-| R-F13-02 | vendor primary material / existing integration architecture | ARCH-S133-1, ARCH-S133-2 | BEH-S133-2 | AC-S133-2: Inventory actual capabilities and limits |
-| R-F13-03 | maintenance process map / current exact action contracts | ARCH-S133-1, ARCH-S133-2 | BEH-S133-3 | AC-S133-3: Map ownership of the maintenance workflow |
-| R-F13-04 | identity / privacy assessment | ARCH-S133-1, ARCH-S133-2 | BEH-S133-4 | AC-S133-4: Define minimal data and a real identity join |
-| R-F13-05 | handoff feasibility analysis | ARCH-S133-1, ARCH-S133-2 | BEH-S133-5 | AC-S133-5: Assess failure and double-action risks |
-| R-F13-06 | decision packet only | ARCH-S133-1, ARCH-S133-2 | BEH-S133-6 | AC-S133-6: Deliver a bounded decision, not an implementation |
-
+| Requirement | Owning boundary                                             | Architecture             | Behavior   | Acceptance / test scenario                                                 |
+| ----------- | ----------------------------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------------------- |
+| R-F13-01    | assessment evidence record                                  | ARCH-S133-1, ARCH-S133-2 | BEH-S133-1 | AC-S133-1: Verify identity and permitted access before choosing technology |
+| R-F13-02    | vendor primary material / existing integration architecture | ARCH-S133-1, ARCH-S133-2 | BEH-S133-2 | AC-S133-2: Inventory actual capabilities and limits                        |
+| R-F13-03    | maintenance process map / current exact action contracts    | ARCH-S133-1, ARCH-S133-2 | BEH-S133-3 | AC-S133-3: Map ownership of the maintenance workflow                       |
+| R-F13-04    | identity / privacy assessment                               | ARCH-S133-1, ARCH-S133-2 | BEH-S133-4 | AC-S133-4: Define minimal data and a real identity join                    |
+| R-F13-05    | handoff feasibility analysis                                | ARCH-S133-1, ARCH-S133-2 | BEH-S133-5 | AC-S133-5: Assess failure and double-action risks                          |
+| R-F13-06    | decision packet only                                        | ARCH-S133-1, ARCH-S133-2 | BEH-S133-6 | AC-S133-6: Deliver a bounded decision, not an implementation               |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 

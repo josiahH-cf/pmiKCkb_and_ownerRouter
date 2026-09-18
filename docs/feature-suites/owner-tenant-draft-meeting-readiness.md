@@ -97,16 +97,15 @@ These are verified paths or explicitly marked candidate owners, not authorizatio
 
 - Existing `/api/lease-renewal/renewal-notice-draft` and owning Gmail draft service — inspect exact implementation before changing; preserve unsent-only effects.
 
-
 Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
 
 **Authority and evidence map.**
 
-| Source | Location | What it supports and what it does not |
-| --- | --- | --- |
-| T09 | Transcript 00:40:49–00:42:50; parsed lines 1506–1542 | Source-filled owner/tenant preparation, previews, missing inputs, charges, and Gmail draft-folder handoff. |
-| U09 | User clarification on 2026-09-18 | Scaffold everything possible now; actual validation occurs at the next meetings. |
-| R09 | `docs/loop-state.md`; S113 F3; `docs/products/lease-renewal-agent.md` | Existing implementation is a reuse baseline, not a reason to assert live meeting acceptance. |
+| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T09             | Transcript 00:40:49–00:42:50; parsed lines 1506–1542                                                                                | Source-filled owner/tenant preparation, previews, missing inputs, charges, and Gmail draft-folder handoff.                                                        |
+| U09             | User clarification on 2026-09-18                                                                                                    | Scaffold everything possible now; actual validation occurs at the next meetings.                                                                                  |
+| R09             | `docs/loop-state.md`; S113 F3; `docs/products/lease-renewal-agent.md`                                                               | Existing implementation is a reuse baseline, not a reason to assert live meeting acceptance.                                                                      |
 | Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
 
 Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
@@ -132,7 +131,6 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 - **BEH-S129-7** — R-F09-07: Deliver a meeting-ready preflight, not a live verdict. The observable result must satisfy AC-S129-7; a UI label alone is insufficient where a service/provider boundary is required.
 
-
 **Human litmus outcome.**
 
 ### Owner and tenant draft workflows: technical readiness for meeting validation
@@ -145,16 +143,15 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary | Architecture | Behavior | Acceptance / test scenario |
-| --- | --- | --- | --- | --- |
-| R-F09-01 | composition / draft route / readiness | ARCH-S129-1, ARCH-S129-2 | BEH-S129-1 | AC-S129-1: Trace and certify the existing path |
-| R-F09-02 | owner-draft / tenant-draft / recipient-resolution | ARCH-S129-1, ARCH-S129-2 | BEH-S129-2 | AC-S129-2: Prepare source-backed, audience-specific content |
-| R-F09-03 | readiness / preparation / final-body validators | ARCH-S129-1, ARCH-S129-2 | BEH-S129-3 | AC-S129-3: Make review and finalization a single coherent flow |
-| R-F09-04 | recipient-resolution / renewal-sender-signatures | ARCH-S129-1, ARCH-S129-2 | BEH-S129-4 | AC-S129-4: Preserve correct recipients, sender, and signature |
-| R-F09-05 | Gmail owning effect service / F03 | ARCH-S129-1, ARCH-S129-2 | BEH-S129-5 | AC-S129-5: Create an unsent draft only on explicit confirmation |
-| R-F09-06 | draft effect recovery / app projection | ARCH-S129-1, ARCH-S129-2 | BEH-S129-6 | AC-S129-6: Recover without duplicate or destructive drafts |
-| R-F09-07 | F12 meeting pack / existing checks | ARCH-S129-1, ARCH-S129-2 | BEH-S129-7 | AC-S129-7: Deliver a meeting-ready preflight, not a live verdict |
-
+| Requirement | Owning boundary                                   | Architecture             | Behavior   | Acceptance / test scenario                                       |
+| ----------- | ------------------------------------------------- | ------------------------ | ---------- | ---------------------------------------------------------------- |
+| R-F09-01    | composition / draft route / readiness             | ARCH-S129-1, ARCH-S129-2 | BEH-S129-1 | AC-S129-1: Trace and certify the existing path                   |
+| R-F09-02    | owner-draft / tenant-draft / recipient-resolution | ARCH-S129-1, ARCH-S129-2 | BEH-S129-2 | AC-S129-2: Prepare source-backed, audience-specific content      |
+| R-F09-03    | readiness / preparation / final-body validators   | ARCH-S129-1, ARCH-S129-2 | BEH-S129-3 | AC-S129-3: Make review and finalization a single coherent flow   |
+| R-F09-04    | recipient-resolution / renewal-sender-signatures  | ARCH-S129-1, ARCH-S129-2 | BEH-S129-4 | AC-S129-4: Preserve correct recipients, sender, and signature    |
+| R-F09-05    | Gmail owning effect service / F03                 | ARCH-S129-1, ARCH-S129-2 | BEH-S129-5 | AC-S129-5: Create an unsent draft only on explicit confirmation  |
+| R-F09-06    | draft effect recovery / app projection            | ARCH-S129-1, ARCH-S129-2 | BEH-S129-6 | AC-S129-6: Recover without duplicate or destructive drafts       |
+| R-F09-07    | F12 meeting pack / existing checks                | ARCH-S129-1, ARCH-S129-2 | BEH-S129-7 | AC-S129-7: Deliver a meeting-ready preflight, not a live verdict |
 
 Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
 
@@ -199,7 +196,6 @@ F03/F07/F08/F06 affect disposition, guidance, pause, and dates. F11 supplies an 
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
 - **Externally blocked or deferred outcome:** Actual selected-lease validation, live mailbox/recipient review, and any authorized draft creation during the meeting. Every live effect still needs its own permission and confirmation.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
-
 
 **Verification and delivery contract.**
 
