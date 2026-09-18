@@ -4,19 +4,34 @@ Last updated: 2026-09-18 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-No feature is queued. The renewal operator hub bundle S114-S120 is COMPLETE and DEPLOYED (production
-serves the S120 head 79493458); its seven suite narratives were retired to Git at d61eecf3 on
-2026-09-18 and their serving truth is in docs/facts.md (F-S114 through F-S120). S121 (RentCast
-unusable-result fallback recommendation and truthful owner message) is registered SPECIFICATION READY
-in docs/feature-suites/README.md and has not started. Deferred live effects stay separate (S116
-email-column sync until the owner adds the two Sheet headers; Dotloop packet actions and blank shared
-resources until their inputs and activation exist).
+S128 (F08, pause operating-Sheet writes) is IMPLEMENTED and CI-GREEN but its production RELEASE is
+BLOCKED by an external billing incident. Code head `31bc9072` (branch main) closes the enforcement,
+proactive UI pause, server-owned `isOperatingSheetWritebackPaused` accessor and the owner-approved
+rollback-safety guard (the watcher never rolls back onto a writeback-enabled revision; candidate,
+promoted and rollback readbacks assert the flag reads back false). Full local gate passed (6762 unit,
+213 backend, build, e2e:core) and exact-SHA CI 35342904192 passed. The runtime flag is set false in
+`.env.production.local` and `.env.local` (host config, uncommitted), staged for the next deploy.
 
-Next: the next spec-intake batch is dropped into docs/feature-suites/ (one file per suite, TEMPLATE.md
-shape) and registered SPECIFICATION READY in docs/feature-suites/README.md. Registration is inert; the
-release watcher deploys only green-CI code SHAs, never documentation-only changes. To begin building a
-registered suite, a fresh runner reads AGENTS.md, docs/facts.md and this file, then that suite's spec.
-Authentication: the WSL enrollment expires under nine hours; re-enroll before any new release.
+**PRODUCTION INCIDENT (owner action required):** billing is DISABLED on GCP project `pmi-kc-kb-prod`
+(read back 2026-09-18 ~12:5xZ; `billingEnabled=false`, account `01A5A3-65CA5A-614D45` still linked).
+Cloud Run cannot run compute, so the canonical endpoint returns 503 and every `gcloud run deploy`
+fails `BILLING_DISABLED` (Artifact Registry/Cloud Build need billing). This is likely the $100
+project hard-stop kill switch; the owner must review spend and re-enable billing. The runner does not
+change billing (financial/system setting). Serving revision on record stays `pmi-kc-app-rmu4wevd9-
+d89996133320` / 79493458 but it is not actually serving while billing is off.
+
+Recovery once billing is re-enabled: the wedged watcher checkpoint was reset to idle (phase=complete;
+backup at `~/.local/state/pmi-kc-release/checkpoint.wedged-s128-billing-*.json`) and the watcher is
+STOPPED. Start the `PMI KC release watcher` scheduled task (native snap gcloud) OR re-run the release;
+it will deploy the flag-false `31bc9072` candidate `pmi-kc-app-rmu6x3d7a-...` (fresh suffix on a clean
+cycle), smoke, assure, promote, observe 300000 ms and read back the flag false. The rollback guard and
+observe flag-false assertions ship in that release. The AC-S128-7 live rollback drill was not run
+(traffic-bearing); the guard is proven by the driver unit tests.
+
+After S128 releases, the ordered renewal meeting-readiness bundle continues:
+S123 -> S124 -> S134 -> S122 -> S125 -> S126 -> S127 -> S131 -> S129 -> S130 -> S132; S133 independent;
+S121 when scheduled. Every later suite must preserve the S128 pause. Authentication: the WSL enrollment
+expires under nine hours; re-enroll before any new release.
 
 ## Verified production
 

@@ -7,13 +7,26 @@ is not active guidance.
 
 ## Current feature
 
-No feature is in active implementation. The renewal operator hub bundle S114-S120 (owner request of
-2026-09-15) is COMPLETE and DEPLOYED; production serves the S120 head `79493458`. Per-feature detail
-is in the ledger below (F-S114 through F-S120) and the release evidence in F-LOCAL-RELEASE; the seven
-suite narratives were retired to Git at `d61eecf3` on 2026-09-18. S113 remains the current-core
-consolidation baseline. S121 (RentCast unusable-result fallback recommendation and truthful owner
-message) is registered SPECIFICATION READY in `docs/feature-suites/README.md` and has not started.
-The next spec-intake batch is registered in that same suite table.
+S128 (F08, pause operating-Sheet writes) is IMPLEMENTED and CI-GREEN at head `31bc9072` (main), but its
+production release is BLOCKED by an active billing incident (see F-BILLING-INCIDENT). Full local gate
+(6762 unit, 213 backend, build, e2e:core) and exact-SHA CI `35342904192` passed; the runtime flag is
+staged false in `.env.production.local`/`.env.local`. Resume detail and recovery are in
+`docs/loop-state.md`.
+
+**F-BILLING-INCIDENT (Open, owner action required):** billing is DISABLED on GCP project
+`pmi-kc-kb-prod` (`billingEnabled=false` read back 2026-09-18; account `01A5A3-65CA5A-614D45` linked).
+Cloud Run cannot run compute, so the canonical endpoint returns 503 and every deploy fails
+`BILLING_DISABLED`. Likely the $100 project hard-stop kill switch. The owner must review spend and
+re-enable billing; the runner does not change billing. Until then the recorded serving revision
+`pmi-kc-app-rmu4wevd9-d89996133320` / `79493458` is not actually serving, and no release can proceed.
+
+The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE (deployed before
+this incident); per-feature detail is in the ledger below (F-S114 through F-S120) and the release
+evidence in F-LOCAL-RELEASE; the seven suite narratives were retired to Git at `d61eecf3` on
+2026-09-18. S113 remains the current-core consolidation baseline. S121 (RentCast unusable-result
+fallback recommendation and truthful owner message) is registered SPECIFICATION READY in
+`docs/feature-suites/README.md` and has not started. The next spec-intake batch is registered in that
+same suite table.
 
 ## Fact Ledger
 
