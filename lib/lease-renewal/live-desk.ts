@@ -43,6 +43,12 @@ import {
   type DateWindow,
 } from "@/lib/lease-renewal/cohort";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
+import {
+  projectMoveOutDisposition,
+  type LeaseStatusTableRead,
+  type MoveOutFreshness,
+} from "@/lib/lease-renewal/move-out-disposition";
 import type { LeaseTermReviewFact } from "@/lib/lease-renewal/lease-term";
 import {
   buildLiveRenewalConfig,
@@ -573,6 +579,13 @@ function retentionFor(
   return { state: "outside", label: "Outside the active renewal window" };
 }
 
+/** S124: what one disposition needs beyond the lease view itself. */
+interface MoveOutInputs {
+  statusTable: LeaseStatusTableRead;
+  freshness: MoveOutFreshness;
+  observedAtIso: string;
+}
+
 function toLiveSummary(
   view: RawLease,
   classification: CohortLease,
@@ -583,6 +596,8 @@ function toLiveSummary(
   manual?: RenewalWorkspaceState | null,
   /** S119: the staff work status projection; absent when the caller did not attempt the read. */
   workStatus?: RenewalWorkStatusProjection,
+  /** S124: the status table and read freshness; absent means the disposition is not evaluated. */
+  moveOutInputs?: MoveOutInputs,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
@@ -620,6 +635,17 @@ function toLiveSummary(
             manual.basis,
             classification.endDateIso,
           ),
+        }
+      : {}),
+    // S124: the provider move-out disposition rides on every non-skipped row; it reads only.
+    ...(moveOutInputs && classification.disposition !== "skip"
+      ? {
+          moveOut: projectMoveOutDisposition({
+            lease: view,
+            statusTable: moveOutInputs.statusTable,
+            freshness: moveOutInputs.freshness,
+            observedAtIso: moveOutInputs.observedAtIso,
+          }),
         }
       : {}),
     ...(workStatus ? { workStatus } : {}),
@@ -1196,6 +1222,15 @@ export async function loadLiveRenewalDesk(
       leaseSnapshotResult ??
       (await getLiveLeaseSnapshot(config.rentvineClient, Date.parse(readTimestamp)));
     const { views, complete } = snapshot;
+    // S124: one memoized status-table read per generation; unavailable reads every row as unknown.
+    const moveOutInputs: MoveOutInputs = {
+      statusTable: await readLeaseStatusTable(
+        config.rentvineClient,
+        Date.parse(readTimestamp),
+      ),
+      freshness: currency.state,
+      observedAtIso: readTimestamp,
+    };
     const { tables, tableJoinIds } =
       preparedSheetRead ??
       (await readRenewalSheetGridsWithLinks({
@@ -1269,6 +1304,7 @@ export async function loadLiveRenewalDesk(
         progressStateAvailable,
         manual,
         workStatus,
+        moveOutInputs,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
@@ -1306,6 +1342,7 @@ export async function loadLiveRenewalDesk(
             progressStateAvailable,
             manual,
             workStatus,
+            moveOutInputs,
           )
         : initialSummary;
       if (
@@ -1486,6 +1523,11 @@ export async function loadLiveRenewalLeaseWorkspace(
             sourceRefreshAfterMs,
           ));
     const { views, complete } = snapshot;
+    const moveOutInputs: MoveOutInputs = {
+      statusTable: await readLeaseStatusTable(config.rentvineClient, readAtMs),
+      freshness: currency.state,
+      observedAtIso: readTimestamp,
+    };
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
     // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads
     // as a failed read, never as "not found".
@@ -1547,6 +1589,7 @@ export async function loadLiveRenewalLeaseWorkspace(
             workStatusRead.cyclesAvailable ? (manual?.cycleId ?? null) : undefined,
           )
         : undefined,
+      moveOutInputs,
     );
     const workflowAvailable =
       classification.disposition === "actionable" ||

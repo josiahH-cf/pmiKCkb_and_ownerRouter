@@ -68,6 +68,7 @@ import {
   RenewalAuxiliaryNotice,
   type RenewalAuxiliaryFailure,
 } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
+import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -255,6 +256,7 @@ export function RenewalWorkspace({
         }
       >
         <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+        <MoveOutDispositionNotice disposition={summary.moveOut} />
 
         {workspace.workflowAvailable ? (
           <DoThisNext
@@ -1104,5 +1106,27 @@ function ChannelView({ message }: Readonly<{ message: ChannelMessage }>) {
       ) : null}
       <div className="draft-box">{message.body}</div>
     </div>
+  );
+}
+
+/**
+ * S124 (R-F03-03): a confirmed or uncertain move-out disposition is shown before any outreach
+ * guidance. A confirmed notice reads as status; an unknown state is a review cue; an explicit
+ * absence renders nothing here. Manual non-renewal work stays in the recorded-work controls.
+ */
+function MoveOutDispositionNotice({
+  disposition,
+}: {
+  disposition: MoveOutDisposition | undefined;
+}) {
+  if (!disposition || disposition.state === "not_initiated") return null;
+  return (
+    <p
+      className={disposition.state === "initiated" ? "renewal-notice" : "muted"}
+      data-renewal-move-out={disposition.state}
+      role="status"
+    >
+      {disposition.label}
+    </p>
   );
 }

@@ -52,6 +52,11 @@ export function fakeLeaseDetailFromRow(row: ExportRow): Record<string, unknown> 
     isMonthToMonth: lease.isMonthToMonth ?? "0",
     monthToMonthStartDate: lease.monthToMonthStartDate ?? null,
     hasPendingMonthToMonthConversion: lease.hasPendingMonthToMonthConversion ?? false,
+    // S124: the documented status id and notice dates pass through from the fixture lease row.
+    leaseStatusID: lease.leaseStatusID ?? null,
+    noticeDate: lease.noticeDate ?? null,
+    expectedMoveOutDate: lease.expectedMoveOutDate ?? null,
+    moveOutDate: lease.moveOutDate ?? null,
   };
 }
 

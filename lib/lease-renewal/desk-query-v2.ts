@@ -22,6 +22,13 @@ import {
   type RenewalWorkStatusFilter,
   type RenewalWorkStatusQueryKey,
 } from "@/lib/lease-renewal/work-status";
+import {
+  MOVE_OUT_DESK_FILTERS,
+  matchesMoveOutFilter,
+  moveOutFilterLabel,
+  type MoveOutDeskFilter,
+  type MoveOutQueryKey,
+} from "@/lib/lease-renewal/move-out-disposition";
 export const RENEWAL_DESK_QUERY_V2_VERSION = "2";
 
 /** Opaque `renewal-party-filter-key/v1` URL token shape (the derivation lives server-side). */
@@ -138,6 +145,8 @@ export interface RenewalDeskQueryV2State {
    * bookmark; it never overwrites or infers the derived overall-status filter.
    */
   workStatus: RenewalWorkStatusFilter;
+  /** S124: filter by the source-attributed move-out disposition; unknown rows stay in the default worklist. */
+  moveOut: MoveOutDeskFilter;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
@@ -163,6 +172,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   rentVerification: "all",
   term: "all",
   workStatus: "all",
+  moveOut: "all",
 };
 
 /** Fixed canonical key order; serialization emits nondefault values in exactly this order. */
@@ -187,6 +197,7 @@ const V2_KEY_ORDER = [
   "rentVerification",
   "term",
   "workStatus",
+  "moveOut",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -373,6 +384,7 @@ export function parseRenewalDeskQueryV2(
       RENEWAL_WORK_STATUS_FILTERS,
       "all",
     ),
+    moveOut: oneOf(firstValue(input, "moveOut"), MOVE_OUT_DESK_FILTERS, "all"),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -443,6 +455,9 @@ export interface RenewalDeskV2Item {
     readonly nextReviewIso: string | null;
     /** S119: the saved staff status key; absent or unavailable never matches a filter value. */
     readonly workStatus?: RenewalWorkStatusQueryKey;
+    /** S124: absent means the disposition was not evaluated; filters treat that as unknown. */
+    readonly moveOut?: MoveOutQueryKey;
+    readonly manualNonRenewal?: boolean;
   };
   readonly identity: {
     readonly address: { readonly label: string } | null;
@@ -615,6 +630,15 @@ function matchesQuery(
   ) {
     return false;
   }
+  if (
+    !matchesMoveOutFilter(
+      query.moveOut,
+      item.queryKeys.moveOut,
+      item.queryKeys.manualNonRenewal === true,
+    )
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -769,6 +793,7 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     rentVerification: (value) => `Rent verification: ${value.replaceAll("_", " ")}`,
     term: (value) => `Lease term: ${value.replaceAll("_", " ")}`,
     workStatus: (value) => workStatusFilterLabel(value as RenewalWorkStatusFilter),
+    moveOut: (value) => moveOutFilterLabel(value as MoveOutDeskFilter),
   };
 
 /** Sort and direction are view state, not filters; a range renders as one removable chip. */

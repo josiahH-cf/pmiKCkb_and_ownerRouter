@@ -57,6 +57,12 @@ import {
   workStatusDisplayLabel,
   workStatusQueryKey,
 } from "@/lib/lease-renewal/work-status";
+import {
+  MOVE_OUT_CONTROL_LABEL,
+  MOVE_OUT_DESK_FILTERS,
+  moveOutFilterLabel,
+  moveOutIndicatorLabel,
+} from "@/lib/lease-renewal/move-out-disposition";
 
 export interface DeskPartyShortcuts {
   readonly available: boolean;
@@ -912,6 +918,16 @@ export function RenewalDeskTable({
                     value={state.workStatus}
                   />
                   <SelectFilter
+                    label={MOVE_OUT_CONTROL_LABEL}
+                    name="moveOut"
+                    options={MOVE_OUT_DESK_FILTERS.map((value) => ({
+                      value,
+                      label: moveOutFilterLabel(value),
+                    }))}
+                    state={state}
+                    value={state.moveOut}
+                  />
+                  <SelectFilter
                     label="Renewal step"
                     name="step"
                     options={[
@@ -1191,6 +1207,27 @@ function DeskRow({
               : " · review date needs review"
             : ""}
         </span>
+        {/* S124: the source-attributed move-out disposition; absent when it was not evaluated. */}
+        {row.moveOut ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="move-out"
+            data-move-out={row.moveOut.state}
+            title={row.moveOut.label}
+          >
+            <Link
+              prefetch={false}
+              className="text-link"
+              href={href({
+                ...state,
+                moveOut: row.moveOut.state === "withdrawn" ? "all" : row.moveOut.state,
+              })}
+              title="Show only this move-out state"
+            >
+              {moveOutIndicatorLabel(row.moveOut)}
+            </Link>
+          </span>
+        ) : null}
       </td>
       <td className="renewal-td-rent">
         {guidance.currentBaseRent !== null ? (

@@ -24,6 +24,9 @@ export function buildSuppliedRenewalDraftPreview(
   if (!current.signatureMatchesActor)
     reasons.push("Review the signature for the signed-in managed sender.");
   if (publication.status !== "approved") reasons.push(publication.reason);
+  // S124 (R-F03-03): a confirmed provider notice blocks a new ordinary renewal draft here, on the
+  // server, so a stale client request cannot bypass it. Unknown evidence is a notice, not a block.
+  if (current.moveOut?.state === "initiated") reasons.push(current.moveOut.label);
   const recipientResult = resolveSeparatedRenewalDraftRecipient({
     lease: current.lease,
     channel,

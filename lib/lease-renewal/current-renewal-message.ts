@@ -34,6 +34,8 @@ import {
   buildLiveRentVineConfig,
 } from "@/lib/lease-renewal/live-config";
 import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
+import { projectMoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
 import {
   leaseEndDateIso,
   leasePortfolioId,
@@ -124,6 +126,16 @@ export async function currentRenewalMessage(
   if (matching.length !== 1)
     throw new EditableLayerError("The live lease is missing or ambiguous.", 409);
   const lease = matching[0];
+  // S124: the memoized status table over the same lease generation. `requireCurrentLeaseViews`
+  // refuses an expired generation, so the served views are inside the cache window (the
+  // disposition downgrades a negative only on an expired read). A failed table read yields an
+  // unknown disposition (a review cue), never permission to draft against a notice.
+  const moveOut = projectMoveOutDisposition({
+    lease,
+    statusTable: await readLeaseStatusTable(config.rentvineClient, nowMs),
+    freshness: "fresh",
+    observedAtIso: new Date(nowMs).toISOString(),
+  });
   const identity = projectRenewalDeskIdentity(lease);
   const rentvineHost = expectedRentvineHost(process.env.RENTVINE_API_BASE_URL);
   const saved = workspace
@@ -142,6 +154,7 @@ export async function currentRenewalMessage(
       ? { ...savedInputs, signature: retainedSignature!.signature }
       : savedInputs;
   const notices: string[] = [];
+  if (moveOut.state === "unknown") notices.push(moveOut.label);
   let draftJournalAvailable = true;
   const [draftAttempt, previousDraftAttempts] = workspace
     ? await Promise.all([
@@ -412,6 +425,7 @@ export async function currentRenewalMessage(
           : [],
     },
     lease,
+    moveOut,
     workspace,
     saved,
     inputs,

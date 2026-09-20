@@ -37,6 +37,19 @@ export interface RentVineHttpTransport {
 
 /** A raw lease record as returned by Rentvine. Field names confirm on the first live call. */
 export type RawLease = Record<string, unknown>;
+/**
+ * S124: one row of the documented lease status table (`GET /leases/statuses`). The provider sends
+ * ids and flags as strings; they are decoded once here. A flag that is neither 0 nor 1 reads null.
+ */
+export interface RentVineLeaseStatus {
+  leaseStatusID: string;
+  name: string;
+  primaryLeaseStatusID: string | null;
+  isPendingMoveOutStatus: boolean | null;
+  isCompletedMoveOutStatus: boolean | null;
+  isPendingMoveInStatus: boolean | null;
+  isSystemStatus: boolean | null;
+}
 
 /** Raw single-resource records for the owner-recipient join (read-only). All are object bags. */
 export type RawProperty = Record<string, unknown>;
@@ -149,6 +162,61 @@ export function unwrapRecord(item: unknown, key: string): Record<string, unknown
 }
 
 /** Normalize the list response to RawLease[] across the shapes Rentvine may return. */
+function statusFlag(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text === "1") return true;
+    if (text === "0") return false;
+  }
+  return null;
+}
+
+function statusText(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text === "" ? null : text;
+}
+
+/** Decode the lease status list from a bare array, a `{ leaseStatuses }` envelope or per-row `{ leaseStatus }` envelopes. */
+export function unwrapLeaseStatuses(body: unknown): RentVineLeaseStatus[] {
+  const list = Array.isArray(body)
+    ? body
+    : body &&
+        typeof body === "object" &&
+        Array.isArray((body as Record<string, unknown>).leaseStatuses)
+      ? ((body as Record<string, unknown>).leaseStatuses as unknown[])
+      : null;
+  if (!list)
+    throw new RentVineError("Unexpected Rentvine lease status response shape.", 0);
+  return list.map((entry) => {
+    const outer =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? (entry as Record<string, unknown>)
+        : null;
+    const inner =
+      outer?.leaseStatus &&
+      typeof outer.leaseStatus === "object" &&
+      !Array.isArray(outer.leaseStatus)
+        ? (outer.leaseStatus as Record<string, unknown>)
+        : outer;
+    const leaseStatusID = statusText(inner?.leaseStatusID);
+    const name = statusText(inner?.name);
+    if (!inner || leaseStatusID === null || name === null)
+      throw new RentVineError("Unexpected Rentvine lease status element shape.", 0);
+    return {
+      leaseStatusID,
+      name,
+      primaryLeaseStatusID: statusText(inner.primaryLeaseStatusID),
+      isPendingMoveOutStatus: statusFlag(inner.isPendingMoveOutStatus),
+      isCompletedMoveOutStatus: statusFlag(inner.isCompletedMoveOutStatus),
+      isPendingMoveInStatus: statusFlag(inner.isPendingMoveInStatus),
+      isSystemStatus: statusFlag(inner.isSystemStatus),
+    };
+  });
+}
+
 export function unwrapLeases(body: unknown): RawLease[] {
   if (Array.isArray(body)) return body.map(unwrapLease);
   if (body && typeof body === "object") {
@@ -391,6 +459,18 @@ export class RentVineClient {
       if (Array.isArray(inner)) return inner.map(unwrapElement);
     }
     throw new RentVineError("Unexpected Rentvine recurringCharges response shape.", 0);
+  }
+
+  /**
+   * S124: the account's lease status table (read-only, documented `GET /leases/statuses`). The
+   * documented `isPendingMoveOutStatus` / `isCompletedMoveOutStatus` flags are the only move-out
+   * evidence a status carries; names are display text.
+   */
+  async listLeaseStatuses(): Promise<RentVineLeaseStatus[]> {
+    const path = "leases/statuses";
+    const response = await this.rawGet(path);
+    this.ensureOk(response, path);
+    return unwrapLeaseStatuses(await response.json());
   }
 
   /** Read a single property by id (read-only). Unwraps the `{ property }` envelope. */

@@ -1,4 +1,8 @@
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
+import type {
+  MoveOutDisposition,
+  MoveOutQueryKey,
+} from "@/lib/lease-renewal/move-out-disposition";
 import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
@@ -148,6 +152,10 @@ export interface RenewalDeskQueryKeys {
   nextReviewIso: string | null;
   /** S119: the saved staff status key from the one projection; unavailable when it was not read. */
   workStatus?: RenewalWorkStatusQueryKey;
+  /** S124: the move-out disposition state; absent when it was not evaluated (filters treat it as unknown). */
+  moveOut?: MoveOutQueryKey;
+  /** S124: the audited staff non-renewal decision on the current manual cycle, kept apart from provider evidence. */
+  manualNonRenewal: boolean;
 }
 
 export interface DeskLeaseSummaryBase {
@@ -157,6 +165,11 @@ export interface DeskLeaseSummaryBase {
    * only when a manual cycle exists; the recorded basis is history and is never rewritten.
    */
   cycleSourceDate?: CycleSourceDateChange;
+  /**
+   * S124: the source-attributed move-out disposition over the documented RentVine status table and
+   * lease detail. Absent only when the caller did not evaluate it; never a negative by absence.
+   */
+  moveOut?: MoveOutDisposition;
   /**
    * S119: the staff work status annotation, projected once for the desk row, the compact lease
    * context and the lease information panel. Absent when the caller did not attempt the read.

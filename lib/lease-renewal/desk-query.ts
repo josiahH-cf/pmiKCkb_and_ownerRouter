@@ -228,6 +228,8 @@ export function withRenewalDeskQueryKeys(
     leaseTerm: summary.leaseTerm.term,
     nextReviewIso: summary.leaseTerm.nextReviewIso,
     workStatus: workStatusQueryKey(summary.workStatus),
+    ...(summary.moveOut ? { moveOut: summary.moveOut.state } : {}),
+    manualNonRenewal: summary.manualProgress?.nonRenewal === true,
   };
   return { ...summary, queryKeys };
 }

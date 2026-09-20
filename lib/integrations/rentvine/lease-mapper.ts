@@ -70,6 +70,11 @@ export type LeaseDetailView =
       isMonthToMonth: boolean | null;
       monthToMonthStartDate: string | null;
       hasPendingMonthToMonthConversion: boolean | null;
+      /** S124: the documented status id and notice dates, decoded from the same detail read. */
+      leaseStatusId?: string | null;
+      noticeDate?: string | null;
+      expectedMoveOutDate?: string | null;
+      moveOutDate?: string | null;
     }
   | { status: "unavailable" };
 
@@ -295,6 +300,12 @@ function finitePositiveAmount(value: unknown): number | null {
   return amount !== null && amount > 0 ? amount : null;
 }
 
+function detailText(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text === "" ? null : text;
+}
+
 function providerBoolean(value: unknown): boolean | null {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
@@ -329,6 +340,10 @@ export function applyLeaseDetailToView(
     hasPendingMonthToMonthConversion: providerBoolean(
       record.hasPendingMonthToMonthConversion,
     ),
+    leaseStatusId: detailText(record.leaseStatusID),
+    noticeDate: toIsoDate(record.noticeDate),
+    expectedMoveOutDate: toIsoDate(record.expectedMoveOutDate),
+    moveOutDate: toIsoDate(record.moveOutDate),
   };
   if (baseRentAmount === null) delete view.currentRent;
   else view.currentRent = baseRentAmount;
