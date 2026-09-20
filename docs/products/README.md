@@ -21,6 +21,7 @@ not separate Demo products. Use `docs/status.md` for deployment truth and
 - [Blockers](wednesday-decisions-and-inputs-2026-09-09.md): impact, missing input, owner and resume check.
 - [Readout](wednesday-delivery-readout-2026-09-09.md): current delivery and repeatability acceptance.
 - [Control review](../evidence/renewal-training-control-review-2026-09-09.md): source-grounded limitations.
+- [Meeting walkthrough runbook](renewal-meeting-walkthrough-runbook.md): Draft for validation; case matrix, effect-free preflight, side-by-side script on guide controls, safe branches and the observation ledger for the next staff meeting.
 - [PDF generator](build-renewal-handouts.py): render maintained S113 copy with Python/reportlab after documented release acceptance.
 
 Output filenames: renewal-training-guide.pdf and wednesday-meeting-brief.pdf, in output/pdf.

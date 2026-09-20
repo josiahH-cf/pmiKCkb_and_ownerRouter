@@ -91,6 +91,7 @@
     "golden:distill": "tsx scripts/distill-decisions-to-golden.ts",
     "smoke:ask-local": "tsx scripts/smoke-local-ask.ts",
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
+    "meeting:preflight": "tsx scripts/meeting-walkthrough-preflight.ts",
     "smoke:rentcast-comp": "tsx scripts/smoke-rentcast-comp.ts",
     "testset:capture-baseline": "tsx scripts/capture-test-set-baseline.ts",
     "testset:append-evidence": "tsx scripts/append-test-set-evidence.ts",
