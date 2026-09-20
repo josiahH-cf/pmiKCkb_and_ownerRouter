@@ -44,6 +44,7 @@ import {
 } from "@/lib/lease-renewal/cohort";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
+import { projectLifecycleCategory } from "@/lib/lease-renewal/lifecycle-category";
 import {
   projectMoveOutDisposition,
   type LeaseStatusTableRead,
@@ -624,7 +625,7 @@ function toLiveSummary(
   const step = stageIndex >= 0 ? RENEWAL_STEPS[stageIndex] : undefined;
   const tenantLabels = identity.tenants.map((fact) => fact.label);
   const ownerLabels = identity.owners.map((fact) => fact.label);
-  return {
+  const summaryBase: DeskLeaseSummaryBase = {
     id: leaseId,
     ...(manual && classification.disposition !== "skip"
       ? {
@@ -672,6 +673,20 @@ function toLiveSummary(
     stageLabel: step?.label ?? null,
     nextAction: stageIndex >= 0 ? STAGE_NEXT_ACTION[stageIndex] : null,
     openConflicts,
+  };
+  // S134: one lifecycle category from this same generation; a skipped source row stays uncategorized.
+  if (classification.disposition === "skip") return summaryBase;
+  return {
+    ...summaryBase,
+    lifecycle: projectLifecycleCategory({
+      retention,
+      disposition: classification.disposition,
+      manualProgress: summaryBase.manualProgress ?? null,
+      cycleSourceDate: summaryBase.cycleSourceDate ?? null,
+      moveOut: summaryBase.moveOut ?? null,
+      appProgress: progress ? { complete: progress.complete } : null,
+      progressStateAvailable,
+    }),
   };
 }
 

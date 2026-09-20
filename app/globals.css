@@ -2526,6 +2526,40 @@ textarea:disabled {
   overflow-wrap: anywhere;
 }
 
+/* S134: lifecycle dot beside the visible category label (decorative; the text carries meaning). */
+.renewal-lifecycle {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.renewal-lifecycle-dot {
+  background: var(--state-neutral-icon);
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 10px;
+  width: 10px;
+}
+
+.renewal-lifecycle-dot[data-lifecycle="complete"] {
+  background: var(--state-verified-icon);
+}
+
+.renewal-lifecycle-dot[data-lifecycle="upcoming"] {
+  background: var(--lifecycle-upcoming-icon);
+}
+
+.renewal-lifecycle-dot[data-lifecycle="non_renewal"] {
+  background: var(--lifecycle-non-renewal-icon);
+}
+
+.renewal-lifecycle-qualifier {
+  color: var(--ui-text-muted);
+}
+
 .renewal-status-badge {
   align-items: center;
   border: 1px solid var(--ui-border);

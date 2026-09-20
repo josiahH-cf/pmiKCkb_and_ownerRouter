@@ -221,6 +221,21 @@ export function RenewalWorkspace({
         Lease {summary.id}
         {summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}
       </span>
+      {summary.lifecycle ? (
+        <span
+          className="renewal-workspace-identity-status renewal-lifecycle"
+          data-renewal-lifecycle={summary.lifecycle.category}
+          title={summary.lifecycle.explanation}
+        >
+          <span
+            aria-hidden="true"
+            className="renewal-lifecycle-dot"
+            data-lifecycle={summary.lifecycle.category}
+          />
+          {summary.lifecycle.label}
+          {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
+        </span>
+      ) : null}
       {compactWorkStatus ? (
         <span className="renewal-workspace-identity-status">
           Staff status: {compactWorkStatus}

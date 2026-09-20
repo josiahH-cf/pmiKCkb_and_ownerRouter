@@ -3,6 +3,10 @@ import type {
   MoveOutDisposition,
   MoveOutQueryKey,
 } from "@/lib/lease-renewal/move-out-disposition";
+import type {
+  LifecycleCategory,
+  LifecycleProjection,
+} from "@/lib/lease-renewal/lifecycle-category";
 import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
@@ -156,6 +160,8 @@ export interface RenewalDeskQueryKeys {
   moveOut?: MoveOutQueryKey;
   /** S124: the audited staff non-renewal decision on the current manual cycle, kept apart from provider evidence. */
   manualNonRenewal: boolean;
+  /** S134: the lifecycle category key; absent when not projected (filters and sort treat it as unknown). */
+  lifecycle?: LifecycleCategory;
 }
 
 export interface DeskLeaseSummaryBase {
@@ -170,6 +176,12 @@ export interface DeskLeaseSummaryBase {
    * lease detail. Absent only when the caller did not evaluate it; never a negative by absence.
    */
   moveOut?: MoveOutDisposition;
+  /**
+   * S134: the one cycle-aware lifecycle category (Complete, Non-renewal initiated, In progress,
+   * Upcoming, Later, Unknown) projected from the same generation. Presentation only; never a
+   * provider status. Absent when the caller did not project it.
+   */
+  lifecycle?: LifecycleProjection;
   /**
    * S119: the staff work status annotation, projected once for the desk row, the compact lease
    * context and the lease information panel. Absent when the caller did not attempt the read.

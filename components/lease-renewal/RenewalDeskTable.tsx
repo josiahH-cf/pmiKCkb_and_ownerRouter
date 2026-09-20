@@ -63,6 +63,12 @@ import {
   moveOutFilterLabel,
   moveOutIndicatorLabel,
 } from "@/lib/lease-renewal/move-out-disposition";
+import {
+  LIFECYCLE_CONTROL_LABEL,
+  LIFECYCLE_DESK_FILTERS,
+  lifecycleFilterLabel,
+  type LifecycleProjection,
+} from "@/lib/lease-renewal/lifecycle-category";
 
 export interface DeskPartyShortcuts {
   readonly available: boolean;
@@ -604,6 +610,41 @@ function ActionCell({
   return <span>{"label" in action ? action.label : ""}</span>;
 }
 
+/**
+ * S134: one small decorative dot beside the visible category label. The text carries the meaning
+ * and the attribution; the label is a query link, never a mutation.
+ */
+function LifecycleIndicator({
+  href: target,
+  lifecycle,
+}: Readonly<{ href: string; lifecycle: LifecycleProjection }>) {
+  return (
+    <span
+      className="renewal-lifecycle"
+      data-renewal-field="lifecycle"
+      data-lifecycle={lifecycle.category}
+      title={lifecycle.explanation}
+    >
+      <span
+        aria-hidden="true"
+        className="renewal-lifecycle-dot"
+        data-lifecycle={lifecycle.category}
+      />
+      <Link
+        prefetch={false}
+        className="text-link"
+        href={target}
+        title="Show only this lifecycle stage"
+      >
+        {lifecycle.label}
+      </Link>
+      {lifecycle.qualifier ? (
+        <span className="renewal-lifecycle-qualifier">: {lifecycle.qualifier}</span>
+      ) : null}
+    </span>
+  );
+}
+
 function StatusBadge({
   tone,
   children,
@@ -823,6 +864,7 @@ export function RenewalDeskTable({
               <SortHeader column="tenant" label="Tenant" state={state} />
               <SortHeader column="end_date" label="Renewal date" state={state} />
               <SortHeader column="base_rent" label="Current base rent" state={state} />
+              <SortHeader column="lifecycle" label="Lifecycle" state={state} />
               <SortHeader column="overall_status" label="Overall status" state={state} />
               <SortHeader
                 column="rent_verification"
@@ -926,6 +968,16 @@ export function RenewalDeskTable({
                     }))}
                     state={state}
                     value={state.moveOut}
+                  />
+                  <SelectFilter
+                    label={LIFECYCLE_CONTROL_LABEL}
+                    name="lifecycle"
+                    options={LIFECYCLE_DESK_FILTERS.map((value) => ({
+                      value,
+                      label: lifecycleFilterLabel(value),
+                    }))}
+                    state={state}
+                    value={state.lifecycle}
                   />
                   <SelectFilter
                     label="Renewal step"
@@ -1261,6 +1313,13 @@ function DeskRow({
         )}
       </td>
       <td data-renewal-field="overall-status" data-status={status}>
+        {/* S134: the lifecycle dot and label sit beside, never inside, the readiness badge. */}
+        {row.lifecycle ? (
+          <LifecycleIndicator
+            href={href({ ...state, lifecycle: row.lifecycle.category })}
+            lifecycle={row.lifecycle}
+          />
+        ) : null}
         <Link
           prefetch={false}
           className="renewal-status-link"

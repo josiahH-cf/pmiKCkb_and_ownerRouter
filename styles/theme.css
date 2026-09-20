@@ -77,6 +77,9 @@
   --state-neutral-icon: var(--state-neutral-text);
   --state-neutral-border: var(--state-neutral-text);
   --state-neutral-surface: #f1f5f9;
+  /* S134: requested lifecycle dot colors (orange upcoming, yellow non-renewal). */
+  --lifecycle-upcoming-icon: #c2410c;
+  --lifecycle-non-renewal-icon: #a16207;
   --nav-work-tile: #e2e8f0;
   --nav-work-icon: #171717;
   --nav-operations-tile: #ffedd5;
@@ -182,6 +185,8 @@ html[data-theme="dark"] {
   --state-neutral-icon: var(--state-neutral-text);
   --state-neutral-border: var(--state-neutral-text);
   --state-neutral-surface: #27272a;
+  --lifecycle-upcoming-icon: #fdba74;
+  --lifecycle-non-renewal-icon: #fde047;
   --nav-work-tile: #3f3f46;
   --nav-work-icon: #f8fafc;
   --nav-operations-tile: #431407;
@@ -287,6 +292,8 @@ html[data-theme="dark"] {
     --state-neutral-icon: var(--state-neutral-text);
     --state-neutral-border: var(--state-neutral-text);
     --state-neutral-surface: #27272a;
+    --lifecycle-upcoming-icon: #fdba74;
+    --lifecycle-non-renewal-icon: #fde047;
     --nav-work-tile: #3f3f46;
     --nav-work-icon: #f8fafc;
     --nav-operations-tile: #431407;

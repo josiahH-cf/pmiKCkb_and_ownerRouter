@@ -29,6 +29,14 @@ import {
   type MoveOutDeskFilter,
   type MoveOutQueryKey,
 } from "@/lib/lease-renewal/move-out-disposition";
+import {
+  LIFECYCLE_DESK_FILTERS,
+  lifecycleFilterLabel,
+  lifecycleSortValue,
+  matchesLifecycleFilter,
+  type LifecycleCategory,
+  type LifecycleDeskFilter,
+} from "@/lib/lease-renewal/lifecycle-category";
 export const RENEWAL_DESK_QUERY_V2_VERSION = "2";
 
 /** Opaque `renewal-party-filter-key/v1` URL token shape (the derivation lives server-side). */
@@ -48,6 +56,7 @@ export const RENEWAL_DESK_V2_SORTS = [
   "overall_status",
   "rent_verification",
   "blocked",
+  "lifecycle",
 ] as const;
 export type RenewalDeskV2Sort = (typeof RENEWAL_DESK_V2_SORTS)[number];
 
@@ -147,6 +156,8 @@ export interface RenewalDeskQueryV2State {
   workStatus: RenewalWorkStatusFilter;
   /** S124: filter by the source-attributed move-out disposition; unknown rows stay in the default worklist. */
   moveOut: MoveOutDeskFilter;
+  /** S134: filter by the projected lifecycle category; Unknown stays reachable. */
+  lifecycle: LifecycleDeskFilter;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
@@ -173,6 +184,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   term: "all",
   workStatus: "all",
   moveOut: "all",
+  lifecycle: "all",
 };
 
 /** Fixed canonical key order; serialization emits nondefault values in exactly this order. */
@@ -198,6 +210,7 @@ const V2_KEY_ORDER = [
   "term",
   "workStatus",
   "moveOut",
+  "lifecycle",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -385,6 +398,7 @@ export function parseRenewalDeskQueryV2(
       "all",
     ),
     moveOut: oneOf(firstValue(input, "moveOut"), MOVE_OUT_DESK_FILTERS, "all"),
+    lifecycle: oneOf(firstValue(input, "lifecycle"), LIFECYCLE_DESK_FILTERS, "all"),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -458,6 +472,8 @@ export interface RenewalDeskV2Item {
     /** S124: absent means the disposition was not evaluated; filters treat that as unknown. */
     readonly moveOut?: MoveOutQueryKey;
     readonly manualNonRenewal?: boolean;
+    /** S134: absent means the category was not projected; sort and filter treat that as unknown. */
+    readonly lifecycle?: LifecycleCategory;
   };
   readonly identity: {
     readonly address: { readonly label: string } | null;
@@ -639,6 +655,7 @@ function matchesQuery(
   ) {
     return false;
   }
+  if (!matchesLifecycleFilter(query.lifecycle, item.queryKeys.lifecycle)) return false;
   return true;
 }
 
@@ -690,6 +707,9 @@ function primaryValue(
       return item.guidance.isBlocked ? 0 : 1;
     case "due":
       return DUE_RANK[item.queryKeys.dueState] ?? null;
+    // S134: the visible category label, so the order follows what the operator reads.
+    case "lifecycle":
+      return lifecycleSortValue(item.queryKeys.lifecycle);
   }
 }
 
@@ -697,7 +717,12 @@ function secondaryValue(item: RenewalDeskV2Item, sort: RenewalDeskV2Sort): strin
   if (sort === "due") return item.queryKeys.dueAtIso;
   // Attention-style columns break ties chronologically so a sooner renewal never sorts below a
   // later one inside the same band.
-  if (sort === "overall_status" || sort === "rent_verification" || sort === "blocked") {
+  if (
+    sort === "overall_status" ||
+    sort === "rent_verification" ||
+    sort === "blocked" ||
+    sort === "lifecycle"
+  ) {
     return item.queryKeys.endDateIso;
   }
   return null;
@@ -794,6 +819,8 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     term: (value) => `Lease term: ${value.replaceAll("_", " ")}`,
     workStatus: (value) => workStatusFilterLabel(value as RenewalWorkStatusFilter),
     moveOut: (value) => moveOutFilterLabel(value as MoveOutDeskFilter),
+    lifecycle: (value) =>
+      `Lifecycle: ${lifecycleFilterLabel(value as LifecycleDeskFilter)}`,
   };
 
 /** Sort and direction are view state, not filters; a range renders as one removable chip. */

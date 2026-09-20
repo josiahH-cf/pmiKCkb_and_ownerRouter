@@ -230,6 +230,7 @@ export function withRenewalDeskQueryKeys(
     workStatus: workStatusQueryKey(summary.workStatus),
     ...(summary.moveOut ? { moveOut: summary.moveOut.state } : {}),
     manualNonRenewal: summary.manualProgress?.nonRenewal === true,
+    ...(summary.lifecycle ? { lifecycle: summary.lifecycle.category } : {}),
   };
   return { ...summary, queryKeys };
 }
