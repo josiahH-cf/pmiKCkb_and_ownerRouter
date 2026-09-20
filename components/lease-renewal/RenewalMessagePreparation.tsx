@@ -8,6 +8,11 @@ import {
 } from "@/lib/lease-renewal/desk-destinations";
 import { Button, Card, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { useRenewalPolicy } from "@/components/lease-renewal/RenewalPolicyContext";
+import {
+  policyMessageGates,
+  projectPolicyApplicability,
+} from "@/lib/lease-renewal/policy-content";
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   composeRenewalMessage,
@@ -162,6 +167,25 @@ function MessagePreparationEditor({
   const loadSequence = useRef(0);
   const readinessRef = useRef<HTMLDetailsElement | null>(null);
   const readinessSummaryId = `${MESSAGE_CONTROL_IDS.readiness(channel)}-summary`;
+  // S131: the same applicability projection the policy panel shows; empty for an unrelated lease.
+  const policy = useRenewalPolicy();
+  const manual = useRenewalManualWorkspace();
+  const policyGates = policy
+    ? policyMessageGates(
+        projectPolicyApplicability({
+          productKey: "rhino",
+          leaseId,
+          manualState: manual?.state,
+          material: policy.material,
+          facts: policy.facts,
+          sheetLegacyValue: policy.sheetLegacyValue,
+          todayIso: policy.todayIso,
+        }),
+        channel,
+        policy.material,
+        policy.facts,
+      )
+    : [];
   const load = useCallback(() => {
     const sequence = ++loadSequence.current;
     return fetch(
@@ -322,6 +346,7 @@ function MessagePreparationEditor({
         needsReview: current.needsReview,
         signatureMatchesActor: current.signatureMatchesActor,
         signatureSaved: Boolean(current.saved?.inputs.signature),
+        policyGates,
       })
     : null;
   const bodyReady = Boolean(readiness?.bodyReady && content);

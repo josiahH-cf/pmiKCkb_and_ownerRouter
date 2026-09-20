@@ -1,5 +1,8 @@
 import { formatCalendarDate } from "@/lib/date-display";
 import { RenewalFocusHashTarget } from "@/components/lease-renewal/RenewalFocusHashTarget";
+import { RenewalPolicyContentPanel } from "@/components/lease-renewal/RenewalPolicyContentPanel";
+import { RenewalPolicyProvider } from "@/components/lease-renewal/RenewalPolicyContext";
+import type { PolicyMaterialSnapshot } from "@/lib/lease-renewal/policy-content";
 import {
   NON_RENEWAL_HANDOFF_TARGET_ID,
   projectRenewalIssues,
@@ -151,6 +154,9 @@ export function RenewalWorkspace({
   marketSubject = null,
   workStatus = null,
   sheetWritebackPaused = false,
+  policyMaterial = null,
+  policySheetValue = null,
+  policyTodayIso = null,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -161,6 +167,11 @@ export function RenewalWorkspace({
   /** Canonical desk continuation; phase links preserve it so Back to renewals restores the view. */
   deskView?: string | null;
   resourceLocationsPanel?: ReactNode;
+  /** S131: the policy material snapshot the page read; null when this surface did not read it. */
+  policyMaterial?: PolicyMaterialSnapshot | null;
+  /** S131: the legacy operating-Sheet policy column for this lease; evidence only. */
+  policySheetValue?: string | null;
+  policyTodayIso?: string | null;
   manualState?: RenewalWorkspaceState | null;
   manualReadUnavailable?: boolean;
   manualCycleBasis?: RenewalCycleBasis | null;
@@ -334,112 +345,131 @@ export function RenewalWorkspace({
             </section>
           </>
         ) : (
-          <RenewalManualProvider
-            unavailable={manualReadUnavailable}
-            leaseId={summary.id}
-            initialState={manualState}
-            cycleBasis={manualCycleBasis}
-          >
-            <RenewalDashboardNavigation selectedStepId={selectedStepId}>
-              {attemptSummary ? (
-                <RenewalAttemptSummaryCard summary={attemptSummary} />
-              ) : null}
-
-              {dataExpired ? (
-                <Card>
-                  <div role="status">
-                    <h2 className="ui-card-title">Data too old to act on</h2>
-                    <p className="muted">
-                      This lease data is past the freshness limit, so recording a decision
-                      and composing drafts are paused. Use Refresh data above to reread
-                      the sources on this lease.
-                    </p>
-                  </div>
-                </Card>
-              ) : null}
-
-              {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
-                <section
-                  aria-label={section.label}
-                  data-progress-state={
-                    progressStateAvailable ? "available" : "unavailable"
+          <RenewalPolicyProvider
+            value={
+              policyMaterial && policyTodayIso
+                ? {
+                    leaseId: summary.id,
+                    material: policyMaterial,
+                    sheetLegacyValue: policySheetValue,
+                    facts: [],
+                    todayIso: policyTodayIso,
                   }
-                  className="ui-stack"
-                  id={`renewal-section-${section.id}`}
-                  tabIndex={-1}
-                  key={section.id}
-                >
-                  <RenewalSectionHeading id={`section-${section.id}`}>
-                    {section.label}
-                  </RenewalSectionHeading>
-                  {section.id === "comps" ? (
-                    <RenewalCompPreparation
-                      address={summary.addressLabel}
-                      currentRent={workspace.currentRent}
-                      compScreenshotExecutable={compScreenshotExecutable}
-                      marketSubject={marketSubject}
-                    />
-                  ) : null}
-                  {/* S120 (R120.1): prepare the message first; record outreach and the later
-                      response after actual contact. The order is chronology, not a gate. */}
-                  {section.id === "owner" || section.id === "tenant" ? (
-                    <RenewalMessagePreparation
-                      channel={section.id}
-                      canEdit={can(role, "edit")}
-                    />
-                  ) : null}
-                  {section.id === "owner" ||
-                  section.id === "tenant" ||
-                  section.id === "documents" ? (
-                    <RenewalManualSection section={section.id} />
-                  ) : null}
-                  {section.id === "documents" ? resourceLocationsPanel : null}
-                  {section.steps.map((stepId) => (
-                    <div
-                      className="ui-stack"
-                      id={renewalStepTargetId(stepId)}
-                      tabIndex={-1}
-                      key={stepId}
-                    >
-                      <PhaseContent
-                        chargeInventory={chargeInventory}
-                        consolidated={manualState !== undefined || manualReadUnavailable}
-                        compScreenshotExecutable={compScreenshotExecutable}
-                        correctionPanel={correctionPanel}
-                        dataExpired={dataExpired}
-                        discrepancyHistoryPanel={
-                          <details>
-                            <summary>
-                              Discrepancy decision history and advanced disposition
-                            </summary>
-                            {discrepancyPanel}
-                          </details>
-                        }
-                        followUpControlsAvailable={
-                          !unavailableKeys.has("communications") &&
-                          !unavailableKeys.has("dismissed_attention")
-                        }
-                        packetSnapshot={packetSnapshot}
-                        packetStateAvailable={!unavailableKeys.has("packet")}
-                        progressStateAvailable={progressStateAvailable}
-                        rentChargeStatus={rentChargeStatus}
-                        rentSuggestionAvailable={!unavailableKeys.has("rent_suggestion")}
-                        rentvineUpdatesPanel={rentvineUpdatesPanel}
-                        resolutionDestinations={resolutionDestinations}
-                        role={role}
-                        sheetProposalPanel={operatingSheetPanel}
-                        sheetDestination={sheetDestination}
-                        sheetFieldDestinations={sheetFieldDestinations}
-                        stepId={stepId}
-                        termReviewPanel={termReviewPanel}
-                        workspace={workspace}
-                      />
+                : null
+            }
+          >
+            <RenewalManualProvider
+              unavailable={manualReadUnavailable}
+              leaseId={summary.id}
+              initialState={manualState}
+              cycleBasis={manualCycleBasis}
+            >
+              <RenewalDashboardNavigation selectedStepId={selectedStepId}>
+                {attemptSummary ? (
+                  <RenewalAttemptSummaryCard summary={attemptSummary} />
+                ) : null}
+
+                {dataExpired ? (
+                  <Card>
+                    <div role="status">
+                      <h2 className="ui-card-title">Data too old to act on</h2>
+                      <p className="muted">
+                        This lease data is past the freshness limit, so recording a
+                        decision and composing drafts are paused. Use Refresh data above
+                        to reread the sources on this lease.
+                      </p>
                     </div>
-                  ))}
-                </section>
-              ))}
-            </RenewalDashboardNavigation>
-          </RenewalManualProvider>
+                  </Card>
+                ) : null}
+
+                {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
+                  <section
+                    aria-label={section.label}
+                    data-progress-state={
+                      progressStateAvailable ? "available" : "unavailable"
+                    }
+                    className="ui-stack"
+                    id={`renewal-section-${section.id}`}
+                    tabIndex={-1}
+                    key={section.id}
+                  >
+                    <RenewalSectionHeading id={`section-${section.id}`}>
+                      {section.label}
+                    </RenewalSectionHeading>
+                    {section.id === "comps" ? (
+                      <RenewalCompPreparation
+                        address={summary.addressLabel}
+                        currentRent={workspace.currentRent}
+                        compScreenshotExecutable={compScreenshotExecutable}
+                        marketSubject={marketSubject}
+                      />
+                    ) : null}
+                    {/* S120 (R120.1): prepare the message first; record outreach and the later
+                      response after actual contact. The order is chronology, not a gate. */}
+                    {section.id === "owner" || section.id === "tenant" ? (
+                      <RenewalMessagePreparation
+                        channel={section.id}
+                        canEdit={can(role, "edit")}
+                      />
+                    ) : null}
+                    {section.id === "owner" ||
+                    section.id === "tenant" ||
+                    section.id === "documents" ? (
+                      <RenewalManualSection section={section.id} />
+                    ) : null}
+                    {section.id === "documents" ? resourceLocationsPanel : null}
+                    {section.id === "documents" ? <RenewalPolicyContentPanel /> : null}
+                    {section.steps.map((stepId) => (
+                      <div
+                        className="ui-stack"
+                        id={renewalStepTargetId(stepId)}
+                        tabIndex={-1}
+                        key={stepId}
+                      >
+                        <PhaseContent
+                          chargeInventory={chargeInventory}
+                          consolidated={
+                            manualState !== undefined || manualReadUnavailable
+                          }
+                          compScreenshotExecutable={compScreenshotExecutable}
+                          correctionPanel={correctionPanel}
+                          dataExpired={dataExpired}
+                          discrepancyHistoryPanel={
+                            <details>
+                              <summary>
+                                Discrepancy decision history and advanced disposition
+                              </summary>
+                              {discrepancyPanel}
+                            </details>
+                          }
+                          followUpControlsAvailable={
+                            !unavailableKeys.has("communications") &&
+                            !unavailableKeys.has("dismissed_attention")
+                          }
+                          packetSnapshot={packetSnapshot}
+                          packetStateAvailable={!unavailableKeys.has("packet")}
+                          progressStateAvailable={progressStateAvailable}
+                          rentChargeStatus={rentChargeStatus}
+                          rentSuggestionAvailable={
+                            !unavailableKeys.has("rent_suggestion")
+                          }
+                          rentvineUpdatesPanel={rentvineUpdatesPanel}
+                          resolutionDestinations={resolutionDestinations}
+                          role={role}
+                          sheetProposalPanel={operatingSheetPanel}
+                          sheetDestination={sheetDestination}
+                          sheetFieldDestinations={sheetFieldDestinations}
+                          stepId={stepId}
+                          termReviewPanel={termReviewPanel}
+                          workspace={workspace}
+                        />
+                      </div>
+                    ))}
+                  </section>
+                ))}
+              </RenewalDashboardNavigation>
+            </RenewalManualProvider>
+          </RenewalPolicyProvider>
         )}
       </RenewalWorkspaceSidebars>
     </div>

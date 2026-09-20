@@ -4,6 +4,7 @@
 // publication and recipient readiness stay separate gates and are never folded in here.
 
 import { MESSAGE_CHARGES } from "@/lib/lease-renewal/renewal-message-content";
+import { POLICY_PRODUCT_LABELS } from "@/lib/lease-renewal/policy-content";
 import { RENEWAL_RESOURCE_FIELDS } from "@/lib/lease-renewal/resource-locations";
 
 export type MessageChannel = "owner" | "tenant";
@@ -34,6 +35,11 @@ export interface MessageReadinessInput {
   signatureMatchesActor: boolean;
   /** The saved record carries a signature at all. */
   signatureSaved: boolean;
+  /**
+   * S131: policy gates for this audience from the one applicability projection. Empty for an
+   * unrelated lease, so a pending global upload never blocks ordinary renewals.
+   */
+  policyGates?: ReadonlyArray<{ field: string; message: string }>;
 }
 
 export interface MessageReadiness {
@@ -114,6 +120,12 @@ export function messageInputTarget(
       label: `Shared resource link: ${resourceLabel(resourceId)}`,
     };
   }
+  if (field.startsWith("policy.")) {
+    const key = field.slice("policy.".length);
+    const label =
+      (POLICY_PRODUCT_LABELS as Record<string, string>)[key] ?? `${key} policy`;
+    return control(`renewal-policy-content-${key}`, `${label} content and applicability`);
+  }
   if (field === "signature")
     return control(MESSAGE_CONTROL_IDS.signature(channel), "Managed sender signature");
   if (field === "signature_actor")
@@ -145,6 +157,12 @@ export function projectMessageReadiness(input: MessageReadinessInput): MessageRe
       field: entry.field,
       message: entry.message,
       target: messageInputTarget(input.channel, entry.field),
+    });
+  for (const gate of input.policyGates ?? [])
+    items.push({
+      field: gate.field,
+      message: gate.message,
+      target: messageInputTarget(input.channel, gate.field),
     });
   if (!input.saved || input.dirty || input.needsReview)
     items.push({
