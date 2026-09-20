@@ -23,7 +23,8 @@ CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. S127 (F07, clear bl
 CI-GREEN at `52286917` (CI `35513295598`), release deferred. S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
 CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is IMPLEMENTED and
 CI-GREEN at `009c4414` (CI `35516040981`), release deferred. S130 (F10, seven-template intake and Dotloop prefill readiness) is IMPLEMENTED and
-CI-GREEN at `696147f9` (CI `35517371018`), release deferred. Next in order: S132;
+CI-GREEN at `696147f9` (CI `35517371018`), release deferred. S132 (F12, end-to-end walkthrough preparation and meeting evidence) is IMPLEMENTED
+and CI-GREEN at `f74468a1` (CI `35519202311`), release deferred. The bundle is fully implemented;
 S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
@@ -221,6 +222,25 @@ fill-boundary, identity, catalog, readiness, checkpoint, store, route, surface a
 were written before the integration and pass after it; the existing S66 and S34 cases pass unchanged
 as preservation evidence. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message
 was sent, no live record was written and no provider request was made. Human verdict: NOT RUN.
+
+S132 prepares the next staff meeting without running it. A Draft-for-validation runbook holds a
+two-case matrix that stays Pending selection until an authorized private pointer binds, an
+effect-free preflight that labels each of eight checks Verified, Failed, Pending external input or
+Not run and names exactly which live steps cannot run yet, a fourteen-row side-by-side script whose
+controls are the operator guide's exact controls and whose unknown manual steps are visible meeting
+questions, five safe branches that hand off rather than pretend, an observation ledger that carries
+no verdict for an unrun step and resumes from the last recorded step, and an after-meeting procedure
+that documents only what staff confirmed. The technical rehearsal ledger cites the existing journey
+tests and keeps the selected-lease and human verdict columns at Not run. Nothing was scheduled,
+recorded, sent, written or activated.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6919 unit tests
+(770 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The preflight, matrix, script, branch,
+ledger, import and technical-ledger cases were written before the runbook and pass against it; the
+existing guide-control and resource-configuration cases pass unchanged as preservation evidence.
+Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent, no live record
+was written and no provider request was made. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

@@ -4,7 +4,7 @@
 # S132 — End-to-end walkthrough preparation and meeting evidence
 
 > **Approval reference:** F12 (original feature #12).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `f74468a1` (2026-09-20) as a technical rehearsal and documentation scaffold; release deferred by the billing incident; no deployment, provider activation, meeting, recording or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S132.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S132 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F12 when renumbering.
 > **Classification:** Technical rehearsal and documentation scaffold; human validation later.
@@ -141,7 +141,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** The facilitator starts the meeting knowing which inputs are ready, follows real controls alongside the team’s manual process, handles missing materials without improvising fake outcomes, and records exactly what staff validated.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `f74468a1` (2026-09-20): AC-S132-1 through AC-S132-8 covered by the preflight, matrix, script, branch, ledger, import and technical-ledger cases named in F-S132 on synthetic fixtures; the technical result ledger cites existing journey tests as preservation evidence; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback; no meeting run.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

@@ -14,48 +14,29 @@ flag is false in both ignored env files and no feature may re-enable it.
 Delivered in this mode (each IMPLEMENTED and CI-GREEN, release deferred; detail in docs/facts.md):
 S123 (F02) `aa062d8e` CI 35505452408; S124 (F03) `fc03ec55` plus test fix `3d4a9e23` CI 35508231675;
 S134 (F14) `136826cc` CI 35508545796; S122 (F01) `39a7f929` CI 35509588537; S125 (F04) `41d6e00c`
-CI 35511209348; S126 (F06) `7f0ed865` CI 35512028503; S127 (F07) `52286917` CI 35513295598.
-Each ran the full local
-gate on its identical tree (verify.sh, 38 backend files, policies, build, core E2E 8 passed and 4
-skips); browser smokes NOT RUN (rehearsal auth blocked); human verdict NOT RUN.
+CI 35511209348; S126 (F06) `7f0ed865` CI 35512028503; S127 (F07) `52286917` CI 35513295598;
+S131 (F11) `59ad9224` CI 35515037772; S129 (F09) `009c4414` CI 35516040981; S130 (F10) `696147f9`
+CI 35517371018. Each ran the full local gate on its identical tree (verify.sh, 38 backend files,
+policies, build, core E2E 8 passed and 4 skips); browser smokes NOT RUN (rehearsal auth blocked);
+human verdict NOT RUN.
 
-S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
-CI-GREEN at `59ad9224` (exact-SHA CI 35515037772), release deferred (billing). Verified: one typed policy
-projection (`lib/lease-renewal/policy-content.ts`) reads applicability as Unknown, Applicable, Not
-applicable or Needs review from the staff follow-up (a task, never coverage), the legacy Sheet column
-(evidence only) and an approved material version's declarative rule over verified facts; with no
-approved material every lease reads Pending approved policy material with the exact missing items and
-unrelated renewals are never gated; a bounded schema and a versioned store keep upload, approval and
-use separate; output slots substitute only verified facts and never invent wording. Full local gate
-(6866 unit tests in 759 files, 38 backend files, policies, build, core E2E
+S132 (F12, end-to-end walkthrough preparation and meeting evidence) is IMPLEMENTED and CI-GREEN at
+`f74468a1` (exact-SHA CI 35519202311), release deferred (billing). Verified: a typed meeting-walkthrough
+contract (`lib/lease-renewal/meeting-walkthrough.ts`) projects an effect-free preflight from supplied
+evidence only (unsupplied checks Not run, held live steps named, preparation always supported), keeps
+the two-case matrix Pending selection until a `private:` storage pointer binds, parses the runbook's
+side-by-side script so every bold control is an exact operator-guide control and unknown manual steps
+are visible Meeting questions, routes five safe branches to inspection or manual handoff, and keeps an
+observation ledger whose unrun steps carry no verdict, whose failed steps name owner and next action,
+and whose resumption never resets prior results; the import separates confirmed procedure from open
+questions and refuses customer identifiers; the technical result ledger cites existing tests with the
+selected-lease and human verdict columns fixed at Not run. The runbook
+(`docs/products/renewal-meeting-walkthrough-runbook.md`) is Draft for validation; `npm run
+meeting:preflight` reads only git identity, the F08 flag and Dotloop configuration presence. Full local
+gate (6919 unit tests in 770 files, 38 backend files, policies, build, core E2E
 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is
-IMPLEMENTED and CI-GREEN at `009c4414` (exact-SHA CI 35516040981), release deferred (billing). Verified:
-an evidence matrix ties each step of the owner and tenant draft path to its current control,
-owning service and deterministic check (asserted to exist); the one demonstrated gap, the S131
-policy gate being client-only, is closed by projecting the same gate on the server and refusing a
-direct draft at the preview boundary beside the existing content, review, signature, template,
-recipient and move-out refusals; a read-only meeting preflight lists source freshness, inputs,
-sender, signature, recipients, template, permitted action, Gmail destination and open attempts with
-fallbacks, proceeds without Gmail and keeps the three human observations Pending meeting. Full local
-gate (6874 unit tests in 762 files, 38 backend files, policies, build, core
-E2E 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-S130 (F10, seven-template intake and Dotloop prefill readiness) is IMPLEMENTED and CI-GREEN at
-`696147f9` (exact-SHA CI 35517371018), release deferred (billing). Verified: a seven-family intake manifest
-(one entry per family, honestly Pending materials) receives files only through the trusted publication
-path bound by id and content hash and classifies bytes as data (fillable, static, provider-native only
-when staff record a template reference, or unsupported); a reviewed version-bound field and signer map
-refuses renamed required fields, wrong signer roles and template conflicts; the worksheet repeats one
-known value per party and per animal and stays Preview only; the fill boundary yields comparable
-provider-native values and a manual Dotloop handoff for PDFs (machine autofill unavailable, never
-completed); approval projects the exact version into the S66 catalog and replacement rewrites it; the
-receipt-time and meeting checkpoints advance only on recorded evidence. Full local gate
-(6891 unit tests in 767 files, 38 backend files, policies, build, core E2E
-8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-Next: S132 (F12, end-to-end walkthrough preparation and meeting evidence), per its specification.
+Next: S133 (F13, external maintenance-agent handoff assessment), independent of the bundle; S121 when scheduled.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -89,6 +70,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 9. S131 (F11) Rhino-policy conditional logic, ready for approved material upload: `59ad9224`, CI 35515037772.
 10. S129 (F09) owner and tenant draft workflows, technical readiness for meeting validation: `009c4414`, CI 35516040981.
 11. S130 (F10) seven-template intake and Dotloop prefill readiness: `696147f9`, CI 35517371018.
+12. S132 (F12) end-to-end walkthrough preparation and meeting evidence: `f74468a1`, CI 35519202311.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -123,7 +105,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127, s131, s129 and s130 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127, s131, s129, s130 and s132 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -133,5 +115,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order: S132 is the last bundle feature;
-S133 independent; S121 when scheduled.
+remains dependent. The renewal meeting-readiness bundle (S122 to S132 and S134) is fully implemented
+and release-deferred; S133 independent; S121 when scheduled.
