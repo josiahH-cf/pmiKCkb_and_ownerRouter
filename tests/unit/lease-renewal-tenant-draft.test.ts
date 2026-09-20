@@ -21,8 +21,8 @@ describe("buildTenantOfferDraft", () => {
 
   it("carries the offer, charges, stay/leave ask, and form link", () => {
     const email = draft.channels.email.body;
-    // LR-04: tenant-facing surfaces render a human date ("Jul 31, 2026"), not the raw ISO.
-    expect(email).toContain("Jul 31, 2026");
+    // LR-04: tenant-facing surfaces render a human date ("07/31/2026", S126), not the raw ISO.
+    expect(email).toContain("07/31/2026");
     expect(email).not.toContain("2026-07-31");
     expect(email).toContain("$1,150");
     expect(email).toContain("$28");
@@ -32,7 +32,7 @@ describe("buildTenantOfferDraft", () => {
   });
 
   it("shows the human date in the subject but keeps the raw ISO as a machine fact (LR-04)", () => {
-    expect(draft.channels.email.subject).toContain("Jul 31, 2026");
+    expect(draft.channels.email.subject).toContain("07/31/2026");
     expect(draft.channels.email.subject).not.toContain("2026-07-31");
     const fact = draft.facts.find((entry) => entry.key === "lease_end_date");
     expect(fact?.value).toBe("2026-07-31");

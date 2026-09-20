@@ -1,3 +1,5 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
+
 // S119: the staff work status. A bounded, app-owned lease annotation that says where staff report
 // the renewal work stands. It is projected once for the lease information panel, the compact lease
 // context and the desk filter. It is not derived progress, not provider evidence, not completion:
@@ -194,20 +196,7 @@ export function workStatusFilterLabel(filter: RenewalWorkStatusFilter): string {
   return `Staff status: ${RENEWAL_WORK_STATUS_LABELS[filter]}`;
 }
 
-const RECORDED_AT_FORMAT = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Chicago",
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZoneName: "short",
-});
-
-/** A readable Central-time rendering; an unparseable timestamp is shown as recorded. */
+/** S126: the shared business-time rendering (MM/DD/YYYY, time, zone); an unparseable timestamp is shown as recorded. */
 export function formatWorkStatusRecordedAt(iso: string): string {
-  const timestamp = Date.parse(iso);
-  return Number.isFinite(timestamp)
-    ? RECORDED_AT_FORMAT.format(new Date(timestamp))
-    : iso;
+  return Number.isFinite(Date.parse(iso)) ? formatBusinessTimestamp(iso) : iso;
 }

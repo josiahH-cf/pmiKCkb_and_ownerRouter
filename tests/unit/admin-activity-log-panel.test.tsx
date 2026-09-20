@@ -28,7 +28,7 @@ describe("AdminActivityLogPanel (LR-02)", () => {
     expect(screen.getByText(/u1@pmikcmetro.com/)).toBeInTheDocument();
     expect(screen.getByText(/admin@pmikcmetro.com/)).toBeInTheDocument();
     expect(screen.getByText(/promote for coverage/)).toBeInTheDocument();
-    expect(screen.getByText(/2026-07-10 09:30/)).toBeInTheDocument();
+    expect(screen.getByText(/07\/10\/2026, 4:30 AM CDT/)).toBeInTheDocument();
   });
 
   it("renders a value-free runtime suspension change without a fake target email", () => {

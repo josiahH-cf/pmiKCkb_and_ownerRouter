@@ -1,4 +1,5 @@
 "use client";
+import { formatCalendarDate } from "@/lib/date-display";
 import {
   RenewalSectionHeading,
   renewalCardTitle,
@@ -206,7 +207,7 @@ function ActiveManualProvider({
           <p>
             Cycle based on{" "}
             {state.basis.kind === "lease_end" ? "lease end" : "review date"}{" "}
-            {state.basis.dateIso} · {state.basis.source}.
+            {formatCalendarDate(state.basis.dateIso)} · {state.basis.source}.
           </p>
         ) : null}
         {state ? (

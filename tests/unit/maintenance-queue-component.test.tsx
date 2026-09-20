@@ -128,7 +128,7 @@ describe("MaintenanceQueue status pills + history", () => {
 
     // describeActivity("status") + formatHistoryStamp render from the fetched trail.
     expect(await screen.findByText("Status set to Scheduled")).toBeInTheDocument();
-    expect(screen.getByText("2026-07-09 10:30")).toBeInTheDocument();
+    expect(screen.getByText("07/09/2026, 5:30 AM CDT")).toBeInTheDocument();
     // describeActivity("assign") renders a value-free label, never the raw uid.
     expect(screen.getByText("Assignment updated")).toBeInTheDocument();
     expect(screen.queryByText(/editor-abc123/)).toBeNull();

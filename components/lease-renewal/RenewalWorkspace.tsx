@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "@/lib/date-display";
 import {
   RenewalSectionHeading,
   renewalCardTitle,
@@ -220,7 +221,7 @@ export function RenewalWorkspace({
       <span className="renewal-workspace-identity-address">{summary.addressLabel}</span>
       <span className="renewal-workspace-identity-lease">
         Lease {summary.id}
-        {summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}
+        {summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}
       </span>
       {summary.lifecycle ? (
         <span
@@ -259,7 +260,7 @@ export function RenewalWorkspace({
             ) : null}
           </>
         }
-        subtitle={`Lease ${summary.id}${summary.endDateIso ? ` · ends ${summary.endDateIso}` : ""}`}
+        subtitle={`Lease ${summary.id}${summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}`}
         title={summary.addressLabel}
       />
 
@@ -627,8 +628,8 @@ function PhaseContent({
               <li className="ui-spread">
                 <span>Lease dates</span>
                 <span>
-                  {term.startDateIso ?? "Needs Verification"} to{" "}
-                  {term.endDateIso ?? "Needs Verification"}
+                  {formatCalendarDate(term.startDateIso, "Needs Verification")} to{" "}
+                  {formatCalendarDate(term.endDateIso, "Needs Verification")}
                 </span>
               </li>
               {term.term === "month_to_month" ? (
@@ -636,13 +637,13 @@ function PhaseContent({
                   <li className="ui-spread">
                     <span>Month-to-month since</span>
                     <span data-renewal-field="lease-term-anchor">
-                      {term.anchorDateIso ?? "Needs Verification"}
+                      {formatCalendarDate(term.anchorDateIso, "Needs Verification")}
                     </span>
                   </li>
                   <li className="ui-spread">
                     <span>Next review</span>
                     <span data-renewal-field="lease-term-next-review">
-                      {term.nextReviewIso ?? "Needs review"}
+                      {formatCalendarDate(term.nextReviewIso, "Needs review")}
                     </span>
                   </li>
                 </>
@@ -1163,11 +1164,11 @@ function MoveOutTimingPanel({
       <dl className="renewal-move-out-timing-facts">
         <div>
           <dt>Notice given</dt>
-          <dd>{timing.noticeDateIso ?? "Not recorded"}</dd>
+          <dd>{formatCalendarDate(timing.noticeDateIso, "Not recorded")}</dd>
         </div>
         <div>
           <dt>{targetHeading}</dt>
-          <dd>{timing.targetDateIso ?? "Not recorded"}</dd>
+          <dd>{formatCalendarDate(timing.targetDateIso, "Not recorded")}</dd>
         </div>
         <div>
           <dt>Days given</dt>

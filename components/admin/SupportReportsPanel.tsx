@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { SupportReportStatusControl } from "@/components/admin/SupportReportStatusControl";
 import type { SupportReportRecord } from "@/lib/firestore/types";
 
@@ -86,7 +87,7 @@ export function SupportReportsPanel({
 // Deterministic, locale-independent "YYYY-MM-DD HH:MM" from an ISO instant (server-rendered, so it
 // must not depend on the viewer's locale). Non-ISO values (e.g. the seed sentinel) pass through.
 function formatReportedAt(createdAt: string): string {
-  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt)
-    ? `${createdAt.slice(0, 10)} ${createdAt.slice(11, 16)}`
+  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt) && Number.isFinite(Date.parse(createdAt))
+    ? formatBusinessTimestamp(createdAt)
     : createdAt;
 }

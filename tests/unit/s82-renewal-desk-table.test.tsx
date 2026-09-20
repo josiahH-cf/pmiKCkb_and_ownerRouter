@@ -151,7 +151,7 @@ describe("S103 visible lease term (BEH-S103-2 / BEH-S103-3)", () => {
       "needs_review",
     ]);
     expect(cells[0]).toHaveTextContent("Fixed-term");
-    expect(cells[1]).toHaveTextContent("Month-to-month · review due 2026-09-15");
+    expect(cells[1]).toHaveTextContent("Month-to-month · review due 09/15/2026");
     expect(cells[2]).toHaveTextContent("Needs review");
   });
 
@@ -520,7 +520,8 @@ describe("S82 row cells and exact-value shortcuts", () => {
         totalBeforeQuery={1}
       />,
     );
-    const date = screen.getByRole("link", { name: "2026-10-15" });
+    // S126: the visible date reads MM/DD/YYYY; the href below keeps the canonical ISO value.
+    const date = screen.getByRole("link", { name: "10/15/2026" });
     const href = date.getAttribute("href") ?? "";
     expect(href).toContain("endDate=2026-10-15");
     expect(href).not.toContain("month=");

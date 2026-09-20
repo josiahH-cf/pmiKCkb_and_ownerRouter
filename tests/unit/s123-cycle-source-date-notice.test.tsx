@@ -145,14 +145,14 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
     );
     const note = document.querySelector('[data-renewal-cycle-source-date="changed"]');
     expect(note).not.toBeNull();
-    expect(note).toHaveTextContent("recorded lease end 2026-08-31");
-    expect(note).toHaveTextContent("RentVine now reports 2027-08-31");
+    expect(note).toHaveTextContent("recorded lease end 08/31/2026");
+    expect(note).toHaveTextContent("RentVine now reports 08/31/2027");
     expect(note).toHaveTextContent("kept as history");
     expect(note).toHaveTextContent(
       "Owner-approved terms recorded on this cycle: $1,250.00 from 2026-09-01 to 2027-08-31",
     );
     // The recorded basis line is history and still shows the recorded date, never the new one.
-    expect(screen.getByText(/Cycle based on lease end 2026-08-31/)).toBeInTheDocument();
+    expect(screen.getByText(/Cycle based on lease end 08\/31\/2026/)).toBeInTheDocument();
     // The start control still offers the current verified lease end for a deliberate new cycle.
     expect(screen.getByLabelText("Verified lease end for this cycle")).toHaveValue(
       "2027-08-31",
@@ -203,7 +203,7 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
     const note = document.querySelector(
       '[data-renewal-cycle-source-date="current_unavailable"]',
     );
-    expect(note).toHaveTextContent("recorded lease end 2026-08-31");
+    expect(note).toHaveTextContent("recorded lease end 08/31/2026");
     expect(note).toHaveTextContent("the recorded date is kept");
   });
 
@@ -256,8 +256,8 @@ describe("S123 desk source-date marker (AC-S123-1, AC-S123-4)", () => {
     );
     expect(markers).toHaveLength(1);
     expect(markers[0]).toHaveAttribute("data-cycle-source-date", "changed");
-    expect(markers[0]).toHaveTextContent("cycle recorded 2026-08-31");
-    expect(markers[0]).toHaveTextContent("RentVine now 2027-08-31");
+    expect(markers[0]).toHaveTextContent("cycle recorded 08/31/2026");
+    expect(markers[0]).toHaveTextContent("RentVine now 08/31/2027");
     expect(markers[0].closest("tr")).toHaveTextContent("L1 Main St");
   });
 });

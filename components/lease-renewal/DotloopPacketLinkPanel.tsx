@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { Card } from "@/components/ui";
 import {
   dotloopSignatureHandoff,
@@ -61,7 +62,9 @@ export function DotloopPacketLinkPanel({
           </li>
           <li className="ui-spread">
             <span>Last read back</span>
-            <span>{link.readBackAtIso ?? "Needs Verification"}</span>
+            <span>
+              {formatBusinessTimestamp(link.readBackAtIso, "Needs Verification")}
+            </span>
           </li>
         </ul>
       ) : (

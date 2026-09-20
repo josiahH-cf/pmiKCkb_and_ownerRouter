@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCalendarDate } from "@/lib/date-display";
 import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
@@ -698,7 +699,7 @@ function SelectField({
 /** Show just the calendar date when the review value is an ISO timestamp; otherwise show it verbatim. */
 function formatReviewedDate(value: string): string {
   const match = value.match(/^\d{4}-\d{2}-\d{2}/);
-  return match ? match[0] : value;
+  return match ? formatCalendarDate(match[0]) : value;
 }
 
 async function readErrorMessage(response: Response, fallback: string) {

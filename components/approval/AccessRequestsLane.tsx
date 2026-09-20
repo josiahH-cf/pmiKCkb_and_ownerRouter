@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -774,9 +775,7 @@ function formatAccess(access: AccessRequestRecordV1["target_access"]) {
 
 function formatDate(value: string) {
   const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp)
-    ? new Date(timestamp).toLocaleString()
-    : "Unknown time";
+  return Number.isFinite(timestamp) ? formatBusinessTimestamp(timestamp) : "Unknown time";
 }
 
 function formatAge(createdAt: string, referenceTime: string) {

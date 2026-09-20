@@ -193,7 +193,7 @@ describe("AskForm (action console)", () => {
     await user.click(screen.getByRole("button", { name: "Get answer" }));
 
     expect(await screen.findByText("Reviewed SOP")).toBeInTheDocument();
-    expect(screen.getByText(/reviewed 2026-05-01/)).toBeInTheDocument();
+    expect(screen.getByText(/reviewed 05\/01\/2026/)).toBeInTheDocument();
     // The unreviewed source shows no review date (guard against matching "Unreviewed" itself).
     expect(screen.getByText("Unreviewed SOP").closest("li")?.textContent).not.toMatch(
       /reviewed \d{4}/,

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { useEffect, useState } from "react";
 
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
@@ -599,7 +600,7 @@ function TicketHistory({ ticketId }: Readonly<{ ticketId: string }>) {
 }
 
 function formatHistoryStamp(iso: string): string {
-  return iso.replace("T", " ").slice(0, 16);
+  return Number.isFinite(Date.parse(iso)) ? formatBusinessTimestamp(iso) : iso;
 }
 
 function describeActivity(entry: MaintenanceTicketActivityRecord): string {

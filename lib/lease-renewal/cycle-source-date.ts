@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "@/lib/date-display";
 import type { RenewalCycleBasis } from "@/lib/lease-renewal/workspace-state";
 
 /**
@@ -66,7 +67,7 @@ export function projectCycleSourceDateChange(
       state: "current_unavailable",
       recordedIso,
       currentIso: null,
-      label: `This cycle recorded lease end ${recordedIso}. RentVine currently reports no lease end; the recorded date is kept.`,
+      label: `This cycle recorded lease end ${formatCalendarDate(recordedIso)}. RentVine currently reports no lease end; the recorded date is kept.`,
     };
   }
   if (currentIso === recordedIso) {
@@ -81,6 +82,6 @@ export function projectCycleSourceDateChange(
     state: "changed",
     recordedIso,
     currentIso,
-    label: `Source date changed: this cycle recorded lease end ${recordedIso}; RentVine now reports ${currentIso}. Review offers, prepared documents and messages against the recorded terms before continuing. The recorded cycle is kept as history.`,
+    label: `Source date changed: this cycle recorded lease end ${formatCalendarDate(recordedIso)}; RentVine now reports ${formatCalendarDate(currentIso)}. Review offers, prepared documents and messages against the recorded terms before continuing. The recorded cycle is kept as history.`,
   };
 }

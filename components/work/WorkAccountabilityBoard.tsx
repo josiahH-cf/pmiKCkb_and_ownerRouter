@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
@@ -1638,10 +1639,7 @@ function sourceLabel(type: WorkSourceType): string {
 }
 
 function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatBusinessTimestamp(value);
 }
 
 function toLocalDateTimeInput(value: string): string {

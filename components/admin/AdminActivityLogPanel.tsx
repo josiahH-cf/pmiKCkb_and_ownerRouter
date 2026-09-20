@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import type { AdminActivityEntry } from "@/lib/admin/activity-log";
 
 // LR-02 + S51: read-only Admin history. The page that renders this is Admin-gated; the records are
@@ -54,7 +55,7 @@ export function AdminActivityLogPanel({
 // Deterministic, locale-independent "YYYY-MM-DD HH:MM" from an ISO instant (server-rendered, so it must
 // not depend on the viewer's locale). Non-ISO values pass through unchanged.
 function formatChangedAt(createdAt: string): string {
-  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt)
-    ? `${createdAt.slice(0, 10)} ${createdAt.slice(11, 16)}`
+  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt) && Number.isFinite(Date.parse(createdAt))
+    ? formatBusinessTimestamp(createdAt)
     : createdAt;
 }

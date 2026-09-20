@@ -3,6 +3,7 @@
 // actionable renewal leases (one Card each) with a collapsed composer per lease. The composer does the
 // authoritative recipient lookup + compose + create; nothing is sent from here.
 
+import { formatCalendarDate } from "@/lib/date-display";
 import Link from "next/link";
 
 import { Card, Disclosure, EmptyState } from "@/components/ui";
@@ -60,9 +61,10 @@ export function LiveRenewalNotices({
       <div>
         <h1 className="section-title">Live renewal notices</h1>
         <p className="muted">
-          Actionable leases ending on a month boundary through {windowEndIso}, from a live
-          RentVine read ({result.scanned} leases scanned). Compose an unsent Gmail draft
-          per lease. You send each draft yourself from Gmail.
+          Actionable leases ending on a month boundary through{" "}
+          {formatCalendarDate(windowEndIso)}, from a live RentVine read ({result.scanned}{" "}
+          leases scanned). Compose an unsent Gmail draft per lease. You send each draft
+          yourself from Gmail.
         </p>
       </div>
       {result.rows.length === 0 ? (
@@ -91,7 +93,7 @@ function NoticeSummary({ row }: Readonly<{ row: LiveRenewalNoticeRow }>) {
   return (
     <span>
       <strong>{row.tenantName ?? `Lease ${row.leaseId}`}</strong>
-      {row.leaseEndIso ? ` · ends ${row.leaseEndIso}` : null}
+      {row.leaseEndIso ? ` · ends ${formatCalendarDate(row.leaseEndIso)}` : null}
       {" · "}
       <span className="muted">
         {row.tenantRecipientVerified ? "tenant ready" : "tenant needs verification"}

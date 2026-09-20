@@ -3,6 +3,7 @@
 // Clear filters control, and truthful zero states. Server component: every control is a GET link or
 // GET form over the canonical `renewal-desk-query/v2` URL contract: no client state, no mutation.
 
+import { CALENDAR_DATE_DISPLAY_FORMAT, formatCalendarDate } from "@/lib/date-display";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -184,6 +185,21 @@ const CURRENCY = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
   minimumFractionDigits: 0,
 });
+
+/**
+ * S126 (R-F06-04): the browser decides how a native date picker lays out its fields, so the
+ * companion line names the app convention and echoes the selected value in it; the submitted
+ * value stays the canonical YYYY-MM-DD.
+ */
+export function DateInputHint({ value }: Readonly<{ value: string }>) {
+  return (
+    <span className="muted renewal-date-hint" data-renewal-date-hint={value || "none"}>
+      {value
+        ? `Selected ${formatCalendarDate(value)} (${CALENDAR_DATE_DISPLAY_FORMAT})`
+        : `Dates read as ${CALENDAR_DATE_DISPLAY_FORMAT}`}
+    </span>
+  );
+}
 
 function href(state: RenewalDeskQueryV2State): string {
   return buildDeskHref(state);
@@ -376,6 +392,7 @@ function RenewalDateFilters({ state }: Readonly<{ state: RenewalDeskQueryV2State
           required
           type="date"
         />
+        <DateInputHint value={currentExact} />
         <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
           Apply exact date
         </RenewalDeskSubmitButton>
@@ -432,6 +449,7 @@ function RenewalDateFilters({ state }: Readonly<{ state: RenewalDeskQueryV2State
           required
           type="date"
         />
+        <DateInputHint value={state.from} />
         <label className="field-label" htmlFor="renewal-filter-through">
           Range end (at most 120 days)
         </label>
@@ -443,6 +461,7 @@ function RenewalDateFilters({ state }: Readonly<{ state: RenewalDeskQueryV2State
           required
           type="date"
         />
+        <DateInputHint value={state.through} />
         <RenewalDeskSubmitButton className="secondary-button" pendingText="Applying…">
           Apply range
         </RenewalDeskSubmitButton>
@@ -1316,7 +1335,7 @@ function DeskRow({
             )}
             title="Show only this renewal date"
           >
-            {row.endDateIso}
+            <time dateTime={row.endDateIso}>{formatCalendarDate(row.endDateIso)}</time>
           </Link>
         ) : (
           <Link
@@ -1343,7 +1362,7 @@ function DeskRow({
           </Link>
           {row.leaseTerm.term === "month_to_month"
             ? row.leaseTerm.nextReviewIso
-              ? ` · review due ${row.leaseTerm.nextReviewIso}`
+              ? ` · review due ${formatCalendarDate(row.leaseTerm.nextReviewIso)}`
               : " · review date needs review"
             : ""}
         </span>
@@ -1467,8 +1486,9 @@ function DeskRow({
             data-renewal-field="cycle-source-date"
             data-cycle-source-date="changed"
           >
-            Source date changed: cycle recorded {row.cycleSourceDate.recordedIso};
-            RentVine now {row.cycleSourceDate.currentIso}
+            Source date changed: cycle recorded{" "}
+            {formatCalendarDate(row.cycleSourceDate.recordedIso)}; RentVine now{" "}
+            {formatCalendarDate(row.cycleSourceDate.currentIso)}
           </span>
         ) : null}
         {/* S119: the saved staff status beside, never inside, the derived status. */}

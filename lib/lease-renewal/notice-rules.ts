@@ -1,3 +1,5 @@
+import { formatCalendarDate } from "@/lib/date-display";
+
 // Renewal-notice rule engine (S13 Wave 3 F1). Timing rules are DATA, not code: a typed rule set
 // with three scopes (global defaults, per-property overrides, per-lease/tenant overrides) resolved
 // deterministically MOST-SPECIFIC-WINS (lease > property > global). The resolver is pure — the rule
@@ -351,11 +353,9 @@ const MONTHS = [
   "Dec",
 ];
 
-/** Format an ISO date as "Jun 15, 2026" for read-only display. Returns the input if unparseable. */
+/** S126: format an ISO date as "06/15/2026" for read-only display and message text. Returns the input if unparseable. */
 export function formatNoticeDate(iso: string): string {
-  const parts = parseIso(iso);
-  if (!parts) return iso;
-  return `${MONTHS[parts.month - 1]} ${parts.day}, ${parts.year}`;
+  return parseIso(iso) ? formatCalendarDate(iso) : iso;
 }
 
 /** Human label for where a value came from: "default" for an unconfirmed global, else "<scope> rule". */

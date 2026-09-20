@@ -4,6 +4,7 @@
 // targets, and each party's click-back filter is a separate link over the opaque party token.
 // Server component: the party-filter key never reaches the client.
 
+import { formatCalendarDate } from "@/lib/date-display";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -216,9 +217,11 @@ export function RenewalLeaseInformation({
           {term.term === "month_to_month" ? (
             <>
               <Row label="Month-to-month since">
-                {term.anchorDateIso ?? "Needs Verification"}
+                {formatCalendarDate(term.anchorDateIso, "Needs Verification")}
               </Row>
-              <Row label="Next review">{term.nextReviewIso ?? "Needs review"}</Row>
+              <Row label="Next review">
+                {formatCalendarDate(term.nextReviewIso, "Needs review")}
+              </Row>
             </>
           ) : null}
           <Row label="Status">

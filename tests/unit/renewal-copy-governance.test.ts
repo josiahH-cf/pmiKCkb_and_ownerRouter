@@ -152,7 +152,7 @@ describe("S74 renewal copy governance", () => {
       status: "review_only",
       template: { status: "review_only", ref: "tenant-renewal:v1.0" },
     });
-    expect(result.subject).toContain("Dec 31, 2026");
+    expect(result.subject).toContain("12/31/2026");
     expect(result.body).toContain("$1,550");
     expect(result.reasons.join(" ")).toMatch(/client-approved wording/i);
   });
@@ -192,7 +192,7 @@ describe("S74 renewal copy governance", () => {
     expect(result.subject).toBe(tenantRendered.channels.email.subject);
     expect(result.body).toContain(selection.editableRegions.response_request);
     expect(result.body).toContain("Synthetic Tenant");
-    expect(result.body).toContain("Dec 31, 2026");
+    expect(result.body).toContain("12/31/2026");
     expect(result.body).toContain("$1,550");
     expect(result.body).toContain("$25");
     expect(result.envelope.facts).toEqual(tenantRendered.facts);

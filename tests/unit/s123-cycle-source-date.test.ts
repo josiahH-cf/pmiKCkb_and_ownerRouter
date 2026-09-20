@@ -168,8 +168,8 @@ describe("S123 cycle source-date projection (R-F02-04)", () => {
       recordedIso: "2026-08-31",
       currentIso: "2027-08-31",
     });
-    expect(change.label).toContain("recorded lease end 2026-08-31");
-    expect(change.label).toContain("now reports 2027-08-31");
+    expect(change.label).toContain("recorded lease end 08/31/2026");
+    expect(change.label).toContain("now reports 08/31/2027");
     expect(change.label).toContain("kept as history");
     expect(frozen).toEqual(basis);
   });

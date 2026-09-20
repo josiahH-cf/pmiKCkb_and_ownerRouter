@@ -21,7 +21,7 @@ afterEach(() => {
 
 describe("Approval Queue hydration-safe timestamps", () => {
   it("formats activity in the explicit Kansas City time zone", () => {
-    expect(formatDateTime("2026-07-15T15:00:00.000Z")).toBe("Jul 15, 2026, 10:00 AM CDT");
+    expect(formatDateTime("2026-07-15T15:00:00.000Z")).toBe("07/15/2026, 10:00 AM CDT");
     expect(formatDateTime("not-a-date")).toBe("not-a-date");
   });
 });

@@ -1,3 +1,7 @@
+import {
+  formatBusinessTimestamp,
+  formatCalendarDateOrTimestamp,
+} from "@/lib/date-display";
 import { StatusPill } from "@/components/ui";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 
@@ -22,7 +26,7 @@ export function RenewalFollowUpStatus({
         : `Waiting on ${PARTY_LABELS[projection.waiting.party]}`;
   const contact =
     projection.lastContact.state === "verified" && projection.lastContact.atIso
-      ? `Last verified contact: ${projection.lastContact.atIso}`
+      ? `Last verified contact: ${formatBusinessTimestamp(projection.lastContact.atIso)}`
       : "Last contact: Needs Verification";
   const policy =
     (projection.policy.state === "confirmed" || projection.policy.state === "disabled") &&
@@ -54,9 +58,9 @@ export function RenewalFollowUpStatus({
 function dueLabel(projection: RenewalFollowUpProjection): string {
   switch (projection.due.state) {
     case "due":
-      return `Follow-up due: ${projection.due.atIso}`;
+      return `Follow-up due: ${formatCalendarDateOrTimestamp(projection.due.atIso)}`;
     case "not_due":
-      return `Next follow-up review: ${projection.due.atIso}`;
+      return `Next follow-up review: ${formatCalendarDateOrTimestamp(projection.due.atIso)}`;
     case "needs_verification":
       return "Follow-up due state: Needs Verification";
     case "disabled":

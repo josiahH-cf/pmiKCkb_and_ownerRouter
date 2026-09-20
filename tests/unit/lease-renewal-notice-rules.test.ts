@@ -311,7 +311,7 @@ describe("buildEffectiveRuleView — provenance + Needs Verification", () => {
     );
     const view = buildEffectiveRuleView(resolved, status);
     const dueLine = view.lines.find((line) => line.label === "Notice due by");
-    expect(dueLine?.value).toBe("Jul 20, 2026");
+    expect(dueLine?.value).toBe("07/20/2026");
     expect(dueLine?.provenance).toBe("property rule");
     expect(dueLine?.needsVerification).toBe(false);
   });

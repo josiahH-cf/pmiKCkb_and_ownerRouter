@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { Card } from "@/components/ui";
 import type { RenewalAttemptSummary } from "@/lib/lease-renewal/execution/attempt-continuation";
 
@@ -48,7 +49,9 @@ export function RenewalAttemptSummaryCard({
           </li>
           <li className="ui-spread">
             <span>Attempted</span>
-            <span>{summary.lastAttemptAtIso ?? "Needs Verification"}</span>
+            <span>
+              {formatBusinessTimestamp(summary.lastAttemptAtIso, "Needs Verification")}
+            </span>
           </li>
           <li className="ui-spread">
             <span>Result</span>

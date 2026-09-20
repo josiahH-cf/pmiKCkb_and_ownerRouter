@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { isQueueItemTerminal, queueActionAvailability } from "@/lib/approval/queue";
 import type { Role } from "@/lib/auth/roles";
 import type {
@@ -206,16 +207,7 @@ export function displayValue(value: string | undefined) {
   return value?.trim() || "Not set";
 }
 
-const APPROVAL_QUEUE_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  month: "short",
-  timeZone: "America/Chicago",
-  timeZoneName: "short",
-  year: "numeric",
-});
-
+/** S126: the shared business-time rendering; an unparseable value is shown as recorded. */
 export function formatDateTime(value: string) {
   const date = new Date(value);
 
@@ -223,7 +215,7 @@ export function formatDateTime(value: string) {
     return value;
   }
 
-  return APPROVAL_QUEUE_DATE_TIME_FORMATTER.format(date);
+  return formatBusinessTimestamp(date);
 }
 
 export function activityLabel(action: ApprovalQueueActivityRecord["action"]) {

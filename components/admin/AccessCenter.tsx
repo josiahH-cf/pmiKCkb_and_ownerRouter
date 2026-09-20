@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -996,7 +997,9 @@ function humanizeState(value: string) {
 
 function formatDate(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "at an unavailable time" : date.toLocaleString();
+  return Number.isNaN(date.getTime())
+    ? "at an unavailable time"
+    : formatBusinessTimestamp(date);
 }
 
 function readError(body: unknown, fallback: string) {
