@@ -30,6 +30,7 @@ import {
   type PartyTokenMatcher,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
+import { countRenewalDeskWorklistViews } from "@/lib/lease-renewal/desk-worklist-views";
 
 export interface DeskPartyFilterAccess extends DeskPartyShortcuts {
   matches: PartyTokenMatcher;
@@ -108,6 +109,12 @@ export function RenewalDesk({
 }>) {
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
   const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
+  // S122: every view count comes from the same projection and matcher as the table.
+  const viewCounts = countRenewalDeskWorklistViews(
+    view.items,
+    query,
+    partyFilters.matches,
+  );
   const supportingReadsComplete = auxiliaryFailures.length === 0;
   const scopeLabel =
     query.scope === "active"
@@ -180,6 +187,7 @@ export function RenewalDesk({
         state={query}
         totalInScope={result.totalInScope}
         totalLoaded={result.totalLoaded}
+        viewCounts={viewCounts}
       />
     </div>
   );

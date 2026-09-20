@@ -2277,6 +2277,45 @@ textarea:disabled {
   gap: var(--space-2);
 }
 
+.renewal-view-switch {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.renewal-view-switch-link {
+  align-items: center;
+  border: 1px solid var(--ui-border-interactive);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 6px 14px;
+  text-decoration: none;
+}
+
+.renewal-view-switch-link[aria-current="page"] {
+  background: var(--ui-selected-surface);
+  font-weight: 700;
+}
+
+.renewal-view-switch-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.renewal-table-empty-copy {
+  margin: 0;
+}
+
+.renewal-table-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+}
+
 .renewal-table-count {
   font-weight: 700;
 }

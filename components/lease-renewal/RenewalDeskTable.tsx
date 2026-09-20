@@ -40,6 +40,14 @@ import {
   encodeDeskView,
 } from "@/lib/lease-renewal/desk-view-continuation";
 import {
+  RENEWAL_DESK_WORKLIST_VIEWS,
+  RENEWAL_DESK_WORKLIST_VIEW_CONTROL_LABEL,
+  RENEWAL_DESK_WORKLIST_VIEW_LABELS,
+  currentRenewalDeskWorklistView,
+  withRenewalDeskWorklistView,
+  type RenewalDeskWorklistViewCounts,
+} from "@/lib/lease-renewal/desk-worklist-views";
+import {
   ACCESS_RETURN_TEXT_SEARCH_NOTICE,
   accessReturnClearsTextSearch,
   buildRenewalDeskAccessReturn,
@@ -89,6 +97,9 @@ export interface DeskPartyFilterOptions {
 export const PARTY_FILTERING_UNAVAILABLE_NOTICE = "Party filtering is unavailable.";
 export const UNFILTERED_EMPTY_COPY = "No renewals are in the current worklist.";
 export const FILTERED_EMPTY_COPY = "No renewals match these filters.";
+/** S122: a zero-match view offers a wider view or fewer filters; it never claims a lease is gone. */
+export const EMPTY_VIEW_EXPLANATION =
+  "Every loaded lease stays available. Widen the view or remove a filter to see leases outside this worklist.";
 
 export const OVERALL_STATUS_LABEL: Record<RenewalOverallStatus, string> = {
   needs_verification: "Needs verification",
@@ -764,6 +775,7 @@ export function RenewalDeskTable({
   sourceReadOk,
   sourceReadComplete = sourceReadOk,
   dependentStateComplete = true,
+  viewCounts,
 }: Readonly<{
   rows: readonly DeskLeaseRow[];
   /** Preferred truthful count contract. */
@@ -782,6 +794,8 @@ export function RenewalDeskTable({
   sourceReadComplete?: boolean;
   /** False when filters/status depend on unavailable auxiliary reads; portfolio counts stay exact. */
   dependentStateComplete?: boolean;
+  /** S122: how many leases each worklist view would show under the current filters. */
+  viewCounts?: RenewalDeskWorklistViewCounts;
 }>) {
   const deskView = encodeDeskView(state);
   const chips = buildActiveFilterChips(state);
@@ -789,12 +803,46 @@ export function RenewalDeskTable({
   const clearedHref = href(clearRenewalDeskFilters(state));
   const loadedCount = totalLoaded ?? totalBeforeQuery ?? rows.length;
   const scopeCount = totalInScope ?? loadedCount;
+  // S122: the view is derived from the canonical query; a tracked or periodic-review bookmark is
+  // neither view. Zero-match offers exist only when a complete read can truthfully claim zero.
+  const currentView = currentRenewalDeskWorklistView(state);
+  const emptyViewActionsAvailable =
+    sourceReadOk && loadedCount > 0 && dependentStateComplete;
   const availablePartyOptions =
     partyOptions ?? buildDeskPartyFilterOptions(rows, shortcuts);
 
   return (
     <section aria-label="Renewal worklist" className="ui-stack">
       <div className="renewal-table-toolbar">
+        <nav
+          aria-label={RENEWAL_DESK_WORKLIST_VIEW_CONTROL_LABEL}
+          className="renewal-view-switch"
+          data-current-view={currentView ?? "other"}
+          data-source-read-complete={sourceReadComplete ? "true" : "false"}
+        >
+          {RENEWAL_DESK_WORKLIST_VIEWS.map((view) => {
+            const count = viewCounts?.[view];
+            return (
+              <Link
+                key={view}
+                prefetch={false}
+                aria-current={view === currentView ? "page" : undefined}
+                className="renewal-view-switch-link"
+                data-view={view}
+                {...(count === undefined ? {} : { "data-count": String(count) })}
+                href={href(withRenewalDeskWorklistView(state, view))}
+              >
+                {RENEWAL_DESK_WORKLIST_VIEW_LABELS[view]}
+                {count === undefined ? null : (
+                  <span className="renewal-view-switch-count">{count}</span>
+                )}
+              </Link>
+            );
+          })}
+          {sourceReadComplete ? null : (
+            <span className="muted">View counts reflect a partial source read.</span>
+          )}
+        </nav>
         <span className="renewal-table-count" role="status">
           Matching: {rows.length} · Selected scope: {scopeCount} · Total loaded:{" "}
           {loadedCount}
@@ -1091,15 +1139,40 @@ export function RenewalDeskTable({
             {rows.length === 0 ? (
               <tr>
                 <td className="renewal-table-empty" colSpan={8}>
-                  {!sourceReadOk
-                    ? "The portfolio read did not complete, so this table cannot claim an empty worklist. Refresh to read again."
-                    : loadedCount === 0
-                      ? UNFILTERED_EMPTY_COPY
-                      : !dependentStateComplete
-                        ? "Supporting status did not complete, so these filters cannot claim there are no matching renewals. Clear filters or refresh to read again."
-                        : filtersActive
-                          ? FILTERED_EMPTY_COPY
-                          : UNFILTERED_EMPTY_COPY}
+                  <p className="renewal-table-empty-copy">
+                    {!sourceReadOk
+                      ? "The portfolio read did not complete, so this table cannot claim an empty worklist. Refresh to read again."
+                      : loadedCount === 0
+                        ? UNFILTERED_EMPTY_COPY
+                        : !dependentStateComplete
+                          ? "Supporting status did not complete, so these filters cannot claim there are no matching renewals. Clear filters or refresh to read again."
+                          : filtersActive
+                            ? FILTERED_EMPTY_COPY
+                            : UNFILTERED_EMPTY_COPY}
+                  </p>
+                  {emptyViewActionsAvailable ? (
+                    <p
+                      className="renewal-table-empty-actions"
+                      data-renewal-empty-actions="true"
+                    >
+                      <span>{EMPTY_VIEW_EXPLANATION}</span>
+                      {state.scope === "all" ? null : (
+                        <Link
+                          prefetch={false}
+                          className="text-link"
+                          href={href(withRenewalDeskWorklistView(state, "all"))}
+                        >
+                          Show all leases
+                          {viewCounts === undefined ? "" : ` (${viewCounts.all})`}
+                        </Link>
+                      )}
+                      {filtersActive ? (
+                        <Link prefetch={false} className="text-link" href={clearedHref}>
+                          Remove these filters
+                        </Link>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </td>
               </tr>
             ) : (
