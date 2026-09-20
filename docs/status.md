@@ -20,7 +20,8 @@ IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. S12
 CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. S125 (F04, thirty-day notice timing review with an explicit date basis) is
 IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. S126 (F06, consistent month/day/year date presentation) is IMPLEMENTED and
 CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and
-CI-GREEN at `52286917` (CI `35513295598`), release deferred. Next in order: S131, S129, S130, S132;
+CI-GREEN at `52286917` (CI `35513295598`), release deferred. S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
+CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. Next in order: S129, S130, S132;
 S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
@@ -156,6 +157,27 @@ passed; core E2E passed with 8 files and 4 intentional skips. The issue-model, d
 and focus cases were written before the integration and pass after it; the desk copy contract now
 pins the additional workspace links. Compiled browser checks: NOT RUN (rehearsal auth blocked). No
 client message was sent and no live record was written. Human verdict: NOT RUN.
+
+S131 builds the Rhino-policy conditional logic as a tested inactive scaffold. Each lease's policy
+applicability reads Unknown, Applicable, Not applicable or Needs review with its source, reviewer,
+cycle and version. The staff follow-up stays a recorded task, the legacy Sheet column stays evidence,
+and only an approved material version's declarative rule over verified facts can make a lease
+applicable. With no approved material, which is the current state, every lease reads Pending approved
+policy material with the exact missing items, and no unrelated renewal waits. An Admin submits a
+bounded configuration bound to a trusted publication as a pending version; an approver approves or
+rejects that exact version, and a later approval supersedes the earlier one. The workspace panel shows
+the applicability, its basis, the missing materials with links to the intake and the follow-up
+control, and what each output would do; approved wording substitutes only verified facts and carries
+its version and hash. Real policy wording, applicability rules and the selected-lease review remain
+pending external inputs.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6866 unit tests
+(759 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The schema, condition, applicability,
+output, store, route and surface cases were written before the integration and pass after it, and
+the branch matrix is asserted complete. Compiled browser checks: NOT RUN (rehearsal auth blocked). No
+client message was sent, no live record was written and no provider request was made. Human verdict:
+NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

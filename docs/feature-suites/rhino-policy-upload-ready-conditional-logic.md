@@ -4,7 +4,7 @@
 # S131 — Rhino-policy conditional logic, ready for approved material upload
 
 > **Approval reference:** F11 (original feature #11).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `59ad9224` (2026-09-20) as a tested inactive scaffold; release deferred by the billing incident; no deployment, provider activation, approved material or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S131.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S131 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F11 when renumbering.
 > **Classification:** Tested inactive scaffold; policy-specific support remains unavailable.
@@ -135,7 +135,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff can identify a policy-related renewal and see exactly which approved materials are needed. Once the real materials are reviewed, the existing workflow can use them without replacing the application’s logic or inventing terms.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `59ad9224` (2026-09-20): AC-S131-1 through AC-S131-7 covered by the schema, condition, applicability, output, store, route and surface cases named in F-S131 on synthetic fixtures; the branch matrix is asserted complete; real material, wording and mapping checks are listed as not run; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

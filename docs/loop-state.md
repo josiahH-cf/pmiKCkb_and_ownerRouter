@@ -13,44 +13,24 @@ flag is false in both ignored env files and no feature may re-enable it.
 
 Delivered in this mode (each IMPLEMENTED and CI-GREEN, release deferred; detail in docs/facts.md):
 S123 (F02) `aa062d8e` CI 35505452408; S124 (F03) `fc03ec55` plus test fix `3d4a9e23` CI 35508231675;
-S134 (F14) `136826cc` CI 35508545796; S122 (F01) `39a7f929` CI 35509588537. Each ran the full local
+S134 (F14) `136826cc` CI 35508545796; S122 (F01) `39a7f929` CI 35509588537; S125 (F04) `41d6e00c`
+CI 35511209348; S126 (F06) `7f0ed865` CI 35512028503; S127 (F07) `52286917` CI 35513295598.
+Each ran the full local
 gate on its identical tree (verify.sh, 38 backend files, policies, build, core E2E 8 passed and 4
 skips); browser smokes NOT RUN (rehearsal auth blocked); human verdict NOT RUN.
 
-S125 (F04, thirty-day notice timing review with an explicit date basis) is IMPLEMENTED and CI-GREEN
-at `41d6e00c` (exact-SHA CI 35511209348), release deferred (billing). Verified: a pure, versioned evaluator
-(calendar-day ordinals, target minus notice, exactly the threshold satisfies it) over the S124 notice
-date and one reviewed target (scheduled move-out or contractual lease end) yields Meets, Below: staff
-review, Cannot determine or Not applicable with both dates, the days given and the basis version; an
-unreviewed, invalid or unreadable basis, missing or impossible dates, a future-recorded notice, a
-target before the notice, a stale source and an unknown disposition are explained uncertainty; the
-Admin page records the basis (Admin SDK, revision check, activity history); the result rides on every
-desk row beside the disposition, the Notice timing filter joins the canonical query, and the workspace
-shows both dates, days, basis and a source review link. Full local gate (6829 unit tests in
-751 files, 38 backend files, policies, build, core E2E 8 passed and 4 skips).
-Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-S126 (F06, consistent month/day/year date presentation) is IMPLEMENTED and CI-GREEN at
-`7f0ed865` (exact-SHA CI 35512028503), release deferred (billing). Verified: one shared display utility
-(`lib/date-display.ts`) renders app-owned calendar dates as MM/DD/YYYY, months as name and year and
-audit timestamps with time and the business zone; date-only values never pass through a zone;
-missing and invalid values read as explicit labels; canonical ISO stays in storage, URLs, sort keys
-and hashes; every inventoried surface (docs/date-display-inventory.md) routes through the utility and
-the native pickers keep ISO with a companion line. Full local gate
-(6837 unit tests in 753 files, 38 backend files, policies, build, core E2E
+S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
+CI-GREEN at `59ad9224` (exact-SHA CI 35515037772), release deferred (billing). Verified: one typed policy
+projection (`lib/lease-renewal/policy-content.ts`) reads applicability as Unknown, Applicable, Not
+applicable or Needs review from the staff follow-up (a task, never coverage), the legacy Sheet column
+(evidence only) and an approved material version's declarative rule over verified facts; with no
+approved material every lease reads Pending approved policy material with the exact missing items and
+unrelated renewals are never gated; a bounded schema and a versioned store keep upload, approval and
+use separate; output slots substitute only verified facts and never invent wording. Full local gate
+(6866 unit tests in 759 files, 38 backend files, policies, build, core E2E
 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and CI-GREEN at
-`52286917` (exact-SHA CI 35513295598), release deferred (billing). Verified: one issue model
-(`lib/lease-renewal/renewal-issues.ts`) projected from the existing guidance, summary and read
-states; each issue carries a text kind (Blocked, Waiting on a person, Advisory, Source unavailable,
-Paused by policy), the affected action, the reason and who resolves it; desk and workspace share one
-primary action; a confirmed move-out redirects to the handoff; issue links carry the control id and
-focus lands on it after load or refresh; the S128 pause reads as policy. Full local gate
-(6843 unit tests in 755 files, 38 backend files, policies, build, core E2E
-8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-Next: S131 (F11, Rhino-policy conditional logic, ready for approved material upload), per its specification.
+Next: S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation), per its specification.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -81,6 +61,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 6. S125 (F04) thirty-day notice timing review with an explicit date basis: `41d6e00c`, CI 35511209348.
 7. S126 (F06) consistent month/day/year date presentation: `7f0ed865`, CI 35512028503.
 8. S127 (F07) clear blockers and exact next-action guidance: `52286917`, CI 35513295598.
+9. S131 (F11) Rhino-policy conditional logic, ready for approved material upload: `59ad9224`, CI 35515037772.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -115,7 +96,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126 and s127 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127 and s131 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -125,5 +106,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S131: S129, S130, S132;
+remains dependent. Bundle order after S129: S130, S132;
 S133 independent; S121 when scheduled.
