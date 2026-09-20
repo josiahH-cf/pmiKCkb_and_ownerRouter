@@ -2277,6 +2277,29 @@ textarea:disabled {
   gap: var(--space-2);
 }
 
+.renewal-issues summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-weight: 700;
+  min-height: 44px;
+}
+
+.renewal-issue-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding-left: 1.25rem;
+}
+
+.renewal-issue-kind {
+  font-weight: 700;
+}
+
+.renewal-issue-summary {
+  display: block;
+}
+
 .renewal-move-out-timing-facts {
   display: grid;
   gap: var(--space-1) var(--space-2);

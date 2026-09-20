@@ -77,8 +77,9 @@ describe("S82 preserved copy roles remain", () => {
     expect(globalStyles).toMatch(
       /\.renewal-workspace-link\s*\{[^}]*min-height:\s*44px;[^}]*min-width:\s*44px;/s,
     );
-    // S125 added the notice-timing RentVine review link on the same 44-pixel contract.
-    expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(6);
+    // S125 added the notice-timing RentVine review link and S127 the issue-disclosure and
+    // non-renewal handoff links, all on the same 44-pixel contract.
+    expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(8);
     expect(workspacePage).toContain("<RenewalDeskReturnLink");
     expect(source("components/lease-renewal/RenewalDeskReturnLink.tsx")).toContain(
       'className="back-link renewal-workspace-link"',

@@ -49,6 +49,10 @@ import {
   type RenewalDeskWorklistViewCounts,
 } from "@/lib/lease-renewal/desk-worklist-views";
 import {
+  NON_RENEWAL_HANDOFF_TARGET_ID,
+  projectRenewalIssues,
+} from "@/lib/lease-renewal/renewal-issues";
+import {
   ACCESS_RETURN_TEXT_SEARCH_NOTICE,
   accessReturnClearsTextSearch,
   buildRenewalDeskAccessReturn,
@@ -530,7 +534,10 @@ function currentDestinationHref(
   if (destination.kind === "workspace_phase" && leaseId) {
     return (
       buildWorkspaceHref({ leaseId, step: destination.stepId, deskView }) +
-      (destination.controlId && /^renewal-manual-[a-z_]+$/.test(destination.controlId)
+      // S127 (R-F07-03): any allow-listed control id becomes the exact focus target, so activating
+      // an issue from the desk lands on the field rather than the top of the section.
+      (destination.controlId &&
+      /^[A-Za-z][A-Za-z0-9_-]{0,120}$/.test(destination.controlId)
         ? `#${destination.controlId}`
         : "")
     );
@@ -800,6 +807,7 @@ export function RenewalDeskTable({
   sourceReadComplete = sourceReadOk,
   dependentStateComplete = true,
   viewCounts,
+  sheetWritebackPaused = false,
 }: Readonly<{
   rows: readonly DeskLeaseRow[];
   /** Preferred truthful count contract. */
@@ -820,6 +828,8 @@ export function RenewalDeskTable({
   dependentStateComplete?: boolean;
   /** S122: how many leases each worklist view would show under the current filters. */
   viewCounts?: RenewalDeskWorklistViewCounts;
+  /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
+  sheetWritebackPaused?: boolean;
 }>) {
   const deskView = encodeDeskView(state);
   const chips = buildActiveFilterChips(state);
@@ -1218,6 +1228,7 @@ export function RenewalDeskTable({
                   row={row}
                   shortcuts={shortcuts}
                   state={state}
+                  sheetWritebackPaused={sheetWritebackPaused}
                 />
               ))
             )}
@@ -1228,15 +1239,69 @@ export function RenewalDeskTable({
   );
 }
 
+/**
+ * S127: the row's other current issues (never the causal blockers the action cell already lists)
+ * as one compact text line with the kinds named, plus the S124 redirect to the non-renewal handoff
+ * for a confirmed move-out. Same projection as the workspace card; no status is stored.
+ */
+function RowIssueSummary({
+  row,
+  deskView,
+  sheetWritebackPaused,
+}: Readonly<{
+  row: DeskLeaseRow;
+  deskView: string | null;
+  sheetWritebackPaused: boolean;
+}>) {
+  if (row.id === "" || row.disposition === "skip") return null;
+  const projected = projectRenewalIssues({
+    guidance: row.guidance,
+    summary: row,
+    readComplete: true,
+    currencyState: "fresh",
+    progressStateAvailable: true,
+    sheetWritebackPaused,
+  });
+  const others = projected.issues.filter((issue) => issue.kind !== "blocking");
+  if (!projected.primary.redirected && others.length === 0) return null;
+  const kindLabels = [...new Set(others.map((issue) => issue.kindLabel))];
+  return (
+    <span
+      className="renewal-td-secondary renewal-issue-summary"
+      data-renewal-issue-kinds={[...new Set(others.map((issue) => issue.kind))].join(" ")}
+      data-renewal-issues={String(others.length)}
+      data-renewal-primary-redirect={
+        projected.primary.redirected ? "non_renewal_handoff" : "none"
+      }
+      title={others.map((issue) => `${issue.kindLabel}: ${issue.reason}`).join(" ")}
+    >
+      {projected.primary.redirected ? (
+        <Link
+          prefetch={false}
+          className="text-link"
+          href={`${buildWorkspaceHref({ leaseId: row.id, deskView })}#${NON_RENEWAL_HANDOFF_TARGET_ID}`}
+        >
+          Use the non-renewal handoff (RentVine move-out notice)
+        </Link>
+      ) : null}
+      {others.length > 0
+        ? `${projected.primary.redirected ? " " : ""}Also: ${kindLabels.join(", ")} (${others.length})`
+        : ""}
+    </span>
+  );
+}
+
 function DeskRow({
   row,
   state,
   role,
   shortcuts,
   deskView,
+  sheetWritebackPaused = false,
 }: Readonly<{
   row: DeskLeaseRow;
   state: RenewalDeskQueryV2State;
+  sheetWritebackPaused?: boolean;
   role: Role;
   shortcuts: DeskPartyShortcuts;
   deskView: string | null;
@@ -1552,6 +1617,11 @@ function DeskRow({
         data-renewal-field="action"
       >
         <ActionCell deskView={deskView} role={role} row={row} state={state} />
+        <RowIssueSummary
+          deskView={deskView}
+          row={row}
+          sheetWritebackPaused={sheetWritebackPaused}
+        />
       </td>
     </tr>
   );

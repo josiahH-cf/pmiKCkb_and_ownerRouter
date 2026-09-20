@@ -99,6 +99,7 @@ export function RenewalDesk({
   role = "Editor",
   partyFilters = NO_PARTY_ACCESS,
   auxiliaryFailures = [],
+  sheetWritebackPaused = false,
 }: Readonly<{
   view: RenewalDeskView;
   liveReviewHref?: string;
@@ -106,6 +107,8 @@ export function RenewalDesk({
   role?: Role;
   partyFilters?: DeskPartyFilterAccess;
   auxiliaryFailures?: readonly RenewalAuxiliaryFailure[];
+  /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
+  sheetWritebackPaused?: boolean;
 }>) {
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
   const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
@@ -188,6 +191,7 @@ export function RenewalDesk({
         totalInScope={result.totalInScope}
         totalLoaded={result.totalLoaded}
         viewCounts={viewCounts}
+        sheetWritebackPaused={sheetWritebackPaused}
       />
     </div>
   );

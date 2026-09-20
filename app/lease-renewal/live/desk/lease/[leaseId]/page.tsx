@@ -405,6 +405,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
           <RenewalWorkspace
             attemptSummary={attemptSummary}
             auxiliaryFailures={auxiliaryFailures}
+            sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             chargeInventory={chargeInventory}
             rentChargeStatus={rentChargeStatus}
             marketSubject={marketSubject}

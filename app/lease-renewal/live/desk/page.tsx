@@ -9,6 +9,7 @@ import type { LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import { normalizeRenewalDeskText } from "@/lib/lease-renewal/desk-query";
 import { parseRenewalDeskQueryV2 } from "@/lib/lease-renewal/desk-query-v2";
+import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import {
   createPartyFilterResolver,
   readPartyFilterKeyConfig,
@@ -108,6 +109,7 @@ export default async function LiveRenewalDeskPage({
         {outcome.status === "ok" ? (
           <RenewalDesk
             auxiliaryFailures={auxiliaryFailures}
+            sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             liveReviewHref="/lease-renewal/live"
             partyFilters={partyFilters}
             query={query}

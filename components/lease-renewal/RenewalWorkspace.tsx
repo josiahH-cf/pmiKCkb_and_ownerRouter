@@ -1,4 +1,10 @@
 import { formatCalendarDate } from "@/lib/date-display";
+import { RenewalFocusHashTarget } from "@/components/lease-renewal/RenewalFocusHashTarget";
+import {
+  NON_RENEWAL_HANDOFF_TARGET_ID,
+  projectRenewalIssues,
+  type RenewalIssue,
+} from "@/lib/lease-renewal/renewal-issues";
 import {
   RenewalSectionHeading,
   renewalCardTitle,
@@ -144,6 +150,7 @@ export function RenewalWorkspace({
   rentChargeStatus = null,
   marketSubject = null,
   workStatus = null,
+  sheetWritebackPaused = false,
 }: Readonly<{
   compScreenshotExecutable?: boolean;
   packetSnapshot?: RenewalPacketSnapshot | null;
@@ -190,6 +197,8 @@ export function RenewalWorkspace({
   marketSubject?: MarketSubjectProjection | null;
   /** S119: the staff work status read for the information panel and compact context. */
   workStatus?: RenewalWorkStatusPanelInput | null;
+  /** S127/S128: operating-Sheet writes paused by owner policy; stated as a policy pause, never a failure. */
+  sheetWritebackPaused?: boolean;
 }>) {
   const { summary } = workspace;
   const dataExpired = workspace.dataCurrency?.state === "expired";
@@ -273,6 +282,7 @@ export function RenewalWorkspace({
         }
       >
         <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+        <RenewalFocusHashTarget />
         <MoveOutDispositionNotice disposition={summary.moveOut} />
         <MoveOutTimingPanel
           sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
@@ -284,6 +294,7 @@ export function RenewalWorkspace({
             deskView={deskView}
             leaseId={summary.id}
             progressStateAvailable={progressStateAvailable}
+            sheetWritebackPaused={sheetWritebackPaused}
             workspace={workspace}
           />
         ) : null}
@@ -435,16 +446,71 @@ export function RenewalWorkspace({
   );
 }
 
+/**
+ * S127 (R-F07-01, R-F07-06): every other current issue on demand, each with a visible kind
+ * label, the action it affects, the reason and who resolves it; a destination is a link to the
+ * existing control, otherwise plain text. Never a self-grant, never a status write.
+ */
+function RenewalIssueDisclosure({
+  issues,
+  leaseId,
+  deskView,
+}: Readonly<{
+  issues: readonly RenewalIssue[];
+  leaseId: string;
+  deskView: string | null;
+}>) {
+  if (issues.length === 0) return null;
+  return (
+    <details className="renewal-issues" data-renewal-issues={String(issues.length)}>
+      <summary>Other current issues ({issues.length})</summary>
+      <ul className="renewal-issue-list">
+        {issues.map((issue) => {
+          const href =
+            issue.destination.kind === "workspace_phase"
+              ? `${buildWorkspaceHref({ leaseId, step: issue.destination.stepId, deskView })}#${issue.destination.controlId ?? renewalDashboardTarget(issue.destination.stepId)}`
+              : issue.destination.kind === "workspace_anchor"
+                ? `#${issue.destination.targetId}`
+                : null;
+          return (
+            <li
+              key={issue.id}
+              data-renewal-issue-id={issue.id}
+              data-renewal-issue-kind={issue.kind}
+            >
+              <span className="renewal-issue-kind">{issue.kindLabel}:</span>{" "}
+              <span>{issue.reason}</span>{" "}
+              <span className="muted">
+                Affects: {issue.affectedAction}. Resolved by: {issue.responsible}.
+              </span>
+              {href ? (
+                <>
+                  {" "}
+                  <a className="text-link renewal-workspace-link" href={href}>
+                    Go to the control
+                  </a>
+                </>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+  );
+}
+
 function DoThisNext({
   workspace,
   leaseId,
   deskView,
   progressStateAvailable,
+  sheetWritebackPaused = false,
 }: Readonly<{
   workspace: RenewalLeaseWorkspace;
   leaseId: string;
   deskView: string | null;
   progressStateAvailable: boolean;
+  sheetWritebackPaused?: boolean;
 }>) {
   const process = workspace.process;
   const currentStep = process.steps[process.currentStepIndex];
@@ -463,6 +529,23 @@ function DoThisNext({
   // never recomputed here, so the table and this workspace cannot disagree.
   const { guidance } = workspace;
   const action = guidance.action;
+  // S127: the same issue model the desk row projects from the same guidance; the primary action
+  // is the shared guidance action, redirected only for a confirmed move-out.
+  const projected = projectRenewalIssues({
+    guidance,
+    summary: workspace.summary,
+    readComplete: true,
+    currencyState: workspace.dataCurrency?.state ?? "fresh",
+    progressStateAvailable,
+    sheetWritebackPaused,
+  });
+  const issueDisclosure = (
+    <RenewalIssueDisclosure
+      deskView={deskView}
+      issues={projected.issues}
+      leaseId={leaseId}
+    />
+  );
   const destinationStepId =
     "destination" in action && action.destination.kind === "workspace_phase"
       ? action.destination.stepId
@@ -546,18 +629,30 @@ function DoThisNext({
           {"label" in action ? action.label : "Nothing else is required right now."}
         </p>
         {phaseLink}
+        {issueDisclosure}
       </Card>
     );
   }
   return (
     <Card title="Do this next">
-      {"label" in action ? (
+      {projected.primary.redirected ? (
+        <p data-renewal-primary-redirect="non_renewal_handoff">
+          {projected.primary.label}{" "}
+          <a
+            className="text-link renewal-workspace-link"
+            href={`#${NON_RENEWAL_HANDOFF_TARGET_ID}`}
+          >
+            Go to the non-renewal handoff
+          </a>
+        </p>
+      ) : "label" in action ? (
         <p>{action.label}</p>
       ) : (
         <p>Resolve the blockers below before continuing.</p>
       )}
       {blockers}
-      {phaseLink}
+      {projected.primary.redirected ? null : phaseLink}
+      {issueDisclosure}
     </Card>
   );
 }
