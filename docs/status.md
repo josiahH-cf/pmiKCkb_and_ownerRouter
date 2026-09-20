@@ -14,8 +14,9 @@ production configuration.
 The renewal meeting-readiness bundle (owner request of 2026-09-18) is in progress. S128 (F08, pause
 operating-Sheet writes) is IMPLEMENTED and CI-GREEN at `31bc9072`, release blocked. S123 (F02, retain
 unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at `aa062d8e` (CI `35505452408`),
-release deferred. Next in order: S124, S134, S122, S125, S126, S127, S131, S129, S130, S132; S133 is
-independent; S121 when scheduled.
+release deferred. S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and
+CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. Next in order: S134, S122, S125, S126, S127,
+S131, S129, S130, S132; S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -37,6 +38,29 @@ cases failed before the implementation and pass after it; the seven preservation
 times. Compiled browser checks: NOT RUN (the rehearsal server refuses to start without fresh WSL
 auth; owner re-enrollment is the surfaced blocker). No client message was sent and no live record was
 written. Human verdict: NOT RUN.
+
+S124 establishes the exact RentVine move-out read contract from the official reference and read-only
+shape probes (the documented lease status table's pending and completed move-out flags plus the lease
+detail's notice, expected move-out and move-out dates; neither the marked-to-vacate flag nor the
+move-out status id is a notice marker) and projects one typed, source-attributed disposition per
+lease: move-out initiated, no move-out notice, notice withdrawn (only with prior app-owned evidence,
+which no store records yet) or unknown with a bounded reason. An unreadable status table, a missing
+or unresolved status, a pending or closed lease, an unreadable detail, a notice date without a notice
+status and an expired read all read unknown and stay in the default worklist with a review cue; they
+never read as no notice. The desk gained the "Move-out notice" filter (all, initiated, exclude
+confirmed, unknown, no notice, non-renewal by RentVine notice or staff decision) and a per-row
+indicator; the lease workspace shows a confirmed notice as a status and an unknown state as a review
+cue before any outreach guidance; the server-side supplied-template preview blocks a new ordinary
+renewal draft for a confirmed notice so a stale client request cannot bypass it. The provider notice
+creates no completion, fee, handoff mark, source write or message; the staff non-renewal decision
+remains its own audited fact.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6,790 unit tests
+(742 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. Ten new-behavior cases failed before the
+implementation and pass after it; the five pure-projection cases and the preservation set passed both
+times. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no
+live record was written; the two probes read only. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

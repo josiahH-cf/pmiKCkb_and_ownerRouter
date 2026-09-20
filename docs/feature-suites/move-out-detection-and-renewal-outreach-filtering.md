@@ -4,7 +4,7 @@
 # S124 — Move-out detection and non-renewal outreach filtering
 
 > **Approval reference:** F03 (original feature #3).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `fc03ec55` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. The exact read contract is recorded in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT; serving evidence in F-S124.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S124 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F03 when renumbering.
 > **Classification:** New source-backed disposition over the existing non-renewal handoff.
@@ -75,7 +75,7 @@ In scope: bounded mapping investigation, fail-closed read projection, outreach p
 
 **Open questions & assumptions.**
 
-Live dependency: exact RentVine notice/initiation/cancellation fields are not established by the supplied material or this bounded repository/search review. The implementation must produce an evidence-backed map or an explicit unavailable result. This blocks an automatic live-source claim, not the tested unknown-state and manual-handoff slice.
+Live dependency (resolved 2026-09-20): the exact RentVine notice fields were established from the official reference and read-only live probes and are recorded in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT: the status table's pending and completed move-out flags are the initiation evidence; the lease detail's notice date and expected move-out date are supporting evidence; RentVine exposes no explicit cancellation field, so withdrawal needs prior app-owned initiated evidence (no store records it yet) and otherwise stays unknown or a review case.
 
 Unverified business/provider facts cannot be replaced by a plausible default. An explicitly labeled presentation/engineering default may be implemented within the approved scope; source semantics, policy applicability, legal wording, and provider permissions require their actual evidence. Missing input blocks only the dependent outcome identified below.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff see that move-out is already initiated before contacting the owner, can find those leases as a group, and can distinguish a confirmed notice from missing information.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `fc03ec55` (2026-09-20): AC-S124-1 through AC-S124-7 covered by the unit and component cases named in F-S124, with the read contract verified against docs.rentvine.com and read-only live probes; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

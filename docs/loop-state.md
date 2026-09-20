@@ -20,9 +20,19 @@ the desk row and in the lease workspace; retention, cycle identity and the store
 checks that already held. Browser smokes: NOT RUN (rehearsal server refuses without fresh WSL auth).
 Human verdict: NOT RUN, no human observer.
 
-Next: S124 (F03, move-out detection and non-renewal outreach filtering). Its first bounded step is the
-read-only RentVine field discovery (`discover:rentvine-fields -- --live`, redacted output, no ADC
-needed) to establish or refute an exact notice/move-out field map before any disposition ships.
+S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and CI-GREEN at
+`fc03ec55` plus the test-only fix `3d4a9e23` (exact-SHA CI 35508231675), release deferred (billing). Verified: read-only RentVine discovery
+established the exact contract (the documented `GET /leases/statuses` table's isPendingMoveOutStatus
+and isCompletedMoveOutStatus flags plus the lease detail's leaseStatusID, noticeDate,
+expectedMoveOutDate and moveOutDate; shape and aggregate probes only, kept outside Git); the typed
+disposition (initiated, not_initiated, withdrawn, unknown with a bounded reason) rides on every desk
+row and the workspace, drives the moveOut desk filter, and blocks a new ordinary renewal draft at the
+server preview for a confirmed notice. Full local gate on the identical tree (6,790 unit tests in
+742 files, 38 backend files, policies, build, core E2E 8 passed and 4 skips).
+Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
+
+Next: S134 (F14, color-coded lease status sorting and filtering), which consumes the S123 cycle state
+and the S124 disposition through their typed contracts, never a second provider reader.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -47,6 +57,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 1. S128 (F08) pause operating-Sheet writes: code `31bc9072`, docs `0bbd95c3`, CI 35342904192.
    Deploys with the flag false; the watcher rollback guard and flag-false readbacks ship with it.
 2. S123 (F02) retain unfinished renewals across date changes: `aa062d8e`, CI 35505452408.
+3. S124 (F03) move-out detection and non-renewal outreach filtering: `fc03ec55` plus test fix `3d4a9e23`, CI 35508231675.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -81,7 +92,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA and s123 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123 and s124 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -91,5 +102,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S124: S134, S122, S125, S126, S127, S131, S129, S130, S132;
+remains dependent. Bundle order after S134: S122, S125, S126, S127, S131, S129, S130, S132;
 S133 independent; S121 when scheduled.

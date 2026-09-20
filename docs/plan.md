@@ -11,8 +11,11 @@ order S128 -> S123 -> S124 -> S134 -> S122 -> S125 -> S126 -> S127 -> S131 -> S1
 with S133 independent and S121 when scheduled; every feature preserves the S128 pause. S128 (F08) is
 IMPLEMENTED and CI-GREEN at `31bc9072`. S123 (F02) is IMPLEMENTED and CI-GREEN at `aa062d8e`:
 the recorded cycle basis is compared with the current provider lease end and surfaced on the desk and
-in the workspace, while retention, cycle identity and the audited store held as preservation. Next:
-S124 (F03), starting with the read-only RentVine field discovery for an exact notice/move-out map.
+in the workspace, while retention, cycle identity and the audited store held as preservation. S124
+(F03) is IMPLEMENTED and CI-GREEN at `fc03ec55`: the exact RentVine move-out contract (status-table
+flags plus lease-detail notice dates) feeds one typed disposition that filters the desk, cues the
+workspace and blocks ordinary drafts server-side for a confirmed notice. Next: S134 (F14), which
+consumes the S123 cycle state and the S124 disposition through their typed contracts.
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the
