@@ -15,8 +15,9 @@ The renewal meeting-readiness bundle (owner request of 2026-09-18) is in progres
 operating-Sheet writes) is IMPLEMENTED and CI-GREEN at `31bc9072`, release blocked. S123 (F02, retain
 unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at `aa062d8e` (CI `35505452408`),
 release deferred. S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and
-CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. Next in order: S134, S122, S125, S126, S127,
-S131, S129, S130, S132; S133 is independent; S121 when scheduled.
+CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. S134 (F14, color-coded lease status with matching sorting and filters) is
+IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. Next in order: S122, S125,
+S126, S127, S131, S129, S130, S132; S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -61,6 +62,26 @@ passed; core E2E passed with 8 files and 4 intentional skips. Ten new-behavior c
 implementation and pass after it; the five pure-projection cases and the preservation set passed both
 times. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no
 live record was written; the two probes read only. Human verdict: NOT RUN.
+
+S134 adds one cycle-aware lifecycle category per lease, projected from the audited manual cycle, the
+app-recorded progress, the S123 cycle-versus-provider-date relation, the S124 move-out disposition and
+the existing eligibility window: Complete (attributed as recorded by staff or in the app; a completed
+non-renewal handoff says so), Non-renewal initiated (RentVine notice or staff decision), In progress,
+Upcoming, Later / outside current window and Unknown: review. An old completion whose provider lease
+end has advanced becomes Upcoming or Later rather than hiding the new cycle; a staff work-status label
+is never an input. Each desk row shows one small decorative dot beside the visible label in the
+renewal-status cell (green complete, orange upcoming, yellow non-renewal through theme tokens in both
+themes; neutral otherwise) next to the unchanged readiness badge and staff status; the header gained a
+Lifecycle sort (alphabetic by visible label with date and lease-id ties) and the filters a Lifecycle
+status select with chips and URL round-trip; the lease workspace header shows the same category.
+Pressing a label filters; nothing edits a status, starts a cycle, writes a source or sends.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6800 unit tests
+(744 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. Five integration cases failed before the
+implementation and pass after it; the three pure-projection cases and the preservation set passed both
+times. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no
+live record was written. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /
