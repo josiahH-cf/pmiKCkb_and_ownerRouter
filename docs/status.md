@@ -19,7 +19,8 @@ CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), rel
 IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and
 CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. S125 (F04, thirty-day notice timing review with an explicit date basis) is
 IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. S126 (F06, consistent month/day/year date presentation) is IMPLEMENTED and
-CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. Next in order: S127, S131, S129, S130, S132;
+CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and
+CI-GREEN at `52286917` (CI `35513295598`), release deferred. Next in order: S131, S129, S130, S132;
 S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
@@ -136,6 +137,25 @@ surface and inventory cases were written before the integration and pass after i
 existing assertions that pinned the previous formats now pin the convention. Compiled browser
 checks: NOT RUN (rehearsal auth blocked). No client message was sent and no live record was
 written. Human verdict: NOT RUN.
+
+S127 makes every renewal issue specific. One issue model, projected from the guidance and facts
+the desk already reads, gives each issue a text kind (Blocked, Waiting on a person, Advisory, Source
+unavailable, Paused by policy), the action it affects, the business reason and who resolves it. The
+desk row and the workspace select the same primary action from the same evidence; a confirmed
+move-out sends staff to the non-renewal handoff instead of owner or tenant outreach. The workspace
+lists the other current issues on demand with a link to the exact control, the desk shows their
+kinds beside the action, and activating an issue focuses its field, also after a refresh. The
+operating-Sheet pause reads as owner policy, not as a failure, and an unavailable optional source
+limits only the actions that depend on it. Roles see inspect, prepare, review, execute or the
+existing request-access path; nothing is granted and no server check changed. Focusing the next
+unresolved item after a save is not built and stays open.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6843 unit tests
+(755 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The issue-model, desk-row, workspace
+and focus cases were written before the integration and pass after it; the desk copy contract now
+pins the additional workspace links. Compiled browser checks: NOT RUN (rehearsal auth blocked). No
+client message was sent and no live record was written. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

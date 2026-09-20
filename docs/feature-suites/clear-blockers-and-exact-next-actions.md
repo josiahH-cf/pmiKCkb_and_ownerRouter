@@ -4,7 +4,7 @@
 # S127 — Clear blockers and exact next-action guidance
 
 > **Approval reference:** F07 (original feature #7).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `52286917` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S127.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S127 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F07 when renumbering.
 > **Classification:** Targeted usability correction over existing help and readiness controls.
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** A staff member unfamiliar with a blocker understands what is missing, selects the action, lands on the correct field or handoff, and sees the next step only after the save is confirmed.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `52286917` (2026-09-20): AC-S127-1 through AC-S127-4 and AC-S127-7 covered by the issue-model, desk-row, workspace and focus cases named in F-S127; AC-S127-6 in text only and AC-S127-5 partially (post-save focus not built); compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

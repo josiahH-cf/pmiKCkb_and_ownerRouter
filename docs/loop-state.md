@@ -40,7 +40,17 @@ the native pickers keep ISO with a companion line. Full local gate
 (6837 unit tests in 753 files, 38 backend files, policies, build, core E2E
 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-Next: S127 (F07, clear blockers and exact next-action guidance), per its specification.
+S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and CI-GREEN at
+`52286917` (exact-SHA CI 35513295598), release deferred (billing). Verified: one issue model
+(`lib/lease-renewal/renewal-issues.ts`) projected from the existing guidance, summary and read
+states; each issue carries a text kind (Blocked, Waiting on a person, Advisory, Source unavailable,
+Paused by policy), the affected action, the reason and who resolves it; desk and workspace share one
+primary action; a confirmed move-out redirects to the handoff; issue links carry the control id and
+focus lands on it after load or refresh; the S128 pause reads as policy. Full local gate
+(6843 unit tests in 755 files, 38 backend files, policies, build, core E2E
+8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
+
+Next: S131 (F11, Rhino-policy conditional logic, ready for approved material upload), per its specification.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -70,6 +80,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 5. S122 (F01) all-lease visibility and explicit worklist views: `39a7f929`, CI 35509588537.
 6. S125 (F04) thirty-day notice timing review with an explicit date basis: `41d6e00c`, CI 35511209348.
 7. S126 (F06) consistent month/day/year date presentation: `7f0ed865`, CI 35512028503.
+8. S127 (F07) clear blockers and exact next-action guidance: `52286917`, CI 35513295598.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -104,7 +115,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125 and s126 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126 and s127 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -114,5 +125,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S127: S131, S129, S130, S132;
+remains dependent. Bundle order after S131: S129, S130, S132;
 S133 independent; S121 when scheduled.
