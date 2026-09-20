@@ -4,7 +4,7 @@
 # S126 — Consistent month/day/year date presentation
 
 > **Approval reference:** F06 (original feature #6).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `7f0ed865` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S126 and `docs/date-display-inventory.md`.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S126 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F06 when renumbering.
 > **Classification:** Application-wide presentation correction with unchanged date semantics.
@@ -131,7 +131,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** An operator reads the same lease date in the table, header, sidebar, and draft preview in the expected order, and filtering/sorting still returns the same leases.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `7f0ed865` (2026-09-20): AC-S126-1 through AC-S126-7 covered by the utility, surface and inventory cases named in F-S126 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

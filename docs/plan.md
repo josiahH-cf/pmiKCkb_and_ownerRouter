@@ -20,7 +20,9 @@ Lifecycle sort and filter, and the workspace header. S122 (F01) is IMPLEMENTED a
 `39a7f929`: three table-owned views (Active / upcoming, All leases, Completed) with counts and
 zero-match offers over the one loaded projection. S125 (F04) is IMPLEMENTED and CI-GREEN at
 `41d6e00c`: a versioned notice timing evaluator with an Admin-recorded basis, a desk filter and a
-workspace panel. Next: S126 (F06, consistent month/day/year date presentation).
+workspace panel. S126 (F06) is IMPLEMENTED and CI-GREEN at `7f0ed865`: one shared
+date-display utility and an app-wide inventory. Next: S127 (F07, clear blockers and exact
+next-action guidance).
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the

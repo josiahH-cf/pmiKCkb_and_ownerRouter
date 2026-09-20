@@ -18,8 +18,9 @@ release deferred. S124 (F03, move-out detection and non-renewal outreach filteri
 CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. S134 (F14, color-coded lease status with matching sorting and filters) is
 IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and
 CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. S125 (F04, thirty-day notice timing review with an explicit date basis) is
-IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. Next in order: S126, S127, S131,
-S129, S130, S132; S133 is independent; S121 when scheduled.
+IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. S126 (F06, consistent month/day/year date presentation) is IMPLEMENTED and
+CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. Next in order: S127, S131, S129, S130, S132;
+S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -120,6 +121,21 @@ cases failed before their modules existed and pass after them; the desk, workspa
 cases were written against the finished surfaces and pass; the S113 read-order fixture now mocks the
 basis read. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and
 no live record was written. Human verdict: NOT RUN.
+
+S126 gives the app one date presentation: every app-owned calendar date reads MM/DD/YYYY, months
+read as a name and year, and audit stamps keep their time and the Central zone after the date.
+Date-only values are formatted without any time zone, so a calendar day never shifts; missing
+dates read as Not available or the surface's existing label, bad values as Invalid date. Stored
+values, URLs, sort keys and hashes stay ISO; the desk pickers keep ISO and show the selection in
+the convention. The inventory names every surface changed and every one left alone on purpose.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6837 unit tests
+(753 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The utility's boundary cases and the
+surface and inventory cases were written before the integration and pass after it; seventeen
+existing assertions that pinned the previous formats now pin the convention. Compiled browser
+checks: NOT RUN (rehearsal auth blocked). No client message was sent and no live record was
+written. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /
