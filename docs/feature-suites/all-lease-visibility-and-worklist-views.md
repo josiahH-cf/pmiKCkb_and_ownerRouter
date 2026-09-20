@@ -4,7 +4,7 @@
 # S122 — All-lease visibility and explicit worklist views
 
 > **Approval reference:** F01 (original feature #1).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `39a7f929` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S122.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S122 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F01 when renumbering.
 > **Classification:** Enhancement of the existing renewal desk.
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** An operator who cannot find a lease switches to All leases, finds it despite an advanced date, opens its details, and returns to the exact filtered table without starting or completing work.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `39a7f929` (2026-09-20): AC-S122-1 through AC-S122-7 covered by the unit, component and controlled-fake loader cases named in F-S122 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

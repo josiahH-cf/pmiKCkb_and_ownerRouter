@@ -42,8 +42,18 @@ in the canonical query; the same category in the workspace header. Full local ga
 tests in 744 files, 38 backend files, policies, build, core E2E 8 passed and 4
 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-Next: S122 (F01, all-lease visibility and worklist views), which consumes the lifecycle category and
-the existing scopes; its Completed view selects All leases plus Complete.
+S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and CI-GREEN at
+`39a7f929` (exact-SHA CI 35509588537), release deferred (billing). Verified: three table-owned views derived
+from the one canonical query (Active / upcoming = the unchanged active default, All leases = scope
+all, Completed = All leases plus the S134 Complete category); each with a count from the same rows
+and actor-scoped matcher as the table, flagged on a partial read; every other filter, the sort, the
+chips and the deskView return path persist across a view switch; a zero-match result on a complete
+read offers Show all leases and Remove these filters and never claims a lease is missing. Inventory,
+inspection and no-false-absence are preservation evidence with controlled fakes. Full local gate
+(6812 unit tests in 747 files, 38 backend files, policies, build, core E2E 8
+passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
+
+Next: S125 (F04, thirty-day notice timing review), per its specification.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -70,6 +80,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 2. S123 (F02) retain unfinished renewals across date changes: `aa062d8e`, CI 35505452408.
 3. S124 (F03) move-out detection and non-renewal outreach filtering: `fc03ec55` plus test fix `3d4a9e23`, CI 35508231675.
 4. S134 (F14) color-coded lease status with matching sorting and filters: `136826cc`, CI 35508545796.
+5. S122 (F01) all-lease visibility and explicit worklist views: `39a7f929`, CI 35509588537.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -104,7 +115,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124 and s134 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134 and s122 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -114,5 +125,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S122: S125, S126, S127, S131, S129, S130, S132;
+remains dependent. Bundle order after S125: S126, S127, S131, S129, S130, S132;
 S133 independent; S121 when scheduled.

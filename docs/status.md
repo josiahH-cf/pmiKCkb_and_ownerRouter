@@ -16,8 +16,9 @@ operating-Sheet writes) is IMPLEMENTED and CI-GREEN at `31bc9072`, release block
 unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at `aa062d8e` (CI `35505452408`),
 release deferred. S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and
 CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. S134 (F14, color-coded lease status with matching sorting and filters) is
-IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. Next in order: S122, S125,
-S126, S127, S131, S129, S130, S132; S133 is independent; S121 when scheduled.
+IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and
+CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. Next in order: S125, S126, S127, S131, S129, S130,
+S132; S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -82,6 +83,23 @@ passed; core E2E passed with 8 files and 4 intentional skips. Five integration c
 implementation and pass after it; the three pure-projection cases and the preservation set passed both
 times. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no
 live record was written. Human verdict: NOT RUN.
+
+S122 gives the renewal desk three obvious worklist views over the one loaded projection: Active /
+upcoming (the unchanged default), All leases, and Completed (All leases plus the cycle-aware Complete
+category), each with a count from the same rows and the same actor-scoped matcher as the table.
+Switching views keeps every owner, tenant, location, date and sort choice, the chips and the return
+path; tracked and periodic-review bookmarks still work and show no current view. A zero-match result
+on a complete read now offers Show all leases and Remove these filters beside the existing copy and
+never claims a lease is missing; partial or failed reads keep their no-claim copy. A lease dated years
+ahead opens read-only with its source link and starts nothing.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6812 unit tests
+(747 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The view and table cases failed before
+the implementation (missing module) and pass after it; the inventory, inspection and no-false-absence
+cases are preservation evidence (their first run failed only on a fixture without the status table).
+Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no live
+record was written. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /
