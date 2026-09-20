@@ -27,7 +27,9 @@ the workspace, with control-level focus targets. S131 (F11) is IMPLEMENTED and C
 a typed conditional policy projection, a versioned material store with separate intake and approval,
 and an honest pending state. S129 (F09) is IMPLEMENTED and CI-GREEN at `009c4414`: an evidence
 matrix over the existing draft path, the policy gate enforced at the server draft boundary, and a
-read-only meeting preflight per audience. Next: S130 (F10, seven-template intake and Dotloop prefill readiness).
+read-only meeting preflight per audience. S130 (F10) is IMPLEMENTED and CI-GREEN at `696147f9`: a
+seven-family intake manifest on the S66 catalog seam, byte classification as data, reviewed
+version-bound maps, a Preview-only worksheet and an honest fill boundary. Next: S132 (F12, end-to-end walkthrough preparation and meeting evidence).
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the

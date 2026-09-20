@@ -4,7 +4,7 @@
 # S130 — Seven-template intake and Dotloop prefill readiness
 
 > **Approval reference:** F10 (original feature #10).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `696147f9` (2026-09-20) as a conditional scaffold; release deferred by the billing incident; no deployment, provider activation, real form intake or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S130.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S130 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F10 when renumbering.
 > **Classification:** Conditional scaffold and targeted extension of S66/S106/S34.
@@ -141,7 +141,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** When forms arrive, staff know where to upload and review them, see exactly what is missing, reuse lease facts across documents, and can tell the difference between a field worksheet, a genuinely filled file, an uploaded packet, and a signed lease.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `696147f9` (2026-09-20): AC-S130-1 through AC-S130-6 and AC-S130-8 covered by the classification, mapping, worksheet, fill-boundary, identity, catalog, readiness, checkpoint, store, route, surface and local end-to-end cases named in F-S130 on synthetic fixtures; AC-S130-7 carried as preservation evidence by the existing S34 tests; machine autofill for PDF forms is unavailable by tooling; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

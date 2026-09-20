@@ -22,7 +22,8 @@ IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. S12
 CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and
 CI-GREEN at `52286917` (CI `35513295598`), release deferred. S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
 CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is IMPLEMENTED and
-CI-GREEN at `009c4414` (CI `35516040981`), release deferred. Next in order: S130, S132;
+CI-GREEN at `009c4414` (CI `35516040981`), release deferred. S130 (F10, seven-template intake and Dotloop prefill readiness) is IMPLEMENTED and
+CI-GREEN at `696147f9` (CI `35517371018`), release deferred. Next in order: S132;
 S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
@@ -199,6 +200,27 @@ cases were written before the integration and pass after it; the existing prepar
 recovery and move-out cases pass unchanged as preservation evidence. Compiled browser checks: NOT RUN
 (rehearsal auth blocked). No client message was sent, no live record was written and no provider
 request was made. Human verdict: NOT RUN.
+
+S130 prepares the seven-template intake before any real form arrives. Each of the seven families
+has one entry that reads Pending materials until a file is received through the trusted publication
+path; the bytes are classified as data (fillable PDF, static PDF, provider-native only when staff
+record a template reference, or unsupported) and never interpreted. A reviewed, version-bound map
+names each field's meaning, repeats and sources and each signer's party, and is refused on a renamed
+required field, a wrong signer role or a template conflict. The worksheet repeats one known value per
+tenant and per pet and stays Preview only. Provider-native templates fill to comparable field values;
+PDF forms keep the worksheet and an exact manual Dotloop handoff, because no PDF filling route exists
+here, and nothing is ever called prefilled. Approval projects the exact version into the packet catalog
+the evaluation already uses; replacing a file rewrites it so old preparations read as stale. The
+checkpoints from intake to inspecting the returned state advance only on recorded evidence. Real forms,
+mappings and provider activation remain pending external inputs.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6891 unit tests
+(767 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The classification, mapping, worksheet,
+fill-boundary, identity, catalog, readiness, checkpoint, store, route, surface and local end-to-end cases
+were written before the integration and pass after it; the existing S66 and S34 cases pass unchanged
+as preservation evidence. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message
+was sent, no live record was written and no provider request was made. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /
