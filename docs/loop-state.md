@@ -36,7 +36,26 @@ meeting:preflight` reads only git identity, the F08 flag and Dotloop configurati
 gate (6919 unit tests in 770 files, 38 backend files, policies, build, core E2E
 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-Next: S133 (F13, external maintenance-agent handoff assessment), independent of the bundle; S121 when scheduled.
+S133 (F13, external maintenance-agent handoff assessment, independent of the bundle) is IMPLEMENTED
+and CI-GREEN at `75c06252` (exact-SHA CI 35519982150), release deferred (billing). Verified: a bounded
+assessment contract (`lib/maintenance/external-agent-handoff-assessment.ts`) in which a conclusion is
+supported only by owner material, vendor primary documentation, an authorized read-only read or
+repository code (never a transcript remark), every not-established row names its exact requested input
+and owner, external write or event claims stay undemonstrated without primary documentation, unsourced
+ownership claims and missing boundaries become decision items, the handoff record keeps an allowlist and
+refuses secrets and raw communications by name, identity joins only on stable verified ids or a
+confirmed human association, an ambiguous create is never retryable, and every option stays
+conditional until its evidence is supported; the tabletop decision packet
+(`docs/evidence/s133-external-maintenance-agent-handoff-assessment-2026-09-20.md`) keeps the agent's transcript
+label, marks vendor identity, account, access, interfaces and terms Not established with owner and
+administrator inputs, inventories the application side from code with the registry keys as committed,
+and names the one owner decision. No vendor contacted, no connector, key, identity or Maintenance
+change. Full local gate (6944 unit tests in 772 files, 38 backend files,
+policies, build, core E2E 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked).
+Human verdict: NOT RUN.
+
+Next: S121 when the owner schedules it. Nothing else is queued for building; the Awaiting release
+queue below waits on the owner's billing fix (F-BILLING-INCIDENT).
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -71,6 +90,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 10. S129 (F09) owner and tenant draft workflows, technical readiness for meeting validation: `009c4414`, CI 35516040981.
 11. S130 (F10) seven-template intake and Dotloop prefill readiness: `696147f9`, CI 35517371018.
 12. S132 (F12) end-to-end walkthrough preparation and meeting evidence: `f74468a1`, CI 35519202311.
+13. S133 (F13) external maintenance-agent handoff assessment: `75c06252`, CI 35519982150.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -105,7 +125,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127, s131, s129, s130 and s132 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127, s131, s129, s130, s132 and s133 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -116,4 +136,4 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
 remains dependent. The renewal meeting-readiness bundle (S122 to S132 and S134) is fully implemented
-and release-deferred; S133 independent; S121 when scheduled.
+and release-deferred; S133 (independent) is implemented and release-deferred; S121 when scheduled.

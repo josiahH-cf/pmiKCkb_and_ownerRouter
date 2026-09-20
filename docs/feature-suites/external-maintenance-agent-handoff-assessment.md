@@ -4,7 +4,7 @@
 # S133 — External maintenance-agent handoff assessment
 
 > **Approval reference:** F13 (original feature #13).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `75c06252` (2026-09-20) as a bounded assessment contract and tabletop decision packet; release deferred by the billing incident; no vendor contacted, no account connected, no provider activated and no integration built. Feasibility not established pending the owner inputs in `docs/open-blockers.md` B-MNT2. Serving evidence: `docs/facts.md` F-S133.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S133 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F13 when renumbering.
 > **Classification:** Bounded discovery/decision specification, not an integration implementation.
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** The maintenance owner can see what the purchased agent actually handles, what the app would receive or hand off, what remains manual or unknown, and what must be decided before any build.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `75c06252` (2026-09-20): AC-S133-1 through AC-S133-6 covered by the contract and packet cases named in F-S133 on synthetic fixtures and the tabletop packet; the existing Maintenance tests carry preservation; provider feasibility is not established and is not claimed; compiled browser checks NOT RUN (no served surface changed); no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

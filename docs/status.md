@@ -24,8 +24,9 @@ CI-GREEN at `52286917` (CI `35513295598`), release deferred. S131 (F11, Rhino-po
 CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is IMPLEMENTED and
 CI-GREEN at `009c4414` (CI `35516040981`), release deferred. S130 (F10, seven-template intake and Dotloop prefill readiness) is IMPLEMENTED and
 CI-GREEN at `696147f9` (CI `35517371018`), release deferred. S132 (F12, end-to-end walkthrough preparation and meeting evidence) is IMPLEMENTED
-and CI-GREEN at `f74468a1` (CI `35519202311`), release deferred. The bundle is fully implemented;
-S133 is independent; S121 when scheduled.
+and CI-GREEN at `f74468a1` (CI `35519202311`), release deferred. The bundle is fully implemented. S133 (F13, external maintenance-agent handoff
+assessment), independent of the bundle, is IMPLEMENTED and CI-GREEN at `75c06252` (CI `35519982150`),
+release deferred; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -241,6 +242,26 @@ ledger, import and technical-ledger cases were written before the runbook and pa
 existing guide-control and resource-configuration cases pass unchanged as preservation evidence.
 Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent, no live record
 was written and no provider request was made. Human verdict: NOT RUN.
+
+S133 assesses the external maintenance agent without building toward it. A bounded contract
+lets a conclusion be supported only by owner material, vendor documentation, an authorized
+read-only read or repository code, makes every missing input name who supplies it, keeps external
+write and event claims undemonstrated until documented, turns unsourced ownership claims into
+decision items, joins records only on stable verified ids or a confirmed human step, and never
+presents an ambiguous create as retryable. The tabletop decision packet keeps the agent's transcript
+label, marks the vendor's identity, account, access, interfaces and terms Not established with the
+exact owner and administrator inputs, inventories what PMI KC already does from code with the
+registry keys as committed, and keeps the three handoff options conditional behind one owner
+decision. Feasibility is not established. No vendor was contacted and nothing was connected,
+scheduled or changed in Maintenance.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6944 unit tests
+(772 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The contract and packet cases were
+written before the packet and pass against it; the existing Maintenance authority, matching,
+preapproval and intake cases pass unchanged as preservation evidence. Compiled browser checks: NOT RUN
+(no served surface changed). No client message was sent, no live record was written and no provider
+request was made. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /
