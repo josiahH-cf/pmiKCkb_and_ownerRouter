@@ -8,6 +8,13 @@ import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { MoveOutTimingBasisAdminPanel } from "@/components/admin/MoveOutTimingBasisAdminPanel";
 import { PolicyMaterialAdminPanel } from "@/components/admin/PolicyMaterialAdminPanel";
+import { LeaseArtifactIntakePanel } from "@/components/admin/LeaseArtifactIntakePanel";
+import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
+import { projectIntakeCheckpoints } from "@/lib/lease-documents/artifact-intake";
+import {
+  emptyArtifactIntakeManifest,
+  type ArtifactIntakeManifest,
+} from "@/lib/lease-documents/artifact-intake-contract";
 import {
   listPolicyMaterial,
   type PolicyMaterialVersionRecord,
@@ -105,6 +112,7 @@ export default async function AdminPage() {
   let timingBasisNote: string | undefined;
   let policyMaterial: PolicyMaterialVersionRecord[] = [];
   let policyMaterialNote: string | undefined;
+  let artifactIntake: ArtifactIntakeManifest = emptyArtifactIntakeManifest("unreadable");
   let ownerPolicyRules: OwnerPolicyRule[] = [];
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
@@ -214,6 +222,10 @@ export default async function AdminPage() {
         policyMaterialNote =
           "Policy material versions are unavailable right now. Reload before submitting or deciding.";
       }),
+    // S130: the seven-family intake manifest (this read never throws).
+    readArtifactIntakeManifest().then((manifest) => {
+      artifactIntake = manifest;
+    }),
     // S62: owner-policy pricing rules. Degrades to an empty list; the panel still renders.
     listOwnerPolicyRules(user)
       .then((rules) => {
@@ -529,6 +541,20 @@ export default async function AdminPage() {
             <PolicyMaterialAdminPanel
               initial={policyMaterial}
               note={policyMaterialNote}
+            />
+          </div>
+          <div className="task-anchor" id="admin-lease-artifact-intake" tabIndex={-1}>
+            <LeaseArtifactIntakePanel
+              initial={{
+                manifest: artifactIntake,
+                checkpoints: projectIntakeCheckpoints({
+                  manifest: artifactIntake,
+                  filledValuesVerified: false,
+                  packetState: null,
+                  providerReceiptId: null,
+                  returnedStateInspected: false,
+                }),
+              }}
             />
           </div>
           <div className="task-anchor" id="admin-content-builder" tabIndex={-1}>
