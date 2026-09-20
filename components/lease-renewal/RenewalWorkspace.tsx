@@ -69,6 +69,7 @@ import {
   type RenewalAuxiliaryFailure,
 } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
+import type { MoveOutTimingResult } from "@/lib/lease-renewal/move-out-timing";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -272,6 +273,10 @@ export function RenewalWorkspace({
       >
         <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
         <MoveOutDispositionNotice disposition={summary.moveOut} />
+        <MoveOutTimingPanel
+          sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
+          timing={summary.moveOutTiming}
+        />
 
         {workspace.workflowAvailable ? (
           <DoThisNext
@@ -1129,6 +1134,70 @@ function ChannelView({ message }: Readonly<{ message: ChannelMessage }>) {
  * guidance. A confirmed notice reads as status; an unknown state is a review cue; an explicit
  * absence renders nothing here. Manual non-renewal work stays in the recorded-work controls.
  */
+/**
+ * S125 (R-F04-03, R-F04-05): the notice timing comparison with both dates, the days given and the
+ * reviewed basis. A below-threshold or undeterminable result points at the source record and the
+ * existing handoff; nothing here calculates fees, balances or legal standing, and an explicit
+ * absence of notice renders nothing.
+ */
+function MoveOutTimingPanel({
+  timing,
+  sourceHref,
+}: {
+  timing: MoveOutTimingResult | undefined;
+  sourceHref: string | null;
+}) {
+  if (!timing || timing.state === "not_applicable") return null;
+  const targetHeading = timing.targetLabel
+    ? timing.targetLabel.charAt(0).toUpperCase() + timing.targetLabel.slice(1)
+    : "Target date (basis not reviewed)";
+  return (
+    <section
+      aria-label="Notice timing"
+      className="renewal-move-out-timing"
+      data-renewal-move-out-timing={timing.state}
+    >
+      <p className={timing.state === "below" ? "renewal-notice" : "muted"} role="status">
+        <strong>Notice timing: {timing.label}.</strong> {timing.explanation}
+      </p>
+      <dl className="renewal-move-out-timing-facts">
+        <div>
+          <dt>Notice given</dt>
+          <dd>{timing.noticeDateIso ?? "Not recorded"}</dd>
+        </div>
+        <div>
+          <dt>{targetHeading}</dt>
+          <dd>{timing.targetDateIso ?? "Not recorded"}</dd>
+        </div>
+        <div>
+          <dt>Days given</dt>
+          <dd>{timing.daysGiven === null ? "Not determined" : timing.daysGiven}</dd>
+        </div>
+        <div>
+          <dt>Basis</dt>
+          <dd>
+            {timing.basisVersion === null
+              ? "Not reviewed"
+              : `${timing.thresholdDays} calendar days, version ${timing.basisVersion}`}
+          </dd>
+        </div>
+      </dl>
+      {sourceHref && timing.state !== "meets" ? (
+        <p>
+          <a
+            className="text-link renewal-workspace-link"
+            href={sourceHref}
+            rel={EXTERNAL_LINK_REL}
+            target={EXTERNAL_LINK_TARGET}
+          >
+            Review the notice dates in RentVine
+          </a>
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function MoveOutDispositionNotice({
   disposition,
 }: {

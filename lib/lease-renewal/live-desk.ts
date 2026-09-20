@@ -50,6 +50,11 @@ import {
   type LeaseStatusTableRead,
   type MoveOutFreshness,
 } from "@/lib/lease-renewal/move-out-disposition";
+import {
+  MISSING_MOVE_OUT_TIMING_BASIS,
+  evaluateMoveOutTiming,
+  type MoveOutTimingBasisSnapshot,
+} from "@/lib/lease-renewal/move-out-timing";
 import type { LeaseTermReviewFact } from "@/lib/lease-renewal/lease-term";
 import {
   buildLiveRenewalConfig,
@@ -585,6 +590,34 @@ interface MoveOutInputs {
   statusTable: LeaseStatusTableRead;
   freshness: MoveOutFreshness;
   observedAtIso: string;
+  /** S125: the reviewed notice timing basis; an unreviewed basis yields Cannot determine. */
+  timingBasis: MoveOutTimingBasisSnapshot;
+}
+
+/**
+ * S124 + S125: the provider move-out disposition and, over that same disposition and the reviewed
+ * basis, the notice timing comparison. Both read only; neither is a legal, fee or completion claim.
+ */
+function projectMoveOutFields(
+  view: RawLease,
+  leaseEndIso: string | null,
+  inputs: MoveOutInputs,
+): Pick<DeskLeaseSummaryBase, "moveOut" | "moveOutTiming"> {
+  const moveOut = projectMoveOutDisposition({
+    lease: view,
+    statusTable: inputs.statusTable,
+    freshness: inputs.freshness,
+    observedAtIso: inputs.observedAtIso,
+  });
+  return {
+    moveOut,
+    moveOutTiming: evaluateMoveOutTiming({
+      disposition: moveOut,
+      leaseEndIso,
+      basis: inputs.timingBasis,
+      observedDateIso: businessDateIso(inputs.observedAtIso),
+    }),
+  };
 }
 
 function toLiveSummary(
@@ -639,15 +672,10 @@ function toLiveSummary(
         }
       : {}),
     // S124: the provider move-out disposition rides on every non-skipped row; it reads only.
+    // S125: the notice timing comparison rides beside it over the same disposition and the
+    // reviewed basis; an unreviewed basis yields Cannot determine, never a guessed yes or no.
     ...(moveOutInputs && classification.disposition !== "skip"
-      ? {
-          moveOut: projectMoveOutDisposition({
-            lease: view,
-            statusTable: moveOutInputs.statusTable,
-            freshness: moveOutInputs.freshness,
-            observedAtIso: moveOutInputs.observedAtIso,
-          }),
-        }
+      ? projectMoveOutFields(view, classification.endDateIso, moveOutInputs)
       : {}),
     ...(workStatus ? { workStatus } : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
@@ -1230,6 +1258,8 @@ export async function loadLiveRenewalDesk(
   workStatusRead?: RenewalDeskWorkStatusRead,
   /** Fresh read already started by this same desk render; never a cross-render Sheet cache. */
   preparedSheetRead?: RenewalSheetReadWithLinks,
+  /** S125: the reviewed notice timing basis; absent reads as unreviewed (Cannot determine). */
+  timingBasis?: MoveOutTimingBasisSnapshot,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1245,6 +1275,7 @@ export async function loadLiveRenewalDesk(
       ),
       freshness: currency.state,
       observedAtIso: readTimestamp,
+      timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
     const { tables, tableJoinIds } =
       preparedSheetRead ??
@@ -1521,6 +1552,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   manual: RenewalWorkspaceState | null = null,
   /** S119: this lease's staff-status read; absent means the caller did not attempt it. */
   workStatusRead?: RenewalWorkspaceWorkStatusRead,
+  /** S125: the reviewed notice timing basis; absent reads as unreviewed (Cannot determine). */
+  timingBasis?: MoveOutTimingBasisSnapshot,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1542,6 +1575,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       statusTable: await readLeaseStatusTable(config.rentvineClient, readAtMs),
       freshness: currency.state,
       observedAtIso: readTimestamp,
+      timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
     // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads

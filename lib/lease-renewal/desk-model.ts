@@ -4,6 +4,10 @@ import type {
   MoveOutQueryKey,
 } from "@/lib/lease-renewal/move-out-disposition";
 import type {
+  MoveOutTimingResult,
+  MoveOutTimingState,
+} from "@/lib/lease-renewal/move-out-timing";
+import type {
   LifecycleCategory,
   LifecycleProjection,
 } from "@/lib/lease-renewal/lifecycle-category";
@@ -158,6 +162,8 @@ export interface RenewalDeskQueryKeys {
   workStatus?: RenewalWorkStatusQueryKey;
   /** S124: the move-out disposition state; absent when it was not evaluated (filters treat it as unknown). */
   moveOut?: MoveOutQueryKey;
+  /** S125: the notice timing comparison state; absent when not evaluated (filters treat it as Cannot determine). */
+  moveOutTiming?: MoveOutTimingState;
   /** S124: the audited staff non-renewal decision on the current manual cycle, kept apart from provider evidence. */
   manualNonRenewal: boolean;
   /** S134: the lifecycle category key; absent when not projected (filters and sort treat it as unknown). */
@@ -176,6 +182,11 @@ export interface DeskLeaseSummaryBase {
    * lease detail. Absent only when the caller did not evaluate it; never a negative by absence.
    */
   moveOut?: MoveOutDisposition;
+  /**
+   * S125: the thirty-day notice timing comparison over that disposition and the reviewed basis.
+   * Read-only and never a legal, fee or compliance claim; absent only when not evaluated.
+   */
+  moveOutTiming?: MoveOutTimingResult;
   /**
    * S134: the one cycle-aware lifecycle category (Complete, Non-renewal initiated, In progress,
    * Upcoming, Later, Unknown) projected from the same generation. Presentation only; never a

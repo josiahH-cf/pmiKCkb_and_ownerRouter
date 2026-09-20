@@ -30,6 +30,13 @@ import {
   type MoveOutQueryKey,
 } from "@/lib/lease-renewal/move-out-disposition";
 import {
+  MOVE_OUT_TIMING_DESK_FILTERS,
+  matchesMoveOutTimingFilter,
+  moveOutTimingFilterLabel,
+  type MoveOutTimingDeskFilter,
+  type MoveOutTimingState,
+} from "@/lib/lease-renewal/move-out-timing";
+import {
   LIFECYCLE_DESK_FILTERS,
   lifecycleFilterLabel,
   lifecycleSortValue,
@@ -156,6 +163,8 @@ export interface RenewalDeskQueryV2State {
   workStatus: RenewalWorkStatusFilter;
   /** S124: filter by the source-attributed move-out disposition; unknown rows stay in the default worklist. */
   moveOut: MoveOutDeskFilter;
+  /** S125: filter by the notice timing comparison; Cannot determine is filterable and never compliant. */
+  moveOutTiming: MoveOutTimingDeskFilter;
   /** S134: filter by the projected lifecycle category; Unknown stays reachable. */
   lifecycle: LifecycleDeskFilter;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
@@ -184,6 +193,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   term: "all",
   workStatus: "all",
   moveOut: "all",
+  moveOutTiming: "all",
   lifecycle: "all",
 };
 
@@ -210,6 +220,7 @@ const V2_KEY_ORDER = [
   "term",
   "workStatus",
   "moveOut",
+  "moveOutTiming",
   "lifecycle",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
@@ -398,6 +409,11 @@ export function parseRenewalDeskQueryV2(
       "all",
     ),
     moveOut: oneOf(firstValue(input, "moveOut"), MOVE_OUT_DESK_FILTERS, "all"),
+    moveOutTiming: oneOf(
+      firstValue(input, "moveOutTiming"),
+      MOVE_OUT_TIMING_DESK_FILTERS,
+      "all",
+    ),
     lifecycle: oneOf(firstValue(input, "lifecycle"), LIFECYCLE_DESK_FILTERS, "all"),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
@@ -472,6 +488,8 @@ export interface RenewalDeskV2Item {
     /** S124: absent means the disposition was not evaluated; filters treat that as unknown. */
     readonly moveOut?: MoveOutQueryKey;
     readonly manualNonRenewal?: boolean;
+    /** S125: absent means the comparison was not evaluated; it filters as Cannot determine. */
+    readonly moveOutTiming?: MoveOutTimingState;
     /** S134: absent means the category was not projected; sort and filter treat that as unknown. */
     readonly lifecycle?: LifecycleCategory;
   };
@@ -655,6 +673,9 @@ function matchesQuery(
   ) {
     return false;
   }
+  if (!matchesMoveOutTimingFilter(query.moveOutTiming, item.queryKeys.moveOutTiming)) {
+    return false;
+  }
   if (!matchesLifecycleFilter(query.lifecycle, item.queryKeys.lifecycle)) return false;
   return true;
 }
@@ -819,6 +840,8 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     term: (value) => `Lease term: ${value.replaceAll("_", " ")}`,
     workStatus: (value) => workStatusFilterLabel(value as RenewalWorkStatusFilter),
     moveOut: (value) => moveOutFilterLabel(value as MoveOutDeskFilter),
+    moveOutTiming: (value) =>
+      `Notice timing: ${moveOutTimingFilterLabel(value as MoveOutTimingDeskFilter)}`,
     lifecycle: (value) =>
       `Lifecycle: ${lifecycleFilterLabel(value as LifecycleDeskFilter)}`,
   };

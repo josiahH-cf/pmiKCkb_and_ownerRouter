@@ -36,6 +36,15 @@ vi.mock("@/lib/firestore/renewal-work-status", () => ({
 vi.mock("@/lib/firestore/lease-renewal-notice-rules", () => ({
   readNoticeRuleSnapshot: async () => ({ state: "current" }),
 }));
+// S125: the reviewed notice timing basis is one more independent supporting read.
+vi.mock("@/lib/firestore/lease-renewal-move-out-timing-basis", () => ({
+  readMoveOutTimingBasisSnapshot: async () => ({
+    state: "missing",
+    basis: null,
+    version: null,
+    updatedAtIso: null,
+  }),
+}));
 vi.mock("@/lib/firestore/lease-renewal-follow-up-attention", () => ({
   listDismissedRenewalFollowUpKeys: async () => [],
 }));
@@ -92,7 +101,8 @@ describe("S113 fresh desk read scheduling", () => {
       finish?.();
     }
     expect((await result).outcome.status).toBe("ok");
-    expect(fixture.project.mock.calls[0].at(-1)).toBe(sheet);
+    // The prepared Sheet read is the loader's thirteenth argument (S125 appended the timing basis).
+    expect(fixture.project.mock.calls[0][12]).toBe(sheet);
     expect(fixture.sheet).toHaveBeenCalledTimes(1);
   });
   it("starts independent supporting reads before the lease snapshot settles", async () => {

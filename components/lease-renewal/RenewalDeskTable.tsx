@@ -72,6 +72,11 @@ import {
   moveOutIndicatorLabel,
 } from "@/lib/lease-renewal/move-out-disposition";
 import {
+  MOVE_OUT_TIMING_CONTROL_LABEL,
+  MOVE_OUT_TIMING_DESK_FILTERS,
+  moveOutTimingFilterLabel,
+} from "@/lib/lease-renewal/move-out-timing";
+import {
   LIFECYCLE_CONTROL_LABEL,
   LIFECYCLE_DESK_FILTERS,
   lifecycleFilterLabel,
@@ -1018,6 +1023,16 @@ export function RenewalDeskTable({
                     value={state.moveOut}
                   />
                   <SelectFilter
+                    label={MOVE_OUT_TIMING_CONTROL_LABEL}
+                    name="moveOutTiming"
+                    options={MOVE_OUT_TIMING_DESK_FILTERS.map((value) => ({
+                      value,
+                      label: moveOutTimingFilterLabel(value),
+                    }))}
+                    state={state}
+                    value={state.moveOutTiming}
+                  />
+                  <SelectFilter
                     label={LIFECYCLE_CONTROL_LABEL}
                     name="lifecycle"
                     options={LIFECYCLE_DESK_FILTERS.map((value) => ({
@@ -1350,6 +1365,27 @@ function DeskRow({
               title="Show only this move-out state"
             >
               {moveOutIndicatorLabel(row.moveOut)}
+            </Link>
+          </span>
+        ) : null}
+        {/* S125: the notice timing comparison beside the disposition; Not applicable stays quiet. */}
+        {row.moveOutTiming && row.moveOutTiming.state !== "not_applicable" ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="move-out-timing"
+            data-move-out-timing={row.moveOutTiming.state}
+            title={row.moveOutTiming.explanation}
+          >
+            <Link
+              prefetch={false}
+              className="text-link"
+              href={href({ ...state, moveOutTiming: row.moveOutTiming.state })}
+              title="Show only this notice timing state"
+            >
+              Notice timing: {row.moveOutTiming.label}
+              {row.moveOutTiming.daysGiven === null
+                ? ""
+                : ` (${row.moveOutTiming.daysGiven} days)`}
             </Link>
           </span>
         ) : null}

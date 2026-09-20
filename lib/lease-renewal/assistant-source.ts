@@ -13,6 +13,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { listCurrentRenewalPacketSnapshots } from "@/lib/firestore/lease-document-packet-snapshots";
 import { listDismissedRenewalFollowUpKeys } from "@/lib/firestore/lease-renewal-follow-up-attention";
 import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
+import { readMoveOutTimingBasisSnapshot } from "@/lib/firestore/lease-renewal-move-out-timing-basis";
 import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { listLeaseTermReviews } from "@/lib/firestore/lease-renewal-term-reviews";
@@ -90,6 +91,7 @@ export async function runRenewalAssistantSource(
     termReviewsRead,
     packetRead,
     workStatusRead,
+    timingBasis,
   ] = await Promise.all([
     readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
     readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
@@ -122,6 +124,9 @@ export async function runRenewalAssistantSource(
     // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
     // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.
     readRenewalAuxiliary("work_status", () => listRenewalWorkStatuses(user)),
+    // S125: the reviewed notice timing basis. This read never throws; an unreviewed basis
+    // projects every notice as Cannot determine rather than a guessed yes or no.
+    readMoveOutTimingBasisSnapshot(),
   ]);
 
   const progressByLease = renewalAuxiliaryValue(progressRead, new Map());
@@ -179,6 +184,7 @@ export async function runRenewalAssistantSource(
             cyclesAvailable: manualRead.status === "available",
           },
           preparedSheetRead,
+          timingBasis,
         );
 
   return { outcome, auxiliaryFailures, coverage: window };

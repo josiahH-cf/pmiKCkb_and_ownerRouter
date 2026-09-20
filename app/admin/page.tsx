@@ -6,6 +6,7 @@ import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPa
 import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
 import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
+import { MoveOutTimingBasisAdminPanel } from "@/components/admin/MoveOutTimingBasisAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
 import { OperationalPageBuilderPanel } from "@/components/admin/OperationalPageBuilderPanel";
 import { OwnerPolicyRulesAdminPanel } from "@/components/admin/OwnerPolicyRulesAdminPanel";
@@ -38,6 +39,10 @@ import {
   type NoticeRuleSetRecord,
   readNoticeRuleConfigRecord,
 } from "@/lib/firestore/lease-renewal-notice-rules";
+import {
+  type MoveOutTimingBasisAdminRead,
+  readMoveOutTimingBasisRecord,
+} from "@/lib/firestore/lease-renewal-move-out-timing-basis";
 import {
   listOwnerPolicyRules,
   type OwnerPolicyRule,
@@ -91,6 +96,8 @@ export default async function AdminPage() {
   let supportAttention = { newCount: 0, followUpDueCount: 0 };
   let noticeRules: NoticeRuleSetRecord | undefined;
   let noticeRulesNote: string | undefined;
+  let timingBasis: MoveOutTimingBasisAdminRead = { state: "unreadable", record: null };
+  let timingBasisNote: string | undefined;
   let ownerPolicyRules: OwnerPolicyRule[] = [];
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
@@ -182,6 +189,14 @@ export default async function AdminPage() {
       .catch(() => {
         noticeRulesNote =
           "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+      }),
+    readMoveOutTimingBasisRecord(user)
+      .then((read) => {
+        timingBasis = read;
+      })
+      .catch(() => {
+        timingBasisNote =
+          "The notice timing basis is unavailable right now. Try again in a minute before recording it.";
       }),
     // S62: owner-policy pricing rules. Degrades to an empty list; the panel still renders.
     listOwnerPolicyRules(user)
@@ -490,6 +505,9 @@ export default async function AdminPage() {
                 <p className="muted">{noticeRulesNote}</p>
               </article>
             )}
+          </div>
+          <div className="task-anchor" id="admin-move-out-timing-basis" tabIndex={-1}>
+            <MoveOutTimingBasisAdminPanel initial={timingBasis} note={timingBasisNote} />
           </div>
           <div className="task-anchor" id="admin-content-builder" tabIndex={-1}>
             <OperationalPageBuilderPanel

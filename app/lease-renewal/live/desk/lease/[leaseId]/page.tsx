@@ -42,6 +42,7 @@ import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/propo
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { readNoticeRuleSnapshot } from "@/lib/firestore/lease-renewal-notice-rules";
+import { readMoveOutTimingBasisSnapshot } from "@/lib/firestore/lease-renewal-move-out-timing-basis";
 import { getCurrentPacketSnapshot } from "@/lib/firestore/lease-document-packet-snapshots";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { listRenewalDiscrepancyDispositions } from "@/lib/firestore/renewal-discrepancy-dispositions";
@@ -193,6 +194,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
       ]);
       return { record, history };
     }),
+    // S125: the reviewed notice timing basis (this read never throws).
+    readMoveOutTimingBasisSnapshot(),
   ]);
   // The current source attempt and post-write freshness floor remain authoritative for
   // rent-suggestion verification and the workspace projection, including a typed failed attempt.
@@ -246,6 +249,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     resourceLocationsRead,
     sheetProposalRead,
     workStatusRead,
+    timingBasis,
   ] = await supportingReads;
   const progress = renewalAuxiliaryValue(progressRead, null);
   const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
@@ -302,6 +306,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       record: workStatusRead.status === "available" ? workStatusRead.value.record : null,
       cyclesAvailable: manualRead.status === "available",
     },
+    timingBasis,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
