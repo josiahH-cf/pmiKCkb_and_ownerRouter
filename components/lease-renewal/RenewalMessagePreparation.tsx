@@ -13,6 +13,10 @@ import {
   policyMessageGates,
   projectPolicyApplicability,
 } from "@/lib/lease-renewal/policy-content";
+import {
+  PREFLIGHT_STATE_LABELS,
+  projectMessagePreflight,
+} from "@/lib/lease-renewal/message-preflight";
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   composeRenewalMessage,
@@ -100,6 +104,8 @@ interface Preparation {
   chargeInventory?: ChargeInventoryLine[] | null;
   publication: { status: string; reason?: string };
   notices: string[];
+  /** S129: policy gates projected on the server from the same applicability the workspace shows. */
+  policyGates?: Array<{ field: string; message: string }>;
 }
 
 export function RenewalMessagePreparation({
@@ -162,6 +168,7 @@ function MessagePreparationEditor({
     [notice, setNotice] = useState("");
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const [adoptSignature, setAdoptSignature] = useState(false);
   const base = useId();
   const loadSequence = useRef(0);
@@ -186,6 +193,14 @@ function MessagePreparationEditor({
         policy.facts,
       )
     : [];
+  // S129: the server projected the same gates from the saved state; a gate present on either side
+  // counts once, so a direct request and the local body agree.
+  const policyGatesForReadiness = [
+    ...policyGates,
+    ...(current?.policyGates ?? []).filter(
+      (gate) => !policyGates.some((entry) => entry.field === gate.field),
+    ),
+  ];
   const load = useCallback(() => {
     const sequence = ++loadSequence.current;
     return fetch(
@@ -198,6 +213,7 @@ function MessagePreparationEditor({
       const result = data as Preparation;
       if (sequence !== loadSequence.current) return;
       setCurrent(result);
+      setLoadedAtIso(new Date().toISOString());
       if (result.draftAttempt?.recoveryAvailable) {
         if (["Executing", "Needs reconciliation"].includes(result.draftAttempt.state))
           setOutcome({
@@ -346,10 +362,31 @@ function MessagePreparationEditor({
         needsReview: current.needsReview,
         signatureMatchesActor: current.signatureMatchesActor,
         signatureSaved: Boolean(current.saved?.inputs.signature),
-        policyGates,
+        policyGates: policyGatesForReadiness,
       })
     : null;
   const bodyReady = Boolean(readiness?.bodyReady && content);
+  // S129 (R-F09-07): the meeting preflight from the same facts, readiness and destinations.
+  const preflight = current
+    ? projectMessagePreflight({
+        channel,
+        canEdit,
+        senderEmail: current.senderEmail,
+        cycleId,
+        saved: Boolean(current.saved),
+        dirty,
+        needsReview: current.needsReview,
+        signatureOrigin: current.signatureOrigin?.kind ?? "none",
+        signatureMatchesActor: current.signatureMatchesActor,
+        readiness,
+        recipients: current.recipients ?? null,
+        publication: current.publication,
+        gmailDestination: Boolean(current.destinations?.gmailDrafts),
+        draftAttempt: current.draftAttempt,
+        notices: current.notices,
+        loadedAtIso,
+      })
+    : null;
   function reviewMissing() {
     const details = readinessRef.current;
     if (!details) return;
@@ -1133,6 +1170,48 @@ function MessagePreparationEditor({
                 </ol>
               </details>
             )
+          ) : null}
+          {preflight ? (
+            <details
+              className="renewal-message-preflight"
+              data-renewal-preflight={
+                preflight.proceedWithoutGmail ? "proceed" : "blocked"
+              }
+              data-renewal-preflight-draft={
+                preflight.draftStepAvailable ? "available" : "pending"
+              }
+              id={`renewal-message-${channel}-preflight`}
+            >
+              <summary>{preflight.summary}</summary>
+              <ul className="ui-rows" data-renewal-preflight-items>
+                {preflight.items.map((item) => (
+                  <li
+                    key={item.id}
+                    data-renewal-preflight-item={item.id}
+                    data-renewal-preflight-state={item.state}
+                  >
+                    <strong>{PREFLIGHT_STATE_LABELS[item.state]}</strong>: {item.label}.{" "}
+                    {item.detail}
+                    {item.fallback ? ` Fallback: ${item.fallback}` : ""}
+                    {item.target?.kind === "control" ? (
+                      <>
+                        {" "}
+                        <a className="text-link" href={`#${item.target.id}`}>
+                          Open the control
+                        </a>
+                      </>
+                    ) : item.target?.kind === "route" ? (
+                      <>
+                        {" "}
+                        <a className="text-link" href={item.target.href}>
+                          Open the page
+                        </a>
+                      </>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </details>
           ) : null}
           {/* The copy group stays mounted while the composer refuses the current inputs, so
               the guarded exports keep their reachable explanation instead of vanishing. */}

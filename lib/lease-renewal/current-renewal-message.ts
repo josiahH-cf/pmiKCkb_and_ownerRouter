@@ -50,6 +50,11 @@ import {
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
+import { readPolicyMaterialSnapshot } from "@/lib/firestore/lease-renewal-policy-material";
+import {
+  policyMessageGates,
+  projectPolicyApplicability,
+} from "@/lib/lease-renewal/policy-content";
 import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations";
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
 import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
@@ -108,8 +113,8 @@ export async function currentRenewalMessage(
       409,
     );
   const nowMs = Date.now();
-  const [views, workspace, resources, publication, retainedSignature] = await Promise.all(
-    [
+  const [views, workspace, resources, publication, retainedSignature, policyMaterial] =
+    await Promise.all([
       requireCurrentLeaseViews(config.rentvineClient, nowMs),
       getRenewalWorkspace(actor, leaseId, db),
       getRenewalResourceLocations(actor, db).catch(() => null),
@@ -120,8 +125,9 @@ export async function currentRenewalMessage(
           "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
       })),
       getRetainedSenderSignature(actor, db).catch(() => null),
-    ],
-  );
+      // S129/S131: the policy material snapshot never throws.
+      readPolicyMaterialSnapshot("rhino", db),
+    ]);
   const matching = views.filter((view) => leaseViewId(view) === leaseId);
   if (matching.length !== 1)
     throw new EditableLayerError("The live lease is missing or ambiguous.", 409);
@@ -153,6 +159,21 @@ export async function currentRenewalMessage(
     signatureOrigin.kind === "retained_sender"
       ? { ...savedInputs, signature: retainedSignature!.signature }
       : savedInputs;
+  // S129 (R-F09-03): the same policy applicability the workspace shows, projected on the server
+  // so a direct draft request cannot bypass a policy block; an unrelated lease yields no gate.
+  const policyGates = policyMessageGates(
+    projectPolicyApplicability({
+      productKey: "rhino",
+      leaseId,
+      manualState: workspace,
+      material: policyMaterial,
+      facts: [],
+      sheetLegacyValue: null,
+      todayIso: new Date(nowMs).toISOString().slice(0, 10),
+    }),
+    channel,
+    policyMaterial,
+  );
   const notices: string[] = [];
   if (moveOut.state === "unknown") notices.push(moveOut.label);
   let draftJournalAvailable = true;
@@ -436,5 +457,6 @@ export async function currentRenewalMessage(
     signatureMatchesActor,
     publication,
     notices,
+    policyGates,
   };
 }

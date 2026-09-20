@@ -74,6 +74,7 @@ function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMess
         : {}),
     },
     notices: current.notices,
+    policyGates: current.policyGates,
   };
 }
 export async function GET(request: Request) {
