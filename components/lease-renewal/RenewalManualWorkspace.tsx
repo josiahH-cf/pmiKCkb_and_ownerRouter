@@ -13,7 +13,9 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
+import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
+  currentManualOwnerTerms,
   MANUAL_ACTIVITIES,
   currentStaffActivity,
   manualRenewalSummary,
@@ -207,6 +209,9 @@ function ActiveManualProvider({
             {state.basis.dateIso} · {state.basis.source}.
           </p>
         ) : null}
+        {state ? (
+          <CycleSourceDateNote state={state} cycleBasis={cycleBasis ?? null} />
+        ) : null}
         <CycleControl
           current={state}
           basis={cycleBasis ?? null}
@@ -253,6 +258,36 @@ function ActiveManualProvider({
       </Card>
       {children}
     </Context.Provider>
+  );
+}
+const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+/**
+ * S123 (R-F02-04): when RentVine now reports a different lease end than the recorded cycle, say
+ * so beside the recorded basis and terms. The recorded facts stay as written; a new cycle is a
+ * separate explicit start. Nothing renders while the provider still reports the recorded date.
+ */
+function CycleSourceDateNote({
+  state,
+  cycleBasis,
+}: {
+  state: RenewalWorkspaceState;
+  cycleBasis: RenewalCycleBasis | null;
+}) {
+  const change = projectCycleSourceDateChange(
+    state.basis,
+    cycleBasis?.kind === "lease_end" ? cycleBasis.dateIso : null,
+  );
+  if (change.state !== "changed" && change.state !== "current_unavailable") return null;
+  const terms = currentManualOwnerTerms(state);
+  return (
+    <p role="note" data-renewal-cycle-source-date={change.state}>
+      {change.label}
+      {change.state === "changed"
+        ? terms
+          ? ` Owner-approved terms recorded on this cycle: ${USD.format(terms.rent)} from ${terms.effectiveDate} to ${terms.endDate}. They remain as recorded.`
+          : " Previous terms were not recorded for this cycle."
+        : null}
+    </p>
   );
 }
 function CycleControl({

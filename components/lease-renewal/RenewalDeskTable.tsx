@@ -1255,6 +1255,17 @@ function DeskRow({
             {row.manualProgress?.step.label ?? row.stageLabel}
           </span>
         ) : null}
+        {/* S123: the provider now reports a different lease end than the recorded cycle. */}
+        {row.cycleSourceDate?.state === "changed" ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="cycle-source-date"
+            data-cycle-source-date="changed"
+          >
+            Source date changed: cycle recorded {row.cycleSourceDate.recordedIso};
+            RentVine now {row.cycleSourceDate.currentIso}
+          </span>
+        ) : null}
         {/* S119: the saved staff status beside, never inside, the derived status. */}
         {row.workStatus ? (
           <span

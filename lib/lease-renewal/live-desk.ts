@@ -42,6 +42,7 @@ import {
   type CohortLease,
   type DateWindow,
 } from "@/lib/lease-renewal/cohort";
+import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import type { LeaseTermReviewFact } from "@/lib/lease-renewal/lease-term";
 import {
   buildLiveRenewalConfig,
@@ -611,7 +612,15 @@ function toLiveSummary(
   return {
     id: leaseId,
     ...(manual && classification.disposition !== "skip"
-      ? { manualProgress: manualRenewalSummary(manual) }
+      ? {
+          manualProgress: manualRenewalSummary(manual),
+          // S123: the recorded basis is history; only the comparison with the current provider
+          // lease end travels with the row, so a source change is visible and never rewritten.
+          cycleSourceDate: projectCycleSourceDateChange(
+            manual.basis,
+            classification.endDateIso,
+          ),
+        }
       : {}),
     ...(workStatus ? { workStatus } : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,

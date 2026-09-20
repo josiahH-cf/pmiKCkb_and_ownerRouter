@@ -1,3 +1,4 @@
+import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 // Neutral Renewal Desk view contracts shared by the authenticated Live surfaces.
 //
@@ -151,6 +152,11 @@ export interface RenewalDeskQueryKeys {
 
 export interface DeskLeaseSummaryBase {
   manualProgress?: ReturnType<typeof manualRenewalSummary>;
+  /**
+   * S123: the recorded cycle basis compared with the lease end the provider reports now. Present
+   * only when a manual cycle exists; the recorded basis is history and is never rewritten.
+   */
+  cycleSourceDate?: CycleSourceDateChange;
   /**
    * S119: the staff work status annotation, projected once for the desk row, the compact lease
    * context and the lease information panel. Absent when the caller did not attempt the read.
