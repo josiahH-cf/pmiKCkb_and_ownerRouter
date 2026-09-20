@@ -18,7 +18,9 @@ workspace and blocks ordinary drafts server-side for a confirmed notice. S134 (F
 and CI-GREEN at `136826cc`: one lifecycle category per lease drives the row dot and label, the
 Lifecycle sort and filter, and the workspace header. S122 (F01) is IMPLEMENTED and CI-GREEN at
 `39a7f929`: three table-owned views (Active / upcoming, All leases, Completed) with counts and
-zero-match offers over the one loaded projection. Next: S125 (F04, thirty-day notice timing review).
+zero-match offers over the one loaded projection. S125 (F04) is IMPLEMENTED and CI-GREEN at
+`41d6e00c`: a versioned notice timing evaluator with an Admin-recorded basis, a desk filter and a
+workspace panel. Next: S126 (F06, consistent month/day/year date presentation).
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the

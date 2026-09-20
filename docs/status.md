@@ -17,8 +17,9 @@ unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at `a
 release deferred. S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and
 CI-GREEN at `fc03ec55` plus the test-only fix `3d4a9e23` (CI `35508231675`), release deferred. S134 (F14, color-coded lease status with matching sorting and filters) is
 IMPLEMENTED and CI-GREEN at `136826cc` (CI `35508545796`), release deferred. S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and
-CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. Next in order: S125, S126, S127, S131, S129, S130,
-S132; S133 is independent; S121 when scheduled.
+CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. S125 (F04, thirty-day notice timing review with an explicit date basis) is
+IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. Next in order: S126, S127, S131,
+S129, S130, S132; S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
 started against) is compared with the lease end RentVine reports now. A retained desk row whose
@@ -100,6 +101,25 @@ the implementation (missing module) and pass after it; the inventory, inspection
 cases are preservation evidence (their first run failed only on a fixture without the status table).
 Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and no live
 record was written. Human verdict: NOT RUN.
+
+S125 adds a thirty-day notice timing indicator for staff review. A pure evaluator compares the
+RentVine notice-given date against one reviewed target date (scheduled move-out or contractual lease
+end) by calendar-day ordinals under an explicit, versioned rule and threshold, and reports Meets,
+Below: staff review, Cannot determine or Not applicable with both dates, the days given and the basis
+version. Until an Admin records the reviewed basis on the Admin page every notice reads Cannot
+determine and names the missing basis; missing or impossible dates, a future-recorded notice, a
+target before the notice, a stale source and an unknown disposition are explained uncertainty. The
+result sits beside the move-out disposition on each desk row, the Notice timing filter joins the
+canonical query, and the lease workspace shows the dates, the days, the basis and a RentVine review
+link. Nothing calculates fees, balances or legal standing, sends, or changes completion.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6829 unit tests
+(751 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The evaluator, basis-store and route
+cases failed before their modules existed and pass after them; the desk, workspace and Admin panel
+cases were written against the finished surfaces and pass; the S113 read-order fixture now mocks the
+basis read. Compiled browser checks: NOT RUN (rehearsal auth blocked). No client message was sent and
+no live record was written. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

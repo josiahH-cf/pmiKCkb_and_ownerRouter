@@ -11,49 +11,26 @@ owner re-enables billing. Each feature stops at "green tree committed + pushed +
 and joins the Awaiting release queue below. The S128 pause stays in force: the operating-Sheet write
 flag is false in both ignored env files and no feature may re-enable it.
 
-S123 (F02, retain unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at
-`aa062d8e` (exact-SHA CI 35505452408), release deferred (billing). Verified: the full local gate on the
-identical tree (6,775 unit tests in 740 files, 38 backend files including the new emulator cycle-store
-case, every policy check, production build, core E2E 8 passed and 4 intentional skips). The recorded
-cycle basis is compared with the current provider lease end and surfaced as a source-date change on
-the desk row and in the lease workspace; retention, cycle identity and the store were preservation
-checks that already held. Browser smokes: NOT RUN (rehearsal server refuses without fresh WSL auth).
-Human verdict: NOT RUN, no human observer.
+Delivered in this mode (each IMPLEMENTED and CI-GREEN, release deferred; detail in docs/facts.md):
+S123 (F02) `aa062d8e` CI 35505452408; S124 (F03) `fc03ec55` plus test fix `3d4a9e23` CI 35508231675;
+S134 (F14) `136826cc` CI 35508545796; S122 (F01) `39a7f929` CI 35509588537. Each ran the full local
+gate on its identical tree (verify.sh, 38 backend files, policies, build, core E2E 8 passed and 4
+skips); browser smokes NOT RUN (rehearsal auth blocked); human verdict NOT RUN.
 
-S124 (F03, move-out detection and non-renewal outreach filtering) is IMPLEMENTED and CI-GREEN at
-`fc03ec55` plus the test-only fix `3d4a9e23` (exact-SHA CI 35508231675), release deferred (billing). Verified: read-only RentVine discovery
-established the exact contract (the documented `GET /leases/statuses` table's isPendingMoveOutStatus
-and isCompletedMoveOutStatus flags plus the lease detail's leaseStatusID, noticeDate,
-expectedMoveOutDate and moveOutDate; shape and aggregate probes only, kept outside Git); the typed
-disposition (initiated, not_initiated, withdrawn, unknown with a bounded reason) rides on every desk
-row and the workspace, drives the moveOut desk filter, and blocks a new ordinary renewal draft at the
-server preview for a confirmed notice. Full local gate on the identical tree (6,790 unit tests in
-742 files, 38 backend files, policies, build, core E2E 8 passed and 4 skips).
+S125 (F04, thirty-day notice timing review with an explicit date basis) is IMPLEMENTED and CI-GREEN
+at `41d6e00c` (exact-SHA CI 35511209348), release deferred (billing). Verified: a pure, versioned evaluator
+(calendar-day ordinals, target minus notice, exactly the threshold satisfies it) over the S124 notice
+date and one reviewed target (scheduled move-out or contractual lease end) yields Meets, Below: staff
+review, Cannot determine or Not applicable with both dates, the days given and the basis version; an
+unreviewed, invalid or unreadable basis, missing or impossible dates, a future-recorded notice, a
+target before the notice, a stale source and an unknown disposition are explained uncertainty; the
+Admin page records the basis (Admin SDK, revision check, activity history); the result rides on every
+desk row beside the disposition, the Notice timing filter joins the canonical query, and the workspace
+shows both dates, days, basis and a source review link. Full local gate (6829 unit tests in
+751 files, 38 backend files, policies, build, core E2E 8 passed and 4 skips).
 Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-S134 (F14, color-coded lease status with matching sorting and filters) is IMPLEMENTED and CI-GREEN at
-`136826cc` (exact-SHA CI 35508545796), release deferred (billing). Verified: one pure lifecycle category per
-lease (Complete, Non-renewal initiated, In progress, Upcoming, Later / outside current window, Unknown:
-review) projected from the S113 manual cycle, S72 progress, S123 cycle relation, S124 disposition and
-the eligibility window; rendered as a labeled dot in the renewal-status cell (green complete, orange
-upcoming, yellow non-renewal via theme tokens in both themes) beside the unchanged readiness badge;
-a Lifecycle sort header (alphabetic by visible label, date and id ties) and a Lifecycle status filter
-in the canonical query; the same category in the workspace header. Full local gate (6800 unit
-tests in 744 files, 38 backend files, policies, build, core E2E 8 passed and 4
-skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-S122 (F01, all-lease visibility and explicit worklist views) is IMPLEMENTED and CI-GREEN at
-`39a7f929` (exact-SHA CI 35509588537), release deferred (billing). Verified: three table-owned views derived
-from the one canonical query (Active / upcoming = the unchanged active default, All leases = scope
-all, Completed = All leases plus the S134 Complete category); each with a count from the same rows
-and actor-scoped matcher as the table, flagged on a partial read; every other filter, the sort, the
-chips and the deskView return path persist across a view switch; a zero-match result on a complete
-read offers Show all leases and Remove these filters and never claims a lease is missing. Inventory,
-inspection and no-false-absence are preservation evidence with controlled fakes. Full local gate
-(6812 unit tests in 747 files, 38 backend files, policies, build, core E2E 8
-passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
-
-Next: S125 (F04, thirty-day notice timing review), per its specification.
+Next: S126 (F06, consistent month/day/year date presentation), per its specification.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -81,6 +58,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 3. S124 (F03) move-out detection and non-renewal outreach filtering: `fc03ec55` plus test fix `3d4a9e23`, CI 35508231675.
 4. S134 (F14) color-coded lease status with matching sorting and filters: `136826cc`, CI 35508545796.
 5. S122 (F01) all-lease visibility and explicit worklist views: `39a7f929`, CI 35509588537.
+6. S125 (F04) thirty-day notice timing review with an explicit date basis: `41d6e00c`, CI 35511209348.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -115,7 +93,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134 and s122 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122 and s125 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -125,5 +103,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S125: S126, S127, S131, S129, S130, S132;
+remains dependent. Bundle order after S126: S127, S131, S129, S130, S132;
 S133 independent; S121 when scheduled.

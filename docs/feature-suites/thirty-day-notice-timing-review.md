@@ -4,7 +4,7 @@
 # S125 — Thirty-day notice timing review with an explicit date basis
 
 > **Approval reference:** F04 (original feature #4).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `41d6e00c` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. The reviewed target-date meaning and counting convention remain an owner input recorded through the Admin panel. Serving evidence: `docs/facts.md` F-S125.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S125 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F04 when renumbering.
 > **Classification:** New operational timing indicator; not a legal or fee determination.
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff can see the exact dates and the number of days given, understand why a case needs review, and never mistake an unknown date or unset policy for a yes/no answer.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `41d6e00c` (2026-09-20): AC-S125-1 through AC-S125-7 covered by the unit, store, route and component cases named in F-S125 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback; the unconfigured state is the delivered default until the owner records the basis.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 
