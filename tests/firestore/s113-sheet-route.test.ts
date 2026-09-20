@@ -882,7 +882,12 @@ describe("S118 saved comparison preparation prepares the Sheet market value for 
       staffIntent: { field: "market_value", value: 1550 },
     });
     // The low/high range never becomes a Sheet column; only the recommendation is proposed.
-    expect(JSON.stringify(proposal.effects)).not.toMatch(/1450|1650/);
+    // The content hash is hex and can contain either digit run by chance, so it is excluded.
+    const effectsWithoutHash = proposal.effects.map((effect) => ({
+      ...effect,
+      effectHash: undefined,
+    }));
+    expect(JSON.stringify(effectsWithoutHash)).not.toMatch(/1450|1650/);
     // Withdrawing the recommendation removes the unconfirmed Sheet update; the range stays.
     state = (
       await recordManual(state, {
