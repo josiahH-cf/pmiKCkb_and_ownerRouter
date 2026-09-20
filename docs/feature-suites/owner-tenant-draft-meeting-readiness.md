@@ -4,7 +4,7 @@
 # S129 — Owner and tenant draft workflows: technical readiness for meeting validation
 
 > **Approval reference:** F09 (original feature #9).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `009c4414` (2026-09-20); release deferred by the billing incident; no deployment, provider activation or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S129.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S129 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F09 when renumbering.
 > **Classification:** Scaffold, gap closure, and technical verification of existing communications.
@@ -137,7 +137,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** At the meeting, staff can prepare an owner message and a tenant offer from the lease, fix each missing input in place, review the exact content, and deliberately create one unsent draft when the real prerequisites allow it.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `009c4414` (2026-09-20): AC-S129-1, AC-S129-3, AC-S129-5 and AC-S129-7 covered by the matrix, boundary and preflight cases named in F-S129; AC-S129-2, AC-S129-4 and AC-S129-6 carried as preservation evidence by the existing tests the matrix names; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

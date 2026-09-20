@@ -25,7 +25,9 @@ date-display utility and an app-wide inventory. S127 (F07) is IMPLEMENTED and CI
 one issue model with text kinds, affected actions and responsible parties, shared by the desk and
 the workspace, with control-level focus targets. S131 (F11) is IMPLEMENTED and CI-GREEN at `59ad9224`:
 a typed conditional policy projection, a versioned material store with separate intake and approval,
-and an honest pending state. Next: S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation).
+and an honest pending state. S129 (F09) is IMPLEMENTED and CI-GREEN at `009c4414`: an evidence
+matrix over the existing draft path, the policy gate enforced at the server draft boundary, and a
+read-only meeting preflight per audience. Next: S130 (F10, seven-template intake and Dotloop prefill readiness).
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the

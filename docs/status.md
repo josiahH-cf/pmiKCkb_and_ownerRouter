@@ -21,7 +21,8 @@ CI-GREEN at `39a7f929` (CI `35509588537`), release deferred. S125 (F04, thirty-d
 IMPLEMENTED and CI-GREEN at `41d6e00c` (CI `35511209348`), release deferred. S126 (F06, consistent month/day/year date presentation) is IMPLEMENTED and
 CI-GREEN at `7f0ed865` (CI `35512028503`), release deferred. S127 (F07, clear blockers and exact next-action guidance) is IMPLEMENTED and
 CI-GREEN at `52286917` (CI `35513295598`), release deferred. S131 (F11, Rhino-policy conditional logic, ready for approved material upload) is IMPLEMENTED and
-CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. Next in order: S129, S130, S132;
+CI-GREEN at `59ad9224` (CI `35515037772`), release deferred. S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is IMPLEMENTED and
+CI-GREEN at `009c4414` (CI `35516040981`), release deferred. Next in order: S130, S132;
 S133 is independent; S121 when scheduled.
 
 S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
@@ -178,6 +179,26 @@ output, store, route and surface cases were written before the integration and p
 the branch matrix is asserted complete. Compiled browser checks: NOT RUN (rehearsal auth blocked). No
 client message was sent, no live record was written and no provider request was made. Human verdict:
 NOT RUN.
+
+S129 certifies the owner and tenant draft path rather than rebuilding it. An evidence matrix ties
+each step, from loading the facts through composing, routing missing inputs, recipients, signature,
+the server draft boundary, exact confirmation with receipt and readback, and recovery, to its
+current control, service and test, and a check asserts each one exists. The one gap found was that
+the policy gate from S131 lived only in the browser; the server now projects the same gate and
+refuses a direct draft on it, next to its existing refusals for unresolved content, an old review, a
+wrong sender, an unapproved template, unresolved recipients and a confirmed move-out. Each message
+preparation gains a meeting preflight: a read-only list of what is ready, missing, unavailable or
+not yet verified, with the fallback for each, that lets staff proceed with Gmail unavailable and keeps
+the selected lease, the live mailbox review and the one unsent draft as observations pending the
+meeting. Nothing in it creates a draft or sends.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6874 unit tests
+(762 files), 38 backend files, every policy check and the production build
+passed; core E2E passed with 8 files and 4 intentional skips. The matrix, boundary and preflight
+cases were written before the integration and pass after it; the existing preparation, draft service,
+recovery and move-out cases pass unchanged as preservation evidence. Compiled browser checks: NOT RUN
+(rehearsal auth blocked). No client message was sent, no live record was written and no provider
+request was made. Human verdict: NOT RUN.
 
 The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
 before the billing incident; production last served the S120 head `79493458` /

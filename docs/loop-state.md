@@ -30,7 +30,19 @@ use separate; output slots substitute only verified facts and never invent wordi
 (6866 unit tests in 759 files, 38 backend files, policies, build, core E2E
 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
 
-Next: S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation), per its specification.
+S129 (F09, owner and tenant draft workflows: technical readiness for meeting validation) is
+IMPLEMENTED and CI-GREEN at `009c4414` (exact-SHA CI 35516040981), release deferred (billing). Verified:
+an evidence matrix ties each step of the owner and tenant draft path to its current control,
+owning service and deterministic check (asserted to exist); the one demonstrated gap, the S131
+policy gate being client-only, is closed by projecting the same gate on the server and refusing a
+direct draft at the preview boundary beside the existing content, review, signature, template,
+recipient and move-out refusals; a read-only meeting preflight lists source freshness, inputs,
+sender, signature, recipients, template, permitted action, Gmail destination and open attempts with
+fallbacks, proceeds without Gmail and keeps the three human observations Pending meeting. Full local
+gate (6874 unit tests in 762 files, 38 backend files, policies, build, core
+E2E 8 passed and 4 skips). Browser smokes: NOT RUN (rehearsal auth blocked). Human verdict: NOT RUN.
+
+Next: S130 (F10, seven-template intake and Dotloop prefill readiness), per its specification.
 
 ## Phase A reconciliation (2026-09-20)
 
@@ -62,6 +74,7 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 7. S126 (F06) consistent month/day/year date presentation: `7f0ed865`, CI 35512028503.
 8. S127 (F07) clear blockers and exact next-action guidance: `52286917`, CI 35513295598.
 9. S131 (F11) Rhino-policy conditional logic, ready for approved material upload: `59ad9224`, CI 35515037772.
+10. S129 (F09) owner and tenant draft workflows, technical readiness for meeting validation: `009c4414`, CI 35516040981.
 
 Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
 watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
@@ -96,7 +109,7 @@ watcher; authentication_required pauses only the dependent phase.
 ## Working checkout and evidence
 
 Native checkout: ~/pmi-kc-work/main, synced from the Windows checkout by git fetch + checkout -B;
-gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127 and s131 prefixes. The Windows checkout is the watcher source
+gate logs under ~/pmi-kc-work/logs/ with the phaseA, s123, s124, s134, s122, s125, s126, s127, s131 and s129 prefixes. The Windows checkout is the watcher source
 and the docs editing tree. Credentials and customer evidence stay outside Git.
 
 ## Preserved boundaries
@@ -106,5 +119,5 @@ preview/confirmation, claims, receipts/readback and correction; operating-Sheet 
 (S128). Messages remain unsent drafts. Completed S97-S100 proofs are not rerun. S106/S34 still needs
 actual forms/catalog/mappings, managed Dotloop connection/selection and exact activation gates. Blank
 resource inputs remain accepted. S100 resident-draft still needs exact mapped/verified input; S36
-remains dependent. Bundle order after S129: S130, S132;
+remains dependent. Bundle order after S130: S132;
 S133 independent; S121 when scheduled.
