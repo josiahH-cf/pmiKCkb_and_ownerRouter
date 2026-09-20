@@ -1,29 +1,22 @@
 # Current plan
 
-Updated: 2026-09-16 (UTC).
+Updated: 2026-09-20 (UTC).
 
 ## Outcome
 
-The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
-`24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
-attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPLOYED (implemented at
-`dffc4f71`, released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second
-attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
-is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as head `33ef3039` /
-`pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column
-synchronization remains a named setup dependency until the Sheet manager adds the two headers.
-Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is COMPLETE
-and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151`
-(first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). Feature 5 of 7, S118 five-mile market
-comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: implemented at
-`0223bdb1` and released 2026-09-16 as head `af46ac72` / `pmi-kc-app-rmu4ontao-f5c2a692d78e` (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds).
-Feature 6 of 7, S119 audited manual work
-status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
-`2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
-Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
-is COMPLETE and DEPLOYED: implemented at `e056077c` and released 2026-09-17 as head `79493458` /
-`pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries). The renewal operator hub bundle (S114-S120) is complete.
+Local-only mode: production is undeployable (billing disabled, owner action required), so every
+feature stops at a green tree with exact-SHA CI and waits in the Awaiting release queue in
+`docs/loop-state.md`. The renewal meeting-readiness bundle (owner request of 2026-09-18) proceeds in
+order S128 -> S123 -> S124 -> S134 -> S122 -> S125 -> S126 -> S127 -> S131 -> S129 -> S130 -> S132
+with S133 independent and S121 when scheduled; every feature preserves the S128 pause. S128 (F08) is
+IMPLEMENTED and CI-GREEN at `31bc9072`. S123 (F02) is IMPLEMENTED and CI-GREEN at `aa062d8e`:
+the recorded cycle basis is compared with the current provider lease end and surfaced on the desk and
+in the workspace, while retention, cycle identity and the audited store held as preservation. Next:
+S124 (F03), starting with the read-only RentVine field discovery for an exact notice/move-out map.
+
+The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
+(S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the
+billing incident. The renewal operator hub bundle (S114-S120) is complete.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and
@@ -49,8 +42,8 @@ asserting its landmark. The watcher recreates its Identity Platform client after
 Observed authentication longevity is under nine hours; a release must start well inside a fresh
 enrollment.
 
-Every feature of the bundle is complete and deployed; no feature remains in this order. Each feature completes its own verification, exact-main CI and serialized release
-before the next begins.
+Every feature of the S114-S120 bundle is complete and deployed. In local-only mode each feature
+completes its own verification and exact-main CI, then waits in the Awaiting release queue.
 
 ## Current implementation baseline
 

@@ -1,29 +1,46 @@
 # PMI KC current status
 
-Last updated: 2026-09-17 (UTC).
+Last updated: 2026-09-20 (UTC).
 
 ## Current feature
 
-The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is in progress. Feature 1 of 7,
-S114 independent lease-information and process sidebars, is COMPLETE and DEPLOYED (implemented at
-`24b0be59`, released 2026-09-16 as head `b7fd04d1` / `pmi-kc-app-rmu46blcc-af55ec317652` on its third
-attempt). Feature 2 of 7, S115 plain-language section help, is COMPLETE and DEPLOYED (implemented at
-`dffc4f71`, released 2026-09-16 as head `3ca35870` / `pmi-kc-app-rmu4awn6p-67bd97a8824e` on its second
-attempt). Feature 3 of 7, S116 exact source links, reliable Sheet matching and complete contact emails,
-is COMPLETE and DEPLOYED: implemented at `7a19d338` and released 2026-09-16 as head `33ef3039` /
-`pmi-kc-app-rmu4eoy5u-c8c2682e9102` (first attempt, one assurance_unverified retry). Live email-column
-synchronization remains a named setup dependency until the Sheet manager adds the two headers.
-Feature 4 of 7, S117 master lease facts, rent and charges with confirmed source updates, is COMPLETE
-and DEPLOYED: implemented at `bc559602` and released 2026-09-16 as head `a483c47d` / `pmi-kc-app-rmu4ir3hc-7ee452a02151`
-(first attempt; one smoke_unverified retry, two managed_browser_enrollment_required re-enrollments and two assurance_unverified passes during a Cloud Run cold-start degradation). Feature 5 of 7, S118 five-mile market
-comparisons with reviewed defaults and source links, is COMPLETE and DEPLOYED: implemented at
-`0223bdb1` and released 2026-09-16 as head `af46ac72` / `pmi-kc-app-rmu4ontao-f5c2a692d78e` (first attempt; one assurance_unverified pass while authenticated renders on both revisions took 12 to 33 seconds).
-Feature 6 of 7, S119 audited manual work
-status and matching desk filters, is COMPLETE and DEPLOYED: implemented at
-`2c810eb1` and released 2026-09-17 as head `be023196` / `pmi-kc-app-rmu4s6qo5-5d81e4f12265` (first attempt; no retries).
-Feature 7 of 7, S120 source-filled communications, shared resources and downstream completion UX,
-is COMPLETE and DEPLOYED: implemented at `e056077c` and released 2026-09-17 as head `79493458` /
-`pmi-kc-app-rmu4wevd9-d89996133320` (first attempt; no retries). The renewal operator hub bundle (S114-S120) is complete.
+Operating mode: LOCAL-ONLY development. Production is undeployable because billing is disabled on the
+GCP project (owner action required; the runner never changes billing); the canonical endpoint returns
+503 and the last accepted revision `pmi-kc-app-rmu4wevd9-d89996133320` / `79493458` is not serving.
+Features now stop at a green tree with exact-SHA CI and wait in the Awaiting release queue in
+`docs/loop-state.md`; the S128 operating-Sheet pause stays in force locally and in the staged
+production configuration.
+
+The renewal meeting-readiness bundle (owner request of 2026-09-18) is in progress. S128 (F08, pause
+operating-Sheet writes) is IMPLEMENTED and CI-GREEN at `31bc9072`, release blocked. S123 (F02, retain
+unfinished renewals when source dates advance) is IMPLEMENTED and CI-GREEN at `aa062d8e` (CI `35505452408`),
+release deferred. Next in order: S124, S134, S122, S125, S126, S127, S131, S129, S130, S132; S133 is
+independent; S121 when scheduled.
+
+S123 adds one read-only projection: the recorded manual cycle basis (the lease end the cycle was
+started against) is compared with the lease end RentVine reports now. A retained desk row whose
+provider date changed shows "Source date changed: cycle recorded ...; RentVine now ..." beside its
+manual progress, and the lease workspace shows the same fact as a note beside the unchanged "Cycle
+based on" line together with the owner-approved terms recorded on that cycle, or says previous terms
+were not recorded. A cycle whose current provider date cannot be read says the recorded date is kept;
+nothing renders while the provider still reports the recorded date. Retention already held: a lease
+whose end date moved a year out stays on the desk as tracked incomplete under the same lease and
+cycle identity with its next activity unchanged; an external-only future-dated lease opens for
+inspection without creating a cycle; premature completion is refused; a later cycle starts empty and
+keeps the previous cycle as history; racing saves yield one recoverable conflict and a replayed
+request reads back the same state.
+
+Verification on the identical tree in the native checkout: format, lint, types, 6,775 unit tests
+(740 files), 38 backend files including the new emulator cycle-store case, every policy check and
+the production build passed; core E2E passed with 8 files and 4 intentional skips. The six new-behavior
+cases failed before the implementation and pass after it; the seven preservation cases passed both
+times. Compiled browser checks: NOT RUN (the rehearsal server refuses to start without fresh WSL
+auth; owner re-enrollment is the surfaced blocker). No client message was sent and no live record was
+written. Human verdict: NOT RUN.
+
+The renewal operator hub bundle S114-S120 (owner request of 2026-09-15) is COMPLETE and was deployed
+before the billing incident; production last served the S120 head `79493458` /
+`pmi-kc-app-rmu4wevd9-d89996133320`. The per-feature summaries below remain the serving description.
 
 S114 replaces the expanded workspace header summary and inline glossary with two independent fixed
 slide-out panels: Lease information (property, lease, rent references, owners/clients, tenants and

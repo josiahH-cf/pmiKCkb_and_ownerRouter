@@ -4,7 +4,7 @@
 # S123 — Retain unfinished renewals when source dates advance
 
 > **Approval reference:** F02 (original feature #2).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** IMPLEMENTED and CI-GREEN at `aa062d8e` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S123.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** S123 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F02 when renumbering.
 > **Classification:** Workflow correction and controlled resume capability.
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** After a tenant says yes and someone advances the dates in RentVine, staff still find the lease, see what remains unsigned or unfinished, and continue the same work without re-entering it.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: PASS in local engineering tests on `aa062d8e` (2026-09-20): AC-S123-1 through AC-S123-7 covered by the unit, component and emulator cases named in F-S123; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 
