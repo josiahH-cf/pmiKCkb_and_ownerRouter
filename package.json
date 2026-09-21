@@ -124,7 +124,8 @@
     "auth:status": "node scripts/auth/ensure.mjs --status",
     "release:watch": "node scripts/release-watcher.mjs --watch",
     "release:watch:once": "node scripts/release-watcher.mjs --once",
-    "release:watch:dry-run": "node scripts/release-watcher.mjs --dry-run"
+    "release:watch:dry-run": "node scripts/release-watcher.mjs --dry-run",
+    "release:batch-preflight": "node scripts/release-batch-preflight.mjs"
   },
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.7.0",

@@ -117,6 +117,11 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel was read back and its recipient preserved on 2026-09-08; monitoring is READY.
 
 Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
+The watcher releases the newest green `main` SHA, so a queue of undeployed features ships as one
+candidate; when several are waiting, follow `docs/release-batch-runbook.md` and confirm readiness
+with `npm run release:batch-preflight` first. The watcher takes its checkpoint's SHA while that
+checkpoint is unfinished, so an unfinished checkpoint at an older commit must be archived before
+starting or only that commit deploys.
 The last successful serialized release completed exact SHA `79493458f641b9710d8c43467e872aa9acf7948e`, CI 35173497243, revision `pmi-kc-app-rmu4wevd9-d89996133320` (S120, first attempt; no retries, 2026-09-17).
 The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.

@@ -54,6 +54,8 @@ release acceptance passed; no live customer completion or human usability verdic
 - `docs/cherry-bridge-renewal-note-map-2026-08-24.md` — current disposition of the named renewal
   feedback notes.
 - `docs/implement.md` — short implementation pointer.
+- `docs/release-batch-runbook.md` — ordered owner steps for the one batched release of the
+  Awaiting release queue, with its readiness check and failure branches.
 
 ## Tool-linked compatibility contracts
 

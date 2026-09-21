@@ -34,7 +34,8 @@ meeting-walkthrough contract, a Draft-for-validation runbook on exact guide cont
 ledger and an effect-free preflight. S133 (F13, independent) is IMPLEMENTED and CI-GREEN at `75c06252`: a bounded
 handoff-assessment contract and a tabletop decision packet with feasibility not established and the
 owner and administrator inputs named (B-MNT2). Next: S121 when the owner schedules it; the Awaiting
-release queue waits on billing.
+release queue waits on billing and is prepared to ship as one candidate through
+`docs/release-batch-runbook.md`, gated by `npm run release:batch-preflight`.
 
 The renewal operator hub bundle (S114-S120, owner request of 2026-09-15) is COMPLETE and DEPLOYED
 (S120 head `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`, released 2026-09-17), before the

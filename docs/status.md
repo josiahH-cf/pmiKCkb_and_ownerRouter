@@ -9,7 +9,11 @@ GCP project (owner action required; the runner never changes billing); the canon
 503 and the last accepted revision `pmi-kc-app-rmu4wevd9-d89996133320` / `79493458` is not serving.
 Features now stop at a green tree with exact-SHA CI and wait in the Awaiting release queue in
 `docs/loop-state.md`; the S128 operating-Sheet pause stays in force locally and in the staged
-production configuration.
+production configuration. That queue is prepared to ship as one candidate rather than one release
+per feature: `docs/release-batch-runbook.md` holds the ordered owner steps, exact commands and
+failure branches, and `npm run release:batch-preflight` reports readiness read-only. Starting the
+watcher as it stands would deploy only the first queued commit, so the runbook archives the
+unfinished checkpoint first. Nothing has been deployed; see `docs/facts.md` F-RELEASE-BATCH.
 
 The renewal meeting-readiness bundle (owner request of 2026-09-18) is in progress. S128 (F08, pause
 operating-Sheet writes) is IMPLEMENTED and CI-GREEN at `31bc9072`, release blocked. S123 (F02, retain

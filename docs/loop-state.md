@@ -59,21 +59,14 @@ queue below waits on the owner's billing fix (F-BILLING-INCIDENT).
 
 ## Phase A reconciliation (2026-09-20)
 
-Verified: Windows checkout and native checkout `~/pmi-kc-work/main` synced at `0bbd95c3`; `npm ci`
-completed in both trees (WSL); `.env.local` in both trees carries the 11 Space maps, ASK_DEMO_MODE
-false and LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED false (the native copy read true and was corrected to
-false; the primary copy already read false). Baseline gate on the unchanged tree passed: verify.sh
-exit 0 (6,762 unit tests in 738 files, 37 backend files, policies, build) and core E2E exit 0.
-Emulator seeds (Firestore 8090 and Auth 9099 only, never production) passed for seed:spaces,
-seed:action-registry, seed:process-definitions, seed:notice-rules, seed:launch-skeletons and
-seed:demo; seed:source-meta needs a `--source-id` or `--file` input and was skipped. The emulator was
-stopped afterwards.
+Verified: both checkouts synced, `npm ci` complete, both ignored env files carrying the 11
+Space maps with ASK_DEMO_MODE and LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED false, a passing
+baseline gate on the unchanged tree and passing emulator seeds (never production).
 
-Open (surfaced blocker): localhost browser verification is blocked pending owner WSL re-enrollment.
-`npm run auth:ensure` reports gcloud and ADC "Refresh failed (reauth)"; the rehearsal server exits NOT
-READY before starting Next, so the compiled `smoke:*-browser` checks cannot run. Owner command in the
-WSL repository: `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`. Headless
-gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
+Open (surfaced blocker): localhost browser verification needs owner WSL re-enrollment
+(`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`); `auth:ensure` reports
+gcloud and ADC reauth, so the rehearsal server refuses and no compiled `smoke:*-browser` check
+can run. Headless gates are the evidence for every feature in this mode.
 
 ## Awaiting release (built, CI-green, undeployed; intended release order)
 
@@ -92,10 +85,15 @@ gates (verify.sh, test:firestore, test:e2e:core) are the evidence for this run.
 12. S132 (F12) end-to-end walkthrough preparation and meeting evidence: `f74468a1`, CI 35519202311.
 13. S133 (F13) external maintenance-agent handoff assessment: `75c06252`, CI 35519982150.
 
-Release resumes only after billing is re-enabled: re-enroll WSL auth, start the `PMI KC release
-watcher` task (native snap gcloud) or run the release once; the watcher deploys the newest green main
-SHA, so the queue above ships as one candidate carrying every queued feature. The wedged S128
-checkpoint was reset to idle (backup in the watcher state directory) and the watcher is STOPPED.
+Release resumes only after the owner re-enables billing, and the whole queue ships as ONE candidate:
+the watcher releases the newest green main SHA and the queued commits are cumulative, so one Cloud
+Build, one candidate, one promotion and one observation replace thirteen cycles. Sequence, exact
+commands and failure branches: `docs/release-batch-runbook.md`; readiness check:
+`npm run release:batch-preflight`. The watcher is STOPPED. Correction (2026-09-20): the checkpoint
+was NOT reset to idle. It holds an unfinished `prepare` at `0bbd95c3` blocked on
+`authentication_required`, and the watcher takes its checkpoint's SHA while that checkpoint is
+unfinished, so starting as-is would deploy the S128 docs commit alone and leave twelve features
+queued. Runbook step 2 archives it with its reason and records the last completed release instead.
 
 ## Verified production (last known, not serving while billing is off)
 
