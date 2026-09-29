@@ -172,6 +172,220 @@ function serviceControlHash(service) {
     Object.fromEntries(Object.entries(service).filter(([key]) => !ignored.has(key))),
   );
 }
+
+/** A source deploy changes these two build provenance values, not service controls.
+ * The original full hash remains authoritative: authenticate its preimage from the
+ * claimed recovery operation, then prove this exact candidate's one successful build.
+ * Nothing is cached as new authority and no historical receipt is rewritten. */
+async function verifyServiceControls(
+  receipt,
+  service,
+  { client, candidateRevision, stateRoot = defaultReleaseStateRoot() },
+) {
+  if (serviceControlHash(service) === receipt.serviceControlsHash) return;
+  if (!service.buildConfig) throw new Error("recovery_service_controls_changed");
+  const refuse = () => {
+    throw new Error("recovery_build_provenance_unverified");
+  };
+  try {
+    if (
+      !NAME.test(candidateRevision ?? "") ||
+      !candidateRevision.startsWith(`${receipt.service}-`) ||
+      [receipt.targetRevision, receipt.originalBaseline.expectedRevision].includes(
+        candidateRevision,
+      )
+    )
+      refuse();
+    const application = read(join(stateRoot, `application-build-${receipt.runId}.json`));
+    onlyKeys(application, ["runId", "sha", "revision", "claimedAt"]);
+    const claimedAt = Date.parse(application.claimedAt);
+    if (
+      application.runId !== receipt.runId ||
+      application.sha !== receipt.sha ||
+      application.revision !== candidateRevision ||
+      !Number.isFinite(claimedAt) ||
+      claimedAt < Date.parse(receipt.issuedAt)
+    )
+      refuse();
+    const intent = read(statePath(stateRoot, receipt.runId, "preparation-intent"));
+    const dispatch = read(statePath(stateRoot, receipt.runId, "preparation-dispatch"));
+    onlyKeys(dispatch, [
+      "runId",
+      "sha",
+      "targetRevision",
+      "intentHash",
+      "serviceEtag",
+      "claimedAt",
+    ]);
+    if (
+      intent.schemaVersion !== "pmi-kc-recovery-preparation-intent.v2" ||
+      intent.runId !== receipt.runId ||
+      intent.sha !== receipt.sha ||
+      intent.predecessorRevision !== receipt.originalBaseline.expectedRevision ||
+      intent.originalFingerprint !== receipt.originalFingerprint ||
+      intent.targetRevision !== receipt.targetRevision ||
+      intent.targetFingerprint !== receipt.targetFingerprint ||
+      !equal(intent.imageDigests, receipt.imageDigests) ||
+      intent.tag !== receipt.tag ||
+      intent.tagOrigin !== receipt.tagOrigin ||
+      intent.tagPreviousRevision !== receipt.tagPreviousRevision ||
+      intent.serviceControlsHash !== receipt.serviceControlsHash ||
+      dispatch.runId !== receipt.runId ||
+      dispatch.sha !== receipt.sha ||
+      dispatch.targetRevision !== receipt.targetRevision ||
+      dispatch.intentHash !== recoveryHash(intent) ||
+      typeof dispatch.serviceEtag !== "string" ||
+      !dispatch.serviceEtag ||
+      !Number.isFinite(Date.parse(dispatch.claimedAt)) ||
+      Date.parse(dispatch.claimedAt) > Date.parse(receipt.issuedAt)
+    )
+      refuse();
+    const recorded = read(statePath(stateRoot, receipt.runId, "preparation-operation"));
+    onlyKeys(recorded, ["name"]);
+    const operationMatch =
+      /^projects\/([a-z0-9-]+)\/locations\/([a-z0-9-]+)\/operations\/([a-z0-9-]+)$/.exec(
+        recorded.name,
+      );
+    if (!operationMatch || operationMatch[2] !== receipt.region) refuse();
+    // Resolve through the receipt's project, never through a URL supplied by metadata.
+    const operation = await get(
+      client,
+      `projects/${receipt.project}/locations/${receipt.region}/operations/${operationMatch[3]}`,
+    );
+    if (
+      operation.name !== recorded.name ||
+      operation.done !== true ||
+      operation.error ||
+      operation.response?.["@type"] !== "type.googleapis.com/google.cloud.run.v2.Service"
+    )
+      refuse();
+    const before = { ...operation.response };
+    delete before["@type"];
+    if (
+      before.name !== serviceName(receipt) ||
+      serviceControlHash(before) !== receipt.serviceControlsHash
+    )
+      refuse();
+    const priorBuild = before.buildConfig;
+    const currentBuild = service.buildConfig;
+    if (
+      !priorBuild ||
+      !currentBuild ||
+      Array.isArray(priorBuild) ||
+      Array.isArray(currentBuild) ||
+      typeof priorBuild !== "object" ||
+      typeof currentBuild !== "object" ||
+      ![
+        priorBuild.name,
+        priorBuild.sourceLocation,
+        currentBuild.name,
+        currentBuild.sourceLocation,
+      ].every((value) => typeof value === "string" && value.length > 0) ||
+      priorBuild.name === currentBuild.name ||
+      priorBuild.sourceLocation === currentBuild.sourceLocation
+    )
+      refuse();
+    const transitioned = {
+      ...before,
+      buildConfig: {
+        ...priorBuild,
+        name: currentBuild.name,
+        sourceLocation: currentBuild.sourceLocation,
+      },
+    };
+    if (serviceControlHash(transitioned) !== serviceControlHash(service))
+      throw new Error("recovery_service_controls_changed");
+    const buildMatch =
+      /^projects\/([a-z0-9-]+)\/locations\/([a-z0-9-]+)\/builds\/([a-f0-9-]+)$/.exec(
+        currentBuild.name,
+      );
+    if (!buildMatch || buildMatch[2] !== receipt.region || !UUID.test(buildMatch[3]))
+      refuse();
+    const build = (
+      await client.request({
+        method: "GET",
+        url: `https://cloudbuild.googleapis.com/v1/projects/${receipt.project}/locations/${receipt.region}/builds/${buildMatch[3]}`,
+      })
+    ).data;
+    if (
+      build.name !== currentBuild.name ||
+      build.id !== buildMatch[3] ||
+      build.projectId !== receipt.project ||
+      build.status !== "SUCCESS" ||
+      ![build.createTime, build.startTime, build.finishTime].every((time) =>
+        Number.isFinite(Date.parse(time)),
+      ) ||
+      Date.parse(build.createTime) < claimedAt ||
+      Date.parse(build.startTime) < Date.parse(build.createTime) ||
+      Date.parse(build.finishTime) < Date.parse(build.startTime)
+    )
+      refuse();
+    const source = build.source?.storageSource;
+    const resolvedSource = build.sourceProvenance?.resolvedStorageSource;
+    if (
+      !source ||
+      ![source.bucket, source.object, source.generation].every(
+        (value) => typeof value === "string" && value.length > 0 && !/[\s#?]/.test(value),
+      ) ||
+      !/^\d+$/.test(source.generation) ||
+      currentBuild.sourceLocation !==
+        `gs://${source.bucket}/${source.object}#${source.generation}` ||
+      !resolvedSource ||
+      !["bucket", "object", "generation"].every(
+        (key) => resolvedSource[key] === source[key],
+      )
+    )
+      refuse();
+    const revision = await getRevision(client, receipt, candidateRevision);
+    assertReady(revision, receipt, candidateRevision);
+    if (!revisionSheetPaused(revision) || revision.containers.length !== 1) refuse();
+    const commits =
+      revision.containers[0].env?.filter((entry) => entry.name === "APP_COMMIT_SHA") ??
+      [];
+    if (
+      commits.length !== 1 ||
+      commits[0].value !== receipt.sha ||
+      commits[0].valueSource
+    )
+      refuse();
+    const candidate = (
+      await client.request({
+        method: "GET",
+        url: `https://${receipt.region}-run.googleapis.com/apis/serving.knative.dev/v1/namespaces/${receipt.project}/revisions/${candidateRevision}`,
+      })
+    ).data;
+    if (candidate.metadata?.name !== candidateRevision) refuse();
+    const buildIds = JSON.parse(
+      candidate.metadata?.annotations?.["run.googleapis.com/build-id"] ?? "null",
+    );
+    if (
+      !buildIds ||
+      typeof buildIds !== "object" ||
+      Array.isArray(buildIds) ||
+      Object.keys(buildIds).length !== 1 ||
+      !Object.keys(buildIds)[0] ||
+      Object.values(buildIds)[0] !== build.id
+    )
+      refuse();
+    const images = build.results?.images;
+    if (
+      !Array.isArray(images) ||
+      images.length !== 1 ||
+      images[0].name !== currentBuild.imageUri ||
+      !/^sha256:[a-f0-9]{64}$/.test(images[0].digest ?? "")
+    )
+      refuse();
+    const imageName = images[0].name.replace(/:[^/]+$/, "");
+    const resolvedImage = `${imageName}@${images[0].digest}`;
+    if (!DIGEST.test(resolvedImage) || candidate.status?.imageDigest !== resolvedImage)
+      refuse();
+    const deployedImage = revision.containers[0].image;
+    if (![images[0].name, resolvedImage].includes(deployedImage)) refuse();
+  } catch (error) {
+    if (error?.message === "recovery_service_controls_changed") throw error;
+    refuse();
+  }
+}
 const sortTraffic = (rows) =>
   [...rows].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 function explicitTraffic(service) {
@@ -691,6 +905,8 @@ export async function verifyRecoveryAvailability(
     fingerprint = fingerprintRevisionRuntimeConfiguration,
     now = Date.now,
     requireFresh = true,
+    candidateRevision,
+    stateRoot = defaultReleaseStateRoot(),
   },
 ) {
   assertRecoveryBaseline(receipt);
@@ -702,8 +918,7 @@ export async function verifyRecoveryAvailability(
     throw new Error("recovery_baseline_stale");
   const service = await get(client, serviceName(receipt));
   assertServing(service, receipt.originalBaseline.expectedRevision);
-  if (serviceControlHash(service) !== receipt.serviceControlsHash)
-    throw new Error("recovery_service_controls_changed");
+  await verifyServiceControls(receipt, service, { client, candidateRevision, stateRoot });
   const original = await getRevision(
     client,
     receipt,
@@ -786,8 +1001,7 @@ export async function executeSafeRecovery(
   )
     throw new Error("recovery_target_unverified");
   let service = await get(client, serviceName(receipt));
-  if (serviceControlHash(service) !== receipt.serviceControlsHash)
-    throw new Error("recovery_service_controls_changed");
+  await verifyServiceControls(receipt, service, { client, candidateRevision, stateRoot });
   if (
     !equal(exactTraffic(service), [{ revision: receipt.targetRevision, percent: 100 }])
   ) {
@@ -849,10 +1063,14 @@ export async function executeSafeRecovery(
   assertServing(finalService, receipt.targetRevision);
   if (
     !revisionSheetPaused(recovered) ||
-    fingerprint(recovered) !== receipt.targetFingerprint ||
-    serviceControlHash(finalService) !== receipt.serviceControlsHash
+    fingerprint(recovered) !== receipt.targetFingerprint
   )
     throw new Error("recovery_final_readback_failed");
+  await verifyServiceControls(receipt, finalService, {
+    client,
+    candidateRevision,
+    stateRoot,
+  });
   await verifyRecovered(receipt);
   assertLock(receipt);
   // Repeated verification is read-only and does not rewrite the original terminal receipt.

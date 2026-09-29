@@ -738,6 +738,12 @@ describe("fresh replacement recovery bootstrap", () => {
         "Production observation refused: candidate_assurance_deadline_exceeded.",
       ),
     ).toBe("candidate_assurance_deadline_exceeded");
+    for (const code of [
+      "recovery_service_controls_changed",
+      "recovery_build_provenance_unverified",
+    ]) {
+      expect(childFailureCode(`Production observation refused: ${code}.`)).toBe(code);
+    }
   });
 });
 

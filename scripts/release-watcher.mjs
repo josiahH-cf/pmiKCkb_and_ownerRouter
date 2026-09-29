@@ -73,6 +73,8 @@ const CHILD_FAILURE_CODES = new Set([
   "recovery_preparation_claim_required",
   "recovery_preparation_outcome_unresolved",
   "recovery_service_conflict",
+  "recovery_service_controls_changed",
+  "recovery_build_provenance_unverified",
   "recovery_revision_not_ready",
   "recovery_configuration_mismatch",
   "recovery_zero_traffic_binding_mismatch",

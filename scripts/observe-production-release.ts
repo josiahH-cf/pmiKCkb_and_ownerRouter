@@ -973,7 +973,10 @@ export async function prepareCandidateAssuranceReceipt(
         sha: admission.sha,
       },
     );
-    await verifyRecoveryAvailability(supplemental, { client });
+    await verifyRecoveryAvailability(supplemental, {
+      client,
+      candidateRevision: target.expectedRevision,
+    });
     const predecessorBaseline = await capturePredecessorBaseline({
       browserPolicy,
       client,

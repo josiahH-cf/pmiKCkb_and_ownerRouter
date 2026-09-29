@@ -77,7 +77,12 @@ export function prepareRecoveryBaseline(
 ): Promise<{ receipt: RecoveryBaseline; path: string }>;
 export function verifyRecoveryAvailability(
   receipt: RecoveryBaseline,
-  dependencies: { client: Client; requireFresh?: boolean },
+  dependencies: {
+    client: Client;
+    requireFresh?: boolean;
+    candidateRevision?: string;
+    stateRoot?: string;
+  },
 ): Promise<boolean>;
 export function executeSafeRecovery(
   reference: RecoveryBaselineReference,

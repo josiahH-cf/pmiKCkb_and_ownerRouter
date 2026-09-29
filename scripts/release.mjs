@@ -715,7 +715,10 @@ export async function verifyPreparedPromotionRecovery(candidate) {
     revision.reconciling === true
   )
     throw new Error("candidate_sheet_pause_unverified");
-  await verifyRecoveryAvailability(receipt, { client });
+  await verifyRecoveryAvailability(receipt, {
+    client,
+    candidateRevision: candidate.expectedRevision,
+  });
   return receipt;
 }
 
