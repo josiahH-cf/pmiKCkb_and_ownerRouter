@@ -2,13 +2,13 @@
 
 Updated 2026-09-29 (UTC). One candidate must ship every queued feature.
 
-**BLOCKED — frozen candidate assurance remains failed; the verified correction awaits commit/CI and separate replacement approval.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
+**BLOCKED — frozen candidate assurance remains failed; the correction is committed with green CI; a further replacement awaits the owner’s separate decision.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
 
 Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
 
 Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed to main, with native checkout alignment and an independent 2,189-blob audit passed; protected paths and private inputs were excluded. [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact commit, completing at 13:14:11Z. This main repair is separate from the frozen b59 candidate.
 
-The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. Its new commit and exact-head CI remain pending.
+The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
 
 Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. A further replacement still requires separate owner approval; the frozen b59 verifier and receipts cannot be silently changed. The audit preserves every failed probe and prior repair scope.
 
@@ -24,8 +24,8 @@ The bootstrap repair, full verification, exact-head CI, evidence preservation an
 below completed for b59/run 59d3. The owner-authorized same-run resume then passed recovery and
 one application build. Assurance is now blocked before its canary/reconciliation by the proven
 build-provenance verifier defect. The prior repair passed its full gate/CI. Final output-selection focused/review checks, fresh
-CLI/ADC and read-only compatibility passed; the final correction’s full gate passed; its new commit/CI remain
-pending, and a further replacement still requires separate owner approval.
+CLI/ADC and read-only compatibility passed; the final correction’s full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b
+CI passed. A further replacement still requires separate owner approval.
 Do not repeat singleton retirement, create a new run, alter receipts or silently substitute a verifier.
 
 1. Finish and independently review the narrow bootstrap/recovery repair. Verify new-run entry
@@ -271,9 +271,10 @@ Each phase advances only on independent readback:
 
 The b59 replacement candidate is built and Ready at zero traffic; recovery has a passing receipt.
 Candidate assurance is BLOCKED on the proven build-provenance comparison defect, before its
-canary/reconciliation. No candidate assurance receipt, promotion or observation exists. The narrow
-final correction passed focused review and a read-only diagnostic but passed its full gate but still requires new exact-head CI and a separate execution decision; no
-retry, receipt alteration or candidate/verifier substitution is authorized by this document.
+canary/reconciliation. No candidate assurance receipt, promotion or observation exists. The final
+correction passed focused review, a read-only diagnostic, its full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b CI.
+A separate owner decision remains required; no retry, receipt alteration or candidate/verifier
+substitution is authorized by this document.
 The old S120 receipts remain historical evidence only. Local compiled checks retain their exact
 scopes in the batch audit; human verdicts remain NOT RUN.
 B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 stay open. No release can manufacture their

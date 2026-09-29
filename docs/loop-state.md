@@ -24,7 +24,7 @@ Candidate canary/reconciliation were NOT RUN within the gate; no candidate assur
 promotion or observation exists. Keep all thirteen features queued.
 
 Prior 497 repair full gate and CI passed. The final unique-output correction passed 263 focused
-tests/6 files, typecheck/lint and independent review; its full gate passed with 7,425 unit/232 backend passes and all required checks; its commit and exact-head CI remain pending.
+tests/6 files, typecheck/lint and independent review; its full gate passed with 7,425 unit/232 backend passes and all required checks. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
 Fresh approved CLI/ADC enrollment/binding passed 13:16:20.229Z after an owner-requested retry;
 the earlier 13:13:03.542Z timeout remains failed. Guarded Admin readiness passed both exact origins at 13:42:27.560Z; full assurance is separate.
 Corrected verifyRecoveryAvailability returned true 13:25:04.509Z: default freshness, exact
@@ -35,6 +35,7 @@ HTTP200/Admin/expected heading, no sign-in, zero attempts/blocks/errors, nine st
 lock released and owned/profile/watcher processes 0. Prior timeouts remain failed; cause unproven.
 A further replacement requires separate owner approval; no silent verifier/receipt substitution.
 The last permit is admitted until 17:47:51.558Z; permit/Resume is not execution authority.
+The retirement dry run passed with all 15 state/stop hashes unchanged; nothing was retired.
 Earlier failures remain immutable, including unproven precise causes of the first two recovery failures.
 
 ## Verified implementation and local proof
@@ -85,7 +86,8 @@ No billing/budget/guardrail/security/identity/claim change. Fresh CLI/ADC passed
 
 ## Next step and remaining limits
 
-Commit/push the final correction and verify exact-head CI; its full local gate passed.
+Correction 41de760f4d7d9b75c027e4b3c3ad97e63681097b is committed/pushed and exact CI 36578057395 passed all five jobs.
+Await the owner’s separate decision on one further cumulative replacement.
 The fresh authentication and passing read-only diagnostic do not authorize another replacement.
 Resolve the frozen-candidate/execution decision explicitly before any further release action.
 Never blind-retry, change receipts, create another candidate/run or use per-feature releases.
