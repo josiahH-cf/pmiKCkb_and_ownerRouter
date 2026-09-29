@@ -1,6 +1,6 @@
 # Batched release litmus audit — 2026-09-28
 
-Updated 2026-09-29 UTC. Current admitted implementation: `565fd837c5df67d4923f91d6b7d1c2b3840da7da`. The supplied checklist's 118 reference indexes 0–117 remain intact below; S121 is separately excluded.
+Updated 2026-09-29 UTC. Current admitted implementation: `7c02c6a9eaa7019c5ba2da411446007cdce3d4a8`. The supplied checklist's 118 reference indexes 0–117 remain intact below; S121 is separately excluded.
 
 ## Current replacement attempt
 
@@ -10,7 +10,98 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-### Current de37 candidate and diagnosed My Work loading repair
+### Current 464 candidate and bounded notice-transaction repair
+
+Run `46415f68-55da-4a0b-8161-4dfe28b4ae74` carries all thirteen features at
+`7c02c6a9eaa7019c5ba2da411446007cdce3d4a8`; exact [CI 36613516189](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36613516189)
+passed. Recovery receipt `f2c8ee12-e830-481a-b3a5-e37eef2a48e1` passed at 18:58:17.292Z.
+One application build `59ef5871-6943-46ca-894a-17fe6bf74b4b` succeeded at 19:03:35.831565Z.
+Candidate `pmi-kc-app-rmun14ae1-00b62e7630c7` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+The exact auth-prelude diagnostic reproduced a Renewal Desk navigation timeout; the matching
+Cloud Run request took 38.821546120 seconds, beyond the unchanged 30-second navigation gate.
+My Work passed; reconciliation matched all 311 records with stable complete sources and no discrepancies.
+All failed assurance results remain failed. No candidate receipt, promotion or observation exists;
+canonical S120 remains at 100%. Keep all thirteen queue entries.
+
+The notice portfolio repair groups at most 32 lease observations in one transaction, reading
+all exact head/marker/history documents before writing only the existing invalidation metadata.
+It preserves each lease's admission, tenancy/cycle binding, conflict handling and refusal semantics.
+The 311-lease regression failed on the original transaction fan-out and passed with ten bounded
+transactions and matching dispositions/markers. Focused cross-runtime invalidation checks pass.
+The full repaired-tree gate passed at 20:05:24.826510Z: 7,438 unit passes, four existing skips,
+234 backend passes and all checks/build. Replacement exact-head CI remains pending. The exact 7c02c6a9 gate
+passed 7,433 unit tests, four existing skips, 232 backend tests and all checks/build.
+Runtime limits, assurance concurrency/deadlines, safety controls and the frozen checkout are unchanged.
+
+The de37 checkpoint/permit were retired after exact 7c02c6a9 CI passed; all seventeen run files
+were archived/read back at 18:44:46.086Z. Original claims/receipts and cloud state were preserved.
+Root: `~/pmi-kc-work/logs/runde37-retirement-execute-2026-09-29T184420545Z-c7931859-135a-4d3a-a65d-49e1ddc19759`;
+summary SHA256 `3b9766de606f45fb4fa3827296747c1ccd25ffd38c242d201d1c5f8bdfa9535b`.
+Fresh locked GO admitted all thirteen features at 18:47:33.842Z.
+
+Recovery and smoke first failed on observed cold HTTP504 requests. Independent unchanged
+readbacks/diagnostics passed before authorized same-run resumes. Formal assurance failed at
+19:12:06.150Z and 19:20:48.977246Z. An instrumented pipeline without the auth prelude passed
+at 19:16:31.345Z, but a diagnostic with the exact auth prelude and original canary/reconciliation
+modules failed at 19:28:14.435Z: Desk navigation exceeded 30 seconds and its dependent workspace
+could not be selected. All other eleven Admin routes passed, including My Work. Reconciliation
+matched 311 source/projected/rendered records with zero discrepancies and monitoring ready.
+Neither diagnostic produced a receipt or changed frozen source/release state.
+
+Exact-prelude diagnostic root: `~/pmi-kc-work/logs/464-exact-pipeline-diagnostic-20260929T191312887178Z`;
+summary SHA256 `0dfe91d8394c65fb111da1263c35ec90018c3ade025bcb3ea82c8c7085389eb7`;
+gate SHA256 `02b46b6fcfe3127bdcce8d98ade1cf9d6b95b8a0d663184835a1101041a116b7`.
+Bodyless Cloud request timing independently measured the Desk GET at 19:26:16.234233Z:
+HTTP200 after 38.821546120 seconds. Later reconciliation Desk reads took 8.324 and 14.994 seconds.
+Readback: `~/pmi-kc-work/logs/464-desk-request-timings-20260929T193830408449Z.json`;
+SHA256 `67f00959861dfd52a7068f85e461fd2db4782015fda6c1f4652b722a1f2f4b6e`.
+This proves server latency, not that every millisecond belongs to one subsystem.
+
+The observed code opened 311 separate notice transactions for 311 leases. The repair uses at most
+32 leases per transaction with two bulk reads before any marker writes, retaining exact current
+heads, histories, admission membership, generations and transaction retries. A failed chunk exposes
+unknown notice state, never ready approvals. No source TTL, action authority, gate deadline,
+resource limit, canary concurrency or provider effect changes.
+The original portfolio regression failed (311 transactions); the repair passed ten transactions,
+exact individual-vs-batch marker/disposition parity and existing cross-runtime invalidation checks.
+Red log SHA256 `53553acd56007cf29b37ce4bdac4dcd9de9a54f806b1fecbe794c455b5ee7e90`;
+initial focused green SHA256 `a548a0d9f1b8215834639736515e80219a7d12b008410f3640c8abe9d74658de`.
+Live latency after the repair and replacement release remain unverified.
+
+The first full gate ended failed at 19:54:28.604894Z: all 7,438 unit tests passed (four existing
+skips), but one newly added emulator assertion failed while 233 backend checks passed. It wrongly
+required identical older evidence to become unavailable after a newer matching observation. The
+existing marker contract permits that evidence to use the latest marker; it never restores the old
+approval basis. The corrected test requires the new basis/version, keeps unadmitted leases unknown,
+and separately rejects conflicting older evidence. Application code was unchanged by this correction.
+Failed receipt: `~/pmi-kc-work/logs/notice-portfolio-ship-verify-20260929T194631112347Z/summary.json`;
+full-log SHA256 `096c878c87405ea68c92b3dd285eac381cc96b005a7f8308041f5803f7b798b9`.
+This failed gate remains failed; the subsequent corrected-tree result is recorded below.
+
+### Full notice portfolio repair verification
+
+The isolated full gate passed from 2026-09-29T19:56:08.398224+00:00 to 2026-09-29T20:05:24.826510+00:00:
+7,438 unit passes, four existing skips, 234 backend passes, all required lint/type/format/
+document/policy checks and production build `wgooD_nkek0Mvf-L1H1uq`. The emulator verified a
+32-lease mixed reserved/unreserved transaction, subsequent cross-instance admission, stale-source
+refusal and competing notice/clear observations. Existing unused-approval invalidation and
+cross-runtime tests remain green. No production record or provider effect was used for these tests.
+All 2,192 source files stayed unchanged; native/primary drift and owned runtime processes were zero.
+Receipt: `~/pmi-kc-work/logs/notice-portfolio-ship-verify-20260929T195602441897Z/summary.json`;
+summary SHA256 `9a190b738869792a8903508aaaac7f03f775ad1d9d698034d611e8d0be79eea1`;
+full-log SHA256 `1faa229560706e401fdb0b85fc6c4857e470454026d8dd4e9688207da74d5a9b`;
+manifest SHA256 `d6e07c60c44c3ab4b83511c966be99c08378a2d50a81fe827a14bb33519163bf`.
+Only final documentation results change after this gate; every non-documentation file must match
+its verified manifest. Exact CI and all live release gates remain required.
+
+All seventeen 464 state files were preserved under the lock at 19:47:32.185Z:
+`~/pmi-kc-work/logs/464-assurance-stop-snapshot-1790711252033-0778d497-c9bd-442a-afda-bc8629567725`;
+manifest SHA256 `46df5f4b2674a46a5ef036e8367cd13f33fa282820ed82e778cb076b5bbda681`.
+Snapshotting retired nothing and made no cloud mutation. The exact-coordinate retirement helper
+passed twelve parser checks; fresh cloud readback and reviewed dry-run remain required.
+
+### Earlier de37 candidate and diagnosed My Work loading repair — historical evidence only
 
 Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
 `565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)

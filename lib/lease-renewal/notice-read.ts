@@ -2,7 +2,10 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Firestore } from "firebase-admin/firestore";
 import type { LiveLeaseSnapshotResult } from "./live-lease-cache";
 import type { LeaseStatusTableRead, MoveOutDisposition } from "./move-out-disposition";
-import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
+import {
+  observeRenewalNotices,
+  NOTICE_OBSERVATION_BATCH_SIZE,
+} from "@/lib/firestore/renewal-notice-safety";
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 
 export type RenewalNoticeObserver = (
@@ -17,30 +20,33 @@ export function renewalNoticeObserver(
 ): RenewalNoticeObserver {
   return async (read, statusTable, observedAtMs) => {
     const entries: [string, MoveOutDisposition][] = [];
-    // Bound transactions instead of launching the entire portfolio at once.
-    for (let offset = 0; offset < read.snapshot.views.length; offset += 8) {
-      const batch = await Promise.all(
-        read.snapshot.views.slice(offset, offset + 8).map(async (lease) => {
+    // At most 32 leases share one atomic marker transaction; portfolio size never sets concurrency.
+    for (
+      let offset = 0;
+      offset < read.snapshot.views.length;
+      offset += NOTICE_OBSERVATION_BATCH_SIZE
+    ) {
+      const leases = read.snapshot.views
+        .slice(offset, offset + NOTICE_OBSERVATION_BATCH_SIZE)
+        .flatMap((lease) => {
           const id = leaseViewId(lease);
-          if (!id) return null;
-          const result = await observeRenewalNotice(
-            actor,
-            {
-              lease,
-              statusTable,
-              freshness: read.currency.state,
-              leaseReadAtMs: read.snapshot.readAtMs,
-              observedAtMs,
-              noticeAdmitted: read.snapshot.noticeAdmitted,
-              admittedLeaseKeys: read.snapshot.noticeAdmission?.leaseKeys,
-            },
-            db,
-          );
-          return [id, result.disposition] as [string, MoveOutDisposition];
-        }),
+          return id ? [{ id, lease }] : [];
+        });
+      const results = await observeRenewalNotices(
+        actor,
+        leases.map(({ lease }) => ({
+          lease,
+          statusTable,
+          freshness: read.currency.state,
+          leaseReadAtMs: read.snapshot.readAtMs,
+          observedAtMs,
+          noticeAdmitted: read.snapshot.noticeAdmitted,
+          admittedLeaseKeys: read.snapshot.noticeAdmission?.leaseKeys,
+        })),
+        db,
       );
-      entries.push(
-        ...batch.filter((entry): entry is [string, MoveOutDisposition] => entry !== null),
+      results.forEach((result, index) =>
+        entries.push([leases[index].id, result.disposition]),
       );
     }
     return new Map(entries);

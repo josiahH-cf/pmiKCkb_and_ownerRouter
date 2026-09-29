@@ -30,25 +30,27 @@ and operator-selected radius recovery. The earlier failed Feature 4 observation 
 remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
 PR #91 clarifies shared navigation and renewal sections/fields and removes unnecessary shared
 page reads. All six standalone release cycles are complete.
-Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
-`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
-passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
-One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
-Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
+Run `46415f68-55da-4a0b-8161-4dfe28b4ae74` carries all thirteen features at
+`7c02c6a9eaa7019c5ba2da411446007cdce3d4a8`; exact [CI 36613516189](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36613516189)
+passed. Recovery receipt `f2c8ee12-e830-481a-b3a5-e37eef2a48e1` passed at 18:58:17.292Z.
+One application build `59ef5871-6943-46ca-894a-17fe6bf74b4b` succeeded at 19:03:35.831565Z.
+Candidate `pmi-kc-app-rmun14ae1-00b62e7630c7` is at zero traffic, Production/Live,
 Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
-race: two matching headings and an error panel before hydration, without a failed request.
-The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
-Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
-promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
+The exact auth-prelude diagnostic reproduced a Renewal Desk navigation timeout; the matching
+Cloud Run request took 38.821546120 seconds, beyond the unchanged 30-second navigation gate.
+My Work passed; reconciliation matched all 311 records with stable complete sources and no discrepancies.
+All failed assurance results remain failed. No candidate receipt, promotion or observation exists;
+canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-My Work now reports its first read as loading from server render through hydration, retaining
-real read failures and explicit read-only Retry. Three new regressions failed on the original
-source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
-gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
-required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
-four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
-assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
+The notice portfolio repair groups at most 32 lease observations in one transaction, reading
+all exact head/marker/history documents before writing only the existing invalidation metadata.
+It preserves each lease's admission, tenancy/cycle binding, conflict handling and refusal semantics.
+The 311-lease regression failed on the original transaction fan-out and passed with ten bounded
+transactions and matching dispositions/markers. Focused cross-runtime invalidation checks pass.
+The full repaired-tree gate passed at 20:05:24.826510Z: 7,438 unit passes, four existing skips,
+234 backend passes and all checks/build. Replacement exact-head CI remains pending. The exact 7c02c6a9 gate
+passed 7,433 unit tests, four existing skips, 232 backend tests and all checks/build.
+Runtime limits, assurance concurrency/deadlines, safety controls and the frozen checkout are unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
@@ -64,7 +66,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Historical S120 predecessor: `pmi-kc-app-rmu4s6qo5-5d81e4f12265` / `be023196ef63cd4e48db8230fc8deccaedae95c8`. Current run-bound recovery is `pmi-kc-app-recovery-de37a0235762435f`, Sheet=false, with receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` from 17:38:55.104Z. The de37 candidate is zero traffic and blocked in assurance; serving S120 remains Sheet=true at 100%. Earlier run receipts remain historical.
+- Historical S120 predecessor: `pmi-kc-app-rmu4s6qo5-5d81e4f12265` / `be023196ef63cd4e48db8230fc8deccaedae95c8`. Current run-bound recovery is `pmi-kc-app-recovery-46415f6855da4a0b`, Sheet=false, with receipt `f2c8ee12-e830-481a-b3a5-e37eef2a48e1` from 18:58:17.292Z. The 464 candidate is zero traffic and blocked in assurance; serving S120 remains Sheet=true at 100%. Earlier run receipts remain historical.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

@@ -318,6 +318,11 @@ class FakeTransaction {
     );
   }
 
+  async getAll(...refs: FakeDocument[]) {
+    if (this.writes.size) throw new Error("Firestore reads must precede writes.");
+    return Promise.all(refs.map((ref) => this.get(ref)));
+  }
+
   create(ref: FakeDocument, data: Record<string, unknown>) {
     if (this.working.has(ref.path)) throw new Error("already-exists");
     this.queueWrite(ref.path, "create", data);

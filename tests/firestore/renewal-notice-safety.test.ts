@@ -7,9 +7,13 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { applyLeaseDetailToView } from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  applyLeaseDetailToView,
+  leaseViewsFromExport,
+} from "@/lib/integrations/rentvine/lease-mapper";
 import {
   observeRenewalNotice,
+  observeRenewalNotices,
   reserveRenewalNoticeLease,
   withRenewalNoticeAdmission,
   noticeSafetyMarkerRef,
@@ -114,6 +118,92 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 describe("emulator durable notice generations", () => {
+  it("atomically verifies mixed reserved and unreserved leases without reads after writes", async () => {
+    const now = Date.now();
+    const sources = Array.from({ length: 32 }, (_, i) => {
+      const leaseId = String(9001 + i);
+      const read = source(false, now);
+      const [lease] = leaseViewsFromExport([
+        {
+          lease: {
+            leaseID: leaseId,
+            leaseStatusID: "2",
+            tenants: [{ contactID: "9101" }],
+          },
+          unit: { unitID: "9201" },
+        },
+      ]);
+      applyLeaseDetailToView(lease, {
+        leaseStatusID: "2",
+        noticeDate: null,
+        expectedMoveOutDate: null,
+        moveOutDate: null,
+        isMonthToMonth: "0",
+      });
+      return { ...read, lease };
+    });
+    const first = await observeRenewalNotices(actor, sources, db);
+    expect(first[0].ready).toBe(true);
+    expect(
+      first
+        .slice(1)
+        .every((result) => !result.ready && result.disposition.state === "unknown"),
+    ).toBe(true);
+    expect((await db.collectionGroup("approval_safety").get()).size).toBe(32);
+    expect((await db.collection("lease_renewal_workspaces").get()).size).toBe(0);
+    expect((await db.collectionGroup("notice_reviews").get()).size).toBe(0);
+    const reader = withRenewalNoticeAdmission(actor, {}, otherDb);
+    const lease = await reader.beforeLeaseSourceRead(now + 1000);
+    const status = await reader.beforeStatusSourceRead(now + 1000);
+    const admitted = sources.map((read) => ({
+      ...read,
+      leaseReadAtMs: lease.readAtMs,
+      observedAtMs: now + 1000,
+      admittedLeaseKeys: lease.leaseKeys,
+      statusTable: {
+        ...read.statusTable,
+        readAtMs: status.readAtMs,
+        admittedLeaseKeys: status.leaseKeys,
+      } as NoticeSourceRead["statusTable"],
+    }));
+    const secondRead = await observeRenewalNotices(actor, admitted, otherDb);
+    expect(
+      secondRead.every(
+        (result) => result.ready && result.disposition.state === "not_initiated",
+      ),
+    ).toBe(true);
+    const matchingOlder = await observeRenewalNotices(actor, sources, db);
+    // Identical admitted evidence may use the current marker, never revive the old basis.
+    expect(matchingOlder[0].ready).toBe(true);
+    expect(matchingOlder[0].basis).toEqual(secondRead[0].basis);
+    expect(matchingOlder[0].basis!.version).toBeGreaterThan(first[0].basis!.version);
+    expect(matchingOlder.slice(1).every((result) => !result.ready)).toBe(true);
+    const conflictingOlder = await observeRenewalNotices(
+      actor,
+      [source(true, now), ...sources.slice(1)],
+      db,
+    );
+    expect(conflictingOlder.every((result) => !result.ready)).toBe(true);
+    expect((await db.collection("lease_renewal_workspaces").get()).size).toBe(0);
+  });
+
+  it("reconciles overlapping portfolio transactions without reviving old source authority", async () => {
+    const now = Date.now();
+    const initial = (await observeRenewalNotices(actor, [source(false, now)], db))[0];
+    await Promise.all([
+      observeRenewalNotices(actor, [source(true, now + 1000)], db),
+      observeRenewalNotices(actor, [source(false, now + 1000)], otherDb),
+    ]);
+    const stale = (await observeRenewalNotices(actor, [source(false, now)], otherDb))[0];
+    expect(stale.ready).toBe(false);
+    expect(stale.basis!.version).toBeGreaterThan(initial.basis!.version);
+    const fresh = (
+      await observeRenewalNotices(actor, [source(false, now + 2000)], db)
+    )[0];
+    expect(fresh.ready).toBe(true);
+    expect(fresh.basis!.version).toBeGreaterThan(initial.basis!.version);
+  });
+
   it("refuses an unused old S20 confirmation after an admitted positive read and clear on another instance", async () => {
     const now = Date.now(),
       cycle = "10000000-0000-4000-8000-000000000010",

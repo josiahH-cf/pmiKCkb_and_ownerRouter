@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import type { DocumentSnapshot, Firestore, Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
@@ -324,121 +324,194 @@ function projection(
       })
     : base;
 }
-/** Owner-approved exception: authenticated reads update only five hash/version/time fields.
- * No workspace head, staff history, workflow milestone or provider record is written here.
- */
-export async function observeRenewalNotice(
-  actor: AuthenticatedUser,
+/** Keep each portfolio transaction bounded: at most 64 head/marker reads, 32 history reads,
+ * and 32 bodyless marker writes. Every read precedes every write in the same transaction. */
+export const NOTICE_OBSERVATION_BATCH_SIZE = 32;
+
+/** Shared projection for single-lease and portfolio reads. Its snapshots belong to one transaction;
+ * the only possible writes remain the owner-approved five hash/version/time marker fields. */
+function projectNoticeObservation(
   source: NoticeSourceRead,
+  leaseId: string,
+  tenancyHash: string | null,
+  head: DocumentSnapshot,
+  existing: DocumentSnapshot,
+  saved: DocumentSnapshot | undefined,
+  tx: Transaction,
+  db: Firestore,
+): RenewalNoticeSafety {
+  const markerRef = noticeSafetyMarkerRef(db, leaseId);
+  const cycleId =
+    head.exists && typeof head.get("cycleId") === "string"
+      ? (head.get("cycleId") as string)
+      : null;
+  const scopeHash = noticeScopeHash(leaseId, tenancyHash, cycleId);
+  const admitted =
+    source.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) === true &&
+    source.statusTable.status === "available" &&
+    source.statusTable.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) ===
+      true;
+  if (!existing.exists || !admitted) {
+    const sourceReadAt = { lease: 0, status: 0 };
+    const marker = existing.exists
+      ? NoticeSafetyMarkerSchema.parse(existing.data())
+      : {
+          scopeHash,
+          sourceReadAt,
+          semanticHash: pendingNoticeHash(scopeHash, sourceReadAt),
+          version: 1,
+          observedAt: new Date(source.observedAtMs).toISOString(),
+        };
+    if (!existing.exists) tx.create(markerRef, marker);
+    const reason =
+      "Notice evidence needs a fresh admitted source read. Use Refresh data, then review again; no notice evidence from this unadmitted generation is shown.";
+    return {
+      disposition: unavailableDisposition(leaseId, reason),
+      basis: noticeSafetyBasis(marker),
+      cycleId,
+      tenancyVerified: false,
+      history: null,
+      ready: false,
+      reason,
+    };
+  }
+  const history = saved?.exists ? historySchema.parse(saved.data()) : null;
+  const disposition = projection(source, history);
+  const result = advanceNoticeSafetyMarker(
+    existing.exists ? NoticeSafetyMarkerSchema.parse(existing.data()) : null,
+    {
+      scopeHash,
+      semanticHash: noticeSemanticHash(
+        disposition,
+        tenancyHash !== null,
+        history?.revision ?? 0,
+      ),
+      sourceReadAt: {
+        lease: source.leaseReadAtMs,
+        status:
+          source.statusTable.status === "available"
+            ? (source.statusTable.readAtMs ?? 0)
+            : source.observedAtMs,
+      },
+      observedAt: new Date(source.observedAtMs).toISOString(),
+    },
+  );
+  if (
+    !existing.exists ||
+    hashExecutionPreview(existing.data() ?? {}) !== hashExecutionPreview(result.marker)
+  )
+    tx.set(markerRef, result.marker);
+  const ready =
+    result.ready &&
+    source.noticeAdmitted === true &&
+    tenancyHash !== null &&
+    !["expired", "unavailable"].includes(source.freshness) &&
+    source.statusTable.status === "available" &&
+    source.statusTable.noticeAdmitted === true;
+  const reason = !ready
+    ? "Notice approval safety is unavailable or source generations conflict. Refresh the lease source and review again before drafting."
+    : disposition.state === "initiated" ||
+        disposition.reason === "withdrawal_review_required"
+      ? disposition.label
+      : null;
+  const visibleDisposition: MoveOutDisposition = ready
+    ? disposition
+    : {
+        ...disposition,
+        state: "unknown",
+        reason: "approval_safety_unavailable",
+        label: reason!,
+      };
+  return {
+    disposition: visibleDisposition,
+    basis: noticeSafetyBasis(result.marker),
+    cycleId,
+    tenancyVerified: tenancyHash !== null,
+    history,
+    ready,
+    reason,
+  };
+}
+
+/** Authenticated reads never write a workspace, history, milestone or provider record. Batched
+ * reads retain transaction retries and durable invalidation without one transaction per lease. */
+export async function observeRenewalNotices(
+  actor: AuthenticatedUser,
+  sources: readonly NoticeSourceRead[],
   db: Firestore = getAdminFirestore(),
-): Promise<RenewalNoticeSafety> {
+): Promise<RenewalNoticeSafety[]> {
   requireReader(actor);
-  const leaseId = leaseViewId(source.lease);
-  if (!leaseId) throw new EditableLayerError("The lease identity is unavailable.", 409);
-  const tenancyHash = noticeTenancyHash(source.lease);
+  if (sources.length > NOTICE_OBSERVATION_BATCH_SIZE)
+    throw new EditableLayerError("The notice observation batch is too large.", 409);
+  const entries = sources.map((source) => {
+    const leaseId = leaseViewId(source.lease);
+    if (!leaseId) throw new EditableLayerError("The lease identity is unavailable.", 409);
+    return { source, leaseId, tenancyHash: noticeTenancyHash(source.lease) };
+  });
+  if (new Set(entries.map((entry) => entry.leaseId)).size !== entries.length)
+    throw new EditableLayerError("The notice observation identities are ambiguous.", 409);
+  if (!entries.length) return [];
   try {
     return await db.runTransaction(async (tx) => {
-      const headRef = db
-        .collection("lease_renewal_workspaces")
-        .doc(renewalWorkspaceDocId(leaseId));
-      const markerRef = noticeSafetyMarkerRef(db, leaseId);
-      const [head, existing] = await Promise.all([tx.get(headRef), tx.get(markerRef)]);
-      const cycleId =
-        head.exists && typeof head.get("cycleId") === "string"
-          ? (head.get("cycleId") as string)
-          : null;
-      const scopeHash = noticeScopeHash(leaseId, tenancyHash, cycleId);
-      const admitted =
-        source.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) === true &&
-        source.statusTable.status === "available" &&
-        source.statusTable.admittedLeaseKeys?.includes(renewalWorkspaceDocId(leaseId)) ===
-          true;
-      if (!existing.exists || !admitted) {
-        const sourceReadAt = { lease: 0, status: 0 };
-        const marker = existing.exists
-          ? NoticeSafetyMarkerSchema.parse(existing.data())
-          : {
-              scopeHash,
-              sourceReadAt,
-              semanticHash: pendingNoticeHash(scopeHash, sourceReadAt),
-              version: 1,
-              observedAt: new Date(source.observedAtMs).toISOString(),
-            };
-        if (!existing.exists) tx.create(markerRef, marker);
-        const reason =
-          "Notice evidence needs a fresh admitted source read. Use Refresh data, then review again; no notice evidence from this unadmitted generation is shown.";
-        return {
-          disposition: unavailableDisposition(leaseId, reason),
-          basis: noticeSafetyBasis(marker),
-          cycleId,
-          tenancyVerified: false,
-          history: null,
-          ready: false,
-          reason,
-        };
-      }
-      const saved = await tx.get(historyRef(db, leaseId, scopeHash));
-      const history = saved.exists ? historySchema.parse(saved.data()) : null;
-      const disposition = projection(source, history);
-      const result = advanceNoticeSafetyMarker(
-        existing.exists ? NoticeSafetyMarkerSchema.parse(existing.data()) : null,
-        {
-          scopeHash,
-          semanticHash: noticeSemanticHash(
-            disposition,
-            tenancyHash !== null,
-            history?.revision ?? 0,
-          ),
-          sourceReadAt: {
-            lease: source.leaseReadAtMs,
-            status:
-              source.statusTable.status === "available"
-                ? (source.statusTable.readAtMs ?? 0)
-                : source.observedAtMs,
-          },
-          observedAt: new Date(source.observedAtMs).toISOString(),
-        },
+      const targets = entries.map((entry) => ({
+        ...entry,
+        headRef: db
+          .collection("lease_renewal_workspaces")
+          .doc(renewalWorkspaceDocId(entry.leaseId)),
+        markerRef: noticeSafetyMarkerRef(db, entry.leaseId),
+      }));
+      const snapshots = await tx.getAll(
+        ...targets.flatMap((entry) => [entry.headRef, entry.markerRef]),
       );
-      if (
-        !existing.exists ||
-        hashExecutionPreview(existing.data() ?? {}) !==
-          hashExecutionPreview(result.marker)
-      )
-        tx.set(markerRef, result.marker);
-      const ready =
-        result.ready &&
-        source.noticeAdmitted === true &&
-        tenancyHash !== null &&
-        !["expired", "unavailable"].includes(source.freshness) &&
-        source.statusTable.status === "available" &&
-        source.statusTable.noticeAdmitted === true;
-      const reason = !ready
-        ? "Notice approval safety is unavailable or source generations conflict. Refresh the lease source and review again before drafting."
-        : disposition.state === "initiated" ||
-            disposition.reason === "withdrawal_review_required"
-          ? disposition.label
-          : null;
-      const visibleDisposition: MoveOutDisposition = ready
-        ? disposition
-        : {
-            ...disposition,
-            state: "unknown",
-            reason: "approval_safety_unavailable",
-            label: reason!,
-          };
-      return {
-        disposition: visibleDisposition,
-        basis: noticeSafetyBasis(result.marker),
-        cycleId,
-        tenancyVerified: tenancyHash !== null,
-        history,
-        ready,
-        reason,
-      };
+      const byPath = new Map(snapshots.map((snapshot) => [snapshot.ref.path, snapshot]));
+      const prepared = targets.map((entry) => {
+        const head = byPath.get(entry.headRef.path),
+          existing = byPath.get(entry.markerRef.path);
+        if (!head || !existing) throw new Error("notice_snapshot_missing");
+        const cycleId =
+          head.exists && typeof head.get("cycleId") === "string"
+            ? (head.get("cycleId") as string)
+            : null;
+        const admitted =
+          entry.source.admittedLeaseKeys?.includes(entry.headRef.id) === true &&
+          entry.source.statusTable.status === "available" &&
+          entry.source.statusTable.admittedLeaseKeys?.includes(entry.headRef.id) === true;
+        const history =
+          existing.exists && admitted
+            ? historyRef(
+                db,
+                entry.leaseId,
+                noticeScopeHash(entry.leaseId, entry.tenancyHash, cycleId),
+              )
+            : null;
+        return { ...entry, head, existing, history };
+      });
+      const historyRefs = prepared.flatMap((entry) =>
+        entry.history ? [entry.history] : [],
+      );
+      const historySnapshots = historyRefs.length ? await tx.getAll(...historyRefs) : [];
+      const histories = new Map(
+        historySnapshots.map((snapshot) => [snapshot.ref.path, snapshot]),
+      );
+      if (historyRefs.some((ref) => !histories.has(ref.path)))
+        throw new Error("notice_history_snapshot_missing");
+      // No source fetch, transaction read or external action occurs after this point.
+      return prepared.map((entry) =>
+        projectNoticeObservation(
+          entry.source,
+          entry.leaseId,
+          entry.tenancyHash,
+          entry.head,
+          entry.existing,
+          entry.history ? histories.get(entry.history.path) : undefined,
+          tx,
+          db,
+        ),
+      );
     });
   } catch {
-    // Never treat an unreadable marker as an empty history or preserve draft authority on failure.
-    return {
+    // A failed chunk exposes no ready result and commits no partial invalidation markers.
+    return entries.map(({ leaseId, tenancyHash }) => ({
       disposition: unavailableDisposition(
         leaseId,
         "Notice review history or approval safety could not be read. Ordinary lease facts remain visible; notice evidence and drafting wait for verification.",
@@ -449,8 +522,16 @@ export async function observeRenewalNotice(
       history: null,
       ready: false,
       reason: "Notice approval safety could not be verified. Refresh before drafting.",
-    };
+    }));
   }
+}
+
+export async function observeRenewalNotice(
+  actor: AuthenticatedUser,
+  source: NoticeSourceRead,
+  db: Firestore = getAdminFirestore(),
+): Promise<RenewalNoticeSafety> {
+  return (await observeRenewalNotices(actor, [source], db))[0];
 }
 
 /** An explicit, audited staff action records evidence without starting a cycle or changing progress. */
