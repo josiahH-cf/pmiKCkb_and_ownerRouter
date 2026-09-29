@@ -4,26 +4,30 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Terminal state: BLOCKED — fresh attended Google enrollment and release admission.
-Run K passed 7,174 unit tests, 230 backend tests, all gates and build hkH9ZkYerS_oUJOH5zk1z.
-K cold notice passed in 16.563 seconds; a clean desk-warmed read passed in 16.778 seconds.
-Save/readback focus, 71 guide steps, actual-source and six-category synthetic presentation passed.
-A separate instrumented check matched all 311 source/cache/projected/rendered records and categories
-before/after a newer API read, with zero missing records or duplicates. All previous failures remain.
-Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance.
+Terminal state: BLOCKED — fresh attended Google enrollment and remote release admission.
+Run L passed 7,212 unit tests in 800 files, 232 backend tests in 42 files, all gates and production
+build MsohNlljqt7KxRmFLb2od at 07:42:25.233Z. New core E2E passed 31 tests with 18 intentional skips
+at 07:47:43.666Z; all 2,021 source hashes and the build were preserved. Exact-build cold and corrected
+desk-warmed notice passed in 15.459/17.456 seconds under the unchanged 20-second gate. The separate
+cohort diagnostic matched all 311 identity/category pairs before/after the notice API. Prior K
+browser/core results retain their historical-build scope; cohort equality is not independent lifecycle derivation.
 All thirteen queue entries remain. S121 stays separate. No batch candidate/promotion/observation ran.
 CLI/ADC refresh works and Google sign-in is enabled; Admin requires attended Google sign-in.
 The 20:56:36.677Z September 28 enrollment exceeds the seven-hour release-start budget; fresh attended
 WSL enrollment is also required. Successful token refresh does not waive that gate.
 The owner-approved read exception permits lease-bound version/hash/time invalidation metadata only.
-The pre-repair head remains 952c5cd843d14a9f7e2be2bcfa227598f235d059 (CI 36485825488).
-Its historical GO does not admit this tree; exact current push CI and fresh GO are mandatory.
+Prior repair commit d2ec88cc97578ddf028b2930af8540e19397613d failed CI 36530528718: two unit cases
+and one S113 backend preview case. Quality and policy/build passed. Default unit-store refusal,
+explicit memory fixtures, atomic-create reservation, bounded cleanup and all owning GET outcomes
+now pass run L. The original failed CI receipt remains unchanged.
+K's unit database target/effects and the original CI transaction site remain unverified.
+Exact new green push CI and fresh GO are mandatory.
 
 ## Verified host and cloud readbacks
 
-- Approved `josiah@pmikcmetro.com` WSL CLI and ADC refresh passed on 2026-09-29.
-- Google sign-in provider independently read enabled=true at 03:03:37.930Z, with no setting change.
-- Billing enabled on the expected account. Unchanged controls: alert 25 USD, project hard stop
+- Approved `josiah@pmikcmetro.com` WSL CLI and ADC refresh passed again around 07:42 UTC.
+- Google sign-in provider independently read HTTP 200 and enabled=true at 07:45:40.618Z, mutation zero.
+- Billing and exact cost-control validation passed at 07:48:03.544Z on the expected account: alert 25 USD, project hard stop
   100 USD, account backstop 100 USD, ACTIVE Node.js 22 guardrail with cap 100, hard-stop Pub/Sub
   present and two channels on each alert. No billing, budget or security setting was changed.
 - Both ignored env files in both checkouts now carry Sheet write-back false.
@@ -57,12 +61,18 @@ G5 saves/downloads actual approved AcroForm bytes, preserves originals and atomi
 independent parsing checked 14 fields. Concurrent staging cleanup was reproduced and repaired;
 all six real PDF race/persistence cases passed. G6/G7 recovery/admission passed 135 focused tests,
 including five real kernel-lock/process tests and four observer-entry guards plus independent review.
-Run K verify.sh passed: 7,174 unit tests in 795 files, 230 backend tests in 41 files, all gates/build.
-Both repaired S113 mounted journeys passed in the complete backend run. Failed earlier logs remain
-outside Git unchanged. Eight compiled smokes and G1/G2 controls passed; final rebuilt G4/G5 passed
-on prior build pAKd_VsJI8vmZvjAv6Lgu with zero forwarded business writes. Final core E2E passed 31/18 skipped. Objective compiled scopes passed as recorded above; the older
-long-run warm miss and helper failures retain their original verdicts. The final manifest is outside
-Git at ~/pmi-kc-work/logs/final-k-browser-receipt-manifest-20260929.json. Human verdicts remain NOT RUN.
+Run L receipts: ~/pmi-kc-work/logs/gap-verify-l-2026-09-29T073525662Z; full-log SHA256
+f47e8febdd679a4c2cf0b06f204c517d25d2623f509be931aaba2baba2c817ec. Both S113 journeys passed.
+New core receipts: ~/pmi-kc-work/logs/core-e2e-reservation-20260929T074448Z; runtime cleaned up.
+Historical K cold/desk-warmed notice passed in 16.563/16.778 seconds; save/readback focus, 71 guide
+steps, actual-source and six-category synthetic presentation passed. Its separate instrumented
+check matched 311 source/cache/projected/rendered records and categories before/after an API read.
+K core passed 31/18 skipped. Eight earlier compiled smokes and prior G4/G5 controls retain their
+exact-build scopes. K manifest: ~/pmi-kc-work/logs/final-k-browser-receipt-manifest-20260929.json.
+New follow-up receipts: ~/pmi-kc-work/logs/reservation-compiled-followup-2026-09-29T075109220Z.
+The first new warm attempt omitted PMI_CLEAN_WARM_NOTICE and failed notice_proof_required without
+requesting notice; it remains unchanged alongside the corrected pass. Browser blocks/page errors and
+remaining owned Next processes were zero. Older failures remain unchanged; human verdicts remain NOT RUN.
 
 ## Awaiting release (thirteen cumulative features; repaired head requires exact CI)
 
@@ -95,8 +105,8 @@ Git unchanged. No current batch receipt, promotion time or observation pass exis
 
 ## Resume and remaining limits
 
-Local repair verification is complete. Next: exact-main CI,
-fresh preflight GO with thirteen entries/current watcher target, single native watcher on the free
+Next: commit the green repaired tree, require its exact push CI,
+fresh attended WSL/Admin enrollment and preflight GO with thirteen entries/current watcher target, single native watcher on the free
 lock, candidate/assurance/promotion/observation and independent readbacks. Follow the batch runbook.
 Never substitute per-feature releases. Authentication expiry requires attended owner enrollment.
 

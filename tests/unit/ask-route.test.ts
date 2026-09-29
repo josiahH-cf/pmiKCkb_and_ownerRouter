@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FakeTransactionalFirestore } from "../helpers/fake-transactional-firestore";
+
+const mocks = vi.hoisted(() => ({ getAdminFirestore: vi.fn() }));
+vi.mock("@/lib/firestore/admin", () => ({
+  getAdminFirestore: mocks.getAdminFirestore,
+}));
+
 import { POST } from "@/app/api/ask/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 
@@ -8,11 +15,19 @@ const validBody = {
 };
 const originalAskDemoMode = process.env.ASK_DEMO_MODE;
 const originalGcpProjectId = process.env.GCP_PROJECT_ID;
+let store: FakeTransactionalFirestore;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  store = new FakeTransactionalFirestore();
+  mocks.getAdminFirestore.mockReturnValue(store);
+});
 
 afterEach(() => {
   process.env.ASK_DEMO_MODE = originalAskDemoMode;
   process.env.GCP_PROJECT_ID = originalGcpProjectId;
   setAuthResolverForTest(null);
+  expect(store.store.size).toBe(0);
 });
 
 describe("Ask API auth guard", () => {
@@ -25,6 +40,7 @@ describe("Ask API auth guard", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: "Authentication is required.",
     });
+    expect(mocks.getAdminFirestore).not.toHaveBeenCalled();
   });
 
   it("returns 403 when the hosted domain is not allowed", async () => {
@@ -41,6 +57,7 @@ describe("Ask API auth guard", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: "Google Workspace hosted domain is not allowed.",
     });
+    expect(mocks.getAdminFirestore).not.toHaveBeenCalled();
   });
 
   it("returns a setup error when live retrieval is not configured", async () => {
@@ -60,6 +77,9 @@ describe("Ask API auth guard", () => {
       error: "Missing GCP_PROJECT_ID for Vertex AI Search.",
       error_type: "RetrievalSetupError",
     });
+    // The real service constructs store-backed dependencies before validating setup. The explicit
+    // memory adapter keeps those constructors isolated; the refusal must not create a log.
+    expect(mocks.getAdminFirestore).toHaveBeenCalled();
   });
 
   it("returns the local demo verified-source answer when demo mode is active", async () => {
@@ -79,6 +99,7 @@ describe("Ask API auth guard", () => {
       source_state: "Verified Source",
       citations: [expect.objectContaining({ source_id: "demo-lease-renewals-sop" })],
     });
+    expect(mocks.getAdminFirestore).not.toHaveBeenCalled();
   });
 });
 

@@ -1,13 +1,34 @@
 # Batched release litmus audit — 2026-09-28
 
 Updated 2026-09-29 UTC. Reviewed implementation: current working tree based on
-`952c5cd843d14a9f7e2be2bcfa227598f235d059`. The owner's pasted checklist contains
+`d2ec88cc97578ddf028b2930af8540e19397613d`. The owner's pasted checklist contains
 reference indexes 0–117 plus the unnumbered S121 exclusion. Those indexes identify
 the supplied statements, not external citations. All thirteen queued suites remain
 in this one batch; S121 market fallback remains separately unscheduled.
 
-**Current verdict: required local engineering and scoped compiled acceptance PASSED; remote delivery is NOT VERIFIED.**
-Run K passed all 7,174 unit tests, 230 backend tests, policy/document checks and production build
+**Current verdict: local full verification, core E2E and scoped compiled repair checks PASS; CI, authentication and release gates remain PENDING. Remote delivery is NOT VERIFIED.**
+Native Node-22 run L passed **7,212 unit tests in 800 files**, **232 backend tests in 42 files**,
+all required gates and production build `MsohNlljqt7KxRmFLb2od` at 07:42:25.233 UTC.
+Same-source core E2E subsequently passed **31 tests with 18 intentional skips** on its isolated
+development server. Before/after comparisons preserved all 2,021 source paths across Windows and
+native WSL and the production build; cleanup left no owned runtime. On that exact compiled build,
+fresh-process notice readiness passed in **15.459 seconds** and the corrected desk-warmed check
+passed in **17.456 seconds**, both within the unchanged 20-second deadline. The separate
+observational cohort diagnostic matched all 311 raw-source/cache/projected/rendered identities
+and projected/rendered category pairs before and after a newer notice API read. This does not
+independently derive lifecycle categories from raw provider data. New exact-head CI, fresh attended
+WSL/Admin authentication and the full one-batch release sequence remain required.
+
+The earlier repair commit `d2ec88cc` failed [CI 36530528718](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36530528718):
+quality and policy passed, two unit cases failed because their refresh-route fixture omitted a
+Firestore double, and the backend lane passed 229 of 230 tests with the S113 preview failure's
+original cause unresolved. Later diagnostics located an unfinished journey's 54 pending reads
+in reservation transactions before shared source admission. The narrow atomic-reservation repair,
+unit isolation and stricter journey fixtures passed focused checks and the new run L. Those results
+do not retrospectively prove the original CI failure's exact site or K's database target/effects.
+All earlier failed attempts and the historical K scoped compiled results remain preserved.
+
+Historical run K passed all 7,174 unit tests, 230 backend tests, policy/document checks and production build
 `hkH9ZkYerS_oUJOH5zk1z`. Its fresh-process notice, actual save/focus, 71-step guide and actual-source
 presentation checks passed. The combined helper attempt remains failed at its supplemental
 synthetic-fixture attachment, and a separate warm notice request missed its 20-second deadline.
@@ -32,6 +53,187 @@ provider write, paid comparison, action activation or security change is authori
 by this report.
 
 ## Verification evidence
+
+The later CI fixture investigation also limits the historical K unit-isolation claim. K's log records
+the old five-case refresh-route suite passing before the separate backend emulator started.
+That fixture supplied a synthetic provider but no Firestore/admission double; its successful force
+cases require the mutation-capable admission transaction to resolve before the provider read.
+The unit runner inherited its environment without recording the database destination. Existing
+managed-account Cloud Logging Data Access records for Firestore/Datastore were queried read-only
+for **2026-09-29T05:28:58Z–05:36:35Z** and returned **zero records**, without truncation.
+This absence does not establish audit completeness or no effects. The historical unit transaction's
+database target and marker effects remain **UNVERIFIED**; neither a live write nor zero live writes
+is established. No customer document contents were queried and no logging setting was changed.
+The unit-only guard now refuses missed central-adapter/SDK store doubles before client construction
+and records refusals so a caught error cannot silently pass. It preserves pure SDK values and the
+separate emulator configuration. Its process regression catches the refusal inside a child Vitest
+test and verifies that the real afterEach guard still fails that child; a separate app-construction
+refusal prevents ADC access even if the tested guard is removed. The focused guard/process/refresh
+run passed 11 tests in three files: `C:/Users/josia/AppData/Local/Temp/pmi-ci-unit-isolation-process-node24-20260929-a.log`,
+SHA-256 `9065405b28ae0f88883ebd9bfd43cecd2f852528b7608d80d5f39de232881632`.
+
+The first guarded full unit run remains **FAILED**: 7,171 passed, nine failed, four of 797 files
+failed, and two unhandled errors were reported. It exposed omitted doubles in Ask, live-target,
+desk scheduling and Gmail environment fixtures. Static review identifies constructor-only paths
+in their earlier versions; that scoped finding does not resolve the separate historical
+refresh-route destination/effect uncertainty. The four repairs use fresh in-memory adapters;
+live-target now exercises real admission/cache behavior, committed metadata before synthetic
+provider dispatch, and zero dispatch on persistence failure. All 20 affected-suite tests passed;
+with the guard/process/refresh suites, **31 tests in seven files passed on Node 24**. TypeScript,
+scoped lint, formatting and independent review passed. These counts overlap and are not added to
+the old full-gate count. Immutable logs:
+
+- Failed full unit run: `C:/Users/josia/AppData/Local/Temp/pmi-ci-unit-isolation-full-node24-20260929-a.log`,
+  SHA-256 `ab9fa45412a281b591deb1359a3c3247fd8856470d7bf218828d929d7c5e795f`.
+- Focused fixture pass: `C:/Users/josia/AppData/Local/Temp/pmi-ci-unit-fixtures-node24-20260929-a.log`,
+  SHA-256 `c7d57d3e72624e0efa58e3b50a8228e0aa943cb10c71bfb5c605ec6f0a1d6eac`.
+
+S113's first isolated Node-24 reproduction passed 27/27 without failure diagnostics; that pass did
+not establish the intermittent failure's cause. Subsequent request-ownership checks exposed real
+test cleanup defects: unmounted controls could leave issued route/clone promises running while a
+later test cleared Firestore or deleted its app. The bounded tracker retains rejected outcomes,
+drains issued work before reset, and refuses reset on timeout. Its seven deterministic tests passed,
+including the await-gap race under one original deadline and a real mounted control's deferred
+route/clone across unmount. The journey still uses its original 10-second preview assertion and
+five-second cleanup drain. No unresolved request is converted to a pass.
+
+The successive Node-24 S113 receipts remain unchanged under `~/pmi-kc-work/logs/`:
+
+- `s113-ci-node24-20260929T064306Z/full.log`: **27/27 passed**, SHA-256
+  `69663a2ca7a58926fa1b96cd94a34fe55937c00a8155c233a13153385005b3aa`.
+- `s113-ci-node24-20260929T065532Z/full.log`: **25 passed, two failed**, SHA-256
+  `276d01e6a516040898852e1e585d5f834d406f48d4afcf6d15d035a0be376d9b`. Preview assertions
+  passed, but cleanup exposed 14 rejected requests in the fresh journey and unresolved requests
+  in the underway journey. The bridge omitted actual notice-review and rent-suggestion GETs;
+  those omissions were repaired through the real routes with positive readback assertions.
+- `s113-ci-node24-20260929T070230Z/full.log`: **25 passed, two failed**, SHA-256
+  `cc96e87f4e223ba96733bd311c238fa3b3ea332e4ce9bc3174fdc7ed615823a0`. With notice-review wired,
+  the original preview failure reproduced before route return: 14 message GETs started and none
+  had returned or entered clone parsing at the assertion. One later rejected with gRPC code 10;
+  its precise source site was not recorded. Fresh cleanup eventually settled all 48 requests,
+  with four ready notice readbacks, one message rejection and four still-unhandled fixture routes.
+  The underway journey retained 52 pending message/notice requests. This receipt does not locate
+  the original CI failure's transaction site.
+- `s113-ci-node24-20260929T070958Z/full.log`: **26 passed, one failed**, with failed suite cleanup,
+  SHA-256 `7990765ab318823dd3c0cabd8e22542eb1ab77fec627977fbde199fb0840206f`. Both missing GETs
+  were wired; no unknown route remained. The fresh journey and cleanup passed. The underway
+  diagnostic recorded **54 reservation transactions started, zero completed/rejected, 54 active**,
+  with no admission or observation transaction started. These correspond to 50 message, two
+  notice and two rent-suggestion requests. The other 51 transactions completed, maximum 562 ms.
+  This establishes the pending stage before source coalescing, not a proven SDK lock mechanism
+  or the earlier code-10 failure's site. Its sanitized `diagnostic-extract.json` has SHA-256
+  `2c19a0a594c76d484c12828fa13baae78a7a95c21b9f354e6403ff5c7c4c4154`.
+
+The reservation repair is implemented with exact-reference reads and atomic create-with-no-overwrite.
+Only numeric SDK AlreadyExists permits a fresh readback; the exact canonical marker must exist and
+pass its schema. Every other read/create error propagates without a create retry. A committed write
+with a lost reply remains failed; a later independent call can read the existing marker. Warm reads
+preserve advanced marker bytes. Managed-reader authority, source minima/membership, notice
+observation and the final S20 claim remain unchanged. Static verification confirms that the sole
+production edit is `reserveRenewalNoticeLease`; the normalized source outside that function is
+unchanged. This does not protect against an external destructive rewrite recreating an identical
+old approval basis, which neither reservation implementation authorized or prevented.
+
+The first focused run remains **FAILED with 106 passes and two failures**. Its two fixtures still
+targeted the second transaction, assuming reservation was the first; they now target the first
+actual source-admission transaction while retaining the same one/zero provider-dispatch assertions.
+Receipt: `~/pmi-kc-work/logs/reservation-focused-unit-20260929T072856Z/full.log`, SHA-256
+`eddd4531bf4c881cf873c33914b508f9e7d4467e011c3be4bd02ff356621f8dc`.
+The corrected run passed **108/108 tests in ten files on Node 24** at 07:29:54 UTC, including 19
+reservation cases, the real canonical-config process-isolation regression, the tracker and the
+immediate-source fixture fence. The process regression now also proves the same caught-refusal
+fixture passes when setup is explicitly removed, with a separate Firebase-app double still
+preventing ADC access. Receipt:
+`~/pmi-kc-work/logs/reservation-focused-unit-20260929T072951Z/full.log`, SHA-256
+`d571c2e2c844663b8870edb2a71d20e402921b99570f619b33e1a16528acd6f8`.
+
+Two real Firestore emulator cases passed at 07:29:47 UTC: independent clients both observe a
+missing marker, then exactly one creates and the other verifies AlreadyExists by readback; 54 warm
+reservations use zero creates/transactions and preserve advanced bytes. Issued operations settle
+before teardown. The positive-read/minimum unit regression deletes, corrupts or makes the marker
+unreadable after reservation and proves zero provider dispatch. Receipt:
+`~/pmi-kc-work/logs/reservation-ci-node24-20260929T072940Z/full.log`, SHA-256
+`ec633b67f6ecab9118d684067768cb26d7cbb434e4d018656235084b06b75cbd`.
+Scoped ESLint and full TypeScript exited zero, recorded in
+`~/pmi-kc-work/logs/reservation-static-20260929T073044Z/summary.json`; source and adversarial tests
+passed independent review.
+
+The combined S113 run passed **27/27 on Node 24** at 07:34:43 UTC, with original preview and cleanup
+deadlines unchanged. All owning message/notice/rent-suggestion GETs returned HTTP 200, parsed as
+objects without a top-level error, and completed: fresh counts **58/7/7**, underway **50/2/2**.
+All seven plus two notice readbacks were ready. The journeys settled all **322 and 216** tracked
+HTTP/transaction promises with zero rejected or pending requests. Reservation transactions were
+zero; all **3/2 admission** and **70/52 observation** transactions completed with no active or rejected
+transaction. Cleanup tracks actual transactions as well as HTTP promises and gives the fixed
+immediate synthetic source pipeline one event-loop turn inside the same five-second deadline;
+this is not a general background/network-idle guarantee. Receipt:
+`~/pmi-kc-work/logs/s113-ci-node24-20260929T073322Z/full.log`, SHA-256
+`a3196d32f9e223d5600510833baab3d64f40e4a11377584556459d52d9c9c840`.
+Its sanitized `diagnostic-extract.json` has SHA-256
+`b623580419b9ef82e946fe68eccc3f700cb79cbbc3d7a6970e53d3a47ba5d652`.
+An earlier wrong-snapshot harness run was aborted and is not acceptance evidence:
+`~/pmi-kc-work/logs/s113-ci-node24-20260929T073219Z/harness-abort.json` preserves that state and
+full-log SHA-256 `c865b9049badb76b5da0ecd345d8d002b2477e2a431694eae24be01b25aadd10`.
+
+These focused passes establish the repaired reservation and stricter local journey behavior; they
+do not retrospectively identify the original CI failure's cause, the earlier instrumented code-10
+source site or historical K database effects.
+The canonical Node-22 full gate **passed in run L**, starting at 07:35:25.666 UTC and finishing at
+07:42:25.233 UTC with exit zero: **7,212 unit tests in 800 files**, **232 backend tests in 42 files**,
+all policy/document/redaction/budget checks and production build `MsohNlljqt7KxRmFLb2od`.
+The full log is `~/pmi-kc-work/logs/gap-verify-l-2026-09-29T073525662Z/full.log`, independently
+hashed as SHA-256 `f47e8febdd679a4c2cf0b06f204c517d25d2623f509be931aaba2baba2c817ec`.
+
+Core E2E on that source passed **31 tests with 18 intentional skips**, eight passed files and four
+skipped files, at 07:47:43.666 UTC. The existing isolated `next dev` harness is separate from
+compiled production-browser acceptance. Before/after inventories and hashes matched **2,021**
+source paths between Windows and native WSL; protected paths were unchanged, build L was preserved,
+the port was free and no owned runtime remained. Summary:
+`~/pmi-kc-work/logs/core-e2e-reservation-20260929T074448Z/summary.json`, independently verified
+SHA-256 `164eaa80f1bd2159bfb11eebccb11117ed62a1959b21fb69bcdd60a79d30676f`.
+Its `run.log` has SHA-256 `a4897cf4e019247ab75e83811ca36030b56aaaf3cf4c48be34f463b3b9c27094`.
+The scoped compiled repair checks subsequently **passed** on the same immutable build. Exact-head
+CI, fresh attended authentication and the complete release sequence remain **PENDING**. No remote
+release ran.
+
+The fresh-process cold notice check passed at 07:49:20.572 UTC: exactly one request/response,
+HTTP 200, ready, verified tenancy and approval basis, **15,459 ms** within the unchanged 20,000 ms
+deadline. Its receipt is
+`~/pmi-kc-work/logs/reservation-compiled-2026-09-29T074817768Z/fresh-process-notice/report.json`,
+SHA-256 `5bc16e7d5950512868fe9d94086f43e99429dc55de67b8ca57cc42fca3eca57d`.
+The warm check in that original run remains **FAILED** at `notice_proof_required`: the runner
+omitted `PMI_CLEAN_WARM_NOTICE`, visited the actual 311-row desk and never requested the notice.
+This was absent harness evidence, not a notice response or a latency verdict. Its unchanged receipt
+is `reservation-compiled-2026-09-29T074817768Z/reservation-warm-check/report.json` under the same
+logs root, SHA-256 `2dc48274809476c895fe4ebcd2639f9bd839c37f94a48ad1d4e2f4c93a469c2f`.
+
+The separate corrected, uninstrumented warm check passed at 07:52:38.530 UTC. The actual desk
+rendered 311 rows in 25,201 ms, followed by the owning detail DOM in 18,029 ms and exactly one
+notice request/response: HTTP 200 with parsed ready/verified-tenancy/basis evidence in **17,456 ms**.
+It retained the 20-second notice deadline and reported zero page errors or blocked requests.
+Receipt:
+`~/pmi-kc-work/logs/reservation-compiled-followup-2026-09-29T075109220Z/reservation-warm-check/report.json`,
+SHA-256 `ee77ef1e3aeb469b1d806ad4b584c93838519bd4b1b98ee2656e0f34518c4248`.
+The runner's `warm.log` has SHA-256
+`60d48990b0bdbc7c725a01b20aa802fd7cdd1d3a985af3d2741be6f2258454d8`.
+
+The subsequent observational cohort diagnostic passed at 07:53:45.595 UTC. Before and after an
+owning notice API read, raw export, snapshot, projected and rendered identity digests matched for
+**311 records**, with **zero missing records or duplicates**. Projected/rendered per-row category
+digests matched, all 311 notice-safety markers were ready, and both admitted source kinds were fresh
+and complete. The five actual categories remained 273 later, 27 upcoming, five non-renewal, two
+in-progress and four unknown. The API returned HTTP 200 with parsed ready/verified-tenancy/basis
+evidence in **15,675 ms**; the following desk completed in 23,920 ms. This is observed source and
+projection consistency, **not independent lifecycle derivation from raw source semantics**.
+No page error or blocked request was reported. Receipt:
+`~/pmi-kc-work/logs/reservation-compiled-followup-2026-09-29T075109220Z/source-coherence-diagnostic/report.json`,
+SHA-256 `12d61f149397f60d45719b7e875422b1a2ecd9d3df1b8813e01f47c18ffdb61c`.
+The runner's `cohort.log` has SHA-256
+`c379b1605a3f95bf0762b032bf9179a21ac7d214d5c31edc78aa302a45507d20`.
+Both follow-up servers exited 143 during intended cleanup; the independent process readback found
+zero owned Next runtimes. Genuine authenticated reads may persist the approved lease-bound safety
+metadata; these checks created no business/provider effect. The earlier failed receipts remain
+unchanged, and historical K unit-store target/effects remain unverified.
 
 The pre-S127 native `bash scripts/verify.sh` run C exited **0**. It establishes the earlier repair
 tree's regression evidence, not the final combined tree's acceptance:
@@ -452,13 +654,18 @@ Exact metadata and applicability evidence remain outside Git in
 `C:/Users/josia/AppData/Local/Temp/pmi-dependency-audit-20260929/`, with applicability-report SHA-256
 `c344314342cf2370a644210117f3ba99f2ecd0aabd6213ecaff3c88359f5d2cc`.
 
-The 03:03:37.930 UTC readback on 2026-09-29 confirmed the Google sign-in provider is enabled.
+The 07:45:40.618 UTC readback on 2026-09-29 confirmed the Google sign-in provider is enabled.
 That setting and fresh CLI/ADC evidence do not establish browser session readiness. The guarded
 Admin browser still requires the owner's attended Google sign-in and a successful identity readback.
-CLI/ADC refresh passed at 04:57–04:58 UTC and again before 05:48:05 UTC, but the enrollment record remains
+CLI/ADC refresh passed again around 07:42 UTC, but the enrollment record remains
 `2026-09-28T20:56:36.677Z`, beyond the seven-hour admission budget. Fresh attended WSL enrollment
 and Admin browser verification are required; refreshing tokens does not renew the enrollment
 receipt, and its timestamp must never be advanced by hand.
+
+Independent read-only billing/cost checks passed at 07:48:03.544 UTC: billing enabled, expected
+account and exact existing controls, with zero mutation requests. The sanitized receipt is
+`~/pmi-kc-work/logs/cloud-readonly-1790668083545.json`. It is a readback, not a release-admission
+receipt; no setting was changed.
 
 The external `~/pmi-kc-work/scripts/s120-readbacks.sh` helper was hardened before future use. Its
 original was preserved byte-for-byte as `s120-readbacks.sh.before-output-guard-20260929T032616330Z`
@@ -631,7 +838,7 @@ owners indicate preservation coverage reused from earlier work.
 | 112          | Missing real inputs do not block independent preparation/refusal/recovery engineering.                                     | H, I, J, K / C — preparation, refusal and recovery repairs proceed with local/emulator fixtures; real inputs retain only their dependent holds.                                                                                                                                                                        |
 | 113          | Engineering, deployment, external input, provider and human evidence stay separate.                                        | N / C — this ledger preserves those distinctions; release runner must attach fresh results.                                                                                                                                                                                                                            |
 | 114          | Real draft/template/Rhino/human outcomes remain unverified until observed.                                                 | H, I, J, K / E — no real observations supplied or created by this audit.                                                                                                                                                                                                                                               |
-| 115, 116     | Synthetic data stays local/emulator, never production.                                                                     | N / C — reviewed harness boundaries; this audit made no production write.                                                                                                                                                                                                                                              |
+| 115, 116     | Synthetic data stays local/emulator, never production.                                                                     | N / C — repaired unit fixtures use explicit in-memory doubles and backend fixtures use the emulator. Historical K unit-store target/effects remain UNVERIFIED; zero available Data Access records do not prove no effects.                                                                                             |
 | 117          | Deployed claims identify exact SHA/revision and every release gate/readback.                                               | N / R — no batch deployment is claimed. Final exact SHA, CI, revision, candidate, promotion, observation and independent remote readbacks remain mandatory.                                                                                                                                                            |
 
 ## Required closeout evidence

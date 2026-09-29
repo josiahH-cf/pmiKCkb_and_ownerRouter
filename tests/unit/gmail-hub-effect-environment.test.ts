@@ -1,4 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FakeTransactionalFirestore } from "../helpers/fake-transactional-firestore";
+
+const mocks = vi.hoisted(() => ({ getAdminFirestore: vi.fn() }));
+vi.mock("@/lib/firestore/admin", () => ({
+  getAdminFirestore: mocks.getAdminFirestore,
+}));
 
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import {
@@ -18,6 +24,13 @@ const production: EnvironmentDescriptor = {
   dataContext: "live",
   source: "explicit",
 };
+let firestore: FakeTransactionalFirestore;
+beforeEach(() => {
+  vi.clearAllMocks();
+  firestore = new FakeTransactionalFirestore();
+  mocks.getAdminFirestore.mockReturnValue(firestore);
+});
+afterEach(() => expect(firestore.store.size).toBe(0));
 
 describe("Gmail Hub effect environment boundary", () => {
   it("uses Live A2 mode and permits client construction only in Production+Live", () => {
@@ -85,6 +98,9 @@ describe("Gmail Hub effect environment boundary", () => {
 
       expect(createStore).toHaveBeenCalledOnce();
       expect(createStore).toHaveBeenCalledWith(dataMode);
+      // The real factory also constructs its label-effect ledger. Keep that separate dependency
+      // in memory while testing the actual descriptor and provider refusal, without bypassing it.
+      expect(mocks.getAdminFirestore).toHaveBeenCalledTimes(1);
       expect(constructClient).not.toHaveBeenCalled();
       expect(() => dependencies.assertEffectEnvironment()).toThrow(
         /requires the Production environment with Live data/i,
@@ -110,6 +126,7 @@ describe("Gmail Hub effect environment boundary", () => {
     ).toThrow(/Environment descriptor is invalid.*DATA_CONTEXT is not set/i);
     expect(createStore).not.toHaveBeenCalled();
     expect(constructClient).not.toHaveBeenCalled();
+    expect(mocks.getAdminFirestore).not.toHaveBeenCalled();
   });
 
   it("pins watch A2 to the exact D37 governing action key without inventing a gate", () => {

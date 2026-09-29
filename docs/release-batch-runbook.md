@@ -2,7 +2,11 @@
 
 Updated: 2026-09-29 (UTC). One candidate must ship every queued feature.
 Current state: **BLOCKED pending fresh attended authentication, exact repair-head CI and remote delivery**.
-Local objective verification passed; scopes and unchanged failed attempts are recorded in
+Native Node 22 run L passed 7,212 unit tests, 232 backend tests, all gates and build
+`MsohNlljqt7KxRmFLb2od`; new core E2E passed 31 tests with 18 intentional skips. Exact-build cold and
+corrected desk-warmed notice passed in 15.459/17.456 seconds, and the separate cohort diagnostic
+matched all 311 identity/category pairs before/after the notice API. That equality is observational,
+not independent lifecycle derivation. Scopes and unchanged failed attempts are recorded in
 `docs/evidence/batch-litmus-audit-2026-09-28.md`. Billing is enabled. Do not start the watcher until
 all release gates pass. The thirteen-feature queue stays intact.
 
@@ -35,7 +39,7 @@ historical CI do not close the new audit gaps. One Cloud Build, candidate, assur
 Follow these gates in order. Read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`,
 `docs/environment-handoff.md` and `docs/budget-and-cost-policy.md`.
 
-**1. Read billing and cost controls.** On 2026-09-28 billing read enabled on the expected account;
+**1. Read billing and cost controls.** At 2026-09-29T07:48:03.544Z billing and exact cost-control validation passed with zero mutations. Billing read enabled on the expected account;
 alert 25 USD, project hard stop 100 USD, account backstop 100 USD and ACTIVE Node.js 22 guardrail
 cap 100 were unchanged. Hard-stop Pub/Sub was present and both alerts retained two channels.
 The runner never changes billing, a budget, guardrail or security setting. Re-read when resuming;
@@ -65,7 +69,7 @@ the task. An unfinished checkpoint still pins the watcher to its SHA; inspect an
 archiving or resetting it.
 
 **3. Verify approved authentication.** WSL CLI/ADC refresh for `josiah@pmikcmetro.com` passed on
-2026-09-29 at approximately 04:58 UTC. The enrollment record still names 2026-09-28T20:56:36.677Z;
+2026-09-29 at approximately 07:42 UTC. An independent selected Google-provider read returned HTTP 200 and enabled=true at 07:45:40.618Z without mutation. The enrollment record still names 2026-09-28T20:56:36.677Z;
 its age is now beyond the seven-hour release-start budget. Fresh attended WSL enrollment is required
 even while token refresh succeeds. A guarded Admin browser check reached a genuine Google challenge;
 its attended enrollment window closed before verification. Browser authentication remains UNVERIFIED.
@@ -94,11 +98,14 @@ npm run auth:ensure
 The owner completes any Google challenge. Verify Admin browser readiness separately; successful
 CLI/ADC enrollment does not establish the application's browser session.
 
-Observed session longevity is under nine hours; a release must begin within the preflight's
-seven-hour enrollment budget. An expired rollback remains held until authentication returns.
+An earlier session expired under nine hours. Ordinary refresh readiness does not waive the
+preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
+remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare the exact repaired batch.** Finish product and release-safety tests, the full verify
-script and exact-head green CI first. Keep all thirteen entries until remote delivery is verified.
+**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E and affected
+exact-build compiled notice/cohort checks passed; commit the green tree and require its exact-head green push
+CI before admission. Prior failed CI 36530528718 remains preserved and does not predict the new
+commit's outcome. Keep all thirteen entries until remote delivery is verified.
 The installed local interlock is fail-closed: missing, malformed, held, expired, consumed or wrong-head
 permits cannot dispatch forward release work. It applies to the Windows launcher, watcher and direct
 release entry. The scheduled task configuration stays unchanged. Inspect checkpoint, process and lock

@@ -13,6 +13,7 @@ export default defineConfig({
       "tests/e2e/**",
     ],
     environment: "node",
+    setupFiles: ["tests/setup/unit-firestore-isolation.ts"],
     globals: true,
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.test.mjs"],
     // Threads retain Vitest's per-file isolation while avoiding hundreds of process starts. The

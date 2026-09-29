@@ -1,10 +1,15 @@
 # Environment and release handoff
 
-Updated: 2026-09-29 (UTC). Native run K passed 7,174 unit tests in 795 files, 230 backend tests in 41 files, all required gates and production build hkH9ZkYerS_oUJOH5zk1z.
-Objective compiled checks passed on immutable build K: cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. Earlier failures remain unchanged outside Git. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
+Updated: 2026-09-29 (UTC). Native Node 22 run L passed 7,212 unit tests in 800 files, 232 backend tests in 42 files, all required gates and production build `MsohNlljqt7KxRmFLb2od` at 07:42:25.233Z. Receipts remain at `~/pmi-kc-work/logs/gap-verify-l-2026-09-29T073525662Z`; full-log SHA256 is `f47e8febdd679a4c2cf0b06f204c517d25d2623f509be931aaba2baba2c817ec`. The new core E2E passed 31 tests with 18 intentional skips (eight files passed, four skipped) at 07:47:43.666Z, preserving all 2,021 source hashes, native/Windows parity and this build. Its receipt directory is `~/pmi-kc-work/logs/core-e2e-reservation-20260929T074448Z`, run-log SHA256 `a4897cf4e019247ab75e83811ca36030b56aaaf3cf4c48be34f463b3b9c27094`. No test runtime or occupied port remains from that run. Exact-build cold notice passed in 15.459 seconds and corrected desk-warmed notice passed in 17.456 seconds, both under the unchanged 20-second gate with HTTP 200, ready evidence, verified tenancy and a claim basis. A separate observational diagnostic matched all 311 source/snapshot/projected/rendered identity and category pairs before and after the notice API, with zero missing records or duplicates; this is cohort parity, not independent derivation of lifecycle truth. Both completed follow-ups reported zero blocked requests and page errors, and cleanup independently found zero owned Next processes.
+
+Compiled follow-up receipts remain at `~/pmi-kc-work/logs/reservation-compiled-followup-2026-09-29T075109220Z`. The corrected warm run spans 07:51:09.222Z–07:52:38.538Z, warm.log SHA256 `60d48990b0bdbc7c725a01b20aa802fd7cdd1d3a985af3d2741be6f2258454d8`; the separate observational cohort run spans 07:52:38.538Z–07:53:45.604Z, cohort.log SHA256 `c379b1605a3f95bf0762b032bf9179a21ac7d214d5c31edc78aa302a45507d20`. The original `reservation-compiled-2026-09-29T074817768Z` run passed cold notice. Its first warm attempt failed `notice_proof_required` because the runner omitted `PMI_CLEAN_WARM_NOTICE`, visited the 311-row desk and never requested notice. Preserve that failure unchanged alongside the corrected pass.
+
+Prior repair commit `d2ec88cc97578ddf028b2930af8540e19397613d` failed CI 36530528718: two refresh-route unit cases lacked a Firestore double and one S113 backend preview case failed. Quality and policy/build passed. Default unit Firestore refusal, caught-refusal process coverage and explicit memory fixtures now pass the full native gate. Later instrumented S113 runs repaired omitted owning GET routes and cleanup overlap, then localized reservation contention. Atomic-create reservation with exact existing-marker readback, cross-client races, failure refusal and complete owning GET outcomes now pass; deadlines and downstream admission/final-claim checks remain unchanged. The original CI transaction site remains unproven. K's historical unit admission database destination and metadata effects remain unverified; zero returned Data Access records do not establish no effect. The new committed repair still requires its own exact green push CI. Deployment stays held.
+
+Historical objective compiled checks passed on immutable build K: cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. These results do not verify the newer repair build. Earlier failures remain unchanged outside Git. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
 The thirteen-feature batch remains undeployed. Attended Admin browser enrollment, exact repair-head green CI, fresh prerequisites and preflight GO, one candidate, promotion, observation and independent readbacks remain required. The queue stays intact; no batch release receipt exists.
-Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance.
-The last synchronized pre-repair head remains 952c5cd843d14a9f7e2be2bcfa227598f235d059, with CI 36485825488. Its historical GO does not admit this repaired tree. Exact outcomes are in docs/evidence/batch-litmus-audit-2026-09-28.md.
+Historical K core E2E passed 31 tests with 18 intentional skips and preserved its source hashes and build K. Neither that run nor the new core run substitutes for compiled production acceptance.
+The pre-repair baseline was 952c5cd843d14a9f7e2be2bcfa227598f235d059, with CI 36485825488. Its historical GO does not admit this repaired tree. Exact outcomes are in docs/evidence/batch-litmus-audit-2026-09-28.md.
 
 Production readback still names `79493458f641b9710d8c43467e872aa9acf7948e` /
 `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical and tagged /api/version returned
@@ -15,9 +20,9 @@ The serving Sheet write-back flag is true; S128 is staged false in both ignored 
 checkouts and is not deployed. Approved CLI/ADC refresh passed on 2026-09-29. Admin browser
 authentication remains UNVERIFIED: after the earlier navigation timeouts, a guarded check reached
 a genuine Google challenge and the attended enrollment window closed before verification.
-The independent Google-provider read at 2026-09-29T03:03:37.930Z returned HTTP 200,
+The independent Google-provider read at 2026-09-29T07:45:40.618Z returned HTTP 200,
 the expected Identity Platform resource and enabled=true, with zero mutations.
-CLI/ADC refresh passed again at approximately 04:58 UTC, but the enrollment record still names
+CLI/ADC refresh passed again at approximately 07:42 UTC, but the enrollment record still names
 2026-09-28T20:56:36.677Z. It exceeds the seven-hour release-start budget; fresh attended WSL
 enrollment is required in addition to Admin browser sign-in.
 
@@ -27,6 +32,7 @@ Editor not_run); promotion started 02:28:00.680Z and verified 02:28:06.952Z; obs
 These outcomes verify S120, not the queued batch. Receipts and failed attempts stay unchanged outside
 Git under `/home/josiah/.local/state/pmi-kc-release`.
 
+At 2026-09-29T07:48:03.544Z, billing and the exact cost-control validator passed with zero mutations.
 Billing enabled and unchanged 25 USD alert, 100 USD project hard stop, 100 USD account backstop,
 ACTIVE Node.js 22 guardrail cap 100, hard-stop Pub/Sub and both alerts with two channels were read
 back. No budget, billing, identity or security setting changed. Session longevity remains unverified
@@ -198,11 +204,13 @@ The owner-approved G2 exception permits only lease-bound version/hash/time appro
 metadata during authenticated source reads; it creates no workflow milestone, reviewed history or draft.
 Do not manufacture source data or bypass identity policy to make a browser smoke pass.
 
-The current local repair rehearsal passed eight compiled smokes: navbar, dashboard-assistant,
+An earlier local repair rehearsal passed eight compiled smokes: navbar, dashboard-assistant,
 renewal-desk, renewal-guide-controls, maintenance-blockers, maintenance-intake, theme and Work.
 Local notice/draft controls also passed. Final rebuilt G4/G5 controls passed on build
 `pAKd_VsJI8vmZvjAv6Lgu`, with zero forwarded business writes; the complete native gate passed.
-Core E2E startup is being diagnosed and retains a separate verdict. In-memory synthetic transport checks establish local control
+The new run L build and core E2E passed as recorded above. Its frozen compiled cold/desk-warmed notice
+checks and separate cohort diagnostic passed; older controls/presentation retain their exact-build scopes.
+In-memory synthetic transport checks establish local control
 behavior only; they do not establish production writes, real-form accuracy or provider acceptance.
 The mounted filesystem's slow cold startup is separate from ready-process browser acceptance.
 No source-freshness limit or browser deadline was relaxed. Private captures remain outside Git.

@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { FakeTransactionalFirestore } from "../helpers/fake-transactional-firestore";
 const fixture = vi.hoisted(() => ({
   progress: vi.fn(),
   sheet: vi.fn(),
   project: vi.fn(),
   snapshot: vi.fn(),
   packets: vi.fn(),
+  getAdminFirestore: vi.fn(),
+}));
+vi.mock("@/lib/firestore/admin", () => ({
+  getAdminFirestore: fixture.getAdminFirestore,
 }));
 vi.mock("@/lib/lease-renewal/live-config", () => ({
   buildLiveRenewalConfig: () => ({
@@ -99,8 +104,16 @@ const sheet = {
   tableRentvineSourceUrls: [],
   titles: ["Lease Renewal"],
 };
-afterEach(() => vi.resetAllMocks());
+let store: FakeTransactionalFirestore;
+afterEach(() => {
+  // The mocked coherent-read seam owns scheduling only: constructing the real admission wrapper
+  // must not itself admit a source generation or persist records.
+  expect(store.store.size).toBe(0);
+  vi.resetAllMocks();
+});
 function setup() {
+  store = new FakeTransactionalFirestore();
+  fixture.getAdminFirestore.mockReturnValue(store);
   fixture.snapshot.mockResolvedValue(snapshot);
   fixture.packets.mockResolvedValue(new Map());
   fixture.sheet.mockResolvedValue(sheet);

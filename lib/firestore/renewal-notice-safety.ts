@@ -202,13 +202,30 @@ export async function reserveRenewalNoticeLease(
   db: Firestore = getAdminFirestore(),
 ) {
   requireReader(actor);
-  return db.runTransaction(async (tx) => {
-    const ref = noticeSafetyMarkerRef(db, leaseId);
-    const existing = await tx.get(ref);
-    if (existing.exists) return false;
-    const scopeHash = noticeScopeHash(leaseId, null, null);
-    const sourceReadAt = { lease: 0, status: 0 };
-    tx.create(ref, {
+  const ref = noticeSafetyMarkerRef(db, leaseId);
+  const expectedPath = `lease_renewal_workspaces/${renewalWorkspaceDocId(leaseId)}/approval_safety/notice`;
+  if (ref.path !== expectedPath)
+    throw new EditableLayerError("The notice reservation metadata is invalid.", 409);
+  function validateExisting(existing: Awaited<ReturnType<typeof ref.get>>) {
+    if (!existing.exists || existing.ref.path !== expectedPath)
+      throw new EditableLayerError(
+        "The notice reservation metadata is unavailable.",
+        409,
+      );
+    noticeReservationKeys([existing]);
+    NoticeSafetyMarkerSchema.parse(existing.data());
+    return false;
+  }
+  const existing = await ref.get();
+  if (existing.ref.path !== expectedPath)
+    throw new EditableLayerError("The notice reservation metadata is invalid.", 409);
+  if (existing.exists) return validateExisting(existing);
+  const scopeHash = noticeScopeHash(leaseId, null, null);
+  const sourceReadAt = { lease: 0, status: 0 };
+  try {
+    // Firestore create uses exists:false. Competing readers never hold a read/write
+    // transaction on this marker and can neither overwrite nor reset a newer generation.
+    await ref.create({
       scopeHash,
       sourceReadAt,
       semanticHash: pendingNoticeHash(scopeHash, sourceReadAt),
@@ -216,7 +233,18 @@ export async function reserveRenewalNoticeLease(
       observedAt: new Date().toISOString(),
     });
     return true;
-  });
+  } catch (error) {
+    if (
+      typeof error !== "object" ||
+      error === null ||
+      !("code" in error) ||
+      error.code !== 6
+    )
+      throw error;
+    // Only an exact ALREADY_EXISTS result permits a fresh readback. A lost response or
+    // any other error remains a failure; this operation never retries a create.
+    return validateExisting(await ref.get());
+  }
 }
 /** Current durable source floors for this exact managed-reader lease. These values are only cache
  * admission metadata: neither a readiness verdict nor an approval basis can be derived from them.

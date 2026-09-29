@@ -562,19 +562,27 @@ describe("notice source coherence across independent runtime caches", () => {
   });
 
   it.each(["missing", "malformed", "read_failure"] as const)(
-    "refuses %s durable minima before dispatching provider reads",
+    "refuses %s durable minima after a positive reservation read before dispatching provider reads",
     async (kind) => {
       const a = await runtime(),
         fake = new FakeTransactionalFirestore(),
         db = fake as unknown as Firestore,
         provider = reader();
+      await a.safety.reserveRenewalNoticeLease(actor, "9001", db);
       const prototype = Object.getPrototypeOf(
         fake.collection("synthetic").doc("synthetic"),
       );
       const original = prototype.get;
-      vi.spyOn(prototype, "get").mockImplementationOnce(async function (this: {
+      let reads = 0;
+      vi.spyOn(prototype, "get").mockImplementation(async function (this: {
         path: string;
       }) {
+        reads++;
+        if (reads === 1) {
+          const reserved = await original.call(this);
+          expect(reserved.exists).toBe(true);
+          return reserved;
+        }
         if (kind === "read_failure") throw new Error("Synthetic marker read unavailable");
         if (kind === "missing") fake.store.delete(this.path);
         else fake.store.set(this.path, { sourceReadAt: { lease: "invalid", status: 0 } });
@@ -583,6 +591,7 @@ describe("notice source coherence across independent runtime caches", () => {
       await expect(
         a.helper.readAdmittedRenewalNoticeLease(actor, "9001", provider, Date.now(), db),
       ).rejects.toThrow();
+      expect(reads).toBe(2);
       expect(provider.listAllLeasesExport).not.toHaveBeenCalled();
       expect(provider.listLeaseStatuses).not.toHaveBeenCalled();
     },

@@ -4,10 +4,15 @@ Last updated: 2026-09-29 (UTC).
 
 ## Current feature
 
-**BLOCKED — fresh attended Google enrollment and release admission. Local objective verification passed.**
-Native run K passed 7,174 unit tests in 795 files, 230 backend tests in 41 files, all required gates and production build hkH9ZkYerS_oUJOH5zk1z.
-Objective compiled checks passed on immutable build K: cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. Earlier failures remain unchanged outside Git. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
-All 118 references are mapped in [batch litmus evidence](evidence/batch-litmus-audit-2026-09-28.md). Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN. Every earlier failure is preserved.
+**BLOCKED — fresh attended Google enrollment and remote release admission.**
+Native Node 22 run L passed 7,212 unit tests in 800 files, 232 backend tests in 42 files, all required gates and production build `MsohNlljqt7KxRmFLb2od` at 07:42:25.233Z. Its receipt directory is `~/pmi-kc-work/logs/gap-verify-l-2026-09-29T073525662Z`; full-log SHA256 is `f47e8febdd679a4c2cf0b06f204c517d25d2623f509be931aaba2baba2c817ec`. New core E2E passed 31 tests with 18 intentional skips at 07:47:43.666Z, preserving all 2,021 source hashes and this build. The isolated dev run ended with no test process or occupied port; it does not replace compiled production acceptance. Exact-build cold notice passed in 15.459 seconds and corrected desk-warmed notice passed in 17.456 seconds, both under the unchanged 20-second gate with HTTP 200, ready evidence, verified tenancy and a claim basis. A separate observational diagnostic matched all 311 source/snapshot/projected/rendered identity and category pairs before and after the notice API, with zero missing records or duplicates; this is cohort parity, not independent derivation of lifecycle truth. Both completed follow-ups reported zero blocked requests and page errors, and cleanup independently found zero owned Next processes.
+
+Compiled follow-up receipts remain at `~/pmi-kc-work/logs/reservation-compiled-followup-2026-09-29T075109220Z`. The original run `reservation-compiled-2026-09-29T074817768Z` passed cold notice but its first warm attempt failed `notice_proof_required`: the runner omitted `PMI_CLEAN_WARM_NOTICE`, visited the 311-row desk and never requested notice. That failure remains unchanged and separate from the corrected pass.
+
+Prior repair commit `d2ec88cc97578ddf028b2930af8540e19397613d` failed CI 36530528718 in two refresh-route unit cases and one S113 backend preview case; quality and policy/build passed. Default unit Firestore refusal, explicit memory fixtures, atomic-create reservation with exact existing-marker readback, cross-client races, bounded cleanup and all owning GET outcomes now pass the complete native gate. No deadline was extended. Later instrumentation localized reservation contention, but does not retrospectively identify the original CI failure's transaction site. K's historical unit admission database destination and metadata effects remain unverified; absent Data Access logs do not prove no effect. Every original outcome remains preserved. The new committed repair still requires its own exact green push CI before admission.
+
+Historical immutable build K passed cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. K core passed 31 tests with 18 intentional skips and preserved its source hashes/build. These results do not verify the newer repair build. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
+All 118 references are mapped in [batch litmus evidence](evidence/batch-litmus-audit-2026-09-28.md). Every earlier failure is preserved.
 
 The thirteen-feature queue remains S128, S123, S124, S134, S122, S125, S126, S127, S131, S129,
 S130, S132 and S133. S121 remains separate and unscheduled. Exact-head green push CI, fresh
@@ -55,11 +60,12 @@ remain evidence for that release. They do not verify the queued batch.
 
 ## Authentication and cost controls
 
-Approved `josiah@pmikcmetro.com` WSL CLI/ADC refresh passed on 2026-09-29.
-At 03:03:37.930Z, an independent Identity Platform Google-provider read returned HTTP 200
+Approved `josiah@pmikcmetro.com` WSL CLI/ADC refresh passed again around 07:42 UTC on 2026-09-29.
+At 07:45:40.618Z, an independent Identity Platform Google-provider read returned HTTP 200
 with the expected resource and enabled=true. No authentication setting was changed.
 Guarded Admin browser authentication remains UNVERIFIED after a genuine Google challenge;
 attended enrollment closed before verification and now awaits the owner.
+At 07:48:03.544Z, billing and the exact cost-control validator passed with zero mutations.
 Billing is enabled on the expected account. The unchanged controls read back as alert 25 USD,
 project hard stop 100 USD, account backstop 100 USD and ACTIVE Node.js 22 guardrail with cap 100.
 The hard-stop Pub/Sub configuration is present, and both alerts retain two channels.

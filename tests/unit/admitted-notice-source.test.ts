@@ -233,7 +233,7 @@ describe("bounded lease-specific notice admission recovery", () => {
         vi.spyOn(db, "runTransaction").mockImplementation((...args) => {
           // Keep the reserved minimum readable, then remove membership immediately before
           // the actual lease admission. This still tests the returned proof, not a missing floor.
-          if (++transactions === 2) clearMarkers();
+          if (++transactions === 1) clearMarkers();
           return originalTransaction(...args);
         });
       } else {
@@ -256,7 +256,7 @@ describe("bounded lease-specific notice admission recovery", () => {
     const original = db.runTransaction.bind(db);
     let calls = 0;
     vi.spyOn(db, "runTransaction").mockImplementation((...args) => {
-      if (++calls === 2)
+      if (++calls === 1)
         return Promise.reject(new Error("synthetic admission unavailable"));
       return original(...args);
     });

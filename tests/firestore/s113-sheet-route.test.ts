@@ -18,6 +18,8 @@ import {
   vi,
 } from "vitest";
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
+import { createPendingRequestTracker } from "../helpers/pending-requests";
+import { runAfterImmediateSourceDrain } from "../helpers/immediate-source-drain";
 import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import type { SheetWritebackWriter } from "@/lib/lease-renewal/sheet-writeback/execution-service";
@@ -56,6 +58,8 @@ vi.mock("@/lib/lease-renewal/sheet-writeback/workspace-resolution", async (origi
 }));
 
 import { GET, POST } from "@/app/api/lease-renewal/operating-sheet/route";
+import { GET as getNoticeReviewRoute } from "@/app/api/lease-renewal/notice-review/route";
+import { GET as getRentSuggestionRoute } from "@/app/api/lease-renewal/rent-suggestion/route";
 import { mintSheetWorkspaceContext } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 import {
   getSheetWritebackProposal,
@@ -109,6 +113,13 @@ const scope = { kind: "lease_workspace" as const, leaseId: "701" };
 const spreadsheetId = "s113-emulator-fixture-sheet";
 const header = ["What is the Lease/Tenant name?", "Market Value", "Current Rent"];
 let app: App, db: Firestore, environment: RulesTestEnvironment;
+const REQUEST_DRAIN_TIMEOUT_MS = 5_000;
+let mountedRequests = createPendingRequestTracker();
+let mountedReadDiagnostics: () => Record<string, unknown> = () => ({});
+let assertMountedReadbacks: () => void = () => undefined;
+let observeMountedTransaction:
+  | ((request: Promise<unknown>, callerStack: string) => void)
+  | null = null;
 let marketValue = "1000",
   mutations = 0,
   loseResponse = false,
@@ -129,6 +140,19 @@ beforeAll(async () => {
   });
   app = initializeApp({ projectId }, `s113-sheet-route-${process.pid}`);
   db = getFirestore(app);
+  const runTransaction = db.runTransaction;
+  db.runTransaction = function (
+    this: Firestore,
+    ...args: Parameters<Firestore["runTransaction"]>
+  ) {
+    const observer = observeMountedTransaction;
+    const callerStack = observer ? (new Error().stack ?? "") : "";
+    // Exact receiver, callback, options and returned promise are unchanged. Terminal observers
+    // only record fixed categories; no transaction document, body or raw stack is retained.
+    const request = Reflect.apply(runTransaction, this, args) as Promise<unknown>;
+    observer?.(request, callerStack);
+    return request;
+  } as Firestore["runTransaction"];
   testState.db = db;
   vi.stubEnv("ENVIRONMENT_KIND", "production");
   vi.stubEnv("DATA_CONTEXT", "live");
@@ -138,14 +162,33 @@ beforeAll(async () => {
   vi.stubEnv("RENEWAL_DESK_PARTY_FILTER_KEY", Buffer.alloc(32, 29).toString("base64url"));
 });
 afterAll(async () => {
-  vi.unstubAllEnvs();
-  await deleteApp(app);
-  await environment.cleanup();
+  await runAfterImmediateSourceDrain(
+    mountedRequests,
+    async () => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+      await deleteApp(app);
+      await environment.cleanup();
+    },
+    REQUEST_DRAIN_TIMEOUT_MS,
+  );
 });
 beforeEach(async () => {
+  // A failed afterEach must not let a later test clear a store still owned by a request.
+  await runAfterImmediateSourceDrain(
+    mountedRequests,
+    async () => {
+      vi.unstubAllGlobals();
+      await environment.clearFirestore();
+    },
+    REQUEST_DRAIN_TIMEOUT_MS,
+  );
+  mountedRequests = createPendingRequestTracker();
+  mountedReadDiagnostics = () => ({});
+  assertMountedReadbacks = () => undefined;
+  observeMountedTransaction = null;
   vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
   vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
-  await environment.clearFirestore();
   clearLiveLeaseCache();
   clearLeaseStatusTableCache();
   marketValue = "1000";
@@ -2101,7 +2144,26 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 describe("S113 mounted operator journey with persisted backend state", () => {
   afterEach(async () => {
     (await import("@testing-library/react")).cleanup();
-    vi.unstubAllGlobals();
+    try {
+      await runAfterImmediateSourceDrain(
+        mountedRequests,
+        () => vi.unstubAllGlobals(),
+        REQUEST_DRAIN_TIMEOUT_MS,
+      );
+      expect(
+        mountedRequests.snapshot().rejected,
+        "A tracked HTTP request or transaction rejected",
+      ).toBe(0);
+      assertMountedReadbacks();
+    } catch (error) {
+      throw new Error(
+        `S113 cleanup diagnostics: ${JSON.stringify({
+          requests: mountedRequests.snapshot(),
+          ...mountedReadDiagnostics(),
+        })}`,
+        { cause: error },
+      );
+    }
   });
   it.each(["fresh", "already underway"])(
     "resumes %s work, handles a counteroffer and records manual completion independently of provider receipts",
@@ -2177,19 +2239,368 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         });
       }
       const requests: string[] = [];
+      const journeyRequests = mountedRequests;
       // Bodyless diagnostics preserve the assertion budget and distinguish an unsettled owning
       // read from a detached testing-library scope when this mounted journey fails under load.
+      type MessageReadPhase =
+        | "route_started"
+        | "route_returned"
+        | "clone_parse"
+        | "completed";
+      const messageReadCounts: Record<
+        MessageReadPhase | "parse_failed" | "threw",
+        number
+      > = {
+        route_started: 0,
+        route_returned: 0,
+        clone_parse: 0,
+        completed: 0,
+        parse_failed: 0,
+        threw: 0,
+      };
+      let messageReadCountsSaturated = false;
+      function countMessageRead(key: keyof typeof messageReadCounts) {
+        if (messageReadCounts[key] < 4096) messageReadCounts[key]++;
+        else messageReadCountsSaturated = true;
+      }
+      function messageReadError(error: unknown) {
+        let name: unknown;
+        let code: unknown;
+        let message: unknown;
+        try {
+          if (typeof error === "object" && error !== null) {
+            const value = error as { name?: unknown; code?: unknown; message?: unknown };
+            name = value.name;
+            code = value.code;
+            message = value.message;
+          }
+        } catch {
+          return { errorName: "Other", errorCode: null, errorCategory: "other" };
+        }
+        const names = [
+          "Error",
+          "TypeError",
+          "SyntaxError",
+          "AbortError",
+          "TimeoutError",
+          "RangeError",
+          "ReferenceError",
+          "InvalidStateError",
+        ];
+        const codes = [
+          "ABORTED",
+          "DEADLINE_EXCEEDED",
+          "UNAVAILABLE",
+          "ECONNRESET",
+          "ETIMEDOUT",
+          "ERR_INVALID_STATE",
+        ];
+        return {
+          // Only fixed source-site categories leave this helper; never an error message.
+          errorCategory:
+            typeof message === "string" &&
+            message.startsWith("Unexpected journey HTTP path:")
+              ? "unhandled_fixture_route"
+              : message === "The admitted notice source changed during its bounded read."
+                ? "admission_changed"
+                : message === "The admitted notice source is unavailable or expired."
+                  ? "admission_unavailable"
+                  : message ===
+                      "The held admitted lease source is unavailable or expired."
+                    ? "held_lease_unavailable"
+                    : message ===
+                        "The held admitted status source is unavailable or expired."
+                      ? "held_status_unavailable"
+                      : message === "The client has already been terminated."
+                        ? "client_terminated"
+                        : "other",
+          errorName: typeof name === "string" && names.includes(name) ? name : "Other",
+          errorCode:
+            typeof code === "number" && Number.isInteger(code) && code >= 0 && code <= 16
+              ? code
+              : typeof code === "string" && codes.includes(code)
+                ? code
+                : code === undefined
+                  ? null
+                  : "Other",
+        };
+      }
       const messageReads: Array<{
         channel: "owner" | "tenant" | "unknown";
+        phase: MessageReadPhase;
         startedAt: number;
         elapsedMs: number | null;
         status: number | null;
         contentPresent: boolean;
         errorPresent: boolean;
+        cloneParseFailed: boolean;
+        errorName: string | null;
+        errorCode: string | number | null;
+        errorCategory: string | null;
         threw: boolean;
       }> = [];
+      const routePaths = {
+        "/api/lease-renewal/workspace": "workspace",
+        "/api/lease-renewal/message-preparation": "message_preparation",
+        "/api/lease-renewal/notice-review": "notice_review",
+        "/api/lease-renewal/rent-suggestion": "rent_suggestion",
+        "/api/lease-renewal/operating-sheet": "operating_sheet",
+        "/api/lease-renewal/market-comps": "market_comps",
+        "/api/lease-renewal/resource-locations": "resource_locations",
+        "/api/lease-renewal/document-handoff": "document_handoff",
+        "/api/lease-renewal/comp-screenshot": "comp_screenshot",
+      } as const;
+      type BridgeRoute =
+        | (typeof routePaths)[keyof typeof routePaths]
+        | "rentcast"
+        | "other";
+      const routeCounts = Object.fromEntries(
+        [...Object.values(routePaths), "rentcast", "other"].map((route) => [
+          route,
+          { started: 0, completed: 0, rejected: 0 },
+        ]),
+      ) as Record<BridgeRoute, { started: number; completed: number; rejected: number }>;
+      const routeFailures = Object.fromEntries(
+        [...Object.values(routePaths), "rentcast", "other"].map((route) => [route, {}]),
+      ) as Record<BridgeRoute, Record<string, number>>;
+      let routeCountsSaturated = false;
+      const noticeReads = { returned: 0, http200: 0, ready: 0 };
+      const rentSuggestionReads = { returned: 0, http200: 0 };
+      const owningGetRoutes = [
+        "message_preparation",
+        "notice_review",
+        "rent_suggestion",
+      ] as const;
+      type OwningGetRoute = (typeof owningGetRoutes)[number];
+      const owningGetCounts = Object.fromEntries(
+        owningGetRoutes.map((route) => [
+          route,
+          {
+            started: 0,
+            returned: 0,
+            http200: 0,
+            parsedObject: 0,
+            noTopError: 0,
+            completed: 0,
+            parseFailed: 0,
+          },
+        ]),
+      ) as Record<
+        OwningGetRoute,
+        Record<
+          | "started"
+          | "returned"
+          | "http200"
+          | "parsedObject"
+          | "noTopError"
+          | "completed"
+          | "parseFailed",
+          number
+        >
+      >;
+      let owningGetCountsSaturated = false;
+      function countOwningGet(
+        route: OwningGetRoute,
+        key: keyof (typeof owningGetCounts)[OwningGetRoute],
+      ) {
+        if (owningGetCounts[route][key] < 4096) owningGetCounts[route][key]++;
+        else owningGetCountsSaturated = true;
+      }
+      function owningGetReturned(route: OwningGetRoute, response: Response) {
+        countOwningGet(route, "returned");
+        if (response.status === 200) countOwningGet(route, "http200");
+      }
+      function owningGetParsed(route: OwningGetRoute, body: unknown) {
+        if (body === null || typeof body !== "object" || Array.isArray(body)) return;
+        countOwningGet(route, "parsedObject");
+        if (!Object.prototype.hasOwnProperty.call(body, "error"))
+          countOwningGet(route, "noTopError");
+      }
+      type BridgeRead = {
+        route: BridgeRoute;
+        method: "GET" | "POST" | "other";
+        phase: MessageReadPhase;
+        startedAt: number;
+        elapsedMs: number | null;
+        status: number | null;
+        errorName: string | null;
+        errorCode: string | number | null;
+        errorCategory: string | null;
+        threw: boolean;
+      };
+      const bridgeReads: BridgeRead[] = [];
+      type TransactionSite = "reserve" | "admit" | "observe" | "save_notice" | "other";
+      const transactionCounts = Object.fromEntries(
+        ["reserve", "admit", "observe", "save_notice", "other"].map((site) => [
+          site,
+          {
+            started: 0,
+            completed: 0,
+            rejected: 0,
+            active: 0,
+            maxElapsedMs: 0,
+            codes: {},
+          },
+        ]),
+      ) as Record<
+        TransactionSite,
+        {
+          started: number;
+          completed: number;
+          rejected: number;
+          active: number;
+          maxElapsedMs: number;
+          codes: Record<string, number>;
+        }
+      >;
+      let transactionCountsSaturated = false;
+      const transactionReads: Array<{
+        site: TransactionSite;
+        startedAt: number;
+        elapsedMs: number | null;
+        state: "pending" | "completed" | "rejected";
+        errorCode: string | number | null;
+      }> = [];
+      observeMountedTransaction = (request, stack) => {
+        // Own the original promise, including detached stale-cache admission. After it settles,
+        // this fixture's export/detail readers use immediate synthetic promises only; the reset
+        // fence lets their microtask-only cache publication complete. This is not a general
+        // network/timer/background-job drain, and no additional source read is started here.
+        journeyRequests.track(request);
+        const site: TransactionSite = /\breserveRenewalNoticeLease\s*\(/.test(stack)
+          ? "reserve"
+          : /\bobserveRenewalNotice\s*\(/.test(stack)
+            ? "observe"
+            : /\bsaveRenewalNoticeReview\s*\(/.test(stack)
+              ? "save_notice"
+              : /\badmit\s*\(/.test(stack) && stack.includes("renewal-notice-safety")
+                ? "admit"
+                : "other";
+        const read: (typeof transactionReads)[number] = {
+          site,
+          startedAt: Date.now(),
+          elapsedMs: null,
+          state: "pending",
+          errorCode: null,
+        };
+        const counts = transactionCounts[site];
+        if (counts.started < 4096) counts.started++;
+        else transactionCountsSaturated = true;
+        counts.active++;
+        transactionReads.push(read);
+        if (transactionReads.length > 32) transactionReads.shift();
+        function terminal(
+          state: "completed" | "rejected",
+          errorCode: string | number | null,
+        ) {
+          read.state = state;
+          read.elapsedMs = Date.now() - read.startedAt;
+          read.errorCode = errorCode;
+          counts.active--;
+          if (counts[state] < 4096) counts[state]++;
+          else transactionCountsSaturated = true;
+          counts.maxElapsedMs = Math.max(counts.maxElapsedMs, read.elapsedMs);
+          if (state === "rejected") {
+            const code = String(errorCode ?? "none");
+            if ((counts.codes[code] ?? 0) < 4096)
+              counts.codes[code] = (counts.codes[code] ?? 0) + 1;
+            else transactionCountsSaturated = true;
+          }
+        }
+        void request.then(
+          () => terminal("completed", null),
+          (error: unknown) => terminal("rejected", messageReadError(error).errorCode),
+        );
+      };
+      function countRoute(
+        route: BridgeRoute,
+        key: keyof (typeof routeCounts)[BridgeRoute],
+      ) {
+        if (routeCounts[route][key] < 4096) routeCounts[route][key]++;
+        else routeCountsSaturated = true;
+      }
+      mountedReadDiagnostics = () => ({
+        routeCounts,
+        routeFailures,
+        routeCountsSaturated,
+        owningGetCounts,
+        owningGetCountsSaturated,
+        noticeReads,
+        rentSuggestionReads,
+        messageReadCounts,
+        messageReadCountsSaturated,
+        transactionCounts,
+        transactionCountsSaturated,
+        transactionReads: transactionReads.slice(-16).map(({ startedAt, ...read }) => ({
+          ...read,
+          pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
+        })),
+        messageReads: messageReads.slice(-16).map(({ startedAt, ...read }) => ({
+          ...read,
+          pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
+        })),
+        bridgeReads: bridgeReads.slice(-16).map(({ startedAt, ...read }) => ({
+          ...read,
+          pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
+        })),
+      });
+      assertMountedReadbacks = () => {
+        expect(routeCountsSaturated, "Route diagnostics remained complete").toBe(false);
+        expect(messageReadCountsSaturated, "Message diagnostics remained complete").toBe(
+          false,
+        );
+        expect(owningGetCountsSaturated, "Owning GET counts remained complete").toBe(
+          false,
+        );
+        expect(transactionCountsSaturated, "Transaction counts remained complete").toBe(
+          false,
+        );
+        for (const route of owningGetRoutes) {
+          const counts = owningGetCounts[route];
+          expect(counts.started, `${route} owning GETs issued`).toBeGreaterThan(0);
+          for (const key of [
+            "returned",
+            "http200",
+            "parsedObject",
+            "noTopError",
+            "completed",
+          ] as const)
+            expect(counts[key], `${route} every GET ${key}`).toBe(counts.started);
+          expect(counts.parseFailed, `${route} JSON parse failures`).toBe(0);
+        }
+        expect(
+          routeCounts.notice_review.started,
+          "Mounted owning notice GETs",
+        ).toBeGreaterThan(0);
+        expect(noticeReads.http200, "Real notice route returned HTTP200").toBeGreaterThan(
+          0,
+        );
+        expect(noticeReads.ready, "Real notice source was ready").toBeGreaterThan(0);
+        expect(
+          routeCounts.rent_suggestion.started,
+          "Mounted rent suggestion GETs",
+        ).toBeGreaterThan(0);
+        expect(
+          rentSuggestionReads.http200,
+          "Real rent suggestion route returned HTTP200",
+        ).toBeGreaterThan(0);
+        // Aggregate successful readback evidence only; no source values or response bodies.
+        console.info(
+          "S113 owning GET readbacks",
+          JSON.stringify({
+            owningGetCounts,
+            noticeReady: noticeReads.ready,
+            tracked: journeyRequests.snapshot(),
+            transactionCounts,
+          }),
+        );
+      };
       const originalFetch = globalThis.fetch;
-      vi.stubGlobal("fetch", async (input: string | Request, init?: RequestInit) => {
+      const routeBridge = async (
+        input: string | Request,
+        init: RequestInit | undefined,
+        bridgeRead: BridgeRead,
+      ) => {
         const url = new URL(
           typeof input === "string" ? input : input.url,
           "http://local.test",
@@ -2226,34 +2637,108 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           const channel = url.searchParams.get("channel");
           const read: (typeof messageReads)[number] = {
             channel: channel === "owner" || channel === "tenant" ? channel : "unknown",
+            phase: "route_started",
             startedAt: Date.now(),
             elapsedMs: null,
             status: null,
             contentPresent: false,
             errorPresent: false,
+            cloneParseFailed: false,
+            errorName: null,
+            errorCode: null,
+            errorCategory: null,
             threw: false,
           };
+          countMessageRead("route_started");
           messageReads.push(read);
           if (messageReads.length > 32) messageReads.shift();
           try {
             const response = await getMessageRoute(request);
+            owningGetReturned("message_preparation", response);
+            read.status = response.status;
+            bridgeRead.status = response.status;
+            read.phase = "route_returned";
+            bridgeRead.phase = "route_returned";
+            countMessageRead("route_returned");
+            read.phase = "clone_parse";
+            bridgeRead.phase = "clone_parse";
+            countMessageRead("clone_parse");
             const body = (await response
               .clone()
               .json()
-              .catch(() => null)) as {
+              .catch((error: unknown) => {
+                read.cloneParseFailed = true;
+                Object.assign(read, messageReadError(error));
+                countMessageRead("parse_failed");
+                countOwningGet("message_preparation", "parseFailed");
+                return null;
+              })) as {
               content?: { htmlBody?: unknown };
               error?: unknown;
             } | null;
-            read.status = response.status;
+            owningGetParsed("message_preparation", body);
             read.contentPresent = typeof body?.content?.htmlBody === "string";
             read.errorPresent = typeof body?.error === "string";
+            read.phase = "completed";
+            countMessageRead("completed");
             return response;
           } catch (error) {
             read.threw = true;
+            Object.assign(read, messageReadError(error));
+            countMessageRead("threw");
             throw error;
           } finally {
             read.elapsedMs = Date.now() - read.startedAt;
           }
+        }
+        if (url.pathname.endsWith("/notice-review") && request.method === "GET") {
+          const response = await getNoticeReviewRoute(request);
+          owningGetReturned("notice_review", response);
+          bridgeRead.status = response.status;
+          bridgeRead.phase = "route_returned";
+          noticeReads.returned = Math.min(4096, noticeReads.returned + 1);
+          if (response.status === 200) {
+            noticeReads.http200 = Math.min(4096, noticeReads.http200 + 1);
+          }
+          bridgeRead.phase = "clone_parse";
+          const result: unknown = await response
+            .clone()
+            .json()
+            .catch((error: unknown) => {
+              countOwningGet("notice_review", "parseFailed");
+              throw error;
+            });
+          owningGetParsed("notice_review", result);
+          if (
+            response.status === 200 &&
+            result !== null &&
+            typeof result === "object" &&
+            "ready" in result &&
+            result.ready === true
+          ) {
+            noticeReads.ready = Math.min(4096, noticeReads.ready + 1);
+          }
+          return response;
+        }
+        if (url.pathname.endsWith("/rent-suggestion") && request.method === "GET") {
+          const response = await getRentSuggestionRoute(request);
+          owningGetReturned("rent_suggestion", response);
+          bridgeRead.status = response.status;
+          bridgeRead.phase = "route_returned";
+          rentSuggestionReads.returned = Math.min(4096, rentSuggestionReads.returned + 1);
+          if (response.status === 200) {
+            rentSuggestionReads.http200 = Math.min(4096, rentSuggestionReads.http200 + 1);
+          }
+          bridgeRead.phase = "clone_parse";
+          const result: unknown = await response
+            .clone()
+            .json()
+            .catch((error: unknown) => {
+              countOwningGet("rent_suggestion", "parseFailed");
+              throw error;
+            });
+          owningGetParsed("rent_suggestion", result);
+          return response;
         }
         if (url.pathname.endsWith("/operating-sheet"))
           return request.method === "GET" ? GET(request) : POST(request);
@@ -2263,6 +2748,63 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         if (url.pathname.endsWith("/document-handoff")) return documentGet(request);
         if (url.pathname.endsWith("/comp-screenshot")) return screenshotGet(request);
         throw new Error(`Unexpected journey HTTP path: ${url.pathname}`);
+      };
+      vi.stubGlobal("fetch", (input: string | Request, init?: RequestInit) => {
+        const url = new URL(
+          typeof input === "string" ? input : input.url,
+          "http://local.test",
+        );
+        const method = init?.method ?? (typeof input === "string" ? "GET" : input.method);
+        const read: BridgeRead = {
+          route:
+            url.hostname === "api.rentcast.io"
+              ? "rentcast"
+              : (routePaths[url.pathname as keyof typeof routePaths] ?? "other"),
+          method: method === "GET" || method === "POST" ? method : "other",
+          phase: "route_started",
+          startedAt: Date.now(),
+          elapsedMs: null,
+          status: null,
+          errorName: null,
+          errorCode: null,
+          errorCategory: null,
+          threw: false,
+        };
+        bridgeReads.push(read);
+        if (bridgeReads.length > 32) bridgeReads.shift();
+        countRoute(read.route, "started");
+        const owningGet =
+          read.method === "GET" && owningGetRoutes.includes(read.route as OwningGetRoute)
+            ? (read.route as OwningGetRoute)
+            : null;
+        if (owningGet) countOwningGet(owningGet, "started");
+        return journeyRequests.track(
+          (async () => {
+            try {
+              const response = await routeBridge(input, init, read);
+              read.status = response.status;
+              read.phase = "completed";
+              countRoute(read.route, "completed");
+              if (owningGet) countOwningGet(owningGet, "completed");
+              return response;
+            } catch (error) {
+              read.threw = true;
+              const failure = messageReadError(error);
+              Object.assign(read, failure);
+              const failures = routeFailures[read.route];
+              const classification = `${failure.errorName}:${failure.errorCode ?? "none"}:${failure.errorCategory}`;
+              const key =
+                classification in failures || Object.keys(failures).length < 32
+                  ? classification
+                  : "Other";
+              failures[key] = Math.min(4096, (failures[key] ?? 0) + 1);
+              countRoute(read.route, "rejected");
+              throw error;
+            } finally {
+              read.elapsedMs = Date.now() - read.startedAt;
+            }
+          })(),
+        );
       });
       const now = new Date().toISOString();
       async function mountCurrent() {
@@ -2548,6 +3090,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
                   currentPreviewHasExpectedRent: livePreviews.some((node) =>
                     node.textContent?.includes("$1,100.00"),
                   ),
+                  messageReadCounts: { ...messageReadCounts },
+                  messageReadCountsSaturated,
                   reads: messageReads.slice(-16).map(({ startedAt, ...read }) => ({
                     ...read,
                     pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,

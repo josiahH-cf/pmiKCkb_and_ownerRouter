@@ -106,7 +106,8 @@ export class FakeTransactionalFirestore {
 
   async createDocument(path: string, data: Record<string, unknown>) {
     await this.withCommitLock(() => {
-      if (this.store.has(path)) throw new Error("already-exists");
+      if (this.store.has(path))
+        throw Object.assign(new Error("already-exists"), { code: 6 });
       this.applyWrite(path, data);
     });
   }
