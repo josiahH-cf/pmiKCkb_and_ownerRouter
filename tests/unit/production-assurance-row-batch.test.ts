@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import type { Page } from "playwright-core";
-import { readRowsFromPage } from "../../scripts/run-production-reconciliation";
+import {
+  countFieldMismatches,
+  readRowsFromPage,
+} from "../../scripts/run-production-reconciliation";
 
 // Real DOM selectors with asynchronous browser-style reads expose overlapping counter updates.
 function locator(elements: readonly Element[]): ReturnType<Page["locator"]> {
@@ -28,7 +31,7 @@ function fixture(count: number, badLabels: boolean) {
     <tr data-lease-id="${i + 1}" data-workspace-available="false" data-status="needs_verification" data-rent-verification="needs_verification" data-rent-verification-differs="false" data-action-kind="none" data-blocker-count="1" data-manual-complete="none" data-manual-next="none" data-manual-pending-source-updates="none">
       <th><span>Lease ${i + 1}</span><span class="renewal-td-secondary">Lease ID</span></th>
       <td><span>Owner ${i + 1}</span></td><td><span>Tenant ${i + 1}</span></td>
-      <td><span>2027-01-31</span></td><td><span>$1,000</span></td>
+      <td><a><time datetime="2027-01-31">01/31/2027</time></a></td><td><span>$1,000</span></td>
       <td data-status="needs_verification"><a class="renewal-status-link" href="/lease-renewal/live/desk?v=2&amp;overallStatus=needs_verification&amp;scope=all"><span class="renewal-status-badge"><span>${badLabels ? "Wrong overall" : "Needs verification"}</span></span></a></td>
       <td data-rent-verification="needs_verification" data-rent-verification-differs="false"><span class="renewal-status-badge"><span>${badLabels ? "Wrong rent" : "Needs verification"}</span></span></td>
       <td data-action-kind="none" data-blocker-count="1"><ul class="renewal-blocker-list"><li data-blocker-id="missing-source" data-blocker-type="${badLabels ? "invalid" : "source"}" data-required-capability="none">Source</li></ul></td>
@@ -92,7 +95,7 @@ describe("batched complete-cohort DOM evidence", () => {
     const { page, expected } = fixture(17, false);
     document.querySelector("tr[data-lease-id='3'] td")!.remove();
     document
-      .querySelector("tr[data-lease-id='7'] a")!
+      .querySelector("tr[data-lease-id='7'] a.renewal-status-link")!
       .setAttribute("href", "https://foreign.example/private");
     const result = await readRowsFromPage(
       page,
@@ -125,5 +128,141 @@ describe("batched complete-cohort DOM evidence", () => {
     );
     expect(result.rows).toHaveLength(17);
     expect(result.fieldMismatches).toBe(1);
+  });
+});
+
+describe("independent semantic and displayed renewal-date evidence", () => {
+  async function observedDate(markup: string) {
+    const { page, expected } = fixture(1, false);
+    document.querySelectorAll("tr[data-lease-id] td")[2].innerHTML = markup;
+    const result = await readRowsFromPage(
+      page,
+      "https://candidate.example",
+      expected,
+      null,
+      new AbortController().signal,
+    );
+    expect(result.rows).toHaveLength(1);
+    expect(result.fieldMismatches).toBe(0);
+    expect(result.invalidDestinations).toBe(0);
+    return result.rows[0];
+  }
+
+  const source = (endDate: string) => ({
+    leaseId: "1",
+    address: "Lease 1",
+    owners: ["Owner 1"],
+    tenants: ["Tenant 1"],
+    endDate,
+    baseRent: "$1,000",
+    rentvineSourceUrl: null,
+  });
+
+  it.each([
+    ["2027-01-31", "01/31/2027"],
+    ["2028-02-29", "02/29/2028"],
+    ["2000-02-29", "02/29/2000"],
+    ["2026-12-31", "12/31/2026"],
+    ["2027-01-01", "01/01/2027"],
+    ["2026-03-08", "03/08/2026"],
+    ["2026-11-01", "11/01/2026"],
+  ])("matches exact source %s and its independent display %s", async (iso, display) => {
+    const row = await observedDate(
+      `<a><time datetime="${iso}">${display}</time></a><span class="renewal-td-secondary">Fixed term</span>`,
+    );
+    expect(row.endDate).toBe(iso);
+    expect(countFieldMismatches(source(iso), row)).toBe(0);
+  });
+
+  it.each([
+    '<a><time datetime="2027-01-30">01/31/2027</time></a>',
+    '<a><time datetime="2027-01-30">01/30/2027</time></a>',
+    '<a><time datetime="2027-01-31">2027-01-31</time></a>',
+    '<a><time datetime="2027-01-31">1/31/2027</time></a>',
+    '<a><time datetime="2027-01-31">01/30/2027</time></a>',
+    '<a><time datetime="2027-01-31">Invalid date</time></a>',
+    '<a><time datetime="2027-01-31">02/31/2027</time></a>',
+    '<a><time datetime="2027-01-31"></time></a>',
+    '<a><time datetime="">01/31/2027</time></a>',
+    "<a><time>01/31/2027</time></a>",
+    '<a><time datetime="2027-01-31T00:00:00Z">01/31/2027</time></a>',
+    '<a><time datetime="2027-1-31">01/31/2027</time></a>',
+    '<a><time datetime=" 2027-01-31 ">01/31/2027</time></a>',
+    "<a>01/31/2027</a>",
+    "<a>2027-01-31</a>",
+    "<a>Needs Verification</a>",
+    "<a></a>",
+    "",
+    '<a><time datetime="2027-01-31">01/31/2027</time><time datetime="2027-01-31">01/31/2027</time></a>',
+    '<a><time datetime="2027-01-31">01/31/2027</time></a><span>01/31/2027</span>',
+    '<a>01/31/2027</a><span class="renewal-td-secondary"><time datetime="2027-01-31">01/31/2027</time></span>',
+  ])("rejects incorrect or ambiguous date markup %#", async (markup) => {
+    const row = await observedDate(markup);
+    expect(countFieldMismatches(source("2027-01-31"), row)).toBe(1);
+  });
+
+  it("requires the exact missing-date label and no time node", async () => {
+    expect(
+      countFieldMismatches(
+        source("Needs Verification"),
+        await observedDate(
+          '<a>Needs Verification</a><span class="renewal-td-secondary">Month to month · review due 01/31/2027</span>',
+        ),
+      ),
+    ).toBe(0);
+    for (const markup of [
+      "<a></a>",
+      "<a>Not available</a>",
+      "<a>Needs verification</a>",
+      '<a><time datetime="">Needs Verification</time></a>',
+      '<a><time datetime="2027-01-31">Needs Verification</time></a>',
+      '<a>Needs Verification</a><time datetime="">Needs Verification</time>',
+    ]) {
+      expect(
+        countFieldMismatches(source("Needs Verification"), await observedDate(markup)),
+      ).toBe(1);
+    }
+  });
+
+  it.each([
+    "2027-02-29",
+    "2100-02-29",
+    "2026-04-31",
+    "2026-00-10",
+    "2026-13-10",
+    "2026-01-00",
+  ])(
+    "preserves invalid source %s honestly without normalizing it into a real date",
+    async (iso) => {
+      expect(
+        countFieldMismatches(
+          source(iso),
+          await observedDate(`<a><time datetime="${iso}">Invalid date</time></a>`),
+        ),
+      ).toBe(0);
+      const [year, month, day] = iso.split("-");
+      expect(
+        countFieldMismatches(
+          source(iso),
+          await observedDate(
+            `<a><time datetime="${iso}">${month}/${day}/${year}</time></a>`,
+          ),
+        ),
+      ).toBe(1);
+    },
+  );
+
+  it("keeps every non-date field comparison active after the corrected date passes", async () => {
+    const row = await observedDate(
+      '<a><time datetime="2027-01-31">01/31/2027</time></a>',
+    );
+    for (const changed of [
+      { address: "Different synthetic address" },
+      { owners: ["Different synthetic owner"] },
+      { tenants: ["Different synthetic tenant"] },
+      { baseRent: "$2,000" },
+    ]) {
+      expect(countFieldMismatches({ ...source("2027-01-31"), ...changed }, row)).toBe(1);
+    }
   });
 });

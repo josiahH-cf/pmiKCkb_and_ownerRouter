@@ -148,6 +148,7 @@ interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
 }
 
 interface RenderedProjectionRow extends IndependentRenewalSourceRow {
+  readonly endDateDisplayMatches: boolean;
   readonly manual: {
     complete: string | null;
     nextActivity: string | null;
@@ -1375,6 +1376,8 @@ const RENEWAL_DATA_ROWS =
   'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr[data-lease-id]';
 const RENEWAL_CELL_PLAN: AssuranceDomPlan = {
   "a, span": {},
+  time: {},
+  ":scope > a, :scope > span:not(.renewal-td-secondary)": { time: {} },
   li: { ":scope > .renewal-party-name": {} },
   'a.text-link[href*="/lease-renewal/live/desk/lease/"]': {},
   'a.renewal-status-link[href*="/lease-renewal/live/desk/lease/"]': {},
@@ -1398,6 +1401,7 @@ const RENEWAL_DOM_PLAN: AssuranceDomPlan = {
   [RENEWAL_DATA_ROWS]: RENEWAL_ROW_PLAN,
 };
 const RENEWAL_DOM_ATTRIBUTES = [
+  "datetime",
   "href",
   "target",
   "rel",
@@ -1499,8 +1503,9 @@ export async function readRowsFromPage(
       const address = await readRenderedLeaseAddress(leaseCell);
       const owners = await partyValues(cells.nth(0));
       const tenants = await partyValues(cells.nth(1));
-      const endDate =
-        (await cells.nth(2).locator("a, span").first().textContent())?.trim() ?? "";
+      const { endDate, endDateDisplayMatches } = await readRenderedRenewalDate(
+        cells.nth(2),
+      );
       const baseRent =
         (await cells.nth(3).locator("a, span").first().textContent())?.trim() ?? "";
       const overallCell = cells.nth(4);
@@ -1653,6 +1658,7 @@ export async function readRowsFromPage(
           owners,
           tenants,
           endDate,
+          endDateDisplayMatches,
           baseRent,
           rentvineSourceUrl: sourceHref,
           rentvineRecordUrl: sourceHref,
@@ -1700,6 +1706,40 @@ async function hrefs(locator: ReturnType<Page["locator"]>): Promise<(string | nu
     values.push(await locator.nth(index).getAttribute("href"));
   }
   return values;
+}
+
+/** Keep the semantic source date separate from its S126 display. This oracle deliberately does
+ * not import the application's formatter: both the exact ISO value and independently derived
+ * calendar label must agree. Missing dates retain their explicit label and have no time node. */
+async function readRenderedRenewalDate(
+  cell: ReturnType<Page["locator"]>,
+): Promise<{ endDate: string; endDateDisplayMatches: boolean }> {
+  const labels = cell.locator(":scope > a, :scope > span:not(.renewal-td-secondary)");
+  const times = cell.locator("time");
+  const timeCount = await times.count();
+  if ((await labels.count()) !== 1 || timeCount > 1)
+    return { endDate: "", endDateDisplayMatches: false };
+  const label = labels.first();
+  const text = (await label.textContent())?.trim() ?? "";
+  if (timeCount === 0)
+    return { endDate: text, endDateDisplayMatches: text === "Needs Verification" };
+  const time = times.first();
+  const endDate = (await time.getAttribute("datetime")) ?? "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(endDate);
+  if (!match || (await label.locator("time").count()) !== 1)
+    return { endDate, endDateDisplayMatches: false };
+  const [, year, month, day] = match;
+  const calendar = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const validCalendar =
+    calendar.getUTCFullYear() === Number(year) &&
+    calendar.getUTCMonth() + 1 === Number(month) &&
+    calendar.getUTCDate() === Number(day);
+  const expectedLabel = validCalendar ? `${month}/${day}/${year}` : "Invalid date";
+  return {
+    endDate,
+    endDateDisplayMatches:
+      text === expectedLabel && (await time.textContent())?.trim() === expectedLabel,
+  };
 }
 
 /** Skipped leases intentionally have no workspace link. Check cardinality before textContent so
@@ -1943,15 +1983,16 @@ function indexRows<Row extends IndependentRenewalSourceRow>(
   return { byKey, duplicates };
 }
 
-function countFieldMismatches(
+export function countFieldMismatches(
   expected: IndependentRenewalSourceRow,
-  observed: IndependentRenewalSourceRow,
+  observed: IndependentRenewalSourceRow & { readonly endDateDisplayMatches: boolean },
 ): number {
   let count = 0;
   if (expected.address !== observed.address) count += 1;
   if (!sameStrings(expected.owners, observed.owners)) count += 1;
   if (!sameStrings(expected.tenants, observed.tenants)) count += 1;
-  if (expected.endDate !== observed.endDate) count += 1;
+  if (expected.endDate !== observed.endDate || !observed.endDateDisplayMatches)
+    count += 1;
   if (expected.baseRent !== observed.baseRent) count += 1;
   return count;
 }
