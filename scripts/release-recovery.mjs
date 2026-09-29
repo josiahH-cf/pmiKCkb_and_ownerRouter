@@ -370,17 +370,29 @@ async function verifyServiceControls(
     const images = build.results?.images;
     if (
       !Array.isArray(images) ||
-      images.length !== 1 ||
-      images[0].name !== currentBuild.imageUri ||
-      !/^sha256:[a-f0-9]{64}$/.test(images[0].digest ?? "")
+      images.some(
+        (image) =>
+          !image ||
+          typeof image !== "object" ||
+          Array.isArray(image) ||
+          typeof image.name !== "string" ||
+          !image.name.trim() ||
+          typeof image.digest !== "string" ||
+          !/^sha256:[a-f0-9]{64}$/.test(image.digest),
+      )
     )
       refuse();
-    const imageName = images[0].name.replace(/:[^/]+$/, "");
-    const resolvedImage = `${imageName}@${images[0].digest}`;
+    // A build can publish other outputs; only the one exact configured image can
+    // prove this candidate. Duplicate matches remain ambiguous, even with equal digests.
+    const matchingImages = images.filter((image) => image.name === currentBuild.imageUri);
+    if (matchingImages.length !== 1) refuse();
+    const selectedImage = matchingImages[0];
+    const imageName = selectedImage.name.replace(/:[^/]+$/, "");
+    const resolvedImage = `${imageName}@${selectedImage.digest}`;
     if (!DIGEST.test(resolvedImage) || candidate.status?.imageDigest !== resolvedImage)
       refuse();
     const deployedImage = revision.containers[0].image;
-    if (![images[0].name, resolvedImage].includes(deployedImage)) refuse();
+    if (![selectedImage.name, resolvedImage].includes(deployedImage)) refuse();
   } catch (error) {
     if (error?.message === "recovery_service_controls_changed") throw error;
     refuse();

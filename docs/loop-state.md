@@ -5,6 +5,8 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 BLOCKED: candidate assurance rejects the exact successful build’s provenance update.
+Repair main 497333a686c09cc492c7a4ef6edd925c7c8dfb98 is pushed; native and independent 2,189-blob audit match.
+[CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact repair SHA, completing 13:14:11Z.
 Exact admitted SHA b59f2c6f08a32f022cff5112a16bc5405664e4d1; [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696) passed.
 Run 59d3ef47-06c6-4d9c-9235-ffb257e9976f was admitted 11:51:31.991Z.
 The owner-authorized 12:23 same-run resume passed recovery 12:25:57.310Z, receipt
@@ -21,16 +23,19 @@ controls match, and the operation’s typed Service response recomputes the serv
 Candidate canary/reconciliation were NOT RUN within the gate; no candidate assurance receipt,
 promotion or observation exists. Keep all thirteen features queued.
 
-Repair source review and 239 focused tests passed. Corrected full gate passed 13:02:46.049Z:
-7,401 unit passes, four existing config skips, 232 backend passes/42 files, all required checks
-and build jQ1lbp0cjVNLK2CHdye4F. Live compatibility and new exact-head CI remain unverified.
-No further execution decision, retry, receipt alteration or candidate substitution is authorized.
-The frozen b59 candidate cannot silently use a changed verifier. The last permit is admitted until
-17:47:51.558Z; permit/Resume state is not independent execution authority.
-Earlier recovery failures and the old 1fb run remain immutable; their detailed chronology is in
-the batch audit. The first two recovery failures’ precise aggregate causes remain unproven.
-Current CLI/ADC refresh both require owner re-enrollment with the approved identity/store intact.
-Attended enrollment began 13:02:03.425Z; owner completion and live compatibility remain pending.
+Prior 497 repair full gate and CI passed. The final unique-output correction passed 263 focused
+tests/6 files, typecheck/lint and independent review; its full gate passed with 7,425 unit/232 backend passes and all required checks; its commit and exact-head CI remain pending.
+Fresh approved CLI/ADC enrollment/binding passed 13:16:20.229Z after an owner-requested retry;
+the earlier 13:13:03.542Z timeout remains failed. Guarded Admin readiness passed both exact origins at 13:42:27.560Z; full assurance is separate.
+Corrected verifyRecoveryAvailability returned true 13:25:04.509Z: default freshness, exact
+b59/run59d3 receipt/candidate, seven guarded GET200 responses, unchanged checker/eight state hashes.
+This is diagnostic only: no candidate assurance receipt, promotion, observation or continuation.
+Guarded Admin readiness passed both canonical and exact b59 candidate 13:42:27.560Z:
+HTTP200/Admin/expected heading, no sign-in, zero attempts/blocks/errors, nine state hashes unchanged,
+lock released and owned/profile/watcher processes 0. Prior timeouts remain failed; cause unproven.
+A further replacement requires separate owner approval; no silent verifier/receipt substitution.
+The last permit is admitted until 17:47:51.558Z; permit/Resume is not execution authority.
+Earlier failures remain immutable, including unproven precise causes of the first two recovery failures.
 
 ## Verified implementation and local proof
 
@@ -75,12 +80,13 @@ Production/Live, Demo=false, Sheet=false; canonical S120 remains 100%, one candi
 Versions, fingerprints and checkpoint match. This is not assurance or promotion.
 Approved CLI/ADC enrollment/binding 09:18:39.478Z; headed Admin 09:34:11.947Z after owner-approved
 WSL restart. Authentication returned READY at 12:22:47Z. Google provider enabled 11:14:50.693Z; billing/cost passed 11:13:27.194Z.
-No billing/budget/guardrail/security/identity/claim change. CLI/ADC re-enrollment is now a confirmed additional hold; earlier READY timestamps remain historical.
+Billing/service read 13:40:31.862Z confirmed billing enabled, Ready/generation and S120 at 100%.
+No billing/budget/guardrail/security/identity/claim change. Fresh CLI/ADC passed 13:16:20.229Z.
 
 ## Next step and remaining limits
 
-Await owner-completed CLI/ADC enrollment; the corrected full local gate is complete.
-Read back authentication before any authorized live diagnostic; no login loop or bypass.
+Commit/push the final correction and verify exact-head CI; its full local gate passed.
+The fresh authentication and passing read-only diagnostic do not authorize another replacement.
 Resolve the frozen-candidate/execution decision explicitly before any further release action.
 Never blind-retry, change receipts, create another candidate/run or use per-feature releases.
 After actual RELEASED only: independent versions/traffic/config/domain readbacks, guarded remote

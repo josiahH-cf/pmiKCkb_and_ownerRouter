@@ -179,6 +179,20 @@ describe("exact source-build provenance across paused recovery", () => {
     });
     await expect(h.available()).resolves.toBe(true);
   });
+  it.each([0, 1])(
+    "selects only the unique exact-name output with an unrelated image at index %i",
+    async (index) => {
+      const h = await fixture();
+      h.build.results.images.splice(index, 0, {
+        name: "registry.invalid/unrelated-output:latest",
+        digest: `sha256:${"e".repeat(64)}`,
+      });
+      await expect(h.available()).resolves.toBe(true);
+      h.state.service.trafficStatuses[0].revision = h.candidate;
+      await expect(h.recover()).resolves.toMatchObject({ state: "ROLLED_BACK_VERIFIED" });
+      expect(h.state.patches).toHaveLength(2);
+    },
+  );
   it.each(["operation", "build", "revision"])(
     "refuses an unavailable %s read without any effect or fallback",
     async (kind) => {
@@ -446,9 +460,81 @@ describe("exact source-build provenance across paused recovery", () => {
       },
     ],
     [
-      "extra build output",
+      "duplicate exact-name output with the same digest",
       (h) => {
         h.build.results.images.push(copy(h.build.results.images[0]));
+      },
+    ],
+    [
+      "duplicate exact-name output with a conflicting digest",
+      (h) => {
+        h.build.results.images.push({
+          ...h.build.results.images[0],
+          digest: `sha256:${"e".repeat(64)}`,
+        });
+      },
+    ],
+    [
+      "non-array build output list",
+      (h) => {
+        h.build.results.images = {};
+      },
+    ],
+    [
+      "empty build output list",
+      (h) => {
+        h.build.results.images = [];
+      },
+    ],
+    [
+      "null build output entry",
+      (h) => {
+        h.build.results.images.push(null);
+      },
+    ],
+    [
+      "string build output entry",
+      (h) => {
+        h.build.results.images.push("unrelated");
+      },
+    ],
+    [
+      "array build output entry",
+      (h) => {
+        h.build.results.images.push([]);
+      },
+    ],
+    [
+      "build output entry missing name",
+      (h) => {
+        h.build.results.images.push({ digest: `sha256:${"e".repeat(64)}` });
+      },
+    ],
+    [
+      "build output entry missing digest",
+      (h) => {
+        h.build.results.images.push({ name: "registry.invalid/unrelated" });
+      },
+    ],
+    [
+      "build output entry malformed digest",
+      (h) => {
+        h.build.results.images.push({
+          name: "registry.invalid/unrelated",
+          digest: "not-a-content-digest",
+        });
+      },
+    ],
+    [
+      "build output entry nonstring digest",
+      (h) => {
+        h.build.results.images.push({ name: "registry.invalid/unrelated", digest: 123 });
+      },
+    ],
+    [
+      "build output entry empty name",
+      (h) => {
+        h.build.results.images.push({ name: "", digest: `sha256:${"e".repeat(64)}` });
       },
     ],
     [
