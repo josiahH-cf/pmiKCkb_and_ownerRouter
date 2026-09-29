@@ -5,6 +5,9 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current resume point
 
 Terminal state: BLOCKED — fresh attended Google enrollment and remote release admission.
+Code/docs repair a5d5791cf8ca1a2c02914f61386275f8db2c8308 was pushed; exact main
+[CI 36539913128](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36539913128)
+passed all five lanes at 08:02:54Z. Release admission requires exact current-head green CI.
 Run L passed 7,212 unit tests in 800 files, 232 backend tests in 42 files, all gates and production
 build MsohNlljqt7KxRmFLb2od at 07:42:25.233Z. New core E2E passed 31 tests with 18 intentional skips
 at 07:47:43.666Z; all 2,021 source hashes and the build were preserved. Exact-build cold and corrected
@@ -21,7 +24,10 @@ and one S113 backend preview case. Quality and policy/build passed. Default unit
 explicit memory fixtures, atomic-create reservation, bounded cleanup and all owning GET outcomes
 now pass run L. The original failed CI receipt remains unchanged.
 K's unit database target/effects and the original CI transaction site remain unverified.
-Exact new green push CI and fresh GO are mandatory.
+Preflight at 08:00:40.289Z found thirteen features and watcher target a5d5791c; checkout alignment,
+native runner, Sheet pause and Demo flags were READY, lock free, zero watchers. It remained held
+for missing permit/fresh prerequisites, 11.1-hour enrollment and then-in-progress CI. The subsequent
+CI pass does not replace a fresh GO. Missing collector evidence did not mean billing was disabled.
 
 ## Verified host and cloud readbacks
 
@@ -74,7 +80,7 @@ The first new warm attempt omitted PMI_CLEAN_WARM_NOTICE and failed notice_proof
 requesting notice; it remains unchanged alongside the corrected pass. Browser blocks/page errors and
 remaining owned Next processes were zero. Older failures remain unchanged; human verdicts remain NOT RUN.
 
-## Awaiting release (thirteen cumulative features; repaired head requires exact CI)
+## Awaiting release (thirteen cumulative features; repair CI passed, remote delivery pending)
 
 1. S128 (F08) pause operating-Sheet writes: code `31bc9072`, docs `0bbd95c3`, CI 35342904192.
    Flag-false deployment and prepared paused recovery readbacks remain required.
@@ -105,7 +111,8 @@ Git unchanged. No current batch receipt, promotion time or observation pass exis
 
 ## Resume and remaining limits
 
-Next: commit the green repaired tree, require its exact push CI,
+The prior document gate passed pinned tests 6/6, Prettier and all document gates at 07:58:36.804Z–07:58:57.540Z.
+Next: close this blocked-state documentation update, require exact current-head green CI,
 fresh attended WSL/Admin enrollment and preflight GO with thirteen entries/current watcher target, single native watcher on the free
 lock, candidate/assurance/promotion/observation and independent readbacks. Follow the batch runbook.
 Never substitute per-feature releases. Authentication expiry requires attended owner enrollment.

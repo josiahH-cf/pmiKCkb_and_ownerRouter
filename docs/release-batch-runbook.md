@@ -1,7 +1,10 @@
 # Batched release runbook
 
 Updated: 2026-09-29 (UTC). One candidate must ship every queued feature.
-Current state: **BLOCKED pending fresh attended authentication, exact repair-head CI and remote delivery**.
+Current state: **BLOCKED pending fresh attended authentication and remote release admission**.
+Code/docs repair `a5d5791cf8ca1a2c02914f61386275f8db2c8308` was pushed; its exact main
+[CI 36539913128](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36539913128)
+passed all five lanes at 08:02:54Z. Release admission requires exact current-head green CI.
 Native Node 22 run L passed 7,212 unit tests, 232 backend tests, all gates and build
 `MsohNlljqt7KxRmFLb2od`; new core E2E passed 31 tests with 18 intentional skips. Exact-build cold and
 corrected desk-warmed notice passed in 15.459/17.456 seconds, and the separate cohort diagnostic
@@ -102,10 +105,15 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E and affected
-exact-build compiled notice/cohort checks passed; commit the green tree and require its exact-head green push
-CI before admission. Prior failed CI 36530528718 remains preserved and does not predict the new
-commit's outcome. Keep all thirteen entries until remote delivery is verified.
+**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E, affected
+exact-build compiled notice/cohort checks and pushed repair CI 36539913128 passed. Release admission
+requires exact current-head green CI; a subsequent documentation commit must meet that invariant.
+Prior failed CI 36530528718 remains preserved. Keep all thirteen entries until remote delivery is verified.
+
+The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
+checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained
+held for missing permit/fresh prerequisites, 11.1-hour enrollment and then-in-progress CI. Later CI
+success does not replace fresh GO. Missing collector evidence is not a finding of disabled billing.
 The installed local interlock is fail-closed: missing, malformed, held, expired, consumed or wrong-head
 permits cannot dispatch forward release work. It applies to the Windows launcher, watcher and direct
 release entry. The scheduled task configuration stays unchanged. Inspect checkpoint, process and lock
@@ -197,6 +205,11 @@ Each phase advances only on independent readback:
 
 1. Run `bash ~/pmi-kc-work/scripts/s120-readbacks.sh <head-sha> <revision>`. Review the helper for
    safe field selection; never print raw Identity Platform configuration or provider/customer data.
+   The reviewed local helper SHA256 is
+   `0391875f006934b8b8ddd77973bd00cf8a1ca3fb8b84bf213d1802a40cf8a930`.
+   Its corrected map check requires eleven nonempty entries in each exact Space map with matching
+   keys, plus the unchanged runtime fingerprint and Sheet=false gates. Twenty-four synthetic
+   sanitizer checks passed; the original variable-count defect and helper bytes remain preserved.
 2. Confirm canonical/tagged identity, exact 100% traffic and fingerprint, exactly one candidate
    authorized domain, and revision env production/live with ASK_DEMO_MODE=false and
    LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false. Read service identity, maps and bindings independently.

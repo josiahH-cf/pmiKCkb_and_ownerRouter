@@ -1,12 +1,12 @@
 # Batched release litmus audit — 2026-09-28
 
-Updated 2026-09-29 UTC. Reviewed implementation: current working tree based on
-`d2ec88cc97578ddf028b2930af8540e19397613d`. The owner's pasted checklist contains
+Updated 2026-09-29 UTC. Reviewed code-and-documentation commit:
+`a5d5791cf8ca1a2c02914f61386275f8db2c8308`. The owner's pasted checklist contains
 reference indexes 0–117 plus the unnumbered S121 exclusion. Those indexes identify
 the supplied statements, not external citations. All thirteen queued suites remain
 in this one batch; S121 market fallback remains separately unscheduled.
 
-**Current verdict: local full verification, core E2E and scoped compiled repair checks PASS; CI, authentication and release gates remain PENDING. Remote delivery is NOT VERIFIED.**
+**Current verdict: local full verification, core E2E, scoped compiled repair checks and exact code-commit CI PASS; fresh authentication and release admission remain BLOCKED. Remote delivery is NOT VERIFIED.**
 Native Node-22 run L passed **7,212 unit tests in 800 files**, **232 backend tests in 42 files**,
 all required gates and production build `MsohNlljqt7KxRmFLb2od` at 07:42:25.233 UTC.
 Same-source core E2E subsequently passed **31 tests with 18 intentional skips** on its isolated
@@ -16,8 +16,12 @@ fresh-process notice readiness passed in **15.459 seconds** and the corrected de
 passed in **17.456 seconds**, both within the unchanged 20-second deadline. The separate
 observational cohort diagnostic matched all 311 raw-source/cache/projected/rendered identities
 and projected/rendered category pairs before and after a newer notice API read. This does not
-independently derive lifecycle categories from raw provider data. New exact-head CI, fresh attended
-WSL/Admin authentication and the full one-batch release sequence remain required.
+independently derive lifecycle categories from raw provider data.
+Exact-main [CI 36539913128](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36539913128)
+passed all five lanes for `a5d5791cf8ca1a2c02914f61386275f8db2c8308` at 08:02:54 UTC.
+Fresh attended WSL/Admin authentication and the full one-batch release sequence remain required.
+Admission must independently require green CI for whichever exact HEAD is current then; this
+recorded pass does not automatically cover a later documentation closure commit.
 
 The earlier repair commit `d2ec88cc` failed [CI 36530528718](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36530528718):
 quality and policy passed, two unit cases failed because their refresh-route fixture omitted a
@@ -192,9 +196,9 @@ the port was free and no owned runtime remained. Summary:
 `~/pmi-kc-work/logs/core-e2e-reservation-20260929T074448Z/summary.json`, independently verified
 SHA-256 `164eaa80f1bd2159bfb11eebccb11117ed62a1959b21fb69bcdd60a79d30676f`.
 Its `run.log` has SHA-256 `a4897cf4e019247ab75e83811ca36030b56aaaf3cf4c48be34f463b3b9c27094`.
-The scoped compiled repair checks subsequently **passed** on the same immutable build. Exact-head
-CI, fresh attended authentication and the complete release sequence remain **PENDING**. No remote
-release ran.
+The scoped compiled repair checks subsequently **passed** on the same immutable build. Exact
+code-commit CI also passed as recorded above. Fresh attended authentication, admission and the
+complete release sequence remain **PENDING**. No remote release ran.
 
 The fresh-process cold notice check passed at 07:49:20.572 UTC: exactly one request/response,
 HTTP 200, ready, verified tenancy and approval basis, **15,459 ms** within the unchanged 20,000 ms
@@ -667,6 +671,58 @@ account and exact existing controls, with zero mutation requests. The sanitized 
 `~/pmi-kc-work/logs/cloud-readonly-1790668083545.json`. It is a readback, not a release-admission
 receipt; no setting was changed.
 
+The preflight at 08:00:40.289 UTC identified all thirteen features with `a5d5791c` as the current
+head and watcher target, aligned checkouts, native Node 22/snap SDK, zero watchers, a free kernel
+lock and both staged Sheet flags false. It remained blocked by the absent admitted permit,
+missing fresh run-bound prerequisite receipt and enrollment age of approximately 11.1 hours.
+CI was still running at that particular readback; its later successful completion does not
+retroactively change that verdict. The generic billing OWNER item reflects absent run-bound
+prerequisite evidence, not disabled billing; the independent enabled-billing readback remains valid.
+Re-run current-head admission only after the owner completes fresh WSL and Admin attendance.
+
+The code commit's successful CI completed policy/build at 08:00:55 UTC, quality at 08:01:33 UTC,
+Firestore at 08:02:10 UTC and units at 08:02:50 UTC, with the complete five-lane workflow green at
+08:02:54 UTC. The earlier failed `d2ec88cc` workflow remains unchanged. Immediately before this
+commit, six pinned tests, Prettier, router, context, active-path, spec, copy and redaction checks
+all passed between 07:58:36.804 and 07:58:57.540 UTC. Their independently read summary is
+`~/pmi-kc-work/logs/final-doc-checks-2026-09-29T075836804Z/summary.json`, SHA-256
+`665d5ef8979d180110a30e24c8927876a9a074763243a1f8c36d0fbfe19c912a`.
+Those receipts describe that checked tree; final documentation closure must preserve the same
+gates and exact-current-head CI requirement.
+
+A separate read-only baseline helper remains **FAILED** at 08:03:55.590 UTC: service, domains and
+revision APIs returned HTTP 200, but Node's canonical-version fetch reached its configured
+30-second timeout. Its sanitized receipt is
+`~/pmi-kc-work/logs/serving-baseline-failed-1790669035590.json`, SHA-256
+`7d4156efc64eb08becf0760ee2592f4c7219988bf63599d42ca0052873dac0c3`.
+An independent curl read at 08:05:05.866 UTC returned HTTP 200 from both canonical and tagged
+version endpoints with the expected S120 commit/revision and Production descriptor. Receipt:
+`~/pmi-kc-work/logs/serving-version-curl-1790669105866.json`, SHA-256
+`073575106ff7028144a9dee696af5251fe001c3eb8450bf4ef21aa357db0f6b6`.
+Both diagnostics recorded zero cloud mutations. The transport-specific failure is preserved;
+it does not by itself establish a production outage or a new release result.
+
+The selected baseline readback at 08:05:54.213 UTC confirms unchanged serving S120:
+`79493458f641b9710d8c43467e872aa9acf7948e` / `pmi-kc-app-rmu4wevd9-d89996133320`, tag
+`cand-rmu4wevd9-d89996133320`, exact canonical/tagged HTTP-200 identity and 100% of total traffic.
+The tag targets that revision; its configuration fingerprint is
+`sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568`. Readbacks show
+Production/Live, `ASK_DEMO_MODE=false`, **Sheet write-back true**, the managed runtime identity,
+four secret bindings and exactly one expected candidate domain plus the canonical domain.
+There were zero cloud mutations. Receipt:
+`~/pmi-kc-work/logs/serving-baseline-1790669154213.json`, SHA-256
+`28d70eade2d0e058521fb682d6691aeab1ec4f30d8cead0e704b391ba450b9ed`.
+Its `spaceMaps: 3` field counts environment variables whose names start with `SPACE_`, **not map
+entries**. It proves neither three Spaces nor loss of eight Spaces; the faulty receipt remains
+unchanged. An independent corrected readback at 08:08:57.958 UTC found **11 Drive-map entries and
+11 Vertex-map entries**, matching keys and nonempty string values, alongside the three `SPACE_`
+environment variables. The configuration fingerprint still matched the reviewed candidate
+fingerprint. This read was HTTP 200 with zero mutations. Receipt:
+`~/pmi-kc-work/logs/space-map-readback-2026-09-29T08-08-41-495Z/summary.json`, SHA-256
+`89da11192acfc3f00c13f3eb9d8b2e3a9545090266598b64a1d2a2b82095c1f9`.
+The old sanitizer still returned `not_verified`; its incorrect count, current Sheet-true baseline
+and unavailable local reviewed receipt are preserved rather than recast as a passed release check.
+
 The external `~/pmi-kc-work/scripts/s120-readbacks.sh` helper was hardened before future use. Its
 original was preserved byte-for-byte as `s120-readbacks.sh.before-output-guard-20260929T032616330Z`
 (SHA-256 `5533d4b516a18ca99c6a2460b31a960e4924beebb74b904f5f8bb7644b1e5463`). Outputs now select only
@@ -676,6 +732,29 @@ managed runtime account, immutable configuration fingerprint, traffic and candid
 produce a nonzero result when unverified. Shell syntax and **32 local hostile/valid-input checks**
 passed with zero cloud calls and zero receipt/checkpoint writes. This is helper safety evidence,
 not a remote release readback; its actual post-release invocation remains required.
+Subsequent inspection found its eleven-map assertion counted `SPACE_` variable names instead of
+entries. That specific assertion was invalid; the original remains byte-for-byte preserved as
+`s120-readbacks.sh.before-space-map-fix-20260929T080949Z`, SHA-256
+`319b44d3515577813633aaf88470b656e424300bb9b3d48c616a1d730cf9d3ea`.
+The corrected helper validates exactly one literal value for each Drive/Vertex map, parses both
+JSON objects, requires nonempty string entries with matching keys and counts eleven entries in
+each. Output remains bounded counts/booleans; the reviewed-fingerprint and Sheet-false gates are
+unchanged. Independent source review passed. The corrected helper has SHA-256
+`0391875f006934b8b8ddd77973bd00cf8a1ca3fb8b84bf213d1802a40cf8a930`.
+All **24 synthetic sanitizer checks passed** at 08:11:16.059 UTC, including the old helper's
+three-variable counterexample and malformed/missing/mismatched/ambiguous/10-/12-entry refusals.
+Summary: `~/pmi-kc-work/logs/space-map-sanitizer-tests-2026-09-29T08-11-16-059Z/summary.json`,
+SHA-256 `5285c33861c395b7c170eb1c6048281b735e54a3b3c501dbd729cc35e9647dd4`.
+Sanitizer mode deliberately retains an unavailable reviewed fingerprint, so these checks do not
+claim a full release readback pass. The earlier 32 output-safety checks did not cover map
+cardinality. No application source, cloud setting or receipt was changed by this helper repair.
+The corrected helper's selected live readback at 08:11:56.565 UTC independently confirmed
+`spaceMaps: 11`, eleven entries in each map, matching keys and valid values, alongside three
+`SPACE_` environment variables and the unchanged reviewed fingerprint. HTTP 200 and zero mutations
+were recorded in `~/pmi-kc-work/logs/space-map-readback-2026-09-29T08-11-38-993Z/summary.json`,
+SHA-256 `736b554ecba603c5d6c4cf8c356f3a339ee6efc9778d3559ea096f8730da5cf8`.
+Sanitizer status remains `not_verified`: its local mode lacks a reviewed receipt and the actual
+serving revision still has Sheet true. This is current-baseline evidence, not post-release success.
 
 ## Gap dispositions and falsification
 
