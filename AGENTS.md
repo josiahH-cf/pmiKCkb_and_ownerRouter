@@ -29,7 +29,7 @@ PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs Ren
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
 remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
 PR #91 clarifies shared navigation and renewal sections/fields and removes unnecessary shared
-page reads. All six standalone release cycles are complete. The all-thirteen replacement run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` at exact green `b59f2c6f08a32f022cff5112a16bc5405664e4d1` is BLOCKED in candidate assurance. The owner-authorized same-run resume completed recovery at 12:25:57.310Z and its single application build succeeded at 12:30:30.821224Z. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic with Sheet=false; smoke, fingerprint and domains passed. Assurance refused before its canary/reconciliation because the verifier treats the exact successful application build’s `buildConfig.name`/`sourceLocation` change as service-control drift. All other controls match, and the typed operation Service response recomputes the serviceControlsHash recorded in the immutable recovery receipt. Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638). A further narrow correction now selects one exact configured image from the actual build’s two outputs; it passed 263 focused tests, typecheck/lint and independent review, and its full gate passed 13:36:35.614Z (7,425 unit passes, four existing configuration skips, 232 backend passes and all required checks/build `kgQ4RNAI5ZrB2a2cspbcg`). The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z. Fresh CLI/ADC enrollment and binding passed at 13:16:20.229Z; the earlier timeout remains preserved. The corrected verifier’s read-only compatibility diagnostic passed at 13:25:04.509Z with seven GET200 responses and unchanged source/evidence hashes. It is not candidate assurance or continuation authority; a further replacement requires separate owner approval. The guarded Admin-readiness rerun passed at 13:42:27.560Z on canonical and the exact b59 candidate with HTTP200/Admin/expected heading, zero diagnostics and unchanged release state. Earlier timeouts remain preserved with unproven cause; readiness is not formal candidate assurance or release authority. No retry, receipt alteration or silent verifier substitution on the frozen candidate is authorized. No promotion or observation occurred; all thirteen features remain queued. Earlier recovery failures retain unproven precise aggregate causes, and all old-run evidence remains immutable. The admitted b59 full gate passed 7,289 unit tests and 232 backend tests; four clean-configuration skips separately passed actual configuration checks. Current receipt scopes and human/external holds are in the batch audit. Existing identity, role, provider-action and release boundaries remain unchanged.
+page reads. All six standalone release cycles are complete. The all-thirteen replacement run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` at exact green `b59f2c6f08a32f022cff5112a16bc5405664e4d1` is BLOCKED in candidate assurance. The owner-authorized same-run resume completed recovery at 12:25:57.310Z and its single application build succeeded at 12:30:30.821224Z. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic with Sheet=false; smoke, fingerprint and domains passed. Assurance refused before its canary/reconciliation because the verifier treats the exact successful application build’s `buildConfig.name`/`sourceLocation` change as service-control drift. All other controls match, and the typed operation Service response recomputes the serviceControlsHash recorded in the immutable recovery receipt. Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638). A further narrow correction now selects one exact configured image from the actual build’s two outputs; it passed 263 focused tests, typecheck/lint and independent review, and its full gate passed 13:36:35.614Z (7,425 unit passes, four existing configuration skips, 232 backend passes and all required checks/build `kgQ4RNAI5ZrB2a2cspbcg`). The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z. Fresh CLI/ADC enrollment and binding passed at 13:16:20.229Z; the earlier timeout remains preserved. The corrected verifier’s read-only compatibility diagnostic passed at 13:25:04.509Z with seven GET200 responses and unchanged source/evidence hashes. It is not candidate assurance or continuation authority; the owner has now authorized diagnosed and verified replacements through completion. The guarded Admin-readiness rerun passed at 13:42:27.560Z on canonical and the exact b59 candidate with HTTP200/Admin/expected heading, zero diagnostics and unchanged release state. Earlier timeouts remain preserved with unproven cause; readiness is not formal candidate assurance or release authority. Diagnosed and verified continuation is owner-authorized; receipt alteration or silent verifier substitution on the frozen candidate remains forbidden. No promotion or observation occurred; all thirteen features remain queued. Earlier recovery failures retain unproven precise aggregate causes, and all old-run evidence remains immutable. The admitted b59 full gate passed 7,289 unit tests and 232 backend tests; four clean-configuration skips separately passed actual configuration checks. Current receipt scopes and human/external holds are in the batch audit. Existing identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
@@ -103,26 +103,38 @@ The owner has authorized the runner to:
 
 Every cloud mutation must be read back. Record verified non-secret outcomes in `docs/facts.md`.
 
-### Owner-authorized replacement batch — 2026-09-29 UTC
+### Owner-authorized thirteen-feature completion — 2026-09-29 UTC
 
-The owner explicitly authorized repairing the replacement-release path and deploying **one
-replacement cumulative candidate containing all thirteen queued features** plus the reviewed
-repairs. The failed `1fbf8c3d` run remains failed/HELD with its consumed build claim and immutable
-evidence. This amendment permits one new run after the corrected tree passes full verification,
-exact-head main CI, fresh prerequisites and locked preflight GO; it does not reopen the failed run's
-claim, authorize per-feature releases or allow another replacement automatically.
+The owner explicitly authorizes the necessary Cloud Build and Cloud Run release actions,
+diagnosed and verified repairs, resumes and replacement cumulative candidates, promotion,
+receipt-bound rollback when needed, and documentation closure until the entire thirteen-feature
+batch is verified deployed. Do not ask again solely because another repaired attempt is required.
+This supersedes the previous one-replacement limit and the count-only stop after two different
+failures in one phase. S121 is excluded; authority ends at verified completion or an owner stop.
 
-The replacement must use the actual already-authorized candidate host and independently verify
-its current tag/revision binding separately from the canonical serving predecessor. Prepare a new
-run-bound Sheet=false recovery target and receipt from that predecessor, preserving the actual
-previous tag binding and every old receipt. No historical-host guess or reassigned recovery receipt
-may establish readiness. Candidate assurance, exact reconciliation, promotion, the complete
-observation and independent readbacks remain mandatory; clear the thirteen-feature queue only
-after RELEASED is verified. External inputs and human verdicts retain their explicit holds.
+The runner may implement in-scope repairs, commit/push green slices, preserve and retire failed
+attempts through the reviewed procedure, and resume or replace after diagnosis and verification.
+Every candidate carries all thirteen features. Keep one watcher on the real release lock, one
+application build per run, exact-main green CI, fresh prerequisites and locked preflight GO,
+Sheet=false recovery/candidate/promoted revisions, guarded assurance, exact reconciliation,
+receipt-bound promotion, the full 300,000 ms observation and independent final readbacks.
+Keep the queue until verified delivery. Never alter an admitted checkout, reuse a consumed claim,
+reassign an old receipt, guess a host binding, or relabel a failed outcome. Every failed run and its
+raw evidence stay immutable outside Git. Preserve actual tag bindings independently of canonical
+serving traffic when preparing each new run-bound recovery target and receipt.
 
-This changes no billing, budget, guardrail, identity, claim, security setting, protected-path grant,
-Action Registry key, client-send authority or provider-effect boundary. Live providers remain
-read-only for this release, apart from the separately approved notice-invalidation metadata.
+Attempt counts alone require no new permission. Diagnose before retrying; unresolved cloud
+operations/effects forbid blind redispatch. Continue agent-owned diagnosis and repair under these
+boundaries. Ask only when actual owner action or a new authority/input is necessary, including an
+authentication challenge, disabled billing, a protected-path/security decision or missing human
+information that prevents safe continuation. Fresh GO and each phase's technical gates remain
+mandatory; this authority does not make an unknown or failed check pass.
+
+No billing, budget, guardrail, identity, claim, system/security setting, protected-path grant,
+Action Registry key, client-send authority or provider-effect boundary changes. Live providers
+remain read-only for this release apart from the separately approved notice-invalidation metadata.
+Human verdicts, real inputs and provider activations retain their existing scoped holds; they do not
+block deployment of the thirteen already-defined implementations or become verified by deployment.
 
 ## Authentication — approved local host contract (2026-09-08)
 

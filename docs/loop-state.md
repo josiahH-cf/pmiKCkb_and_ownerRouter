@@ -4,7 +4,8 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-BLOCKED: candidate assurance rejects the exact successful build’s provenance update.
+AUTHORIZED CONTINUATION: owner permits diagnosed/verified repairs and cumulative replacements
+until all thirteen features are verified deployed; existing technical and safety gates remain.
 Repair main 497333a686c09cc492c7a4ef6edd925c7c8dfb98 is pushed; native and independent 2,189-blob audit match.
 [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact repair SHA, completing 13:14:11Z.
 Exact admitted SHA b59f2c6f08a32f022cff5112a16bc5405664e4d1; [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696) passed.
@@ -33,9 +34,9 @@ This is diagnostic only: no candidate assurance receipt, promotion, observation 
 Guarded Admin readiness passed both canonical and exact b59 candidate 13:42:27.560Z:
 HTTP200/Admin/expected heading, no sign-in, zero attempts/blocks/errors, nine state hashes unchanged,
 lock released and owned/profile/watcher processes 0. Prior timeouts remain failed; cause unproven.
-A further replacement requires separate owner approval; no silent verifier/receipt substitution.
-The last permit is admitted until 17:47:51.558Z; permit/Resume is not execution authority.
-The retirement dry run passed with all 15 state/stop hashes unchanged; nothing was retired.
+The owner authorizes diagnosed/verified replacements through completion; no silent verifier/receipt substitution.
+The old permit remains admitted until 17:47:51.558Z; it does not admit the corrected head.
+The 14:36 retirement dry run passed with all 15 state/stop hashes unchanged; nothing was retired.
 Earlier failures remain immutable, including unproven precise causes of the first two recovery failures.
 
 ## Verified implementation and local proof
@@ -87,10 +88,10 @@ No billing/budget/guardrail/security/identity/claim change. Fresh CLI/ADC passed
 ## Next step and remaining limits
 
 Correction 41de760f4d7d9b75c027e4b3c3ad97e63681097b is committed/pushed and exact CI 36578057395 passed all five jobs.
-Await the owner’s separate decision on one further cumulative replacement.
-The fresh authentication and passing read-only diagnostic do not authorize another replacement.
-Resolve the frozen-candidate/execution decision explicitly before any further release action.
-Never blind-retry, change receipts, create another candidate/run or use per-feature releases.
+Apply the approved batch-scoped governance, validate/push it and require exact-head green CI.
+Authentication and diagnostic results remain evidence; the owner’s explicit batch-scoped amendment supplies continuation authority.
+Preserve/retire the frozen failed run through fresh checked archival, then prepare fresh admission.
+Never blind-retry, change old receipts/admitted source or use per-feature releases.
 After actual RELEASED only: independent versions/traffic/config/domain readbacks, guarded remote
 feature checks, then in-place docs closure/pinned six tests/document gates and documentation-only push.
 B-DL1/2/3, B-S100, B-MNT1/2 and separate B-AUTH2 longevity remain open. S36 stays behind S100.

@@ -2,7 +2,13 @@
 
 Updated 2026-09-29 (UTC). One candidate must ship every queued feature.
 
-**BLOCKED — frozen candidate assurance remains failed; the correction is committed with green CI; a further replacement awaits the owner’s separate decision.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
+The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
+necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
+promotion, receipt-bound rollback and documentation closure through verified deployment of all
+thirteen features. It supersedes per-attempt approval counts while retaining every technical and
+safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
+
+**AUTHORIZED CONTINUATION — the owner granted batch-scoped authority through verified deployment; the frozen failed candidate remains unchanged while a corrected cumulative run is prepared.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
 
 Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
 
@@ -10,7 +16,7 @@ Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed 
 
 The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
 
-Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. A further replacement still requires separate owner approval; the frozen b59 verifier and receipts cannot be silently changed. The audit preserves every failed probe and prior repair scope.
+Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. The owner now authorizes diagnosed and verified replacements through completion under the batch-scoped amendment in AGENTS.md; the frozen b59 verifier and receipts remain immutable. The audit preserves every failed probe and prior repair scope.
 
 Final b59 verification passed 7,289 unit tests, 232 backend tests, all gates/build; four clean-snapshot
 config checks separately passed against actual configuration. The local historical Sheet-proposal/
@@ -25,8 +31,8 @@ below completed for b59/run 59d3. The owner-authorized same-run resume then pass
 one application build. Assurance is now blocked before its canary/reconciliation by the proven
 build-provenance verifier defect. The prior repair passed its full gate/CI. Final output-selection focused/review checks, fresh
 CLI/ADC and read-only compatibility passed; the final correction’s full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b
-CI passed. A further replacement still requires separate owner approval.
-Do not repeat singleton retirement, create a new run, alter receipts or silently substitute a verifier.
+CI passed. The owner now authorizes diagnosed and verified replacements through verified deployment, with every existing technical and safety gate retained.
+Use the reviewed retirement procedure only after fresh readback. A new run is owner-authorized; preserve receipts and never silently substitute a verifier.
 
 1. Finish and independently review the narrow bootstrap/recovery repair. Verify new-run entry
    against the actual existing authorized host, including a host currently bound to the failed
@@ -37,7 +43,7 @@ Do not repeat singleton retirement, create a new run, alter receipts or silently
    candidate's complete guarded route/reconciliation checks before promotion. No historical pass
    substitutes for the new run's receipts.
 3. Under the release lock, prove no watcher, child process or cloud operation remains unresolved.
-   Preserve the failed checkpoint, HELD permit, build claim, operation identities, original baseline,
+   Preserve the failed checkpoint, permit in its actual state, build claim, operation identities, original baseline,
    recovery receipt and all reports byte-for-byte with an explicit superseded-by-authorized-
    replacement record. Archive only through the reviewed procedure; do not rewrite the old verdict
    as complete or rolled back, clear its claim, or reuse its receipt for the new run.
@@ -52,8 +58,8 @@ Do not repeat singleton retirement, create a new run, alter receipts or silently
    authentication, billing/cost and environment evidence; require preflight GO and locked admission
    through the existing one-watcher path. Prepare a new Sheet=false recovery target/receipt from
    the canonical predecessor; verify Admin readiness on canonical and the exact recovery origin
-   before its guarded canary. Then build one replacement application candidate. The owner amendment
-   permits this replacement only; a further replacement requires a new owner decision.
+   before its guarded canary. Then build one replacement application candidate. The batch-scoped owner amendment
+   permits diagnosed and verified replacements without a new decision solely for another attempt.
 
 Candidate/recovery/promotion/observation gates below remain unchanged. These steps authorize no
 business write, live fixture, paid comp, send, security change or manually fabricated receipt.
@@ -153,12 +159,13 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E and affected
-compiled checks passed. Exact `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` CI 36541531783 and thirteen-feature
-GO admitted the frozen run at 09:38:37.326Z. Its one build succeeded and its candidate now waits on
-assurance/reconciliation. That failed run remains held. The owner has authorized its one replacement
-after the bootstrap/recovery repair and preparation above pass; retain separate identities and claims
-for the two runs. Keep all thirteen entries until remote delivery is verified.
+**4. Prepare the exact repaired batch.** The earlier 1fb run remains failed and held, and the
+b59 replacement remains failed at assurance with its one build claim preserved. The corrected
+41de code passed the full local gate and exact CI; documentation main fbd830bb passed exact
+CI 36579322010 at 14:04:28Z. Record the owner-approved completion amendment, verify the resulting
+exact head, then preserve and retire b59 through the reviewed archive procedure before preparing a
+new run. Keep every old run identity and claim distinct. The new batch must carry all thirteen
+entries and pass fresh prerequisites and locked GO; retain the queue until remote delivery is verified.
 
 The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
 checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained
@@ -249,8 +256,9 @@ Each phase advances only on independent readback:
   guarded Admin assurance and monitoring on the prepared target. Repeated terminal verification is
   read-only. Unexpected traffic, configuration drift or missing evidence remains blocked.
 - If a candidate build is ambiguous, read back the existing build/revision; do not create another build.
-  Stop if the same phase fails twice for different reasons, the one-batch contract cannot be satisfied,
-  or a safety control would need lowering.
+  Attempt counts alone require no new approval under the batch-scoped owner amendment. Diagnose
+  and verify repairs before resuming or replacing; never bypass a gate or redispatch an unresolved
+  operation. Stop for an unshippable cumulative batch or a required safety/authority change.
 
 ## After verified completion
 
@@ -273,8 +281,8 @@ The b59 replacement candidate is built and Ready at zero traffic; recovery has a
 Candidate assurance is BLOCKED on the proven build-provenance comparison defect, before its
 canary/reconciliation. No candidate assurance receipt, promotion or observation exists. The final
 correction passed focused review, a read-only diagnostic, its full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b CI.
-A separate owner decision remains required; no retry, receipt alteration or candidate/verifier
-substitution is authorized by this document.
+Batch-scoped owner authority permits diagnosed and verified continuation under the unchanged gates.
+Receipt alteration and candidate/verifier substitution remain forbidden.
 The old S120 receipts remain historical evidence only. Local compiled checks retain their exact
 scopes in the batch audit; human verdicts remain NOT RUN.
 B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 stay open. No release can manufacture their
