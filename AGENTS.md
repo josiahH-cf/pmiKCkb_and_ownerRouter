@@ -19,7 +19,7 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-17
+## Present production truth — 2026-09-29
 
 Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Exact main [CI 35173497243](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/35173497243) passed. Candidate build, smoke, configuration, domains, Admin assurance, reconciliation, receipt-bound promotion and the 300,000 ms observation passed. Two successful checkpoints completed in 372,944 ms; all 311 source/projected/rendered records matched with zero missing records, duplicates, field mismatches or invalid destinations. Monitoring reported zero candidate 5xx and unresolved live effects. Canonical/tagged versions, traffic, authorized domains and the reviewed runtime configuration were independently read back.
 
@@ -29,7 +29,7 @@ PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs Ren
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
 remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
 PR #91 clarifies shared navigation and renewal sections/fields and removes unnecessary shared
-page reads. All six standalone release cycles are complete. The thirteen-feature follow-up batch remains undeployed; its installed admission interlock currently holds the watcher without a permit. Approved CLI/ADC refresh passed on 2026-09-29; current Admin browser authentication requires attended enrollment. Historical release assurance remains evidence for its recorded times. Existing
+page reads. All six standalone release cycles are complete. The thirteen-feature follow-up batch reached GO on exact green head `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` and built one zero-traffic candidate, `pmi-kc-app-rmumhi7df-f037af48a1fe`. Its assurance phase is BLOCKED; the permit is explicitly HELD and operator Resume remains required. A separate unchanged-checker diagnostic retained 307 date mismatches: all 307 source ISO dates matched both semantic DOM dates and the intended MM/DD/YYYY display, with zero other field mismatches across 311 records. Checker repair `4f553dcae4e63eee0cddf9d689cdc8013e79b1a2` passed the full native gate and separate read-only candidate diagnostics; it does not change the held candidate or establish a release receipt. No candidate assurance receipt, promotion or observation exists. All thirteen features remain queued. Replacement also requires a reviewed bootstrap/recovery correction for the actual authorized tag and its true previous revision; archiving the checkpoint alone is not sufficient. Fresh attended CLI/ADC and Admin enrollment passed on September 29. Historical release assurance remains evidence for its recorded times. Existing
 identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
@@ -46,7 +46,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured immediate predecessor/rollback: `pmi-kc-app-rmu4s6qo5-5d81e4f12265` / `be023196ef63cd4e48db8230fc8deccaedae95c8`.
+- Historical S120 predecessor: `pmi-kc-app-rmu4s6qo5-5d81e4f12265` / `be023196ef63cd4e48db8230fc8deccaedae95c8`. The held batch prepared and read back recovery revision `pmi-kc-app-recovery-d63f66b3db02472e` from the serving S120 image with Sheet write-back false. Its recovery assurance passed; it remains at zero traffic. Both this recovery target and the new candidate read Sheet=false; serving S120 remains Sheet=true at 100% traffic.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, enabled Sheet
   write-back, false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
@@ -63,9 +63,7 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
   No paid comp request, live customer draft/send, new provider proof or signature effect ran.
 - Both private supplied v2 templates are published and read back approved. Private sources and
   customer data remain outside Git. Staff and provider evidence retain their separate meanings.
-- Historical release CLI/ADC and owner Admin browser assurance passed. Current CLI/ADC refresh
-  passed on 2026-09-29; Admin browser requires attended enrollment. Separate 24-hour unchanged-session
-  longevity remains unverified; no identity, IAM or claim changed.
+- Fresh approved WSL CLI/ADC enrollment and binding passed at 2026-09-29T09:18:39.478Z; post-restart probes passed. Owner-completed Admin enrollment verified the Admin role at 09:34:11.947Z. Separate 24-hour unchanged-enrollment longevity remains unverified; no identity, IAM or claim changed.
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
@@ -267,7 +265,7 @@ their bounded per-key proof windows, mandatory close/readback, and separate fina
 open key is authority, not proof that the provider currently exposes every safety primitive.
 Serving S113 supports normal field updates under the explicit owner-approved contract above.
 The queued S128 batch pauses operating-Sheet effects while preserving reads and app-owned saves;
-that pause remains undeployed. Row deletion and historical restore remain unavailable, and
+that pause has not been promoted to production traffic. Row deletion and historical restore remain unavailable, and
 completed receipts retain their original meaning.
 No activation is a generic method/path/body, bulk,
 autonomous, model-triggered, or send grant.

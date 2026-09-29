@@ -1,17 +1,29 @@
 # Batched release runbook
 
 Updated: 2026-09-29 (UTC). One candidate must ship every queued feature.
-Current state: **BLOCKED pending fresh attended authentication and remote release admission**.
-Code/docs repair `a5d5791cf8ca1a2c02914f61386275f8db2c8308` was pushed; its exact main
-[CI 36539913128](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36539913128)
-passed all five lanes at 08:02:54Z. Release admission requires exact current-head green CI.
+**BLOCKED — candidate assurance and date-comparison reconciliation.** Exact target `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` passed [CI 36541531783](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36541531783); all thirteen features reached GO. Run `d63f66b3-db02-472e-bd72-11c7e713198c` was admitted at 09:38:37.326Z. The permit is now explicitly **HELD** after preserving an immutable admitted-permit snapshot; operator Resume remains true. Its one application-build claim is already used. No rebuild or resume is authorized while that claim is held; isolated repair work is not deployed.
+
+Recovery's first failure at 09:40:50.710Z remains preserved; its underlying cause was not captured. Separate later readbacks passed cloud readiness, exact configuration and zero traffic, while guarded diagnostics found a tagged-host authentication mismatch. That later diagnosis does not establish the first failure's cause. Approved Google-session reuse restored that host. All 13 guarded routes passed with zero mutations at 09:46:31.802Z. Same-run receipt `57db0431-0f93-4fea-8a71-41d7dda72eab` issued at 09:47:29.810Z for Ready, zero-traffic, Sheet=false recovery revision `pmi-kc-app-recovery-d63f66b3db02472e`, fingerprint `sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8`.
+
+The one application Cloud Build `ab087fe8-d629-497b-a98c-456dbf843bd4` ran from 09:47:46.710856231Z to 09:51:28.859504Z and read SUCCESS. Candidate `pmi-kc-app-rmumhi7df-f037af48a1fe`, tag `cand-rmumhi7df-f037af48a1fe`, carries the exact frozen SHA and fingerprint `sha256:27aa3df5fe4b36184aaa0f2163eb906ad1a480f182a2a75da48c6dd73a6e1cd8`: zero traffic, Production/Live, Demo=false, Sheet=false. Smoke, fingerprint and domain gates passed.
+
+The watcher blocked at 09:54:53.550Z with `assurance_unverified` and emitted no underlying assurance report; its exact cause is not established. A separate canary using the unchanged script at 09:56:11.788Z–09:57:08.143Z passed 11 routes but timed out desk DOMContentLoaded at 30.006 seconds, recorded two landmark failures and did not run its dependent workspace; mutations and authentication errors were zero. These standalone diagnostics do not prove the watcher's cause. A further serial guarded desk probe at 10:02 passed in 6.338 seconds with zero mutations, without replacing either failure. Reconciliation at 09:58:35.690Z matched all 311 source/projected/rendered identities without missing records, duplicates or invalid destinations, but failed with 307 field mismatches and stable source drift. No candidate assurance receipt, promotion or observation exists.
+
+The aggregate diagnostic at 10:11:29.336Z–10:12:40.060Z preserved that original FAILED/307 verdict. All mismatches were `endDate`; address, owners, tenants and base-rent mismatches were zero. The 311 source rows contained 307 valid ISO dates and four missing dates. Each of the 307 visible dates exactly matched an independent MM/DD/YYYY conversion, and its unique `time[datetime]` exactly matched the source ISO date. Rendered-DOM and other-field mismatches were zero; sources were complete/stable, with zero missing/unexpected/duplicate records or invalid destinations. This establishes the comparator's ISO-versus-display-format mismatch, not an assurance pass. Receipts remain at `~/pmi-kc-work/logs/candidate-reconciliation-field-diagnostic-2026-09-29T101129334Z/report.json` and `summary.json`. Checker repair `4f553dcae4e63eee0cddf9d689cdc8013e79b1a2` passed 63 focused tests, TypeScript, lint and independent review, then the full native gate: 7,244 unit tests passed with four local-config checks intentionally skipped in the clean snapshot, all 232 backend tests passed, required gates passed and production build `_F3DKdqhP0JMBovFiHYn2` completed. Those four unchanged config-key parity checks separately passed against the actual native configuration at 10:31:56.552Z. No credentials were copied into the isolated runner. A corrected-checker read-only diagnostic passed all 311 source/projected/rendered records with zero mismatches at 10:21:46.480Z. The unchanged full canary passed all thirteen routes with zero diagnostics or mutations at 10:22:44.437Z; desk/workspace timings were 9.577/15.428 seconds under unchanged deadlines. These new scoped results preserve every earlier failure and do not issue release receipts, change the admitted candidate or authorize continuation.
+
+The current runner executes assurance and observation from the admitted application's exact checkout and has no separately bound checker-version override. A normal resume cannot substitute this corrected checker for the held 1fb candidate. The one-build claim remains consumed. Owner authorization is required for one replacement cumulative candidate carrying all thirteen features plus the repair, with the failed run preserved and every admission/release gate repeated; no per-feature cycles or receipt edits are permitted. A separate checker-version continuation would require a new reviewed capability and is not implemented.
+
+A replacement is not ready to launch merely by archiving this checkpoint. The current watcher falls back to a historical candidate host when no checkpoint exists, and recovery accepts only a tag bound to the serving predecessor or this same run's recovery. The actual authorized tag now points to the failed 1fb candidate; the old S120 tag points to the old run's recovery. Neither is that serving-predecessor binding. A reviewed bootstrap/recovery correction must select the actual authorized host, verify its current revision and record the true previous tag binding while deriving a fresh recovery revision and receipt from canonical S120. The old recovery receipt must not be reassigned, and the failed checkpoint must not be marked complete or rolled back. This correction is not implemented by the date-checker commit.
+
 Native Node 22 run L passed 7,212 unit tests, 232 backend tests, all gates and build
 `MsohNlljqt7KxRmFLb2od`; new core E2E passed 31 tests with 18 intentional skips. Exact-build cold and
 corrected desk-warmed notice passed in 15.459/17.456 seconds, and the separate cohort diagnostic
 matched all 311 identity/category pairs before/after the notice API. That equality is observational,
 not independent lifecycle derivation. Scopes and unchanged failed attempts are recorded in
-`docs/evidence/batch-litmus-audit-2026-09-28.md`. Billing is enabled. Do not start the watcher until
-all release gates pass. The thirteen-feature queue stays intact.
+`docs/evidence/batch-litmus-audit-2026-09-28.md`. Billing is enabled. The thirteen-feature queue stays
+intact. The procedural commands below do not authorize continuation of the currently HELD run.
+Preserve its frozen head, checkpoint, operator Resume=true and already-used one-build claim; no
+second build, new run or watcher resume is authorized while the checker repair is prepared separately.
 
 ## What ships
 
@@ -63,20 +75,21 @@ with no traffic change.
 The exact checkpoint is archived at
 `~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
 with its reason. Never overwrite that archive or relabel cancellation as success. The active
-checkpoint names last completed S120 at `79493458` / `pmi-kc-app-rmu4wevd9-d89996133320`,
-including its candidate origin and diff baseline. After interlock installation, eleven release files
+checkpoint now belongs to run `d63f66b3-db02-472e-bd72-11c7e713198c`, blocked at candidate assurance
+with a HELD permit and an existing successful application-build claim. Preserve its frozen target.
+S120 remains the serving baseline. After interlock installation, eleven release files
 matched both checkouts, the permit was absent and zero watchers were found at 2026-09-29T02:31:17Z.
 The temporary installation hold was released and the kernel lock read free; direct admission still
 refused. The scheduled task remains Ready and unchanged. Recheck because stopped processes do not disable
 the task. An unfinished checkpoint still pins the watcher to its SHA; inspect any new state before
 archiving or resetting it.
 
-**3. Verify approved authentication.** WSL CLI/ADC refresh for `josiah@pmikcmetro.com` passed on
-2026-09-29 at approximately 07:42 UTC. An independent selected Google-provider read returned HTTP 200 and enabled=true at 07:45:40.618Z without mutation. The enrollment record still names 2026-09-28T20:56:36.677Z;
-its age is now beyond the seven-hour release-start budget. Fresh attended WSL enrollment is required
-even while token refresh succeeds. A guarded Admin browser check reached a genuine Google challenge;
-its attended enrollment window closed before verification. Browser authentication remains UNVERIFIED.
-HTTP 200 alone is not authenticated assurance. Run `npm run auth:ensure`
+**3. Verify approved authentication.** Fresh WSL CLI/ADC enrollment and binding for
+`josiah@pmikcmetro.com` completed 2026-09-29T09:18:39.478Z. One owner-approved WSL restart resolved
+the invisible WSLg window; headed Admin enrollment verified role Admin/human_completed at
+09:34:11.947Z and post-restart probes passed. Approved Google-session reuse subsequently restored
+the tagged recovery host. Expired authentication is not the current blocker. The earlier stale
+enrollment and failed guarded read remain preserved. HTTP 200 alone is not authenticated assurance. Run `npm run auth:ensure`
 and the guarded browser check when resuming. If enrollment is stale or expires, stop for the owner's
 attended step; never enter a password, code, passkey or CAPTCHA:
 
@@ -105,15 +118,18 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E, affected
-exact-build compiled notice/cohort checks and pushed repair CI 36539913128 passed. Release admission
-requires exact current-head green CI; a subsequent documentation commit must meet that invariant.
-Prior failed CI 36530528718 remains preserved. Keep all thirteen entries until remote delivery is verified.
+**4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E and affected
+compiled checks passed. Exact `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` CI 36541531783 and thirteen-feature
+GO admitted the frozen run at 09:38:37.326Z. Its one build succeeded and its candidate now waits on
+assurance/reconciliation. Current continuation is explicitly held. Any proposed repair/continuation
+must reconcile the frozen target, receipts and one-build claim before separate authorization;
+do not prepare a replacement run or rebuild automatically. Keep all thirteen entries until remote delivery is verified.
 
 The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
 checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained
 held for missing permit/fresh prerequisites, 11.1-hour enrollment and then-in-progress CI. Later CI
-success does not replace fresh GO. Missing collector evidence is not a finding of disabled billing.
+success did not replace that failed verdict; fresh GO later admitted the exact frozen run above.
+Missing collector evidence was not a finding of disabled billing.
 The installed local interlock is fail-closed: missing, malformed, held, expired, consumed or wrong-head
 permits cannot dispatch forward release work. It applies to the Windows launcher, watcher and direct
 release entry. The scheduled task configuration stays unchanged. Inspect checkpoint, process and lock
@@ -218,7 +234,9 @@ Each phase advances only on independent readback:
 4. Run the pinned environment-handoff-provider-table and plan-status-sync tests, prettier and
    document gates; commit/push documentation-only closure. It must not trigger another deployment.
 
-Current batch assurance, promotion and observation are NOT RUN. The old S120 receipts remain
-historical evidence only. Local compiled checks are recorded in the batch audit; remote browser assurance and human verdicts remain NOT RUN.
+Current batch candidate assurance is BLOCKED; no passing candidate assurance receipt exists.
+Prepared recovery assurance/receipt passed, while promotion and observation remain NOT RUN.
+The old S120 receipts remain historical evidence only. Local compiled checks retain their exact
+scopes in the batch audit; human verdicts remain NOT RUN.
 B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 stay open. No release can manufacture their
 external inputs, connect Dotloop, activate a closed key or create a client-facing send.

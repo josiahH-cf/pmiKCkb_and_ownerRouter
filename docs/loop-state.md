@@ -4,43 +4,54 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Terminal state: BLOCKED — fresh attended Google enrollment and remote release admission.
-Code/docs repair a5d5791cf8ca1a2c02914f61386275f8db2c8308 was pushed; exact main
-[CI 36539913128](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36539913128)
-passed all five lanes at 08:02:54Z. Release admission requires exact current-head green CI.
-Run L passed 7,212 unit tests in 800 files, 232 backend tests in 42 files, all gates and production
-build MsohNlljqt7KxRmFLb2od at 07:42:25.233Z. New core E2E passed 31 tests with 18 intentional skips
-at 07:47:43.666Z; all 2,021 source hashes and the build were preserved. Exact-build cold and corrected
-desk-warmed notice passed in 15.459/17.456 seconds under the unchanged 20-second gate. The separate
-cohort diagnostic matched all 311 identity/category pairs before/after the notice API. Prior K
-browser/core results retain their historical-build scope; cohort equality is not independent lifecycle derivation.
-All thirteen queue entries remain. S121 stays separate. No batch candidate/promotion/observation ran.
-CLI/ADC refresh works and Google sign-in is enabled; Admin requires attended Google sign-in.
-The 20:56:36.677Z September 28 enrollment exceeds the seven-hour release-start budget; fresh attended
-WSL enrollment is also required. Successful token refresh does not waive that gate.
-The owner-approved read exception permits lease-bound version/hash/time invalidation metadata only.
-Prior repair commit d2ec88cc97578ddf028b2930af8540e19397613d failed CI 36530528718: two unit cases
-and one S113 backend preview case. Quality and policy/build passed. Default unit-store refusal,
-explicit memory fixtures, atomic-create reservation, bounded cleanup and all owning GET outcomes
-now pass run L. The original failed CI receipt remains unchanged.
-K's unit database target/effects and the original CI transaction site remain unverified.
-Preflight at 08:00:40.289Z found thirteen features and watcher target a5d5791c; checkout alignment,
-native runner, Sheet pause and Demo flags were READY, lock free, zero watchers. It remained held
-for missing permit/fresh prerequisites, 11.1-hour enrollment and then-in-progress CI. The subsequent
-CI pass does not replace a fresh GO. Missing collector evidence did not mean billing was disabled.
+Terminal state: BLOCKED — candidate assurance and date-comparison reconciliation.
+Frozen target: 1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151, exact
+[CI 36541531783](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36541531783) passed.
+All thirteen features reached GO; run d63f66b3-db02-472e-bd72-11c7e713198c was admitted at 09:38:37.326Z.
+The permit is now explicitly HELD after an immutable admitted-permit snapshot; operator Resume stays true.
+One application build is already claimed. No rebuild/resume is authorized while that claim is held.
+All thirteen queue entries remain. S121 stays separate. No candidate assurance receipt, promotion or observation exists.
+
+Recovery first failed at 09:40:50.710Z without a captured cause; separate later diagnostics found a
+tagged-host authentication mismatch, which does not prove that first failure's cause.
+Approved Google-session reuse restored the host; guarded 13-route assurance passed with zero mutations
+at 09:46:31.802Z. Same-run recovery receipt 57db0431-0f93-4fea-8a71-41d7dda72eab issued 09:47:29.810Z
+for pmi-kc-app-recovery-d63f66b3db02472e, fingerprint
+sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8, Ready/Sheet=false/zero traffic.
+Cloud Build ab087fe8-d629-497b-a98c-456dbf843bd4 ran 09:47:46.710856231Z–09:51:28.859504Z: SUCCESS.
+Candidate pmi-kc-app-rmumhi7df-f037af48a1fe / tag cand-rmumhi7df-f037af48a1fe carries the frozen SHA,
+fingerprint sha256:27aa3df5fe4b36184aaa0f2163eb906ad1a480f182a2a75da48c6dd73a6e1cd8,
+zero traffic, Production/Live, Demo=false, Sheet=false. Smoke, fingerprint and domains passed.
+Watcher assurance_unverified at 09:54:53.550Z emitted no underlying report; exact cause is unproven.
+A separate unchanged-script canary at 09:56:11.788Z–09:57:08.143Z passed 11 routes, timed out desk
+DCL at 30.006 seconds, recorded two landmark failures and skipped the dependent workspace, with
+zero mutations/auth errors. A separate 10:02 desk probe passed in 6.338 seconds/zero mutations.
+Neither standalone probe rewrites the watcher failure or establishes its exact cause.
+Reconciliation at 09:58:35.690Z matched 311 identities without missing/duplicate records or invalid
+destinations, but retained 307 field mismatches with stable source drift. Diagnostic 10:11:29.336Z–
+10:12:40.060Z confirmed all 307 were endDate: 307 valid ISO/four missing source dates; each visible
+date matched independent MM/DD/YYYY conversion and one time[datetime] matched source ISO exactly.
+Other fields/rendered DOM mismatches were zero; sources complete/stable, missing/unexpected/duplicate/
+destination counts zero. Original FAILED/307 remains unchanged. Receipt directory:
+~/pmi-kc-work/logs/candidate-reconciliation-field-diagnostic-2026-09-29T101129334Z.
+Checker repair 4f553dcae4e63eee0cddf9d689cdc8013e79b1a2 passed full native verification: 7,244 unit passes/four config skips, 232 backend passes, gates/build.
+The four actual-config checks separately passed. Corrected reconciliation passed all 311/zero mismatches at 10:21:46.480Z; unchanged canary passed all 13/zero diagnostics at 10:22:44.437Z.
+These are separate diagnostics, not release receipts. The original candidate and permit remain HELD.
 
 ## Verified host and cloud readbacks
 
-- Approved `josiah@pmikcmetro.com` WSL CLI and ADC refresh passed again around 07:42 UTC.
+- Fresh approved WSL CLI/ADC enrollment and binding completed 09:18:39.478Z; post-restart probes pass.
+- One owner-approved WSL restart resolved the invisible WSLg window. Headed Admin enrollment verified
+  role Admin/human_completed at 09:34:11.947Z. Authentication expiry is not the current blocker.
 - Google sign-in provider independently read HTTP 200 and enabled=true at 07:45:40.618Z, mutation zero.
 - Billing and exact cost-control validation passed at 07:48:03.544Z on the expected account: alert 25 USD, project hard stop
   100 USD, account backstop 100 USD, ACTIVE Node.js 22 guardrail with cap 100, hard-stop Pub/Sub
   present and two channels on each alert. No billing, budget or security setting was changed.
 - Both ignored env files in both checkouts now carry Sheet write-back false.
-- Canonical/tagged versions and sign-in returned HTTP 200; both versions name the exact serving SHA/revision. Admin browser authentication is UNVERIFIED
-  after a genuine Google challenge; attended enrollment closed before verification. A page response is not authenticated assurance.
-- Serving revision remains Production + Live, Demo false, managed identity and eleven Space maps.
-  Its operating-Sheet flag is still true: the queued S128 pause has NOT reached production.
+- Independent 10:03:32.146Z readback: original S120 remains 100% traffic, unchanged fingerprint,
+  Sheet=true; candidate and recovery Ready/Sheet=false. Canonical/candidate exact versions returned
+  HTTP 2xx; authorized domains contain one candidate plus canonical. The readback made zero mutations.
+- Serving Production/Live, managed identity and eleven Space maps remain the baseline; S128 is not promoted.
 
 ## Watcher and preserved cancelled attempt
 
@@ -52,16 +63,16 @@ Cancellation is not a successful build, candidate, assurance or release.
 
 The exact stale checkpoint is archived outside Git at
 `~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
-with a reason file. The active checkpoint truthfully names the last completed S120 release below.
-The fail-closed interlock is installed in both checkouts. At 2026-09-29T02:31:17Z eleven release files
-matched, no permit existed, zero watchers were found and the S120 checkpoint had no in-flight work.
-The temporary installation hold was released; the kernel lock read free and direct admission refused.
-The scheduled task remains Ready and unchanged. Recheck all state before preparing any permit.
+with a reason file. That cancelled attempt and all earlier CI/browser failures remain unchanged.
+The active run now stops at candidate assurance with its explicit HELD permit; preserve its checkpoint.
 
 ## Current repair verification
 
 G1/G2 retain reviewed notice history and owner-approved source invalidation; real Firestore tests
 reject an old unused approval after a notice clears across instances. G3 covers 69 date consumers.
+Run L passed 7,212 unit tests/800 files, 232 backend tests/42 files, all gates and build
+MsohNlljqt7KxRmFLb2od. Core passed 31/18 intentional skips; repaired cold/warm notice passed
+15.459/17.456 seconds. K's historical unit-store target/effects and original CI failure site remain unverified.
 G4 creates no paused Sheet proposal and binds confirmation to the current server revision/policy.
 G5 saves/downloads actual approved AcroForm bytes, preserves originals and atomically binds S20;
 independent parsing checked 14 fields. Concurrent staging cleanup was reproduced and repaired;
@@ -83,7 +94,7 @@ remaining owned Next processes were zero. Older failures remain unchanged; human
 ## Awaiting release (thirteen cumulative features; repair CI passed, remote delivery pending)
 
 1. S128 (F08) pause operating-Sheet writes: code `31bc9072`, docs `0bbd95c3`, CI 35342904192.
-   Flag-false deployment and prepared paused recovery readbacks remain required.
+   Candidate and prepared recovery read Sheet=false; production promotion remains required.
 2. S123 (F02) retain unfinished renewals across date changes: `aa062d8e`, CI 35505452408.
 3. S124 (F03) move-out detection and non-renewal outreach filtering: `fc03ec55` plus test fix `3d4a9e23`, CI 35508231675.
 4. S134 (F14) color-coded lease status with matching sorting and filters: `136826cc`, CI 35508545796.
@@ -100,24 +111,26 @@ remaining owned Next processes were zero. Older failures remain unchanged; human
 ## Verified production
 
 Serving SHA: 79493458f641b9710d8c43467e872aa9acf7948e
-Serving revision: pmi-kc-app-rmu4wevd9-d89996133320, 100% traffic (tag cand-rmu4wevd9-d89996133320).
+Serving revision: pmi-kc-app-rmu4wevd9-d89996133320, 100% traffic, independently read 10:03:32.146Z.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Freshly read-back serving fingerprint: sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568.
-Recorded predecessor: pmi-kc-app-rmu4s6qo5-5d81e4f12265 / be023196ef63cd4e48db8230fc8deccaedae95c8.
+S120's historical predecessor: pmi-kc-app-rmu4s6qo5-5d81e4f12265 / be023196ef63cd4e48db8230fc8deccaedae95c8.
+This run's original baseline is serving S120; its paused recovery target/receipt are recorded above.
 
 S120's historical exact CI 35173497243, receipts and two-checkpoint 372,944 ms observation passed;
 they are evidence for S120, not the thirteen-feature batch. All failed-attempt evidence stays outside
-Git unchanged. No current batch receipt, promotion time or observation pass exists.
+Git unchanged. This batch has a prepared recovery receipt but no candidate assurance/promotion/observation pass.
 
 ## Resume and remaining limits
 
 The prior document gate passed pinned tests 6/6, Prettier and all document gates at 07:58:36.804Z–07:58:57.540Z.
-Next: close this blocked-state documentation update, require exact current-head green CI,
-fresh attended WSL/Admin enrollment and preflight GO with thirteen entries/current watcher target, single native watcher on the free
-lock, candidate/assurance/promotion/observation and independent readbacks. Follow the batch runbook.
+Next: obtain owner authorization for replacement-flow repair and one replacement cumulative candidate; the current runner cannot bind a new checker to this candidate.
+Fresh-run bootstrap also needs the actual authorized host and true prior tag binding; its historical-host fallback/current predecessor assumption cannot handle this state.
+Preserve the failed run and consumed build claim; keep the permit HELD with no new build/resume until authorized.
+Only a subsequently authorized, verified continuation may complete assurance/promotion/observation.
 Never substitute per-feature releases. Authentication expiry requires attended owner enrollment.
 
-Local compiled checks are recorded above; remote batch browser assurance and human verdicts remain NOT RUN. B-DL1, B-DL2,
+Local compiled checks retain their scope; remote candidate assurance is BLOCKED and human verdicts remain NOT RUN. B-DL1, B-DL2,
 B-DL3, B-S100, B-MNT1 and B-MNT2 remain open. Staff records are not provider receipts or signatures.
-S36 stays behind complete S100; completed provider proofs are not rerun. Live providers remain
+Separate B-AUTH2 longevity remains open. S36 stays behind complete S100; completed provider proofs are not rerun. Live providers remain
 read-only for this release task. No customer draft/send, source write or paid comparison ran.
