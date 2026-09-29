@@ -4,7 +4,7 @@
 # S123 — Retain unfinished renewals when source dates advance
 
 > **Approval reference:** F02 (original feature #2).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `aa062d8e` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S123 in `docs/feature-suites/README.md`; the original F02 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Workflow correction and controlled resume capability.
@@ -19,7 +19,7 @@ C02 — Durable cycle progress; C01 — Discoverability independent of changing 
 
 **Current state / intended end state.**
 
-**Current evidence:** The local implementation retains unresolved current-cycle work when provider dates move outside the normal window and shows source-date changes beside the immutable recorded cycle basis. Revision-checked cycle transitions, prior-cycle attribution and audited manual saves remain explicit. Staff status, tenant acceptance and changed provider dates do not establish signatures or completion; missing external history is not reconstructed. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Unfinished manual cycles retain their stable identity across provider date advancement. The current provider date and immutable recorded basis remain distinct, and retained work stays discoverable outside the default window. Completion, cycle attribution, revision checks and operation-id replay retain their tested contracts. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A current app-owned unfinished cycle remains findable and resumable under the same stable lease identity after source changes. Previously external-only work can be explicitly taken into the app without inventing its history or completion evidence.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** After a tenant says yes and someone advances the dates in RentVine, staff still find the lease, see what remains unsigned or unfinished, and continue the same work without re-entering it.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `aa062d8e` (2026-09-20): AC-S123-1 through AC-S123-7 covered by the unit, component and emulator cases named in F-S123; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

@@ -4,7 +4,7 @@
 # S122 — All-lease visibility and explicit worklist views
 
 > **Approval reference:** F01 (original feature #1).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `39a7f929` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S122 in `docs/feature-suites/README.md`; the original F01 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Enhancement of the existing renewal desk.
@@ -19,7 +19,7 @@ C01 — Discover every available authorized lease; C02 — Resume work without l
 
 **Current state / intended end state.**
 
-**Current evidence:** The local desk provides Active / upcoming, All leases and Completed views over the authorized paginated inventory, preserving party filters, counts, query navigation and read-only inspection of external-only leases. Partial reads never prove a lease absent. Existing stable lease identity and eligibility boundaries are retained; historical provider coverage beyond the available export remains external. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** All leases, Active/upcoming and Completed views share one authorized inventory/projection. Partial source failures remain explicit; optional missing data does not hide a known lease. The deployed all-lease view showed 311 unique records, and the guarded check verified query-preserving filtered/sorted desk return without creating a manual cycle. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** The canonical desk exposes obvious All leases, Active / upcoming, and Completed views with truthful scope/counts and exact return-state preservation. A future date never prevents inspection. This feature does not start a renewal or decide its completion.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** An operator who cannot find a lease switches to All leases, finds it despite an advanced date, opens its details, and returns to the exact filtered table without starting or completing work.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `39a7f929` (2026-09-20): AC-S122-1 through AC-S122-7 covered by the unit, component and controlled-fake loader cases named in F-S122 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

@@ -26,15 +26,15 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmu4wevd9-d89996133320`",
+      "| Serving revision          | `pmi-kc-app-rmun4mghg-35be42b3c74f`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `79493458f641b9710d8c43467e872aa9acf7948e`",
+      "| Serving commit            | `843e222f436cee824ccb89cef23e8eea59d78d5d`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-rmu4s6qo5-5d81e4f12265` from commit",
+      "Captured predecessor: `pmi-kc-app-rmu4wevd9-d89996133320` from commit",
     );
-    expect(handoff).toContain("be023196ef63cd4e48db8230fc8deccaedae95c8");
+    expect(handoff).toContain("79493458f641b9710d8c43467e872aa9acf7948e");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");
@@ -55,7 +55,7 @@ describe("current provider and environment documentation", () => {
       "RentVine | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open",
     );
     expect(normalizedIntegrations).toContain(
-      "Google Sheets | Operating renewal read source and exact append/update target | Both keys/switch on; S113 normal field updates deployed; exact backend and production release gates passed",
+      "Google Sheets | Operating renewal read source and exact append/update target | Both exact keys remain open; S128 switch false pauses all operating-Sheet mutations; reads and app-owned work remain available",
     );
     expect(normalizedIntegrations).toContain(
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",

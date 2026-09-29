@@ -4,7 +4,7 @@
 # S133 — External maintenance-agent handoff assessment
 
 > **Approval reference:** F13 (original feature #13).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `75c06252` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S133 in `docs/feature-suites/README.md`; the original F13 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Bounded discovery/decision specification, not an integration implementation.
@@ -19,7 +19,7 @@ C07 — Understand the external maintenance handoff without duplicating or broad
 
 **Current state / intended end state.**
 
-**Current evidence:** The local bounded assessment contract and tabletop decision packet are implemented: source-qualified conclusions, a capability matrix, workflow ownership, minimal identity-linked handoff data and conditional options. PMI KC behavior is backed by repository evidence; vendor identity, authorized access/interfaces and feasibility remain unestablished under B-MNT2. No vendor contact, account connection, connector, scheduler, new action grant or external integration was created. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** The bounded assessment implementation and decision packet are delivered. Evidence-source qualification, minimal handoff data, verified identity joins, ownership/reconciliation boundaries and conditional options are tested. Vendor/account/interface feasibility remains unestablished under B-MNT2. No vendor connector, webhook, scheduler, contact, key or provider grant was created. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A bounded capability/ownership/data-flow assessment identifies verified supported handoff options, genuinely missing evidence, and one decision needed before any future integration spec. When access/material is unavailable, the packet explicitly says feasibility is not established and names the exact input; no fictional connector is scaffolded.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** The maintenance owner can see what the purchased agent actually handles, what the app would receive or hand off, what remains manual or unknown, and what must be decided before any build.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `75c06252` (2026-09-20): AC-S133-1 through AC-S133-6 covered by the contract and packet cases named in F-S133 on synthetic fixtures and the tabletop packet; the existing Maintenance tests carry preservation; provider feasibility is not established and is not claimed; compiled browser checks NOT RUN (no served surface changed); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

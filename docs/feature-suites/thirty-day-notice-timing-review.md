@@ -4,7 +4,7 @@
 # S125 — Thirty-day notice timing review with an explicit date basis
 
 > **Approval reference:** F04 (original feature #4).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `41d6e00c` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S125 in `docs/feature-suites/README.md`; the original F04 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New operational timing indicator; not a legal or fee determination.
@@ -19,7 +19,7 @@ C03 — Explain a reviewable timing result without inventing policy or money owe
 
 **Current state / intended end state.**
 
-**Current evidence:** The local implementation compares verified noticeDate with one explicitly reviewed target under the versioned calendar-day rule, presents both dates and the attributed result, and exposes Admin revision-checked basis configuration. The owner's intended target-date meaning and counting convention remain required inputs; an absent or unreadable basis yields Cannot determine. Existing renewal follow-up rules are not substituted for move-out policy. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Versioned date-only notice comparison requires an explicitly reviewed target, threshold and counting convention. Unknown, missing, invalid, stale or unapproved inputs cannot produce an approved timing classification. The deployed workspace exposed its current basis and honest refusal state; actual policy approval remains open. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A deterministic calculator and source-attributed display work once the target-date/counting basis is explicitly reviewed. Until then, the UI identifies the missing basis instead of issuing a misleading yes/no. No fees, balances, legal conclusions, or notices are generated.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff can see the exact dates and the number of days given, understand why a case needs review, and never mistake an unknown date or unset policy for a yes/no answer.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `41d6e00c` (2026-09-20): AC-S125-1 through AC-S125-7 covered by the unit, store, route and component cases named in F-S125 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback; the unconfigured state is the implemented default until the owner records the basis. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

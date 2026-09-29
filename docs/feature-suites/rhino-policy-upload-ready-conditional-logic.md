@@ -4,7 +4,7 @@
 # S131 — Rhino-policy conditional logic, ready for approved material upload
 
 > **Approval reference:** F11 (original feature #11).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `59ad9224` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S131 in `docs/feature-suites/README.md`; the original F11 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Tested inactive scaffold; policy-specific support remains unavailable.
@@ -19,7 +19,7 @@ C06 — Policy-specific content is explicit, versioned, and never invented. See 
 
 **Current state / intended end state.**
 
-**Current evidence:** The local policy-material store and Admin review flow bind exact uploaded versions and approved wording to lease-specific Unknown/Applicable/Not applicable evidence. Missing material or applicability blocks only dependent outputs; unrelated renewal work continues. No actual Rhino policy, approved wording, renewal terms or verified real-case mapping was supplied for this acceptance, so material accuracy and policy-specific meeting validation remain open. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Conditional policy preparation is deployed as an inactive, upload-ready implementation. Applicability, policy/material versions, reviewer and lease/cycle evidence remain distinct from staff-recorded follow-up. No approved Rhino wording or verified applicability was invented; actual material and human review remain open. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A controlled policy-content extension supports unknown/not-applicable/applicable cases, versioned approved material intake, exact required input checks, downstream preview/staleness, and manual follow-up. With no materials, it truthfully stays Pending approved policy material; ordinary unaffected renewals still work.
 
@@ -135,7 +135,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff can identify a policy-related renewal and see exactly which approved materials are needed. Once the real materials are reviewed, the existing workflow can use them without replacing the application’s logic or inventing terms.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `59ad9224` (2026-09-20): AC-S131-1 through AC-S131-7 covered by the schema, condition, applicability, output, store, route and surface cases named in F-S131 on synthetic fixtures; the branch matrix is asserted complete; real material, wording and mapping checks are listed as not run; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

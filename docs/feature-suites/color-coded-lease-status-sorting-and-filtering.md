@@ -4,7 +4,7 @@
 # S134 — Color-coded lease status with matching sorting and filters
 
 > **Approval reference:** F14 (original feature #14; added color/sort/filter feature linked to #3).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `136826cc` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S134 in `docs/feature-suites/README.md`; the original F14 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New cross-lease presentation feature added to the approved Feature 3 discussion.
@@ -19,7 +19,7 @@ C03 — A consistent status category controls what staff see, sort, and filter; 
 
 **Current state / intended end state.**
 
-**Current evidence:** The local shared lifecycle projection supplies labeled colors, matching category sorting/filtering/counts and consistent workspace meaning. It derives completion, active non-renewal and retained work from current-cycle evidence; a staff annotation or green dot does not prove provider completion or signatures. S124's verified status flags and explicit reviewed/manual evidence feed the disposition, while unavailable or ambiguous sources remain visible as unknown. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** One cycle-aware lifecycle projection provides text-labeled categories, decorative color, matching filters and deterministic sorting. Deployed read-only checks verified labels, decorative semantics, keyboard sorting, filtering and counts; tests cover synthetic lifecycle branches without creating production fixtures. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** One deterministic, source-attributed lifecycle category is rendered as a dot plus visible text in the existing table. It is separate from readiness blockers and the saved staff-work label. F03 supplies notice evidence, F02 supplies current-cycle continuity, F01 supplies views, and F07 explains actions.
 
@@ -143,7 +143,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff immediately distinguish completed, upcoming, and non-renewal work from the dots and words, then sort or filter those same categories without seeing different classifications or accidentally changing any record.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `136826cc` (2026-09-20): AC-S134-1 through AC-S134-9 covered by the unit and component cases named in F-S134 (theme tokens asserted for both themes; keyboard, zoom and narrow-screen checks rely on the existing table conventions and the compiled browser checks, which are NOT RUN while rehearsal auth is blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

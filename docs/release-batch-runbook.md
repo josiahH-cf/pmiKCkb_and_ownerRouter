@@ -8,27 +8,24 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `46415f68-55da-4a0b-8161-4dfe28b4ae74` carries all thirteen features at
-`7c02c6a9eaa7019c5ba2da411446007cdce3d4a8`; exact [CI 36613516189](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36613516189)
-passed. Recovery receipt `f2c8ee12-e830-481a-b3a5-e37eef2a48e1` passed at 18:58:17.292Z.
-One application build `59ef5871-6943-46ca-894a-17fe6bf74b4b` succeeded at 19:03:35.831565Z.
-Candidate `pmi-kc-app-rmun14ae1-00b62e7630c7` is at zero traffic, Production/Live,
-Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-The exact auth-prelude diagnostic reproduced a Renewal Desk navigation timeout; the matching
-Cloud Run request took 38.821546120 seconds, beyond the unchanged 30-second navigation gate.
-My Work passed; reconciliation matched all 311 records with stable complete sources and no discrepancies.
-All failed assurance results remain failed. No candidate receipt, promotion or observation exists;
-canonical S120 remains at 100%. Keep all thirteen queue entries.
+Run `f2036ad3-065e-4cac-8641-22f4946c975e` released all thirteen features together at
+`843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f` with 100% production traffic.
+Exact [CI 36624189352](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36624189352) passed.
+Recovery receipt `aede1a91-9cd9-4483-a80f-992a0e20a4d8` issued at 2026-09-29T20:36:35.193Z.
+The one application build `9329e6de-525a-4b54-b244-5d6398d0a885` succeeded at
+2026-09-29T20:40:46.626383Z. Candidate assurance issued at 2026-09-29T20:58:02.530Z;
+promotion verified at 2026-09-29T20:58:19.150Z. The 300,000 ms observation passed
+with two checkpoints in 404,390 ms. All 311 source/projected/rendered records matched,
+with zero missing/unexpected records, duplicates, field mismatches or invalid destinations.
+Monitoring read zero candidate 5xx and unresolved live effects during observation.
+Independent canonical/tagged identity, traffic, configuration, receipts and domain readbacks passed.
+Production + Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
+Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8`.
+The guarded remote product supplement passed; no provider or business mutation was used as proof.
+Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The notice portfolio repair groups at most 32 lease observations in one transaction, reading
-all exact head/marker/history documents before writing only the existing invalidation metadata.
-It preserves each lease's admission, tenancy/cycle binding, conflict handling and refusal semantics.
-The 311-lease regression failed on the original transaction fan-out and passed with ten bounded
-transactions and matching dispositions/markers. Focused cross-runtime invalidation checks pass.
-The full repaired-tree gate passed at 20:05:24.826510Z: 7,438 unit passes, four existing skips,
-234 backend passes and all checks/build. Replacement exact-head CI remains pending. The exact 7c02c6a9 gate
-passed 7,433 unit tests, four existing skips, 232 backend tests and all checks/build.
-Runtime limits, assurance concurrency/deadlines, safety controls and the frozen checkout are unchanged.
+The batch is complete and its permit consumed. The retained procedure below records the
+required controls; it does not authorize another deployment from an empty queue.
 
 ## Authorized replacement preparation
 
@@ -37,7 +34,7 @@ verified delivery of all thirteen features, without another decision solely for 
 Every existing technical and safety gate remains. Preserve failed evidence byte-for-byte;
 never substitute source or a receipt in the frozen run. S121 remains excluded.
 
-1. Finish and independently review the diagnosed notice portfolio repair. Retain the tested new-run entry
+1. For an authorized future repair, independently review the diagnosed correction. Retain the tested new-run entry
    against the actual existing authorized host, including a host currently bound to the failed
    candidate, changed or ambiguous tag bindings, unchanged canonical traffic and refusal before
    mutation on mismatches. Preserve the exact checker, one-build and receipt contracts.
@@ -64,7 +61,7 @@ never substitute source or a receipt in the frozen run. S121 remains excluded.
    before its guarded canary. Then build one replacement application candidate. The batch-scoped owner amendment
    permits diagnosed and verified replacements without a new decision solely for another attempt.
 
-## What ships
+## Delivered scope
 
 The thirteen features are cumulative commits on main:
 
@@ -84,9 +81,9 @@ The thirteen features are cumulative commits on main:
 | 12  | S132 (F12) | End-to-end walkthrough preparation and meeting evidence     |
 | 13  | S133 (F13) | External maintenance-agent handoff assessment               |
 
-Exact feature commits and CI runs remain in `docs/loop-state.md`. Existing implementation and
-historical CI do not close the new audit gaps. One Cloud Build, candidate, assurance, promotion and
-300,000 ms observation carry the complete repaired batch. Do not fall back to per-feature cycles.
+Exact implementation provenance and receipts remain in the shared batch audit and Git history.
+The completed run `f2036ad3-065e-4cac-8641-22f4946c975e` carried all thirteen features in one application build and candidate.
+The queue is cleared. Future work requires its own authority and current readiness evidence.
 
 ## Before you start
 
@@ -105,35 +102,21 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** The earlier stale-checkpoint cleanup
-is now completed. A preexisting watcher PID 382 started stale S128-only build
-`57f23335-8f8b-490e-b18e-5d6d4b1db564` at 2026-09-28T20:58:24.661Z. It was stopped and the
-build read CANCELLED at 21:01:53.995Z; candidate `pmi-kc-app-rmu82xj2c-fa2fae08b587` is absent,
-with no traffic change.
+**2. Verify the watcher and checkpoint before any start.** Current run `f2036ad3-065e-4cac-8641-22f4946c975e` is complete,
+its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
+failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
+Never overwrite an unfinished checkpoint or clear a build claim. Before another authorized run,
+prove no watcher, inherited child or cloud operation remains unresolved, preserve every original
+checkpoint/permit/claim/receipt under the release lock, and verify actual traffic/tag bindings.
+An unfinished checkpoint pins its exact SHA. The existing scheduled task remains unchanged and
+cannot dispatch with a consumed permit; a stopped process alone never establishes the hold.
 
-The exact checkpoint is archived at
-`~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
-with its reason. Never overwrite that archive or relabel cancellation as success. The active
-checkpoint now belongs to replacement run `46415f68-55da-4a0b-8161-4dfe28b4ae74`, blocked in
-candidate assurance after its successful recovery and one application build. Preserve the exact
-run, admitted permit, claims and receipts. The owner authorizes a diagnosed replacement only after
-verified repair, exact CI, fresh checked retirement and new locked GO/admission.
-S120 remains the serving baseline. After interlock installation, eleven release files
-matched both checkouts, the permit was absent and zero watchers were found at 2026-09-29T02:31:17Z.
-The temporary installation hold was released and the kernel lock read free; direct admission still
-refused. The scheduled task remains Ready and unchanged. Recheck because stopped processes do not disable
-the task. An unfinished checkpoint still pins the watcher to its SHA; inspect any new state before
-archiving or resetting it.
-
-**3. Verify approved authentication.** Fresh WSL CLI/ADC enrollment and binding for
-`josiah@pmikcmetro.com` initially completed 2026-09-29T09:18:39.478Z. One owner-approved WSL restart resolved
-the invisible WSLg window; headed Admin enrollment verified role Admin/human_completed at
-09:34:11.947Z and post-restart probes passed. Approved Google-session reuse subsequently restored
-the tagged recovery host. After a preserved eleven-minute enrollment timeout, the owner requested
-another sign-in attempt; fresh approved CLI/ADC/binding passed 13:16:20.229Z. The earlier stale
-enrollment and failed guarded read remain preserved. HTTP 200 alone is not authenticated assurance. Run `npm run auth:ensure`
-and the guarded browser check when resuming. If enrollment is stale or expires, stop for the owner's
-attended step; never enter a password, code, passkey or CAPTCHA:
+**3. Verify approved authentication.** Fresh approved CLI/ADC browser enrollment and identity
+binding passed at 2026-09-29T20:23:16.794Z; approved-store refresh passed at 20:23:20.424Z.
+Guarded Admin readiness passed before locked admission. Earlier enrollment timeouts and stale-age
+verdicts remain preserved. Run `npm run auth:ensure` and the guarded browser check when resuming.
+HTTP200 alone does not verify authentication. A genuine challenge requires the owner's attended
+step; never enter a password, code, passkey or CAPTCHA:
 
 ```bash
 npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com
@@ -160,19 +143,12 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare the exact repaired batch.** The earlier 1fb run remains failed and held, and the
-464 replacement remains failed at assurance with its build claim preserved. Commit/push only the
-verified notice portfolio correction; exact CI, checked retirement and fresh GO remain mandatory.
-
-The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
-checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained
-held for missing permit/fresh prerequisites, 11.1-hour enrollment and then-in-progress CI. Later CI
-success did not replace that failed verdict; fresh GO later admitted the exact frozen run above.
-Missing collector evidence was not a finding of disabled billing.
-The installed local interlock is fail-closed: missing, malformed, held, expired, consumed or wrong-head
-permits cannot dispatch forward release work. It applies to the Windows launcher, watcher and direct
-release entry. The scheduled task configuration stays unchanged. Inspect checkpoint, process and lock
-state before preparing; never overwrite an unfinished attempt or its receipts.
+**4. Prepare only an authorized current batch.** The completed thirteen-feature queue is empty;
+its current preflight must refuse another thirteen-feature admission. For a separately authorized
+future batch, require its reviewed scope, green exact-main CI, fresh prerequisites, compatible
+checkpoint and actual lock ownership. Never reuse this consumed permit, one-build claim or receipt.
+The local interlock refuses missing, malformed, held, expired, consumed or wrong-head permission
+before dispatch. Preserve actual tag binding independently of canonical traffic.
 
 Use the native Node 22 and snap gcloud paths in WSL. With no other watcher and the lock free:
 
@@ -274,8 +250,7 @@ Each phase advances only on independent readback:
 4. Run the pinned environment-handoff-provider-table and plan-status-sync tests, prettier and
    document gates; commit/push documentation-only closure. It must not trigger another deployment.
 
-The current 464 replacement is blocked at assurance. Complete the notice portfolio repair's
-full verification and exact CI, then preserve and retire this run under the release lock before
-fresh all-thirteen admission. Frozen verifier/candidate substitution and receipt alteration remain
-forbidden. The prior S120 receipts remain historical; human verdicts remain NOT RUN.
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 retain their scoped external holds.
+This thirteen-feature release is complete. The retained procedure does not reopen its queue or
+renew permission. Failed predecessors retain their exact reports and claims. B-DL1, B-DL2, B-DL3,
+B-S100, B-MNT1, B-MNT2 and B-AUTH2 retain their scoped external or human holds; they do not alter
+the completed implementation/release verdict.

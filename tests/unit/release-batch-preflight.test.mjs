@@ -16,7 +16,27 @@ import { prepareReleasePermit } from "../../scripts/release-control.mjs";
 const HEAD = "f45ecd58137a51f59937d0afaa57e8ed19853964";
 const OLD = "0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4";
 const NOW = "2026-09-20T16:00:00.000Z";
-const LOOP_STATE = readFileSync(resolve(process.cwd(), "docs/loop-state.md"), "utf8");
+// Historical admission fixture stays fixed after the actual batch queue is cleared.
+const LOOP_STATE = `## Awaiting release (thirteen cumulative features)
+
+1. S128 (F08) pause operating-Sheet writes: code \`31bc9072\`, docs \`0bbd95c3\`, CI 35342904192.
+   Recovery preparation passed; the paused candidate still requires assurance and production promotion.
+2. S123 (F02) retain unfinished renewals across date changes: \`aa062d8e\`, CI 35505452408.
+3. S124 (F03) move-out detection and non-renewal outreach filtering: \`fc03ec55\` plus test fix \`3d4a9e23\`, CI 35508231675.
+4. S134 (F14) color-coded lease status with matching sorting and filters: \`136826cc\`, CI 35508545796.
+5. S122 (F01) all-lease visibility and explicit worklist views: \`39a7f929\`, CI 35509588537.
+6. S125 (F04) thirty-day notice timing review with an explicit date basis: \`41d6e00c\`, CI 35511209348.
+7. S126 (F06) consistent month/day/year date presentation: \`7f0ed865\`, CI 35512028503.
+8. S127 (F07) clear blockers and exact next-action guidance: \`52286917\`, CI 35513295598.
+9. S131 (F11) Rhino-policy conditional logic, ready for approved material upload: \`59ad9224\`, CI 35515037772.
+10. S129 (F09) owner and tenant draft workflows, technical readiness for meeting validation: \`009c4414\`, CI 35516040981.
+11. S130 (F10) seven-template intake and Dotloop prefill readiness: \`696147f9\`, CI 35517371018.
+12. S132 (F12) end-to-end walkthrough preparation and meeting evidence: \`f74468a1\`, CI 35519202311.
+13. S133 (F13) external maintenance-agent handoff assessment: \`75c06252\`, CI 35519982150.`;
+const CURRENT_LOOP_STATE = readFileSync(
+  resolve(process.cwd(), "docs/loop-state.md"),
+  "utf8",
+);
 
 function ci(sha = HEAD) {
   return {
@@ -78,9 +98,17 @@ function checkOf(result, id) {
 }
 
 describe("batched release preflight: the whole queue rides one candidate", () => {
-  it("parses every queued feature from the live loop state", () => {
+  it("refuses to admit the completed batch from the cleared current queue", () => {
+    const queue = parseAwaitingReleaseQueue(CURRENT_LOOP_STATE);
+    expect(queue).toEqual([]);
+    const result = evaluateBatchPreflight(input({ queue }));
+    expect(result.verdict).toBe("not_ready");
+    expect(result.batchSize).toBe(0);
+  });
+
+  it("parses all thirteen features from the historical admission fixture", () => {
     const queue = parseAwaitingReleaseQueue(LOOP_STATE);
-    expect(queue.length).toBeGreaterThanOrEqual(13);
+    expect(queue.length).toBe(13);
     expect(queue[0]).toEqual({
       position: 1,
       suite: "S128",

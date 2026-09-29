@@ -4,7 +4,7 @@
 # S124 — Move-out detection and non-renewal outreach filtering
 
 > **Approval reference:** F03 (original feature #3).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `fc03ec55` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S124 in `docs/feature-suites/README.md`; the original F03 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New source-backed disposition over the existing non-renewal handoff.
@@ -19,7 +19,7 @@ C03 — Actionable, evidence-backed operational status; C02 — Non-renewal rema
 
 **Current state / intended end state.**
 
-**Current evidence:** The verified read contract is recorded in docs/facts.md F-RENTVINE-MOVE-OUT-CONTRACT: documented lease-status flags supply notice disposition, lease detail supplies noticeDate, and scheduled move-out remains distinct from contractual end. Local G1/G2 repairs persist explicit same-tenancy/cycle notice review with both observations and freshness, block both audiences on unresolved manual/provider non-renewal, and bind current preview, review and final S20 claim. Owner-approved lease-bound version/hash/time metadata invalidates old approval before authenticated source-read generations; a later clear notice cannot revive an unused approval after restart. Clear evidence is a withdrawal-review requirement, not proof of a provider cancellation event. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Explicit same-tenancy/cycle notice review retains source freshness and both observations; a cleared snapshot requires withdrawal review rather than invented cancellation. Both non-renewal dispositions and source generations bind preview and final S20 claim. The approved read-side persistence is limited to lease-bound version/hash/time invalidation metadata; old unused approval cannot revive after clearing or restart. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** One source-attributed move-out disposition distinguishes confirmed initiation, explicit absence, withdrawn/cancelled evidence, and unknown/stale/conflicting information. F14 displays the yellow non-renewal indicator and F01/F14 provide consistent filtering; this feature owns evidence and outreach routing.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff see that move-out is already initiated before contacting the owner, can find those leases as a group, and can distinguish a confirmed notice from missing information.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `fc03ec55` (2026-09-20): AC-S124-1 through AC-S124-7 covered by the unit and component cases named in F-S124, with the read contract verified against docs.rentvine.com and read-only live probes; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

@@ -4,7 +4,7 @@
 # S128 — Pause operating-Sheet writes while preserving reads and app-owned work
 
 > **Approval reference:** F08 (original feature #8).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `31bc9072` (2026-09-18) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S128 in `docs/feature-suites/README.md`; the original F08 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Explicit policy reversal of currently enabled writeback execution.
@@ -19,7 +19,7 @@ C04 — Preserve the operating Sheet as a trusted fallback during the pause. See
 
 **Current state / intended end state.**
 
-**Current evidence:** The local pause is implemented at policy, preparation, store, transaction and dispatch boundaries. App-owned saves create no Sheet proposal and return saved-in-app/Sheet-paused messaging; version-3 proposals bind the server revision and current policy, while historical receipts remain readable. Both ignored env files in both checkouts stage Sheet=false. Production still serves S120 with Sheet=true, so the pause is not deployed. The shared recovery implementation prepares one zero-traffic, digest-bound clone of the actual predecessor with Sheet=false and requires exact candidate/promoted/recovery readbacks; its cloud preparation and release remain NOT RUN. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** The operating-Sheet pause is deployed. Candidate, promoted revision and prepared recovery read Sheet=false. Reads and app-owned work remain available; all reachable append/update/correction dispatch paths refuse. Historical receipts remain readable, old proposals cannot execute, and any resumption requires fresh owner direction and review. Both exact Sheet Registry keys remain open but cannot override the pause. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** The production operating-Sheet write flag is explicitly false under a verified later release. All normal append/update/correction and other reachable mutating paths refuse before provider dispatch. Reads, source comparisons, app-owned preparation/activity, and read-only receipt reconciliation continue. Existing implementation and historical proof remain intact for a separately reviewed resumption.
 
@@ -135,7 +135,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff keep using and comparing the Sheet and the app, but even an Admin cannot write to the operating Sheet from the app; saves clearly say they were recorded in the app only.
 
-- Model/engineering verdict: Local G4 pause and version-bound proposal tests, real app-save/claim checks and G6/G7 shared-recovery/process tests pass. Original implementation `31bc9072` was CI-green. Final combined acceptance and candidate/promoted/recovery Sheet=false readbacks remain gates in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); no production pause is claimed.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

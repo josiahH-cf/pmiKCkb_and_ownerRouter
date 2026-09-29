@@ -4,7 +4,7 @@
 # S126 — Consistent month/day/year date presentation
 
 > **Approval reference:** F06 (original feature #6).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `7f0ed865` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S126 in `docs/feature-suites/README.md`; the original F06 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Application-wide presentation correction with unchanged date semantics.
@@ -19,7 +19,7 @@ C03 — Readable operational facts; C05 — Consistent meeting and document prep
 
 **Current state / intended end state.**
 
-**Current evidence:** The repaired shared calendar/instant formatter covers 69 inventoried source consumers across renewal, Admin, maintenance, Gmail, workflows, approvals, Spaces and Console. App-authored dates use month/day/year; invalid dates stay explicit and date-only values retain their calendar day. Canonical query/provider/hash values, underlying sort and retained historical message bytes remain unchanged. The bounded inventory and formatter defaults are documented in docs/date-display-inventory.md. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Strict calendar/instant formatting preserves date-only days, canonical storage/provider values, historical bytes and underlying sort order. The audited 69-consumer inventory, generated/copy dates and rendered checks passed within their recorded scope. Deployed reconciliation and the guarded table check verified actual calendar labels; human verdict remains NOT RUN. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A shared display convention is used in app-owned tables, headers, sidebars, forms, previews, history, and current operator handouts. Internal dates remain canonical and date-only values never undergo timezone conversion.
 
@@ -131,7 +131,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** An operator reads the same lease date in the table, header, sidebar, and draft preview in the expected order, and filtering/sorting still returns the same leases.
 
-- Model/engineering verdict: Expanded G3 focused rendered/date checks pass locally. Historical baseline `7f0ed865` remains provenance; current combined, browser and remote acceptance are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). S126 remains undeployed.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

@@ -4,7 +4,7 @@
 # S129 — Owner and tenant draft workflows: technical readiness for meeting validation
 
 > **Approval reference:** F09 (original feature #9).
-> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `009c4414` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S129 in `docs/feature-suites/README.md`; the original F09 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Scaffold, gap closure, and technical verification of existing communications.
@@ -19,7 +19,7 @@ C05 — Meeting-ready owner/tenant preparation; C04 — Human-reviewed, unsent e
 
 **Current state / intended end state.**
 
-**Current evidence:** The local source-filled owner/tenant preparation, copy and governed unsent-draft paths preserve sender, recipients, signature, publication and immutable own-receipt recovery. G1/G2 repair both manual non-renewal dispositions and notice-review invalidation at current preview, confirmation and the final transactional S20 claim; stale callers cannot revive an old unused approval after notice changes. Real lease-specific draft accuracy and human meeting observations remain separate acceptance inputs; no live customer draft/send was used to demonstrate these repairs. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+**Current evidence:** Both audience drafts refuse current non-renewal, stale notice review and invalidated source generations at preview and final claim. Sender/recipient, supplied content, signatures, journals and publications retain their exact bindings. Own-receipt recovery remains readable without creating another draft. Real customer accuracy and human meeting verdict remain NOT RUN; no live draft/send was used for verification. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** Each audience has a tested path from known facts through missing-input review to final preview and a human-confirmed unsent Gmail draft or an honest blocked handoff. The meeting pack identifies exact external prerequisites and later validation steps; no live customer draft/send is created merely to claim readiness.
 
@@ -137,7 +137,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** At the meeting, staff can prepare an owner message and a tenant offer from the lease, fix each missing input in place, review the exact content, and deliberately create one unsent draft when the real prerequisites allow it.
 
-- Model/engineering verdict: Historical baseline PASS in local engineering tests on `009c4414` (2026-09-20): AC-S129-1, AC-S129-3, AC-S129-5 and AC-S129-7 covered by the matrix, boundary and preflight cases named in F-S129; AC-S129-2, AC-S129-4 and AC-S129-6 carried as preservation evidence by the existing tests the matrix names; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
+- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 
