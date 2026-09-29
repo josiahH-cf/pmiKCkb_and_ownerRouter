@@ -58,6 +58,7 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
+      - run: npm run verify:dependencies
       - run: npm run verify:router-boundary
       - run: npm run verify:falsification
       - run: npm run verify:context-freshness

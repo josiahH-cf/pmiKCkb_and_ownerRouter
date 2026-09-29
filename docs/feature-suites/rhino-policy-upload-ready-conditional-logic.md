@@ -37,7 +37,7 @@ Represent applicability as Unknown / Applicable / Not applicable with source, re
 
 ### R-F11-02 — Prepare approved material intake and bounded rules
 
-Reuse authenticated trusted-source publication to receive policy material later. Support proposed bounded configuration for version/reference, reviewer/approval, approved text or artifact references, allowed output slots, applicability facts, and required input identifiers. Use typed declarative conditions over verified facts, not executable scripts, arbitrary prompts, or autonomous rule generation. Actual field meanings and approved rules are supplied later.
+Reuse authenticated trusted-source publication to receive policy material later. Support proposed bounded configuration for version/reference, reviewer/approval, approved text or artifact references, allowed output slots, applicability facts, and required input identifiers. Use typed declarative conditions over verified facts, not executable scripts, arbitrary prompts, or autonomous rule generation. Actual field meanings and approved rules are supplied later. Validity boundaries must be real calendar dates; impossible or reversed dates fail intake and retained-snapshot evaluation. Visible validity explanations use month/day/year without changing stored dates.
 
 ### R-F11-03 — Keep uploading, approving, and using separate
 

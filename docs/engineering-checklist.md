@@ -20,6 +20,7 @@
 - [ ] Focused tests pass.
 - [ ] `npm test` uses all registered unit/eval files and meets the ten-minute lane budget.
 - [ ] `bash scripts/verify.sh` passes for a ship candidate.
+- [ ] `npm run verify:dependencies` passes with no reported production dependency advisories; the same audit runs in local verification and CI. Review development-tool advisories separately without forcing unsupported major overrides.
 - [ ] `npm run test:e2e:core` terminates green or reports a specific deterministic defect.
 - [ ] Diff and staged files contain no unrelated/user-owned material.
 - [ ] Gate changes are exact and authorized.

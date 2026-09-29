@@ -18,6 +18,10 @@ import {
 } from "@/lib/lease-renewal/renewal-progress";
 import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
+import {
+  emptyRenewalWorkspace,
+  planRenewalWorkspaceAction,
+} from "@/lib/lease-renewal/workspace-state";
 import type { RentVineLeaseStatus } from "@/lib/integrations/rentvine/client";
 import { withFakeLeaseDetail } from "@/tests/helpers/rentvine-detail-fake";
 
@@ -204,13 +208,53 @@ function completedProgress(leaseId: string): RenewalProgress {
 
 const noParty = () => false;
 
+function completedManualCycle() {
+  let state = emptyRenewalWorkspace("9012", "1c0a4d7e-7d3b-4a6e-9f4c-2a5f9e6b8d10", {
+    kind: "lease_end",
+    dateIso: "2026-08-31",
+    source: "RentVine lease end",
+  });
+  const meta = (eventId: string) => ({
+    actorUid: "operator",
+    recordedAt: "2026-07-18T12:00:00.000Z",
+    eventId,
+  });
+  state = planRenewalWorkspaceAction(
+    state,
+    { kind: "owner_response", outcome: "declined_non_renewal", source: "Owner call" },
+    meta("owner"),
+  );
+  state = planRenewalWorkspaceAction(
+    state,
+    {
+      kind: "activity",
+      activity: "non_renewal_handoff",
+      outcome: "done",
+      source: "Handoff",
+    },
+    meta("handoff"),
+  );
+  return planRenewalWorkspaceAction(
+    state,
+    { kind: "complete", source: "Staff reviewed the handoff" },
+    meta("complete"),
+  );
+}
+
 describe("S122 one complete accessible lease inventory (AC-S122-1)", () => {
   it("yields exactly the expected unique lease ids from a multi-page read and every view reads from that one projection", async () => {
     const desk = await loadLiveRenewalDesk(
       WINDOWS,
       READ_TS,
       config() as unknown as DeskConfigArg,
-      new Map([["9012", completedProgress("9012")]]),
+      new Map([["5001", completedProgress("5001")]]),
+      undefined,
+      [],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      new Map([["9012", completedManualCycle()]]),
     );
     if (desk.status !== "ok") throw new Error(desk.status);
     expect(desk.view.readComplete).toBe(true);
@@ -252,6 +296,10 @@ describe("S122 one complete accessible lease inventory (AC-S122-1)", () => {
       noParty,
     );
     expect(completed.items.map((row) => row.id)).toEqual(["9012"]);
+    // A legacy completion scalar without current process evidence remains visible as Unknown.
+    expect(desk.view.items.find((row) => row.id === "5001")?.lifecycle?.category).toBe(
+      "unknown",
+    );
   });
 
   it("never reports full coverage from an interrupted page read while keeping what was read", async () => {

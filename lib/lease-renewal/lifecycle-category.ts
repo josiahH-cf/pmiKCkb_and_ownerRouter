@@ -63,6 +63,8 @@ export interface LifecycleInput {
   readonly moveOut?: MoveOutDisposition | null;
   /** The saved app-recorded progress (S72), when one exists. */
   readonly appProgress?: { readonly complete: boolean } | null;
+  /** True only after the existing current-source process projection proves completion. */
+  readonly appCompletionCurrent?: boolean;
   /** False when saved progress could not be read; the category then fails closed to unknown. */
   readonly progressStateAvailable: boolean;
 }
@@ -124,6 +126,30 @@ export function projectLifecycleCategory(input: LifecycleInput): LifecycleProjec
       : null;
 
   if (completedCycle && !cycleAdvanced) {
+    // Completion is historical evidence, not proof that current source evidence still
+    // belongs to that closure. An unchanged end date cannot bind a newly observed
+    // notice to a completed handoff, and an unavailable date is not "unchanged".
+    if (cycleSourceDate?.state === "current_unavailable")
+      return projection("unknown", null, null, cycleSourceDate.label);
+    if (moveOut?.state === "initiated")
+      return projection(
+        "unknown",
+        null,
+        null,
+        "The current RentVine notice has not been reconciled with the completed cycle. Review the notice and recorded closure; the completion record is preserved.",
+      );
+    if (
+      moveOut?.state === "withdrawn" ||
+      (moveOut?.state === "unknown" && moveOut.reason !== "lease_not_active")
+    )
+      return projection("unknown", null, null, moveOut.label);
+    if (appComplete && input.appCompletionCurrent !== true)
+      return projection(
+        "unknown",
+        null,
+        null,
+        "Recorded app completion is not verified against the current source evidence. Review the current cycle; the completion record is preserved.",
+      );
     const handoff = manualComplete && manualProgress?.nonRenewal === true;
     return projection(
       "complete",

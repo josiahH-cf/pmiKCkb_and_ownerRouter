@@ -717,17 +717,28 @@ function toLiveSummary(
     nextAction: stageIndex >= 0 ? STAGE_NEXT_ACTION[stageIndex] : null,
     openConflicts,
   };
+  return withCurrentLifecycle(summaryBase, progress, progressStateAvailable);
+}
+
+/** Reuse the process evidence result; a historical completion scalar cannot verify itself. */
+function withCurrentLifecycle(
+  summaryBase: DeskLeaseSummaryBase,
+  progress: RenewalProgress | null | undefined,
+  progressStateAvailable: boolean,
+  appCompletionCurrent = false,
+): DeskLeaseSummaryBase {
   // S134: one lifecycle category from this same generation; a skipped source row stays uncategorized.
-  if (classification.disposition === "skip") return summaryBase;
+  if (summaryBase.disposition === "skip") return summaryBase;
   return {
     ...summaryBase,
     lifecycle: projectLifecycleCategory({
-      retention,
-      disposition: classification.disposition,
+      retention: summaryBase.retention,
+      disposition: summaryBase.disposition,
       manualProgress: summaryBase.manualProgress ?? null,
       cycleSourceDate: summaryBase.cycleSourceDate ?? null,
       moveOut: summaryBase.moveOut ?? null,
       appProgress: progress ? { complete: progress.complete } : null,
+      appCompletionCurrent,
       progressStateAvailable,
     }),
   };
@@ -1462,7 +1473,12 @@ export async function loadLiveRenewalDesk(
         });
         return toRow(
           withRenewalDeskQueryKeys({
-            ...summary,
+            ...withCurrentLifecycle(
+              summary,
+              progress,
+              progressStateAvailable,
+              process.status === "complete",
+            ),
             ...(rentvineDestination
               ? { sourceDestinations: { rentvine: rentvineDestination } }
               : {}),
@@ -1734,7 +1750,12 @@ export async function loadLiveRenewalLeaseWorkspace(
       ...(workflowAvailable ? { process } : {}),
     });
     summary = {
-      ...summary,
+      ...withCurrentLifecycle(
+        summary,
+        progress,
+        true,
+        workflowAvailable && process.status === "complete",
+      ),
       ...(workflowAvailable
         ? {
             processVersion: process.version,

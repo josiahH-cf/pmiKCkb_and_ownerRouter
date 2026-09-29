@@ -20,6 +20,10 @@ Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604
 The guarded remote product supplement passed; no provider or business mutation was used as proof.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
+## Active corrective review
+
+The owner requested a post-release adversarial review and closure of confirmed gaps on September 29. The review found lifecycle completion masking unverified notice/date evidence, invalid policy validity dates, a Git worktree pointer in source uploads, and vulnerable dependency versions. Repairs are local and awaiting full verification and one cumulative follow-up deployment. Original release receipts remain valid historical evidence; no repaired behavior is claimed deployed. See [the adversary review](evidence/adversary-review-2026-09-29.md).
+
 ## Delivered batch
 
 - S128: Pause operating-Sheet writes while retaining reads and app-owned work.
@@ -58,4 +62,4 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-The Awaiting release queue is clear. The completion permit is consumed. Documentation-only closure does not deploy another application revision.
+The original completion permit remains consumed. The Awaiting release queue now carries all thirteen suites for the newly authorized corrective candidate; no original receipt or build claim will be reused.

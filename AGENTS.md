@@ -48,6 +48,12 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 
 September 14 Features 1–6 and S113–S120 remain carried in this release.
 
+The owner subsequently requested an adversarial review and closure of confirmed gaps. A fresh
+cumulative corrective candidate is pending for lifecycle uncertainty, policy date validation,
+source-upload hygiene and dependency advisories. The original permit stays consumed; the repair
+requires a new exact-run permit, all thirteen suites and every existing technical/safety gate.
+The current evidence is in `docs/evidence/adversary-review-2026-09-29.md`.
+
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
 messages with governed unsent Gmail drafting, audited manual progress and the integrated journey.

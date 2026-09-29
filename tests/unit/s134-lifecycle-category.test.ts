@@ -28,7 +28,10 @@ import {
   projectLifecycleCategory,
   type LifecycleCategory,
 } from "@/lib/lease-renewal/lifecycle-category";
-import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
+import {
+  loadLiveRenewalDesk,
+  loadLiveRenewalLeaseWorkspace,
+} from "@/lib/lease-renewal/live-desk";
 import {
   clearLiveLeaseCache,
   type LiveLeaseSnapshotResult,
@@ -427,6 +430,7 @@ describe("S134 lifecycle projection (AC-S134-1, AC-S134-2, AC-S134-8)", () => {
         ...base,
         retention: inWindow,
         appProgress: { ...progress, complete: true },
+        appCompletionCurrent: true,
       }),
     ).toMatchObject({ category: "complete", attribution: "app_recorded" });
     const manual = completedCycle();
@@ -438,6 +442,80 @@ describe("S134 lifecycle projection (AC-S134-1, AC-S134-2, AC-S134-8)", () => {
     });
     expect(JSON.stringify(manual)).toBe(before);
   });
+
+  it("requires current process evidence before presenting legacy app completion", () => {
+    for (const appCompletionCurrent of [undefined, false]) {
+      expect(
+        projectLifecycleCategory({
+          ...base,
+          retention: inWindow,
+          appProgress: { complete: true },
+          appCompletionCurrent,
+        }).category,
+      ).toBe("unknown");
+    }
+  });
+
+  it.each(["renewal", "non_renewal", "legacy"] as const)(
+    "does not let %s completion hide a current notice whose relationship to closure is unverified",
+    (kind) => {
+      const completed =
+        kind === "legacy"
+          ? { appProgress: { complete: true } }
+          : {
+              manualProgress: manualRenewalSummary(
+                completedCycle(kind === "non_renewal"),
+              ),
+            };
+      const result = projectLifecycleCategory({
+        ...base,
+        ...completed,
+        retention: inWindow,
+        cycleSourceDate: projectCycleSourceDateChange(cycle().basis, "2026-08-31"),
+        moveOut: moveOut("initiated"),
+      });
+      // A read timestamp is not evidence that a completed handoff covers this notice.
+      expect(result.category).toBe("unknown");
+      expect(result.explanation).toMatch(/notice.*completed cycle/i);
+      expect(matchesLifecycleFilter("complete", result.category)).toBe(false);
+      expect(matchesLifecycleFilter("unknown", result.category)).toBe(true);
+    },
+  );
+
+  it.each([
+    moveOut("unknown", "status_table_unavailable"),
+    moveOut("unknown", "notice_evidence_without_status"),
+    moveOut("unknown", "approval_safety_unavailable"),
+    moveOut("withdrawn"),
+  ])(
+    "keeps completed work out of Completed while notice evidence is $reason",
+    (notice) => {
+      expect(
+        projectLifecycleCategory({
+          ...base,
+          retention: inWindow,
+          manualProgress: manualRenewalSummary(completedCycle()),
+          cycleSourceDate: projectCycleSourceDateChange(cycle().basis, "2026-08-31"),
+          moveOut: notice,
+        }).category,
+      ).toBe("unknown");
+    },
+  );
+
+  it.each([null, "not-a-date"])(
+    "does not equate unavailable current lease end %s with an unchanged completed cycle",
+    (date) => {
+      expect(
+        projectLifecycleCategory({
+          ...base,
+          retention: tracked,
+          manualProgress: manualRenewalSummary(completedCycle()),
+          cycleSourceDate: projectCycleSourceDateChange(cycle().basis, date),
+          moveOut: moveOut("not_initiated"),
+        }).category,
+      ).toBe("unknown");
+    },
+  );
 });
 
 describe("S134 sort and filter contract (AC-S134-5, AC-S134-6)", () => {
@@ -743,6 +821,97 @@ describe("S134 desk integration and preservation (AC-S134-1, AC-S134-4, AC-S134-
     vi.stubEnv(SHEET_WRITEBACK_FLAG, "false");
     expect(isOperatingSheetWritebackPaused()).toBe(true);
   });
+
+  it("projects an unchanged-date completed lease with a current notice as Unknown in rows, filters and counts", async () => {
+    const manual = new Map([["5001", { ...completedCycle(), leaseId: "5001" }]]);
+    const before = JSON.stringify([...manual]);
+    const result = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      config as unknown as DeskConfigArg,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      true,
+      snapshotResult(),
+      undefined,
+      manual,
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    const row = result.view.items.find((item) => item.id === "5001");
+    expect(row?.moveOut?.state).toBe("initiated");
+    expect(row?.manualProgress?.complete).toBe(true); // History remains true.
+    expect(row?.lifecycle?.category).toBe("unknown");
+    expect(row?.queryKeys.lifecycle).toBe("unknown");
+    const query = (lifecycle: "complete" | "unknown") =>
+      applyRenewalDeskQueryV2(
+        result.view.items,
+        { ...DEFAULT_RENEWAL_DESK_QUERY_V2, scope: "all", lifecycle },
+        () => false,
+      );
+    expect(query("complete").totalMatching).toBe(0);
+    expect(query("unknown").items.map((item) => item.id)).toEqual(["5001"]);
+    expect(JSON.stringify([...manual])).toBe(before);
+  });
+
+  it.each(["4821", "8004"])(
+    "refuses unbound legacy completion for %s in the desk and workspace without rewriting history",
+    async (leaseId) => {
+      const progress: RenewalProgress = {
+        leaseId,
+        processVersion: "renewal-v1",
+        stageIndex: 7,
+        ownerDecision: null,
+        ownerDecisionRevision: 0,
+        tenantOfferDraftId: null,
+        tenantOutcome: null,
+        evidence: {},
+        complete: true,
+      };
+      const before = JSON.stringify(progress);
+      const result = await loadLiveRenewalDesk(
+        WINDOWS,
+        READ_TS,
+        config as unknown as DeskConfigArg,
+        new Map([[leaseId, progress]]),
+        undefined,
+        [],
+        undefined,
+        true,
+        snapshotResult(),
+      );
+      if (result.status !== "ok") throw new Error(result.status);
+      const row = result.view.items.find((item) => item.id === leaseId);
+      expect(row?.lifecycle?.category).toBe("unknown");
+      expect(row?.queryKeys.lifecycle).toBe("unknown");
+      expect(
+        applyRenewalDeskQueryV2(
+          result.view.items,
+          { ...DEFAULT_RENEWAL_DESK_QUERY_V2, scope: "all", lifecycle: "complete" },
+          () => false,
+        ).items.some((item) => item.id === leaseId),
+      ).toBe(false);
+      const workspace = await loadLiveRenewalLeaseWorkspace(
+        leaseId,
+        READ_TS,
+        config as unknown as DeskConfigArg,
+        progress,
+        null,
+        [],
+        undefined,
+        undefined,
+        null,
+        { status: "available", value: snapshotResult() },
+      );
+      if (workspace.status !== "ok") throw new Error(workspace.status);
+      expect(workspace.workspace.summary.lifecycle?.category).toBe("unknown");
+      expect(workspace.workspace.summary.queryKeys.lifecycle).toBe("unknown");
+      if (leaseId === "4821") expect(workspace.workspace.live?.complete).toBe(false);
+      else expect(workspace.workspace.live).toBeUndefined();
+      expect(JSON.stringify(progress)).toBe(before);
+    },
+  );
 
   it("declares the requested dot colors as theme tokens in both light and dark themes (AC-S134-3)", () => {
     const theme = readFileSync(join(root, "styles", "theme.css"), "utf8");

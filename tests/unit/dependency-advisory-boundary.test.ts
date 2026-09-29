@@ -8,19 +8,33 @@ import fastUri from "fast-uri";
 import { Hono } from "hono";
 import { Address4, Address6 } from "ip-address";
 import { nanoid } from "nanoid";
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 
 describe("I11 patched transitive dependency boundaries", () => {
   it("loads the exact patched releases selected through Next and GenAI/MCP", () => {
-    expect(installedVersion("fast-uri")).toBe("3.1.6");
-    expect(installedVersion("hono")).toBe("4.12.34");
-    expect(installedVersion("ip-address")).toBe("10.3.1");
+    expect(installedVersion("next")).toBe("16.3.7");
+    expect(installedVersion("sharp")).toBe("0.35.4");
+    expect(installedVersion("fast-uri")).toBe("3.1.7");
+    expect(installedVersion("hono")).toBe("4.13.5");
+    expect(installedVersion("ip-address")).toBe("10.5.1");
     expect(installedVersion("nanoid")).toBe("3.3.18");
     expect(installedVersion("qs")).toBe("6.16.0");
     expect(typeof GoogleGenAI).toBe("function");
     expect(nanoid(12)).toMatch(/^[A-Za-z0-9_-]{12}$/);
+  });
+
+  it("round-trips a bounded synthetic AVIF through the patched native image stack", async () => {
+    const encoded = await sharp(Buffer.alloc(4 * 4 * 3, 127), {
+      raw: { width: 4, height: 4, channels: 3 },
+    })
+      .avif()
+      .toBuffer();
+    const decoded = await sharp(encoded).raw().toBuffer({ resolveWithObject: true });
+    expect(decoded.info).toMatchObject({ width: 4, height: 4, channels: 3 });
+    expect(decoded.data).toHaveLength(4 * 4 * 3);
   });
 
   it("retains strict URI validation and rejects the patched host-confusion shape", () => {

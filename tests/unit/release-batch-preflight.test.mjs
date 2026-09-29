@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ENROLLMENT_BUDGET_HOURS,
+  EXPECTED_BATCH,
   evaluateBatchPreflight,
   parseAwaitingReleaseQueue,
   renderBatchPreflight,
@@ -98,12 +99,27 @@ function checkOf(result, id) {
 }
 
 describe("batched release preflight: the whole queue rides one candidate", () => {
-  it("refuses to admit the completed batch from the cleared current queue", () => {
-    const queue = parseAwaitingReleaseQueue(CURRENT_LOOP_STATE);
+  it("refuses to admit a completed batch from a cleared queue", () => {
+    const queue = parseAwaitingReleaseQueue("## Awaiting release\n\nNone.\n");
     expect(queue).toEqual([]);
     const result = evaluateBatchPreflight(input({ queue }));
     expect(result.verdict).toBe("not_ready");
     expect(result.batchSize).toBe(0);
+  });
+
+  it("keeps the current queue either closed or one complete ordered cumulative batch", () => {
+    const queue = parseAwaitingReleaseQueue(CURRENT_LOOP_STATE);
+    if (queue.length === 0) {
+      expect(evaluateBatchPreflight(input({ queue })).verdict).toBe("not_ready");
+      return;
+    }
+    expect(queue.map((entry) => `${entry.suite}:${entry.approval}`)).toEqual(
+      EXPECTED_BATCH,
+    );
+    expect(queue.map((entry) => entry.position)).toEqual(
+      Array.from({ length: 13 }, (_, index) => index + 1),
+    );
+    expect(queue.every((entry) => entry.commits.length > 0)).toBe(true);
   });
 
   it("parses all thirteen features from the historical admission fixture", () => {

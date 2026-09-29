@@ -33,6 +33,10 @@ passed three regressions that failed on the original source and 23 focused check
 118-reference litmus matrix and G1–G7 retain their exact unit/backend/compiled-browser scopes
 in the shared batch audit. Earlier failed attempts remain failed in immutable evidence outside Git.
 
+## Active corrective review
+
+The owner requested a post-release adversarial review and closure of confirmed gaps on September 29. The review found lifecycle completion masking unverified notice/date evidence, invalid policy validity dates, a Git worktree pointer in source uploads, and vulnerable dependency versions. Repairs are local and awaiting full verification and one cumulative follow-up deployment. Original release receipts remain valid historical evidence; no repaired behavior is claimed deployed. See [the adversary review](evidence/adversary-review-2026-09-29.md).
+
 ## Production
 
 | Item                      | Value                                           |

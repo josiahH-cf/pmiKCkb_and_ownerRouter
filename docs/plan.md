@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-09-29 (UTC). The thirteen-feature batch is deployed and the release queue is clear.
+Updated: 2026-09-29 (UTC). The thirteen-feature batch is deployed; a newly authorized adversarial repair is pending as one cumulative candidate.
 
 ## Outcome
 
@@ -50,6 +50,15 @@ Document presence is not verified provider content or signature completion.
 - S132: Prepare walkthrough preflight, scripts and evidence recording.
 - S133: Provide the bounded external maintenance-agent assessment and decision packet.
 
+## Active corrective review
+
+The owner requested a post-release adversarial review and closure of confirmed gaps on September 29. The review found lifecycle completion masking unverified notice/date evidence, invalid policy validity dates, a Git worktree pointer in source uploads, and vulnerable dependency versions. Repairs are local and awaiting full verification and one cumulative follow-up deployment. Original release receipts remain valid historical evidence; no repaired behavior is claimed deployed. See [the adversary review](evidence/adversary-review-2026-09-29.md).
+
+1. Preserve failing regression and dependency/source-upload evidence; repair only confirmed gaps.
+2. Run focused falsification, the complete isolated verification gate, dependency audit and exact-head main CI.
+3. Preserve the completed run, collect fresh prerequisites and require locked thirteen-suite GO.
+4. Deploy one cumulative candidate, complete guarded assurance/reconciliation, promotion and full observation, then independently read back the result and close documentation.
+
 ## Canonical closure sequence
 
 1. Completed G1–G7 repairs and all 118 litmus references retain exact engineering and compiled
@@ -63,7 +72,7 @@ Document presence is not verified provider content or signature completion.
    The guarded remote supplement passed actual-source inventory, dates, lifecycle controls,
    notice evidence, issue/pause presentation and desk continuation. No live business effect was
    needed to demonstrate the engineering contracts.
-4. The queue is cleared and present-truth documentation is reconciled in place. Pinned tests,
+4. The original queue was cleared and present-truth documentation reconciled; the new corrective queue is tracked separately in the current resume point. Pinned tests,
    Prettier and document gates govern its documentation/test-only closure commit; the release
    classifier must read no deployable changes. The completed permit stays consumed.
 

@@ -33,6 +33,7 @@ if [ ! -f package-lock.json ]; then
 fi
 
 "$NPM_CMD" ci
+"$NPM_CMD" run verify:dependencies
 "$NPM_CMD" run format:check
 "$NPM_CMD" run lint
 "$NPM_CMD" run typecheck

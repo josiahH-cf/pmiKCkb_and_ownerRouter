@@ -181,6 +181,50 @@ function project(
 }
 
 describe("S131 bounded configuration schema (AC-S131-2)", () => {
+  it.each([
+    { effectiveFrom: "2026-02-30" },
+    { effectiveFrom: "2026-13-01" },
+    { effectiveUntil: "2026-02-29" },
+    { effectiveUntil: "2026-09-00" },
+  ])("rejects impossible policy validity dates: %j", (patch) => {
+    const config = { ...SYNTHETIC_CONFIG, ...patch };
+    expect(PolicyMaterialConfigSchema.safeParse(config).success).toBe(false);
+    // A malformed retained snapshot cannot become usable through a pure projection either.
+    expect(project(approved(config), { facts: [TYPE, AMOUNT] })).toMatchObject({
+      state: "needs_review",
+      reason: "material_unreadable",
+    });
+  });
+
+  it("accepts a real leap day and formats policy date explanations without changing canonical values", () => {
+    expect(
+      PolicyMaterialConfigSchema.safeParse({
+        ...SYNTHETIC_CONFIG,
+        effectiveFrom: "2024-02-29",
+      }).success,
+    ).toBe(true);
+    const future = { ...SYNTHETIC_CONFIG, effectiveFrom: "2027-01-01" };
+    expect(project(approved(future)).explanation).toContain("01/01/2027");
+    expect(future.effectiveFrom).toBe("2027-01-01");
+    expect(
+      project(approved({ ...SYNTHETIC_CONFIG, effectiveUntil: "2026-01-31" }))
+        .explanation,
+    ).toContain("01/31/2026");
+  });
+
+  it.each([
+    { config: { ...SYNTHETIC_CONFIG, effectiveUntil: "2025-12-31" }, today: TODAY },
+    { config: SYNTHETIC_CONFIG, today: "2026-02-30" },
+  ])(
+    "refuses a reversed retained interval or invalid comparison day: %j",
+    ({ config, today }) => {
+      expect(project(approved(config), { facts: [TYPE, AMOUNT], today })).toMatchObject({
+        state: "needs_review",
+        reason: "material_unreadable",
+      });
+    },
+  );
+
   it("accepts the synthetic fixture and rejects unknown fields, unapproved sources, executable content, circular conditions and missing binding", () => {
     expect(PolicyMaterialConfigSchema.safeParse(SYNTHETIC_CONFIG).success).toBe(true);
     const reject = (patch: Record<string, unknown>, pattern?: RegExp) => {

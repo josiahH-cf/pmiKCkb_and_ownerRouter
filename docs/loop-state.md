@@ -4,7 +4,7 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-RELEASED: the complete thirteen-feature batch is verified deployed. No release retry is pending.
+CORRECTIVE REVIEW: the original thirteen-feature batch is deployed. The owner requested an adversarial review and closure of confirmed gaps; a new cumulative repair candidate is pending.
 Run f2036ad3-065e-4cac-8641-22f4946c975e; serving SHA 843e222f436cee824ccb89cef23e8eea59d78d5d.
 Revision pmi-kc-app-rmun4mghg-35be42b3c74f; tag cand-rmun4mghg-35be42b3c74f; traffic 100%.
 Fingerprint sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8.
@@ -14,7 +14,23 @@ The completed checkpoint and consumed permit prevent another dispatch under this
 
 ## Awaiting release
 
-None. All thirteen cumulative implementations were delivered together. S121 remains excluded.
+The original run remains completed. This newly authorized corrective release carries every suite; current-head repairs cover lifecycle uncertainty, policy dates, upload hygiene and dependency advisories.
+
+1. S128 (F08) preserve Sheet pause: `31bc9072`.
+2. S123 (F02) preserve retained cycles: `aa062d8e`.
+3. S124 (F03) preserve notice controls: `fc03ec55`, `3d4a9e23`.
+4. S134 (F14) correct uncertain completed lifecycle projection: `136826cc`.
+5. S122 (F01) preserve inventory/views: `39a7f929`.
+6. S125 (F04) preserve notice timing: `41d6e00c`.
+7. S126 (F06) correct policy date explanations: `7f0ed865`.
+8. S127 (F07) preserve issue guidance: `52286917`.
+9. S131 (F11) reject impossible policy validity dates: `59ad9224`.
+10. S129 (F09) preserve reviewed draft preparation: `009c4414`.
+11. S130 (F10) preserve exact filled output: `696147f9`.
+12. S132 (F12) preserve walkthrough preparation: `f74468a1`.
+13. S133 (F13) preserve bounded assessment: `75c06252`.
+
+S121 remains excluded. Full verification, main CI and fresh run-bound release gates are required.
 
 ## Verified evidence
 
@@ -53,6 +69,6 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-Future work starts from actual source/role/resource readiness and its exact authority. Missing
-external inputs hold only their dependent outcome; no additional deployment is needed to close
-this completed batch. Keep current documents aligned without reopening the release queue.
+Next: finish the isolated full gate and dependency review, push a green corrective slice, then
+admit a fresh cumulative run through the unchanged gates. Preserve the completed run before new
+state is written. External inputs retain their scoped holds. Evidence: docs/evidence/adversary-review-2026-09-29.md.

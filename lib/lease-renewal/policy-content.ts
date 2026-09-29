@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatCalendarDate, parseCalendarDate } from "@/lib/date-display";
 
 import {
   currentStaffActivity,
@@ -56,7 +57,12 @@ const SLOT_ID = /^[a-z][a-z0-9_]{0,40}$/;
 const VERSION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const PUBLICATION_REFERENCE = /^publication:[A-Za-z0-9-]{8,80}$/;
 const CONTENT_HASH = /^[a-f0-9]{64}$/;
-const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const CalendarDateSchema = z
+  .string()
+  .refine(
+    (value) => parseCalendarDate(value) !== null,
+    "A real calendar date is required.",
+  );
 /** Executable or embedded content never belongs in approved material. */
 const EXECUTABLE_CONTENT =
   /<\s*\/?\s*(script|iframe|object|embed|style|link|meta)\b|javascript:|data:text\/html|\$\{|<\?|\bon[a-z]+\s*=/i;
@@ -170,8 +176,8 @@ export const PolicyMaterialConfigSchema = z
         note: bounded(500),
       })
       .strict(),
-    effectiveFrom: z.string().regex(CALENDAR_DATE),
-    effectiveUntil: z.string().regex(CALENDAR_DATE).optional(),
+    effectiveFrom: CalendarDateSchema,
+    effectiveUntil: CalendarDateSchema.optional(),
     applicability: z
       .object({ ruleVersion: bounded(64), condition: PolicyConditionSchema })
       .strict(),
@@ -646,16 +652,27 @@ export function projectPolicyApplicability(
     };
   }
   const active = material.active;
+  if (
+    !parseCalendarDate(active.effectiveFrom) ||
+    (active.effectiveUntil !== undefined && !parseCalendarDate(active.effectiveUntil)) ||
+    (active.effectiveUntil && active.effectiveUntil < active.effectiveFrom) ||
+    !parseCalendarDate(input.todayIso)
+  )
+    return review(
+      "material_unreadable",
+      "The policy validity dates or current comparison date are invalid. Review the dates before using this material.",
+      active,
+    );
   if (active.effectiveFrom > input.todayIso)
     return review(
       "material_not_yet_effective",
-      `Approved version ${active.version} takes effect on ${active.effectiveFrom}; it is not used before then.`,
+      `Approved version ${active.version} takes effect on ${formatCalendarDate(active.effectiveFrom)}; it is not used before then.`,
       active,
     );
   if (active.effectiveUntil && active.effectiveUntil < input.todayIso)
     return review(
       "material_expired",
-      `Approved version ${active.version} ended on ${active.effectiveUntil}. Nothing is inferred from an expired version; an approver must supply a current one.`,
+      `Approved version ${active.version} ended on ${formatCalendarDate(active.effectiveUntil)}. Nothing is inferred from an expired version; an approver must supply a current one.`,
       active,
     );
   const evaluation = evaluatePolicyCondition(

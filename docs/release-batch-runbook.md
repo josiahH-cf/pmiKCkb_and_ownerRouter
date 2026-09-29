@@ -24,8 +24,10 @@ Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604
 The guarded remote product supplement passed; no provider or business mutation was used as proof.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The batch is complete and its permit consumed. The retained procedure below records the
-required controls; it does not authorize another deployment from an empty queue.
+The original batch is complete and its permit consumed. The owner has now requested adversarial
+review and closure of confirmed gaps. Its corrective candidate is recorded as all thirteen suites
+in the current queue and must obtain a fresh run/permit and every existing gate below. Never reuse
+the completed permit or its receipts for the repair.
 
 ## Authorized replacement preparation
 
@@ -83,7 +85,7 @@ The thirteen features are cumulative commits on main:
 
 Exact implementation provenance and receipts remain in the shared batch audit and Git history.
 The completed run `f2036ad3-065e-4cac-8641-22f4946c975e` carried all thirteen features in one application build and candidate.
-The queue is cleared. Future work requires its own authority and current readiness evidence.
+The original queue was cleared. The newly authorized corrective queue and current readiness are recorded in docs/loop-state.md.
 
 ## Before you start
 
@@ -143,9 +145,9 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare only an authorized current batch.** The completed thirteen-feature queue is empty;
-its current preflight must refuse another thirteen-feature admission. For a separately authorized
-future batch, require its reviewed scope, green exact-main CI, fresh prerequisites, compatible
+**4. Prepare only an authorized current batch.** An empty queue must refuse admission. The owner-requested
+corrective review has a new cumulative thirteen-suite queue. Require its reviewed scope, green
+exact-main CI, fresh prerequisites, compatible
 checkpoint and actual lock ownership. Never reuse this consumed permit, one-build claim or receipt.
 The local interlock refuses missing, malformed, held, expired, consumed or wrong-head permission
 before dispatch. Preserve actual tag binding independently of canonical traffic.
