@@ -10,37 +10,36 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
-`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
-passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
-One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
-Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
+`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
+passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
+One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
+Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
 Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
-its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
-zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
-observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
+An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
+race: two matching headings and an error panel before hydration, without a failed request.
+The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
+Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
+promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
-request. Five new regressions exposed four failures on the original source; the repaired source
-passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
-compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
-these probes do not establish authenticated live capacity or close the failed release gate.
-The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
-232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
-Runtime limits,
-assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
+My Work now reports its first read as loading from server render through hydration, retaining
+real read failures and explicit read-only Retry. Three new regressions failed on the original
+source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
+gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
+required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
+four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
+assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
 
 ## Current implementation baseline
 
-Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The audit read back Production + Live, managed runtime identity, eleven Space maps, Demo false and Sheet write-back true. S128 is false in both ignored env files and the current fa4f recovery/candidate revisions. The pause has not been promoted.
+Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The audit read back Production + Live, managed runtime identity, eleven Space maps, Demo false and Sheet write-back true. S128 is false in both ignored env files and the current de37 recovery/candidate revisions. The pause has not been promoted.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore. S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance, S102-S110, S106/S34 handoff and S114-S120 operator improvements remain the delivered baseline. Both Dotloop keys remain closed. Document presence is not verified content or signature completion.
 
 ## Canonical closure sequence
 
 Stages 1–5 retain their implemented engineering contracts and scoped evidence in the batch audit.
-Stage 6 is blocked in candidate assurance by the reproduced memory termination. Verify the loading
+Stage 6 is blocked in candidate assurance by the reproduced initial-render race. Verify the My Work loading
 repair, preserve/retire the failed run under the release lock, and require a new exact-head GO.
 The existing owner authorization covers this diagnosed replacement; no gate or old result changes.
 
@@ -128,10 +127,10 @@ lifecycle surfaces on the exact remote replacement, retaining aggregate-only dia
 
 ### 6. Release once, read back and close documentation
 
-**Current replacement:** fa4f passed recovery and one application build, then failed assurance.
-The combined diagnostic reproduced the memory termination. Finish full verification of the SDK
-loading repair and exact main CI before safely retiring fa4f and admitting a new cumulative run.
-The earlier build-provenance correction passed actual fa4f recovery-availability readback.
+**Current replacement:** de37 passed recovery and one application build, then failed assurance.
+The formal-pipeline diagnostic reproduced the My Work initial-render race. Finish full verification of the My Work
+loading repair and exact main CI before safely retiring de37 and admitting a new cumulative run.
+The earlier SDK and build-provenance repairs retain their scoped evidence in the batch audit.
 Follow the repaired ordered runbook. Re-read billing/cost controls and fresh approved auth; inspect checkpoint/archive/lock and both false local flags. Acquire the free release lock for admission and repeat native preflight until GO names the reviewed head and exactly thirteen suites. Atomically admit the prepared permit while retaining that lock, then hand lock ownership to exactly one native-snap-gcloud watcher without an unguarded launch window. The runner revalidates the admission itself; the scheduled task cannot race ahead of preflight. Follow independent phase readbacks: prepared recovery receipt, candidate build/smoke/configuration/domains, guarded Admin assurance, reconciliation, exact promotion and the full 300,000 ms observation. Diagnose failures before retry; preserve every attempt.
 
 Run `~/pmi-kc-work/scripts/s120-readbacks.sh <head-sha> <revision>`. Independently verify canonical/tagged identity, 100% traffic, Production + Live, ASK_DEMO_MODE=false, LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false, reviewed fingerprint/configuration, runtime identity, eleven Space maps, secret bindings, monitoring and exactly one candidate authorized domain. Prepared/actual rollback targets must also read Sheet=false. Recheck applicable read-only feature surfaces on the exact deployed release; fixtures do not prove customer effects.

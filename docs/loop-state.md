@@ -9,37 +9,36 @@ verified delivery of all thirteen features, without another decision solely for 
 Every existing technical and safety gate remains. Preserve failed evidence byte-for-byte;
 never substitute source or a receipt in the frozen run. S121 remains excluded.
 
-Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
-`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
-passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
-One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
-Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
+`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
+passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
+One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
+Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
 Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
-its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
-zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
-observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
+An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
+race: two matching headings and an error panel before hydration, without a failed request.
+The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
+Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
+promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
 The watcher and diagnostic browsers are stopped. Active checkpoint is assurance_unverified,
-operatorResumeRequired=true, admitted permit expires 21:54:14.995Z. All run artifacts remain
+operatorResumeRequired=true, admitted permit expires 23:25:13.380Z. All run artifacts remain
 outside Git. Do not resume the frozen code; verify the repair and prepare a fresh replacement.
-Candidate fingerprint: sha256:bada799c5b17ddb61ec6b781c0fa8b2d1606ccec4f97c6a3ae1253eb92da6780.
+Candidate fingerprint: sha256:a0b4f7701705f883944f7fccdefcf43120272b5997dbd0ff43fb203bc539dd9b.
 Recovery fingerprint: sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8.
-Recovery reference hash: sha256:704d810f624dd38493be0281df498d125460125c9234cad62f45a29c2cbd46de.
+Recovery reference hash: sha256:3e57976753a784a74086a86cb03c949608e456724d220ffa3bc94c574670e974.
 
 ## Verified implementation and local proof
 
-The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
-request. Five new regressions exposed four failures on the original source; the repaired source
-passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
-compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
-these probes do not establish authenticated live capacity or close the failed release gate.
-The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
-232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
-Runtime limits,
-assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
+My Work now reports its first read as loading from server render through hydration, retaining
+real read failures and explicit read-only Retry. Three new regressions failed on the original
+source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
+gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
+required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
+four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
+assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
 
-Focused receipt: ~/pmi-kc-work/logs/memory-lazy-focus-20260929T165446746686Z/report.json.
+Focused receipt: ~/pmi-kc-work/logs/work-loading-focus-20260929T182146575841Z/green-summary.json.
 Prior complete gate: 7,425 unit/232 backend passes; four existing configuration skips remain skips.
 All G1–G7, 118 litmus references, compiled/core/PDF proofs and historical uncertainty retain
 exact source/build scopes in docs/evidence/batch-litmus-audit-2026-09-28.md.
@@ -64,17 +63,17 @@ exact source/build scopes in docs/evidence/batch-litmus-audit-2026-09-28.md.
 ## Verified production and authentication
 
 Serving SHA 79493458f641b9710d8c43467e872aa9acf7948e (S120).
-Revision pmi-kc-app-rmu4wevd9-d89996133320, 100%; canonical canary passed 16:33:26.097Z.
+Revision pmi-kc-app-rmu4wevd9-d89996133320, 100%; canonical canary passed 18:19 UTC.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Serving fingerprint: sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568.
 Production/Live, managed identity, 11 Spaces, Demo=false, Sheet=true.
-Fresh CLI/ADC refresh probes passed 16:42 UTC after 13:16:20.229Z owner enrollment.
+Fresh CLI/ADC refresh probes passed September 29 after 13:16:20.229Z owner enrollment.
 The admitted prerequisite checks passed billing/cost/auth; refresh for replacement admission.
 No billing/budget/guardrail/system/security/identity/claim change.
 
 ## Next step and remaining limits
 
-Finish the full repaired-tree gate and exact-head CI, archive/retire fa4f through fresh locked
+Finish the full repaired-tree gate and exact-head CI, archive/retire de37 through fresh locked
 readbacks, then fresh GO/admission for all thirteen. One watcher, one application build per run,
 new paused recovery receipt and all assurance/promotion/observation gates remain mandatory.
 After RELEASED only: independent readbacks, guarded remote feature checks, in-place closure,

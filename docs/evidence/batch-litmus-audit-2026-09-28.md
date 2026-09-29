@@ -1,6 +1,6 @@
 # Batched release litmus audit — 2026-09-28
 
-Updated 2026-09-29 UTC. Current reviewed/admitted implementation: `b59f2c6f08a32f022cff5112a16bc5405664e4d1`. The supplied checklist's 118 reference indexes 0–117 remain intact below; S121 is separately excluded.
+Updated 2026-09-29 UTC. Current admitted implementation: `565fd837c5df67d4923f91d6b7d1c2b3840da7da`. The supplied checklist's 118 reference indexes 0–117 remain intact below; S121 is separately excluded.
 
 ## Current replacement attempt
 
@@ -10,7 +10,87 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-### Current fa4f candidate and diagnosed memory repair
+### Current de37 candidate and diagnosed My Work loading repair
+
+Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
+`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
+passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
+One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
+Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
+race: two matching headings and an error panel before hydration, without a failed request.
+The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
+Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
+promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
+
+My Work now reports its first read as loading from server render through hydration, retaining
+real read failures and explicit read-only Retry. Three new regressions failed on the original
+source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
+gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
+required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
+four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
+assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
+
+The fa4f failed run was retired with all seventeen exact files archived/read back at 17:23 UTC:
+`~/pmi-kc-work/logs/runfa4f-retirement-execute-2026-09-29T172358521Z-b761d318-2ecb-4e12-92ff-9d6f7aff76f0`.
+Only active checkpoint/permit positions were removed; original receipts/claims and cloud state
+were preserved. Fresh preflight GO admitted all thirteen suites at current 565fd837.
+
+De37 recovery and smoke first failed on observed 60-second HTTP504 cold requests. Separate
+unchanged diagnostics passed before authorized same-run resumes; no timeout was relaxed.
+Formal assurance failed at 17:52:51.638Z and 18:01:17.196Z. An ordered separate diagnostic passed,
+but the actual formal pipeline diagnostic failed at 18:11:05.593Z: My Work landmark missing,
+sources unavailable, 60 field mismatches and two invalid destinations. That report stays failed;
+it does not establish the specific cause of each source failure.
+
+The deeper formal-pipeline diagnostic reproduced the page race at 18:19:51.443Z: HTTP2xx,
+document interactive, exactly two My Work headings, one alert, no aria-busy marker and no failed
+requests, mutation attempts or authentication mismatch. The initial server-rendered branch
+incorrectly used the unavailable panel before its scheduled first read/hydration. Both source
+projections subsequently completed all 311 detail reads without errors; reconciliation matched
+all 311 source/projected/rendered records, zero discrepancies, stable sources, monitoring ready.
+This is diagnostic evidence only; candidate assurance remains failed and no receipt was minted.
+Root: `~/pmi-kc-work/logs/de37-deep-diagnostic-20260929T181855876557Z`.
+Launch-summary SHA256 `84ca701658e41e3522d6ad56453ea5d4df928b90548ca3b6d1e04cd855f71f24`;
+gate SHA256 `c0eea144bfdf6a865e2ab85b8c5b36a8f9932de74f9301f7b869ffed1506aed0`.
+The instrumented copies remained outside Git; receipt construction was removed, admitted source
+and active state stayed unchanged, and zero owned browsers/watchers remained. An earlier
+diagnostic setup assertion and missing dependency resolution failed before live checks; both
+failures remain preserved, not counted as evidence of application failure or success.
+
+The single production-code change starts My Work/Team Work in the existing loading state.
+`tests/unit/work-accountability-loading.test.tsx` checks real SSR before hydration, an unresolved
+first read, real failure reporting and explicit GET-only Retry. All three cases failed on 565fd837;
+the repair passed 23 checks across four files. No canary assertion, deadline or request guard changed.
+Receipt: `~/pmi-kc-work/logs/work-loading-focus-20260929T182146575841Z/green-summary.json`;
+red log SHA256 `16094fdcd8c0f9f2b1db68f9ea1d1dcf2038325e75fca89098be0fa44fdbfe13`;
+green log SHA256 `e52ee852faf947ce667db338a74b0ccd661a99f2794ecee0753f33bc11191654`.
+Full repaired-tree gate, exact replacement CI, checked de37 retirement and the new release's
+complete gates remain required. The old SDK repair and all other litmus evidence retain scope.
+
+### Full My Work loading repair verification
+
+The isolated full gate passed from 2026-09-29T18:27:23.915775+00:00 to 2026-09-29T18:35:17.388716+00:00: 7,433 unit passes,
+four existing skips, 232 backend passes, required lint/type/format/document/policy checks and
+production build `PXJkJ8Qco-hgRaRoyvdi_`. All 2,191 source files stayed unchanged, native/primary drift
+and owned runtime processes were zero. The empty home/config, test project and loopback
+metadata/emulator boundary excluded real credentials and provider effects.
+Receipt: `~/pmi-kc-work/logs/work-loading-ship-verify-20260929T182701230417Z/summary.json`;
+summary SHA256 `8b0d20522eca59e217b0dfb1b3008bbe44a5503c083603325f00f4724adf24a7`;
+full-log SHA256 `2cd471d6358be44d0a28d87cffef745d64d77a1c56492790dd6fc869edd380a2`;
+manifest SHA256 `b81ee9c44bd4ba0b08c0502b4b0f3030a4039bfbfc72907da58eee10bc2827ad`.
+Final documentation changes record these results; all non-documentation must still match this
+full gate in the final documentation check and commit binding. Exact CI/live release remain gates.
+
+All seventeen de37 state files were preserved under the lock at 18:27:12.982Z:
+`~/pmi-kc-work/logs/de37-assurance-stop-snapshot-1790706432886-a96fa1e7-ecc9-468f-9aef-116f194d879c`,
+manifest SHA256 `5923762619888f188108acf8c60e55a9d325d242cc977859a96d66d51b45343b`.
+Snapshotting retired nothing and made no cloud mutation. The adapted retirement helper differs
+only in exact run/snapshot coordinates; its twelve parser checks passed. Fresh cloud readback,
+reviewed dry-run and checked retirement remain mandatory after exact-head CI.
+
+### Earlier fa4f candidate and diagnosed memory repair — historical evidence only
 
 Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
 `f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
@@ -29,7 +109,7 @@ passed all 35 focused checks, typecheck, lint and a production build. Matched lo
 compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
 these probes do not establish authenticated live capacity or close the failed release gate.
 The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
-232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
+232 backend passes and all required checks/build. That later replacement was 565fd837, whose exact CI passed.
 Runtime limits,
 assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
 

@@ -8,26 +8,25 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
-`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
-passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
-One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
-Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
+`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
+passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
+One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
+Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
 Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
-its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
-zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
-observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
+An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
+race: two matching headings and an error panel before hydration, without a failed request.
+The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
+Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
+promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
-request. Five new regressions exposed four failures on the original source; the repaired source
-passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
-compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
-these probes do not establish authenticated live capacity or close the failed release gate.
-The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
-232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
-Runtime limits,
-assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
+My Work now reports its first read as loading from server render through hydration, retaining
+real read failures and explicit read-only Retry. Three new regressions failed on the original
+source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
+gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
+required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
+four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
+assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
 
 ## Production
 
@@ -117,7 +116,7 @@ PID 382 started stale S128-only build `57f23335-8f8b-490e-b18e-5d6d4b1db564` at 
 It was stopped and the build read CANCELLED at 21:01:53.995Z; candidate
 `pmi-kc-app-rmu82xj2c-fa2fae08b587` is absent and traffic unchanged. The exact checkpoint was
 archived with a reason outside Git. That cleanup restored the completed S120 checkpoint at the time;
-the active checkpoint now belongs to replacement run fa4f6652-3220-4847-93f3-a81465648134, blocked in candidate assurance after successful recovery and application build.
+the active checkpoint now belongs to replacement run de37a023-5762-435f-b28b-bd0e724cdd7f, blocked in candidate assurance after successful recovery and application build.
 Missing permission blocks forward release even after the installation lock is released. The launcher
 checks admission before starting the watcher; the watcher checks it before polling CI or auth; direct
 forward-mutation entry points require a real inherited kernel lock, exact run/SHA/revision checkpoint and
@@ -163,8 +162,8 @@ checkout with both reviewed ignored env files. Feature 4's first release failed 
 The owner-directed resumed release of `2bf21ff` then passed full assurance, promotion and observation;
 Feature 5 completed through PR #90, then Feature 6 through PR #91; each completed its own
 production observation before advancing. All six requested standalone feature cycles are complete.
-The active checkpoint retains run `fa4f6652-3220-4847-93f3-a81465648134`, blocked in assurance
-by the reproduced memory termination; its admitted permit expires 21:54:14.995Z. The owner permits
+The active checkpoint retains run `de37a023-5762-435f-b28b-bd0e724cdd7f`, blocked in assurance
+by the reproduced initial-render race; its admitted permit expires 23:25:13.380Z. The owner permits
 verified repairs/replacements through batch completion. Preserve frozen source, claims and receipts.
 Earlier failed reports,
 receipts and terminal checkpoints retain their actual outcomes, including the 919a2ae rollback.
@@ -338,8 +337,8 @@ the predecessor's existing `.renewal-lease-link` when newer semantic markers are
 version/configuration, the complete Admin route manifest, diagnostics and monitoring remain
 required. Candidate-era semantic reconciliation cannot be imposed on a predecessor without those
 markers. The first run's 09:47:29.810Z supplemental receipt is historical d63f evidence only.
-The current fa4f clone passed recovery preparation, issuing receipt
-`b6f02000-fb07-4d05-8082-9ae7b5adea56` at 16:09:43.559Z. Earlier failures remain unchanged.
+The current de37 clone passed recovery preparation, issuing receipt
+`975fe996-26c3-4898-bb6b-e627e2a42a7f` at 17:38:55.104Z. Earlier failures remain unchanged.
 No traffic recovery occurred; prepared recovery is not a rollback verdict.
 
 ## Promotion and observation
@@ -390,11 +389,11 @@ The replacement captured still-serving `pmi-kc-app-rmu4wevd9-d89996133320` /
 `79493458f641b9710d8c43467e872aa9acf7948e` as its canonical baseline. It reads Sheet=true;
 a bare restoration would violate S128.
 
-The current zero-traffic recovery target is `pmi-kc-app-recovery-fa4f665232204847`, fingerprint
+The current zero-traffic recovery target is `pmi-kc-app-recovery-de37a0235762435f`, fingerprint
 `sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8`, using the existing
-`cand-rmumm94q0-db6fbbbf472d` tag during preparation. Recovery receipt
-`b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z, reference hash
-`704d810f624dd38493be0281df498d125460125c9234cad62f45a29c2cbd46de`.
+`cand-rmumv0qhm-ee028c251b32` tag during preparation. Recovery receipt
+`975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z, reference hash
+`3e57976753a784a74086a86cb03c949608e456724d220ffa3bc94c574670e974`.
 Post-build recovery availability passed under the corrected verifier without relaxing other controls.
 Forward restoration and rollback retain the pause-preserving, receipt-bound contract. No traffic
 rollback ran. Earlier d63f/59d3 targets and receipts belong only to their historical failed runs.

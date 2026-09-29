@@ -48,7 +48,8 @@ export function WorkAccountabilityBoard({
   const [roster, setRoster] = useState<WorkAssignableUser[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // The first read has not completed during SSR or before the mount effect starts.
+  const [isRefreshing, setIsRefreshing] = useState(true);
   const [isReconciling, setIsReconciling] = useState(false);
   const [busyKey, setBusyKey] = useState("");
   const [filters, setFilters] = useState({

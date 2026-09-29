@@ -8,26 +8,25 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
-`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
-passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
-One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
-Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Run `de37a023-5762-435f-b28b-bd0e724cdd7f` carries all thirteen features at
+`565fd837c5df67d4923f91d6b7d1c2b3840da7da`; exact [CI 36603662631](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36603662631)
+passed. Recovery receipt `975fe996-26c3-4898-bb6b-e627e2a42a7f` passed at 17:38:55.104Z.
+One application build `eae06d16-3911-4d65-8216-b0f0efa29a3d` succeeded at 17:44:17.867568Z.
+Candidate `pmi-kc-app-rmumy904w-9cb39576b998` is at zero traffic, Production/Live,
 Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
-The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
-its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
-zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
-observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
+An instrumented read-only execution of the formal pipeline reproduced My Work's initial-render
+race: two matching headings and an error panel before hydration, without a failed request.
+The latest reconciliation matched all 311 records with complete stable sources and zero discrepancies.
+Earlier source-unavailable and failed assurance results remain failed. No candidate receipt,
+promotion or observation exists; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
-request. Five new regressions exposed four failures on the original source; the repaired source
-passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
-compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
-these probes do not establish authenticated live capacity or close the failed release gate.
-The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
-232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
-Runtime limits,
-assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
+My Work now reports its first read as loading from server render through hydration, retaining
+real read failures and explicit read-only Retry. Three new regressions failed on the original
+source; the repaired source passed all 23 focused checks in four files. The full repaired-tree
+gate passed at 18:35:17.388716Z: 7,433 unit passes, four existing skips, 232 backend passes and all
+required checks/build. Replacement exact-head CI remains pending. The prior SDK repair passed 7,430 unit tests,
+four existing skips, 232 backend tests, all checks/build and exact 565fd837 CI. Runtime limits,
+assurance concurrency/deadlines, safety controls and the frozen admitted checkout remain unchanged.
 
 ## Authorized replacement preparation
 
@@ -36,7 +35,7 @@ verified delivery of all thirteen features, without another decision solely for 
 Every existing technical and safety gate remains. Preserve failed evidence byte-for-byte;
 never substitute source or a receipt in the frozen run. S121 remains excluded.
 
-1. Finish and independently review the diagnosed SDK loading repair. Retain the tested new-run entry
+1. Finish and independently review the diagnosed My Work loading repair. Retain the tested new-run entry
    against the actual existing authorized host, including a host currently bound to the failed
    candidate, changed or ambiguous tag bindings, unchanged canonical traffic and refusal before
    mutation on mismatches. Preserve the exact checker, one-build and receipt contracts.
@@ -113,7 +112,7 @@ with no traffic change.
 The exact checkpoint is archived at
 `~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
 with its reason. Never overwrite that archive or relabel cancellation as success. The active
-checkpoint now belongs to replacement run `fa4f6652-3220-4847-93f3-a81465648134`, blocked in
+checkpoint now belongs to replacement run `de37a023-5762-435f-b28b-bd0e724cdd7f`, blocked in
 candidate assurance after its successful recovery and one application build. Preserve the exact
 run, admitted permit, claims and receipts. The owner authorizes a diagnosed replacement only after
 verified repair, exact CI, fresh checked retirement and new locked GO/admission.
@@ -125,7 +124,7 @@ the task. An unfinished checkpoint still pins the watcher to its SHA; inspect an
 archiving or resetting it.
 
 **3. Verify approved authentication.** Fresh WSL CLI/ADC enrollment and binding for
-`josiah@pmikcmetro.com` completed 2026-09-29T09:18:39.478Z. One owner-approved WSL restart resolved
+`josiah@pmikcmetro.com` initially completed 2026-09-29T09:18:39.478Z. One owner-approved WSL restart resolved
 the invisible WSLg window; headed Admin enrollment verified role Admin/human_completed at
 09:34:11.947Z and post-restart probes passed. Approved Google-session reuse subsequently restored
 the tagged recovery host. After a preserved eleven-minute enrollment timeout, the owner requested
@@ -160,12 +159,8 @@ preflight's seven-hour enrollment budget; a release must begin within it. An exp
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
 **4. Prepare the exact repaired batch.** The earlier 1fb run remains failed and held, and the
-b59 replacement remains failed at assurance with its one build claim preserved. The corrected
-41de code passed the full local gate and exact CI; documentation main fbd830bb passed exact
-CI 36579322010 at 14:04:28Z. Record the owner-approved completion amendment, verify the resulting
-exact head, then preserve and retire b59 through the reviewed archive procedure before preparing a
-new run. Keep every old run identity and claim distinct. The new batch must carry all thirteen
-entries and pass fresh prerequisites and locked GO; retain the queue until remote delivery is verified.
+de37 replacement remains failed at assurance with its build claim preserved. Commit/push only the
+verified My Work correction; exact CI, checked retirement and fresh GO remain mandatory.
 
 The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
 checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained
@@ -277,13 +272,8 @@ Each phase advances only on independent readback:
 4. Run the pinned environment-handoff-provider-table and plan-status-sync tests, prettier and
    document gates; commit/push documentation-only closure. It must not trigger another deployment.
 
-The b59 replacement candidate is built and Ready at zero traffic; recovery has a passing receipt.
-Candidate assurance is BLOCKED on the proven build-provenance comparison defect, before its
-canary/reconciliation. No candidate assurance receipt, promotion or observation exists. The final
-correction passed focused review, a read-only diagnostic, its full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b CI.
-Batch-scoped owner authority permits diagnosed and verified continuation under the unchanged gates.
-Receipt alteration and candidate/verifier substitution remain forbidden.
-The old S120 receipts remain historical evidence only. Local compiled checks retain their exact
-scopes in the batch audit; human verdicts remain NOT RUN.
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 stay open. No release can manufacture their
-external inputs, connect Dotloop, activate a closed key or create a client-facing send.
+The current de37 replacement is blocked at assurance. Complete the My Work loading repair's
+full verification and exact CI, then preserve and retire this run under the release lock before
+fresh all-thirteen admission. Frozen verifier/candidate substitution and receipt alteration remain
+forbidden. The prior S120 receipts remain historical; human verdicts remain NOT RUN.
+B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-MNT2 retain their scoped external holds.
