@@ -8,33 +8,35 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-**AUTHORIZED CONTINUATION — the owner granted batch-scoped authority through verified deployment; the frozen failed candidate remains unchanged while a corrected cumulative run is prepared.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
+Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
+`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
+passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
+One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
+Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
+its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
+zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
+observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
-
-Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed to main, with native checkout alignment and an independent 2,189-blob audit passed; protected paths and private inputs were excluded. [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact commit, completing at 13:14:11Z. This main repair is separate from the frozen b59 candidate.
-
-The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
-
-Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. The owner now authorizes diagnosed and verified replacements through completion under the batch-scoped amendment in AGENTS.md; the frozen b59 verifier and receipts remain immutable. The audit preserves every failed probe and prior repair scope.
-
-Final b59 verification passed 7,289 unit tests, 232 backend tests, all gates/build; four clean-snapshot
-config checks separately passed against actual configuration. The local historical Sheet-proposal/
-resume component branch is now verified at its stated scope. Full receipts and all 118 references
-remain in the [batch audit](evidence/batch-litmus-audit-2026-09-28.md). Local passes do not override
-the frozen-candidate execution boundary or any release gate. Billing remains enabled.
+The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
+request. Five new regressions exposed four failures on the original source; the repaired source
+passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
+compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
+these probes do not establish authenticated live capacity or close the failed release gate.
+The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
+232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
+Runtime limits,
+assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
 
 ## Authorized replacement preparation
 
-The bootstrap repair, full verification, exact-head CI, evidence preservation and locked admission
-below completed for b59/run 59d3. The owner-authorized same-run resume then passed recovery and
-one application build. Assurance is now blocked before its canary/reconciliation by the proven
-build-provenance verifier defect. The prior repair passed its full gate/CI. Final output-selection focused/review checks, fresh
-CLI/ADC and read-only compatibility passed; the final correction’s full gate and exact 41de760f4d7d9b75c027e4b3c3ad97e63681097b
-CI passed. The owner now authorizes diagnosed and verified replacements through verified deployment, with every existing technical and safety gate retained.
-Use the reviewed retirement procedure only after fresh readback. A new run is owner-authorized; preserve receipts and never silently substitute a verifier.
+The owner authorizes diagnosed and verified repairs, resumes and cumulative replacements through
+verified delivery of all thirteen features, without another decision solely for attempt counts.
+Every existing technical and safety gate remains. Preserve failed evidence byte-for-byte;
+never substitute source or a receipt in the frozen run. S121 remains excluded.
 
-1. Finish and independently review the narrow bootstrap/recovery repair. Verify new-run entry
+1. Finish and independently review the diagnosed SDK loading repair. Retain the tested new-run entry
    against the actual existing authorized host, including a host currently bound to the failed
    candidate, changed or ambiguous tag bindings, unchanged canonical traffic and refusal before
    mutation on mismatches. Preserve the exact checker, one-build and receipt contracts.
@@ -60,9 +62,6 @@ Use the reviewed retirement procedure only after fresh readback. A new run is ow
    the canonical predecessor; verify Admin readiness on canonical and the exact recovery origin
    before its guarded canary. Then build one replacement application candidate. The batch-scoped owner amendment
    permits diagnosed and verified replacements without a new decision solely for another attempt.
-
-Candidate/recovery/promotion/observation gates below remain unchanged. These steps authorize no
-business write, live fixture, paid comp, send, security change or manually fabricated receipt.
 
 ## What ships
 
@@ -114,9 +113,10 @@ with no traffic change.
 The exact checkpoint is archived at
 `~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
 with its reason. Never overwrite that archive or relabel cancellation as success. The active
-checkpoint now belongs to replacement run `59d3ef47-06c6-4d9c-9235-ffb257e9976f`, blocked in
+checkpoint now belongs to replacement run `fa4f6652-3220-4847-93f3-a81465648134`, blocked in
 candidate assurance after its successful recovery and one application build. Preserve the exact
-run, admitted permit, claims and receipts; the narrow repair grants no retry or substitution.
+run, admitted permit, claims and receipts. The owner authorizes a diagnosed replacement only after
+verified repair, exact CI, fresh checked retirement and new locked GO/admission.
 S120 remains the serving baseline. After interlock installation, eleven release files
 matched both checkouts, the permit was absent and zero watchers were found at 2026-09-29T02:31:17Z.
 The temporary installation hold was released and the kernel lock read free; direct admission still

@@ -4,44 +4,67 @@ Last updated: 2026-09-29 (UTC).
 
 ## Current feature
 
-The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
-necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
-promotion, receipt-bound rollback and documentation closure through verified deployment of all
-thirteen features. It supersedes per-attempt approval counts while retaining every technical and
-safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
+The owner authorizes diagnosed and verified repairs, resumes and cumulative replacements through
+verified delivery of all thirteen features, without another decision solely for attempt counts.
+Every existing technical and safety gate remains. Preserve failed evidence byte-for-byte;
+never substitute source or a receipt in the frozen run. S121 remains excluded.
 
-**AUTHORIZED CONTINUATION — the owner granted batch-scoped authority through verified deployment; the frozen failed candidate remains unchanged while a corrected cumulative run is prepared.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
-
-Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
-
-Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed to main, with native checkout alignment and an independent 2,189-blob audit passed; protected paths and private inputs were excluded. [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact commit, completing at 13:14:11Z. This main repair is separate from the frozen b59 candidate.
-
-The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
-
-Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. The owner now authorizes diagnosed and verified replacements through completion under the batch-scoped amendment in AGENTS.md; the frozen b59 verifier and receipts remain immutable. The audit preserves every failed probe and prior repair scope.
+Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
+`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
+passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
+One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
+Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
+its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
+zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
+observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
 ## Verification
 
-The exact replacement tree passed the full native gate from **11:28:44.910177Z to 11:37:01.569397Z**: **7,289 unit passes**, four clean-snapshot configuration skips, **232 backend passes**, all required gates and production build `4uaO6qfRu25uJswh6MZrf`. All 2,188 tracked paths and the 17 changed paths (nine code/test, eight documentation) were source-bound; committed b59 blobs match the tested snapshot. Receipt: `~/pmi-kc-work/logs/replacement-ship-verify-20260929T112448971523Z/summary.json`; full-log SHA256 `883934cadf42297c9d5c922da1bd3227a4cbf66b949d51ecb859d22309efb775`. The four unchanged actual-configuration checks separately passed at **11:42:00.939Z** in `~/pmi-kc-work/logs/config-parity-2026-09-29T114200447Z/summary.json`; the clean-snapshot skips remain skips. Focused bootstrap/recovery checks passed 139 tests in seven files and independent review.
+The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
+request. Five new regressions exposed four failures on the original source; the repaired source
+passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
+compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
+these probes do not establish authenticated live capacity or close the failed release gate.
+The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
+232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
+Runtime limits,
+assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
 
-The previously unrun G4 historical-proposal/resume browser branch now passed both cases in an isolated exact compiled OperatingSheetPanel fixture: old outcomes/receipts remain readable, paused proposal/effect controls remain unavailable, and resume requires fresh review rather than executing old proposals. The fixture used build `MsohNlljqt7KxRmFLb2od`, 955 matching current application-source hashes and 55 unchanged compiled-JS hashes; no real lease, owner profile, provider or application server was used. One intercepted reconcile POST and one fixture GET produced zero effects, forwarded business requests, external requests, blocked requests or page errors. Owned processes were zero. Receipt `~/pmi-kc-work/logs/g4-historical-component-1790680995497/report.json`, SHA256 `6ca33b76569672a7b5a3833bded4fa781ebf9a6a97718a52fddf434d617be8ca`. This closes that component branch only; its route/store integration is separately covered by backend checks. Original harness failures remain preserved.
-
-The earlier K/L compiled and core results remain at their exact source/build scopes in the [batch audit](evidence/batch-litmus-audit-2026-09-28.md). They cover actual controls/readback, source coherence, both journeys, filled-output approval and presentation; they are not remote delivery or human verdicts. All 118 supplied references remain mapped.
+Prior source gate: 7,425 unit passes, four existing clean-configuration skips, 232 backend passes,
+all required checks and production build. The later governance-only f1 commit passed exact main CI.
+G1–G7 and all 118 litmus references retain their precise local/compiled/backend scopes in the
+[batch audit](evidence/batch-litmus-audit-2026-09-28.md). Failed or historical attempts are not passes.
 
 ## Serving release
 
-Production remains S120 `79493458f641b9710d8c43467e872aa9acf7948e` / `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic, canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Its last independently read full configuration is Production + Live, managed identity, eleven actual Space-map entries in each map, Demo=false and **Sheet=true**, fingerprint `sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568`. The independent blocked-state readback at 12:44:03.541Z confirmed canonical S120 at 100%, the exact b59 candidate and recovery Ready at zero traffic with Production/Live and both false flags, both expected fingerprints, exactly one candidate authorized domain, exact versions and unchanged checkpoint. This is not assurance or promotion; S128 has not been promoted. A later independent billing/service read at 13:40:31.862Z confirmed expected billing enabled, service Ready with matching generation, and S120 still at 100%; it did not change cloud state.
-
-S120's historical candidate/promotion receipts and 372,944 ms observation remain valid for S120. The first 1fb candidate is a preserved failed attempt; its tag has been reused for the replacement's paused recovery preparation. No promotion or delivered batch is claimed.
+Production remains `79493458f641b9710d8c43467e872aa9acf7948e` /
+`pmi-kc-app-rmu4wevd9-d89996133320` at 100% on
+https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Production + Live, managed identity, eleven Spaces,
+Demo=false and Sheet=true remain the serving configuration. S128 has not been promoted.
+The current run's recovery target is `pmi-kc-app-recovery-fa4f665232204847`, Sheet=false,
+fingerprint `sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8`.
+No traffic rollback occurred. A Sheet=true restoration remains forbidden.
 
 ## Authentication and cost controls
 
-Approved owner-attended CLI/ADC enrollment and binding passed at **13:16:20.229Z**: CLI at 13:16:07.612Z, ADC at 13:16:12.639Z, binding at 13:16:16.131Z, approvedStoresReady=true. The earlier attempt timed out at 13:13:03.542Z without CLI completion or an ADC step and remains failed. The owner’s sign-in retry did not authorize another candidate. Guarded Admin readiness passed canonical and exact b59 candidate `/admin/access` at 13:42:27.560Z; this observed Admin role in the approved profile, not a new full release-assurance verdict. Google provider enablement and billing/cost readbacks retain their recorded times. Existing 25/100/100 USD controls, ACTIVE Node.js 22 guardrail cap 100, identity and security settings are unchanged. B-AUTH2’s separate 24-hour unchanged-enrollment proof remains open.
+Approved CLI/ADC enrollment passed at 13:16:20.229Z and fresh refresh probes passed at 16:42 UTC.
+Guarded canonical Admin canary passed at 16:33:26.097Z. Billing/cost/auth prerequisites passed
+for the 15:56 admission; they must be refreshed for a replacement. The 25/100/100 USD controls,
+guardrail cap 100, identity and security settings remain unchanged. Authentication longevity is
+separate from release acceptance; no password, code, passkey or CAPTCHA was handled by the runner.
 
 ## Delivered baseline and open dependencies
 
-S113 F1-F5 and S114-S120 remain deployed. Staff completion is distinct from provider receipts and signatures; blank resource inputs remain supported. The 13 newer features are implemented and tested but not promoted.
+S113 F1–F5 and S114–S120 remain deployed. The newer thirteen features remain queued.
+B-DL1, B-DL2, B-DL3, B-S100, B-MNT1, B-MNT2 and B-AUTH2 remain open at their scoped boundaries.
+Actual customer draft/form/Rhino accuracy, approved notice-timing basis, real-case walkthroughs,
+human screen-reader/zoom verdicts and provider acceptance remain unverified. Both Dotloop keys
+stay closed; signatures are separate. S36 stays behind complete S100; S121 is excluded.
+Historical K unit-store target/marker effects remain UNVERIFIED. No customer draft/send,
+paid comparison, provider-proof rerun or synthetic production record ran for this release.
 
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1, B-MNT2 and separate B-AUTH2 longevity remain open. Actual customer-specific draft/form/Rhino accuracy, approved notice-timing basis, selected real cases and observed walkthrough/human verdicts remain unverified. Both Dotloop keys stay closed; signatures and provider acceptance are separate. S36 stays behind complete S100; S121 remains excluded from this batch. Historical K unit-store target/marker effects remain UNVERIFIED; zero available Data Access records do not prove no effects. No customer draft/send, paid comparison, provider proof rerun or synthetic production record was authorized by these checks.
-
-Next: record and verify the owner-approved batch-scoped governance, preserve/retire the failed run using fresh readbacks, then prepare/admit the corrected current head only on fresh GO. Complete all release and remote readback gates; retain the frozen b59 evidence and all thirteen queue entries until verified delivery.
+Next: commit the fully verified repair and require exact CI, preserve and retire fa4f through fresh
+checked archival, then admit one new all-thirteen candidate. Require every release gate,
+independent remote readbacks and documentation closure before clearing the queue.

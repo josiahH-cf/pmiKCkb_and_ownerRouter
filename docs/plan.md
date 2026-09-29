@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-09-29 (UTC). The owner authorizes diagnosed and verified repairs, resumes and replacement thirteen-feature candidates through verified deployment. That authorized resume passed recovery and built the zero-traffic b59 candidate; assurance is now blocked by the proven verifier defect. Production remains on S120.
+Updated: 2026-09-29 (UTC). All thirteen features remain queued; production still serves S120.
 
 ## Outcome
 
@@ -10,31 +10,39 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-**AUTHORIZED CONTINUATION — the owner granted batch-scoped authority through verified deployment; the frozen failed candidate remains unchanged while a corrected cumulative run is prepared.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
+Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
+`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
+passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
+One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
+Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
+its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
+zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
+observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
-
-Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed to main, with native checkout alignment and an independent 2,189-blob audit passed; protected paths and private inputs were excluded. [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact commit, completing at 13:14:11Z. This main repair is separate from the frozen b59 candidate.
-
-The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
-
-Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. The owner now authorizes diagnosed and verified replacements through completion under the batch-scoped amendment in AGENTS.md; the frozen b59 verifier and receipts remain immutable. The audit preserves every failed probe and prior repair scope.
-
-The exact replacement tree passed the full native gate from **11:28:44.910177Z to 11:37:01.569397Z**: **7,289 unit passes**, four clean-snapshot configuration skips, **232 backend passes**, all required gates and production build `4uaO6qfRu25uJswh6MZrf`. All 2,188 tracked paths and the 17 changed paths (nine code/test, eight documentation) were source-bound; committed b59 blobs match the tested snapshot. Receipt: `~/pmi-kc-work/logs/replacement-ship-verify-20260929T112448971523Z/summary.json`; full-log SHA256 `883934cadf42297c9d5c922da1bd3227a4cbf66b949d51ecb859d22309efb775`. The four unchanged actual-configuration checks separately passed at **11:42:00.939Z** in `~/pmi-kc-work/logs/config-parity-2026-09-29T114200447Z/summary.json`; the clean-snapshot skips remain skips. Focused bootstrap/recovery checks passed 139 tests in seven files and independent review.
-
-The previously unrun G4 historical-proposal/resume browser branch now passed both cases in an isolated exact compiled OperatingSheetPanel fixture: old outcomes/receipts remain readable, paused proposal/effect controls remain unavailable, and resume requires fresh review rather than executing old proposals. The fixture used build `MsohNlljqt7KxRmFLb2od`, 955 matching current application-source hashes and 55 unchanged compiled-JS hashes; no real lease, owner profile, provider or application server was used. One intercepted reconcile POST and one fixture GET produced zero effects, forwarded business requests, external requests, blocked requests or page errors. Owned processes were zero. Receipt `~/pmi-kc-work/logs/g4-historical-component-1790680995497/report.json`, SHA256 `6ca33b76569672a7b5a3833bded4fa781ebf9a6a97718a52fddf434d617be8ca`. This closes that component branch only; its route/store integration is separately covered by backend checks. Original harness failures remain preserved.
-
-The target remains one cumulative release of all thirteen features, with the 118-row litmus audit preserving engineering, remote, external and human verdicts separately. S121 is excluded. The prior repair passed its full gate/CI. The final output-selection correction passed focused tests/review and a read-only live diagnostic after fresh enrollment; its full gate passed with 7,425 unit/232 backend passes and all required checks. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z. The owner’s explicit batch-scoped authority permits a new corrected run after fresh GO; the frozen candidate and its receipts cannot be substituted.
+The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
+request. Five new regressions exposed four failures on the original source; the repaired source
+passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
+compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
+these probes do not establish authenticated live capacity or close the failed release gate.
+The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
+232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
+Runtime limits,
+assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
 
 ## Current implementation baseline
 
-Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The audit read back Production + Live, managed runtime identity, eleven Space maps, Demo false and Sheet write-back true. S128 is false in both ignored env files, the historical 1fb candidate, the 59d3 recovery clone and the Ready zero-traffic b59 candidate. The pause has not been promoted.
+Production serves `79493458f641b9710d8c43467e872aa9acf7948e` as `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. The audit read back Production + Live, managed runtime identity, eleven Space maps, Demo false and Sheet write-back true. S128 is false in both ignored env files and the current fa4f recovery/candidate revisions. The pause has not been promoted.
 
 Serving S113 supports normal Sheet append/field updates and refuses row deletion and historical restore. S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 conformance, S102-S110, S106/S34 handoff and S114-S120 operator improvements remain the delivered baseline. Both Dotloop keys remain closed. Document presence is not verified content or signature completion.
 
 ## Canonical closure sequence
 
-Stages 1–5 below retain their implemented engineering acceptance contracts; the final b59 full gate and independent review passed. The one replacement has passed recovery and build; stage 6 is blocked in assurance by the proven verifier defect. The final output-selection correction passed focused tests/review and read-only compatibility; its full gate and exact commit 41de760f4d7d9b75c027e4b3c3ad97e63681097b CI passed. The owner has authorized diagnosed and verified replacements through completion. Preserve these contracts and every receipt; do not reinstall controls or repeat completed proofs.
+Stages 1–5 retain their implemented engineering contracts and scoped evidence in the batch audit.
+Stage 6 is blocked in candidate assurance by the reproduced memory termination. Verify the loading
+repair, preserve/retire the failed run under the release lock, and require a new exact-head GO.
+The existing owner authorization covers this diagnosed replacement; no gate or old result changes.
 
 ### 1. Hold the release safely and resolve browser readiness
 
@@ -120,7 +128,10 @@ lifecycle surfaces on the exact remote replacement, retaining aggregate-only dia
 
 ### 6. Release once, read back and close documentation
 
-**Current replacement:** recovery and one exact b59 build passed on the owner-authorized resume. Assurance now refuses the build’s exact provenance update. Repair only the proven `buildConfig.name`/`sourceLocation` comparison while retaining every other service-control, immutable receipt, exact-build/source and operation check. The final output-selection correction passed adversarial focused checks, independent review and the read-only compatibility diagnostic; its full gate passed with 7,425 unit/232 backend passes and all required checks. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z. This engineering work grants no release retry or silent verifier substitution on the frozen candidate; resolve that execution boundary explicitly before proceeding.
+**Current replacement:** fa4f passed recovery and one application build, then failed assurance.
+The combined diagnostic reproduced the memory termination. Finish full verification of the SDK
+loading repair and exact main CI before safely retiring fa4f and admitting a new cumulative run.
+The earlier build-provenance correction passed actual fa4f recovery-availability readback.
 Follow the repaired ordered runbook. Re-read billing/cost controls and fresh approved auth; inspect checkpoint/archive/lock and both false local flags. Acquire the free release lock for admission and repeat native preflight until GO names the reviewed head and exactly thirteen suites. Atomically admit the prepared permit while retaining that lock, then hand lock ownership to exactly one native-snap-gcloud watcher without an unguarded launch window. The runner revalidates the admission itself; the scheduled task cannot race ahead of preflight. Follow independent phase readbacks: prepared recovery receipt, candidate build/smoke/configuration/domains, guarded Admin assurance, reconciliation, exact promotion and the full 300,000 ms observation. Diagnose failures before retry; preserve every attempt.
 
 Run `~/pmi-kc-work/scripts/s120-readbacks.sh <head-sha> <revision>`. Independently verify canonical/tagged identity, 100% traffic, Production + Live, ASK_DEMO_MODE=false, LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false, reviewed fingerprint/configuration, runtime identity, eleven Space maps, secret bindings, monitoring and exactly one candidate authorized domain. Prepared/actual rollback targets must also read Sheet=false. Recheck applicable read-only feature surfaces on the exact deployed release; fixtures do not prove customer effects.

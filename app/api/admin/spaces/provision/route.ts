@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       confirmation: input.confirmation,
       attemptKey: input.attemptKey,
       provisioningEnabled: config.spaceProvisioningEnabled,
-      provider: createDiscoveryEngineSpaceProvisioningProvider(),
+      provider: await createDiscoveryEngineSpaceProvisioningProvider(),
       ledger: new FirestoreSpaceProvisioningLedger(),
     };
     const receipt =

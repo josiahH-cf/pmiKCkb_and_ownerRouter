@@ -1,4 +1,4 @@
-import { v1beta } from "@google-cloud/discoveryengine";
+import type { v1beta } from "@google-cloud/discoveryengine";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import type {
@@ -163,7 +163,8 @@ export class FirestoreSourceMetaReader implements SourceMetaReader {
 }
 
 export class VertexSearchRetrievalClient implements RetrievalClient {
-  private readonly client: VertexSearchApiClient;
+  private client: VertexSearchApiClient | undefined;
+  private loadingClient: Promise<VertexSearchApiClient> | undefined;
   private readonly sourceMetaReader: SourceMetaReader;
 
   constructor(
@@ -173,11 +174,7 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
       sourceMetaReader?: SourceMetaReader;
     } = {},
   ) {
-    this.client =
-      options.client ??
-      (new v1beta.SearchServiceClient({
-        apiEndpoint: discoveryEngineEndpoint(config.vertexSearchLocation),
-      } satisfies SearchClientOptions) as VertexSearchApiClient);
+    this.client = options.client;
     this.sourceMetaReader = options.sourceMetaReader ?? new FirestoreSourceMetaReader();
   }
 
@@ -206,14 +203,16 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
   }
 
   private async searchTarget(question: string, target: SearchTarget) {
-    const servingConfig = this.client.projectLocationCollectionDataStoreServingConfigPath(
-      requiredProjectId(this.config),
+    const projectId = requiredProjectId(this.config);
+    const client = await this.getClient();
+    const servingConfig = client.projectLocationCollectionDataStoreServingConfigPath(
+      projectId,
       this.config.vertexSearchLocation,
       DEFAULT_COLLECTION_ID,
       target.dataStoreId,
       DEFAULT_SERVING_CONFIG_ID,
     );
-    const [, , response] = await this.client.search(
+    const [, , response] = await client.search(
       {
         contentSearchSpec: {
           snippetSpec: {
@@ -228,6 +227,25 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
     );
 
     return response;
+  }
+
+  /** Loading a page or constructing a reader must not load the large generated Search SDK.
+   * Only an actual search needs it; concurrent targets share one client initialization. */
+  private async getClient(): Promise<VertexSearchApiClient> {
+    if (this.client) return this.client;
+    const pending = (this.loadingClient ??= import("@google-cloud/discoveryengine").then(
+      ({ v1beta }) =>
+        new v1beta.SearchServiceClient({
+          apiEndpoint: discoveryEngineEndpoint(this.config.vertexSearchLocation),
+        } satisfies SearchClientOptions) as VertexSearchApiClient,
+    ));
+    try {
+      this.client = await pending;
+      return this.client;
+    } finally {
+      // A failed construction may be retried by a later explicit search.
+      if (this.loadingClient === pending) this.loadingClient = undefined;
+    }
   }
 }
 

@@ -10,15 +10,112 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-**AUTHORIZED CONTINUATION — the owner granted batch-scoped authority through verified deployment; the frozen failed candidate remains unchanged while a corrected cumulative run is prepared.** Exact admitted `b59f2c6f08a32f022cff5112a16bc5405664e4d1` passed [CI 36563319696](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36563319696). Run `59d3ef47-06c6-4d9c-9235-ffb257e9976f` completed recovery on the owner-authorized same-run resume at **12:25:57.310Z**. Its one application build `5dfbc9d0-4a9c-4972-b371-fed8d1388f77` succeeded at **12:30:30.821224Z**. Candidate `pmi-kc-app-rmumm94q0-db6fbbbf472d` is Ready at zero traffic, Production + Live, Demo=false and Sheet=false, fingerprint `sha256:332270ebfef15047baf756d47e09d72b514dccf43f93911fc6aae9212c55b368`. Smoke, fingerprint and domains passed; all thirteen features remain queued.
+### Current fa4f candidate and diagnosed memory repair
 
-Assurance failed at **12:33:42.187Z** with `unclassified_child_failure`. The unchanged verifier diagnostic established `recovery_service_controls_changed`: only `buildConfig.name` and `buildConfig.sourceLocation` changed, exactly matching the successful application build and its generation-qualified source. All other service controls match, and the retained operation’s typed Service response recomputes the `serviceControlsHash` recorded in the immutable recovery receipt. The gate refused before the candidate canary and reconciliation, so both are **NOT RUN within this gate**. No candidate assurance receipt, promotion or observation exists.
+Run `fa4f6652-3220-4847-93f3-a81465648134` carries all thirteen features at
+`f1eaef2497c373797d4066e9f35c75bd5a7abf19`; exact [CI 36592862679](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36592862679)
+passed. Recovery receipt `b6f02000-fb07-4d05-8082-9ae7b5adea56` passed at 16:09:43.559Z.
+One application build `f001e49c-242e-4c2f-8c15-e0d5d42cb5c3` succeeded at 16:14:17.657017Z.
+Candidate `pmi-kc-app-rmumv0qhm-ee028c251b32` is at zero traffic, Production/Live,
+Demo=false and Sheet=false; smoke, fingerprint and domains passed. Assurance is BLOCKED.
+The combined diagnostic reproduced a Dashboard 503; Cloud Run recorded memory 515 MiB above
+its 512 MiB limit at 16:33:36.558130Z. Separate reconciliation matched all 311 records with
+zero discrepancies. This diagnostic is not a candidate assurance receipt. No promotion or
+observation occurred; canonical S120 remains at 100%. Keep all thirteen queue entries.
 
-Prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` is committed and pushed to main, with native checkout alignment and an independent 2,189-blob audit passed; protected paths and private inputs were excluded. [CI 36573074638](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36573074638) passed all five jobs on that exact commit, completing at 13:14:11Z. This main repair is separate from the frozen b59 candidate.
+The in-scope repair defers Discovery Engine SDK loading until an actual search or provisioning
+request. Five new regressions exposed four failures on the original source; the repaired source
+passed all 35 focused checks, typecheck, lint and a production build. Matched local unauthenticated
+compiled probes reduced sampled peak RSS from 341.1 MiB to 302.0 MiB with the same route statuses;
+these probes do not establish authenticated live capacity or close the failed release gate.
+The full repaired-tree gate passed 17:10:29.537Z: 7,430 unit passes, four existing skips,
+232 backend passes and all required checks/build. Exact-head replacement CI remains pending.
+Runtime limits,
+assurance concurrency/deadlines, safety controls and the admitted f1 checkout remain unchanged.
 
-The prior repair `497333a686c09cc492c7a4ef6edd925c7c8dfb98` passed its full gate and exact main CI. A later live diagnostic exposed its single-output assumption: the actual build has two outputs. The final narrow correction selects exactly one output matching unchanged `buildConfig.imageUri`, while missing/duplicate targets, malformed outputs and wrong digests still refuse. It passed 263 focused tests in six files, typecheck, lint and independent review. The final correction’s full gate passed at **13:36:35.614Z**: **7,425 unit passes**, four existing clean-configuration skips, **232 backend passes in 42 files**, all required checks and build `kgQ4RNAI5ZrB2a2cspbcg`. The correction is committed and pushed as `41de760f4d7d9b75c027e4b3c3ad97e63681097b`; primary and native checkouts match, and exact [CI 36578057395](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36578057395) passed all five jobs at 13:54:39Z.
+The prior 59d3 attempt was preserved/retired at 15:53:54.274Z with all 15 files copied, fsynced
+and read back; only active checkpoint/permit positions were removed. Receipt root:
+`~/pmi-kc-work/logs/run59d3-retirement-execute-2026-09-29T155348731Z-5bec36ed-4eb1-4ec5-955f-095b804382dd`,
+summary SHA256 `4c5cef12f6725cb6b8f07a0538598d8e0c8d5ed34e3d76892ec369df988c6be1`.
+Exact governance commit f1 passed all five CI jobs at 15:51:04Z; new admission reached GO for
+all thirteen suites. Earlier helper parser refusal is preserved separately, not called a pass.
 
-Fresh approved CLI/ADC enrollment and binding passed at **13:16:20.229Z** after the owner requested another sign-in attempt; the earlier eleven-minute timeout remains failed. At **13:25:04.509Z**, the corrected `verifyRecoveryAvailability` returned true against the exact b59/run59d3 receipt and candidate with default freshness: all seven guarded GETs returned HTTP200 and the checker plus eight selected active-state hashes stayed unchanged. This is a read-only compatibility diagnostic, not candidate assurance, a new receipt, promotion, observation or release continuation. A separate guarded Admin-readiness rerun passed at **13:42:27.560Z** on canonical and the exact b59 candidate `/admin/access`: both HTTP200, Admin role and expected heading, no sign-in, zero business attempts/blocks/errors, nine unchanged active-state hashes and zero owned/profile/watcher processes after lock release. This is readiness only, not formal candidate assurance or release authority. Earlier navigation/public-fetch timeouts remain failed; their cause is unproven. The owner now authorizes diagnosed and verified replacements through completion under the batch-scoped amendment in AGENTS.md; the frozen b59 verifier and receipts remain immutable. The audit preserves every failed probe and prior repair scope.
+Fa4f recovery failed first at 16:01:56.176Z on version read; a separate unchanged readback passed
+16:07:11.363Z. Its precise timeout cause remains unproven. Same-run recovery then issued its
+own receipt. Smoke failed at 16:15:49.345Z; platform evidence shows root's first 307 took 52.426s,
+above the unchanged 30s deadline. The separate unchanged smoke passed 16:17:02.154Z.
+Assurance failed 16:22:03.006Z and again 16:30:43.681Z. The intervening candidate-only diagnostic
+passed all routes, reconciliation and monitoring at 16:25:58.411Z; it did not mint a release receipt.
+The later ordered combined diagnostic reproduced the failure; this does not establish identical
+causes for every earlier aggregate failure.
+
+Combined diagnostic: `~/pmi-kc-work/logs/fa4f-combined-assurance-diagnostic-2026-09-29T163244620Z/report.json`,
+SHA256 `b975913c0996feec7402d682e10c1d4166bf7f6a88bbaa2f557b834cb0994abc`.
+Recovery availability and canonical Admin passed; candidate Dashboard returned 503, desk failed
+settlement and its dependent workspace was unavailable. Reconciliation matched 311 records,
+monitoring passed, nine selected state files stayed unchanged and owned/browser/watcher counts
+ended zero. Platform diagnostic: `~/pmi-kc-work/logs/fa4f-cloud-failure-20260929T163612109504Z.json`,
+SHA256 `95194ec39b7fd0d912ee7a20a0b6a37698edfb5d659d32192961cdbea13da53c`.
+System OOM at 16:33:36.558130Z and root GET503 at 16:33:27.245858Z explain the reproduced failure.
+No raw cloud bodies, customer values or credentials enter this audit.
+
+Isolated repair checks: `~/pmi-kc-work/logs/memory-lazy-focus-20260929T165446746686Z/report.json`,
+SHA256 `017a02fbe3af611746b79e3cdab77b407e49d9b7651c50060534ca790a6c4c01`.
+Five regression cases cover inert imports/construction, invalid targets, shared concurrent client
+initialization, injected-client isolation, explicit retry after construction failure and fixed
+provisioning clients. Original source failed four of five; repaired source passed all 35 related
+checks in eight files plus typecheck/lint/build. No provider request or real credential was used.
+
+Matched compiled probes used 19 unauthenticated local routes, three concurrent requests and three
+cycles with empty HOME, loopback emulator/metadata addresses and test project, then local GC.
+Baseline report: `~/pmi-kc-work/logs/local-memory-baseline-matched-20260929T165728236339Z/report.json`,
+SHA256 `d881896bf2af3c9151b6fe585abdf275542afc56a09dab98d7486e0db54a785b`.
+Repair report: `~/pmi-kc-work/logs/local-memory-lazy-profile-20260929T165642543193Z/report.json`,
+SHA256 `befe578e638df04c4c534fa3066cbc96a8be0b9d5fa4257c7a5708950576491a`.
+Sampled peak RSS fell 341.1 to 302.0 MiB; identical HTTP status sequences were retained.
+This is module/loading evidence, not authenticated rendering, live-memory capacity or a release pass.
+An external-package-only alternative increased local RSS and was rejected; no config change was
+applied. The first isolated variant build refused an out-of-root dependency symlink; that failure
+remains preserved and the fresh variant used an actual dependency copy. PDF loading is unchanged.
+
+### Full SDK loading repair verification and preserved run
+
+The full frozen-tree gate ran **17:02:38.680Z–17:10:29.537Z**, exit 0: **7,430 unit passes**,
+four existing clean-configuration skips, **232 backend passes in 42 files**, all required
+format/lint/type/policy/document/redaction/budget gates and build `qKSwDZu3yNvwvIVe_9jmE`.
+All 2,190 frozen source files stayed unchanged; native/primary drift and owned runtime counts
+were zero. Empty HOME/config, test project and loopback metadata/emulator boundaries were used.
+Receipt: `~/pmi-kc-work/logs/memory-ship-verify-20260929T170233348790Z/summary.json`,
+SHA256 `f94233dbb75084d9e92ed824fa16b6027aca94a445103a75f1a75fd74af757ee`;
+full-log SHA256 `1ba71e99e9303c1066bb290ccacdf6c9195f7fa86853acd71470ff18f3404976`;
+manifest SHA256 `7996983e1c01fa168b328f8fa78058490fae6249ea344eae048c12ba85d88c77`.
+Documentation subsequently records these observed results; application/test hashes stay bound to
+this full gate and the final documentation gates. New exact main CI and live release remain gates.
+
+A separate automated AST/installed-SDK review passed at **17:10:30.020Z**. It compared the actual
+provider operation bodies, search payload arguments and guarded route against f1, constructed
+the real installed clients only on demand, verified 40 concurrent calls shared one client, and
+checked configured transport endpoints/path construction without provider execution. HTTP/fetch/
+socket calls were refused; one attempted metadata request was blocked and zero were forwarded.
+The receipt finalized at event-loop drain: `~/pmi-kc-work/logs/sdk-loading-independent-review-final-1790701830021.json`,
+SHA256 `ff6e3b99120e81a8512564dd3ded1cc468141551b00a254c52a9a99e5ab1dfcd`.
+This is an automated comparison/runtime probe, not a separate human or provider proof. The first
+probe's incorrect SDK getter expectation and the second probe's premature zero-attempt report
+remain preserved with their limitations; only the final drained receipt supplies the count.
+
+All 17 fa4f state files were snapshotted byte-for-byte under the release lock at **17:03:34.089Z**:
+`~/pmi-kc-work/logs/fa4f-assurance-stop-snapshot-1790701413983-65d20d0e-2787-48a3-8990-7dd21648c724`,
+manifest SHA256 `38428d8dd063f39050f83f87c3c0e8645b8d4e0fb3864a09c16574f9c28f956d`.
+Active files stayed unchanged; snapshotting itself retired nothing and made no cloud mutation.
+The fa4f retirement helper was adapted to those exact identities and 17-file inventory, retaining
+all cloud/readback/receipt/lock checks. Its 12 isolated parser checks passed, including wrong run,
+same SHA, missing authority/hash, duplicate and unknown arguments. These are preparation only;
+actual dry-run, checked retirement and new admission remain mandatory after exact-head CI.
+
+Fresh Google provider readback passed **17:05:44.455Z**, expected resource/HTTP200/enabled,
+zero mutations. Existing CLI/ADC freshness and real browser-role gates still apply at admission.
+
+### Earlier b59 attempt — historical evidence only
 
 ### Preserved chronology and exact receipts
 

@@ -1,5 +1,3 @@
-import { v1 } from "@google-cloud/discoveryengine";
-
 import {
   FIXED_SPACE_PROVISIONING_LOCATION,
   FIXED_SPACE_PROVISIONING_PROJECT,
@@ -144,7 +142,10 @@ export class DiscoveryEngineSpaceProvisioningProvider implements FixedSpaceProvi
   }
 }
 
-export function createDiscoveryEngineSpaceProvisioningProvider(): DiscoveryEngineSpaceProvisioningProvider {
+export async function createDiscoveryEngineSpaceProvisioningProvider(): Promise<DiscoveryEngineSpaceProvisioningProvider> {
+  // Ordinary Admin reads need the contract, not the generated provider clients. Load them only
+  // when the existing authenticated provisioning route requests this adapter.
+  const { v1 } = await import("@google-cloud/discoveryengine");
   const endpoint = `${FIXED_SPACE_PROVISIONING_LOCATION}-discoveryengine.googleapis.com`;
   return new DiscoveryEngineSpaceProvisioningProvider(
     new v1.DataStoreServiceClient({
